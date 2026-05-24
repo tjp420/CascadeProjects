@@ -94,6 +94,24 @@ test('deepIncludesFiction ignores bare number 8 outside totalFeatures', () => {
     assert.equal(hits.length, 0);
 });
 
+test('real ai-tools-sample overview metrics are not fiction KPIs', () => {
+    const samplePath = path.join(__dirname, '../../../web/data/ai-tools-sample.json');
+    if (!fs.existsSync(samplePath)) {
+        return;
+    }
+
+    const payload = JSON.parse(fs.readFileSync(samplePath, 'utf8'));
+    const baseline = {
+        rejectedFiction: {
+            featureCounts: [8, 9],
+            completionRates: [62]
+        }
+    };
+
+    const hits = deepIncludesFiction(payload, baseline);
+    assert.equal(hits.length, 0, `unexpected fiction hits: ${hits.join('; ')}`);
+});
+
 test('detectStaleRoadmapTemplate flags Sprint 3 in-progress at 75%', () => {
     const hits = detectStaleRoadmapTemplate({
         type: 'gguf-development-roadmap-report',
