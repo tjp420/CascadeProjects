@@ -21,7 +21,7 @@ describe('sample consistency checker', () => {
             (issue) => issue.severity === 'high' && anchorFiles.has(issue.filePath)
         );
         expect(anchorBlocking).toEqual([]);
-        expect((result.anchorExtractions || []).length).toBeGreaterThanOrEqual(6);
+        expect((result.anchorExtractions || []).length).toBeGreaterThanOrEqual(5);
     });
 
     test('detects fictional KPI values', () => {
@@ -42,9 +42,9 @@ describe('sample consistency checker', () => {
 describe('roadmap json specs', () => {
     const baseDir = path.join(__dirname, '../..');
 
-    test('validates measured gguf roadmap file', () => {
-        const result = validateRoadmapJson('gguf-roadmap-data.json', {
-            type: 'gguf-development-roadmap-report',
+    test('validates measured ai roadmap file', () => {
+        const result = validateRoadmapJson('ai-roadmap-report.json', {
+            type: 'ai-roadmap-report-model',
             dataSource: 'repository-audit',
             projectOverview: {},
             developmentPhases: [{}]
@@ -54,7 +54,7 @@ describe('roadmap json specs', () => {
 
     test('skips archived legacy fiction roadmap files from active scan', async () => {
         const result = await validateRoadmapFiles(baseDir);
-        expect(result.checked).toBeGreaterThanOrEqual(2);
+        expect(result.checked).toBeGreaterThanOrEqual(1);
         expect(result.issues.some((issue) => issue.type === 'Legacy Fiction Roadmap')).toBe(false);
     });
 

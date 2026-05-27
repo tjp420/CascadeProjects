@@ -81,6 +81,7 @@
     "backup:database": "node scripts/backup-database.js",
     "dashboard:v1-internal": "node tools/start-v1-internal-dashboard.js",
     "dashboard:kill-ports": "node tools/kill-dashboard-ports.js",
+    "models:restore": "node tools/restore-local-models.js",
     "staging:paywall": "node tools/start-v1-internal-dashboard.js",
     "build:sample-report": "node tools/build-sample-report.js",
     "upgrade-audit-html": "node tools/upgrade-legacy-audit-html.js",

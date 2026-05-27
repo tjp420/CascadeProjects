@@ -4,10 +4,46 @@
  * Exits non-zero on failure.
  */
 
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+
 const DEFAULT_BASE_URL = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:54355';
 
+function loadLocalVaultEnv() {
+    if (process.env.DASHBOARD_VAULT_PASSWORD || process.env.SMOKE_VAULT_PASSWORD) return;
+    const candidates = [
+        path.join(process.cwd(), '.env.v1-internal'),
+        path.join(__dirname, '..', '.env.v1-internal')
+    ];
+    for (const envPath of candidates) {
+        if (!fs.existsSync(envPath)) continue;
+        for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+            const match = line.match(/^([^#=]+)=(.*)$/);
+            if (!match) continue;
+            const key = match[1].trim();
+            if (!process.env[key]) process.env[key] = match[2].trim();
+        }
+        break;
+    }
+}
+
+function vaultSessionCookie() {
+    const secret = process.env.DASHBOARD_VAULT_PASSWORD || process.env.SMOKE_VAULT_PASSWORD || '';
+    if (!secret) return '';
+    const token = crypto.createHmac('sha256', secret).update('simplebeacon-vault').digest('hex');
+    return `sb_vault=${token}`;
+}
+
+function mergeRequestOptions(options = {}) {
+    const cookie = vaultSessionCookie();
+    if (!cookie) return options;
+    const headers = { ...(options.headers || {}), Cookie: cookie };
+    return { ...options, headers };
+}
+
 async function fetchJson(url, options = {}) {
-    const res = await fetch(url, options);
+    const res = await fetch(url, mergeRequestOptions(options));
     let data = null;
     try {
         data = await res.json();
@@ -18,6 +54,7 @@ async function fetchJson(url, options = {}) {
 }
 
 async function main() {
+    loadLocalVaultEnv();
     const baseUrl = String(DEFAULT_BASE_URL).replace(/\/$/, '');
     const requireAuth = (process.env.SMOKE_REQUIRE_AUTH || process.env.REQUIRE_AUTH) === 'true';
     const configuredBearer = process.env.SMOKE_BEARER_TOKEN || process.env.SIMPLEBEACON_DASHBOARD_TOKEN || '';
@@ -36,6 +73,9 @@ async function main() {
             failures.push(`${name}: request failed (${error.message})`);
         }
     }
+
+    const vaultCookie = vaultSessionCookie();
+    if (vaultCookie) notes.push('OK vault session cookie attached');
 
     // Public routes expected to work without auth.
     await expectStatus('health', '/api/health', 200);
@@ -97,6 +137,37 @@ async function main() {
         });
     } else if (requireAuth) {
         failures.push('auth gate enabled but no bearer token available for protected route check');
+    }
+
+    if (vaultCookie) {
+        const { res: modelsRes, data: modelsData } = await fetchJson(`${baseUrl}/api/models`);
+        if (modelsRes.status !== 200 || !modelsData?.success) {
+            failures.push(`local models list: expected 200 success, got ${modelsRes.status}`);
+        } else {
+            notes.push(`OK local models -> ${modelsRes.status} (${modelsData.models?.length || 0} registered)`);
+        }
+
+        const { res: activeRes, data: activeData } = await fetchJson(`${baseUrl}/api/models/active`);
+        if (activeRes.status !== 200 || !activeData?.activeModel?.name) {
+            failures.push(`local models active: expected 200 with activeModel, got ${activeRes.status}`);
+        } else {
+            notes.push(`OK active model -> ${activeData.activeModel.name}`);
+        }
+
+        const { res: ollamaRes, data: ollamaData } = await fetchJson(`${baseUrl}/api/models/test-ollama`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+        if (ollamaRes.status !== 200) {
+            failures.push(`test-ollama: expected 200, got ${ollamaRes.status}`);
+        } else if (ollamaData?.ok) {
+            notes.push('OK Ollama connection healthy');
+        } else {
+            notes.push(`INFO Ollama unavailable (${ollamaData?.message || 'no message'})`);
+        }
+    } else {
+        notes.push('INFO vault cookie unavailable — skipping /api/models smoke checks');
     }
 
     for (const line of notes) {

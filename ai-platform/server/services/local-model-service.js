@@ -102,6 +102,32 @@ function hashFileSha256(filePath) {
     });
 }
 
+function normalizePathKey(filePath) {
+    return path.normalize(String(filePath || '')).toLowerCase();
+}
+
+async function findUploadFileByHash(uploadsDir, fileHash, fileSize, { excludePath } = {}) {
+    const excludeKey = excludePath ? normalizePathKey(excludePath) : null;
+    const entries = await fs.promises.readdir(uploadsDir, { withFileTypes: true });
+    const sizeMatches = [];
+
+    for (const entry of entries) {
+        if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.gguf')) continue;
+        const fullPath = path.join(uploadsDir, entry.name);
+        if (excludeKey && normalizePathKey(fullPath) === excludeKey) continue;
+        const stat = await fs.promises.stat(fullPath);
+        if (stat.size <= 0 || stat.size !== fileSize) continue;
+        sizeMatches.push(fullPath);
+    }
+
+    for (const candidatePath of sizeMatches) {
+        const candidateHash = await hashFileSha256(candidatePath);
+        if (candidateHash === fileHash) return candidatePath;
+    }
+
+    return null;
+}
+
 function getActiveModel(registry) {
     const active = registry.models.find((m) => m.id === registry.activeModelId);
     return active || registry.models.find((m) => m.isDefault) || registry.models[0] || null;
@@ -218,7 +244,7 @@ async function getModelHash(baseDir, modelId, { refresh = false } = {}) {
 async function registerUploadedModel(baseDir, file, meta = {}) {
     const registry = await ensureRegistry(baseDir);
     const name = String(meta.name || path.parse(file.originalname || file.filename).name).trim();
-    const storedPath = file.path;
+    let storedPath = file.path;
     const stat = await fs.promises.stat(storedPath);
     const fileHash = await hashFileSha256(storedPath);
     const existing = registry.models.find((m) => m.hash === fileHash);
@@ -227,6 +253,23 @@ async function registerUploadedModel(baseDir, file, meta = {}) {
             await fs.promises.unlink(storedPath);
         } catch { /* ignore cleanup errors */ }
         return { model: existing, deduplicated: true };
+    }
+
+    const uploadsDir = getUploadsDir(baseDir);
+    const duplicatePath = await findUploadFileByHash(uploadsDir, fileHash, stat.size, {
+        excludePath: storedPath
+    });
+    if (duplicatePath) {
+        try {
+            await fs.promises.unlink(storedPath);
+        } catch { /* ignore cleanup errors */ }
+        storedPath = duplicatePath;
+        const existingByPath = registry.models.find(
+            (m) => m.path && normalizePathKey(m.path) === normalizePathKey(storedPath)
+        );
+        if (existingByPath) {
+            return { model: existingByPath, deduplicated: true };
+        }
     }
 
     const model = {

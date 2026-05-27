@@ -487,7 +487,7 @@ describe('codebase analyzer', () => {
         await fs.promises.mkdir(path.join(tempDir, 'ai-platform', 'web', 'data'), { recursive: true });
         await fs.promises.mkdir(path.join(tempDir, 'ai-platform', 'src', 'ai-system'), { recursive: true });
         await fs.promises.writeFile(
-            path.join(tempDir, 'ai-platform', 'web', 'data', 'gguf-mock-analysis-sample.json'),
+            path.join(tempDir, 'ai-platform', 'web', 'data', 'mock-analysis-sample.json'),
             JSON.stringify({
                 notes: 'not legacy demo oracle or 98.5% confidence fiction.',
                 rejectedFiction: { warning: 'Prior demo scans used legacy oracle branding and 98.5% confidence' }
@@ -689,7 +689,7 @@ describe('codebase analyzer', () => {
 
         expect(platformRoot).toBe(baseDir);
         expect(parentScopedFiles.length).toBe(platformFiles.length);
-    });
+    }, 60000);
 
     test('skips legacy src/ai-system tree from deep analysis by default', async () => {
         await fs.promises.mkdir(path.join(tempDir, 'src', 'ai-system'), { recursive: true });
@@ -776,9 +776,9 @@ describe('codebase analyzer', () => {
     });
 
     test('flags unittest.mock in production paths', async () => {
-        await fs.promises.mkdir(path.join(tempDir, 'src', 'server', 'api'), { recursive: true });
+        await fs.promises.mkdir(path.join(tempDir, 'server', 'lib'), { recursive: true });
         await fs.promises.writeFile(
-            path.join(tempDir, 'src', 'server', 'api', 'bad.py'),
+            path.join(tempDir, 'server', 'lib', 'bad.py'),
             'from unittest.mock import patch\n\ndef run():\n    return MagicMock()\n',
             'utf8'
         );

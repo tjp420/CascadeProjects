@@ -4,10 +4,12 @@ const path = require('path');
 const {
     ensureRegistry,
     registerModel,
+    registerUploadedModel,
     activateModel,
     getActiveModelInfo,
     removeModel,
-    formatBytes
+    formatBytes,
+    getUploadsDir
 } = require('../../server/services/local-model-service');
 
 describe('local model service', () => {
@@ -58,5 +60,26 @@ describe('local model service', () => {
         });
         const result = await removeModel(baseDir, model.id);
         expect(result.removed).toBe(model.id);
+    });
+
+    test('registerUploadedModel deduplicates against orphan upload on disk', async () => {
+        const uploadsDir = getUploadsDir(baseDir);
+        fs.mkdirSync(uploadsDir, { recursive: true });
+        const orphanPath = path.join(uploadsDir, '111111-orphan.gguf');
+        fs.writeFileSync(orphanPath, 'duplicate gguf bytes');
+
+        const duplicatePath = path.join(uploadsDir, '222222-orphan.gguf');
+        fs.writeFileSync(duplicatePath, 'duplicate gguf bytes');
+
+        const result = await registerUploadedModel(baseDir, {
+            path: duplicatePath,
+            originalname: 'orphan.gguf',
+            filename: path.basename(duplicatePath)
+        }, { name: 'orphan-model' });
+
+        expect(result.deduplicated).toBe(false);
+        expect(result.model.path).toBe(orphanPath);
+        expect(fs.existsSync(duplicatePath)).toBe(false);
+        expect(fs.existsSync(orphanPath)).toBe(true);
     });
 });
