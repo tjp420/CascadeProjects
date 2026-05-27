@@ -1,0 +1,130 @@
+{
+  "type": "release-timeline-report",
+  "title": "Release Timeline Report (Measured Baseline)",
+  "dataSource": "repository-audit",
+  "generatedAt": "2026-05-23T20:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": null,
+    "status": "active",
+    "notes": "Engineering milestones — 4/4 sprints complete on path scan."
+  },
+  "releaseOverview": {
+    "currentRelease": "v0.8-beta",
+    "nextReleaseDate": "Post-Simplebeacon v0.1 (optional v1.0-internal)",
+    "finalTargetDate": "Engineering timeline reviewed after v1.0-internal sign-off",
+    "onTrackPercentage": "100%",
+    "totalReleases": 4,
+    "completedReleases": 4,
+    "inProgressReleases": 0,
+    "upcomingReleases": 0,
+    "notes": "Sprint model complete — not 75% v0.8 with Docker/Istanbul remaining."
+  },
+  "releaseSchedule": [
+    {
+      "version": "v0.1-alpha",
+      "title": "Dashboard Shell",
+      "date": "2026-03-01",
+      "status": "completed",
+      "description": "Dashboard pages, sample JSON, navigation shell",
+      "achievements": ["dashboard-new.html", "page scripts", "payload routing", "stub API layer"],
+      "completionRate": "100%"
+    },
+    {
+      "version": "v0.5-beta",
+      "title": "Phase 2 Platform Core",
+      "date": "2026-05-14",
+      "status": "completed",
+      "description": "Auth, models registry, scanner, issues fix API",
+      "achievements": ["JWT auth", "local models API", "mock-data scanner", "665 Jest tests (32 suites)"],
+      "completionRate": "100%"
+    },
+    {
+      "version": "v0.8-beta",
+      "title": "Honest Dashboard Data + CI",
+      "date": "2026-05-23",
+      "status": "completed",
+      "description": "repository-audit samples, code-roadmap Phase 2, CI smoke + Istanbul",
+      "achievements": [
+        "43/43 PAGE_SAMPLE_SPECS on repository-audit",
+        "npm audit wired (SEC-004)",
+        "dashboard-ci.yml phase2-smoke + test:coverage",
+        "mock-data-scanner honest attribution"
+      ],
+      "completionRate": "100%"
+    },
+    {
+      "version": "v1.0-internal",
+      "title": "Internal Dashboard Ready (optional)",
+      "date": "Post-Simplebeacon v0.1",
+      "status": "planned",
+      "description": "Optional scope — REQUIRE_AUTH deploy runbook, not July enterprise go-live",
+      "achievements": ["Measured KPI pipeline", "Path scan + verify scripts"],
+      "completionRate": "0%"
+    }
+  ],
+  "currentSprintDetails": {
+    "version": "v0.8-beta",
+    "progress": "100%",
+    "completedTasks": [
+      "4/4 sprints complete on path scan",
+      "665/665 Jest (32 suites)",
+      "42/42 repository-audit page specs",
+      "Code-roadmap Phase 2 + executive HTML export",
+      "docker-compose.phase2.yml smoke + Istanbul in CI"
+    ],
+    "inProgressTasks": [],
+    "pendingTasks": [
+      "Maintainer sign-off on shared host with REQUIRE_AUTH=true"
+    ]
+  },
+  "upcomingReleaseDetails": {
+    "version": "v1.0-internal",
+    "planningProgress": "90%",
+    "completedTasks": [
+      "Measured baseline documented across dashboard pages",
+      "REQUIRE_AUTH integration tests + .env.v1-internal.example + runbook",
+      "Coverage Reports wired to Istanbul CI artifact (79.5% line on collectCoverageFrom scope)",
+      "Optional semantic hints on path scan when LLAMA_CPP_BIN set"
+    ],
+    "inProgressTasks": [],
+    "pendingTasks": ["Maintainer sign-off on shared host"]
+  },
+  "riskAssessment": {
+    "scheduleRisk": "Low",
+    "resourceRisk": "Low",
+    "technicalRisk": "Low",
+    "overallRiskLevel": "Low",
+    "notes": "Solo maintainer — sample drift is the main operational risk."
+  },
+  "recommendations": [
+    "Treat release timeline as engineering milestones — not shipped product history",
+    "Run tools/verify-roadmap-alignment.js after major merges",
+    "Clear lastReleaseTimelineModel if you still see 75% v0.8 or 665-test references"
+  ],
+  "crossReferences": {
+    "implementationPlan": "/data/implementation-plan-sample.json",
+    "aiRoadmap": "/data/ai-roadmap-sample.json",
+    "cascadeRoadmap": "/data/cascade-roadmap-sample.json",
+    "measuredAt": "2026-05-23T20:00:00.000Z",
+    "jestTests": 665,
+    "jestSuites": 32,
+    "pageSampleSpecs": "42/42",
+    "sprintsComplete": "4/4"
+  },
+  "rejectedFiction": {
+    "claims": [
+      "75% v0.8-beta with Docker/Istanbul remaining",
+      "665/665 tests and 43/43 samples",
+      "July 2026 enterprise deployment with 6 FTE"
+    ]
+  },
+  "deprecatedNarrative": {
+    "warning": "Prior sample claimed v0.8 at 75%, 665 tests, 43/43 samples, and Docker/Istanbul as remaining.",
+    "previousOnTrackPercentage": "72%",
+    "previousJestTests": 502,
+    "previousSamples": "42/42"
+  }
+}

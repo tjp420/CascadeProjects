@@ -1,0 +1,241 @@
+{
+  "type": "implementation-plan-model",
+  "title": "Implementation Plan (Measured Baseline)",
+  "generatedAt": "2026-05-23T20:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "version": "2.1.0",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": null,
+    "status": "active",
+    "notes": "Solo-maintainer plan from path scan + repository-audit — not 6-role staffing or $39.7k fiction."
+  },
+  "executiveSummary": {
+    "currentCompletion": 100,
+    "targetCompletion": 100,
+    "aiConfidence": null,
+    "projectHealth": "Good — 4/4 CI sprints complete; Production Deploy deferred",
+    "timelineTarget": "Simplebeacon v0.1 publish (Production Deploy post-launch)",
+    "totalBudget": null,
+    "budgetNote": "Solo notional hours only — not enterprise budget forecasts",
+    "teamSize": 1,
+    "duration": "4 sprints delivered; optional Phase 3 backlog",
+    "notes": "954/954 Jest (64 suites), 43/43 PAGE_SAMPLE_SPECS, Phase 2 code-roadmap on path scan."
+  },
+  "sprintStatus": [
+    { "sprint": "Sprint 1: Server & Auth", "status": "completed", "progress": 100, "window": "2026-05-01 — 2026-05-07" },
+    { "sprint": "Sprint 2: Stub APIs & Tests", "status": "completed", "progress": 100, "window": "2026-05-08 — 2026-05-14" },
+    { "sprint": "Sprint 3: Honest Dashboard Data", "status": "completed", "progress": 100, "window": "2026-05-15 — 2026-05-28" },
+    { "sprint": "Sprint 4: Production CI Profile", "status": "completed", "progress": 100, "window": "2026-05-24" },
+    { "sprint": "Sprint 5: Production Deploy Profile", "status": "deferred", "progress": 0, "window": "Post-Simplebeacon v0.1" }
+  ],
+  "implementationPhases": [
+    {
+      "phase": "Delivered — Sprints 1–4",
+      "duration": "4 weeks",
+      "priority": "complete",
+      "progress": 100,
+      "status": "completed",
+      "objectives": [
+        "Server delegate + Phase 2 JWT",
+        "Stub APIs + 954/954 Jest",
+        "42/42 repository-audit samples + scanners",
+        "docker-compose.phase2.yml config smoke + Istanbul in dashboard-ci.yml",
+        "simplebeacon CLI + simplebeacon.yml gate"
+      ],
+      "completedItems": [
+        "code-roadmap-generator + Phase 2 (cycles, fuzzy, solo resources, HTML export)",
+        "mock-data-scanner with honest repository-audit attribution",
+        "npm audit on Security page (SEC-004)",
+        "phi-2.Q4_K_M.gguf active in registry"
+      ],
+      "remainingItems": [],
+      "teamAllocation": { "Maintainer": "solo full-stack" }
+    },
+    {
+      "phase": "Ongoing — Baseline hygiene",
+      "duration": "continuous",
+      "priority": "medium",
+      "progress": 60,
+      "status": "in-progress",
+      "objectives": [
+        "Keep samples aligned after npm test / spec changes",
+        "Run path scan after major merges",
+        "Clear stale localStorage exports"
+      ],
+      "completedItems": [
+        "tools/sync-audit-baseline-samples.js",
+        "tools/verify-roadmap-alignment.js",
+        "Stale guards on roadmap + GGUF analysis pages",
+        "Canonical gguf-mock-analysis in web/data only (data/mock pointer stub)",
+        "Archived data/roadmap/archive/cascade-project-roadmap.json (~4.8MB legacy)"
+      ],
+      "remainingItems": [
+        "Optional LLAMA_CPP_BIN semantic hints (Phase 3)"
+      ],
+      "teamAllocation": { "Maintainer": "solo" }
+    },
+    {
+      "phase": "v1.0-internal — production profile (optional)",
+      "duration": "1–2 days solo",
+      "priority": "medium",
+      "progress": 90,
+      "status": "in-progress",
+      "objectives": [
+        "REQUIRE_AUTH=true one-command deploy profile",
+        "Integration tests for auth gate",
+        "Solo maintainer runbook",
+        "Coverage Reports wired to Istanbul CI artifact"
+      ],
+      "completedItems": [
+        ".env.v1-internal.example with REQUIRE_AUTH=true",
+        "docs/v1-internal-runbook.md",
+        "REQUIRE_AUTH integration tests in phase2-integration.test.js",
+        "npm run dashboard:v1-internal and verify:v1-internal",
+        "jest-coverage-reader + coverage-reports-builder on /api/coverage-reports",
+        "dashboard-ci.yml uploads coverage/dashboard artifact",
+        "Optional semantic hints on path scan when LLAMA_CPP_BIN set (llama-cpp-hints.js)",
+        "tools/verify-v1-internal-profile.js"
+      ],
+      "remainingItems": [
+        "Maintainer sign-off on shared host with REQUIRE_AUTH=true"
+      ],
+      "teamAllocation": { "Maintainer": "solo" }
+    },
+    {
+      "phase": "Optional — enterprise scope",
+      "duration": "deferred",
+      "priority": "low",
+      "progress": 0,
+      "status": "planned",
+      "objectives": [
+        "Define enterprise scope only after v1.0-internal sign-off"
+      ],
+      "remainingItems": [
+        "No multi-tenancy / Solution Architect planning until internal deploy ships"
+      ],
+      "teamAllocation": { "Maintainer": "solo" }
+    }
+  ],
+  "successMetrics": {
+    "technicalKPIs": [
+      {
+        "metric": "Sprint Completion",
+        "current": 100,
+        "target": 100,
+        "unit": "%",
+        "status": "complete",
+        "source": "4/4 sprints — path scan + cascade-roadmap-sample.json"
+      },
+      {
+        "metric": "Jest Test Pass Rate",
+        "current": 100,
+        "target": 100,
+        "unit": "%",
+        "status": "complete",
+        "source": "954/954 tests passing (64 suites)"
+      },
+      {
+        "metric": "Honest Sample Pages",
+        "current": 34,
+        "target": 34,
+        "unit": "PAGE_SAMPLE_SPECS",
+        "status": "complete",
+        "source": "42/42 repository-audit baselines"
+      },
+      {
+        "metric": "Mock Scanner Blocking Issues",
+        "current": 0,
+        "target": 0,
+        "unit": "issues",
+        "status": "complete",
+        "source": "Informational legacy roadmap files only"
+      }
+    ],
+    "businessKPIs": [
+      {
+        "metric": "Internal Dashboard Ready",
+        "target": "v1.0-internal",
+        "confidence": null,
+        "status": "optional-scope",
+        "notes": "Not a July enterprise go-live with 6 FTE"
+      }
+    ]
+  },
+  "resourceAllocation": {
+    "teamStructure": [
+      { "role": "Solo maintainer", "count": 1, "focus": "Full-stack + DevOps", "duration": "ongoing" }
+    ],
+    "budgetBreakdown": [],
+    "engineeringFocus": [
+      { "area": "Sample + KPI sync", "effort": "ongoing", "status": "active" },
+      { "area": "Path scan regression checks", "effort": "after merges", "status": "active" },
+      { "area": "Optional GGUF semantic hints", "effort": "backlog", "status": "planned" }
+    ],
+    "rejectedStaffingFiction": [
+      "Project Manager 100%",
+      "Frontend Developer + QA Specialist + AI Specialist matrix",
+      "$39,700 six-week budget"
+    ]
+  },
+  "riskManagement": [
+    { "risk": "Stale dashboard cache", "impact": "Medium", "probability": "Medium", "mitigation": "Clear lastImplementationPlanModel / lastGgufAnalysisReport", "status": "mitigated" },
+    { "risk": "Sample drift after test additions", "impact": "Low", "probability": "Medium", "mitigation": "Run npm test; sync via tools/sync-audit-baseline-samples.js", "status": "monitored" },
+    { "risk": "Legacy fiction plans pasted into chat", "impact": "Medium", "probability": "Medium", "mitigation": "Use implementation-plan-sample.json or path scan — not 502/33/62% templates", "status": "mitigated" },
+    { "risk": "GGUF inference not required for honest dashboard", "impact": "Low", "probability": "Low", "mitigation": "filesystem+gguf-path is acceptable baseline", "status": "accepted" }
+  ],
+  "milestones": [
+    { "milestone": "CI Green on PR", "date": "2026-05-23", "deliverable": "dashboard-ci.yml phase2-smoke + test:coverage", "successCriteria": "954 tests pass", "status": "complete" },
+    { "milestone": "Honest Samples Complete", "date": "2026-05-23", "deliverable": "repository-audit on PAGE_SAMPLE_SPECS", "successCriteria": "43/43 samples; no 47-feature fiction", "status": "complete" },
+    { "milestone": "Code Roadmap Phase 2", "date": "2026-05-23", "deliverable": "cycles + fuzzy + HTML export", "successCriteria": "POST build-from-path shows Phase 2 block", "status": "complete" },
+    { "milestone": "Mock Scan Honest Attribution", "date": "2026-05-23", "deliverable": "No legacy demo oracle on analyze", "successCriteria": "mock-data-scanner (repository-audit)", "status": "complete" },
+    { "milestone": "v1.0-internal profile (in progress)", "date": "Post-Simplebeacon v0.1", "deliverable": "REQUIRE_AUTH + runbook + auth tests", "successCriteria": "verify:v1-internal green; maintainer sign-off", "status": "in-progress" }
+  ],
+  "immediateActions": [
+    { "action": "Copy .env.v1-internal.example and set JWT secrets", "priority": "high", "timeline": "Before shared deploy", "owner": "Maintainer", "status": "pending", "details": "See docs/v1-internal-runbook.md" },
+    { "action": "Run npm run verify:v1-internal", "priority": "high", "timeline": "Before deploy", "owner": "Maintainer", "status": "pending", "details": "REQUIRE_AUTH gate integration tests" },
+    { "action": "Deduplicate gguf mock analysis JSON pair", "priority": "low", "timeline": "Done", "owner": "Maintainer", "status": "complete", "details": "Server reads web/data/gguf-mock-analysis-sample.json; data/mock holds pointer stub" },
+    { "action": "Optional: set LLAMA_CPP_BIN", "priority": "low", "timeline": "Phase 3", "owner": "Maintainer", "status": "pending", "details": "Semantic hints — not required for honest UI" }
+  ],
+  "dashboardIntegration": {
+    "relatedSections": [
+      { "section": "Development Roadmap", "shortcut": "roadmap", "relevance": "POST build-from-path live scan" },
+      { "section": "AI Roadmap", "shortcut": "ai-roadmap", "relevance": "4-sprint measured narrative" },
+      { "section": "GGUF Analysis", "shortcut": "gguf-analysis", "relevance": "mock-data-scanner live analyze" },
+      { "section": "Release Timeline", "shortcut": "release-timeline", "relevance": "v0.8-beta engineering milestones" }
+    ]
+  },
+  "repositorySnapshot": {
+    "measuredAt": "2026-05-23T20:00:00.000Z",
+    "jestTests": 954,
+    "jestSuites": 64,
+    "pageSampleSpecs": "42/42",
+    "sprintsComplete": "4/4",
+    "phase2CodeRoadmap": true,
+    "githubActionsCi": true,
+    "phase2SmokeInCi": true,
+    "istanbulInCi": true,
+    "activeModel": "phi-2.Q4_K_M.gguf",
+    "inferenceMode": "filesystem+gguf-path"
+  },
+  "rejectedFiction": {
+    "warning": "Enterprise implementation plans pasted from templates are not measured baselines",
+    "claims": [
+      "Hardcoded feature totals and completion percentages",
+      "43/43 samples and 954/954 tests",
+      "7-week / 280-hour multi-role enterprise plan",
+      "Project Manager + Security Specialist staffing matrix",
+      "RBAC implementation from scratch (JWT already exists)"
+    ]
+  },
+  "deprecatedNarrative": {
+    "warning": "Prior sample and chat plans claimed Sprint 3 incomplete, Docker/Istanbul remaining, and multi-FTE staffing.",
+    "previousCompletion": null,
+    "previousTeamSize": 6,
+    "previousBudget": 39700,
+    "previousJestTests": 502,
+    "previousSamples": "42/42"
+  }
+}

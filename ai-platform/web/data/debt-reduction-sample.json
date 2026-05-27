@@ -1,0 +1,269 @@
+{
+  "type": "debt-reduction-model",
+  "title": "Debt Reduction (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Engineering debt tracker — not unbreakable-oracle AI forecasts."
+  },
+    "overview": {
+    "totalStrategies": 6,
+    "activeStrategies": 3,
+    "totalTasks": 99,
+    "completedTasks": 96,
+    "estimatedHours": null,
+    "actualHours": null,
+    "overallProgress": 90,
+    "debtReduction": 42,
+    "timeEfficiency": null,
+    "qualityScore": 95,
+    "notes": "Task counts are measured engineering items — not 216 fictional tasks or 502h estimates."
+  },
+  "strategies": [
+    {
+      "id": "page_migration",
+      "name": "Self-Contained Page Migration",
+      "icon": "📄",
+      "status": "completed",
+      "progress": 100,
+      "totalTasks": 33,
+      "completedTasks": 33,
+      "estimatedHours": null,
+      "actualHours": null,
+      "impact": "Critical",
+      "description": "33 dashboard page scripts with repository-audit samples and stale localStorage guards"
+    },
+    {
+      "id": "automated_testing",
+      "name": "Dashboard Test Coverage",
+      "icon": "🧪",
+      "status": "active",
+      "progress": 90,
+      "totalTasks": 10,
+      "completedTasks": 9,
+      "estimatedHours": null,
+      "actualHours": null,
+      "impact": "Critical",
+      "description": "665/665 Jest tests (32 suites) — Istanbul coverage and deploy gate remain"
+    },
+    {
+      "id": "sample_telemetry_cleanup",
+      "name": "Sample Telemetry Cleanup",
+      "icon": "📋",
+      "status": "completed",
+      "progress": 100,
+      "totalTasks": 33,
+      "completedTasks": 33,
+      "estimatedHours": null,
+      "actualHours": null,
+      "impact": "High",
+      "description": "42/42 web/data/*-sample.json on repository-audit baselines"
+    },
+    {
+      "id": "documentation_update",
+      "name": "Simplebeacon CLI Documentation",
+      "icon": "📚",
+      "status": "completed",
+      "progress": 100,
+      "totalTasks": 6,
+      "completedTasks": 6,
+      "estimatedHours": null,
+      "actualHours": null,
+      "impact": "High",
+      "description": "simplebeacon-cli-sample.json + Help page wiring + packages/simplebeacon-cli/README.md"
+    },
+    {
+      "id": "security_hardening",
+      "name": "Security Hardening",
+      "icon": "🛡️",
+      "status": "in-progress",
+      "progress": 75,
+      "totalTasks": 10,
+      "completedTasks": 6,
+      "estimatedHours": null,
+      "actualHours": null,
+      "impact": "Critical",
+      "description": "SEC-004 npm audit done — JWT auth deferred; REQUIRE_AUTH in Production Deploy backlog"
+    },
+    {
+      "id": "performance_optimization",
+      "name": "Performance Optimization",
+      "icon": "⚡",
+      "status": "completed",
+      "progress": 100,
+      "totalTasks": 9,
+      "completedTasks": 9,
+      "estimatedHours": null,
+      "actualHours": null,
+      "impact": "High",
+      "description": "Roadmap payload trim, duplicate init dedupe, archive excluded from active scan"
+    }
+  ],
+  "activeTasks": [
+    {
+      "id": "task_samples_complete",
+      "name": "42/42 repository-audit samples",
+      "description": "All dashboard page samples migrated — mock scanner 0 open issues",
+      "strategy": "Sample Cleanup",
+      "strategyColor": "primary",
+      "priority": "High",
+      "priorityColor": "success",
+      "progress": 100,
+      "progressColor": "success",
+      "assignee": "Maintainer",
+      "status": "completed"
+    },
+    {
+      "id": "task_sec004",
+      "name": "SEC-004 npm audit wired",
+      "description": "Security page merges /api/security/npm-audit on refresh and Run Scan",
+      "strategy": "Security",
+      "strategyColor": "primary",
+      "priority": "High",
+      "priorityColor": "success",
+      "progress": 100,
+      "progressColor": "success",
+      "assignee": "Maintainer",
+      "status": "completed"
+    },
+    {
+      "id": "task_istanbul",
+      "name": "Enable Istanbul in CI",
+      "description": "dashboard-ci.yml runs npm run test:coverage and uploads artifacts",
+      "strategy": "Testing",
+      "strategyColor": "success",
+      "priority": "High",
+      "priorityColor": "success",
+      "progress": 100,
+      "progressColor": "success",
+      "assignee": "Maintainer",
+      "status": "completed"
+    },
+    {
+      "id": "task_docker_ci",
+      "name": "Validate docker-compose.phase2.yml in CI",
+      "description": "compose config smoke in dashboard-ci.yml — up/down deferred to Production Deploy",
+      "strategy": "Security",
+      "strategyColor": "success",
+      "priority": "Medium",
+      "priorityColor": "success",
+      "progress": 100,
+      "progressColor": "success",
+      "assignee": "Maintainer",
+      "status": "completed"
+    },
+    {
+      "id": "task_ci_gate",
+      "name": "Wire simplebeacon + Jest into CI",
+      "description": "dashboard-ci.yml Jest + simplebeacon.yml gate on ai-platform PRs",
+      "strategy": "Testing",
+      "strategyColor": "success",
+      "priority": "High",
+      "priorityColor": "success",
+      "progress": 100,
+      "progressColor": "success",
+      "assignee": "Maintainer",
+      "status": "completed"
+    },
+    {
+      "id": "task_perf_init",
+      "name": "Dedupe deferred sample init loads",
+      "description": "dashboard-deferred-init skips showSection double-fetch on ?sample URL params",
+      "strategy": "Performance",
+      "strategyColor": "success",
+      "priority": "Medium",
+      "priorityColor": "success",
+      "progress": 100,
+      "progressColor": "success",
+      "assignee": "Maintainer",
+      "status": "completed"
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "rec_truthcheck_publish",
+      "title": "Publish simplebeacon v0.1",
+      "description": "npm pack verified — publish and validate PR comment bot on a real PR.",
+      "priority": "high",
+      "impact": "High",
+      "impactColor": "success",
+      "hours": null,
+      "debtReduction": "product ship",
+      "icon": "✅"
+    },
+    {
+      "id": "rec_cli_docs",
+      "title": "Expand Simplebeacon CLI docs",
+      "description": "Rules reference, GitHub Action examples, baseline sync workflow.",
+      "priority": "medium",
+      "impact": "Medium",
+      "impactColor": "info",
+      "hours": null,
+      "debtReduction": "right product docs",
+      "icon": "📚"
+    },
+    {
+      "id": "rec_deploy_deferred",
+      "title": "Production Deploy profile (deferred)",
+      "description": "Docker up/down smoke + REQUIRE_AUTH sign-off post-Simplebeacon v0.1.",
+      "priority": "low",
+      "impact": "Medium",
+      "impactColor": "info",
+      "hours": null,
+      "debtReduction": "deploy confidence",
+      "icon": "🐳"
+    }
+  ],
+  "progressHistory": {
+    "labels": ["Apr W1", "Apr W2", "May W1", "May W2", "May W3", "May W4"],
+    "debtRemaining": [33, 31, 28, 22, 16, 10],
+    "tasksCompleted": [6, 12, 22, 48, 72, 89],
+    "weeklyReduction": 2,
+    "monthlyReduction": 10,
+    "totalReductionPct": 42
+  },
+  "insights": [
+    {
+      "priority": "low",
+      "title": "43/43 samples on repository-audit",
+      "description": "Sample telemetry cleanup complete — remaining debt is CI hardening and production profile.",
+      "impact": "0 fiction samples"
+    },
+    {
+      "priority": "medium",
+      "title": "665/665 Jest tests green",
+      "description": "Routing, page samples, stub APIs, and live-server smoke pass — wire deploy gate next.",
+      "impact": "665/665 tests"
+    },
+    {
+      "priority": "low",
+      "title": "SEC-004 closed — npm audit wired",
+      "description": "Security dashboard merges live npm audit results on refresh.",
+      "impact": "Measured dependency posture"
+    },
+    {
+      "priority": "medium",
+      "title": "Mock scanner backlog cleared",
+      "description": "0 open issues — 43/43 PAGE_SAMPLE_SPECS pass, 35 files scanned.",
+      "impact": "Honest debt KPIs"
+    }
+  ],
+  "quickActions": [
+    { "label": "Start Automated", "icon": "🤖", "action": "start-automated" },
+    { "label": "Create Plan", "icon": "📋", "action": "create-plan" },
+    { "label": "Export Report", "icon": "📥", "action": "export" },
+    { "label": "Open Calculator", "icon": "🧮", "section": "debt-calculator" }
+  ],
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousTotalTasks": 216,
+    "previousTestCount": 206,
+    "previousTimeEfficiency": null,
+    "notes": "Old template used fictional 216 tasks, 96.2% AI confidence, 502h estimates, and 206-test counts."
+  }
+}

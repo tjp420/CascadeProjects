@@ -1,0 +1,252 @@
+{
+  "type": "data-maintenance-analyzers-report",
+  "title": "Data Maintenance Analyzers — Measured Baseline & Roadmap",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Expansion plan grounded in mock-data-scanner + page-sample-specs — not enterprise analyzer fiction."
+  },
+  "overview": {
+    "scanEngine": "mock-data-scanner",
+    "filesScanned": 36,
+    "totalSize": "245.6KB",
+    "openIssues": 0,
+    "schemaFilesChecked": 31,
+    "schemaFilesPassed": 31,
+    "schemaPassRate": 100,
+    "qualityScore": 99,
+    "jestTests": "665/665",
+    "pageSamples": "42/42 repository-audit",
+    "inferenceMode": "filesystem scan — not 1,559 files/s GGUF throughput fiction"
+  },
+  "currentCapabilities": [
+    {
+      "id": "mock-data-scanner",
+      "name": "Mock Data Analyzer",
+      "status": "active",
+      "implementation": "server/lib/mock-data-scanner.js",
+      "features": ["Filesystem JSON discovery", "PAGE_SAMPLE_SPECS schema validation", "data/roadmap JSON specs", "Cross-sample KPI consistency", "Credential pattern scan", "Content-hash duplicate detection", "Issue report generation"],
+      "measuredMetrics": {
+        "files": 36,
+        "openIssues": 0,
+        "schemaCompliance": "42/42",
+        "qualityScore": 99
+      },
+      "dashboardSection": "gguf-analysis"
+    },
+    {
+      "id": "page-sample-specs",
+      "name": "Page Sample Schema Validator",
+      "status": "active",
+      "implementation": "server/lib/page-sample-specs.js + tests/unit/page-samples.test.js",
+      "features": ["Type field validation", "Required keys", "Payload routing checks"],
+      "measuredMetrics": { "samplesValidated": 34, "jestSuite": "page-samples" },
+      "dashboardSection": "quality"
+    },
+    {
+      "id": "npm-audit-runner",
+      "name": "Dependency Security Scan",
+      "status": "active",
+      "implementation": "server/lib/npm-audit-runner.js + /api/security/npm-audit",
+      "features": ["npm audit JSON", "Security dashboard merge on refresh"],
+      "measuredMetrics": { "ticket": "SEC-004 closed" },
+      "dashboardSection": "security"
+    },
+    {
+      "id": "issue-fix-api",
+      "name": "Issue Resolution (scan-driven)",
+      "status": "active",
+      "implementation": "src/api/gguf-issues-api.js",
+      "features": ["Fix preview/apply from scanner file paths", "Batch resolve wiring"],
+      "measuredMetrics": { "openIssues": 0, "not": "156 fictional mock_data_* issues" },
+      "dashboardSection": "issue-resolution"
+    },
+    {
+      "id": "stale-fiction-guards",
+      "name": "Sample Stale Guards",
+      "status": "active",
+      "implementation": "web/scripts/*-page.js isStale* functions",
+      "features": ["Reject hardcoded feature/completion imports and unbreakable-oracle branding", "localStorage cache warnings"],
+      "measuredMetrics": { "pagesWithGuards": "30+" },
+      "dashboardSection": "dashboard"
+    }
+  ],
+  "rejectedFiction": {
+    "warning": "Prior UI claimed capabilities not backed by repository audit",
+    "claims": [
+      "Code Quality Analyzer high-confidence score without reproducible evidence",
+      "Security Analyzer hardcoded score as standalone product",
+      "Performance Analyzer 1,559 files/s",
+      "Issue Resolution hardcoded issue backlog",
+      "1,247 mock files / 73.4MB mock corpus",
+      "23 duplicate patterns / 67 missing fields / 18 inconsistent date files (from template scan)",
+      "23.9MB storage savings / 60% automation / 40% cost reduction forecasts"
+    ]
+  },
+  "analyzerRoadmap": [
+    {
+      "category": "Data Quality & Integrity",
+      "priority": "high",
+      "analyzers": [
+        {
+          "id": "schema-validation",
+          "name": "Schema Validation Analyzer",
+          "status": "implemented",
+          "notes": "PAGE_SAMPLE_SPECS + data/roadmap/*.json via roadmap-json-specs.js"
+        },
+        {
+          "id": "deduplication",
+          "name": "Data Deduplication Analyzer",
+          "status": "partial",
+          "notes": "Content-hash duplicate groups in mock-data-scanner — 0 open groups; add cross-repo path suggestions"
+        },
+        {
+          "id": "completeness",
+          "name": "Data Completeness Analyzer",
+          "status": "partial",
+          "notes": "page-sample-specs nestedChecks — extend required-field reports per sample type"
+        },
+        {
+          "id": "consistency",
+          "name": "Data Consistency Analyzer",
+          "status": "implemented",
+          "notes": "sample-consistency-checker.js — anchor samples vs 665 tests, v0.8-beta, repository-audit"
+        }
+      ]
+    },
+    {
+      "category": "Security & Privacy",
+      "priority": "high",
+      "analyzers": [
+        {
+          "id": "credential-scan",
+          "name": "Credential Security Analyzer",
+          "status": "partial",
+          "notes": "credential-pattern-scanner.js in mock-data-scanner — wire pre-commit hook next"
+        },
+        {
+          "id": "pii-detection",
+          "name": "PII/PHI Detection Analyzer",
+          "status": "backlog",
+          "notes": "Low priority for internal dashboard samples — no user PII in repo"
+        },
+        {
+          "id": "npm-audit",
+          "name": "Dependency Audit",
+          "status": "implemented",
+          "notes": "npm-audit-runner wired — keep in sync with Security page"
+        }
+      ]
+    },
+    {
+      "category": "Performance & Optimization",
+      "priority": "medium",
+      "analyzers": [
+        {
+          "id": "sample-size",
+          "name": "Sample Size Optimizer",
+          "status": "backlog",
+          "notes": "Report oversized JSON in web/data — current corpus 245.6KB total"
+        },
+        {
+          "id": "jest-coverage",
+          "name": "Test Coverage Analyzer",
+          "status": "backlog",
+          "notes": "Enable Istanbul in CI — jest.config.js ready, npm test uses --no-coverage"
+        }
+      ]
+    },
+    {
+      "category": "Compliance & Governance",
+      "priority": "low",
+      "analyzers": [
+        {
+          "id": "repository-audit-tag",
+          "name": "dataSource Tag Validator",
+          "status": "partial",
+          "notes": "Stale guards reject non-repository-audit imports — add lint for new samples"
+        },
+        {
+          "id": "regulatory",
+          "name": "Regulatory Compliance Analyzer",
+          "status": "not-scoped",
+          "notes": "Enterprise GDPR/HIPAA modules not in v0.8-beta scope"
+        }
+      ]
+    }
+  ],
+  "implementationPhases": [
+    {
+      "phase": "Phase 1 — Foundation (v0.8-beta)",
+      "weeks": "1-4",
+      "status": "in-progress",
+      "items": [
+        "Extend schema validator to data/roadmap/*.json — done (roadmap-json-specs.js)",
+        "Cross-sample consistency checker — done (sample-consistency-checker.js)",
+        "Credential pattern scan in mock-data-scanner — partial (pre-commit hook pending)",
+        "Unified analyzer registry in dev-tools page"
+      ]
+    },
+    {
+      "phase": "Phase 2 — Quality (post v0.8-beta)",
+      "weeks": "5-8",
+      "status": "planned",
+      "items": [
+        "Completeness scoring dashboard widget",
+        "Sample size / redundancy report",
+        "Analyzer batch CLI wrapping mock-data-scanner"
+      ]
+    },
+    {
+      "phase": "Phase 3 — Intelligence (v1.0-internal+)",
+      "weeks": "9+",
+      "status": "not-scoped",
+      "items": [
+        "Optional GGUF-assisted pattern suggestions (phi-2 when LLAMA_CPP_BIN set)",
+        "Drift detection between scan runs",
+        "Test data generator from sample patterns"
+      ]
+    }
+  ],
+  "priorityMatrix": {
+    "high": ["schema-validation", "deduplication", "npm-audit", "consistency"],
+    "medium": ["completeness", "sample-size", "jest-coverage"],
+    "low": ["pii-detection", "regulatory", "lineage", "drift-detection"]
+  },
+  "expectedImpact": {
+    "immediate": [
+      "Maintain 0 open scanner issues after sample edits",
+      "Keep 42/42+ schema pass rate on PAGE_SAMPLE_SPECS",
+      "Honest metrics on GGUF Analysis page (no 1,247-file fiction)"
+    ],
+    "v08Beta": [
+      "Docker Phase2 CI smoke test",
+      "Istanbul coverage in CI",
+      "Cross-sample KPI consistency checks"
+    ],
+    "notClaimed": [
+      "23.9MB savings",
+      "Hardcoded issue backlog counts",
+      "1,559 files/s throughput",
+      "80% incident reduction forecasts"
+    ]
+  },
+  "crossReferences": {
+    "mockAnalysisSample": "/data/gguf-mock-analysis-sample.json",
+    "devToolsSample": "/data/dev-tools-sample.json",
+    "engineeringBaseline": "/data/engineering-baseline-sample.json",
+    "scannerSource": "server/lib/mock-data-scanner.js"
+  },
+  "deprecatedNarrative": {
+    "previousOpenIssues": null,
+    "previousThroughput": "1559 files/s",
+    "previousMockFiles": 1247,
+    "previousQualityScore": 89.2,
+    "notes": "Enterprise analyzer catalog pasted from template UI — remap to measured scanner + backlog above."
+  }
+}

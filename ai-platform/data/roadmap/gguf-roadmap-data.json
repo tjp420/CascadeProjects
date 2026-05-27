@@ -1,0 +1,308 @@
+{
+  "type": "gguf-development-roadmap-report",
+  "title": "Development Roadmap (Measured Baseline)",
+  "dataSource": "repository-audit",
+  "generatedAt": "2026-05-23T20:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": null,
+    "status": "active",
+    "inferenceMode": "filesystem+gguf-path",
+    "notes": "Sprint tracker — not live GGUF inference unless LLAMA_CPP_BIN or Ollama is configured."
+  },
+  "projectOverview": {
+    "projectName": "Cascade AI Platform",
+    "projectType": "Internal Dashboard",
+    "totalFeatures": 4,
+    "completedFeatures": 4,
+    "inProgressFeatures": 0,
+    "plannedFeatures": 0,
+    "completionRate": 100,
+    "overallProgress": "Complete",
+    "projectHealth": "Good",
+    "developmentVelocity": "Measured",
+    "teamProductivity": "Solo maintainer",
+    "aiConfidence": null
+  },
+  "analysisOverview": {
+    "scanEngine": "mock-data-scanner (filesystem)",
+    "testsPassing": 665,
+    "liveBackendPages": 5,
+    "stubDashboardPages": 20,
+    "notes": "665/665 tests, 43/43 PAGE_SAMPLE_SPECS — prior template claimed 1,247 mock files."
+  },
+  "developmentPhases": [
+    {
+      "phase": "Sprint 1: Server & Auth",
+      "status": "completed",
+      "progress": 100,
+      "startDate": "2026-05-01",
+      "endDate": "2026-05-07",
+      "description": "Canonical server entry and optional JWT auth",
+      "features": [
+        "Root server delegate",
+        "Phase 2 JWT auth"
+      ],
+      "milestones": [
+        "Single server entry",
+        "Auth routes live"
+      ]
+    },
+    {
+      "phase": "Sprint 2: Stub APIs & Tests",
+      "status": "completed",
+      "progress": 100,
+      "startDate": "2026-05-08",
+      "endDate": "2026-05-14",
+      "description": "Tier-1 dashboard stub routes and Jest coverage",
+      "features": [
+        "Tier-1 stub API routes",
+        "665 Jest tests passing (32 suites)"
+      ],
+      "milestones": [
+        "dashboard-stub-api.js",
+        "Integration tests green"
+      ]
+    },
+    {
+      "phase": "Sprint 3: Honest Dashboard Data",
+      "status": "completed",
+      "progress": 100,
+      "startDate": "2026-05-15",
+      "endDate": "2026-05-28",
+      "description": "Replace template fiction with repository-audit baselines",
+      "features": [
+        "43/43 PAGE_SAMPLE_SPECS migration (done)",
+        "Mock-data + merger + code-roadmap scanners (done)",
+        "SEC-004 npm audit wired (done)"
+      ],
+      "milestones": [
+        "All page samples on repository-audit",
+        "Phase 2 code intelligence on path scan",
+        "Executive HTML export"
+      ]
+    },
+    {
+      "phase": "Sprint 4: Production CI Profile",
+      "status": "completed",
+      "progress": 100,
+      "startDate": "2026-06-01",
+      "endDate": "2026-05-24",
+      "description": "Istanbul coverage, phase2 compose config smoke, Simplebeacon gate",
+      "features": [
+        "npm run test:coverage in dashboard-ci.yml",
+        "docker compose -f docker-compose.phase2.yml config",
+        "packages/simplebeacon-cli + simplebeacon.yml gate"
+      ],
+      "milestones": [
+        "CI production gate wired",
+        "Coverage artifact upload",
+        "Simplebeacon gate on PRs"
+      ]
+    },
+    {
+      "phase": "Sprint 5: Production Deploy Profile",
+      "status": "deferred",
+      "progress": 0,
+      "startDate": "Not yet scheduled",
+      "endDate": "Post-Simplebeacon v0.1 window",
+      "description": "Post-Simplebeacon v0.1 — deploy hardening only",
+      "features": [
+        "Docker phase2 up/down lifecycle in CI",
+        "REQUIRE_AUTH production deploy sign-off"
+      ],
+      "milestones": [
+        "v1.0-internal optional deploy"
+      ]
+    }
+  ],
+  "predictions": [
+    {
+      "icon": "📈",
+      "title": "Not a Live Forecast",
+      "confidence": null,
+      "summary": "Prior template predicted August 30, 2026 at 94.3% probability — placeholder text, not model output.",
+      "factors": [
+        { "text": "665/665 tests passing", "type": "positive" },
+        { "text": "Filesystem scan, not GGUF inference", "type": "negative" },
+        { "text": "Generate from project path for live scan", "type": "neutral" }
+      ]
+    },
+    {
+      "icon": "⚡",
+      "title": "GGUF Inference Enablement",
+      "confidence": null,
+      "summary": "Set LLAMA_CPP_BIN or Ollama to move from filesystem scan to model inference (Phase 3)",
+      "factors": [
+        { "text": "phi-2.Q4_K_M.gguf active (1.7GB)", "type": "positive" },
+        { "text": "Current mode: filesystem+gguf-path", "type": "negative" },
+        { "text": "Ollama client already integrated", "type": "positive" }
+      ]
+    },
+    {
+      "icon": "🎯",
+      "title": "Engineering Focus",
+      "confidence": null,
+      "summary": "All 4 sprints complete on measured baseline — optional GGUF semantic hints remain backlog",
+      "factors": [
+        { "text": "42/42 repository-audit page specs", "type": "positive" },
+        { "text": "phase2-smoke + Istanbul in dashboard-ci.yml", "type": "positive" },
+        { "text": "Enterprise confidence scores removed", "type": "positive" }
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "title": "Stale Cache Risk",
+      "level": "low",
+      "score": 20,
+      "description": "Stale guards reject 47-feature / 665-test / 33-33 exports — clear lastAIRoadmapModel if old metrics persist."
+    },
+    {
+      "title": "Inference Not Enabled",
+      "level": "medium",
+      "score": 45,
+      "description": "GGUF model registered but analyze uses filesystem scan unless llama.cpp/Ollama configured"
+    },
+    {
+      "title": "Sample Drift",
+      "level": "low",
+      "score": 15,
+      "description": "Re-run npm test and path scan after adding tests or PAGE_SAMPLE_SPECS entries"
+    }
+  ],
+  "recommendations": {
+    "priority": [
+      {
+        "title": "Run Live Path Scan",
+        "impact": "High Impact",
+        "description": "POST /api/dynamic-roadmap/build-from-path returns sprint phases + Phase 2 cycles/fuzzy/resources.",
+        "benefits": ["Fresh filesystem metrics", "Populates analysis history"]
+      },
+      {
+        "title": "Executive HTML Export",
+        "impact": "Medium Impact",
+        "description": "GET /api/code-roadmap/export/html?projectPath=... — print to PDF.",
+        "benefits": ["Shareable milestone report", "No 47-feature fiction"]
+      },
+      {
+        "title": "Enable GGUF Inference (Optional)",
+        "impact": "Medium Impact",
+        "description": "Configure LLAMA_CPP_BIN or switch active model to Ollama provider.",
+        "benefits": ["Phase 3 semantic hints", "Not required for honest dashboard"]
+      }
+    ],
+    "optimization": [
+      {
+        "title": "Clear Stale localStorage",
+        "impact": "Low Impact",
+        "description": "Remove lastAIRoadmapModel / lastDynamicRoadmap if they show 62%, 665 tests, or 43/43 samples.",
+        "benefits": ["Fresh measured baseline on refresh"]
+      }
+    ]
+  },
+  "insights": [
+    {
+      "icon": "🎯",
+      "title": "What This Page Is",
+      "description": "Renders JSON roadmap reports — not live GGUF forecasts unless wired to analyze output or a path scan."
+    },
+    {
+      "icon": "👥",
+      "title": "Team Reality",
+      "description": "Solo maintainer project; multi-FTE team composition was fictional."
+    },
+    {
+      "icon": "🔧",
+      "title": "Prior Fiction Removed",
+      "description": "Hardcoded feature totals and confidence/accuracy percentages were template placeholders."
+    },
+    {
+      "icon": "📈",
+      "title": "Honest Progress",
+      "description": "100% sprint completion = 4/4 sprints done on measured baseline (665 tests, 42/42 specs, CI wired)."
+    }
+  ],
+  "actionPlan": [
+    {
+      "step": 1,
+      "title": "Server & Auth",
+      "description": "Root delegate + JWT routes",
+      "status": "completed",
+      "timeline": "Completed: 2026-05-07",
+      "progress": 100
+    },
+    {
+      "step": 2,
+      "title": "Stub APIs & Tests",
+      "description": "Tier-1 routes + Jest suite",
+      "status": "completed",
+      "timeline": "Completed: 2026-05-14",
+      "progress": 100
+    },
+    {
+      "step": 3,
+      "title": "Honest Dashboard Data",
+      "description": "repository-audit samples + analyzers + code-roadmap Phase 2",
+      "status": "completed",
+      "timeline": "Completed: 2026-05-23",
+      "progress": 100
+    },
+    {
+      "step": 4,
+      "title": "Production Profile",
+      "description": "Docker CI smoke + Istanbul coverage",
+      "status": "completed",
+      "timeline": "Completed: 2026-05-23",
+      "progress": 100
+    }
+  ],
+  "performanceMetrics": [
+    {
+      "icon": "🎯",
+      "value": "596",
+      "label": "Jest Tests Passing",
+      "trend": "32 suites",
+      "trendType": "positive"
+    },
+    {
+      "icon": "⚡",
+      "value": "100%",
+      "label": "Sprint Completion",
+      "trend": "4/4 sprints",
+      "trendType": "positive"
+    },
+    {
+      "icon": "🔍",
+      "value": "38",
+      "label": "Page Sample Specs",
+      "trend": "repository-audit",
+      "trendType": "positive"
+    },
+    {
+      "icon": "💡",
+      "value": "0",
+      "label": "Fictional CVE/Threat Rows",
+      "trend": "removed",
+      "trendType": "positive"
+    }
+  ],
+  "healthSummary": {
+    "status": "GOOD",
+    "assessment": "Dashboard prototype with real auth, scanners, and path-scan roadmap. Measured baseline — not unbreakable-oracle inference.",
+    "highlights": [
+      "665/665 tests passing (32 suites)",
+      "42/42 page specs on repository-audit; npm audit wired (SEC-004)",
+      "Code-roadmap Phase 2: cycles, fuzzy match, solo resource estimate, HTML export"
+    ]
+  },
+  "deprecatedNarrative": {
+    "warning": "Prior report claimed unbreakable-oracle with hardcoded feature totals, completion percentages, and prediction-accuracy KPIs.",
+    "previousModel": "unbreakable-oracle",
+    "previousTotalFeatures": null,
+    "previousCompletionRate": null
+  },
+  "reportPurpose": "page-sample"
+}

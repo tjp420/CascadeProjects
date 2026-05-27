@@ -1,0 +1,195 @@
+{
+  "type": "roadmap-comparison-report",
+  "title": "Enhanced Roadmap Analysis Comparison Report",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "inferenceMode": "filesystem+gguf-path",
+    "notes": "Compares measured GGUF sprint sample vs conservative AI executive lens — phi-2.Q4_K_M.gguf active (1.7GB)."
+  },
+  "ggufReport": {
+    "type": "gguf-development-roadmap-report",
+    "completionRate": 61,
+    "projectHealth": "Good",
+    "developmentVelocity": "Measured",
+    "totalFeatures": 10,
+    "completedFeatures": 5,
+    "analysisMethod": "Repository-audit sprint tracker (gguf-roadmap-sample.json)"
+  },
+  "aiReport": {
+    "type": "ai-powered-roadmap-report",
+    "completionRate": "53%",
+    "projectHealth": "Good",
+    "developmentVelocity": "Measured",
+    "analysisMethod": "Repository-audit sprint tracker with conservative completion lens",
+    "aiConfidence": 95,
+    "totalPhases": 4,
+    "completedPhases": 2
+  },
+  "differences": {
+    "completionRate": {
+      "gguf": 61,
+      "ai": 53,
+      "difference": 8,
+      "percentageDifference": 13,
+      "significance": "low",
+      "interpretation": "AI applies a conservative completion factor; sprint phase status aligns"
+    },
+    "projectHealth": {
+      "gguf": "Good",
+      "ai": "Good",
+      "consistent": true,
+      "interpretation": "Both assessments agree on project health"
+    },
+    "developmentVelocity": {
+      "gguf": "Measured",
+      "ai": "Measured",
+      "consistent": true,
+      "interpretation": "Both use repository-audit velocity labels"
+    },
+    "featureCategories": {},
+    "developmentPhases": [
+      {
+        "phase": "Sprint 1: Server & Auth",
+        "title": "Sprint 1: Server & Auth",
+        "ggufStatus": "completed",
+        "aiStatus": "completed",
+        "consistent": true,
+        "interpretation": "Consistent phase status assessment"
+      },
+      {
+        "phase": "Sprint 2: Stub APIs & Tests",
+        "title": "Sprint 2: Stub APIs & Tests",
+        "ggufStatus": "completed",
+        "aiStatus": "completed",
+        "consistent": true,
+        "interpretation": "Consistent phase status assessment"
+      },
+      {
+        "phase": "Sprint 3: Honest Dashboard Data",
+        "title": "Sprint 3: Honest Dashboard Data",
+        "ggufStatus": "in-progress",
+        "aiStatus": "in-progress",
+        "consistent": true,
+        "interpretation": "Consistent phase status assessment"
+      },
+      {
+        "phase": "Sprint 4: Production Profile",
+        "title": "Sprint 4: Production Profile",
+        "ggufStatus": "planned",
+        "aiStatus": "planned",
+        "consistent": true,
+        "interpretation": "Consistent phase status assessment"
+      }
+    ],
+    "milestones": []
+  },
+  "insights": [
+    {
+      "type": "alignment",
+      "severity": "low",
+      "title": "High Sprint Alignment",
+      "description": "All four repository-audit sprints match between GGUF and AI phase status",
+      "impact": "Low",
+      "action": "Continue using shared sprint samples as single source of truth"
+    },
+    {
+      "type": "methodology",
+      "severity": "low",
+      "title": "Conservative AI Completion Lens",
+      "description": "AI completion (53%) applies a conservative factor to measured feature completion from repository-audit baselines",
+      "impact": "Low",
+      "action": "Document conservative factor when exporting executive summaries"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "medium",
+      "type": "process",
+      "action": "Keep GGUF and AI samples synchronized",
+      "description": "Update gguf-roadmap-sample.json and ai-roadmap-sample.json together when sprint metrics change",
+      "impact": "Medium",
+      "effort": "Low",
+      "timeline": "Each sprint close",
+      "details": "665/665 tests, 42/42 page samples, mock scanner 0 issues"
+    },
+    {
+      "priority": "low",
+      "type": "strategic",
+      "action": "Enable live inference when ready",
+      "description": "Configure LLAMA_CPP_BIN or Ollama to move beyond filesystem+gguf-path scan mode",
+      "impact": "High",
+      "effort": "Medium",
+      "timeline": "Sprint 4",
+      "details": "Active model phi-2.Q4_K_M.gguf (1.7GB)"
+    }
+  ],
+  "visualComparison": {
+    "charts": {
+      "completionRateComparison": {
+        "type": "bar",
+        "title": "Completion Rate Comparison",
+        "data": [
+          { "label": "GGUF Assessment", "value": 61 },
+          { "label": "AI Assessment", "value": 53 }
+        ],
+        "colors": ["#10b981", "#3b82f6"]
+      },
+      "healthAssessmentComparison": {
+        "type": "radar",
+        "title": "Health Assessment Comparison",
+        "data": [
+          { "metric": "Technical", "gguf": 85, "ai": 85 },
+          { "metric": "Strategic", "gguf": 80, "ai": 80 },
+          { "metric": "Risk", "gguf": 25, "ai": 25 }
+        ]
+      },
+      "velocityComparison": {
+        "type": "line",
+        "title": "Development Velocity Comparison",
+        "data": [
+          { "phase": "Sprint 1", "gguf": 100, "ai": 100 },
+          { "phase": "Sprint 2", "gguf": 100, "ai": 100 },
+          { "phase": "Sprint 3", "gguf": 75, "ai": 75 },
+          { "phase": "Sprint 4", "gguf": 0, "ai": 0 }
+        ]
+      },
+      "categoryComparison": {
+        "type": "grouped_bar",
+        "title": "Feature Category Comparison",
+        "data": []
+      }
+    },
+    "tables": {
+      "phaseComparison": {
+        "headers": ["Phase", "Title", "GGUF Status", "AI Status", "Consistent"],
+        "rows": [
+          ["Sprint 1: Server & Auth", "Sprint 1: Server & Auth", "completed", "completed", "✅"],
+          ["Sprint 2: Stub APIs & Tests", "Sprint 2: Stub APIs & Tests", "completed", "completed", "✅"],
+          ["Sprint 3: Honest Dashboard Data", "Sprint 3: Honest Dashboard Data", "in-progress", "in-progress", "✅"],
+          ["Sprint 4: Production Profile", "Sprint 4: Production Profile", "planned", "planned", "✅"]
+        ]
+      },
+      "milestoneComparison": {
+        "headers": ["Milestone", "GGUF Status", "AI Status", "Consistent"],
+        "rows": []
+      }
+    },
+    "summary": {
+      "alignmentScore": 92,
+      "keyFindings": [
+        "GGUF completion: 61%",
+        "AI completion: 53% (conservative lens)",
+        "Health: both Good",
+        "Velocity: both Measured",
+        "665/665 Jest tests passing"
+      ],
+      "recommendations": []
+    }
+  }
+}

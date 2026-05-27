@@ -1,0 +1,261 @@
+{
+  "type": "ai-tools-model",
+  "title": "AI Tools (Measured Baseline)",
+  "generatedAt": "2026-05-24T22:30:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Dashboard launcher inventory — not 3,842 analyses, 96.2% accuracy fiction, or unbreakable-oracle telemetry."
+  },
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousConfidence": null,
+    "previousTotalAnalyses": 3842,
+    "previousAvgAccuracy": 96.2,
+    "previousProcessingSpeed": "1559 files/s",
+    "notes": "GGUF AI Platform demo metrics removed — run counts and SOC-style KPIs were not measured."
+  },
+  "overview": {
+    "totalTools": 9,
+    "activeTools": 8,
+    "avgAccuracy": null,
+    "jestPassRate": 100,
+    "totalAnalyses": null,
+    "measuredBaselines": 43,
+    "sampleJsonFiles": 40,
+    "schemaPassRate": 100,
+    "scannerIssues": 0,
+    "statLabels": {
+      "totalTools": "Dashboard Tools",
+      "activeTools": "Active Tools",
+      "avgAccuracy": "Jest Pass Rate",
+      "totalAnalyses": "Tracked Runs"
+    },
+    "notes": "Launcher opens dashboard sections — server does not collect per-tool run telemetry."
+  },
+  "tools": [
+    {
+      "id": "local-models",
+      "name": "Local AI Models",
+      "icon": "🧠",
+      "category": "Infrastructure",
+      "status": "active",
+      "section": "local-models",
+      "description": "Register GGUF/Ollama models — agi-chatbot-test registered; inference optional.",
+      "performance": { "accuracy": null, "speed": "manual", "memory": "—", "cpu": "—" },
+      "usage": { "totalRuns": null, "successRate": null, "avgTime": "—", "notes": "No run counter" }
+    },
+    {
+      "id": "gguf-analysis",
+      "name": "GGUF Analysis Engine",
+      "icon": "🧠",
+      "category": "Analysis",
+      "status": "active",
+      "section": "gguf-analysis",
+      "description": "Filesystem mock-data scan — demo Generate/Clean actions off on measured baseline.",
+      "performance": { "accuracy": null, "speed": "40 files", "memory": "269.0KB", "cpu": "—" },
+      "usage": { "totalRuns": null, "successRate": null, "avgTime": "—", "notes": "filesystem+gguf-path" }
+    },
+    {
+      "id": "code-generation",
+      "name": "Code Generation",
+      "icon": "💻",
+      "category": "Development",
+      "status": "active",
+      "section": "code-generation",
+      "description": "Template-driven codegen page with repository-audit sample — not tracked production runs.",
+      "performance": { "accuracy": null, "speed": "sample", "memory": "—", "cpu": "—" },
+      "usage": { "totalRuns": null, "successRate": null, "avgTime": "—" }
+    },
+    {
+      "id": "issue-resolution",
+      "name": "Issue Resolution",
+      "icon": "🔧",
+      "category": "Quality",
+      "status": "active",
+      "section": "issue-resolution",
+      "description": "5/5 historical scanner findings resolved — 0 open mock-data-scanner issues.",
+      "performance": { "accuracy": null, "speed": "0 open", "memory": "—", "cpu": "—" },
+      "usage": { "totalRuns": null, "successRate": null, "avgTime": "—" }
+    },
+    {
+      "id": "roadmap-builder",
+      "name": "Roadmap Builder",
+      "icon": "🗺️",
+      "category": "Planning",
+      "status": "active",
+      "section": "roadmap",
+      "description": "Path builder generates dynamic-project-roadmap-analysis from repo scan.",
+      "performance": { "accuracy": null, "speed": "path scan", "memory": "—", "cpu": "—" },
+      "usage": { "totalRuns": null, "successRate": null, "avgTime": "—" }
+    },
+    {
+      "id": "ai-roadmap",
+      "name": "AI Roadmap Report",
+      "icon": "🤖",
+      "category": "Planning",
+      "status": "active",
+      "section": "ai-roadmap",
+      "description": "100% sprint completion — 43/43 samples; dashboard-ci.yml runs Jest, Istanbul, and phase2-smoke.",
+      "performance": { "accuracy": null, "speed": "sample", "memory": "—", "cpu": "—" },
+      "usage": { "totalRuns": null, "successRate": null, "avgTime": "—" }
+    },
+    {
+      "id": "mock-analyzer",
+      "name": "Mock Data Analyzer",
+      "icon": "📊",
+      "category": "Analysis",
+      "status": "active",
+      "section": "gguf-analysis",
+      "description": "mock-data-scanner: 40 files, 43/43 PAGE_SAMPLE_SPECS, 99% quality, 0 blocking issues.",
+      "performance": { "accuracy": 99, "speed": "40 files", "memory": "269.0KB", "cpu": "—" },
+      "usage": { "totalRuns": null, "successRate": null, "avgTime": "—" }
+    },
+    {
+      "id": "optimization",
+      "name": "Optimization Engine",
+      "icon": "⚡",
+      "category": "Performance",
+      "status": "active",
+      "section": "performance",
+      "description": "Links to Performance page — 665/665 Jest, measured baseline KPIs.",
+      "performance": { "accuracy": null, "speed": "~5s Jest", "memory": "—", "cpu": "—" },
+      "usage": { "totalRuns": null, "successRate": null, "avgTime": "—" }
+    },
+    {
+      "id": "merger-tool",
+      "name": "Merger Tool",
+      "icon": "🔀",
+      "category": "Development",
+      "status": "beta",
+      "section": "merger-tool",
+      "description": "File merge UI with repository-audit sample — beta, not measured production merges.",
+      "performance": { "accuracy": null, "speed": "manual", "memory": "—", "cpu": "—" },
+      "usage": { "totalRuns": null, "successRate": null, "avgTime": "—" }
+    }
+  ],
+  "usageByCategory": [
+    { "category": "Analysis", "percentage": 22, "runs": null, "toolCount": 2 },
+    { "category": "Development", "percentage": 22, "runs": null, "toolCount": 2 },
+    { "category": "Planning", "percentage": 22, "runs": null, "toolCount": 2 },
+    { "category": "Quality", "percentage": 11, "runs": null, "toolCount": 1 },
+    { "category": "Performance", "percentage": 11, "runs": null, "toolCount": 1 },
+    { "category": "Infrastructure", "percentage": 11, "runs": null, "toolCount": 1 }
+  ],
+  "performanceMetrics": [
+    { "label": "Jest Pass Rate", "value": "665/665", "score": 100, "trend": "32 suites", "trendType": "positive" },
+    { "label": "Schema Pass Rate", "value": "100%", "score": 100, "trend": "42/42 specs", "trendType": "positive" },
+    { "label": "Scan Quality", "value": "99%", "score": 99, "trend": "40 files, 0 blocking issues", "trendType": "positive" },
+    { "label": "Istanbul Coverage", "value": "79.5%", "score": 80, "trend": "CI test:coverage job", "trendType": "positive" }
+  ],
+  "insights": [
+    {
+      "priority": "low",
+      "title": "Scanner backlog cleared",
+      "description": "mock-data-scanner reports 0 open issues — 43/43 PAGE_SAMPLE_SPECS pass, 42/42 baselines migrated.",
+      "impact": "Honest launcher KPIs",
+      "confidence": 99
+    },
+    {
+      "priority": "low",
+      "title": "SEC-004 closed — npm audit wired",
+      "description": "Security page merges /api/security/npm-audit on refresh and Run Scan.",
+      "impact": "Measured dependency posture",
+      "confidence": 95
+    },
+    {
+      "priority": "low",
+      "title": "Docker phase2-smoke in CI",
+      "description": "dashboard-ci.yml phase2-smoke job runs docker compose -f docker-compose.phase2.yml config on every PR.",
+      "impact": "Compose config validated before deploy",
+      "confidence": 95
+    },
+    {
+      "priority": "low",
+      "title": "Istanbul collected in CI",
+      "description": "dashboard-ci.yml test job runs npm run test:coverage and uploads coverage artifact (~79.5% lines).",
+      "impact": "Measured coverage replaces dashboard fiction",
+      "confidence": 95
+    },
+    {
+      "priority": "low",
+      "title": "Enable GGUF inference",
+      "description": "Set LLAMA_CPP_BIN or Ollama to move analyze from filesystem scan to model output.",
+      "impact": "Live analyze on scan pages",
+      "confidence": 70
+    }
+  ],
+  "activity": [
+    { "time": "2026-05-24", "tool": "Mock Data Scanner", "action": "40 files scanned, 0 blocking issues, 43/43 PAGE_SAMPLE_SPECS", "status": "success", "duration": "—" },
+    { "time": "2026-05-24", "tool": "Dashboard CI", "action": "phase2-smoke + test:coverage wired in dashboard-ci.yml", "status": "success", "duration": "—" },
+    { "time": "2026-05-24", "tool": "Security Dashboard", "action": "npm audit wired (SEC-004 closed)", "status": "success", "duration": "—" },
+    { "time": "2026-05-24", "tool": "Dashboard Samples", "action": "42/42 pages on repository-audit", "status": "success", "duration": "—" },
+    { "time": "2026-05-24", "tool": "Jest Suite", "action": "665/665 tests passed (32 suites)", "status": "success", "duration": "~5s" },
+    { "time": "2026-05-23", "tool": "Stub API", "action": "Tier-1 routes wired for page samples", "status": "success", "duration": "—" },
+    { "time": "2026-05-23", "tool": "Issue Resolution", "action": "5/5 scanner findings marked resolved", "status": "success", "duration": "—" }
+  ],
+  "recommendations": {
+    "immediate": [
+      {
+        "title": "Wire 665-test deploy gate",
+        "current": "Jest + coverage run in dashboard-ci.yml",
+        "target": "Required branch protection check on main",
+        "actions": ["Mark dashboard-ci required on main", "Block production deploy without green suite"],
+        "impact": "Measured release safety"
+      }
+    ],
+    "shortTerm": [
+      {
+        "title": "Surface CI coverage on Coverage Reports page",
+        "current": "Istanbul artifact uploaded in CI (~79.5% lines)",
+        "target": "Coverage Reports page reads latest artifact",
+        "actions": ["Parse coverage/dashboard summary in stub API", "Replace static sample line % where possible"],
+        "impact": "Live coverage KPI on dashboard"
+      },
+      {
+        "title": "Collect per-tool telemetry honestly",
+        "current": "No server-side run counter",
+        "target": "Optional local event log",
+        "actions": ["Log section opens only if needed", "Do not invent 3,842 analyses"],
+        "impact": "Truthful usage charts"
+      }
+    ],
+    "longTerm": [
+      {
+        "title": "GGUF inference path",
+        "current": "filesystem+gguf-path",
+        "target": "llama.cpp or Ollama analyze",
+        "actions": ["Configure LLAMA_CPP_BIN", "Surface inference mode on tool cards"],
+        "impact": "Live analyze output"
+      },
+      {
+        "title": "Production profile",
+        "current": "REQUIRE_AUTH optional",
+        "target": "Documented one-command deploy",
+        "actions": ["Extend phase2-smoke to container up/down", "Require auth in production profile"],
+        "impact": "Deploy confidence"
+      }
+    ]
+  },
+  "kpis": [
+    { "name": "Jest Pass Rate", "current": "665/665", "target": "665/665", "timeline": "ongoing", "priority": "high" },
+    { "name": "Measured Baselines", "current": "42/42", "target": "42/42", "timeline": "complete", "priority": "high" },
+    { "name": "Schema Pass Rate", "current": "100%", "target": "100%", "timeline": "42/42 specs", "priority": "medium" },
+    { "name": "Open Scanner Issues", "current": "0", "target": "0", "timeline": "maintained", "priority": "medium" }
+  ],
+  "healthSummary": {
+    "status": "HEALTHY",
+    "assessment": "Nine dashboard tools wired as section launchers. Jest, mock-data-scanner, and npm audit metrics are measured; per-tool run counts are not collected.",
+    "highlights": [
+      "665/665 Jest tests across 32 suites",
+      "42/42 page samples on repository-audit",
+      "Mock scanner: 40 files, 99% quality, 0 blocking issues, 43/43 PAGE_SAMPLE_SPECS",
+      "dashboard-ci.yml: Jest + Istanbul + phase2-smoke on PR",
+      "SEC-004 npm audit wired to Security dashboard"
+    ]
+  }
+}

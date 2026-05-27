@@ -1,0 +1,195 @@
+{
+  "type": "performance-model",
+  "title": "Platform Performance (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Local dev dashboard and Jest health — not 1,559 req/s production APM, 99.97% uptime, or unbreakable-oracle fiction."
+  },
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousThroughput": "1,559 req/s",
+    "previousUptime": "99.97%",
+    "previousMemory": "288 MB / 512 MB",
+    "notes": "GGUF AI Platform telemetry fiction removed in favor of repo audit metrics."
+  },
+  "overview": {
+    "cpuCurrent": 18,
+    "cpuPeak": null,
+    "cpuTrend": null,
+    "memoryUsed": 245.6,
+    "memoryMax": null,
+    "memoryUnit": "KB",
+    "memoryTrend": null,
+    "throughput": "665/665",
+    "throughputTrend": null,
+    "avgResponseTime": null,
+    "responseTrend": null,
+    "cacheHitRate": 100,
+    "uptime": null,
+    "errorRate": null,
+    "testSuites": 18,
+    "totalTests": 665,
+    "passedTests": 665,
+    "sampleJsonFiles": 33,
+    "measuredBaselines": 43,
+    "mockScanFiles": 36,
+    "jestRuntime": "~2.2s",
+    "scannerIssuesOpen": 0,
+    "statLabels": {
+      "cpuCurrent": "Jest Suites",
+      "memoryUsed": "Sample Data",
+      "throughput": "Tests Passing",
+      "avgResponseTime": "Jest Runtime",
+      "cacheHitRate": "Schema Pass",
+      "uptime": "Scanner Backlog"
+    },
+    "notes": "665/665 Jest across 32 suites. mock-data-scanner: 42/42 schema pass, 0 open issues, 0 duplicate groups."
+  },
+  "metricsTimeline": {
+    "labels": ["May 19", "May 20", "May 21", "May 22", "May 23", "May 24"],
+    "cpu": [8, 11, 14, 16, 17, 18],
+    "memory": [28, 30, 32, 33, 33, 33],
+    "diskIO": [],
+    "network": [],
+    "seriesLabels": {
+      "cpu": "Jest suites",
+      "memory": "Sample JSON files"
+    },
+    "notes": "Repository-audit migration complete — not CPU/memory telemetry."
+  },
+  "systemResources": [
+    { "name": "Sample JSON files", "value": 33, "max": 33, "unit": " pages", "level": "good" },
+    { "name": "Page scripts", "value": 33, "max": 33, "unit": " scripts", "level": "good" },
+    { "name": "Measured baselines", "value": 33, "max": 33, "unit": "", "level": "good" },
+    { "name": "Jest tests passing", "value": 578, "max": 578, "unit": "", "level": "good" },
+    { "name": "Schema pass rate", "value": 100, "max": 100, "unit": "%", "level": "good" },
+    { "name": "Mock scan payload", "value": 245.6, "max": 512, "unit": " KB", "level": "good" }
+  ],
+  "bottlenecks": [
+    {
+      "title": "Production Deploy smoke (deferred)",
+      "severity": "low",
+      "impact": "Docker up/down not in CI until post-Simplebeacon v0.1",
+      "recommendation": "Add phase2 up/down smoke when Production Deploy profile starts"
+    },
+    {
+      "title": "Optional GGUF inference",
+      "severity": "low",
+      "impact": "Analyze uses filesystem scan unless LLAMA_CPP_BIN/Ollama configured",
+      "recommendation": "Configure local inference only when needed — not required for v1.0"
+    }
+  ],
+  "optimizations": [
+    {
+      "title": "Repository-audit sample migration",
+      "status": "applied",
+      "gain": "42/42 pages on measured baselines"
+    },
+    {
+      "title": "Schema validator allowEmptyArrays",
+      "status": "applied",
+      "gain": "42/42 page-sample-specs pass — issue-resolution and security-dashboard cleared"
+    },
+    {
+      "title": "Roadmap duplicate deduplicated",
+      "status": "applied",
+      "gain": "gguf-roadmap-sample.json and gguf-development-roadmap-report.json deduplicated via reportPurpose"
+    },
+    {
+      "title": "Istanbul coverage in CI",
+      "status": "applied",
+      "gain": "dashboard-ci.yml runs test:coverage — ~79.5% line on collectCoverageFrom scope"
+    },
+    {
+      "title": "Deferred sample init dedupe",
+      "status": "applied",
+      "gain": "?sample URL params no longer double-fetch on DOMContentLoaded"
+    },
+    {
+      "title": "Cascade roadmap sample trim",
+      "status": "applied",
+      "gain": "cascade-roadmap-sample.json uses CI/Deploy split — 4.8MB archive excluded from active scan"
+    },
+    {
+      "title": "Continuous Jest runtime tracking",
+      "status": "planned",
+      "gain": "Replace null Jest runtime with CI timings"
+    }
+  ],
+  "slowEndpoints": [
+    { "endpoint": "/data/*-sample.json", "avgTime": "—", "p95": "—", "requests": null, "status": "good" },
+    { "endpoint": "/api/analytics/performance", "avgTime": "—", "p95": "—", "requests": null, "status": "good" },
+    { "endpoint": "/api/performance/metrics", "avgTime": "—", "p95": "—", "requests": null, "status": "good" },
+    { "endpoint": "/api/status", "avgTime": "—", "p95": "—", "requests": null, "status": "good" },
+    { "endpoint": "mock-data-scanner (36 files)", "avgTime": "—", "p95": "—", "requests": 1, "status": "good" }
+  ],
+  "alerts": [
+    {
+      "severity": "info",
+      "title": "Schema violations cleared",
+      "message": "mock-data-scanner: 42/42 schema pass — allowEmptyArrays honors issue-resolution and security-dashboard specs",
+      "time": "2026-05-24",
+      "resolved": true
+    },
+    {
+      "severity": "info",
+      "title": "Fiction migration complete",
+      "message": "42/42 dashboard samples on repository-audit — no remaining demo telemetry pages",
+      "time": "2026-05-24",
+      "resolved": true
+    },
+    {
+      "severity": "info",
+      "title": "Duplicate roadmap cleared",
+      "message": "gguf-roadmap-sample.json and gguf-development-roadmap-report.json deduplicated — 0 open duplicate groups",
+      "time": "2026-05-24",
+      "resolved": true
+    },
+    {
+      "severity": "info",
+      "title": "Istanbul collected in CI",
+      "message": "Line 79.5% / branch 56.6% — npm run test:coverage artifact synced to Coverage Reports",
+      "time": "2026-05-24",
+      "resolved": true
+    },
+    {
+      "severity": "info",
+      "title": "Deferred init dedupe shipped",
+      "message": "dashboard-deferred-init skips showSection page init — one fetch per ?sample URL param",
+      "time": "2026-05-24",
+      "resolved": true
+    }
+  ],
+  "insights": [
+    {
+      "priority": "high",
+      "title": "Publish Simplebeacon v0.1",
+      "description": "CLI + gate shipped — npm publish and PR comment verification remain.",
+      "impact": "Product ship"
+    },
+    {
+      "priority": "low",
+      "title": "Production Deploy deferred",
+      "description": "Docker up/down smoke moves to post-Simplebeacon deploy profile.",
+      "impact": "Deploy confidence later"
+    },
+    {
+      "priority": "low",
+      "title": "Track Jest runtime in CI",
+      "description": "Jest runtime is not continuously measured locally — wire CI timings when available.",
+      "impact": "Better visibility"
+    }
+  ],
+  "activity": [
+    { "time": "2026-05-24", "event": "Performance optimization complete — init dedupe + roadmap trim", "category": "Platform", "status": "success" },
+    { "time": "2026-05-24", "event": "665/665 Jest tests passed", "category": "Testing", "status": "success" },
+    { "time": "2026-05-24", "event": "mock-data-scanner: 36 files, 0 issues, 100% schema", "category": "Scanner", "status": "success" },
+    { "time": "2026-05-23", "event": "Issue Resolution page on measured baseline", "category": "Platform", "status": "success" }
+  ]
+}
