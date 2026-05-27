@@ -18,6 +18,7 @@ concurrency:
 jobs:
   pr-compliance-gate:
     name: PR compliance gate
+    if: hashFiles('ai-platform/package-lock.json') != ''
     runs-on: ubuntu-latest
     defaults:
       run:

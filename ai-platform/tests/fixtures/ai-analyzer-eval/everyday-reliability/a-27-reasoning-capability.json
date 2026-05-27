@@ -1,0 +1,25 @@
+{
+  "issueId": "A-27",
+  "category": "everyday-reliability-problems",
+  "context": {
+    "reasoningTasks": [
+      {
+        "steps": ["Identify constraints", "Apply policy rule", "Return decision"],
+        "expectedAnswer": "approve",
+        "actualAnswer": "approve"
+      },
+      {
+        "steps": ["Compare options", "Eliminate invalid branch", "Select outcome"],
+        "expectedAnswer": "deny",
+        "actualAnswer": "deny"
+      },
+      {
+        "responseText": "Step 3 uses circular reasoning to justify the conclusion.",
+        "steps": ["Premise A", "Premise B"],
+        "expectedAnswer": "hold",
+        "actualAnswer": "reject",
+        "fallacyCount": 1
+      }
+    ]
+  }
+}

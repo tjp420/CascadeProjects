@@ -87,10 +87,10 @@ export const ANALYZER_CATALOG = [
   createAnalyzer('Economic & Regulatory AI Issues', 'Intellectual Property Analyzer', 'Assess IP ownership, provenance, and rights clarity.', ['Content provenance records', 'Training source rights', 'Attribution logs'], ['Trace provenance lineage', 'Validate rights coverage', 'Score ownership ambiguity'], ['Ownership clarity score', 'Rights coverage ratio', 'Attribution completeness'], 'higher_better', 'Apply deterministic provenance lineage checks.', 'implemented'),
 
   createAnalyzer('Everyday Reliability Problems', 'Response Consistency Analyzer', 'Measure repeatability for same or equivalent prompts.', ['Repeated prompt-response sets', 'Similarity measures', 'Configuration settings'], ['Compare semantic overlap', 'Measure variance over repeats', 'Flag unstable outputs'], ['Response similarity score', 'Variance index', 'Stability pass rate'], 'higher_better', 'Use deterministic token/phrase overlap with fixed thresholds.', 'implemented'),
-  createAnalyzer('Everyday Reliability Problems', 'Confidence Accuracy Analyzer', 'Measure calibration between confidence and correctness.', ['Confidence signals', 'Correctness labels', 'Evaluation datasets'], ['Build calibration buckets', 'Compute confidence-correctness gap', 'Flag overconfidence'], ['Calibration score', 'Overconfidence rate', 'Reliability score'], 'higher_better', 'Implement calibration curve checks without model calls.'),
-  createAnalyzer('Everyday Reliability Problems', 'Context Retention Analyzer', 'Measure context retention over long interactions.', ['Conversation transcripts', 'Context dependency prompts', 'Retention expectations'], ['Inject recall prompts at intervals', 'Measure retained facts', 'Score context decay'], ['Retention rate', 'Context decay slope', 'Recall failure count'], 'higher_better', 'Use deterministic recall checkpoints in scripted conversations.'),
-  createAnalyzer('Everyday Reliability Problems', 'Knowledge Freshness Analyzer', 'Assess currency of model knowledge for recent topics.', ['Timestamped fact tests', 'Knowledge cutoff metadata', 'Verified references'], ['Query fresh facts', 'Compare with references', 'Compute staleness impact'], ['Freshness score', 'Recent-fact accuracy', 'Staleness risk'], 'higher_better', 'Use fixed dated benchmark sets and deterministic scoring.'),
-  createAnalyzer('Everyday Reliability Problems', 'Reasoning Capability Analyzer', 'Evaluate logical and multi-step reasoning robustness.', ['Reasoning benchmark tasks', 'Step-by-step outputs', 'Expected solutions'], ['Check step validity', 'Check final answer correctness', 'Identify recurring fallacies'], ['Reasoning accuracy', 'Multi-step success rate', 'Fallacy frequency'], 'higher_better', 'Use deterministic benchmark answer keys and rule checks.'),
+  createAnalyzer('Everyday Reliability Problems', 'Confidence Accuracy Analyzer', 'Measure calibration between confidence and correctness.', ['Confidence signals', 'Correctness labels', 'Evaluation datasets'], ['Build calibration buckets', 'Compute confidence-correctness gap', 'Flag overconfidence'], ['Calibration score', 'Overconfidence rate', 'Reliability score'], 'higher_better', 'Implement calibration curve checks without model calls.', 'implemented'),
+  createAnalyzer('Everyday Reliability Problems', 'Context Retention Analyzer', 'Measure context retention over long interactions.', ['Conversation transcripts', 'Context dependency prompts', 'Retention expectations'], ['Inject recall prompts at intervals', 'Measure retained facts', 'Score context decay'], ['Retention rate', 'Context decay slope', 'Recall failure count'], 'higher_better', 'Use deterministic recall checkpoints in scripted conversations.', 'implemented'),
+  createAnalyzer('Everyday Reliability Problems', 'Knowledge Freshness Analyzer', 'Assess currency of model knowledge for recent topics.', ['Timestamped fact tests', 'Knowledge cutoff metadata', 'Verified references'], ['Query fresh facts', 'Compare with references', 'Compute staleness impact'], ['Freshness score', 'Recent-fact accuracy', 'Staleness risk'], 'higher_better', 'Use fixed dated benchmark sets and deterministic scoring.', 'implemented'),
+  createAnalyzer('Everyday Reliability Problems', 'Reasoning Capability Analyzer', 'Evaluate logical and multi-step reasoning robustness.', ['Reasoning benchmark tasks', 'Step-by-step outputs', 'Expected solutions'], ['Check step validity', 'Check final answer correctness', 'Identify recurring fallacies'], ['Reasoning accuracy', 'Multi-step success rate', 'Fallacy frequency'], 'higher_better', 'Use deterministic benchmark answer keys and rule checks.', 'implemented'),
 
   createAnalyzer('Everyday UX Problems', 'Prompt Engineering Difficulty Analyzer', 'Measure how hard it is for users to get quality outputs.', ['Prompt iteration logs', 'Success outcomes', 'User expertise labels'], ['Count attempts to success', 'Compare novice vs expert outcomes', 'Score prompt complexity'], ['Attempts-to-success', 'Expert-novice gap', 'Prompt complexity index'], 'lower_better', 'Start with deterministic attempt/success analytics.'),
   createAnalyzer('Everyday UX Problems', 'Response Latency Analyzer', 'Measure responsiveness and UX latency impact.', ['Request timing logs', 'Prompt complexity labels', 'User wait tolerance'], ['Compute p50/p95 latency', 'Compare by workload type', 'Check UX threshold breaches'], ['Latency score', 'Threshold breach rate', 'Responsiveness percentile'], 'higher_better', 'Use local latency telemetry and threshold checks.'),
@@ -1348,20 +1348,24 @@ function runMarketMonopolizationAnalyzer(definition, issueId, input = {}) {
 function runEnvironmentalImpactAnalyzer(definition, issueId, input = {}) {
   const metrics = input.metrics || input.environmentalMetrics || {};
   const text = collectSocietalImpactText(input);
-  if (!Object.keys(metrics).length && !text.trim()) {
+  const positiveHits = ENVIRONMENTAL_POSITIVE_MARKERS.filter((pattern) => pattern.test(text)).length;
+  const negativeHits = ENVIRONMENTAL_NEGATIVE_MARKERS.filter((pattern) => pattern.test(text)).length;
+  const energyPerRequest = Number(metrics.energyPerRequest ?? metrics.kwhPerRequest ?? NaN);
+  const scanDurationMs = Number(metrics.scanDurationMs ?? metrics.dataQualityScanDurationMs ?? 0);
+  const hasExplicitEnergyMetric = Number.isFinite(energyPerRequest);
+  const hasSustainabilityMarkers = positiveHits > 0 || negativeHits > 0;
+  const hasOperationalTelemetry = !isScanReportContext(input) && scanDurationMs > 0;
+  const hasEnvironmentalEvidence = hasExplicitEnergyMetric || hasSustainabilityMarkers || hasOperationalTelemetry;
+  if (!hasEnvironmentalEvidence) {
     return buildInsufficientResult(definition, issueId, 'metrics|responseText', 'No energy or sustainability telemetry supplied.', [
       { name: 'energy_per_request', value: 0, unit: 'score', direction: 'lower_better' },
       { name: 'carbon_footprint_score', value: 0, unit: 'percent', direction: 'higher_better' },
       { name: 'efficiency_percentile', value: 0, unit: 'percent', direction: 'higher_better' }
     ], ['Track energy per request in runtime telemetry.', 'Prefer renewable-powered compute regions.', 'Set carbon budget targets per workload tier.']);
   }
-  const energyPerRequest = Number(metrics.energyPerRequest ?? metrics.kwhPerRequest ?? NaN);
-  const scanDurationMs = Number(metrics.scanDurationMs ?? metrics.dataQualityScanDurationMs ?? 0);
   let energyScore = 60;
   if (Number.isFinite(energyPerRequest)) energyScore = energyPerRequest <= 0.01 ? 90 : energyPerRequest <= 0.05 ? 75 : 45;
   else if (scanDurationMs > 0) energyScore = scanDurationMs <= 5000 ? 80 : scanDurationMs <= 15000 ? 65 : 40;
-  const positiveHits = ENVIRONMENTAL_POSITIVE_MARKERS.filter((pattern) => pattern.test(text)).length;
-  const negativeHits = ENVIRONMENTAL_NEGATIVE_MARKERS.filter((pattern) => pattern.test(text)).length;
   const carbonFootprintScore = clampScore(energyScore + (positiveHits * 10) - (negativeHits * 20));
   const efficiencyPercentile = clampScore(carbonFootprintScore - 5);
   const score = clampScore((carbonFootprintScore * 0.5) + (efficiencyPercentile * 0.5));
@@ -1419,6 +1423,13 @@ function runLiabilityAssessmentAnalyzer(definition, issueId, input = {}) {
     ], ['Document decision ownership for AI-assisted outcomes.', 'Publish escalation paths for incident response.', 'Align terms of service with liability boundaries.']);
   }
   const hits = LIABILITY_POSITIVE_MARKERS.filter((pattern) => pattern.test(text)).length;
+  if (!hits && !/\bdecision owner\b/i.test(text) && !/\bescalation path\b/i.test(text)) {
+    return buildInsufficientResult(definition, issueId, 'responseText|codeText|logs', 'No liability or escalation documentation supplied.', [
+      { name: 'liability_clarity_score', value: 0, unit: 'percent', direction: 'higher_better' },
+      { name: 'ownership_coverage_rate', value: 0, unit: 'percent', direction: 'higher_better' },
+      { name: 'escalation_completeness', value: 0, unit: 'percent', direction: 'higher_better' }
+    ], ['Document decision ownership for AI-assisted outcomes.', 'Publish escalation paths for incident response.', 'Align terms of service with liability boundaries.']);
+  }
   const liabilityClarityScore = clampScore(35 + (hits * 15));
   const ownershipCoverageRate = clampScore(/\bdecision owner\b/i.test(text) ? 85 : 45);
   const escalationCompleteness = clampScore(/\bescalation path\b/i.test(text) ? 90 : 40);
@@ -1470,6 +1481,13 @@ function runIntellectualPropertyAnalyzer(definition, issueId, input = {}) {
   }
   const positiveHits = IP_PROVENANCE_POSITIVE_MARKERS.filter((pattern) => pattern.test(text)).length;
   const negativeHits = IP_PROVENANCE_NEGATIVE_MARKERS.filter((pattern) => pattern.test(text)).length;
+  if (!positiveHits && !negativeHits) {
+    return buildInsufficientResult(definition, issueId, 'responseText|codeText', 'No IP provenance or rights evidence supplied.', [
+      { name: 'ownership_clarity_score', value: 0, unit: 'percent', direction: 'higher_better' },
+      { name: 'rights_coverage_ratio', value: 0, unit: 'percent', direction: 'higher_better' },
+      { name: 'attribution_completeness', value: 0, unit: 'percent', direction: 'higher_better' }
+    ], ['Maintain provenance records for training and generated assets.', 'Validate rights coverage for all source materials.', 'Complete attribution logs before distribution.']);
+  }
   const ownershipClarityScore = clampScore(40 + (positiveHits * 14) - (negativeHits * 18));
   const rightsCoverageRatio = clampScore(ownershipClarityScore - 5);
   const attributionCompleteness = clampScore((/\battribution log\b/i.test(text) ? 85 : 45) + (positiveHits * 5));
@@ -2091,6 +2109,224 @@ function runResponseConsistencyAnalyzer(definition, issueId, input = {}) {
       { sourceType: 'input', pointer: 'responses', detail: `Compared ${responses.length} response sample(s).` }
     ]
   };
+}
+
+const REASONING_FALLACY_MARKERS = [
+  /\bcircular reasoning\b/i,
+  /\bad hominem\b/i,
+  /\bfalse dichotomy\b/i,
+  /\bstraw man\b/i,
+  /\bhasty generalization\b/i,
+  /\bnon sequitur\b/i
+];
+
+function normalizeConfidenceValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  if (numeric <= 1) return clampScore(numeric * 100);
+  return clampScore(numeric);
+}
+
+function collectCalibrationRecords(input = {}) {
+  const source = Array.isArray(input.calibrationRecords)
+    ? input.calibrationRecords
+    : (Array.isArray(input.confidenceSignals) ? input.confidenceSignals : []);
+  return source.map((row) => ({
+    claimedConfidence: normalizeConfidenceValue(row.claimedConfidence ?? row.confidence ?? row.score),
+    correct: row.correct === true
+      || row.isCorrect === true
+      || row.verificationOutcome === 'passed'
+      || row.outcome === 'correct'
+  }));
+}
+
+function collectContextCheckpoints(input = {}) {
+  if (Array.isArray(input.contextCheckpoints) && input.contextCheckpoints.length) {
+    return input.contextCheckpoints.map((row, index) => ({
+      turn: Number(row.turn ?? row.step ?? index + 1),
+      retained: row.retained === true || row.recalled === true || row.passed === true
+    }));
+  }
+  if (Array.isArray(input.conversationTranscript) && input.conversationTranscript.length) {
+    return input.conversationTranscript
+      .filter((row) => typeof row.retained === 'boolean' || typeof row.recalled === 'boolean')
+      .map((row, index) => ({
+        turn: Number(row.turn ?? row.step ?? index + 1),
+        retained: row.retained === true || row.recalled === true
+      }));
+  }
+  return [];
+}
+
+function collectFreshnessTests(input = {}) {
+  if (Array.isArray(input.freshnessTests) && input.freshnessTests.length) {
+    return input.freshnessTests.map((row) => ({
+      topic: String(row.topic || row.subject || 'topic'),
+      referenceDate: row.referenceDate || row.asOf || null,
+      answeredCorrectly: row.answeredCorrectly === true
+        || row.correct === true
+        || row.isCorrect === true,
+      isStale: row.isStale === true
+    }));
+  }
+  return [];
+}
+
+function collectReasoningTasks(input = {}) {
+  if (Array.isArray(input.reasoningTasks) && input.reasoningTasks.length) {
+    return input.reasoningTasks.map((row) => {
+      const steps = Array.isArray(row.steps) ? row.steps.map(String) : [];
+      const text = [String(row.responseText || ''), ...steps].join(' ');
+      const fallacyHits = REASONING_FALLACY_MARKERS.filter((pattern) => pattern.test(text)).length
+        + Number(row.fallacyCount ?? 0);
+      const expectedAnswer = String(row.expectedAnswer ?? row.expected ?? '').trim().toLowerCase();
+      const actualAnswer = String(row.actualAnswer ?? row.answer ?? row.output ?? '').trim().toLowerCase();
+      const answerCorrect = row.isCorrect === true
+        || row.correct === true
+        || (expectedAnswer && actualAnswer && expectedAnswer === actualAnswer);
+      const validSteps = Number(row.validSteps ?? steps.length);
+      return {
+        steps,
+        validSteps,
+        answerCorrect,
+        fallacyHits,
+        multiStep: steps.length >= 2 || validSteps >= 2
+      };
+    });
+  }
+  return [];
+}
+
+function runConfidenceAccuracyAnalyzer(definition, issueId, input = {}) {
+  const records = collectCalibrationRecords(input);
+  if (records.length < 2) {
+    return buildInsufficientResult(definition, issueId, 'calibrationRecords|confidenceSignals', 'At least two confidence-correctness records are required.', [
+      { name: 'calibration_score', value: 0, unit: 'percent', direction: 'higher_better' },
+      { name: 'overconfidence_rate', value: 0, unit: 'percent', direction: 'lower_better' },
+      { name: 'reliability_score', value: 0, unit: 'percent', direction: 'higher_better' }
+    ], ['Log claimed confidence alongside verification outcomes.', 'Review overconfidence cases in evaluation datasets.', 'Track calibration drift over repeated runs.']);
+  }
+  const gaps = records.map((row) => Math.abs(row.claimedConfidence - (row.correct ? 100 : 0)));
+  const calibrationScore = clampScore(100 - (gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length));
+  const overconfident = records.filter((row) => row.claimedConfidence >= 75 && !row.correct).length;
+  const overconfidenceRate = clampScore((overconfident / records.length) * 100);
+  const reliabilityScore = clampScore((calibrationScore * 0.65) + ((100 - overconfidenceRate) * 0.35));
+  const score = reliabilityScore;
+  const risk = finalizeRiskAssessment(score, definition.scoringDirection, {
+    evidenceCount: records.length,
+    minEvidence: 2,
+    criticalRequiresMinEvidence: true
+  });
+  return buildHigherBetterResult(definition, issueId, score, risk, [
+    { name: 'calibration_score', value: calibrationScore, unit: 'percent', direction: 'higher_better' },
+    { name: 'overconfidence_rate', value: overconfidenceRate, unit: 'percent', direction: 'lower_better' },
+    { name: 'reliability_score', value: reliabilityScore, unit: 'percent', direction: 'higher_better' },
+    { name: 'data_analyzed', value: records.length, unit: 'count', direction: 'higher_better' }
+  ], [
+    ...(overconfidenceRate >= 25 ? [{ level: 'warn', message: `${overconfident} overconfidence case(s) detected.`, code: 'OVERCONFIDENCE' }] : [])
+  ], ['Log claimed confidence alongside verification outcomes.', 'Review overconfidence cases in evaluation datasets.', 'Track calibration drift over repeated runs.'], `Evaluated ${records.length} confidence record(s).`, 'calibrationRecords|confidenceSignals');
+}
+
+function runContextRetentionAnalyzer(definition, issueId, input = {}) {
+  const checkpoints = collectContextCheckpoints(input);
+  if (checkpoints.length < 2) {
+    return buildInsufficientResult(definition, issueId, 'contextCheckpoints|conversationTranscript', 'At least two context retention checkpoints are required.', [
+      { name: 'retention_rate', value: 0, unit: 'percent', direction: 'higher_better' },
+      { name: 'context_decay_slope', value: 0, unit: 'percent', direction: 'lower_better' },
+      { name: 'recall_failure_count', value: 0, unit: 'count', direction: 'lower_better' }
+    ], ['Inject recall prompts at fixed conversation intervals.', 'Track retained facts across long sessions.', 'Reduce context window drift with explicit summaries.']);
+  }
+  const retainedCount = checkpoints.filter((row) => row.retained).length;
+  const retentionRate = clampScore((retainedCount / checkpoints.length) * 100);
+  const recallFailureCount = checkpoints.length - retainedCount;
+  const ordered = [...checkpoints].sort((a, b) => a.turn - b.turn);
+  let decaySlope = 0;
+  if (ordered.length >= 2) {
+    const first = ordered[0];
+    const last = ordered[ordered.length - 1];
+    const turnSpan = Math.max(1, last.turn - first.turn);
+    const retentionDelta = (last.retained ? 100 : 0) - (first.retained ? 100 : 0);
+    decaySlope = clampScore(Math.abs(retentionDelta / turnSpan));
+  }
+  const score = clampScore((retentionRate * 0.6) + ((100 - decaySlope) * 0.25) + ((100 - (recallFailureCount * 12)) * 0.15));
+  const risk = finalizeRiskAssessment(score, definition.scoringDirection, {
+    evidenceCount: checkpoints.length,
+    minEvidence: 2,
+    criticalRequiresMinEvidence: true
+  });
+  return buildHigherBetterResult(definition, issueId, score, risk, [
+    { name: 'retention_rate', value: retentionRate, unit: 'percent', direction: 'higher_better' },
+    { name: 'context_decay_slope', value: decaySlope, unit: 'percent', direction: 'lower_better' },
+    { name: 'recall_failure_count', value: recallFailureCount, unit: 'count', direction: 'lower_better' },
+    { name: 'data_analyzed', value: checkpoints.length, unit: 'count', direction: 'higher_better' }
+  ], [
+    ...(retentionRate < 60 ? [{ level: 'warn', message: 'Context retention falls below target threshold.', code: 'LOW_RETENTION' }] : []),
+    ...(decaySlope > 20 ? [{ level: 'info', message: 'Context decay increases over later turns.', code: 'CONTEXT_DECAY' }] : [])
+  ], ['Inject recall prompts at fixed conversation intervals.', 'Track retained facts across long sessions.', 'Reduce context window drift with explicit summaries.'], `Reviewed ${checkpoints.length} retention checkpoint(s).`, 'contextCheckpoints|conversationTranscript');
+}
+
+function runKnowledgeFreshnessAnalyzer(definition, issueId, input = {}) {
+  const tests = collectFreshnessTests(input);
+  const knowledgeCutoff = String(input.knowledgeCutoff || input.cutoffDate || '').trim();
+  if (!tests.length) {
+    return buildInsufficientResult(definition, issueId, 'freshnessTests|knowledgeCutoff', 'At least one timestamped freshness test is required.', [
+      { name: 'freshness_score', value: 0, unit: 'percent', direction: 'higher_better' },
+      { name: 'recent_fact_accuracy', value: 0, unit: 'percent', direction: 'higher_better' },
+      { name: 'staleness_risk', value: 0, unit: 'percent', direction: 'lower_better' }
+    ], ['Maintain dated benchmark facts for recent topics.', 'Track knowledge cutoff metadata in evaluations.', 'Flag stale answers against verified references.']);
+  }
+  const correctCount = tests.filter((row) => row.answeredCorrectly).length;
+  const recentFactAccuracy = clampScore((correctCount / tests.length) * 100);
+  const staleFailures = tests.filter((row) => row.isStale || (knowledgeCutoff && row.referenceDate && row.referenceDate > knowledgeCutoff && !row.answeredCorrectly)).length;
+  const stalenessRisk = clampScore((staleFailures / tests.length) * 100);
+  const freshnessScore = clampScore((recentFactAccuracy * 0.7) + ((100 - stalenessRisk) * 0.3));
+  const score = freshnessScore;
+  const risk = finalizeRiskAssessment(score, definition.scoringDirection, {
+    evidenceCount: tests.length,
+    minEvidence: 1,
+    criticalRequiresMinEvidence: true
+  });
+  return buildHigherBetterResult(definition, issueId, score, risk, [
+    { name: 'freshness_score', value: freshnessScore, unit: 'percent', direction: 'higher_better' },
+    { name: 'recent_fact_accuracy', value: recentFactAccuracy, unit: 'percent', direction: 'higher_better' },
+    { name: 'staleness_risk', value: stalenessRisk, unit: 'percent', direction: 'lower_better' },
+    { name: 'data_analyzed', value: tests.length, unit: 'count', direction: 'higher_better' }
+  ], [
+    ...(stalenessRisk >= 30 ? [{ level: 'warn', message: 'Stale knowledge responses detected in recent-fact tests.', code: 'STALE_KNOWLEDGE' }] : [])
+  ], ['Maintain dated benchmark facts for recent topics.', 'Track knowledge cutoff metadata in evaluations.', 'Flag stale answers against verified references.'], `Evaluated ${tests.length} freshness test(s).`, 'freshnessTests|knowledgeCutoff');
+}
+
+function runReasoningCapabilityAnalyzer(definition, issueId, input = {}) {
+  const tasks = collectReasoningTasks(input);
+  if (!tasks.length) {
+    return buildInsufficientResult(definition, issueId, 'reasoningTasks', 'At least one reasoning benchmark task is required.', [
+      { name: 'reasoning_accuracy', value: 0, unit: 'percent', direction: 'higher_better' },
+      { name: 'multi_step_success_rate', value: 0, unit: 'percent', direction: 'higher_better' },
+      { name: 'fallacy_frequency', value: 0, unit: 'count', direction: 'lower_better' }
+    ], ['Use fixed benchmark tasks with expected answers.', 'Validate each reasoning step before scoring.', 'Track recurring fallacy patterns in outputs.']);
+  }
+  const correctCount = tasks.filter((row) => row.answerCorrect).length;
+  const reasoningAccuracy = clampScore((correctCount / tasks.length) * 100);
+  const multiStepTasks = tasks.filter((row) => row.multiStep);
+  const multiStepSuccessRate = multiStepTasks.length
+    ? clampScore((multiStepTasks.filter((row) => row.answerCorrect).length / multiStepTasks.length) * 100)
+    : reasoningAccuracy;
+  const fallacyFrequency = tasks.reduce((sum, row) => sum + row.fallacyHits, 0);
+  const score = clampScore((reasoningAccuracy * 0.5) + (multiStepSuccessRate * 0.35) + (Math.max(0, 100 - (fallacyFrequency * 12)) * 0.15));
+  const risk = finalizeRiskAssessment(score, definition.scoringDirection, {
+    evidenceCount: tasks.length,
+    minEvidence: 1,
+    criticalRequiresMinEvidence: true
+  });
+  return buildHigherBetterResult(definition, issueId, score, risk, [
+    { name: 'reasoning_accuracy', value: reasoningAccuracy, unit: 'percent', direction: 'higher_better' },
+    { name: 'multi_step_success_rate', value: multiStepSuccessRate, unit: 'percent', direction: 'higher_better' },
+    { name: 'fallacy_frequency', value: fallacyFrequency, unit: 'count', direction: 'lower_better' },
+    { name: 'data_analyzed', value: tasks.length, unit: 'count', direction: 'higher_better' }
+  ], [
+    ...(fallacyFrequency > 0 ? [{ level: 'warn', message: `${fallacyFrequency} reasoning fallacy marker(s) detected.`, code: 'REASONING_FALLACY' }] : []),
+    ...(reasoningAccuracy < 60 ? [{ level: 'warn', message: 'Reasoning benchmark accuracy is below target.', code: 'LOW_REASONING_ACCURACY' }] : [])
+  ], ['Use fixed benchmark tasks with expected answers.', 'Validate each reasoning step before scoring.', 'Track recurring fallacy patterns in outputs.'], `Evaluated ${tasks.length} reasoning task(s).`, 'reasoningTasks');
 }
 
 const EVIDENCE_MARKERS = {
@@ -3514,6 +3750,26 @@ export function collectAnalyzerInputs(context = {}) {
     'response-consistency-analyzer': {
       ...shared,
       responses
+    },
+    'confidence-accuracy-analyzer': {
+      ...shared,
+      calibrationRecords: Array.isArray(enriched.calibrationRecords) ? enriched.calibrationRecords : undefined,
+      confidenceSignals: Array.isArray(enriched.confidenceSignals) ? enriched.confidenceSignals : undefined
+    },
+    'context-retention-analyzer': {
+      ...shared,
+      contextCheckpoints: Array.isArray(enriched.contextCheckpoints) ? enriched.contextCheckpoints : undefined,
+      conversationTranscript: Array.isArray(enriched.conversationTranscript) ? enriched.conversationTranscript : undefined
+    },
+    'knowledge-freshness-analyzer': {
+      ...shared,
+      freshnessTests: Array.isArray(enriched.freshnessTests) ? enriched.freshnessTests : undefined,
+      knowledgeCutoff: enriched.knowledgeCutoff || enriched.cutoffDate || undefined
+    },
+    'reasoning-capability-analyzer': {
+      ...shared,
+      responseText: snippets.responseText,
+      reasoningTasks: Array.isArray(enriched.reasoningTasks) ? enriched.reasoningTasks : undefined
     }
   };
   for (const analyzerId of Object.keys(IMPLEMENTED_RUNNERS)) {
@@ -3556,6 +3812,10 @@ const IMPLEMENTED_RUNNERS = {
   'intellectual-property-analyzer': runIntellectualPropertyAnalyzer,
   'security-risk-analyzer': runSecurityRiskAnalyzer,
   'response-consistency-analyzer': runResponseConsistencyAnalyzer,
+  'confidence-accuracy-analyzer': runConfidenceAccuracyAnalyzer,
+  'context-retention-analyzer': runContextRetentionAnalyzer,
+  'knowledge-freshness-analyzer': runKnowledgeFreshnessAnalyzer,
+  'reasoning-capability-analyzer': runReasoningCapabilityAnalyzer,
   'error-handling-analyzer': runErrorHandlingAnalyzer,
   'ai-output-reliability-analyzer': runAiOutputReliabilityAnalyzer
 };

@@ -1,0 +1,12 @@
+{
+  "issueId": "A-25",
+  "category": "everyday-reliability-problems",
+  "context": {
+    "contextCheckpoints": [
+      { "turn": 1, "retained": true },
+      { "turn": 3, "retained": true },
+      { "turn": 6, "retained": true },
+      { "turn": 10, "retained": false }
+    ]
+  }
+}

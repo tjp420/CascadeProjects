@@ -711,7 +711,7 @@ describe('AI systems issue analyzer core', () => {
     expect(result.metrics.find((m) => m.name === 'data_analyzed').value).toBeGreaterThan(0);
   });
 
-  test('runAllAnalyzers executes all 25 implemented analyzers with shared context', () => {
+  test('runAllAnalyzers executes all 29 implemented analyzers with shared context', () => {
     const result = runAnalyzerScript(`
       const output = analyzer.runAllAnalyzers({
         responseText: 'Decision trace with feature importance because step-by-step reasoning. GDPR audit logging human oversight escalation path decision owner provenance record training source rights attribution log renewable-powered compute.',
@@ -726,6 +726,24 @@ describe('AI systems issue analyzer core', () => {
           { provider: 'gamma', share: 18 }
         ],
         complianceControls: ['gdpr', 'audit-logging', 'human-oversight'],
+        calibrationRecords: [
+          { claimedConfidence: 0.9, correct: true },
+          { claimedConfidence: 0.88, correct: true },
+          { claimedConfidence: 0.93, correct: false }
+        ],
+        contextCheckpoints: [
+          { turn: 1, retained: true },
+          { turn: 4, retained: true },
+          { turn: 8, retained: false }
+        ],
+        freshnessTests: [
+          { topic: 'release-notes', referenceDate: '2026-05-01', answeredCorrectly: true },
+          { topic: 'policy-update', referenceDate: '2026-04-20', answeredCorrectly: true }
+        ],
+        reasoningTasks: [
+          { steps: ['Identify rule', 'Apply constraint', 'Decide'], expectedAnswer: 'approve', actualAnswer: 'approve' },
+          { steps: ['Compare paths', 'Reject invalid'], expectedAnswer: 'deny', actualAnswer: 'deny' }
+        ],
         roleTasks: [
           { role: 'engineering', task: 'test generation', exposureWeight: 22 },
           { role: 'support', task: 'customer support triage', exposureWeight: 28 }
@@ -750,8 +768,8 @@ describe('AI systems issue analyzer core', () => {
       }));
     `);
 
-    expect(result.count).toBe(25);
-    expect(result.implemented).toBe(25);
+    expect(result.count).toBe(29);
+    expect(result.implemented).toBe(29);
     expect(result.insufficient).toBe(0);
     expect(result.dataAnalyzed.every((row) => row.value > 0)).toBe(true);
   });

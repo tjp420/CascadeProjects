@@ -23,6 +23,10 @@
     { "file": "economic-regulatory/a-21-market-manipulation.json", "issueId": "A-21" },
     { "file": "economic-regulatory/a-22-intellectual-property.json", "issueId": "A-22" },
     { "file": "everyday-reliability/a-23-response-consistency.json", "issueId": "A-23" },
+    { "file": "everyday-reliability/a-24-confidence-accuracy.json", "issueId": "A-24" },
+    { "file": "everyday-reliability/a-25-context-retention.json", "issueId": "A-25" },
+    { "file": "everyday-reliability/a-26-knowledge-freshness.json", "issueId": "A-26" },
+    { "file": "everyday-reliability/a-27-reasoning-capability.json", "issueId": "A-27" },
     { "file": "everyday-reliability/a-48-output-reliability.json", "issueId": "A-48" },
     { "file": "everyday-trust-safety/a-39-security-risk.json", "issueId": "A-39" },
     { "file": "everyday-integration/a-46-error-handling.json", "issueId": "A-46" }

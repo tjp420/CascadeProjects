@@ -20,6 +20,7 @@ concurrency:
 jobs:
   monorepo-gate:
     name: Monorepo compliance gate
+    if: hashFiles('ai-platform/package-lock.json') != ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository source

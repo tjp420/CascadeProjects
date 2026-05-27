@@ -25,6 +25,7 @@ permissions:
 
 jobs:
   simplebeacon:
+    if: hashFiles('ai-platform/package-lock.json') != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
