@@ -1,0 +1,20 @@
+# Regenerable artifacts (also covered by repo-root .gitignore)
+node_modules/
+coverage/
+__pycache__/
+*.log
+.venv/
+**/.venv/
+
+# Local secrets
+.env
+.env.local
+.env.production
+.env.v1-internal
+
+# Simplebeacon local scan cache (review before deleting)
+.simplebeacon/archive/
+
+# ESLint CI artifacts
+eslint-report.json
+reports/technical-debt/raw/eslint-report.json

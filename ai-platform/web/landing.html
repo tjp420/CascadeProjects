@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simplebeacon — Private Pre-Launch Code Audits</title>
+  <meta name="description" content="Private pre-launch code audits for agencies. We catch token leaks and AI errors code reviews miss in under 2 seconds — completely offline.">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://simplebeacon.ai/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0d1117;
+      --bg-darker: #010409;
+      --bg-card: #161b22;
+      --border: #30363d;
+      --text-primary: #f0f6fc;
+      --text-secondary: #8b949e;
+      --accent: #238636;
+      --accent-hover: #2ea043;
+      --font-sans: "Inter", system-ui, sans-serif;
+      --radius: 8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      color: var(--text-primary);
+      background: var(--bg-dark);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    /* Navigation */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-darker);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+    .nav-brand-icon {
+      font-size: 1.5rem;
+    }
+    .nav-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(35, 134, 54, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    
+    /* Main Content */
+    .main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+    }
+    
+    /* Pitch Section */
+    .pitch {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+    .pitch h1 {
+      font-size: 2.5rem;
+      margin: 0 0 1.5rem 0;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .pitch p {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+    
+    /* Proof Section */
+    .proof {
+      text-align: center;
+      margin-bottom: 4rem;
+      padding: 2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .proof h2 {
+      margin: 0 0 1rem 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .proof-link {
+      display: inline-block;
+      padding: 1rem 2rem;
+      background: var(--bg-darker);
+      color: var(--text-primary);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .proof-link:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    
+    /* Pricing Section */
+    .pricing {
+      background: var(--bg-card);
+      border: 2px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+      box-shadow: 0 0 30px rgba(35, 134, 54, 0.15);
+    }
+    .pricing h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    .pricing-price {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin: 1rem 0 1.5rem 0;
+      color: var(--text-primary);
+    }
+    .pricing-price span {
+      font-size: 1rem;
+      font-weight: 400;
+      color: var(--text-secondary);
+    }
+    .pricing-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 2rem 0;
+    }
+    .pricing-features li {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .pricing-features li:last-child {
+      border-bottom: none;
+    }
+    .pricing-features li::before {
+      content: "✓";
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .pricing-cta {
+      display: block;
+      width: 100%;
+      padding: 1.25rem 2rem;
+      background: var(--accent);
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      border-radius: var(--radius);
+      transition: background 0.2s;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      text-align: center;
+    }
+    .pricing-cta:hover {
+      background: var(--accent-hover);
+    }
+
+    /* Diagnostic sandbox */
+    .diagnostic {
+      margin-bottom: 4rem;
+      padding: 2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .diagnostic h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.5rem;
+    }
+    .diagnostic-intro {
+      color: var(--text-secondary);
+      margin: 0 0 1.5rem 0;
+    }
+    .diagnostic-privacy {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      background: rgba(35, 134, 54, 0.08);
+      border: 1px solid rgba(35, 134, 54, 0.35);
+      border-radius: var(--radius);
+      color: var(--accent);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .diagnostic-form label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .diagnostic-form textarea {
+      width: 100%;
+      min-height: 140px;
+      padding: 1rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-darker);
+      color: var(--text-primary);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.875rem;
+      resize: vertical;
+    }
+    .diagnostic-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .diagnostic-scan-btn {
+      padding: 0.85rem 1.5rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .diagnostic-scan-btn:hover {
+      background: var(--accent-hover);
+    }
+    .diagnostic-summary {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    .diagnostic-results {
+      margin-top: 1.5rem;
+      display: grid;
+      gap: 0.75rem;
+    }
+    .diagnostic-finding {
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-darker);
+    }
+    .diagnostic-finding-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.35rem;
+    }
+    .diagnostic-badge {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .diagnostic-severity-critical .diagnostic-badge { color: #ff7b72; border-color: #ff7b72; }
+    .diagnostic-severity-high .diagnostic-badge { color: #ffa657; border-color: #ffa657; }
+    .diagnostic-severity-medium .diagnostic-badge { color: #d29922; border-color: #d29922; }
+    .diagnostic-meta {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+    }
+    .diagnostic-snippet {
+      display: block;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.8rem;
+      color: var(--text-primary);
+    }
+    .diagnostic-clean {
+      color: var(--accent);
+      margin: 0;
+    }
+    .diagnostic-premium {
+      margin-top: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-darker);
+    }
+    .diagnostic-premium-blur {
+      filter: blur(6px);
+      user-select: none;
+      pointer-events: none;
+      padding: 1.5rem;
+      color: var(--text-secondary);
+    }
+    .diagnostic-premium-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1.5rem;
+      background: rgba(1, 4, 9, 0.72);
+      text-align: center;
+    }
+    .diagnostic-premium-overlay p {
+      margin: 0;
+      color: var(--text-secondary);
+      max-width: 28rem;
+    }
+    .diagnostic-premium-cta {
+      display: inline-block;
+      padding: 0.85rem 1.25rem;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: var(--radius);
+      font-weight: 600;
+    }
+    .diagnostic-premium-cta:hover {
+      background: var(--accent-hover);
+    }
+    
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      border-top: 1px solid var(--border);
+      margin-top: 4rem;
+    }
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .nav {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+      .pitch h1 {
+        font-size: 1.75rem;
+      }
+      .pitch p {
+        font-size: 1rem;
+      }
+      .pricing {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav">
+    <a href="#" class="nav-brand">
+      <span class="nav-brand-icon">🛡️</span>
+      <span>Simplebeacon</span>
+    </a>
+    <div class="nav-badge">
+      🔒 100% Local Gate
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- THE PITCH -->
+    <section class="pitch">
+      <h1>Private Pre-Launch Code Audits</h1>
+      <p>We catch the token leaks and AI errors code reviews miss in under 2 seconds — completely offline.</p>
+    </section>
+
+    <!-- THE PROOF -->
+    <section class="proof">
+      <h2>THE PROOF</h2>
+      <a href="/SAMPLE_REPORT.md" class="proof-link">📄 View Redacted Sample Report</a>
+    </section>
+
+    <!-- LOCAL DIAGNOSTIC SANDBOX -->
+    <section class="diagnostic" id="try-it">
+      <h2>Try a 10-Second Local Scan</h2>
+      <p class="diagnostic-intro">Paste a code snippet below. Simplebeacon runs pattern checks entirely in your browser — no upload, no account.</p>
+      <div class="diagnostic-privacy">🔒 Runs locally in your browser. Nothing is sent to our servers.</div>
+      <form id="diagnostic-form" class="diagnostic-form">
+        <label for="diagnostic-input">Code snippet</label>
+        <textarea id="diagnostic-input" placeholder="Paste JavaScript, JSON, or config here..."></textarea>
+        <div class="diagnostic-actions">
+          <button type="submit" class="diagnostic-scan-btn">Scan snippet locally</button>
+          <span id="diagnostic-summary" class="diagnostic-summary">Waiting for input.</span>
+        </div>
+      </form>
+      <div id="diagnostic-results" class="diagnostic-results" aria-live="polite"></div>
+      <div id="diagnostic-premium-panel" class="diagnostic-premium" hidden>
+        <div class="diagnostic-premium-blur">
+          <strong>Full-repo threat map</strong>
+          <p>Line-by-line remediation plan, compliance gate checklist, credential rotation playbook, and CI hook templates.</p>
+          <p>Estimated findings across production paths: 12 critical · 28 high · 41 medium</p>
+        </div>
+        <div class="diagnostic-premium-overlay">
+          <p>Unlock the full professional audit report with repo-wide scanning, PDF delivery, and developer action plan.</p>
+          <a class="diagnostic-premium-cta" href="mailto:audit@simplebeacon.ai?subject=Book%20Simplebeacon%20Audit%20%28%24499%29">Book full audit — $499</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- THE FIXED PRICE -->
+    <section class="pricing">
+      <h2>Pre-Launch Repo Evaluation</h2>
+      <div class="pricing-price">$499 <span>Flat Fee</span></div>
+      <ul class="pricing-features">
+        <li>48-Hour Professional PDF Delivery</li>
+        <li>Line-by-Line Developer Action Plan</li>
+      </ul>
+      <a href="mailto:audit@simplebeacon.ai?subject=Book%20Simplebeacon%20Audit" class="pricing-cta">
+        SECURE YOUR CODEBASE & BOOK AUDIT
+      </a>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <a href="mailto:audit@simplebeacon.ai">audit@simplebeacon.ai</a> · 
+    <a href="/terms">Terms</a> · 
+    <a href="/privacy">Privacy</a>
+  </footer>
+  <script src="/js/homepage-diagnostic.js"></script>
+</body>
+</html>
