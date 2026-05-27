@@ -1,0 +1,56 @@
+{
+  "type": "simplebeacon-cleanup-execution",
+  "executedAt": "2026-05-27T21:30:00.000Z",
+  "projectPath": "C:\\Users\\Trevor\\CascadeProjects",
+  "phase": 1,
+  "actions": [
+    {
+      "action": "delete",
+      "path": "ai-platform/temp",
+      "files": 89,
+      "bytes": 2177,
+      "status": "completed",
+      "reason": "Temp test artifacts flagged by file-reduction scan"
+    },
+    {
+      "action": "delete",
+      "path": "node_modules",
+      "status": "already_absent"
+    },
+    {
+      "action": "delete",
+      "path": "ai-platform/node_modules",
+      "status": "already_absent"
+    },
+    {
+      "action": "hard-link",
+      "path": "coming-soon/favicon.svg",
+      "target": "coming-soon/cloudflare-deploy/favicon.svg",
+      "status": "completed",
+      "bytesSaved": 346
+    },
+    {
+      "action": "hard-link",
+      "path": "deployments/signed-off-site/favicon.svg",
+      "target": "ai-platform/web/favicon.svg",
+      "status": "completed",
+      "bytesSaved": 251
+    },
+    {
+      "action": "hard-link",
+      "path": "deployments/signed-off-site/favicon.ico",
+      "target": "ai-platform/web/favicon.ico",
+      "status": "completed",
+      "bytesSaved": 2
+    }
+  ],
+  "scannerImprovements": [
+    "Exclude node_modules, archive, temp, and .simplebeacon from unused-file candidates",
+    "Register scripts/, nested bin/, eslint.config.*, and all package.json mains/bins as entry points"
+  ],
+  "notes": [
+    "node_modules directories were already absent at execution time (~168 MB reclaimable when present).",
+    "Regenerate dependencies with npm install in repo root and ai-platform when needed.",
+    "Re-run file-reduction scan to verify unused-file count drop."
+  ]
+}

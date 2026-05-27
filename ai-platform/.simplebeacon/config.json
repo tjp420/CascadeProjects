@@ -6,9 +6,7 @@
     "E:/Ai"
   ],
   "scanPaths": [
-    "web/data",
-    "data/mock",
-    "data-central/ai-tools/mock-data"
+    "web/data"
   ],
   "sourceCodeScanPaths": [
     "server",
@@ -28,8 +26,7 @@
     "implementation-plan-sample.json",
     "master-roadmap-sample.json",
     "release-timeline-sample.json",
-    "dashboard-home-sample.json",
-    "gguf-mock-analysis-sample.json"
+    "dashboard-home-sample.json"
   ],
   "ignore": [
     "node_modules/**",
@@ -84,7 +81,6 @@
     "comprehensive-analysis-results.json",
     "gguf_mock_data_optimization_docs.json",
     "mock_data_validation_report.json",
-    "src/ai-system/ai_development_report.json",
     "data/simplebeacon-demo/**",
     "data/codegen/code-generation-sample.json",
     "complete-server.js",
@@ -97,9 +93,7 @@
     "docs/**",
     "archive/**",
     "**/cascade-project-roadmap.json",
-    "data/roadmap/archive/cascade-project-roadmap.json",
-    "src/web/config/**/*.bak.json",
-    "src/web/config/**/*.example.json"
+    "data/roadmap/archive/cascade-project-roadmap.json"
   ],
   "rules": {
     "credentials": {
@@ -142,12 +136,7 @@
         "server/services/cloud-inference-service.js",
         "src/api/dashboard-stub-api.js",
         "src/api/simplebeacon-api.js",
-        "src/api/export-api.js",
-        "src/web/export-mock-data.js",
-        "src/server/index.js",
-        "src/web/scripts/continue-remediation.js",
-        "src/web/scripts/quick-remediation.js",
-        "src/web/utils/mock-data-templates.js"
+        "src/server/index.js"
       ]
     },
     "jest-baseline": {
@@ -167,6 +156,20 @@
     }
   },
   "dataCleanup": {
+    "unused-files": {
+      "skipGlobs": [
+        "**/*-sample.json",
+        "**/mock-backend.js",
+        "**/mock-backend-static-data.js",
+        "**/demo-users.json",
+        "**/sample-audit-report-data.js",
+        "**/trust-verification.json",
+        "website-51543.html",
+        "development-roadmap-51543.html",
+        "ai-platform/mock_data_validation_report.json",
+        "ai-platform/standardized_schema.json"
+      ]
+    },
     "data-lineage": {
       "allowlist": [
         "web/data/**",

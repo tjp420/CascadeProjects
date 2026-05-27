@@ -75,6 +75,45 @@ test('AssetConsolidationScanner groups identical assets', async () => {
     assert.equal(result.findings[0].keeper, 'assets/a.png');
 });
 
+test('UnusedFileDetector skips vendor and archive paths', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({ main: 'index.js' }),
+        'index.js': "require('./lib/helper');\n",
+        'lib/helper.js': 'module.exports = () => 1;\n',
+        'node_modules/pkg/index.js': 'module.exports = {};\n',
+        'archive/legacy.js': 'module.exports = {};\n',
+        'temp/scratch.js': 'module.exports = {};\n'
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const paths = result.findings.map((f) => f.path);
+    assert.equal(paths.some((p) => p.includes('node_modules')), false);
+    assert.equal(paths.includes('archive/legacy.js'), false);
+    assert.equal(paths.includes('temp/scratch.js'), false);
+});
+
+test('UnusedFileDetector treats scripts and package bins as entry points', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({ main: 'index.js' }),
+        'index.js': "require('./lib/helper');\n",
+        'lib/helper.js': 'module.exports = () => 1;\n',
+        'lib/orphan.js': 'module.exports = () => 2;\n',
+        'scripts/run-task.js': "require('../lib/helper');\n",
+        'packages/cli/package.json': JSON.stringify({
+            bin: { cli: 'bin/cli.js' }
+        }),
+        'packages/cli/bin/cli.js': "require('../../lib/helper');\n"
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const paths = result.findings.map((f) => f.path);
+    assert.ok(paths.includes('lib/orphan.js'));
+    assert.equal(paths.includes('scripts/run-task.js'), false);
+    assert.equal(paths.includes('packages/cli/bin/cli.js'), false);
+});
+
 test('UnusedFileDetector flags unreferenced modules but keeps entry points', async () => {
     const root = makeTempProject({
         'package.json': JSON.stringify({ main: 'index.js' }),
@@ -87,6 +126,76 @@ test('UnusedFileDetector flags unreferenced modules but keeps entry points', asy
     const result = await scanner.scan(root);
     assert.ok(result.findings.some((f) => f.path === 'lib/orphan.js'));
     assert.equal(result.findings.some((f) => f.path === 'lib/helper.js'), false);
+});
+
+test('parseJSImports resolves cache-busted relative imports', () => {
+    const root = makeTempProject({
+        'src/views/Panel.js': 'export const Panel = 1;\n',
+        'src/main.js': "import { Panel } from './views/Panel.js?v=123';\n"
+    });
+    const mainPath = path.join(root, 'src', 'main.js');
+    const imports = parseJSImports(
+        fs.readFileSync(mainPath, 'utf8'),
+        mainPath,
+        root
+    );
+    assert.equal(imports.length, 1);
+    assert.ok(imports[0].resolvedPath.endsWith(`${path.sep}src${path.sep}views${path.sep}Panel.js`));
+});
+
+test('UnusedFileDetector honors npm script entry points', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({
+            main: 'index.js',
+            scripts: {
+                task: 'node tools/run-task.js',
+                helper: 'node --test lib/helper.test.js'
+            }
+        }),
+        'index.js': "require('./lib/core');\n",
+        'lib/core.js': 'module.exports = () => 1;\n',
+        'lib/orphan.js': 'module.exports = () => 2;\n',
+        'tools/run-task.js': "require('../lib/core');\n",
+        'lib/helper.test.js': "require('./core');\n"
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const paths = result.findings.map((f) => f.path);
+    assert.ok(paths.includes('lib/orphan.js'));
+    assert.equal(paths.includes('tools/run-task.js'), false);
+});
+
+test('UnusedFileDetector skips docs, data samples, and protected runtime files', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({ main: 'index.js' }),
+        'index.js': "require('./lib/helper');\n",
+        'lib/helper.js': 'module.exports = () => 1;\n',
+        'docs/report.json': '{}',
+        'web/data/dashboard-home-sample.json': '{}',
+        'server/db/demo-users.json': '[]',
+        'web/api/mock-backend.js': 'module.exports = {};\n'
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const paths = result.findings.map((f) => f.path);
+    assert.equal(paths.includes('docs/report.json'), false);
+    assert.equal(paths.includes('web/data/dashboard-home-sample.json'), false);
+    assert.equal(paths.includes('server/db/demo-users.json'), false);
+    assert.equal(paths.includes('web/api/mock-backend.js'), false);
+});
+
+test('parseHtmlReferences resolves web-root absolute asset paths', () => {
+    const root = makeTempProject({
+        'ai-platform/web/simplebeacon-dashboard/index.html': '<link rel="stylesheet" href="/simplebeacon-dashboard/css/theme.css">',
+        'ai-platform/web/simplebeacon-dashboard/css/theme.css': 'body{}'
+    });
+    const htmlPath = path.join(root, 'ai-platform', 'web', 'simplebeacon-dashboard', 'index.html');
+    const { parseHtmlReferences } = require('../src/analyzers/file-reduction/utils/file-reference-tracker');
+    const refs = parseHtmlReferences(fs.readFileSync(htmlPath, 'utf8'), htmlPath, root);
+    assert.equal(refs.length, 1);
+    assert.ok(refs[0].resolvedPath.endsWith(`${path.sep}theme.css`));
 });
 
 test('parseJSImports resolves relative require paths', () => {

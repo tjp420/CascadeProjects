@@ -2,8 +2,51 @@
  * Track non-JS file references (HTML, CSS, JSON).
  */
 
+const fs = require('fs');
 const path = require('path');
-const { resolveImport } = require('./import-parser');
+const { normalizeSpecifier, resolveImport } = require('./import-parser');
+
+function resolveWebAbsolutePath(fromFile, specifier, projectRoot) {
+    if (!specifier.startsWith('/')) {
+        return null;
+    }
+    const relFrom = path.relative(projectRoot, fromFile).split(path.sep).join('/');
+    if (!relFrom.includes('/web/')) {
+        return null;
+    }
+    const webRootRel = `${relFrom.split('/web/')[0]}/web`;
+    const candidate = path.resolve(projectRoot, webRootRel, specifier.slice(1));
+    if (candidate.startsWith(path.resolve(projectRoot)) && fs.existsSync(candidate)) {
+        return candidate;
+    }
+    return null;
+}
+
+function resolveStaticSiteAbsolutePath(fromFile, specifier, projectRoot) {
+    if (!specifier.startsWith('/')) {
+        return null;
+    }
+    const relFrom = path.relative(projectRoot, fromFile).split(path.sep).join('/');
+    const siteRoots = ['coming-soon', 'deployments'];
+    for (const rootName of siteRoots) {
+        const marker = `${rootName}/`;
+        const idx = relFrom.indexOf(marker);
+        if (idx === -1) continue;
+        const siteRel = relFrom.slice(0, idx + rootName.length);
+        const candidate = path.resolve(projectRoot, siteRel, specifier.slice(1));
+        if (candidate.startsWith(path.resolve(projectRoot)) && fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+    return null;
+}
+
+function resolveReferencePath(fromFile, specifier, projectRoot) {
+    return resolveImport(fromFile, specifier, projectRoot)
+        || resolveWebAbsolutePath(fromFile, specifier, projectRoot)
+        || resolveStaticSiteAbsolutePath(fromFile, specifier, projectRoot)
+        || resolveImport(fromFile, `.${specifier.startsWith('/') ? '' : '/'}${specifier}`, projectRoot);
+}
 
 function parseHtmlReferences(content, filePath, projectRoot) {
     const refs = [];
@@ -14,13 +57,12 @@ function parseHtmlReferences(content, filePath, projectRoot) {
     for (const regex of patterns) {
         let match = regex.exec(content);
         while (match) {
-            const specifier = match[1];
+            const specifier = normalizeSpecifier(match[1]);
             if (!specifier || /^https?:|^data:|^#|^mailto:/i.test(specifier)) {
                 match = regex.exec(content);
                 continue;
             }
-            const resolvedPath = resolveImport(filePath, specifier, projectRoot)
-                || resolveImport(filePath, `.${specifier.startsWith('/') ? '' : '/'}${specifier}`, projectRoot);
+            const resolvedPath = resolveReferencePath(filePath, specifier, projectRoot);
             if (resolvedPath) {
                 refs.push({ kind: 'html-ref', specifier, source: filePath, resolvedPath });
             }
@@ -35,7 +77,7 @@ function parseCssReferences(content, filePath, projectRoot) {
     const regex = /url\(\s*['"]?([^'")\s]+)['"]?\s*\)/gi;
     let match = regex.exec(content);
     while (match) {
-        const specifier = match[1];
+        const specifier = normalizeSpecifier(match[1]);
         if (!specifier || /^https?:|^data:/i.test(specifier)) {
             match = regex.exec(content);
             continue;

@@ -1,0 +1,78 @@
+{
+  "type": "simplebeacon-cleanup-phase-report",
+  "phase": 3,
+  "completedAt": "2026-05-27T20:28:00.000Z",
+  "projectPath": "C:\\Users\\Trevor\\CascadeProjects",
+  "scanSource": ".simplebeacon/file-reduction-post-phase1.json",
+  "triageSource": ".simplebeacon/unused-file-triage-2026-05-27.json",
+  "dryRun": false,
+  "policy": {
+    "protectedPaths": [
+      "web/data",
+      "data/mock",
+      "data-central",
+      "data/roadmap",
+      "uploads",
+      ".git"
+    ],
+    "allowSimplebeaconCache": false,
+    "note": "Primary .simplebeacon reports kept; only timestamped .simplebeacon-backup.* copies trimmed."
+  },
+  "actions": [
+    {
+      "category": "scan-cache-backups",
+      "action": "trim",
+      "keepPerOriginal": 2,
+      "filesRemoved": 12,
+      "directories": [
+        ".simplebeacon",
+        "ai-platform/.simplebeacon",
+        "coming-soon/.simplebeacon"
+      ]
+    },
+    {
+      "category": "verified-orphan-scripts",
+      "action": "deleted",
+      "files": [
+        {
+          "path": "test-enhanced-ai-analysis.js",
+          "bytes": 5836,
+          "reason": "Ad-hoc manual test; zero code references"
+        },
+        {
+          "path": "test-server-51543.js",
+          "bytes": 4372,
+          "reason": "Ad-hoc port probe; zero code references (server-51543.js kept — used by start-localhost.bat)"
+        },
+        {
+          "path": "ai-platform/phase3-test-simple.js",
+          "bytes": 3908,
+          "reason": "One-off phase-3 smoke script; zero code references"
+        }
+      ],
+      "totalBytes": 14116
+    }
+  ],
+  "skipped": {
+    "reviewFirstLogs": "0 .log files in repository",
+    "unusedFileBulkDelete": "353 candidates remain — triage classified 0 as safeDelete, 188 as review, 50 static-site copies, 58 script/server entry points",
+    "deploymentsSignedOffSite": "20 mirrored deploy files — required for static hosting bundle",
+    "productionServers": "fixed-server.js, gguf-dashboard-server.js — referenced in package.json scripts and Docker",
+    "primarySimplebeaconReports": "report.json, baseline.json, assessment.json, consolidation-report.json — kept per policy"
+  },
+  "postPhase3Scan": {
+    "source": ".simplebeacon/file-reduction-post-phase3.json",
+    "inventoryFiles": 26043,
+    "inventoryNote": "ai-platform/node_modules was recreated (23,248 files) by a background npm process — re-run phase 1 to reclaim ~166 MB if desired",
+    "unusedFileCandidates": 353,
+    "reviewBeforeDeleteBytes": 0,
+    "buildArtifactSafeBytes": 174744021
+  },
+  "triageSummary": {
+    "safeDelete": 0,
+    "keepStaticSites": 50,
+    "keepScriptsOrServer": 58,
+    "keepConfigOrData": 80,
+    "review": 188
+  }
+}

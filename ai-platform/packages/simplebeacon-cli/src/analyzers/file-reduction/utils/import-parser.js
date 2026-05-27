@@ -28,16 +28,22 @@ function extractMatches(content, regex) {
     return matches;
 }
 
+function normalizeSpecifier(specifier) {
+    if (!specifier) return specifier;
+    return specifier.split('?')[0].split('#')[0];
+}
+
 function isRelativeSpecifier(specifier) {
     return specifier.startsWith('.') || specifier.startsWith('/');
 }
 
 function resolveImport(fromFile, specifier, projectRoot) {
-    if (!isRelativeSpecifier(specifier)) {
+    const normalized = normalizeSpecifier(specifier);
+    if (!isRelativeSpecifier(normalized)) {
         return null;
     }
     const baseDir = path.dirname(fromFile);
-    const raw = path.resolve(baseDir, specifier);
+    const raw = path.resolve(baseDir, normalized);
     const candidates = [
         raw,
         `${raw}.js`,
@@ -106,5 +112,6 @@ module.exports = {
     parseJSImports,
     parsePythonImports,
     resolveImport,
+    normalizeSpecifier,
     JS_SOURCE_EXTENSIONS
 };

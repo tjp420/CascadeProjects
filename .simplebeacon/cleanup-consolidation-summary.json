@@ -1,0 +1,107 @@
+{
+  "type": "simplebeacon-cleanup-consolidation-summary",
+  "generatedAt": "2026-05-27T20:40:00.000Z",
+  "steadyStateVerifiedAt": "2026-05-27T20:40:00.000Z",
+  "projectPath": "C:\\Users\\Trevor\\CascadeProjects",
+  "briefReference": ".simplebeacon/cleanup-brief-phase1.json",
+  "inventory": {
+    "starting": { "files": 31676, "folders": 3844 },
+    "steadyStateWithoutNodeModules": { "files": 2828, "folders": 257, "source": ".simplebeacon/file-reduction-post-phase5.json" },
+    "fileReductionPercent": 91.1,
+    "note": "ai-platform/node_modules may reappear after npm install or background test runs (~23k files, ~168 MB)"
+  },
+  "diskReclaim": {
+    "nodeModulesRegenerable": "~168.6 MB",
+    "nonNodeModulesArtifacts": "~1.2 MB",
+    "duplicateAssetHardLinks": "~599 B shared inodes (3 favicon groups)",
+    "scanBackupTrim": "12+ stale .simplebeacon-backup.* files removed; 1 kept per original"
+  },
+  "phases": [
+    {
+      "phase": 1,
+      "focus": "Safe regenerable artifacts",
+      "report": ".simplebeacon/cleanup-phase1-report.json",
+      "highlights": ["ai-platform/node_modules (23,210 files)", "root node_modules (628 files)", "__pycache__ (1 file)"],
+      "bytes": 176777914
+    },
+    {
+      "phase": 2,
+      "focus": "Duplicate asset consolidation",
+      "report": ".simplebeacon/cleanup-phase2-report.json",
+      "highlights": ["Hard-linked favicons (coming-soon, signed-off-site)", "4 node_modules duplicate PNG groups eliminated with phase 1"],
+      "duplicateGroupsResolved": 7
+    },
+    {
+      "phase": 3,
+      "focus": "Review-first / verified orphans",
+      "report": ".simplebeacon/cleanup-phase3-report.json",
+      "highlights": ["Trimmed scan-cache backups", "Deleted 3 ad-hoc test scripts"],
+      "filesRemoved": 15,
+      "bytes": 14116
+    },
+    {
+      "phase": 4,
+      "focus": "Phase 1 rerun + regenerable JSON/temp",
+      "report": ".simplebeacon/cleanup-phase4-report.json",
+      "highlights": ["node_modules re-deleted", "tmp-all.json, tmp-count.json", "orphan test HTML/JS", "security-scan-report.json"],
+      "artifactBytes": 297768
+    },
+    {
+      "phase": 5,
+      "focus": "Legacy dashboard web assets",
+      "report": ".simplebeacon/cleanup-phase5-report.json",
+      "highlights": ["Removed web/styles/ (dashboard-new CSS)", "simplebeacon-landing.html", "backup trim to keep=1"],
+      "filesRemoved": 6,
+      "bytes": 452216
+    }
+  ],
+  "policy": {
+    "protectedPathsVerified": [
+      "ai-platform/web/data",
+      "ai-platform/data-central",
+      "ai-platform/data/roadmap",
+      ".git"
+    ],
+    "neverBulkDeleted": [
+      "web/data sample JSON (40+ files)",
+      "deployments/signed-off-site static bundle",
+      "coming-soon / cloudflare-deploy",
+      "6017→196 unused-file candidates (triaged, not bulk-deleted)"
+    ]
+  },
+  "canonicalSurfaces": {
+    "productDashboard": "ai-platform/web/simplebeacon-dashboard/",
+    "landing": "coming-soon/",
+    "webScripts": ["payload-routing.js", "roadmap-data-service.js", "export-system.js", "eslint-shared-globals.json"],
+    "stubApi": "ai-platform/web/api/mock-backend.js",
+    "servers": ["simplebeacon-server.js", "gguf-dashboard-server.js", "server-51543.js"]
+  },
+  "remainingInventory": {
+    "unusedFileCandidates": 196,
+    "buildArtifactSafeBytes": 0,
+    "duplicateGroupsByHash": 3,
+    "duplicateNote": "Hard-linked favicons; no extra disk use",
+    "triageBuckets": {
+      "keepStaticSites": 37,
+      "keepDataOrDocs": 100,
+      "keepRuntimeEntry": 18,
+      "reviewFutureModules": 19,
+      "reviewWebAssets": 27,
+      "reviewOther": 36
+    }
+  },
+  "restoreCommands": [
+    "npm install --prefix ai-platform",
+    "npm install",
+    "node ai-platform/scripts/security-scan.js"
+  ],
+  "restoreCompletedAt": "2026-05-27T20:42:00.000Z",
+  "restoreNote": "npm install in ai-platform completed — 922 packages audited, 0 vulnerabilities",
+  "phaseReports": [
+    ".simplebeacon/cleanup-phase1-report.json",
+    ".simplebeacon/cleanup-phase2-report.json",
+    ".simplebeacon/cleanup-phase3-report.json",
+    ".simplebeacon/cleanup-phase4-report.json",
+    ".simplebeacon/cleanup-phase5-report.json"
+  ]
+}

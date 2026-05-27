@@ -1,0 +1,70 @@
+{
+  "type": "simplebeacon-cleanup-phase-report",
+  "phase": 1,
+  "completedAt": "2026-05-27T20:22:00.000Z",
+  "projectPath": "C:\\Users\\Trevor\\CascadeProjects",
+  "briefSource": ".simplebeacon/cleanup-brief-phase1.json",
+  "scanSource": ".simplebeacon/file-reduction-scan.json",
+  "dryRun": false,
+  "policy": {
+    "protectedPaths": [
+      "web/data",
+      "data/mock",
+      "data-central",
+      "data/roadmap",
+      "uploads",
+      ".git"
+    ],
+    "allowNodeModules": true,
+    "allowSimplebeaconCache": false
+  },
+  "actions": [
+    {
+      "path": "ai-platform/node_modules",
+      "category": "node_modules",
+      "action": "deleted",
+      "files": 23210,
+      "bytes": 174442975
+    },
+    {
+      "path": "node_modules",
+      "category": "node_modules",
+      "action": "deleted",
+      "files": 628,
+      "bytes": 2324306
+    },
+    {
+      "path": "ai-platform/web/api/__pycache__",
+      "category": "__pycache__",
+      "action": "deleted",
+      "files": 1,
+      "bytes": 10633
+    }
+  ],
+  "totals": {
+    "filesDeleted": 23839,
+    "bytesReclaimed": 176777914,
+    "bytesReclaimedLabel": "168.6 MB"
+  },
+  "skipped": {
+    "reviewFirst": "0 items — none deleted",
+    "protected": "0 overlaps",
+    "unusedFileCandidates": "6017 — not touched (phase 1 only)",
+    "duplicateAssets": "completed in phase 2 (see cleanup-phase2-report.json)"
+  },
+  "verification": {
+    "deletedPathsRemoved": true,
+    "protectedPathsIntact": [
+      "ai-platform/web/data",
+      "ai-platform/data-central",
+      "ai-platform/data/roadmap",
+      ".git"
+    ],
+    "postCleanupExplorerFiles": 2885,
+    "note": "node_modules was briefly recreated by a background npm test in ai-platform; second pass with rmdir /s /q completed successfully."
+  },
+  "restoreNotes": [
+    "Run npm install in ai-platform/ to restore ai-platform/node_modules.",
+    "Run npm install at repo root if root package.json dependencies are needed."
+  ]
+}

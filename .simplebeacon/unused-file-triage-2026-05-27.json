@@ -1,0 +1,2185 @@
+{
+  "generatedAt": "2026-05-27T20:28:32.280Z",
+  "projectRoot": "C:/Users/Trevor/CascadeProjects",
+  "scanProfile": "file-reduction-post-triage",
+  "totalUnused": 237,
+  "entryPoints": 2845,
+  "summary": {
+    "keepRuntimeEntry": {
+      "count": 18,
+      "bytes": 188341
+    },
+    "reviewFutureModules": {
+      "count": 19,
+      "bytes": 377240
+    },
+    "keepStaticSites": {
+      "count": 37,
+      "bytes": 204089
+    },
+    "reviewOther": {
+      "count": 36,
+      "bytes": 537861
+    },
+    "keepDataOrDocs": {
+      "count": 100,
+      "bytes": 860322
+    },
+    "reviewWebAssets": {
+      "count": 27,
+      "bytes": 1411815
+    }
+  },
+  "buckets": {
+    "keepRuntimeEntry": [
+      {
+        "type": "unused-file",
+        "path": "ai-platform/packages/simplebeacon-cli/src/reporters/ai-enhanced-report.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 5873
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/packages/simplebeacon-cli/src/rules/file-reduction-rules.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2279
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/config/security.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 12163
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/connectors/huggingface-connector.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 10133
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/connectors/registry.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 13773
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/middleware/compliance.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 15081
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/middleware/featureFlags.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 16939
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/middleware/resilience.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 25614
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/middleware/validation.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 10408
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/routes/auth.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 16713
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/routes/enhanced-auth-routes.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 11639
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/services/sso-service.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 15949
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/simple_http_server.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3353
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/packages/simplebeacon-cli/docs/examples/assessment-report-template.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3040
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/scripts/security-fixes/.eslintrc.security.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 277
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/db/demo-users.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 556
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/lib/fixtures/sample-audit-report-data.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6287
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/server/services/nl-query-service.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 18264
+      }
+    ],
+    "reviewFutureModules": [
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/ai/models/ModelIntegrator.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 18657
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/analysis/RoadmapIntegration.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 19206
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/analytics/monitoring/AnalyticsFoundation.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 24705
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/automation/workflows/AutomationEngine.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 25581
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/billing/stripe-integration.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 13620
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/export/CompressionEngine.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 10932
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/export/ExportEngine.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 34393
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/export/ExportValidator.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 14873
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/export/FormatConverter.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 18319
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/performance/PerformanceMonitor.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 17810
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/technical-debt/DebtDashboard.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 34567
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/technical-debt/TechnicalDebtCalculator.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 26080
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/validation/AutoFixer.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 27360
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/validation/ValidationEngine.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 24513
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/validation/ValidationRules.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 38264
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/billing/pricing.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 10230
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/billing/subscription-management.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 16333
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/templates/report-templates/executive-summary-template.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1309
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/src/web/export-system.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 488
+      }
+    ],
+    "keepStaticSites": [
+      {
+        "type": "unused-file",
+        "path": "coming-soon/functions/api/audit-booking.js",
+        "reason": "Zero incoming import references",
+        "confidence": "medium",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3316
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/cloudflare-deploy/community/index.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 340
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/cloudflare-deploy/community.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 302
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/cloudflare-deploy/index.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 10715
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/cloudflare-deploy/operator-bookings.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4289
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/cloudflare-deploy/pricing.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 299
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/cloudflare-deploy/privacy.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2432
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/cloudflare-deploy/refund.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2167
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/cloudflare-deploy/sample-report.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 26769
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/cloudflare-deploy/terms.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3106
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/community/index.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 340
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/community.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 302
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/functions/api/waitlist.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3741
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/index.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 10715
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/operator-bookings.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4289
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/pricing.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 299
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/privacy.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2432
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/refund.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2167
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/sample-report.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 26769
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/stripe-audit-product.ids.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 403
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/terms.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3106
+      },
+      {
+        "type": "unused-file",
+        "path": "coming-soon/waitlist.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 5726
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/community/index.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2176
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/community.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 365
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/functions/api/waitlist.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3741
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/index.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 23603
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/pricing.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7542
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/privacy.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2498
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/refund.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2221
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/samplebeacon-dashboard/css/components.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 30730
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/samplebeacon-dashboard/css/layout.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4883
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/samplebeacon-dashboard/css/reset.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 950
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/samplebeacon-dashboard/css/utilities.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 789
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/samplebeacon-dashboard/css/variables.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1423
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/samplebeacon-dashboard/index.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4366
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/terms.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2729
+      },
+      {
+        "type": "unused-file",
+        "path": "deployments/signed-off-site/trust-verification.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2049
+      }
+    ],
+    "reviewOther": [
+      {
+        "type": "unused-file",
+        "path": ".cursor/settings.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 67
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/.vscode/settings.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 104
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/batch-results.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6850
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/batch_consolidator.py",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1715
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/comprehensive-analysis-results.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 54999
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/config/dashboard_config.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3621
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/data-central/ai-tools/ai-models/registry.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 670
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/data-central/config/central-data-config.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 168
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/enhanced-auth-demo.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 34866
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/enhanced-auth-dialog.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 15764
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/mock_data_consolidator.py",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 8541
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/mock_data_monitoring_dashboard.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 676
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/mock_data_templates.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 0
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/mock_data_validation_report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6147
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/mock_data_validator.py",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 12958
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/public/trust-verification.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7734
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/security-reports/guidance/command_injection-guidance.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1641
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/security-reports/guidance/eval_usage-guidance.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1923
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/security-reports/guidance/insecure_deserialization-guidance.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1527
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/security-reports/guidance/master-guidance.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 10030
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/security-reports/guidance/path_traversal-guidance.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1599
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/security-reports/guidance/sql_injection-guidance.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1548
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/security-reports/guidance/xss_vulnerability-guidance.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1641
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/security-scan-report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2223
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/simplebeacon-landing.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4546
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/standardized_schema.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 369
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/templates/FUNCTION_DOCUMENTATION_TEMPLATE.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3266
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/test-fix.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1776
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/test-gguf-dashboard.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 13117
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/tmp-all.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 182684
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/tmp-count.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 84837
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/verify-gguf-data.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7873
+      },
+      {
+        "type": "unused-file",
+        "path": "development-roadmap-51543.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 27171
+      },
+      {
+        "type": "unused-file",
+        "path": "test-connection.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3949
+      },
+      {
+        "type": "unused-file",
+        "path": "test-simple-enhanced-api.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 9182
+      },
+      {
+        "type": "unused-file",
+        "path": "website-51543.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 22079
+      }
+    ],
+    "keepDataOrDocs": [
+      {
+        "type": "unused-file",
+        "path": "ai-platform/data/audit-bookings.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3016
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/data/codegen/code-generation-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 5284
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/data/issue-history.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/data/roadmap/ai-roadmap-report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 9418
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/data/simplebeacon-demo/history.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 576
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/data/simplebeacon-demo/report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 5960
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/data/waitlist-signups.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 301
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/.quality_config.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 141
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/ai-problem-analyzer-finance-model.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 5127
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/api_data.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7645
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/auto_generated_documentation.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 551
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/build_cleanup_report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 379
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/dashboard_quality_improvement_report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1068
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/dashboard_summary_20260514_135517.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 479
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/export_manifest_20260514_142328.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1262
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/planning/ai-problem-analyzer-suite/analyzer-tracker.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 10850
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/planning/operating/business-execution-tracker.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 8029
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/planning/operating/funding-runway-model.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4302
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/production-deploy-profile-w1-w6-tracker.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 9274
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/quality_achievement_report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 132072
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/quality_improvements.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1581
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/quality_improvement_final.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 200
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/quality_improvement_plan.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1285
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/quality_maintenance_report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 276
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/real_data.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6538
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/roadmap-reports/ai-powered-roadmap-report-2026-05-22-000306.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7145
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/roadmap-reports/roadmap-archive-index.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 769
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/simple_quality_config.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 372
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/structure_enhancement_report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1872
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/technical_debt_plan.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1005
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/test_api_data.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7645
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/unity_optimization_report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1252
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/venv_management_report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 594
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/docs/vscode_export_directory.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6237
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/cascade-roadmap-full-scan.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 30942
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/project_data_export.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 9078
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/report_1779478067504_c46ab594.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 333
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/artifacts/build-artifacts.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 10169
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/artifacts/oversized-reduction-final-summary-clean.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6323
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/artifacts/oversized-reduction-final-summary.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4238
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/artifacts/oversized-reduction-pass.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 11690
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/artifacts/oversized-reduction-retry.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2241
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/artifacts/technical-debt-summary.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 5516
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/complexity-report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 373
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/compliance-endpoint-response.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4330
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/compliance-endpoint-response.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 9833
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/depcheck.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 189423
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/eslint-report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1585
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/eslint-report.json.archive-index.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 353
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/jscpd/jscpd-report.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 555
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/jscpd/jscpd-report.json.archive-index.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 361
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/knip.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 495
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/knip.json.archive-index.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 330
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/madge-tree.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 34217
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/metrics-summary.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 767
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/npm-audit.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 230
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/npm-ls-depth0.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4531
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/npm-outdated.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2272
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/pattern-console-log.txt.archive-index.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 370
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/reports/technical-debt/raw/unimported.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 22677
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/ai-adoption-trends-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1457
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/ai-analysis-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3210
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/ai-quality-metrics-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1151
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/ai-tools-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 11786
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/analytics-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 5522
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/api-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 8895
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/assets-library-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7422
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/baseline-comparison-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1001
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/billing-system-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6011
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/cascade-roadmap-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7068
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/code-generation-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3848
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/code-templates-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 10495
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/coverage-reports-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 9345
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/dashboard-home-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6387
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/data-maintenance-analyzers-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 9141
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/database-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 5367
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/debt-analytics-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6687
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/debt-calculator-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 8097
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/debt-reduction-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 8730
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/dev-tools-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7971
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/engineering-baseline-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 5645
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/feature-backlog-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6076
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/fictional-patterns-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 3410
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/help-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 14080
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/implementation-plan-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 11269
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/issue-resolution-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7202
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/local-models-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 2838
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/master-roadmap-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7240
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/merger-tool-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7460
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/mock-analysis-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4660
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/performance-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7520
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/project-reports-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 11643
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/quality-dashboard-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6187
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/release-timeline-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4720
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/reports-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7155
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/roadmap-comparison-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6598
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/security-dashboard-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4767
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/settings-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 5632
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/simplebeacon-cli-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4312
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/data/support-dashboard-sample.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6578
+      }
+    ],
+    "reviewWebAssets": [
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/api/mock-backend-static-data.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 8855
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/api/mock-backend.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 318274
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/api/server.py",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 14450
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/central-data-integration.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 57052
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/components/BaseComponent.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 9484
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/enhanced-auth-system.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 33324
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/export-system.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 488
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/landing.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7003
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/services/CodeAnalysisService.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 18308
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/services/CodeUploadService.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 13977
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/services/IssueResolutionService.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 15256
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/services/RealDataService.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 814
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/services/RealDataService.part1.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 230920
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/services/RealDataService.part2.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 155271
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/services/WebSocketService.js",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 6895
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/simplebeacon-dashboard/css/components.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 41085
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/simplebeacon-dashboard/css/layout.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 4883
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/simplebeacon-dashboard/css/reset.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 950
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/simplebeacon-dashboard/css/utilities.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 789
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/simplebeacon-dashboard/css/variables.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 1423
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/simplebeacon-dashboard/index.html",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 5199
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/simplebeacon-dashboard/js/services/aiSystemsIssueAnalyzer.mjs",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 19445
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/styles/ai-mock-reports.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 7254
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/styles/dashboard-core.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 44201
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/styles/dashboard-new-core.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 178633
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/styles/dashboard-new-core.part2.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 169312
+      },
+      {
+        "type": "unused-file",
+        "path": "ai-platform/web/styles/unified-dashboard-core.css",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium",
+        "sizeBytes": 48270
+      }
+    ]
+  },
+  "recommendations": [
+    "Do not bulk-delete keepRuntimeEntry or keepStaticSites buckets.",
+    "reviewFutureModules are un-wired src/ modules — confirm roadmap before removal.",
+    "Re-run after npm install only if node_modules artifacts return."
+  ]
+}

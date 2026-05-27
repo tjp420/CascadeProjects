@@ -8,6 +8,7 @@ const { walkProjectFiles } = require('./utils/project-walker');
 const { parseImports, JS_SOURCE_EXTENSIONS } = require('./utils/import-parser');
 const { parseNonCodeReferences, addReference } = require('./utils/file-reference-tracker');
 const { buildDependencyGraph, findUnreferencedNodes } = require('./utils/dependency-graph-builder');
+const { globMatch } = require('../../rules/production-leak');
 
 const SOURCE_EXTENSIONS = new Set([
     ...JS_SOURCE_EXTENSIONS,
@@ -39,11 +40,74 @@ const PROTECTED_BASENAMES = new Set([
     '.gitignore'
 ]);
 
+const DEFAULT_SKIP_PATH_PATTERNS = [
+    /(?:^|\/)node_modules\//,
+    /(?:^|\/)archive\//,
+    /(?:^|\/)temp\//,
+    /(?:^|\/)\\.simplebeacon\//,
+    /(?:^|\/)simplebeacon-test-repo\//,
+    /(?:^|\/)\\.cursor(?:\/|$)/,
+    /(?:^|\/)\\.vscode(?:\/|$)/,
+    /(?:^|\/)docs\//,
+    /(?:^|\/)reports\//,
+    /(?:^|\/)security-reports\//,
+    /(?:^|\/)data-central\//,
+    /(?:^|\/)web\/data\//,
+    /(?:^|\/)data\//,
+    /(?:^|\/)coming-soon\//,
+    /(?:^|\/)deployments\//,
+    /(?:^|\/)public\//,
+    /(?:^|\/)functions\//,
+    /(?:^|\/)cloudflare-deploy\//,
+    /(?:^|\/)packages\/simplebeacon-cli\/docs\//,
+    /(?:^|\/)templates\//
+];
+
+const DEFAULT_SKIP_GLOBS = [
+    '**/*-sample.json',
+    '**/mock-backend.js',
+    '**/mock-backend-static-data.js',
+    '**/demo-users.json',
+    '**/sample-audit-report-data.js',
+    '**/trust-verification.json',
+    'website-51543.html',
+    'development-roadmap-51543.html',
+    '.cursor/**',
+    '**/.vscode/**',
+    '**/.eslintrc*.json',
+    '**/mock_data_*',
+    '**/batch_consolidator.py',
+    '**/standardized_schema.json'
+];
+
+const PROTECTED_RUNTIME_BASENAMES = new Set([
+    'mock-backend.js',
+    'mock-backend-static-data.js',
+    'demo-users.json',
+    'sample-audit-report-data.js',
+    'mock_data_validation_report.json',
+    'dashboard_config.json',
+    'central-data-config.json',
+    '.eslintrc.security.json'
+]);
+
+const SCRIPT_ENTRY_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.py']);
+const CONFIG_ENTRY_NAMES = new Set([
+    'jest.config.js',
+    'vite.config.js',
+    'webpack.config.js',
+    'eslint.config.js'
+]);
+
+const NPM_NODE_SCRIPT_PATTERN = /\bnode\s+(?:--[^\s]+\s+)*([^\s&|;]+)/g;
+
 class UnusedFileDetector {
     constructor(config = {}) {
         this.sourceExtensions = new Set(config.sourceExtensions || SOURCE_EXTENSIONS);
         this.protectedBasenames = new Set(config.protectedBasenames || PROTECTED_BASENAMES);
         this.entryBasenames = new Set(config.entryBasenames || ENTRY_BASENAMES);
+        this.skipPathPatterns = config.skipPathPatterns || DEFAULT_SKIP_PATH_PATTERNS;
+        this.skipGlobs = config.skipGlobs || DEFAULT_SKIP_GLOBS;
     }
 
     async scan(projectRoot, options = {}) {
@@ -127,26 +191,63 @@ class UnusedFileDetector {
 
     collectEntryPoints(inventory, graph) {
         const entries = new Set();
+        const normalizedPaths = (relativePath) => relativePath.split(path.sep).join('/');
+
         for (const file of inventory.files) {
+            const rel = normalizedPaths(file.relativePath);
+
             if (this.entryBasenames.has(file.name.toLowerCase())) {
                 entries.add(file.path);
             }
-            if (file.relativePath.startsWith('bin/')) {
+            if (/(?:^|\/)bin\//.test(rel)) {
+                entries.add(file.path);
+            }
+            if (/(?:^|\/)scripts\//.test(rel) && SCRIPT_ENTRY_EXTENSIONS.has(file.ext)) {
+                entries.add(file.path);
+            }
+            if (/(?:^|\/)tools\//.test(rel) && SCRIPT_ENTRY_EXTENSIONS.has(file.ext)) {
+                entries.add(file.path);
+            }
+            if (/eslint\.config\.(js|cjs|mjs)$/i.test(file.name)) {
+                entries.add(file.path);
+            }
+            if (CONFIG_ENTRY_NAMES.has(file.name.toLowerCase())) {
+                entries.add(file.path);
+            }
+            if (/-server\.js$/i.test(file.name) || /^server-.+\.js$/i.test(file.name)) {
+                entries.add(file.path);
+            }
+            if (file.name.toLowerCase() === 'index.html') {
+                entries.add(file.path);
+            }
+            if (/\.html$/i.test(file.name) && /(?:^|\/)website-51543\.html$|(?:^|\/)development-roadmap-51543\.html$/i.test(rel)) {
+                entries.add(file.path);
+            }
+            if (/(?:^|\/)packages\/simplebeacon-cli\/(?:bin|src\/reporters|src\/rules)\//.test(rel)
+                && SCRIPT_ENTRY_EXTENSIONS.has(file.ext)) {
                 entries.add(file.path);
             }
         }
 
-        const packageJsonPath = inventory.files.find((file) => file.name === 'package.json');
-        if (packageJsonPath) {
+        for (const packageJsonPath of inventory.files.filter((file) => file.name === 'package.json')) {
             entries.add(packageJsonPath.path);
+            const packageDir = path.dirname(packageJsonPath.path);
             try {
                 const pkg = JSON.parse(fs.readFileSync(packageJsonPath.path, 'utf8'));
                 if (pkg.main) {
-                    entries.add(path.resolve(inventory.root, pkg.main));
+                    entries.add(path.resolve(packageDir, pkg.main));
                 }
                 if (pkg.bin && typeof pkg.bin === 'object') {
                     for (const binPath of Object.values(pkg.bin)) {
-                        entries.add(path.resolve(inventory.root, binPath));
+                        entries.add(path.resolve(packageDir, binPath));
+                    }
+                }
+                if (pkg.scripts && typeof pkg.scripts === 'object') {
+                    for (const scriptCommand of Object.values(pkg.scripts)) {
+                        if (typeof scriptCommand !== 'string') continue;
+                        for (const target of extractNpmScriptTargets(scriptCommand, packageDir)) {
+                            entries.add(target);
+                        }
                     }
                 }
             } catch {
@@ -164,12 +265,34 @@ class UnusedFileDetector {
     }
 
     isCandidate(relativePath) {
+        const normalized = relativePath.split(path.sep).join('/');
+        if (this.skipPathPatterns.some((pattern) => pattern.test(normalized))) {
+            return false;
+        }
+        if (this.skipGlobs.some((pattern) => globMatch(normalized, pattern))) {
+            return false;
+        }
+
         const basename = path.basename(relativePath);
         if (this.protectedBasenames.has(basename)) return false;
+        if (PROTECTED_RUNTIME_BASENAMES.has(basename)) return false;
         if (/\.(test|spec)\.[jt]s$/i.test(basename)) return false;
         if (relativePath.includes('/tests/') || relativePath.includes('/test/')) return false;
         return true;
     }
+}
+
+function extractNpmScriptTargets(scriptCommand, packageDir) {
+    const targets = [];
+    let match = NPM_NODE_SCRIPT_PATTERN.exec(scriptCommand);
+    while (match) {
+        const candidate = path.resolve(packageDir, match[1]);
+        if (fs.existsSync(candidate)) {
+            targets.push(candidate);
+        }
+        match = NPM_NODE_SCRIPT_PATTERN.exec(scriptCommand);
+    }
+    return targets;
 }
 
 function dedupeFindings(findings) {

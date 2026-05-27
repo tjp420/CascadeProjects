@@ -1,0 +1,223 @@
+{
+  "type": "simplebeacon-cleanup-brief",
+  "version": "1.0.0",
+  "generatedAt": "2026-05-27T20:18:32.151Z",
+  "projectPath": "C:\\\\Users\\\\Trevor\\\\CascadeProjects",
+  "policy": {
+    "protectedPaths": [
+      "web/data",
+      "data/mock",
+      "data-central",
+      "data/roadmap",
+      "uploads",
+      ".git"
+    ],
+    "allowNodeModules": true,
+    "allowSimplebeaconCache": false,
+    "aggressiveness": "moderate"
+  },
+  "inventory": {
+    "totalFiles": 26721,
+    "totalFolders": 3541
+  },
+  "projectedInventory": {
+    "totalFiles": 2882,
+    "totalFolders": 3541
+  },
+  "estimatedReduction": {
+    "files": 23839,
+    "bytes": 176777914,
+    "percentOfInventory": 89.2
+  },
+  "tiers": {
+    "safeNow": {
+      "files": 23839,
+      "bytes": 176777914,
+      "directories": [
+        {
+          "path": "ai-platform/node_modules",
+          "bytes": 174442975,
+          "files": 23210,
+          "category": "node_modules"
+        },
+        {
+          "path": "node_modules",
+          "bytes": 2324306,
+          "files": 628,
+          "category": "node_modules"
+        },
+        {
+          "path": "ai-platform/web/api/__pycache__",
+          "bytes": 10633,
+          "files": 1,
+          "category": "__pycache__"
+        }
+      ]
+    },
+    "reviewFirst": {
+      "files": 0,
+      "bytes": 0,
+      "items": []
+    },
+    "protected": {
+      "files": 0,
+      "bytes": 0,
+      "directories": []
+    },
+    "investigate": {
+      "files": 6017,
+      "note": "Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting."
+    }
+  },
+  "scanAnalysis": {
+    "generatedAt": "2026-05-27T20:18:32.137Z",
+    "projectPath": "C:\\\\Users\\\\Trevor\\\\CascadeProjects",
+    "fileReduction": {
+      "safeToDeleteBytes": 176777914,
+      "reviewBeforeDeleteBytes": 0,
+      "immediateSavingsBytes": 176807678,
+      "duplicateAssetBytes": 29764,
+      "unusedFileCandidates": 6017,
+      "topSafeDirectories": [
+        {
+          "path": "ai-platform/node_modules",
+          "bytes": 174442975,
+          "files": 23210,
+          "category": "node_modules"
+        },
+        {
+          "path": "node_modules",
+          "bytes": 2324306,
+          "files": 628,
+          "category": "node_modules"
+        },
+        {
+          "path": "ai-platform/web/api/__pycache__",
+          "bytes": 10633,
+          "files": 1,
+          "category": "__pycache__"
+        }
+      ],
+      "reviewLogs": [],
+      "summaryTable": [
+        {
+          "category": "Build artifacts (safe)",
+          "files": 23839,
+          "bytes": 176777914,
+          "action": "Safe to delete"
+        },
+        {
+          "category": "Build artifacts (review)",
+          "files": 0,
+          "bytes": 0,
+          "action": "Review first"
+        },
+        {
+          "category": "Duplicate assets",
+          "files": 7,
+          "bytes": 29764,
+          "action": "Consolidate"
+        },
+        {
+          "category": "Unused source files",
+          "files": 6017,
+          "bytes": null,
+          "action": "Investigate"
+        }
+      ]
+    },
+    "dataQuality": null,
+    "priorityActions": [
+      {
+        "priority": "high",
+        "title": "Resolve missing environment keys",
+        "detail": "3 code references lack a matching .env definition"
+      },
+      {
+        "priority": "medium",
+        "title": "Reclaim build artifact space",
+        "detail": "176777914 bytes in regenerable artifact directories"
+      }
+    ],
+    "notes": [
+      "Directory totals exclude nested artifact paths to avoid double-counting reclaimable space.",
+      "All PII hits are in documentation, reports, or mock/sample data.",
+      "All credential hits are documented examples or intentional test fixtures.",
+      "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
+      "Unused dependencies are based on static imports only — verify CLI, test, and config usage before removal.",
+      "Unused env keys may still be supplied by Docker, CI, or runtime injection."
+    ]
+  },
+  "duplicateAssets": [
+    {
+      "keeper": "ai-platform/node_modules/@node-saml/passport-saml/node_modules/passport/sponsors/snyk.png",
+      "duplicates": [
+        "ai-platform/node_modules/passport/sponsors/snyk.png"
+      ],
+      "reclaimableBytes": 11285
+    },
+    {
+      "keeper": "ai-platform/node_modules/@node-saml/passport-saml/node_modules/passport/sponsors/loginradius.png",
+      "duplicates": [
+        "ai-platform/node_modules/passport/sponsors/loginradius.png"
+      ],
+      "reclaimableBytes": 10888
+    },
+    {
+      "keeper": "ai-platform/node_modules/@node-saml/passport-saml/node_modules/passport/sponsors/workos.png",
+      "duplicates": [
+        "ai-platform/node_modules/passport/sponsors/workos.png"
+      ],
+      "reclaimableBytes": 6854
+    },
+    {
+      "keeper": "coming-soon/cloudflare-deploy/favicon.svg",
+      "duplicates": [
+        "coming-soon/favicon.svg"
+      ],
+      "reclaimableBytes": 346
+    },
+    {
+      "keeper": "ai-platform/web/favicon.svg",
+      "duplicates": [
+        "deployments/signed-off-site/favicon.svg"
+      ],
+      "reclaimableBytes": 251
+    },
+    {
+      "keeper": "ai-platform/node_modules/@jest/core/node_modules/istanbul-reports/lib/html-spa/assets/sort-arrow-sprite.png",
+      "duplicates": [
+        "ai-platform/node_modules/@jest/core/node_modules/istanbul-reports/lib/html/assets/sort-arrow-sprite.png"
+      ],
+      "reclaimableBytes": 138
+    },
+    {
+      "keeper": "ai-platform/web/favicon.ico",
+      "duplicates": [
+        "deployments/signed-off-site/favicon.ico"
+      ],
+      "reclaimableBytes": 2
+    }
+  ],
+  "dataQualityActions": [
+    {
+      "priority": "high",
+      "title": "Resolve missing environment keys",
+      "detail": "3 code references lack a matching .env definition"
+    },
+    {
+      "priority": "medium",
+      "title": "Reclaim build artifact space",
+      "detail": "176777914 bytes in regenerable artifact directories"
+    }
+  ],
+  "agentInstructions": [
+    "Execute cleanup in phases: (1) safeNow directories, (2) duplicate asset consolidation, (3) reviewFirst items only after confirmation.",
+    "Never delete paths under protected list: web/data, data/mock, data-central, data/roadmap, uploads, .git.",
+    "Do not bulk-delete unused file candidates — they require static/dynamic import verification.",
+    "node_modules may be removed and restored with npm install.",
+    "Keep .simplebeacon scan artifacts unless the user opts in.",
+    "Target inventory reduction: ~23,839 files (168.6 MB)."
+  ],
+  "agentPrompt": "Proceed in agent mode using the attached cleanup brief for: C:\\\\Users\\\\Trevor\\\\CascadeProjects\n\nDeletion policy:\n- Safe to delete now: regenerable artifacts only (23,839 files, 168.6 MB).\n- Protected (never delete): web/data, data/mock, data-central, data/roadmap, uploads, .git\n- Review first: logs, scan cache, and anything flagged reviewFirst in the brief\n- Do not bulk-delete unused-file candidates without verifying imports\n\nInventory: 26,721 files / 3,541 folders\nProjected after phase 1: ~2,882 files\n\nAttach the exported cleanup-brief JSON and execute phase 1 only unless I say otherwise."
+}

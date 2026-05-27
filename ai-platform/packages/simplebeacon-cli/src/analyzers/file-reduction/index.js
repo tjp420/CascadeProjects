@@ -3,22 +3,19 @@
  */
 
 const { walkProjectFiles } = require('./utils/project-walker');
-const { BuildArtifactScanner } = require('./build-artifact-scanner');
-const { AssetConsolidationScanner } = require('./asset-consolidation-scanner');
-const { UnusedFileDetector } = require('./unused-file-detector');
-const { DATA_CLEANUP_SCANNERS } = require('../data-cleanup');
+const fileReductionRules = require('../../rules/file-reduction-rules');
 const { aggregateCleanupFindings } = require('../../lib/result-aggregator');
 const { buildExecutiveSummary } = require('../../lib/executive-summary');
 const { buildScannerStatistics } = require('../../lib/scanner-statistics');
 const { buildFileReductionPlan } = require('../../lib/file-reduction-plan');
 const { loadSimplebeaconConfig } = require('../../config');
 
-const DEFAULT_SCANNERS = [
-    { id: 'build-artifacts', Scanner: BuildArtifactScanner, enabled: true, priority: 1 },
-    { id: 'asset-consolidation', Scanner: AssetConsolidationScanner, enabled: true, priority: 2 },
-    { id: 'unused-files', Scanner: UnusedFileDetector, enabled: true, priority: 3 },
-    ...DATA_CLEANUP_SCANNERS
-];
+const DEFAULT_SCANNERS = fileReductionRules.scanners.map((entry) => ({
+    id: entry.id,
+    Scanner: entry.class,
+    enabled: entry.enabled !== false,
+    priority: entry.priority
+}));
 
 async function runFileReductionAnalysis(projectRoot, options = {}) {
     const startedAt = Date.now();
@@ -124,8 +121,9 @@ async function runFileReductionAnalysis(projectRoot, options = {}) {
 module.exports = {
     runFileReductionAnalysis,
     DEFAULT_SCANNERS,
-    BuildArtifactScanner,
-    AssetConsolidationScanner,
-    UnusedFileDetector,
+    fileReductionRules,
+    BuildArtifactScanner: fileReductionRules.scanners.find((s) => s.id === 'build-artifacts').class,
+    AssetConsolidationScanner: fileReductionRules.scanners.find((s) => s.id === 'asset-consolidation').class,
+    UnusedFileDetector: fileReductionRules.scanners.find((s) => s.id === 'unused-files').class,
     walkProjectFiles
 };

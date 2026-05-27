@@ -188,7 +188,7 @@
         "similarity": 0.95,
         "files": [
           { "path": "web/data/gguf-roadmap-sample.json" },
-          { "path": "data/roadmap/gguf-roadmap-data.json" }
+          { "path": "data/roadmap/ai-roadmap-report.json" }
         ],
         "savingsLabel": "12KB",
         "recommendation": "Align roadmap sample with measured data/roadmap baseline",

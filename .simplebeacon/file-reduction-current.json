@@ -1,0 +1,3883 @@
+{
+  "type": "data-cleanup-report",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "dryRun": true,
+  "generatedAt": "2026-05-27T20:40:52.618Z",
+  "durationMs": 5577,
+  "inventory": {
+    "totalFiles": 2829,
+    "totalDirectories": 262
+  },
+  "scanners": {
+    "build-artifacts": {
+      "artifactDirectories": 0,
+      "artifactFiles": 0,
+      "reclaimableBytes": 0,
+      "safeToDeleteBytes": 0,
+      "reviewBeforeDeleteBytes": 0
+    },
+    "asset-consolidation": {
+      "assetFilesScanned": 15,
+      "hashedFiles": 15,
+      "duplicateGroups": 3,
+      "reclaimableBytes": 945
+    },
+    "unused-files": {
+      "sourceFilesScanned": 1782,
+      "entryPoints": 246,
+      "unusedCandidates": 1
+    },
+    "config-management": {
+      "configFiles": 15,
+      "envFiles": 10,
+      "packageJsonFiles": 3,
+      "sprawlFindings": 1,
+      "duplicateConfigTypes": 0,
+      "inconsistentEnvKeys": 0
+    },
+    "dependency-health": {
+      "packageJsonFiles": 3,
+      "uniqueDependencies": 37,
+      "unusedDependencies": 8,
+      "duplicateDependencies": 0,
+      "versionDrift": 0
+    },
+    "environment-variables": {
+      "envFiles": 10,
+      "envKeys": 269,
+      "referencedKeys": 169,
+      "secretFindings": 0,
+      "missingKeys": 0,
+      "unusedKeys": 48
+    },
+    "data-freshness": {
+      "dataFilesScanned": 66,
+      "staleFiles": 0,
+      "criticalStale": 0
+    },
+    "data-access-patterns": {
+      "sourceFilesScanned": 0,
+      "patternFindings": 0
+    },
+    "data-privacy": {
+      "dataFilesScanned": 144,
+      "privacyFindings": 54,
+      "credentialHits": 1,
+      "piiHits": 53
+    },
+    "data-lineage": {
+      "dataFilesTracked": 66,
+      "orphanedDataFiles": 0,
+      "connectedDataFiles": 66
+    },
+    "data-consistency": {
+      "jsonDataFiles": 63,
+      "directoriesCompared": 16,
+      "shapeDriftGroups": 0
+    }
+  },
+  "findings": {
+    "buildArtifacts": [],
+    "assetConsolidation": [
+      {
+        "type": "asset-duplicate",
+        "hash": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+        "paths": [
+          "ai-platform/web/favicon.ico",
+          "deployments/signin-site/favicon.ico"
+        ],
+        "keeper": "ai-platform/web/favicon.ico",
+        "duplicates": [
+          "deployments/signin-site/favicon.ico"
+        ],
+        "sizeBytes": 2,
+        "reclaimableBytes": 2,
+        "confidence": "high",
+        "action": "consolidate-duplicates",
+        "severity": "low"
+      },
+      {
+        "type": "asset-duplicate",
+        "hash": "d375126bc73cf16c65349ddf78dabf83e20fe050baacb0509eb278df138eeb21",
+        "paths": [
+          "ai-platform/web/favicon.svg",
+          "deployments/signin-site/favicon.svg"
+        ],
+        "keeper": "ai-platform/web/favicon.svg",
+        "duplicates": [
+          "deployments/signin-site/favicon.svg"
+        ],
+        "sizeBytes": 251,
+        "reclaimableBytes": 251,
+        "confidence": "high",
+        "action": "consolidate-duplicates",
+        "severity": "low"
+      },
+      {
+        "type": "asset-duplicate",
+        "hash": "71fc71c34b2a4490c5a631eb607c42e2b4f4a13599c9880362e16403188a2a28",
+        "paths": [
+          "coming-soon/cloudflare-deploy/favicon.svg",
+          "coming-soon/favicon.svg",
+          "deployments/signin-site/cloudflare-deploy/favicon.svg"
+        ],
+        "keeper": "coming-soon/cloudflare-deploy/favicon.svg",
+        "duplicates": [
+          "coming-soon/favicon.svg",
+          "deployments/signin-site/cloudflare-deploy/favicon.svg"
+        ],
+        "sizeBytes": 346,
+        "reclaimableBytes": 692,
+        "confidence": "high",
+        "action": "consolidate-duplicates",
+        "severity": "low"
+      }
+    ],
+    "unusedFiles": [
+      {
+        "type": "unused-file",
+        "path": "ai-platform/scripts/security-fixes/.eslintrc.security.json",
+        "reason": "Not referenced by static import graph",
+        "confidence": "low",
+        "action": "review-before-delete",
+        "severity": "medium"
+      }
+    ],
+    "configManagement": [
+      {
+        "type": "config-sprawl",
+        "path": "ai-platform/.env",
+        "reason": "10 environment files detected — consider consolidating secrets",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "review-config-sprawl",
+        "metadata": {
+          "files": [
+            "ai-platform/.env",
+            "ai-platform/.env.example",
+            "ai-platform/.env.production",
+            "ai-platform/.env.production.example",
+            "ai-platform/.env.v1-internal",
+            "ai-platform/.env.v1-internal.example",
+            "ai-platform/config/.env",
+            "ai-platform/config/.env.example",
+            "ai-platform/config/.env.production",
+            "ai-platform/config/.env.production.template"
+          ]
+        }
+      }
+    ],
+    "dependencyHealth": [
+      {
+        "type": "unused-dependency",
+        "path": "ai-platform/package.json",
+        "reason": "Dependency \"@node-saml/passport-saml\" not referenced by static imports in package tree",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "verify-and-remove",
+        "metadata": {
+          "dependency": "@node-saml/passport-saml"
+        }
+      },
+      {
+        "type": "unused-dependency",
+        "path": "ai-platform/package.json",
+        "reason": "Dependency \"axios\" not referenced by static imports in package tree",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "verify-and-remove",
+        "metadata": {
+          "dependency": "axios"
+        }
+      },
+      {
+        "type": "unused-dependency",
+        "path": "ai-platform/package.json",
+        "reason": "Dependency \"compromise\" not referenced by static imports in package tree",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "verify-and-remove",
+        "metadata": {
+          "dependency": "compromise"
+        }
+      },
+      {
+        "type": "unused-dependency",
+        "path": "ai-platform/package.json",
+        "reason": "Dependency \"ldapjs\" not referenced by static imports in package tree",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "verify-and-remove",
+        "metadata": {
+          "dependency": "ldapjs"
+        }
+      },
+      {
+        "type": "unused-dependency",
+        "path": "ai-platform/package.json",
+        "reason": "Dependency \"natural\" not referenced by static imports in package tree",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "verify-and-remove",
+        "metadata": {
+          "dependency": "natural"
+        }
+      },
+      {
+        "type": "unused-dependency",
+        "path": "ai-platform/package.json",
+        "reason": "Dependency \"passport\" not referenced by static imports in package tree",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "verify-and-remove",
+        "metadata": {
+          "dependency": "passport"
+        }
+      },
+      {
+        "type": "unused-dependency",
+        "path": "ai-platform/package.json",
+        "reason": "Dependency \"passport-google-oauth20\" not referenced by static imports in package tree",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "verify-and-remove",
+        "metadata": {
+          "dependency": "passport-google-oauth20"
+        }
+      },
+      {
+        "type": "unused-dependency",
+        "path": "ai-platform/package.json",
+        "reason": "Dependency \"qrcode\" not referenced by static imports in package tree",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "verify-and-remove",
+        "metadata": {
+          "dependency": "qrcode"
+        }
+      }
+    ],
+    "environmentVariables": [
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable JWT_EXPIRY is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "JWT_EXPIRY",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable JWT_REFRESH_EXPIRY is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "JWT_REFRESH_EXPIRY",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable AZURE_AD_ENABLED is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "AZURE_AD_ENABLED",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable AZURE_AD_CLIENT_ID is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "AZURE_AD_CLIENT_ID",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable AZURE_AD_CLIENT_SECRET is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "AZURE_AD_CLIENT_SECRET",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable AZURE_AD_TENANT_ID is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "AZURE_AD_TENANT_ID",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable AZURE_AD_RESOURCE is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "AZURE_AD_RESOURCE",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable AZURE_AD_REDIRECT_URI is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "AZURE_AD_REDIRECT_URI",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable GOOGLE_SSO_ENABLED is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "GOOGLE_SSO_ENABLED",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable GOOGLE_CLIENT_ID is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "GOOGLE_CLIENT_ID",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable GOOGLE_CLIENT_SECRET is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "GOOGLE_CLIENT_SECRET",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable GOOGLE_DOMAIN is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "GOOGLE_DOMAIN",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable GOOGLE_HOSTED_DOMAIN is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "GOOGLE_HOSTED_DOMAIN",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable GOOGLE_REDIRECT_URI is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "GOOGLE_REDIRECT_URI",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable OKTA_ENABLED is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "OKTA_ENABLED",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable OKTA_CLIENT_ID is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "OKTA_CLIENT_ID",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable OKTA_CLIENT_SECRET is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "OKTA_CLIENT_SECRET",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable OKTA_ISSUER is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "OKTA_ISSUER",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable OKTA_ORG_URL is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "OKTA_ORG_URL",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable OKTA_CALLBACK_URL is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "OKTA_CALLBACK_URL",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable OKTA_ENTRY_POINT is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "OKTA_ENTRY_POINT",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable OKTA_AUDIENCE is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "OKTA_AUDIENCE",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable OKTA_CERTIFICATE is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "OKTA_CERTIFICATE",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable LDAP_ENABLED is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "LDAP_ENABLED",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable LDAP_URL is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "LDAP_URL",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable LDAP_BIND_DN is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "LDAP_BIND_DN",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable LDAP_BIND_CREDENTIALS is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "LDAP_BIND_CREDENTIALS",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable LDAP_SEARCH_BASE is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "LDAP_SEARCH_BASE",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable LDAP_SEARCH_FILTER is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "LDAP_SEARCH_FILTER",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable LDAP_GROUP_SEARCH_BASE is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "LDAP_GROUP_SEARCH_BASE",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable LDAP_GROUP_SEARCH_FILTER is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "LDAP_GROUP_SEARCH_FILTER",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable LDAP_TIMEOUT is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "LDAP_TIMEOUT",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable LDAP_CONNECT_TIMEOUT is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "LDAP_CONNECT_TIMEOUT",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable LDAP_TLS_REJECT_UNAUTHORIZED is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "LDAP_TLS_REJECT_UNAUTHORIZED",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SAML_ENABLED is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SAML_ENABLED",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SAML_ENTRY_POINT is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SAML_ENTRY_POINT",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SAML_ISSUER is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SAML_ISSUER",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SAML_CALLBACK_URL is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SAML_CALLBACK_URL",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SAML_CERTIFICATE is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SAML_CERTIFICATE",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SAML_PRIVATE_KEY is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SAML_PRIVATE_KEY",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SAML_SIGNATURE_ALGORITHM is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SAML_SIGNATURE_ALGORITHM",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SAML_DIGEST_ALGORITHM is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SAML_DIGEST_ALGORITHM",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable BASE_URL is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "BASE_URL",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable EMAIL_FROM is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "EMAIL_FROM",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SMTP_HOST is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SMTP_HOST",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SMTP_PORT is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SMTP_PORT",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SMTP_USER is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SMTP_USER",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      },
+      {
+        "type": "unused-env-key",
+        "path": "ai-platform/.env.example",
+        "reason": "Environment variable SMTP_PASS is defined but not referenced in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "remove-or-document",
+        "metadata": {
+          "key": "SMTP_PASS",
+          "files": [
+            "ai-platform/.env.example"
+          ]
+        }
+      }
+    ],
+    "dataFreshness": [],
+    "dataAccessPatterns": [],
+    "dataPrivacy": [
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/archive/legacy-web-scripts/export-mock-data.js",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 175
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/MockDataAnalysisSystem.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 528
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/MockDataAnalysisSystem.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 529
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/MockDataAnalysisSystem.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 530
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/MOCK_DATA_LIFECYCLE.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 493
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/MOCK_DATA_LIFECYCLE.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 496
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/mock_data_report_improved.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 338
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_IMPLEMENTATION_PLAN.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 75
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 66
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 67
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 68
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 87
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 88
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 125
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 154
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 165
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 169
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 184
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 190
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 204
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 210
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 211
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 438
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 443
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 444
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 445
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_COMPLETE_FINAL.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 38
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_COMPLETE_FINAL.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 52
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_COMPLETE_FINAL.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 66
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_COMPLETE_FINAL.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 73
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_COMPLETE_FINAL.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 151
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_COMPLETE_FINAL.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 165
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_COMPLETE_FINAL.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 232
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_COMPLETE_FINAL.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 235
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_PLAN.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 51
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_PLAN.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 52
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_PLAN.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 53
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_PLAN.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 54
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REPLACEMENT_SUMMARY.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 61
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REPLACEMENT_SUMMARY.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 78
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REPLACEMENT_SUMMARY.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 97
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/docs/reports/MOCK_DATA_REPLACEMENT_SUMMARY.md",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 130
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/tests/fixtures/simplebeacon-toxic-fixtures/src/server/auth-mock.js",
+        "reason": "Credential pattern (aws-access-key) in data file",
+        "severity": "high",
+        "confidence": "high",
+        "action": "rotate-and-remove-secret",
+        "metadata": {
+          "line": 2,
+          "patternId": "aws-access-key"
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/web/api/mock-backend.js",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 2065
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/web/api/mock-backend.js",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 2077
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/web/api/mock-backend.js",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 2089
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/web/api/mock-backend.js",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 2101
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/web/api/mock-backend.js",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 2113
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/web/api/mock-backend.js",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 2125
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/web/api/mock-backend.js",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 5270
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/web/data/billing-system-sample.json",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 75
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/web/data/billing-system-sample.json",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 86
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/web/data/billing-system-sample.json",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 143
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/web/data/code-templates-sample.json",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 157
+        }
+      }
+    ],
+    "dataLineage": [],
+    "dataConsistency": []
+  },
+  "aggregation": {
+    "bySeverity": {
+      "critical": 0,
+      "high": 1,
+      "medium": 14,
+      "low": 57
+    },
+    "byCategory": {
+      "asset-duplicate": 1,
+      "unused-file": 1,
+      "config-sprawl": 1,
+      "unused-dependency": 8,
+      "unused-env-key": 48,
+      "data-privacy": 13
+    },
+    "topFiles": [
+      {
+        "filePath": "ai-platform/.env.example",
+        "count": 48
+      },
+      {
+        "filePath": "ai-platform/package.json",
+        "count": 8
+      },
+      {
+        "filePath": "unknown",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/scripts/security-fixes/.eslintrc.security.json",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/.env",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/archive/legacy-web-scripts/export-mock-data.js",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/docs/MockDataAnalysisSystem.md",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/docs/MOCK_DATA_LIFECYCLE.md",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/docs/mock_data_report_improved.md",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/docs/reports/MOCK_DATA_IMPLEMENTATION_PLAN.md",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_COMPLETE_FINAL.md",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_PLAN.md",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/docs/reports/MOCK_DATA_REPLACEMENT_SUMMARY.md",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/tests/fixtures/simplebeacon-toxic-fixtures/src/server/auth-mock.js",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/web/api/mock-backend.js",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/web/data/billing-system-sample.json",
+        "count": 1
+      },
+      {
+        "filePath": "ai-platform/web/data/code-templates-sample.json",
+        "count": 1
+      }
+    ]
+  },
+  "allFindings": [
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/tests/fixtures/simplebeacon-toxic-fixtures/src/server/auth-mock.js",
+      "reason": "Credential pattern (aws-access-key) in data file",
+      "severity": "high",
+      "confidence": "high",
+      "action": "rotate-and-remove-secret",
+      "metadata": {
+        "line": 2,
+        "patternId": "aws-access-key"
+      }
+    },
+    {
+      "type": "config-sprawl",
+      "path": "ai-platform/.env",
+      "reason": "10 environment files detected — consider consolidating secrets",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "review-config-sprawl",
+      "metadata": {
+        "files": [
+          "ai-platform/.env",
+          "ai-platform/.env.example",
+          "ai-platform/.env.production",
+          "ai-platform/.env.production.example",
+          "ai-platform/.env.v1-internal",
+          "ai-platform/.env.v1-internal.example",
+          "ai-platform/config/.env",
+          "ai-platform/config/.env.example",
+          "ai-platform/config/.env.production",
+          "ai-platform/config/.env.production.template"
+        ]
+      }
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/archive/legacy-web-scripts/export-mock-data.js",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 175
+      }
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/docs/MOCK_DATA_LIFECYCLE.md",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 493
+      }
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/docs/mock_data_report_improved.md",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 338
+      }
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/docs/MockDataAnalysisSystem.md",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 528
+      }
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/docs/reports/MOCK_DATA_IMPLEMENTATION_PLAN.md",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 75
+      }
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/docs/reports/MOCK_DATA_PREVENTION_GUIDELINES.md",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 66
+      }
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_COMPLETE_FINAL.md",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 38
+      }
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/docs/reports/MOCK_DATA_REMEDIATION_PLAN.md",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 51
+      }
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/docs/reports/MOCK_DATA_REPLACEMENT_SUMMARY.md",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 61
+      }
+    },
+    {
+      "type": "unused-file",
+      "path": "ai-platform/scripts/security-fixes/.eslintrc.security.json",
+      "reason": "Not referenced by static import graph",
+      "confidence": "low",
+      "action": "review-before-delete",
+      "severity": "medium"
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/web/api/mock-backend.js",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 2065
+      }
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/web/data/billing-system-sample.json",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 75
+      }
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/web/data/code-templates-sample.json",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 157
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable JWT_EXPIRY is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "JWT_EXPIRY",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable JWT_REFRESH_EXPIRY is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "JWT_REFRESH_EXPIRY",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable AZURE_AD_ENABLED is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "AZURE_AD_ENABLED",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable AZURE_AD_CLIENT_ID is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "AZURE_AD_CLIENT_ID",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable AZURE_AD_CLIENT_SECRET is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "AZURE_AD_CLIENT_SECRET",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable AZURE_AD_TENANT_ID is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "AZURE_AD_TENANT_ID",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable AZURE_AD_RESOURCE is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "AZURE_AD_RESOURCE",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable AZURE_AD_REDIRECT_URI is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "AZURE_AD_REDIRECT_URI",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable GOOGLE_SSO_ENABLED is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "GOOGLE_SSO_ENABLED",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable GOOGLE_CLIENT_ID is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "GOOGLE_CLIENT_ID",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable GOOGLE_CLIENT_SECRET is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "GOOGLE_CLIENT_SECRET",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable GOOGLE_DOMAIN is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "GOOGLE_DOMAIN",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable GOOGLE_HOSTED_DOMAIN is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "GOOGLE_HOSTED_DOMAIN",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable GOOGLE_REDIRECT_URI is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "GOOGLE_REDIRECT_URI",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable OKTA_ENABLED is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "OKTA_ENABLED",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable OKTA_CLIENT_ID is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "OKTA_CLIENT_ID",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable OKTA_CLIENT_SECRET is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "OKTA_CLIENT_SECRET",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable OKTA_ISSUER is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "OKTA_ISSUER",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable OKTA_ORG_URL is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "OKTA_ORG_URL",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable OKTA_CALLBACK_URL is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "OKTA_CALLBACK_URL",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable OKTA_ENTRY_POINT is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "OKTA_ENTRY_POINT",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable OKTA_AUDIENCE is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "OKTA_AUDIENCE",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable OKTA_CERTIFICATE is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "OKTA_CERTIFICATE",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable LDAP_ENABLED is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "LDAP_ENABLED",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable LDAP_URL is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "LDAP_URL",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable LDAP_BIND_DN is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "LDAP_BIND_DN",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable LDAP_BIND_CREDENTIALS is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "LDAP_BIND_CREDENTIALS",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable LDAP_SEARCH_BASE is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "LDAP_SEARCH_BASE",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable LDAP_SEARCH_FILTER is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "LDAP_SEARCH_FILTER",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable LDAP_GROUP_SEARCH_BASE is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "LDAP_GROUP_SEARCH_BASE",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable LDAP_GROUP_SEARCH_FILTER is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "LDAP_GROUP_SEARCH_FILTER",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable LDAP_TIMEOUT is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "LDAP_TIMEOUT",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable LDAP_CONNECT_TIMEOUT is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "LDAP_CONNECT_TIMEOUT",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable LDAP_TLS_REJECT_UNAUTHORIZED is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "LDAP_TLS_REJECT_UNAUTHORIZED",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SAML_ENABLED is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SAML_ENABLED",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SAML_ENTRY_POINT is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SAML_ENTRY_POINT",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SAML_ISSUER is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SAML_ISSUER",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SAML_CALLBACK_URL is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SAML_CALLBACK_URL",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SAML_CERTIFICATE is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SAML_CERTIFICATE",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SAML_PRIVATE_KEY is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SAML_PRIVATE_KEY",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SAML_SIGNATURE_ALGORITHM is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SAML_SIGNATURE_ALGORITHM",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SAML_DIGEST_ALGORITHM is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SAML_DIGEST_ALGORITHM",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable BASE_URL is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "BASE_URL",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable EMAIL_FROM is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "EMAIL_FROM",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SMTP_HOST is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SMTP_HOST",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SMTP_PORT is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SMTP_PORT",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SMTP_USER is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SMTP_USER",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-env-key",
+      "path": "ai-platform/.env.example",
+      "reason": "Environment variable SMTP_PASS is defined but not referenced in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "remove-or-document",
+      "metadata": {
+        "key": "SMTP_PASS",
+        "files": [
+          "ai-platform/.env.example"
+        ]
+      }
+    },
+    {
+      "type": "unused-dependency",
+      "path": "ai-platform/package.json",
+      "reason": "Dependency \"@node-saml/passport-saml\" not referenced by static imports in package tree",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "verify-and-remove",
+      "metadata": {
+        "dependency": "@node-saml/passport-saml"
+      }
+    },
+    {
+      "type": "unused-dependency",
+      "path": "ai-platform/package.json",
+      "reason": "Dependency \"axios\" not referenced by static imports in package tree",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "verify-and-remove",
+      "metadata": {
+        "dependency": "axios"
+      }
+    },
+    {
+      "type": "unused-dependency",
+      "path": "ai-platform/package.json",
+      "reason": "Dependency \"compromise\" not referenced by static imports in package tree",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "verify-and-remove",
+      "metadata": {
+        "dependency": "compromise"
+      }
+    },
+    {
+      "type": "unused-dependency",
+      "path": "ai-platform/package.json",
+      "reason": "Dependency \"ldapjs\" not referenced by static imports in package tree",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "verify-and-remove",
+      "metadata": {
+        "dependency": "ldapjs"
+      }
+    },
+    {
+      "type": "unused-dependency",
+      "path": "ai-platform/package.json",
+      "reason": "Dependency \"natural\" not referenced by static imports in package tree",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "verify-and-remove",
+      "metadata": {
+        "dependency": "natural"
+      }
+    },
+    {
+      "type": "unused-dependency",
+      "path": "ai-platform/package.json",
+      "reason": "Dependency \"passport\" not referenced by static imports in package tree",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "verify-and-remove",
+      "metadata": {
+        "dependency": "passport"
+      }
+    },
+    {
+      "type": "unused-dependency",
+      "path": "ai-platform/package.json",
+      "reason": "Dependency \"passport-google-oauth20\" not referenced by static imports in package tree",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "verify-and-remove",
+      "metadata": {
+        "dependency": "passport-google-oauth20"
+      }
+    },
+    {
+      "type": "unused-dependency",
+      "path": "ai-platform/package.json",
+      "reason": "Dependency \"qrcode\" not referenced by static imports in package tree",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "verify-and-remove",
+      "metadata": {
+        "dependency": "qrcode"
+      }
+    },
+    {
+      "type": "asset-duplicate",
+      "hash": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "paths": [
+        "ai-platform/web/favicon.ico",
+        "deployments/signin-site/favicon.ico"
+      ],
+      "keeper": "ai-platform/web/favicon.ico",
+      "duplicates": [
+        "deployments/signin-site/favicon.ico"
+      ],
+      "sizeBytes": 2,
+      "reclaimableBytes": 2,
+      "confidence": "high",
+      "action": "consolidate-duplicates",
+      "severity": "low"
+    }
+  ],
+  "summary": {
+    "totalFindings": 72,
+    "buildArtifactFindings": 0,
+    "duplicateAssetGroups": 3,
+    "unusedFileCandidates": 1,
+    "configFindings": 1,
+    "dependencyFindings": 8,
+    "environmentFindings": 48,
+    "dataFreshnessFindings": 0,
+    "dataAccessFindings": 0,
+    "dataPrivacyFindings": 54,
+    "dataLineageFindings": 0,
+    "dataConsistencyFindings": 0,
+    "reclaimableBytes": 2,
+    "estimatedReductionPct": 2.5
+  },
+  "metadata": {
+    "entryPoints": [
+      "ai-platform/archive/legacy-web-scripts/eslint.config.js",
+      "ai-platform/archive/legacy-web-scripts/git-history-server.js",
+      "ai-platform/archive/legacy-web-scripts/jest.config.js",
+      "ai-platform/archive/legacy-web-scripts/quick-server.js",
+      "ai-platform/archive/legacy-web-scripts/simple-api-server.js",
+      "ai-platform/archive/legacy-web-scripts/test-api-server.js",
+      "ai-platform/archive/legacy-web-scripts/vite.config.js",
+      "ai-platform/archive/legacy-web-scripts/webpack.config.js",
+      "ai-platform/eslint.config.js",
+      "ai-platform/fixed-server.js",
+      "ai-platform/gguf-dashboard-server.js",
+      "ai-platform/jest.config.js",
+      "ai-platform/packages/simplebeacon-cli/bin/enrich-complete-scan.js",
+      "ai-platform/packages/simplebeacon-cli/bin/simplebeacon-proxy.js",
+      "ai-platform/packages/simplebeacon-cli/bin/simplebeacon.js",
+      "ai-platform/packages/simplebeacon-cli/src/analyzers/data-cleanup/index.js",
+      "ai-platform/packages/simplebeacon-cli/src/analyzers/file-reduction/index.js",
+      "ai-platform/packages/simplebeacon-cli/src/index.js",
+      "ai-platform/packages/simplebeacon-cli/src/reporters/ai-enhanced-report.js",
+      "ai-platform/packages/simplebeacon-cli/src/reporters/audit-report.js",
+      "ai-platform/packages/simplebeacon-cli/src/reporters/build-report.js",
+      "ai-platform/packages/simplebeacon-cli/src/reporters/file-reduction-report.js",
+      "ai-platform/packages/simplebeacon-cli/src/reporters/github-comment.js",
+      "ai-platform/packages/simplebeacon-cli/src/reporters/json.js",
+      "ai-platform/packages/simplebeacon-cli/src/reporters/remediation-guides.js",
+      "ai-platform/packages/simplebeacon-cli/src/reporters/report-enhance.js",
+      "ai-platform/packages/simplebeacon-cli/src/reporters/text.js",
+      "ai-platform/packages/simplebeacon-cli/src/rules/ai-fiction-detection.js",
+      "ai-platform/packages/simplebeacon-cli/src/rules/fiction-kpi-patterns.js",
+      "ai-platform/packages/simplebeacon-cli/src/rules/file-reduction-rules.js",
+      "ai-platform/packages/simplebeacon-cli/src/rules/jest-baseline.js",
+      "ai-platform/packages/simplebeacon-cli/src/rules/production-leak.js",
+      "ai-platform/scripts/actionscript.py",
+      "ai-platform/scripts/ai-analyzer.js",
+      "ai-platform/scripts/automated-security-scan.js",
+      "ai-platform/scripts/backup-database.js",
+      "ai-platform/scripts/build-cascade-vsix.py",
+      "ai-platform/scripts/build-fast.js",
+      "ai-platform/scripts/build-vsix.py",
+      "ai-platform/scripts/build_cleanup.py",
+      "ai-platform/scripts/build_env.py",
+      "ai-platform/scripts/build_tracker.py",
+      "ai-platform/scripts/clean-mock-batch-data.js",
+      "ai-platform/scripts/comprehensive-template-fix.js",
+      "ai-platform/scripts/coverage-monitor.js",
+      "ai-platform/scripts/create-safer-alternatives.js",
+      "ai-platform/scripts/critical_remediation_script.py",
+      "ai-platform/scripts/demo-complete-ai-system.js",
+      "ai-platform/scripts/deploy-setup.js",
+      "ai-platform/scripts/descriptors.py",
+      "ai-platform/scripts/descriptor_props.py",
+      "ai-platform/scripts/enhanced-development-setup.js",
+      "ai-platform/scripts/enhanced_cleanup_script.py",
+      "ai-platform/scripts/error-type-classifier.js",
+      "ai-platform/scripts/final-ai-test.js",
+      "ai-platform/scripts/fix-ai-access.js",
+      "ai-platform/scripts/fix-api-client-fallback.js",
+      "ai-platform/scripts/fix-api-test-syntax.py",
+      "ai-platform/scripts/fix-attribute-templates.js",
+      "ai-platform/scripts/fix-console-errors.js",
+      "ai-platform/scripts/fix-double-braces.js",
+      "ai-platform/scripts/fix-file-paths.js",
+      "ai-platform/scripts/fix-inline-styles.js",
+      "ai-platform/scripts/fix-line-breaks.js",
+      "ai-platform/scripts/fix-logger-paths.js",
+      "ai-platform/scripts/fix-remaining-template-literals-v2.js",
+      "ai-platform/scripts/fix-remaining-template-literals.js",
+      "ai-platform/scripts/fix-scanner-error.js",
+      "ai-platform/scripts/fix-string-literal-breaks.js",
+      "ai-platform/scripts/fix-syntax-errors.js",
+      "ai-platform/scripts/fix-template-literal-syntax.js",
+      "ai-platform/scripts/fix-template-literals.js",
+      "ai-platform/scripts/floscript.py",
+      "ai-platform/scripts/gdscript.py",
+      "ai-platform/scripts/generate-detailed-reports.js",
+      "ai-platform/scripts/javascript.py",
+      "ai-platform/scripts/master_analyzer_runner.py",
+      "ai-platform/scripts/measure-platform-metrics.js",
+      "ai-platform/scripts/migrate-to-database.js",
+      "ai-platform/scripts/real_mock_detector.py",
+      "ai-platform/scripts/rebuild.py",
+      "ai-platform/scripts/refactor_build_vsix.py",
+      "ai-platform/scripts/remediate-audit-hygiene.js",
+      "ai-platform/scripts/remediate-src-console.js",
+      "ai-platform/scripts/remove-malformed-api-client.js",
+      "ai-platform/scripts/remove-malformed-mockdata.js",
+      "ai-platform/scripts/restart_scanner.py",
+      "ai-platform/scripts/restart_server.py",
+      "ai-platform/scripts/run-analysis.js",
+      "ai-platform/scripts/runall.py",
+      "ai-platform/scripts/runner.py",
+      "ai-platform/scripts/runtime.py",
+      "ai-platform/scripts/run_comprehensive_assessment.py",
+      "ai-platform/scripts/run_comprehensive_fix.py",
+      "ai-platform/scripts/run_dry_run.py",
+      "ai-platform/scripts/run_improvements.py",
+      "ai-platform/scripts/run_in_terminal.py",
+      "ai-platform/scripts/run_master_analyzer.py",
+      "ai-platform/scripts/scripting.py",
+      "ai-platform/scripts/scripts.py",
+      "ai-platform/scripts/security-analysis-and-improvement.js",
+      "ai-platform/scripts/security-analysis-simple.js",
+      "ai-platform/scripts/security-fixes/fix-eval-usage.js",
+      "ai-platform/scripts/security-scan.js",
+      "ai-platform/scripts/setup-stripe.js",
+      "ai-platform/scripts/setup-testing-framework.js",
+      "ai-platform/scripts/simple-ai-server.js",
+      "ai-platform/scripts/simple-build.py",
+      "ai-platform/scripts/simple-template-fix.js",
+      "ai-platform/scripts/start-dashboard-with-roadmap.js",
+      "ai-platform/scripts/start-general-intelligence.py",
+      "ai-platform/scripts/start.py",
+      "ai-platform/scripts/start_dashboard_server.py",
+      "ai-platform/scripts/start_frontend_server.py",
+      "ai-platform/scripts/start_integrated_services.py",
+      "ai-platform/scripts/start_server_58656.py",
+      "ai-platform/scripts/start_services.py",
+      "ai-platform/scripts/start_visualization_demo.py",
+      "ai-platform/scripts/strategic_roadmap_builder.py",
+      "ai-platform/scripts/systematic-error-fixer.js",
+      "ai-platform/scripts/test-ai-roadmap-features.js",
+      "ai-platform/scripts/test-ai-roadmap.js",
+      "ai-platform/scripts/test-batch-shard-store.js",
+      "ai-platform/scripts/test-button-visibility.js",
+      "ai-platform/scripts/test-comprehensive-roadmap-system.js",
+      "ai-platform/scripts/test-data-consistency.js",
+      "ai-platform/scripts/test-enhanced-export.js",
+      "ai-platform/scripts/test-fixed-dashboard.js",
+      "ai-platform/scripts/test-original-download.js",
+      "ai-platform/scripts/test-rebuilt-roadmap-fixed.js",
+      "ai-platform/scripts/test-roadmap-ai-features.js",
+      "ai-platform/scripts/test-roadmap-data-collection.js",
+      "ai-platform/scripts/test-roadmap-export.js",
+      "ai-platform/scripts/test-roadmap-fix.js",
+      "ai-platform/scripts/test-roadmap-rebuild.js",
+      "ai-platform/scripts/test-upload-http.js",
+      "ai-platform/scripts/trafficscript.py",
+      "ai-platform/scripts/truncate.py",
+      "ai-platform/scripts/typoscript.py",
+      "ai-platform/scripts/utilities/cleanup_project.py",
+      "ai-platform/scripts/utilities/cleanup_script.py",
+      "ai-platform/scripts/validate-coverage-gates.js",
+      "ai-platform/scripts/verify-download.js",
+      "ai-platform/scripts/verify-roadmap-export.js",
+      "ai-platform/scripts/verify-upload-e2e.js",
+      "ai-platform/scripts/wheel_builder.py",
+      "ai-platform/scripts/_vbscript_builtins.py",
+      "ai-platform/scripts/__pip-runner__.py",
+      "ai-platform/server/api/assessment/index.js",
+      "ai-platform/server/dashboard-server.js",
+      "ai-platform/server/index.js",
+      "ai-platform/server/lib/code-understanding/index.js",
+      "ai-platform/server/lib/language-patterns/index.js",
+      "ai-platform/server/lib/parsers/index.js",
+      "ai-platform/server/lib/plugin-system/index.js",
+      "ai-platform/simplebeacon-server.js",
+      "ai-platform/src/server/index.js",
+      "ai-platform/tools/api_gateway.py",
+      "ai-platform/tools/apply_security_headers.py",
+      "ai-platform/tools/archive-data-cleanup.js",
+      "ai-platform/tools/archive-simplebeacon-artifacts.js",
+      "ai-platform/tools/bootstrap-stripe-test-prices.js",
+      "ai-platform/tools/build-sample-report.js",
+      "ai-platform/tools/code_quality_checker.py",
+      "ai-platform/tools/code_quality_tools.py",
+      "ai-platform/tools/complexity_analyzer.py",
+      "ai-platform/tools/consolidate-deferred-init.py",
+      "ai-platform/tools/consolidated_fixes.py",
+      "ai-platform/tools/create-signed-off-site-bundle.js",
+      "ai-platform/tools/create_test_templates.py",
+      "ai-platform/tools/demo_script.py",
+      "ai-platform/tools/extended-schema-coverage-check.js",
+      "ai-platform/tools/extract-dashboard-shell.py",
+      "ai-platform/tools/extract-roadmap-core.py",
+      "ai-platform/tools/fiction-kpi-guard.js",
+      "ai-platform/tools/fiction-pattern-remediation-map.js",
+      "ai-platform/tools/generate-audit-html.js",
+      "ai-platform/tools/generate-complete-scan-export.js",
+      "ai-platform/tools/generate-web-eslint-globals.js",
+      "ai-platform/tools/generate-zscript-mod-report.js",
+      "ai-platform/tools/jest-quality-evidence.js",
+      "ai-platform/tools/kill-dashboard-ports.js",
+      "ai-platform/tools/list-oversized-files.js",
+      "ai-platform/tools/monitor-file-sizes.js",
+      "ai-platform/tools/optimization-scan.js",
+      "ai-platform/tools/production-debug-guard.js",
+      "ai-platform/tools/publish-trust-verification.js",
+      "ai-platform/tools/quality-maintenance-metrics.js",
+      "ai-platform/tools/remediation-weekly-metrics.js",
+      "ai-platform/tools/restore-local-models.js",
+      "ai-platform/tools/run-eslint.js",
+      "ai-platform/tools/run-route-smoke-suite.js",
+      "ai-platform/tools/scan-credential-patterns-repo.js",
+      "ai-platform/tools/scan-source-kpi-patterns.js",
+      "ai-platform/tools/simplebeacon-analyze-path-smoke.js",
+      "ai-platform/tools/simplebeacon-path-check.js",
+      "ai-platform/tools/start-v1-internal-dashboard.js",
+      "ai-platform/tools/strip-cascade-server.js",
+      "ai-platform/tools/sync-audit-baseline-samples.js",
+      "ai-platform/tools/sync-coverage-reports-sample.js",
+      "ai-platform/tools/trust-history-report.js",
+      "ai-platform/tools/upgrade-legacy-audit-html.js",
+      "ai-platform/tools/validate-all-json.js",
+      "ai-platform/tools/validate-audit-baseline.js",
+      "ai-platform/tools/validate-mock-backend-compat.js",
+      "ai-platform/tools/validate-trust-publish-env.js",
+      "ai-platform/tools/verify-launch-readiness.js",
+      "ai-platform/tools/verify-mock-scan.js",
+      "ai-platform/tools/verify-predeploy-sequence.js",
+      "ai-platform/tools/verify-production-deploy-readiness.js",
+      "ai-platform/tools/verify-roadmap-alignment.js",
+      "ai-platform/tools/verify-stripe-config.js",
+      "ai-platform/tools/verify-v1-internal-profile.js",
+      "ai-platform/tools/_joserfc_helpers.py",
+      "ai-platform/vite.config.js",
+      "ai-platform/web/scripts/export-system.js",
+      "ai-platform/web/scripts/payload-routing.js",
+      "ai-platform/web/scripts/roadmap-data-service.js",
+      "ai-platform/web/simplebeacon-dashboard/index.html",
+      "ai-platform/web/simplebeacon-dashboard/js/main.js",
+      "coming-soon/cloudflare-deploy/community/index.html",
+      "coming-soon/cloudflare-deploy/index.html",
+      "coming-soon/community/index.html",
+      "coming-soon/index.html",
+      "coming-soon/scripts/build-cloudflare-package.js",
+      "coming-soon/tools/prepare-diagnostic-bundle.js",
+      "deployments/signin-site/cloudflare-deploy/community/index.html",
+      "deployments/signin-site/cloudflare-deploy/index.html",
+      "deployments/signin-site/community/index.html",
+      "deployments/signin-site/index.html",
+      "deployments/signin-site/scripts/build-cloudflare-package.js",
+      "deployments/signin-site/signin/index.html",
+      "deployments/signin-site/simplebeacon-dashboard/index.html",
+      "deployments/signin-site/simplebeacon-dashboard/js/main.js",
+      "deployments/signin-site/tools/prepare-diagnostic-bundle.js",
+      "development-roadmap-51543.html",
+      "enhanced-gguf-server.js",
+      "gguf-dashboard-server.js",
+      "server-51543.js",
+      "simple-gguf-server.js",
+      "website-51543.html",
+      "ai-platform/package.json",
+      "ai-platform/server/enterprise-dlp.js",
+      "ai-platform/server/test-gateway.js",
+      "ai-platform/packages/simplebeacon-cli/package.json",
+      "package.json"
+    ],
+    "dataLineage": [
+      {
+        "path": "ai-platform/data/codegen/code-generation-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/code-generation-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/data/mock/mock_data_templates.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/data-central/ai-tools/ai-models/registry.json",
+        "consumerCount": 2,
+        "consumers": [
+          "ai-platform/server/services/local-model-service.js",
+          "ai-platform/tests/unit/model-inference-service.test.js"
+        ]
+      },
+      {
+        "path": "ai-platform/data-central/config/central-data-config.json",
+        "consumerCount": 7,
+        "consumers": [
+          "ai-platform/archive/legacy-web-assets/web/central-data-integration.js",
+          "ai-platform/data-central/README.md",
+          "ai-platform/docs/simplebeacon-scan-accuracy.md",
+          "ai-platform/packages/simplebeacon-cli/src/analyzers/file-reduction/unused-file-detector.js",
+          "ai-platform/packages/simplebeacon-cli/src/config.js",
+          "ai-platform/server/services/model-inference-service.js",
+          "ai-platform/tests/unit/central-data-config.test.js"
+        ]
+      },
+      {
+        "path": "ai-platform/docker-compose.simplebeacon.dev.yml",
+        "consumerCount": 1,
+        "consumers": [
+          "ai-platform/packages/simplebeacon-cli/docs/DOCKER.md"
+        ]
+      },
+      {
+        "path": "ai-platform/docker-compose.simplebeacon.full.yml",
+        "consumerCount": 5,
+        "consumers": [
+          "ai-platform/docs/production-profile-verification-status.md",
+          "ai-platform/docs/simplebeacon-on-premises-deployment.md",
+          "ai-platform/docs/v1-internal-runbook.md",
+          "ai-platform/packages/simplebeacon-cli/docs/DOCKER.md",
+          "ai-platform/SIMPLEBEACON_DEPLOYMENT_ROADMAP.md"
+        ]
+      },
+      {
+        "path": "ai-platform/docker-compose.simplebeacon.yml",
+        "consumerCount": 6,
+        "consumers": [
+          "ai-platform/docs/production-profile-verification-status.md",
+          "ai-platform/docs/simplebeacon-on-premises-deployment.md",
+          "ai-platform/docs/v1-internal-runbook.md",
+          "ai-platform/packages/simplebeacon-cli/docs/CI.md",
+          "ai-platform/packages/simplebeacon-cli/docs/DOCKER.md",
+          "ai-platform/SIMPLEBEACON_DEPLOYMENT_ROADMAP.md"
+        ]
+      },
+      {
+        "path": "ai-platform/mock_data_6.json",
+        "consumerCount": 9,
+        "consumers": [
+          "ai-platform/archive/legacy-web-assets/web/services/IssueResolutionService.js",
+          "ai-platform/archive/legacy-web-assets/web/services/RealDataService.part2.js",
+          "ai-platform/archive/legacy-web-scripts/dashboard-inline-core.part2.js",
+          "ai-platform/server/lib/gguf-analysis.js",
+          "ai-platform/web/api/mock-backend-static-data.js",
+          "ai-platform/web/scripts/roadmap-data-service.js",
+          "enhanced-gguf-server.js",
+          "server-51543.js",
+          "simple-gguf-server.js"
+        ]
+      },
+      {
+        "path": "ai-platform/mock_data_monitoring_dashboard.json",
+        "consumerCount": 1,
+        "consumers": [
+          "ai-platform/server/lib/gguf-analysis.js"
+        ]
+      },
+      {
+        "path": "ai-platform/mock_data_validation_report.json",
+        "consumerCount": 2,
+        "consumers": [
+          "ai-platform/packages/simplebeacon-cli/src/analyzers/file-reduction/unused-file-detector.js",
+          "ai-platform/server/lib/gguf-analysis.js"
+        ]
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-integration/a-46-error-handling.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-reliability/a-23-response-consistency.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-reliability/a-48-output-reliability.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-trust-safety/a-39-security-risk.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/manifest.json",
+        "consumerCount": 7,
+        "consumers": [
+          "ai-platform/docs/PACKAGE_FIX_SUMMARY.md",
+          "ai-platform/docs/planning/ai-problem-analyzer-suite/EVAL_FIXTURES.md",
+          "ai-platform/docs/repository-optimization-runbook.md",
+          "ai-platform/docs/WEBGL_FINAL_SUCCESS.md",
+          "ai-platform/tests/unit/ai-systems-issue-analyzer.test.js",
+          "ai-platform/tools/archive-data-cleanup.js",
+          "ai-platform/tools/archive-simplebeacon-artifacts.js"
+        ]
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/technical-ai-issues/a-01-hallucination.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/technical-ai-issues/a-02-bias-detection.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/technical-ai-issues/a-03-interpretability.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/technical-ai-issues/a-04-data-quality.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/technical-ai-issues/a-05-scalability.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/technical-ai-issues/a-06-generalization.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/core/core-flow.json",
+        "consumerCount": 1,
+        "consumers": [
+          "ai-platform/packages/simplebeacon-cli/tests/data-cleanup.test.js"
+        ]
+      },
+      {
+        "path": "ai-platform/tests/fixtures/jest-coverage-summary.json",
+        "consumerCount": 5,
+        "consumers": [
+          "ai-platform/jest.config.js",
+          "ai-platform/reports/technical-debt/artifacts/build-artifacts.js",
+          "ai-platform/reports/technical-debt/artifacts/technical-debt-report.md",
+          "ai-platform/tests/jest-coverage-env.js",
+          "ai-platform/tests/unit/jest-coverage-reader.test.js"
+        ]
+      },
+      {
+        "path": "ai-platform/tests/fixtures/simplebeacon-toxic-fixtures/fixtures/user-sample.json",
+        "consumerCount": 1,
+        "consumers": [
+          "ai-platform/tests/fixtures/simplebeacon-toxic-fixtures/src/server/config-loader.js"
+        ]
+      },
+      {
+        "path": "ai-platform/tests/fixtures/simplebeacon-toxic-fixtures/web/data/metrics-sample.json",
+        "consumerCount": 5,
+        "consumers": [
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/src/api/simplebeacon-api.js",
+          "ai-platform/tools/extended-schema-coverage-check.js",
+          "simplebeacon-test-repo/src/components/DashboardView.tsx",
+          "simplebeacon-test-repo/TEST_AUDIT.md"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/ai-adoption-trends-sample.json",
+        "consumerCount": 3,
+        "consumers": [
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/src/api/simplebeacon-api.js",
+          "ai-platform/tools/extended-schema-coverage-check.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/ai-analysis-sample.json",
+        "consumerCount": 6,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/ai-analysis-page.js",
+          "ai-platform/docs/reports/fiction-pattern-remediation-tranche-2026-05-25.md",
+          "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/ai-quality-metrics-sample.json",
+        "consumerCount": 3,
+        "consumers": [
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/src/api/simplebeacon-api.js",
+          "ai-platform/tools/extended-schema-coverage-check.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/ai-tools-sample.json",
+        "consumerCount": 6,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/ai-tools-page.js",
+          "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/packages/simplebeacon-cli/tests/fiction.test.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/analytics-sample.json",
+        "consumerCount": 8,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/analytics-page.js",
+          "ai-platform/archive/legacy-web-scripts/debt-analytics-page.js",
+          "ai-platform/docs/ai-problem-analyzer-kpi-instrumentation-plan.md",
+          "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js",
+          "ai-platform/tests/unit/mock-data-scanner.test.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/api-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/api-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/assets-library-sample.json",
+        "consumerCount": 5,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/assets-library-page.js",
+          "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/baseline-comparison-sample.json",
+        "consumerCount": 3,
+        "consumers": [
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/src/api/simplebeacon-api.js",
+          "ai-platform/tools/extended-schema-coverage-check.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/billing-system-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/billing-system-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/cascade-roadmap-sample.json",
+        "consumerCount": 6,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/development-roadmap-core.js",
+          "ai-platform/docs/reports/fiction-pattern-remediation-tranche-2026-05-25.md",
+          "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/tools/extended-schema-coverage-check.js",
+          "ai-platform/tools/verify-roadmap-alignment.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/code-generation-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/code-generation-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/code-templates-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/code-templates-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/coverage-reports-sample.json",
+        "consumerCount": 5,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/coverage-reports-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js",
+          "ai-platform/tools/sync-coverage-reports-sample.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/dashboard-home-sample.json",
+        "consumerCount": 9,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/dashboard-home-page.js",
+          "ai-platform/docs/simplebeacon-scan-accuracy.md",
+          "ai-platform/packages/simplebeacon-cli/docs/MARKETING.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/packages/simplebeacon-cli/src/project-detect.js",
+          "ai-platform/packages/simplebeacon-cli/tests/data-cleanup.test.js",
+          "ai-platform/packages/simplebeacon-cli/tests/file-reduction.test.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/data-maintenance-analyzers-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/dev-tools-page.js",
+          "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/tools/extended-schema-coverage-check.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/database-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/database-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/debt-analytics-sample.json",
+        "consumerCount": 5,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/debt-analytics-page.js",
+          "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/debt-calculator-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/debt-calculator-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/debt-reduction-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/debt-reduction-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/dev-tools-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/dev-tools-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/engineering-baseline-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/docs/simplebeacon-scan-accuracy.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/packages/simplebeacon-cli/src/project-detect.js",
+          "ai-platform/tools/extended-schema-coverage-check.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/feature-backlog-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/feature-backlog-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/fictional-patterns-sample.json",
+        "consumerCount": 3,
+        "consumers": [
+          "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/src/api/simplebeacon-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/help-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/help-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/implementation-plan-sample.json",
+        "consumerCount": 8,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/implementation-plan-page.js",
+          "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
+          "ai-platform/docs/simplebeacon-scan-accuracy.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/packages/simplebeacon-cli/src/project-detect.js",
+          "ai-platform/scripts/measure-platform-metrics.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/issue-resolution-sample.json",
+        "consumerCount": 8,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/ai-analysis-page.js",
+          "ai-platform/archive/legacy-web-scripts/issue-resolution-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/sample-path-resolver.js",
+          "ai-platform/server/lib/sample-path-resolver.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js",
+          "ai-platform/tools/sync-audit-baseline-samples.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/local-models-sample.json",
+        "consumerCount": 3,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/local-models-page.js",
+          "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/master-roadmap-sample.json",
+        "consumerCount": 5,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/development-roadmap-core.js",
+          "ai-platform/docs/simplebeacon-scan-accuracy.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/packages/simplebeacon-cli/src/project-detect.js",
+          "ai-platform/tools/extended-schema-coverage-check.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/merger-tool-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/merger-tool-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/mock-analysis-sample.json",
+        "consumerCount": 9,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/dashboard-mock-wiring.js",
+          "ai-platform/archive/legacy-web-scripts/mock-data-analysis-dashboard.js",
+          "ai-platform/archive/legacy-web-scripts/mock-data-analyzer-actions.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/services/model-inference-service.js",
+          "ai-platform/tests/integration/local-models-api.test.js",
+          "ai-platform/tests/unit/codebase-analyzer.test.js",
+          "ai-platform/tests/unit/model-inference-service.test.js",
+          "ai-platform/tools/extended-schema-coverage-check.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/performance-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/performance-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/project-reports-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/project-reports-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/quality-dashboard-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/quality-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/release-timeline-sample.json",
+        "consumerCount": 6,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/release-timeline-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/sample-consistency-checker.js",
+          "ai-platform/packages/simplebeacon-cli/src/project-detect.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/reports-sample.json",
+        "consumerCount": 7,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/coverage-reports-page.js",
+          "ai-platform/archive/legacy-web-scripts/project-reports-page.js",
+          "ai-platform/archive/legacy-web-scripts/reports-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js",
+          "ai-platform/tools/sync-coverage-reports-sample.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/roadmap-comparison-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/development-roadmap-core.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/sample-consistency-checker.js",
+          "ai-platform/tools/extended-schema-coverage-check.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/security-dashboard-sample.json",
+        "consumerCount": 7,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/ai-analysis-page.js",
+          "ai-platform/archive/legacy-web-scripts/security-page.js",
+          "ai-platform/docs/reports/AUDIT_BASELINE_TRACKER.md",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js",
+          "ai-platform/tests/unit/mock-data-scanner.test.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/settings-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/settings-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/simplebeacon-cli-sample.json",
+        "consumerCount": 6,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/help-page.js",
+          "ai-platform/archive/legacy-web-scripts/mock-data-analyzer-actions.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/sample-path-resolver.js",
+          "ai-platform/server/lib/sample-path-resolver.js",
+          "ai-platform/tools/extended-schema-coverage-check.js"
+        ]
+      },
+      {
+        "path": "ai-platform/web/data/support-dashboard-sample.json",
+        "consumerCount": 4,
+        "consumers": [
+          "ai-platform/archive/legacy-web-scripts/support-page.js",
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/server/lib/snapshot-seeds.js",
+          "ai-platform/src/api/dashboard-stub-api.js"
+        ]
+      },
+      {
+        "path": "simplebeacon-test-repo/web/data/metrics-sample.json",
+        "consumerCount": 5,
+        "consumers": [
+          "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+          "ai-platform/src/api/simplebeacon-api.js",
+          "ai-platform/tools/extended-schema-coverage-check.js",
+          "simplebeacon-test-repo/src/components/DashboardView.tsx",
+          "simplebeacon-test-repo/TEST_AUDIT.md"
+        ]
+      }
+    ]
+  },
+  "fileReductionPlan": {
+    "scopeNote": "Directory totals exclude nested artifact paths to avoid double-counting reclaimable space.",
+    "totals": {
+      "reclaimableBytes": 2,
+      "safeToDeleteBytes": 0,
+      "reviewBeforeDeleteBytes": 0,
+      "duplicateAssetBytes": 945,
+      "estimatedImmediateSavingsBytes": 945
+    },
+    "safeToDelete": {
+      "bytes": 0,
+      "directories": 0,
+      "files": 0,
+      "topDirectories": [],
+      "byCategory": []
+    },
+    "reviewBeforeDelete": {
+      "bytes": 0,
+      "files": 0,
+      "logs": [],
+      "binaries": [],
+      "sourceMaps": {
+        "files": 0,
+        "bytes": 0
+      }
+    },
+    "duplicateAssets": {
+      "groups": 3,
+      "reclaimableBytes": 945,
+      "topGroups": [
+        {
+          "keeper": "coming-soon/cloudflare-deploy/favicon.svg",
+          "duplicates": [
+            "coming-soon/favicon.svg",
+            "deployments/signin-site/cloudflare-deploy/favicon.svg"
+          ],
+          "reclaimableBytes": 692
+        },
+        {
+          "keeper": "ai-platform/web/favicon.svg",
+          "duplicates": [
+            "deployments/signin-site/favicon.svg"
+          ],
+          "reclaimableBytes": 251
+        },
+        {
+          "keeper": "ai-platform/web/favicon.ico",
+          "duplicates": [
+            "deployments/signin-site/favicon.ico"
+          ],
+          "reclaimableBytes": 2
+        }
+      ]
+    },
+    "unusedFiles": {
+      "candidates": 1,
+      "sourceFilesScanned": 1782,
+      "entryPoints": 246,
+      "note": "Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting."
+    },
+    "summaryTable": [
+      {
+        "category": "Build artifacts (safe)",
+        "files": 0,
+        "bytes": 0,
+        "action": "Safe to delete"
+      },
+      {
+        "category": "Build artifacts (review)",
+        "files": 0,
+        "bytes": 0,
+        "action": "Review first"
+      },
+      {
+        "category": "Duplicate assets",
+        "files": 4,
+        "bytes": 945,
+        "action": "Consolidate"
+      },
+      {
+        "category": "Unused source files",
+        "files": 1,
+        "bytes": null,
+        "action": "Investigate"
+      }
+    ],
+    "recommendations": [
+      "Delete top-level artifact directories first (`node_modules`, `coverage`, `__pycache__`) — highest confidence and largest savings.",
+      "Regenerate dependencies with `npm install` after removing `node_modules`.",
+      "Review log files before deletion — they may contain audit history.",
+      "Consolidate duplicate assets by keeping the canonical copy and updating references.",
+      "Treat unused file candidates as an investigation list, not a bulk delete list."
+    ]
+  },
+  "executiveSummary": {
+    "profile": "all",
+    "generatedAt": "2026-05-27T20:40:52.618Z",
+    "priorityActions": [],
+    "security": {
+      "credentialHits": 1,
+      "credentialsNeedingReview": 0,
+      "piiHits": 53,
+      "piiNeedingReview": 0,
+      "credentials": [
+        {
+          "path": "ai-platform/tests/fixtures/simplebeacon-toxic-fixtures/src/server/auth-mock.js",
+          "line": 2,
+          "pattern": "aws-access-key",
+          "kind": "credential",
+          "category": "test-fixture",
+          "categoryLabel": "Intentional test fixture"
+        }
+      ],
+      "piiByCategory": [
+        {
+          "category": "documentation",
+          "categoryLabel": "Documentation / guidelines",
+          "count": 41
+        },
+        {
+          "category": "mock-sample-data",
+          "categoryLabel": "Mock or sample data",
+          "count": 12
+        },
+        {
+          "category": "test-fixture",
+          "categoryLabel": "Intentional test fixture",
+          "count": 1
+        }
+      ],
+      "piiSamples": []
+    },
+    "workspace": {
+      "packageJsonFiles": 3,
+      "unusedDependencies": 8,
+      "versionDrift": 0,
+      "duplicateDependencies": 0,
+      "envFiles": 10,
+      "envInconsistencies": 0,
+      "unusedEnvKeys": 48,
+      "missingEnvKeys": 0
+    },
+    "data": {
+      "orphanedDataFiles": 0,
+      "shapeDriftGroups": 0,
+      "staleDataFiles": 0,
+      "syncIoPatterns": 0
+    },
+    "fileReduction": {
+      "reclaimableBytes": 2,
+      "safeToDeleteBytes": 0,
+      "reviewBeforeDeleteBytes": 0,
+      "duplicateAssetBytes": 945,
+      "estimatedImmediateSavingsBytes": 945,
+      "buildArtifactFindings": 0,
+      "unusedFileCandidates": 1,
+      "duplicateAssetGroups": 3
+    },
+    "notes": [
+      "All PII hits are in documentation, reports, or mock/sample data.",
+      "All credential hits are documented examples or intentional test fixtures.",
+      "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
+      "Unused dependencies are based on static imports only — verify CLI, test, and config usage before removal.",
+      "Unused env keys may still be supplied by Docker, CI, or runtime injection.",
+      "PII hits in docs, reports, and sample data are common — review production paths first."
+    ]
+  },
+  "scannerStatistics": {
+    "scope": "workspace",
+    "scopeNote": "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
+    "project": {
+      "totalFiles": 2829,
+      "totalDirectories": 262,
+      "durationMs": 5577,
+      "projectRoot": "C:\\Users\\Trevor\\CascadeProjects"
+    },
+    "scanners": {
+      "config-management": {
+        "label": "Config Management",
+        "stats": {
+          "configFiles": 15,
+          "envFiles": 10,
+          "packageJsonFiles": 3,
+          "sprawlFindings": 1,
+          "inconsistentEnvKeys": 0
+        },
+        "findings": {
+          "total": 1,
+          "configSprawl": 1,
+          "duplicateConfigTypes": 0,
+          "envInconsistencies": 0,
+          "obsoleteConfig": 0
+        }
+      },
+      "dependency-health": {
+        "label": "Dependency Health",
+        "stats": {
+          "packageJsonFiles": 3,
+          "uniqueDependencies": 37,
+          "unusedDependencies": 8,
+          "versionDrift": 0,
+          "duplicateDependencies": 0
+        },
+        "findings": {
+          "total": 8,
+          "unusedDependencies": 8,
+          "duplicateDependencies": 0,
+          "versionDrift": 0,
+          "invalidPackageJson": 0
+        }
+      },
+      "environment-variables": {
+        "label": "Environment Variables",
+        "stats": {
+          "envFiles": 10,
+          "envKeys": 269,
+          "referencedKeys": 169,
+          "secretFindings": 0,
+          "missingKeys": 0,
+          "unusedKeys": 48
+        },
+        "findings": {
+          "total": 48,
+          "missingKeys": 0,
+          "unusedKeys": 48,
+          "envSecrets": 0,
+          "envInconsistencies": 0
+        }
+      },
+      "data-freshness": {
+        "label": "Data Freshness",
+        "stats": {
+          "dataFilesScanned": 66,
+          "staleFiles": 0,
+          "criticalStale": 0
+        },
+        "findings": {
+          "total": 0,
+          "staleData": 0
+        }
+      },
+      "data-access-patterns": {
+        "label": "Data Access Patterns",
+        "stats": {
+          "sourceFilesScanned": 0,
+          "patternFindings": 0
+        },
+        "findings": {
+          "total": 0,
+          "patternIssues": 0
+        }
+      },
+      "data-privacy": {
+        "label": "Data Privacy",
+        "stats": {
+          "dataFilesScanned": 144,
+          "privacyFindings": 54,
+          "credentialHits": 1,
+          "piiHits": 53
+        },
+        "findings": {
+          "total": 54,
+          "credentialHits": 1,
+          "piiHits": 53
+        }
+      },
+      "data-lineage": {
+        "label": "Data Lineage",
+        "stats": {
+          "dataFilesTracked": 66,
+          "orphanedDataFiles": 0,
+          "connectedDataFiles": 66
+        },
+        "findings": {
+          "total": 0,
+          "orphanedDataFiles": 0
+        }
+      },
+      "data-consistency": {
+        "label": "Data Consistency",
+        "stats": {
+          "jsonDataFiles": 63,
+          "directoriesCompared": 16,
+          "shapeDriftGroups": 0
+        },
+        "findings": {
+          "total": 0,
+          "shapeDriftGroups": 0
+        }
+      }
+    },
+    "findingsBreakdown": {
+      "configManagement": {
+        "total": 1,
+        "configSprawl": 1,
+        "duplicateConfigTypes": 0,
+        "envInconsistencies": 0
+      },
+      "dependencyHealth": {
+        "total": 8,
+        "unusedDependencies": 8,
+        "duplicateDependencies": 0,
+        "versionDrift": 0
+      },
+      "environmentVariables": {
+        "total": 48,
+        "missingKeys": 0,
+        "unusedKeys": 48
+      },
+      "dataPrivacy": {
+        "total": 54,
+        "credentialHits": 1,
+        "piiHits": 53
+      },
+      "dataAccessPatterns": {
+        "total": 0,
+        "patternIssues": 0
+      },
+      "dataLineage": {
+        "total": 0,
+        "orphanedDataFiles": 0
+      },
+      "dataConsistency": {
+        "total": 0,
+        "shapeDriftGroups": 0
+      }
+    }
+  }
+}
