@@ -1,11 +1,11 @@
 {
-  "jestTestsPassing": 956,
-  "jestTestsLabel": "956/956",
-  "jestSuites": 64,
+  "jestTestsPassing": 732,
+  "jestTestsLabel": "732/732",
+  "jestSuites": 60,
   "pageSamplesLabel": "43/43",
   "pageSampleSpecCount": 43,
   "currentRelease": "v0.8-beta",
-  "activeModel": "phi-2.Q4_K_M.gguf",
+  "activeModel": "llama3.2-3b-q4_k_m",
   "dataSource": "repository-audit",
   "rejectedFiction": {
     "featureCounts": [
@@ -100,10 +100,10 @@
         "modelNames:unbreakable-oracle"
       ],
       "category": "B",
-      "scope": "web/data/local-models-sample.json models[].id unbreakable-oracle-demo",
-      "reason": "Registered demo model placeholder with provider:demo — active model is phi-2.Q4_K_M.gguf",
+      "scope": "web/data/local-models-sample.json models[].name and deprecatedNarrative",
+      "reason": "Live registry may list Ollama unbreakable-oracle or path GGUF — documented in deprecatedNarrative, not fiction KPI fields",
       "reviewDate": "2026-05-25"
     }
   ],
-  "syncedAt": "2026-05-27T18:56:28.666Z"
+  "syncedAt": "2026-05-27T20:03:46.250Z"
 }

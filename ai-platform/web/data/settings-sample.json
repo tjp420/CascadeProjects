@@ -65,7 +65,7 @@
       "maintenance": false,
       "apiVersion": "stub-v1",
       "lastUpdate": "2026-05-24T00:00:00.000Z",
-      "serverEntry": "gguf-dashboard-server.js",
+      "serverEntry": "simplebeacon-server.js",
       "gitBranch": "master"
     },
     "security": {
@@ -123,7 +123,7 @@
   "systemHealth": [
     {
       "service": "Dashboard Server",
-      "description": "gguf-dashboard-server.js static + stub API",
+      "description": "simplebeacon-server.js static + stub API",
       "status": "healthy",
       "uptime": "local process"
     },

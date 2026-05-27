@@ -1,6 +1,6 @@
 {
   "success": true,
-  "type": "gguf-mock-data-analysis-report",
+  "type": "mock-data-analysis-report",
   "title": "Mock Data Analysis (Measured Baseline)",
   "generatedAt": "2026-05-24T00:00:00.000Z",
   "generatedBy": "mock-data-scanner (repository-audit)",

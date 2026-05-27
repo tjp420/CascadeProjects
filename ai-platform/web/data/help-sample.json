@@ -160,7 +160,7 @@
       "difficulty": "Intermediate",
       "readTime": "6 min",
       "lastUpdated": "2026-05-23T19:00:00.000Z",
-      "path": "gguf-dashboard-server.js",
+      "path": "simplebeacon-server.js",
       "status": "current",
       "author": "Maintainer",
       "description": "Serves dashboard-new.html, page scripts, and stub API endpoints"
