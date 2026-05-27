@@ -142,7 +142,8 @@
     "jest-baseline": {
       "enabled": false,
       "runTests": false,
-      "testCommand": "npm test -- --no-coverage --passWithNoTests"
+      "testCommand": "npm test -- --no-coverage --passWithNoTests",
+      "timeoutMs": 300000
     },
     "fiction-kpi-patterns": {
       "enabled": true,

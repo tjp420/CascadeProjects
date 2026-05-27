@@ -2,11 +2,11 @@
   "type": "data-cleanup-report",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "dryRun": true,
-  "generatedAt": "2026-05-27T20:40:52.618Z",
-  "durationMs": 5577,
+  "generatedAt": "2026-05-27T23:34:07.414Z",
+  "durationMs": 7574,
   "inventory": {
-    "totalFiles": 2829,
-    "totalDirectories": 262
+    "totalFiles": 2636,
+    "totalDirectories": 201
   },
   "scanners": {
     "build-artifacts": {
@@ -23,8 +23,8 @@
       "reclaimableBytes": 945
     },
     "unused-files": {
-      "sourceFilesScanned": 1782,
-      "entryPoints": 246,
+      "sourceFilesScanned": 1588,
+      "entryPoints": 241,
       "unusedCandidates": 1
     },
     "config-management": {
@@ -37,8 +37,8 @@
     },
     "dependency-health": {
       "packageJsonFiles": 3,
-      "uniqueDependencies": 37,
-      "unusedDependencies": 8,
+      "uniqueDependencies": 29,
+      "unusedDependencies": 0,
       "duplicateDependencies": 0,
       "versionDrift": 0
     },
@@ -51,7 +51,7 @@
       "unusedKeys": 48
     },
     "data-freshness": {
-      "dataFilesScanned": 66,
+      "dataFilesScanned": 107,
       "staleFiles": 0,
       "criticalStale": 0
     },
@@ -60,19 +60,19 @@
       "patternFindings": 0
     },
     "data-privacy": {
-      "dataFilesScanned": 144,
-      "privacyFindings": 54,
+      "dataFilesScanned": 181,
+      "privacyFindings": 55,
       "credentialHits": 1,
-      "piiHits": 53
+      "piiHits": 54
     },
     "data-lineage": {
-      "dataFilesTracked": 66,
-      "orphanedDataFiles": 0,
-      "connectedDataFiles": 66
+      "dataFilesTracked": 107,
+      "orphanedDataFiles": 2,
+      "connectedDataFiles": 105
     },
     "data-consistency": {
-      "jsonDataFiles": 63,
-      "directoriesCompared": 16,
+      "jsonDataFiles": 101,
+      "directoriesCompared": 20,
       "shapeDriftGroups": 0
     }
   },
@@ -136,7 +136,7 @@
     "unusedFiles": [
       {
         "type": "unused-file",
-        "path": "ai-platform/scripts/security-fixes/.eslintrc.security.json",
+        "path": "ai-platform/src/web/export-system.js",
         "reason": "Not referenced by static import graph",
         "confidence": "low",
         "action": "review-before-delete",
@@ -167,96 +167,7 @@
         }
       }
     ],
-    "dependencyHealth": [
-      {
-        "type": "unused-dependency",
-        "path": "ai-platform/package.json",
-        "reason": "Dependency \"@node-saml/passport-saml\" not referenced by static imports in package tree",
-        "severity": "low",
-        "confidence": "medium",
-        "action": "verify-and-remove",
-        "metadata": {
-          "dependency": "@node-saml/passport-saml"
-        }
-      },
-      {
-        "type": "unused-dependency",
-        "path": "ai-platform/package.json",
-        "reason": "Dependency \"axios\" not referenced by static imports in package tree",
-        "severity": "low",
-        "confidence": "medium",
-        "action": "verify-and-remove",
-        "metadata": {
-          "dependency": "axios"
-        }
-      },
-      {
-        "type": "unused-dependency",
-        "path": "ai-platform/package.json",
-        "reason": "Dependency \"compromise\" not referenced by static imports in package tree",
-        "severity": "low",
-        "confidence": "medium",
-        "action": "verify-and-remove",
-        "metadata": {
-          "dependency": "compromise"
-        }
-      },
-      {
-        "type": "unused-dependency",
-        "path": "ai-platform/package.json",
-        "reason": "Dependency \"ldapjs\" not referenced by static imports in package tree",
-        "severity": "low",
-        "confidence": "medium",
-        "action": "verify-and-remove",
-        "metadata": {
-          "dependency": "ldapjs"
-        }
-      },
-      {
-        "type": "unused-dependency",
-        "path": "ai-platform/package.json",
-        "reason": "Dependency \"natural\" not referenced by static imports in package tree",
-        "severity": "low",
-        "confidence": "medium",
-        "action": "verify-and-remove",
-        "metadata": {
-          "dependency": "natural"
-        }
-      },
-      {
-        "type": "unused-dependency",
-        "path": "ai-platform/package.json",
-        "reason": "Dependency \"passport\" not referenced by static imports in package tree",
-        "severity": "low",
-        "confidence": "medium",
-        "action": "verify-and-remove",
-        "metadata": {
-          "dependency": "passport"
-        }
-      },
-      {
-        "type": "unused-dependency",
-        "path": "ai-platform/package.json",
-        "reason": "Dependency \"passport-google-oauth20\" not referenced by static imports in package tree",
-        "severity": "low",
-        "confidence": "medium",
-        "action": "verify-and-remove",
-        "metadata": {
-          "dependency": "passport-google-oauth20"
-        }
-      },
-      {
-        "type": "unused-dependency",
-        "path": "ai-platform/package.json",
-        "reason": "Dependency \"qrcode\" not referenced by static imports in package tree",
-        "severity": "low",
-        "confidence": "medium",
-        "action": "verify-and-remove",
-        "metadata": {
-          "dependency": "qrcode"
-        }
-      }
-    ],
+    "dependencyHealth": [],
     "environmentVariables": [
       {
         "type": "unused-env-key",
@@ -936,18 +847,6 @@
     "dataPrivacy": [
       {
         "type": "data-privacy",
-        "path": "ai-platform/archive/legacy-web-scripts/export-mock-data.js",
-        "reason": "Possible realistic email in data file",
-        "severity": "medium",
-        "confidence": "medium",
-        "action": "remove-or-tokenize-pii",
-        "metadata": {
-          "patternId": "realistic-email",
-          "line": 175
-        }
-      },
-      {
-        "type": "data-privacy",
         "path": "ai-platform/docs/MockDataAnalysisSystem.md",
         "reason": "Possible realistic email in data file",
         "severity": "medium",
@@ -1440,6 +1339,30 @@
       },
       {
         "type": "data-privacy",
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-10-privacy-violation.json",
+        "reason": "Possible realistic email in data file",
+        "severity": "medium",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "realistic-email",
+          "line": 5
+        }
+      },
+      {
+        "type": "data-privacy",
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-10-privacy-violation.json",
+        "reason": "Possible ssn pattern in data file",
+        "severity": "high",
+        "confidence": "medium",
+        "action": "remove-or-tokenize-pii",
+        "metadata": {
+          "patternId": "ssn-pattern",
+          "line": 5
+        }
+      },
+      {
+        "type": "data-privacy",
         "path": "ai-platform/tests/fixtures/simplebeacon-toxic-fixtures/src/server/auth-mock.js",
         "reason": "Credential pattern (aws-access-key) in data file",
         "severity": "high",
@@ -1583,23 +1506,46 @@
         }
       }
     ],
-    "dataLineage": [],
+    "dataLineage": [
+      {
+        "type": "orphaned-data",
+        "path": ".github/workflows/samplebeacon-perimeter.yml",
+        "reason": "Data file has no detected consumers in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "archive-or-wire-consumer",
+        "metadata": {
+          "consumerCount": 0
+        }
+      },
+      {
+        "type": "orphaned-data",
+        "path": ".github/workflows/samplebeacon.yml",
+        "reason": "Data file has no detected consumers in scanned source",
+        "severity": "low",
+        "confidence": "medium",
+        "action": "archive-or-wire-consumer",
+        "metadata": {
+          "consumerCount": 0
+        }
+      }
+    ],
     "dataConsistency": []
   },
   "aggregation": {
     "bySeverity": {
       "critical": 0,
-      "high": 1,
+      "high": 2,
       "medium": 14,
-      "low": 57
+      "low": 51
     },
     "byCategory": {
       "asset-duplicate": 1,
       "unused-file": 1,
       "config-sprawl": 1,
-      "unused-dependency": 8,
       "unused-env-key": 48,
-      "data-privacy": 13
+      "data-privacy": 14,
+      "orphaned-data": 2
     },
     "topFiles": [
       {
@@ -1607,23 +1553,19 @@
         "count": 48
       },
       {
-        "filePath": "ai-platform/package.json",
-        "count": 8
+        "filePath": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-10-privacy-violation.json",
+        "count": 2
       },
       {
         "filePath": "unknown",
         "count": 1
       },
       {
-        "filePath": "ai-platform/scripts/security-fixes/.eslintrc.security.json",
+        "filePath": "ai-platform/src/web/export-system.js",
         "count": 1
       },
       {
         "filePath": "ai-platform/.env",
-        "count": 1
-      },
-      {
-        "filePath": "ai-platform/archive/legacy-web-scripts/export-mock-data.js",
         "count": 1
       },
       {
@@ -1673,10 +1615,30 @@
       {
         "filePath": "ai-platform/web/data/code-templates-sample.json",
         "count": 1
+      },
+      {
+        "filePath": ".github/workflows/samplebeacon-perimeter.yml",
+        "count": 1
+      },
+      {
+        "filePath": ".github/workflows/samplebeacon.yml",
+        "count": 1
       }
     ]
   },
   "allFindings": [
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-10-privacy-violation.json",
+      "reason": "Possible ssn pattern in data file",
+      "severity": "high",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "ssn-pattern",
+        "line": 5
+      }
+    },
     {
       "type": "data-privacy",
       "path": "ai-platform/tests/fixtures/simplebeacon-toxic-fixtures/src/server/auth-mock.js",
@@ -1709,18 +1671,6 @@
           "ai-platform/config/.env.production",
           "ai-platform/config/.env.production.template"
         ]
-      }
-    },
-    {
-      "type": "data-privacy",
-      "path": "ai-platform/archive/legacy-web-scripts/export-mock-data.js",
-      "reason": "Possible realistic email in data file",
-      "severity": "medium",
-      "confidence": "medium",
-      "action": "remove-or-tokenize-pii",
-      "metadata": {
-        "patternId": "realistic-email",
-        "line": 175
       }
     },
     {
@@ -1821,11 +1771,23 @@
     },
     {
       "type": "unused-file",
-      "path": "ai-platform/scripts/security-fixes/.eslintrc.security.json",
+      "path": "ai-platform/src/web/export-system.js",
       "reason": "Not referenced by static import graph",
       "confidence": "low",
       "action": "review-before-delete",
       "severity": "medium"
+    },
+    {
+      "type": "data-privacy",
+      "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-10-privacy-violation.json",
+      "reason": "Possible realistic email in data file",
+      "severity": "medium",
+      "confidence": "medium",
+      "action": "remove-or-tokenize-pii",
+      "metadata": {
+        "patternId": "realistic-email",
+        "line": 5
+      }
     },
     {
       "type": "data-privacy",
@@ -1861,6 +1823,28 @@
       "metadata": {
         "patternId": "realistic-email",
         "line": 157
+      }
+    },
+    {
+      "type": "orphaned-data",
+      "path": ".github/workflows/samplebeacon-perimeter.yml",
+      "reason": "Data file has no detected consumers in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "archive-or-wire-consumer",
+      "metadata": {
+        "consumerCount": 0
+      }
+    },
+    {
+      "type": "orphaned-data",
+      "path": ".github/workflows/samplebeacon.yml",
+      "reason": "Data file has no detected consumers in scanned source",
+      "severity": "low",
+      "confidence": "medium",
+      "action": "archive-or-wire-consumer",
+      "metadata": {
+        "consumerCount": 0
       }
     },
     {
@@ -2536,94 +2520,6 @@
       }
     },
     {
-      "type": "unused-dependency",
-      "path": "ai-platform/package.json",
-      "reason": "Dependency \"@node-saml/passport-saml\" not referenced by static imports in package tree",
-      "severity": "low",
-      "confidence": "medium",
-      "action": "verify-and-remove",
-      "metadata": {
-        "dependency": "@node-saml/passport-saml"
-      }
-    },
-    {
-      "type": "unused-dependency",
-      "path": "ai-platform/package.json",
-      "reason": "Dependency \"axios\" not referenced by static imports in package tree",
-      "severity": "low",
-      "confidence": "medium",
-      "action": "verify-and-remove",
-      "metadata": {
-        "dependency": "axios"
-      }
-    },
-    {
-      "type": "unused-dependency",
-      "path": "ai-platform/package.json",
-      "reason": "Dependency \"compromise\" not referenced by static imports in package tree",
-      "severity": "low",
-      "confidence": "medium",
-      "action": "verify-and-remove",
-      "metadata": {
-        "dependency": "compromise"
-      }
-    },
-    {
-      "type": "unused-dependency",
-      "path": "ai-platform/package.json",
-      "reason": "Dependency \"ldapjs\" not referenced by static imports in package tree",
-      "severity": "low",
-      "confidence": "medium",
-      "action": "verify-and-remove",
-      "metadata": {
-        "dependency": "ldapjs"
-      }
-    },
-    {
-      "type": "unused-dependency",
-      "path": "ai-platform/package.json",
-      "reason": "Dependency \"natural\" not referenced by static imports in package tree",
-      "severity": "low",
-      "confidence": "medium",
-      "action": "verify-and-remove",
-      "metadata": {
-        "dependency": "natural"
-      }
-    },
-    {
-      "type": "unused-dependency",
-      "path": "ai-platform/package.json",
-      "reason": "Dependency \"passport\" not referenced by static imports in package tree",
-      "severity": "low",
-      "confidence": "medium",
-      "action": "verify-and-remove",
-      "metadata": {
-        "dependency": "passport"
-      }
-    },
-    {
-      "type": "unused-dependency",
-      "path": "ai-platform/package.json",
-      "reason": "Dependency \"passport-google-oauth20\" not referenced by static imports in package tree",
-      "severity": "low",
-      "confidence": "medium",
-      "action": "verify-and-remove",
-      "metadata": {
-        "dependency": "passport-google-oauth20"
-      }
-    },
-    {
-      "type": "unused-dependency",
-      "path": "ai-platform/package.json",
-      "reason": "Dependency \"qrcode\" not referenced by static imports in package tree",
-      "severity": "low",
-      "confidence": "medium",
-      "action": "verify-and-remove",
-      "metadata": {
-        "dependency": "qrcode"
-      }
-    },
-    {
       "type": "asset-duplicate",
       "hash": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
       "paths": [
@@ -2642,31 +2538,23 @@
     }
   ],
   "summary": {
-    "totalFindings": 72,
+    "totalFindings": 67,
     "buildArtifactFindings": 0,
     "duplicateAssetGroups": 3,
     "unusedFileCandidates": 1,
     "configFindings": 1,
-    "dependencyFindings": 8,
+    "dependencyFindings": 0,
     "environmentFindings": 48,
     "dataFreshnessFindings": 0,
     "dataAccessFindings": 0,
-    "dataPrivacyFindings": 54,
-    "dataLineageFindings": 0,
+    "dataPrivacyFindings": 55,
+    "dataLineageFindings": 2,
     "dataConsistencyFindings": 0,
     "reclaimableBytes": 2,
     "estimatedReductionPct": 2.5
   },
   "metadata": {
     "entryPoints": [
-      "ai-platform/archive/legacy-web-scripts/eslint.config.js",
-      "ai-platform/archive/legacy-web-scripts/git-history-server.js",
-      "ai-platform/archive/legacy-web-scripts/jest.config.js",
-      "ai-platform/archive/legacy-web-scripts/quick-server.js",
-      "ai-platform/archive/legacy-web-scripts/simple-api-server.js",
-      "ai-platform/archive/legacy-web-scripts/test-api-server.js",
-      "ai-platform/archive/legacy-web-scripts/vite.config.js",
-      "ai-platform/archive/legacy-web-scripts/webpack.config.js",
       "ai-platform/eslint.config.js",
       "ai-platform/fixed-server.js",
       "ai-platform/gguf-dashboard-server.js",
@@ -2835,6 +2723,7 @@
       "ai-platform/tools/extract-roadmap-core.py",
       "ai-platform/tools/fiction-kpi-guard.js",
       "ai-platform/tools/fiction-pattern-remediation-map.js",
+      "ai-platform/tools/fix-eslint-unused.js",
       "ai-platform/tools/generate-audit-html.js",
       "ai-platform/tools/generate-complete-scan-export.js",
       "ai-platform/tools/generate-web-eslint-globals.js",
@@ -2847,6 +2736,7 @@
       "ai-platform/tools/production-debug-guard.js",
       "ai-platform/tools/publish-trust-verification.js",
       "ai-platform/tools/quality-maintenance-metrics.js",
+      "ai-platform/tools/refresh-trust-snapshots.js",
       "ai-platform/tools/remediation-weekly-metrics.js",
       "ai-platform/tools/restore-local-models.js",
       "ai-platform/tools/run-eslint.js",
@@ -2865,6 +2755,7 @@
       "ai-platform/tools/validate-audit-baseline.js",
       "ai-platform/tools/validate-mock-backend-compat.js",
       "ai-platform/tools/validate-trust-publish-env.js",
+      "ai-platform/tools/verify-eslint-deps.js",
       "ai-platform/tools/verify-launch-readiness.js",
       "ai-platform/tools/verify-mock-scan.js",
       "ai-platform/tools/verify-predeploy-sequence.js",
@@ -2908,10 +2799,26 @@
     ],
     "dataLineage": [
       {
-        "path": "ai-platform/data/codegen/code-generation-sample.json",
-        "consumerCount": 4,
+        "path": ".github/workflows/samplebeacon-perimeter.yml",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": ".github/workflows/samplebeacon-pr-gate.yml",
+        "consumerCount": 1,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/code-generation-page.js",
+          "ai-platform/docs/simplebeacon-pr-gate-workflow.md"
+        ]
+      },
+      {
+        "path": ".github/workflows/samplebeacon.yml",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/data/codegen/code-generation-sample.json",
+        "consumerCount": 3,
+        "consumers": [
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -2932,9 +2839,8 @@
       },
       {
         "path": "ai-platform/data-central/config/central-data-config.json",
-        "consumerCount": 7,
+        "consumerCount": 6,
         "consumers": [
-          "ai-platform/archive/legacy-web-assets/web/central-data-integration.js",
           "ai-platform/data-central/README.md",
           "ai-platform/docs/simplebeacon-scan-accuracy.md",
           "ai-platform/packages/simplebeacon-cli/src/analyzers/file-reduction/unused-file-detector.js",
@@ -2975,11 +2881,8 @@
       },
       {
         "path": "ai-platform/mock_data_6.json",
-        "consumerCount": 9,
+        "consumerCount": 6,
         "consumers": [
-          "ai-platform/archive/legacy-web-assets/web/services/IssueResolutionService.js",
-          "ai-platform/archive/legacy-web-assets/web/services/RealDataService.part2.js",
-          "ai-platform/archive/legacy-web-scripts/dashboard-inline-core.part2.js",
           "ai-platform/server/lib/gguf-analysis.js",
           "ai-platform/web/api/mock-backend-static-data.js",
           "ai-platform/web/scripts/roadmap-data-service.js",
@@ -3004,7 +2907,122 @@
         ]
       },
       {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/economic-regulatory/a-17-market-monopolization.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/economic-regulatory/a-18-environmental-impact.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/economic-regulatory/a-19-regulatory-compliance.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/economic-regulatory/a-20-liability-assessment.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/economic-regulatory/a-21-market-manipulation.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/economic-regulatory/a-22-intellectual-property.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-09-job-displacement.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-10-privacy-violation.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-11-copyright.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-12-misinformation.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-13-deepfake.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-14-autonomous-weapon-safety.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-15-surveillance-impact.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/ethical-societal/a-16-digital-divide.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-integration/a-43-api-complexity.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-integration/a-44-compatibility.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-integration/a-45-maintenance-overhead.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
         "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-integration/a-46-error-handling.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-integration/a-47-customization-limit.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-practical/a-33-false-positive-negative.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-practical/a-34-language-limitation.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-practical/a-35-domain-knowledge.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-practical/a-36-output-consistency.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-practical/a-37-session-management.json",
         "consumerCount": 0,
         "consumers": []
       },
@@ -3014,12 +3032,77 @@
         "consumers": []
       },
       {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-reliability/a-24-confidence-accuracy.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-reliability/a-25-context-retention.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-reliability/a-26-knowledge-freshness.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-reliability/a-27-reasoning-capability.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
         "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-reliability/a-48-output-reliability.json",
         "consumerCount": 0,
         "consumers": []
       },
       {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-trust-safety/a-38-privacy-concern.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
         "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-trust-safety/a-39-security-risk.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-trust-safety/a-40-content-filtering.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-trust-safety/a-41-transparency.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-trust-safety/a-42-dependence-risk.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-ux/a-28-prompt-engineering.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-ux/a-29-response-latency.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-ux/a-30-cost-barrier.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-ux/a-31-usage-limit.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/everyday-ux/a-32-platform-lock-in.json",
         "consumerCount": 0,
         "consumers": []
       },
@@ -3063,6 +3146,16 @@
       },
       {
         "path": "ai-platform/tests/fixtures/ai-analyzer-eval/technical-ai-issues/a-06-generalization.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/technical-ai-issues/a-07-catastrophic-forgetting.json",
+        "consumerCount": 0,
+        "consumers": []
+      },
+      {
+        "path": "ai-platform/tests/fixtures/ai-analyzer-eval/technical-ai-issues/a-08-adversarial-vulnerability.json",
         "consumerCount": 0,
         "consumers": []
       },
@@ -3113,9 +3206,8 @@
       },
       {
         "path": "ai-platform/web/data/ai-analysis-sample.json",
-        "consumerCount": 6,
+        "consumerCount": 5,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/ai-analysis-page.js",
           "ai-platform/docs/reports/fiction-pattern-remediation-tranche-2026-05-25.md",
           "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
@@ -3134,9 +3226,8 @@
       },
       {
         "path": "ai-platform/web/data/ai-tools-sample.json",
-        "consumerCount": 6,
+        "consumerCount": 5,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/ai-tools-page.js",
           "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/packages/simplebeacon-cli/tests/fiction.test.js",
@@ -3146,10 +3237,8 @@
       },
       {
         "path": "ai-platform/web/data/analytics-sample.json",
-        "consumerCount": 8,
+        "consumerCount": 6,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/analytics-page.js",
-          "ai-platform/archive/legacy-web-scripts/debt-analytics-page.js",
           "ai-platform/docs/ai-problem-analyzer-kpi-instrumentation-plan.md",
           "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
@@ -3160,9 +3249,8 @@
       },
       {
         "path": "ai-platform/web/data/api-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/api-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3170,9 +3258,8 @@
       },
       {
         "path": "ai-platform/web/data/assets-library-sample.json",
-        "consumerCount": 5,
+        "consumerCount": 4,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/assets-library-page.js",
           "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
@@ -3190,9 +3277,8 @@
       },
       {
         "path": "ai-platform/web/data/billing-system-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/billing-system-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3200,9 +3286,8 @@
       },
       {
         "path": "ai-platform/web/data/cascade-roadmap-sample.json",
-        "consumerCount": 6,
+        "consumerCount": 5,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/development-roadmap-core.js",
           "ai-platform/docs/reports/fiction-pattern-remediation-tranche-2026-05-25.md",
           "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
@@ -3212,9 +3297,8 @@
       },
       {
         "path": "ai-platform/web/data/code-generation-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/code-generation-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3222,9 +3306,8 @@
       },
       {
         "path": "ai-platform/web/data/code-templates-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/code-templates-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3232,9 +3315,8 @@
       },
       {
         "path": "ai-platform/web/data/coverage-reports-sample.json",
-        "consumerCount": 5,
+        "consumerCount": 4,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/coverage-reports-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js",
@@ -3243,9 +3325,8 @@
       },
       {
         "path": "ai-platform/web/data/dashboard-home-sample.json",
-        "consumerCount": 9,
+        "consumerCount": 8,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/dashboard-home-page.js",
           "ai-platform/docs/simplebeacon-scan-accuracy.md",
           "ai-platform/packages/simplebeacon-cli/docs/MARKETING.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
@@ -3258,9 +3339,8 @@
       },
       {
         "path": "ai-platform/web/data/data-maintenance-analyzers-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/dev-tools-page.js",
           "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/tools/extended-schema-coverage-check.js"
@@ -3268,9 +3348,8 @@
       },
       {
         "path": "ai-platform/web/data/database-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/database-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3278,9 +3357,8 @@
       },
       {
         "path": "ai-platform/web/data/debt-analytics-sample.json",
-        "consumerCount": 5,
+        "consumerCount": 4,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/debt-analytics-page.js",
           "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
@@ -3289,9 +3367,8 @@
       },
       {
         "path": "ai-platform/web/data/debt-calculator-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/debt-calculator-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3299,9 +3376,8 @@
       },
       {
         "path": "ai-platform/web/data/debt-reduction-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/debt-reduction-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3309,9 +3385,8 @@
       },
       {
         "path": "ai-platform/web/data/dev-tools-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/dev-tools-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3329,9 +3404,8 @@
       },
       {
         "path": "ai-platform/web/data/feature-backlog-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/feature-backlog-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3348,9 +3422,8 @@
       },
       {
         "path": "ai-platform/web/data/help-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/help-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3358,9 +3431,8 @@
       },
       {
         "path": "ai-platform/web/data/implementation-plan-sample.json",
-        "consumerCount": 8,
+        "consumerCount": 7,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/implementation-plan-page.js",
           "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
           "ai-platform/docs/simplebeacon-scan-accuracy.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
@@ -3372,10 +3444,8 @@
       },
       {
         "path": "ai-platform/web/data/issue-resolution-sample.json",
-        "consumerCount": 8,
+        "consumerCount": 6,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/ai-analysis-page.js",
-          "ai-platform/archive/legacy-web-scripts/issue-resolution-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/sample-path-resolver.js",
           "ai-platform/server/lib/sample-path-resolver.js",
@@ -3386,18 +3456,16 @@
       },
       {
         "path": "ai-platform/web/data/local-models-sample.json",
-        "consumerCount": 3,
+        "consumerCount": 2,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/local-models-page.js",
           "ai-platform/docs/reports/rejected-fiction-patterns-remediation-2026-05-25.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js"
         ]
       },
       {
         "path": "ai-platform/web/data/master-roadmap-sample.json",
-        "consumerCount": 5,
+        "consumerCount": 4,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/development-roadmap-core.js",
           "ai-platform/docs/simplebeacon-scan-accuracy.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/packages/simplebeacon-cli/src/project-detect.js",
@@ -3406,9 +3474,8 @@
       },
       {
         "path": "ai-platform/web/data/merger-tool-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/merger-tool-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3416,11 +3483,8 @@
       },
       {
         "path": "ai-platform/web/data/mock-analysis-sample.json",
-        "consumerCount": 9,
+        "consumerCount": 6,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/dashboard-mock-wiring.js",
-          "ai-platform/archive/legacy-web-scripts/mock-data-analysis-dashboard.js",
-          "ai-platform/archive/legacy-web-scripts/mock-data-analyzer-actions.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/services/model-inference-service.js",
           "ai-platform/tests/integration/local-models-api.test.js",
@@ -3431,9 +3495,8 @@
       },
       {
         "path": "ai-platform/web/data/performance-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/performance-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3441,9 +3504,8 @@
       },
       {
         "path": "ai-platform/web/data/project-reports-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/project-reports-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3451,9 +3513,8 @@
       },
       {
         "path": "ai-platform/web/data/quality-dashboard-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/quality-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3461,9 +3522,8 @@
       },
       {
         "path": "ai-platform/web/data/release-timeline-sample.json",
-        "consumerCount": 6,
+        "consumerCount": 5,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/release-timeline-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/sample-consistency-checker.js",
           "ai-platform/packages/simplebeacon-cli/src/project-detect.js",
@@ -3473,11 +3533,8 @@
       },
       {
         "path": "ai-platform/web/data/reports-sample.json",
-        "consumerCount": 7,
+        "consumerCount": 4,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/coverage-reports-page.js",
-          "ai-platform/archive/legacy-web-scripts/project-reports-page.js",
-          "ai-platform/archive/legacy-web-scripts/reports-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js",
@@ -3486,9 +3543,8 @@
       },
       {
         "path": "ai-platform/web/data/roadmap-comparison-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/development-roadmap-core.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/sample-consistency-checker.js",
           "ai-platform/tools/extended-schema-coverage-check.js"
@@ -3496,10 +3552,8 @@
       },
       {
         "path": "ai-platform/web/data/security-dashboard-sample.json",
-        "consumerCount": 7,
+        "consumerCount": 5,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/ai-analysis-page.js",
-          "ai-platform/archive/legacy-web-scripts/security-page.js",
           "ai-platform/docs/reports/AUDIT_BASELINE_TRACKER.md",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
@@ -3509,9 +3563,8 @@
       },
       {
         "path": "ai-platform/web/data/settings-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/settings-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3519,10 +3572,8 @@
       },
       {
         "path": "ai-platform/web/data/simplebeacon-cli-sample.json",
-        "consumerCount": 6,
+        "consumerCount": 4,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/help-page.js",
-          "ai-platform/archive/legacy-web-scripts/mock-data-analyzer-actions.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/sample-path-resolver.js",
           "ai-platform/server/lib/sample-path-resolver.js",
@@ -3531,9 +3582,8 @@
       },
       {
         "path": "ai-platform/web/data/support-dashboard-sample.json",
-        "consumerCount": 4,
+        "consumerCount": 3,
         "consumers": [
-          "ai-platform/archive/legacy-web-scripts/support-page.js",
           "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
           "ai-platform/server/lib/snapshot-seeds.js",
           "ai-platform/src/api/dashboard-stub-api.js"
@@ -3608,8 +3658,8 @@
     },
     "unusedFiles": {
       "candidates": 1,
-      "sourceFilesScanned": 1782,
-      "entryPoints": 246,
+      "sourceFilesScanned": 1588,
+      "entryPoints": 241,
       "note": "Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting."
     },
     "summaryTable": [
@@ -3648,12 +3698,12 @@
   },
   "executiveSummary": {
     "profile": "all",
-    "generatedAt": "2026-05-27T20:40:52.618Z",
+    "generatedAt": "2026-05-27T23:34:07.414Z",
     "priorityActions": [],
     "security": {
       "credentialHits": 1,
       "credentialsNeedingReview": 0,
-      "piiHits": 53,
+      "piiHits": 54,
       "piiNeedingReview": 0,
       "credentials": [
         {
@@ -3674,7 +3724,7 @@
         {
           "category": "mock-sample-data",
           "categoryLabel": "Mock or sample data",
-          "count": 12
+          "count": 13
         },
         {
           "category": "test-fixture",
@@ -3686,7 +3736,7 @@
     },
     "workspace": {
       "packageJsonFiles": 3,
-      "unusedDependencies": 8,
+      "unusedDependencies": 0,
       "versionDrift": 0,
       "duplicateDependencies": 0,
       "envFiles": 10,
@@ -3695,7 +3745,7 @@
       "missingEnvKeys": 0
     },
     "data": {
-      "orphanedDataFiles": 0,
+      "orphanedDataFiles": 2,
       "shapeDriftGroups": 0,
       "staleDataFiles": 0,
       "syncIoPatterns": 0
@@ -3723,9 +3773,9 @@
     "scope": "workspace",
     "scopeNote": "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
     "project": {
-      "totalFiles": 2829,
-      "totalDirectories": 262,
-      "durationMs": 5577,
+      "totalFiles": 2636,
+      "totalDirectories": 201,
+      "durationMs": 7574,
       "projectRoot": "C:\\Users\\Trevor\\CascadeProjects"
     },
     "scanners": {
@@ -3750,14 +3800,14 @@
         "label": "Dependency Health",
         "stats": {
           "packageJsonFiles": 3,
-          "uniqueDependencies": 37,
-          "unusedDependencies": 8,
+          "uniqueDependencies": 29,
+          "unusedDependencies": 0,
           "versionDrift": 0,
           "duplicateDependencies": 0
         },
         "findings": {
-          "total": 8,
-          "unusedDependencies": 8,
+          "total": 0,
+          "unusedDependencies": 0,
           "duplicateDependencies": 0,
           "versionDrift": 0,
           "invalidPackageJson": 0
@@ -3784,7 +3834,7 @@
       "data-freshness": {
         "label": "Data Freshness",
         "stats": {
-          "dataFilesScanned": 66,
+          "dataFilesScanned": 107,
           "staleFiles": 0,
           "criticalStale": 0
         },
@@ -3807,34 +3857,34 @@
       "data-privacy": {
         "label": "Data Privacy",
         "stats": {
-          "dataFilesScanned": 144,
-          "privacyFindings": 54,
+          "dataFilesScanned": 181,
+          "privacyFindings": 55,
           "credentialHits": 1,
-          "piiHits": 53
+          "piiHits": 54
         },
         "findings": {
-          "total": 54,
+          "total": 55,
           "credentialHits": 1,
-          "piiHits": 53
+          "piiHits": 54
         }
       },
       "data-lineage": {
         "label": "Data Lineage",
         "stats": {
-          "dataFilesTracked": 66,
-          "orphanedDataFiles": 0,
-          "connectedDataFiles": 66
+          "dataFilesTracked": 107,
+          "orphanedDataFiles": 2,
+          "connectedDataFiles": 105
         },
         "findings": {
-          "total": 0,
-          "orphanedDataFiles": 0
+          "total": 2,
+          "orphanedDataFiles": 2
         }
       },
       "data-consistency": {
         "label": "Data Consistency",
         "stats": {
-          "jsonDataFiles": 63,
-          "directoriesCompared": 16,
+          "jsonDataFiles": 101,
+          "directoriesCompared": 20,
           "shapeDriftGroups": 0
         },
         "findings": {
@@ -3851,8 +3901,8 @@
         "envInconsistencies": 0
       },
       "dependencyHealth": {
-        "total": 8,
-        "unusedDependencies": 8,
+        "total": 0,
+        "unusedDependencies": 0,
         "duplicateDependencies": 0,
         "versionDrift": 0
       },
@@ -3862,17 +3912,17 @@
         "unusedKeys": 48
       },
       "dataPrivacy": {
-        "total": 54,
+        "total": 55,
         "credentialHits": 1,
-        "piiHits": 53
+        "piiHits": 54
       },
       "dataAccessPatterns": {
         "total": 0,
         "patternIssues": 0
       },
       "dataLineage": {
-        "total": 0,
-        "orphanedDataFiles": 0
+        "total": 2,
+        "orphanedDataFiles": 2
       },
       "dataConsistency": {
         "total": 0,

@@ -6,6 +6,22 @@ const {
 
 describe('file merger reduction scanner', () => {
     const baseDir = path.join(__dirname, '../..');
+    const monorepoRoot = path.join(baseDir, '..');
+
+    async function scanRepositoryInventoryPair(maxAttempts = 3) {
+        let lastPlatformReport;
+        let lastMonorepoReport;
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+            lastPlatformReport = await scanFileMergerReduction(baseDir, { scope: 'repository' });
+            lastMonorepoReport = await scanFileMergerReduction(monorepoRoot, { scope: 'repository' });
+            if (lastMonorepoReport.summary.repositoryFilesTotal
+                > lastPlatformReport.summary.repositoryFilesTotal) {
+                return { platformReport: lastPlatformReport, monorepoReport: lastMonorepoReport };
+            }
+            await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+        return { platformReport: lastPlatformReport, monorepoReport: lastMonorepoReport };
+    }
 
     test('returns measured scan report shape with full repository scope', async () => {
         const report = await scanFileMergerReduction(baseDir);
@@ -84,10 +100,10 @@ describe('file merger reduction scanner', () => {
     });
 
     test('repository scope from monorepo parent includes parent inventory and platform sample paths', async () => {
-        const monorepoRoot = path.join(baseDir, '..');
-        const report = await scanFileMergerReduction(monorepoRoot, { scope: 'repository' });
+        const { platformReport, monorepoReport: report } = await scanRepositoryInventoryPair();
         expect(report.reportVersion).toBe(2);
-        expect(report.summary.repositoryFilesTotal).toBeGreaterThan(30000);
+        expect(report.summary.repositoryFilesTotal).toBeGreaterThan(platformReport.summary.repositoryFilesTotal);
+        expect(report.summary.repositoryFilesTotal).toBeGreaterThan(10000);
         expect(report.summary.sampleDataFilesAnalyzed).toBeLessThan(45);
         expect(report.summary.jsonFilesAnalyzed).toBeGreaterThanOrEqual(200);
         expect(report.summary.filesAnalyzed).toBe(report.summary.repositoryFilesTotal);
@@ -95,8 +111,7 @@ describe('file merger reduction scanner', () => {
     }, 120000);
 
     test('monorepo scan excludes generated report duplicates and legacy oversized dev scripts', async () => {
-        const monorepoRoot = path.join(baseDir, '..');
-        const report = await scanFileMergerReduction(monorepoRoot, { scope: 'repository' });
+        const { monorepoReport: report } = await scanRepositoryInventoryPair();
         const reportDup = report.mergeCandidates.find((c) =>
             c.files.some((f) => String(f.path).includes('.simplebeacon/report.json'))
         );

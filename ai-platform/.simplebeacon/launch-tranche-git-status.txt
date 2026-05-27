@@ -1,4 +1,0 @@
-?? ai-platform/docs/launch-decision.md
-?? ai-platform/docs/launch-readiness-scorecard.md
-?? ai-platform/package.json
-?? ai-platform/tools/verify-launch-readiness.js

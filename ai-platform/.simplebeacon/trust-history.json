@@ -1,8 +1,80 @@
 {
   "type": "simplebeacon-trust-history",
   "version": 1,
-  "generatedAt": "2026-05-25T21:40:38.494Z",
+  "generatedAt": "2026-05-27T23:34:20.568Z",
   "entries": [
+    {
+      "recordedAt": "2026-05-27T23:34:20.567Z",
+      "generatedAt": "2026-05-27T23:34:20.562Z",
+      "verificationId": "3eda184b934733fb",
+      "verificationMethod": "simplebeacon-deterministic-gate",
+      "source": "trust:publish",
+      "headlineSource": "monorepo",
+      "gatePass": true,
+      "qualityScore": 100,
+      "issues": 0,
+      "schemaCompliance": 100,
+      "repositoryFilesTotal": 8706,
+      "ruleScopedFilesAnalyzed": 193,
+      "platform": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T23:34:19.893Z"
+      },
+      "monorepo": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T23:34:20.497Z"
+      }
+    },
+    {
+      "recordedAt": "2026-05-27T23:32:56.685Z",
+      "generatedAt": "2026-05-27T23:32:56.680Z",
+      "verificationId": "425b4a683cfc08f1",
+      "verificationMethod": "simplebeacon-deterministic-gate",
+      "source": "trust:publish",
+      "headlineSource": "monorepo",
+      "gatePass": true,
+      "qualityScore": 100,
+      "issues": 0,
+      "schemaCompliance": 100,
+      "repositoryFilesTotal": 31772,
+      "ruleScopedFilesAnalyzed": 193,
+      "platform": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T23:32:25.473Z"
+      },
+      "monorepo": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T23:32:26.255Z"
+      }
+    },
+    {
+      "recordedAt": "2026-05-27T23:28:56.364Z",
+      "generatedAt": "2026-05-27T23:28:56.359Z",
+      "verificationId": "9f0ee46e87982f87",
+      "verificationMethod": "simplebeacon-deterministic-gate",
+      "source": "trust:publish",
+      "headlineSource": "monorepo",
+      "gatePass": true,
+      "qualityScore": 100,
+      "issues": 0,
+      "schemaCompliance": 100,
+      "repositoryFilesTotal": 31101,
+      "ruleScopedFilesAnalyzed": 209,
+      "platform": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T20:07:24.013Z"
+      },
+      "monorepo": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T20:21:09.117Z"
+      }
+    },
     {
       "recordedAt": "2026-05-25T21:40:38.494Z",
       "generatedAt": "2026-05-25T21:40:38.489Z",

@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-05-27T23:35:00.000Z",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "sourceReport": ".simplebeacon/file-reduction-post-cleanup.json",
+  "actionsTaken": [
+    "Removed 8 unused npm dependencies from ai-platform/package.json (no static imports; SSO stack lived in deleted local archive/)",
+    "Deleted regenerable Simplebeacon backup copies (*.simplebeacon-backup.*)",
+    "Left ai-platform/.simplebeacon/test-*-report.json deleted (CLI test outputs, regenerable via gate tests)",
+    "Kept ai-platform/src/web/export-system.js (runtime HTML shim, false positive unused-file hit)"
+  ],
+  "removedDependencies": [
+    "@node-saml/passport-saml",
+    "axios",
+    "compromise",
+    "ldapjs",
+    "natural",
+    "passport",
+    "passport-google-oauth20",
+    "qrcode"
+  ],
+  "dependencyTriage": {
+    "verdict": "removed",
+    "rationale": "Static import scan matched repo reality: no require()/import of these packages in active server, web, or tools. SSO/LDAP handlers were in gitignored ai-platform/archive/unintegrated-server/ (already deleted)."
+  },
+  "envKeyTriage": {
+    "verdict": "keep",
+    "unusedKeyCount": 48,
+    "rationale": "Nearly all hits are documentation keys in .env.example / .env.*.example for planned Azure AD, Google SSO, and Okta integration. Not dead config — template placeholders for future wiring."
+  },
+  "configSprawlTriage": {
+    "verdict": "keep",
+    "rationale": "Ten env files serve distinct roles (local, production, v1-internal, config/ mirror). Consolidation is a product/security project, not file-reduction."
+  },
+  "dataPrivacyTriage": {
+    "verdict": "review",
+    "credentialHits": 1,
+    "piiHits": 55,
+    "rationale": "Hits are in test fixtures and mock-data documentation — expected. Do not bulk-delete; sanitize fixtures if promoting to production paths."
+  },
+  "orphanedDataTriage": {
+    "verdict": "keep",
+    "paths": [
+      ".github/workflows/samplebeacon-perimeter.yml",
+      ".github/workflows/samplebeacon.yml"
+    ],
+    "rationale": "CI workflow YAML consumed by GitHub Actions, not JS import graph."
+  },
+  "regenerate": {
+    "nodeModules": "cd ai-platform && npm install",
+    "gateTestReport": "cd ai-platform/packages/simplebeacon-cli && node --test tests/gate.test.js"
+  }
+}

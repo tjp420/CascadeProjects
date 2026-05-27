@@ -186,6 +186,21 @@ test('UnusedFileDetector skips docs, data samples, and protected runtime files',
     assert.equal(paths.includes('web/api/mock-backend.js'), false);
 });
 
+test('UnusedFileDetector skips export-system compatibility shim', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({ main: 'index.js' }),
+        'index.js': "require('./lib/helper');\n",
+        'lib/helper.js': 'module.exports = () => 1;\n',
+        'src/web/export-system.js': "script.src = '/scripts/export-system.js';\n",
+        'web/scripts/export-system.js': 'window.ExportSystem = {};\n'
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const paths = result.findings.map((f) => f.path);
+    assert.equal(paths.includes('src/web/export-system.js'), false);
+});
+
 test('parseHtmlReferences resolves web-root absolute asset paths', () => {
     const root = makeTempProject({
         'ai-platform/web/simplebeacon-dashboard/index.html': '<link rel="stylesheet" href="/simplebeacon-dashboard/css/theme.css">',

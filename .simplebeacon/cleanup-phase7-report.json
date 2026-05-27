@@ -1,0 +1,63 @@
+{
+  "type": "simplebeacon-cleanup-phase-report",
+  "phase": 7,
+  "completedAt": "2026-05-28T00:00:00.000Z",
+  "projectPath": "C:\\Users\\Trevor\\CascadeProjects",
+  "focus": "Launch-log archival, deploy cache trim, doc snapshot archive, scan refresh",
+  "actions": [
+    {
+      "category": "launch-log-archival",
+      "action": "moved",
+      "files": 28,
+      "bytes": 28160,
+      "destination": "ai-platform/.simplebeacon/archive/launch-logs/",
+      "kept": [
+        "launch-quality-check.current.txt",
+        "launch-verify-predeploy.current.txt",
+        "launch-verify-stripe.current.txt",
+        "launch-verify-production.current.txt",
+        "launch-verify-launch-readiness.current.txt",
+        "lint.txt"
+      ]
+    },
+    {
+      "category": "doc-snapshot-archive",
+      "action": "archived",
+      "files": 2,
+      "bytes": 20480,
+      "tool": "tools/archive-data-cleanup.js",
+      "manifest": "docs/archive/data-cleanup-manifest.json"
+    },
+    {
+      "category": "deploy-scan-cache",
+      "action": "removed",
+      "paths": [
+        "coming-soon/.simplebeacon",
+        "deployments/signin-site/.simplebeacon"
+      ]
+    },
+    {
+      "category": "scan-refresh",
+      "action": "updated",
+      "path": ".simplebeacon/file-reduction-current.json",
+      "findings": 67,
+      "unusedFileCandidates": 1,
+      "missingEnvKeys": 0
+    }
+  ],
+  "inventoryAfter": {
+    "rootSimplebeaconActiveFiles": 27,
+    "rootSimplebeaconActiveKB": 1039.5,
+    "aiPlatformSimplebeaconActiveFiles": 47,
+    "aiPlatformSimplebeaconActiveKB": 495.3
+  },
+  "verification": {
+    "smokeSuite": "SMOKE SUITE PASSED",
+    "protectedPathsIntact": true
+  },
+  "deferred": {
+    "bulkUnusedFileDeletion": "1 candidate remains — requires import verification",
+    "unusedDependencyRemoval": "9 flagged — archiver and auth stack are false positives",
+    "nodeModulesReclaim": "regenerable; skipped while dev server active"
+  }
+}

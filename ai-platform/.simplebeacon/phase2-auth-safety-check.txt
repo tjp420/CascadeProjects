@@ -1,1 +1,0 @@
-Production auth safety check failed: REQUIRE_AUTH=true. Update environment before starting the server.

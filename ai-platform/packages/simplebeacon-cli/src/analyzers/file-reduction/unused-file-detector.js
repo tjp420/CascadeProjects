@@ -60,7 +60,8 @@ const DEFAULT_SKIP_PATH_PATTERNS = [
     /(?:^|\/)functions\//,
     /(?:^|\/)cloudflare-deploy\//,
     /(?:^|\/)packages\/simplebeacon-cli\/docs\//,
-    /(?:^|\/)templates\//
+    /(?:^|\/)templates\//,
+    /(?:^|\/)src\/web\/export-system\.js$/
 ];
 
 const DEFAULT_SKIP_GLOBS = [

@@ -20,10 +20,14 @@ async function countRepositoryInventory(rootDir, options = {}) {
     async function walk(dir, depth) {
         if (depth > maxDepth) return;
         let entries;
-        try {
-            entries = await fs.promises.readdir(dir, { withFileTypes: true });
-        } catch {
-            return;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+                entries = await fs.promises.readdir(dir, { withFileTypes: true });
+                break;
+            } catch {
+                if (attempt === 2) return;
+                await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+            }
         }
 
         for (const entry of entries) {

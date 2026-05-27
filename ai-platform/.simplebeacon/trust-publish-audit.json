@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-25T21:40:38.499Z",
-  "verificationId": "7ac7c5839d427d8c",
+  "generatedAt": "2026-05-27T23:34:20.574Z",
+  "verificationId": "3eda184b934733fb",
   "mode": {
     "strict": false,
     "endpointRequired": false,
@@ -16,11 +16,11 @@
   },
   "headline": {
     "gatePass": true,
-    "qualityScore": 98,
-    "issueCount": 4,
+    "qualityScore": 100,
+    "issueCount": 0,
     "schemaCompliance": 100,
-    "lastScan": "2026-05-25T21:40:36.857Z",
-    "repositoryFilesTotal": 42251,
-    "ruleScopedFilesAnalyzed": 546
+    "lastScan": "2026-05-27T23:34:20.497Z",
+    "repositoryFilesTotal": 8706,
+    "ruleScopedFilesAnalyzed": 193
   }
 }
