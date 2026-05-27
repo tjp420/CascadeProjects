@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
+const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { promisify } = require('util');
 const archiver = require('archiver');
+
+const execFileAsync = promisify(execFile);
 
 const root = path.join(__dirname, '..');
 const repoRoot = path.join(root, '..');
@@ -10,7 +14,6 @@ const sourceLanding = path.join(repoRoot, 'coming-soon');
 const sourceDashboard = path.join(root, 'web', 'simplebeacon-dashboard');
 const sourceFaviconSvg = path.join(root, 'web', 'favicon.svg');
 const sourceFaviconIco = path.join(root, 'web', 'favicon.ico');
-const sourceTrustVerificationJson = path.join(root, 'public', 'trust-verification.json');
 
 const outRoot = path.join(repoRoot, 'deployments', 'signin-site');
 const outZip = path.join(repoRoot, 'deployments', 'signin-site.zip');
@@ -43,12 +46,78 @@ async function copyFileIfExists(src, dest) {
   await fs.promises.copyFile(src, dest);
 }
 
+async function removeTreeOrLink(target) {
+  if (!fs.existsSync(target)) return;
+  const lst = await fs.promises.lstat(target);
+  if (lst.isSymbolicLink()) {
+    await fs.promises.unlink(target);
+    return;
+  }
+  if (process.platform === 'win32' && lst.isDirectory()) {
+    try {
+      await execFileAsync('cmd', ['/c', 'rmdir', path.resolve(target)]);
+      return;
+    } catch {
+      // Real directory — fall through to recursive delete.
+    }
+  }
+  await fs.promises.rm(target, { recursive: true, force: true });
+}
+
+async function linkDirectoryJunction(linkPath, targetPath) {
+  if (!fs.existsSync(targetPath)) return;
+  await removeTreeOrLink(linkPath);
+  await ensureDir(path.dirname(linkPath));
+  const absLink = path.resolve(linkPath);
+  const absTarget = path.resolve(targetPath);
+  if (process.platform === 'win32') {
+    await execFileAsync('cmd', ['/c', 'mklink', '/J', absLink, absTarget]);
+    return;
+  }
+  await fs.promises.symlink(absTarget, absLink, 'dir');
+}
+
+async function linkFileHard(linkPath, targetPath) {
+  if (!fs.existsSync(targetPath)) return;
+  await removeTreeOrLink(linkPath);
+  await ensureDir(path.dirname(linkPath));
+  if (process.platform === 'win32') {
+    const relTarget = path.relative(path.dirname(linkPath), targetPath);
+    await execFileAsync('cmd', ['/c', 'mklink', '/H', path.basename(linkPath), relTarget], {
+      cwd: path.dirname(linkPath)
+    });
+    return;
+  }
+  await fs.promises.link(path.resolve(targetPath), path.resolve(linkPath));
+}
+
+/** Point signin-site duplicates at canonical sources (coming-soon / ai-platform/public). */
+async function dedupeSigninSiteCanonicalLinks(outDir, repo) {
+  const simplebeaconTarget = path.join(repo, 'coming-soon', '.simplebeacon');
+  const simplebeaconLink = path.join(outDir, '.simplebeacon');
+  await linkDirectoryJunction(simplebeaconLink, simplebeaconTarget);
+
+  const hardLinks = [
+    {
+      linkPath: path.join(outDir, 'stripe-audit-product.ids.json'),
+      targetPath: path.join(repo, 'coming-soon', 'stripe-audit-product.ids.json')
+    },
+    {
+      linkPath: path.join(outDir, 'trust-verification.json'),
+      targetPath: path.join(repo, 'ai-platform', 'public', 'trust-verification.json')
+    }
+  ];
+
+  for (const { linkPath, targetPath } of hardLinks) {
+    await linkFileHard(linkPath, targetPath);
+  }
+}
+
 async function patchSignedOffIndex() {
   const src = path.join(sourceDashboard, 'index.html');
   const dest = path.join(outRoot, 'signin', 'index.html');
   let html = await fs.promises.readFile(src, 'utf8');
 
-  // Keep assets loaded from /simplebeacon-dashboard and run in /signin path.
   html = html.replace(
     '<title>SimpleBeacon Dashboard</title>',
     '<title>SimpleBeacon Dashboard — Signed-off Copy</title>'
@@ -69,6 +138,7 @@ This bundle is generated from the current repository state.
 - Landing/marketing files from \`coming-soon/\` (kept intact).
 - Dashboard assets from \`ai-platform/web/simplebeacon-dashboard/\`.
 - A dashboard entry page at \`/signin/index.html\`.
+- \`.simplebeacon/\`, \`stripe-audit-product.ids.json\`, and \`trust-verification.json\` link to canonical sources (\`coming-soon/\` and \`ai-platform/public/\`) — run \`npm run bundle:signin-site:links\` after manual edits if copies drift.
 
 ## Expected behavior
 
@@ -99,6 +169,17 @@ function createZip(sourceDir, zipPath) {
 }
 
 async function main() {
+  const linksOnly = process.argv.includes('--links-only');
+
+  if (linksOnly) {
+    if (!fs.existsSync(outRoot)) {
+      throw new Error(`Missing signin site folder: ${outRoot}`);
+    }
+    await dedupeSigninSiteCanonicalLinks(outRoot, repoRoot);
+    console.log(`Linked canonical duplicates in: ${outRoot}`);
+    return;
+  }
+
   if (!fs.existsSync(sourceLanding)) {
     throw new Error(`Missing source landing directory: ${sourceLanding}`);
   }
@@ -114,7 +195,7 @@ async function main() {
   await patchSignedOffIndex();
   await copyFileIfExists(sourceFaviconSvg, path.join(outRoot, 'favicon.svg'));
   await copyFileIfExists(sourceFaviconIco, path.join(outRoot, 'favicon.ico'));
-  await copyFileIfExists(sourceTrustVerificationJson, path.join(outRoot, 'trust-verification.json'));
+  await dedupeSigninSiteCanonicalLinks(outRoot, repoRoot);
   await writeReadme();
 
   await ensureDir(path.dirname(outZip));
@@ -124,6 +205,12 @@ async function main() {
   console.log(`Created signin site zip: ${outZip}`);
   console.log(`Zip size: ${(bytes / 1024).toFixed(1)} KB`);
 }
+
+module.exports = {
+  dedupeSigninSiteCanonicalLinks,
+  outRoot,
+  repoRoot
+};
 
 main().catch((err) => {
   console.error(`Failed to create signed-off site bundle: ${err.message}`);

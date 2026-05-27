@@ -3,7 +3,7 @@
   "reportVersion": 2,
   "title": "File Merger & Reduction Scan (Measured Baseline)",
   "dataSource": "repository-audit",
-  "generatedAt": "2026-05-27T20:53:42.474Z",
+  "generatedAt": "2026-05-27T23:32:57.339Z",
   "generatedBy": "file-merger-reduction-scanner",
   "scanEngine": "file-merger-reduction-scanner",
   "inferenceMode": "filesystem + fuzzy-match",
@@ -45,8 +45,8 @@
     "repositoryFilesAudited": 43,
     "repositoryInventoryProfile": "explorer",
     "repositoryInventoryIncluded": true,
-    "repositoryFilesTotal": 25763,
-    "repositoryFoldersTotal": 3302,
+    "repositoryFilesTotal": 25520,
+    "repositoryFoldersTotal": 3228,
     "limitations": [
       "Sample-path mode only — use scope=repository for full tree inventory.",
       "Structure similarity does not scan application source code."
@@ -54,17 +54,17 @@
   },
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-    "totalFiles": 25763,
-    "totalFolders": 3302,
+    "totalFiles": 25520,
+    "totalFolders": 3228,
     "profile": "explorer"
   },
   "summary": {
     "filesAnalyzed": 43,
     "sampleDataFilesAnalyzed": 43,
     "jsonFilesAnalyzed": 42,
-    "repositoryFilesTotal": 25763,
+    "repositoryFilesTotal": 25520,
     "repositoryFilesAudited": 43,
-    "repositoryFoldersTotal": 3302,
+    "repositoryFoldersTotal": 3228,
     "totalSizeBytes": 275160,
     "totalSizeLabel": "268.7KB",
     "mergeCandidates": 0,

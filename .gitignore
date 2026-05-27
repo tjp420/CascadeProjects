@@ -53,6 +53,12 @@ ai-platform/security-reports/fixes/*.backup
 # Simplebeacon merge workflow previews (archive instead of commit)
 ai-platform/.simplebeacon/merge-previews/
 
+# Generated SimpleBeacon audit HTML (recreated each scan — noisy near-duplicates)
+**/.simplebeacon/SB-AUD-*.html
+
+# SimpleBeacon auto-backups before JSON writes
+**/.simplebeacon/*.simplebeacon-backup.*
+
 # Local GGUF model weights (multi-GB — upload at runtime, do not commit)
 ai-platform/data-central/ai-tools/ai-models/uploads/*.gguf
 ai-platform/data-central/ai-tools/ai-models/uploads/**

@@ -45,6 +45,11 @@ const OVERSIZED_ELIGIBLE_EXTENSIONS = new Set([
 ]);
 const STRUCTURE_SIMILARITY_THRESHOLD = 0.92;
 const MAX_STRUCTURE_PAIRS = 12;
+const SIGNIN_SITE_CANONICAL_DUPE_PAIRS = [
+    ['ai-platform/public/trust-verification.json', 'deployments/signin-site/trust-verification.json'],
+    ['coming-soon/stripe-audit-product.ids.json', 'deployments/signin-site/stripe-audit-product.ids.json']
+];
+
 function normalizeRelativePath(relativePath) {
     return String(relativePath || '').replace(/\\/g, '/');
 }
@@ -76,6 +81,38 @@ function isEligibleStructurePair(fileA, fileB) {
     const dirA = path.dirname(fileA.relativePath || fileA.path);
     const dirB = path.dirname(fileB.relativePath || fileB.path);
     return dirA !== dirB || fileA.name === fileB.name;
+}
+
+function isKnownCanonicalLinkPair(pathA, pathB) {
+    const sorted = [normalizeRelativePath(pathA), normalizeRelativePath(pathB)].sort();
+    return SIGNIN_SITE_CANONICAL_DUPE_PAIRS.some((pair) => {
+        const pairSorted = [...pair].sort();
+        return sorted[0] === pairSorted[0] && sorted[1] === pairSorted[1];
+    });
+}
+
+async function sharesFilesystemLink(pathA, pathB) {
+    try {
+        const statA = await fs.promises.stat(pathA);
+        const statB = await fs.promises.stat(pathB);
+        return statA.ino === statB.ino && statA.dev === statB.dev;
+    } catch {
+        return false;
+    }
+}
+
+async function filterResolvedDuplicateGroups(groups) {
+    const kept = [];
+    for (const group of groups) {
+        if (group.length === 2) {
+            const relA = group[0].relativePath || group[0].path;
+            const relB = group[1].relativePath || group[1].path;
+            if (isKnownCanonicalLinkPair(relA, relB)) continue;
+            if (await sharesFilesystemLink(group[0].path, group[1].path)) continue;
+        }
+        kept.push(group);
+    }
+    return kept;
 }
 
 async function walkFiles(dir, results, options = {}) {
@@ -393,13 +430,15 @@ async function scanFileMergerReduction(baseDir, options = {}) {
     const repositoryFilesTotal = repositoryInventory?.totalFiles ?? repositoryFiles.length;
     const filesAnalyzed = scope === 'repository' ? repositoryFilesTotal : sampleDataFilesAnalyzed;
 
-    const duplicateGroups = findDuplicateContentGroups(hashEntries).map((group) =>
-        group.map((entry) => {
-            const file = repositoryFiles.find((f) => f.path === entry.path)
-                || sampleFiles.find((f) => f.path === entry.path)
-                || entry;
-            return { ...entry, size: file.size, relativePath: file.relativePath };
-        })
+    const duplicateGroups = await filterResolvedDuplicateGroups(
+        findDuplicateContentGroups(hashEntries).map((group) =>
+            group.map((entry) => {
+                const file = repositoryFiles.find((f) => f.path === entry.path)
+                    || sampleFiles.find((f) => f.path === entry.path)
+                    || entry;
+                return { ...entry, size: file.size, relativePath: file.relativePath };
+            })
+        )
     );
 
     const fuzzyScopeFiles = scope === 'repository' ? repositoryFiles : sampleFiles;
