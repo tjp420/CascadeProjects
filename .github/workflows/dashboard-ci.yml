@@ -1,0 +1,52 @@
+name: Dashboard CI
+
+on:
+  push:
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/dashboard-ci.yml'
+  pull_request:
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/dashboard-ci.yml'
+
+defaults:
+  run:
+    working-directory: ai-platform
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: ai-platform/package-lock.json
+      - run: npm ci
+      - run: npm test -- --no-coverage
+      - run: npm run test:coverage
+      - name: Enforce coverage baseline thresholds
+        run: node -e "const fs=require('fs');const p='coverage/dashboard/coverage-summary.json';if(!fs.existsSync(p)){console.error('missing '+p);process.exit(1)};const s=JSON.parse(fs.readFileSync(p,'utf8')).total||{};const min={lines:80,functions:75,branches:60,statements:80};for(const k of Object.keys(min)){const v=(s[k]||{}).pct;if(typeof v!=='number'||v<min[k]){console.error(k+' coverage below threshold: '+v+' < '+min[k]);process.exit(1)}};console.log('coverage thresholds passed',Object.fromEntries(Object.keys(min).map(k=>[k,s[k].pct])));"
+      - name: Run npm audit high-severity gate
+        run: npm audit --audit-level=high --json > .simplebeacon/npm-audit-ci.json
+      - run: npm run compliance:audit-baseline
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jest-coverage-dashboard
+          path: ai-platform/coverage/dashboard/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit-${{ github.run_id }}
+          path: ai-platform/.simplebeacon/npm-audit-ci.json
+          if-no-files-found: ignore
+
+  phase2-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f docker-compose.phase2.yml config
+      - run: docker compose -f docker-compose.simplebeacon.yml -f docker-compose.simplebeacon.full.yml --profile full config

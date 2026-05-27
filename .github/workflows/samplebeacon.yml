@@ -1,0 +1,142 @@
+name: Simplebeacon
+
+on:
+  pull_request:
+    paths:
+      - '**/*.json'
+      - '**/*.js'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/.simplebeacon/**'
+      - 'ai-platform/packages/simplebeacon-cli/**'
+      - 'ai-platform/action/**'
+      - '.github/workflows/simplebeacon.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - '**/.simplebeacon/**'
+      - 'ai-platform/packages/simplebeacon-cli/**'
+      - 'ai-platform/action/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  simplebeacon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: ai-platform/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ai-platform
+        run: npm ci
+
+      - name: Run simplebeacon gate
+        uses: ./ai-platform/action
+        with:
+          path: ai-platform
+          fail-on: high
+          post-comment: true
+
+      - name: Build compliance assessment
+        if: always()
+        working-directory: ai-platform
+        run: npm run simplebeacon:assess -- --output .simplebeacon/assessment.json
+
+      - name: Generate compliance monitoring snapshot
+        if: always()
+        working-directory: ai-platform
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const reportPath = '.simplebeacon/report.json';
+          const assessmentPath = '.simplebeacon/assessment.json';
+          const outPath = '.simplebeacon/compliance-monitoring.json';
+          if (!fs.existsSync(reportPath)) {
+            console.log('No report.json found; skipping compliance monitoring snapshot.');
+            process.exit(0);
+          }
+          const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+          const assessment = fs.existsSync(assessmentPath)
+            ? JSON.parse(fs.readFileSync(assessmentPath, 'utf8'))
+            : null;
+          const snapshot = {
+            generatedAt: new Date().toISOString(),
+            gate: report.gate || null,
+            issueCount: Number(report.issueCount || 0),
+            severityCounts: report.severityCounts || {},
+            qualityScore: report.qualityScore ?? null,
+            consistencyScore: report.consistencyScore ?? null,
+            assessmentHeadline: assessment?.executiveSummary?.headline || null
+          };
+          fs.mkdirSync(path.dirname(outPath), { recursive: true });
+          fs.writeFileSync(outPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+          console.log(`Wrote ${outPath}`);
+          NODE
+
+      - name: Publish trust verification payload (local + optional remote)
+        if: success()
+        working-directory: ai-platform
+        env:
+          TRUST_PUBLISH_ENDPOINT: ${{ secrets.SIMPLEBEACON_TRUST_PUBLISH_URL }}
+          TRUST_PUBLISH_TOKEN: ${{ secrets.SIMPLEBEACON_TRUST_PUBLISH_TOKEN }}
+          TRUST_PUBLISH_STRICT: 'false'
+          TRUST_PUBLISH_REQUIRED: 'false'
+          TRUST_PUBLISH_REQUIRE_TOKEN: 'false'
+          TRUST_PUBLISH_ALLOW_HTTP: 'false'
+        run: |
+          npm run trust:validate-env
+          npm run trust:publish
+
+      - name: Add trust publish summary
+        if: always()
+        working-directory: ai-platform
+        run: |
+          echo "### Trust publish" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f .simplebeacon/trust-publish-env-validation.json ]; then
+            node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+            const env = require('./.simplebeacon/trust-publish-env-validation.json');
+            console.log(`- Env validation ready: ${env.ready}`);
+            console.log(`- Endpoint configured: ${env.endpointConfigured}`);
+            console.log(`- Token configured: ${env.tokenConfigured}`);
+            console.log(`- Endpoint: ${env.endpointRedacted || 'n/a'}`);
+            if (env.warnings?.length) {
+              console.log(`- Warnings: ${env.warnings.join(' | ')}`);
+            }
+            NODE
+          else
+            echo "- Env validation artifact missing" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f .simplebeacon/trust-publish-audit.json ]; then
+            node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+            const audit = require('./.simplebeacon/trust-publish-audit.json');
+            console.log(`- Publish status: ${audit.remote?.status || 'unknown'}`);
+            if (audit.remote?.reason) console.log(`- Publish reason: ${audit.remote.reason}`);
+            if (audit.remote?.message) console.log(`- Publish error: ${audit.remote.message}`);
+            console.log(`- Verification ID: ${audit.verificationId || 'n/a'}`);
+            NODE
+          else
+            echo "- Publish audit artifact missing" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload simplebeacon artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-${{ github.run_id }}
+          path: |
+            ai-platform/.simplebeacon/report.json
+            ai-platform/.simplebeacon/assessment.json
+            ai-platform/.simplebeacon/compliance-monitoring.json
+            ai-platform/.simplebeacon/trust-publish-env-validation.json
+            ai-platform/.simplebeacon/trust-publish-audit.json
+          if-no-files-found: ignore

@@ -1,0 +1,306 @@
+# Simplebeacon Security & Compliance Perimeter
+#
+# Flow:
+#   checkout → verify cascade profile → perimeter scan (credentials, fiction KPIs,
+#   JSON schema, roadmap specs, production leaks) → gate → Jest baseline → PR comment
+#   → optional dashboard webhook → artifact upload
+#
+# Scan rules are configured in ai-platform/.simplebeacon/config.json (profile: cascade).
+# Fiction patterns are seeded from .simplebeacon/baseline.json → rejectedFiction.
+
+name: SampleBeacon Security & Compliance Perimeter
+
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  push:
+    branches: [main, master, develop]
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/simplebeacon-perimeter.yml'
+      - '.github/workflows/dashboard-ci.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/simplebeacon-perimeter.yml'
+      - '.github/workflows/dashboard-ci.yml'
+  workflow_dispatch:
+    inputs:
+      with-jest-baseline:
+        description: Run simplebeacon scan with embedded Jest baseline check (slower)
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: simplebeacon-perimeter-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WORKING_DIR: ai-platform
+  SIMPLEBEACON_PROFILE: cascade
+
+jobs:
+  perimeter-scan:
+    name: Perimeter scan & compliance
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-platform
+
+    steps:
+      - name: Checkout repository source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup application environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: ai-platform/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Simplebeacon cascade profile
+        run: |
+          test -f .simplebeacon/config.json || {
+            echo "::error::Missing .simplebeacon/config.json — run 'npm run simplebeacon:init' locally and commit."
+            exit 1
+          }
+          test -f .simplebeacon/baseline.json || {
+            echo "::error::Missing .simplebeacon/baseline.json"
+            exit 1
+          }
+          PROFILE="$(node -p "require('./.simplebeacon/config.json').profile || 'standard'")"
+          echo "profile=$PROFILE" >> "$GITHUB_ENV"
+          if [ "$PROFILE" != "$SIMPLEBEACON_PROFILE" ]; then
+            echo "::warning::Config profile is '$PROFILE' (expected '$SIMPLEBEACON_PROFILE' for this workflow)"
+          fi
+          node - <<'NODE'
+          const baseline = require('./.simplebeacon/baseline.json');
+          const { buildFictionPatternCatalog } = require('./packages/simplebeacon-cli/src/rules/ai-fiction-detection');
+          const catalog = buildFictionPatternCatalog(baseline);
+          console.log(`Fiction pattern catalog: ${catalog.length} rejected patterns`);
+          console.log(`Jest baseline: ${baseline.jestTestsLabel || 'unknown'}`);
+          console.log(`Page samples: ${baseline.pageSamplesLabel || 'unknown'}`);
+          if (catalog.length < 1) {
+            console.error('::error::Fiction pattern catalog is empty — check baseline.rejectedFiction');
+            process.exit(1);
+          }
+          NODE
+
+      - name: Run deep structure scanner (leaks, schema, fiction, roadmap)
+        id: core_scan
+        run: |
+          if [ "${{ github.event.inputs.with-jest-baseline || 'false' }}" = "true" ]; then
+            node packages/simplebeacon-cli/bin/simplebeacon.js scan \
+              --format json \
+              --output .simplebeacon/report.json \
+              --gate \
+              --fail-on high \
+              --with-jest \
+              --verbose
+          else
+            npm run simplebeacon:report
+          fi
+
+      - name: Fiction KPI guard (visibility, non-blocking)
+        if: always()
+        run: npm run guard:fiction-kpi:ci || true
+
+      - name: Extended schema coverage check (visibility, non-blocking)
+        if: always()
+        run: npm run schema:coverage:extended || true
+
+      - name: Evaluate pattern risk (fiction & narrative assessment)
+        if: always()
+        run: |
+          npm run simplebeacon:assess -- --output .simplebeacon/assessment.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const reportPath = '.simplebeacon/report.json';
+          const assessmentPath = '.simplebeacon/assessment.json';
+          if (!fs.existsSync(reportPath)) process.exit(0);
+          const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+          const assessment = fs.existsSync(assessmentPath)
+            ? JSON.parse(fs.readFileSync(assessmentPath, 'utf8'))
+            : null;
+          const fictionIssues = (report.rawIssues || []).filter((i) =>
+            /fiction|consistency|kpi/i.test(String(i.type))
+          );
+          const rejectedConfidence = (require('./.simplebeacon/baseline.json').rejectedFiction?.aiConfidenceScores || []);
+          console.log(`Fiction/KPI findings: ${fictionIssues.length}`);
+          console.log(`Rejected AI confidence thresholds: ${rejectedConfidence.join(', ') || 'none'}`);
+          if (assessment?.executiveSummary?.headline) {
+            console.log(`Assessment: ${assessment.executiveSummary.headline}`);
+          }
+          if (fictionIssues.length > 0) {
+            console.log('::warning::Fiction or KPI drift detected — review assessment artifact');
+          }
+          NODE
+
+      - name: Generate compliance monitoring snapshot
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const reportPath = '.simplebeacon/report.json';
+          const assessmentPath = '.simplebeacon/assessment.json';
+          const outPath = '.simplebeacon/compliance-monitoring.json';
+          if (!fs.existsSync(reportPath)) {
+            console.log('No report.json found; skipping compliance monitoring snapshot.');
+            process.exit(0);
+          }
+          const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+          const assessment = fs.existsSync(assessmentPath)
+            ? JSON.parse(fs.readFileSync(assessmentPath, 'utf8'))
+            : null;
+          const snapshot = {
+            generatedAt: new Date().toISOString(),
+            gate: report.gate || null,
+            issueCount: Number(report.issueCount || 0),
+            severityCounts: report.severityCounts || {},
+            qualityScore: report.qualityScore ?? null,
+            consistencyScore: report.consistencyScore ?? null,
+            assessmentHeadline: assessment?.executiveSummary?.headline || null
+          };
+          fs.mkdirSync(path.dirname(outPath), { recursive: true });
+          fs.writeFileSync(outPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+          console.log(`Wrote ${outPath}`);
+          NODE
+
+      - name: Build quality maintenance metrics artifact
+        if: always()
+        run: npm run metrics:quality:build || true
+
+      - name: Publish trust verification payload (local + optional remote)
+        if: success()
+        env:
+          TRUST_PUBLISH_ENDPOINT: ${{ secrets.SIMPLEBEACON_TRUST_PUBLISH_URL }}
+          TRUST_PUBLISH_TOKEN: ${{ secrets.SIMPLEBEACON_TRUST_PUBLISH_TOKEN }}
+          TRUST_PUBLISH_STRICT: 'false'
+          TRUST_PUBLISH_REQUIRED: 'false'
+          TRUST_PUBLISH_REQUIRE_TOKEN: 'false'
+          TRUST_PUBLISH_ALLOW_HTTP: 'false'
+        run: |
+          npm run trust:validate-env
+          npm run trust:publish
+
+      - name: Run Jest suite against measured baseline
+        if: success()
+        run: |
+          npm test -- --no-coverage --passWithNoTests
+          node - <<'NODE'
+          const baseline = require('./.simplebeacon/baseline.json');
+          console.log(`Jest baseline label: ${baseline.jestTestsLabel || 'unknown'}`);
+          NODE
+
+      - name: Write compliance summary to job log
+        if: always()
+        run: |
+          REPORT=".simplebeacon/report.json"
+          if [ -f "$REPORT" ]; then
+            node packages/simplebeacon-cli/bin/simplebeacon.js comment \
+              --report "$REPORT" \
+              --print-only >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Jest baseline" >> "$GITHUB_STEP_SUMMARY"
+            node -p "require('./.simplebeacon/baseline.json').jestTestsLabel || 'unknown'" >> "$GITHUB_STEP_SUMMARY"
+            if [ -f ".simplebeacon/assessment.json" ]; then
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "### Assessment headline" >> "$GITHUB_STEP_SUMMARY"
+              node -p "require('./.simplebeacon/assessment.json').executiveSummary?.headline || '—'" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Trust publish" >> "$GITHUB_STEP_SUMMARY"
+            if [ -f .simplebeacon/trust-publish-env-validation.json ]; then
+              node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+              const env = require('./.simplebeacon/trust-publish-env-validation.json');
+              console.log(`- Env validation ready: ${env.ready}`);
+              console.log(`- Endpoint configured: ${env.endpointConfigured}`);
+              console.log(`- Token configured: ${env.tokenConfigured}`);
+              console.log(`- Endpoint: ${env.endpointRedacted || 'n/a'}`);
+              NODE
+            else
+              echo "- Env validation artifact missing" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            if [ -f .simplebeacon/trust-publish-audit.json ]; then
+              node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+              const audit = require('./.simplebeacon/trust-publish-audit.json');
+              console.log(`- Publish status: ${audit.remote?.status || 'unknown'}`);
+              if (audit.remote?.reason) console.log(`- Publish reason: ${audit.remote.reason}`);
+              if (audit.remote?.message) console.log(`- Publish error: ${audit.remote.message}`);
+              console.log(`- Verification ID: ${audit.verificationId || 'n/a'}`);
+              NODE
+            else
+              echo "- Publish audit artifact missing" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "## Simplebeacon" >> "$GITHUB_STEP_SUMMARY"
+            echo "No report generated — scan step failed before write." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Post compliance assessment to pull request
+        if: github.event_name == 'pull_request' && always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -f .simplebeacon/report.json ]; then
+            npm run simplebeacon:comment
+          else
+            echo "::warning::Skipping PR comment — no scan report available"
+          fi
+
+      - name: Upload scan artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-perimeter-${{ github.run_id }}
+          path: |
+            ai-platform/.simplebeacon/report.json
+            ai-platform/.simplebeacon/assessment.json
+            ai-platform/.simplebeacon/fiction-kpi-guard-report.json
+            ai-platform/.simplebeacon/extended-schema-coverage.json
+            ai-platform/.simplebeacon/compliance-monitoring.json
+            ai-platform/.simplebeacon/quality-maintenance-metrics.json
+            ai-platform/.simplebeacon/trust-publish-env-validation.json
+            ai-platform/.simplebeacon/trust-publish-audit.json
+          if-no-files-found: ignore
+
+      - name: Sync metrics to live dashboard (optional webhook)
+        if: always()
+        env:
+          SIMPLEBEACON_DASHBOARD_URL: ${{ secrets.SIMPLEBEACON_DASHBOARD_URL }}
+          SIMPLEBEACON_DASHBOARD_TOKEN: ${{ secrets.SIMPLEBEACON_DASHBOARD_TOKEN }}
+        run: |
+          if [ -z "$SIMPLEBEACON_DASHBOARD_URL" ]; then
+            echo "SIMPLEBEACON_DASHBOARD_URL not set — skipping dashboard sync (configure secret to enable)."
+            exit 0
+          fi
+          if [ ! -f .simplebeacon/report.json ]; then
+            echo "::warning::No report to sync"
+            exit 0
+          fi
+          AUTH_HEADER=()
+          if [ -n "$SIMPLEBEACON_DASHBOARD_TOKEN" ]; then
+            AUTH_HEADER=(-H "Authorization: Bearer $SIMPLEBEACON_DASHBOARD_TOKEN")
+          fi
+          curl -fsS -X POST "${SIMPLEBEACON_DASHBOARD_URL%/}/api/simplebeacon/scan" \
+            -H "Content-Type: application/json" \
+            "${AUTH_HEADER[@]}" \
+            -d '{}' \
+            || echo "::warning::Dashboard webhook sync failed (non-blocking)"
