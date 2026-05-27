@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tools - Cascade Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --accent-gradient: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1f3a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .main-header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary-color);
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Page Title */
+        .page-title {
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .page-title h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .page-title p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.1);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Tool Cards */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .tool-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15);
+        }
+
+        .tool-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .tool-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+        }
+
+        .tool-info h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .tool-info p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .tool-content {
+            padding: 1.5rem;
+        }
+
+        .score-display {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .score-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            position: relative;
+        }
+
+        .score-circle::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 50%;
+            padding: 2px;
+            background: conic-gradient(from 0deg, var(--primary-color), var(--secondary-color));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: exclude;
+            mask-composite: exclude;
+        }
+
+        .score-details {
+            flex: 1;
+            margin-left: 1rem;
+        }
+
+        .issues-list {
+            list-style: none;
+            margin-bottom: 1rem;
+        }
+
+        .issue-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid;
+        }
+
+        .issue-item.high {
+            border-left-color: var(--danger-color);
+        }
+
+        .issue-item.medium {
+            border-left-color: var(--warning-color);
+        }
+
+        .issue-item.low {
+            border-left-color: var(--success-color);
+        }
+
+        .issue-severity {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .recommendations {
+            margin-top: 1rem;
+        }
+
+        .recommendation-item {
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .recommendation-item::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--primary-color);
+        }
+
+        /* Action Buttons */
+        .tool-actions {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .page-title h1 {
+                font-size: 2rem;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main-container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <span>AI Platform</span>
+            </div>
+            <nav class="nav-links">
+                <a href="dashboard.html" class="nav-link">Dashboard</a>
+                <a href="ai-tools.html" class="nav-link active">AI Tools</a>
+                <a href="#" class="nav-link">Analytics</a>
+                <a href="#" class="nav-link">Settings</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- Page Title -->
+        <div class="page-title">
+            <h1>AI Tools</h1>
+            <p>Advanced AI-powered analysis and optimization tools for your development workflow</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <p>Loading AI analysis data...</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div id="statsGrid" class="stats-grid" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(99, 102, 241, 0.2); color: var(--primary-color);">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-value" id="totalAnalyses">0</div>
+                <div class="stat-label">Total Analyses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2); color: var(--success-color);">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="stat-value" id="avgScore">0</div>
+                <div class="stat-label">Average Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2); color: var(--warning-color);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-value" id="totalIssues">0</div>
+                <div class="stat-label">Total Issues</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(239, 68, 68, 0.2); color: var(--danger-color);">
+                    <i class="fas fa-bug"></i>
+                </div>
+                <div class="stat-value" id="criticalIssues">0</div>
+                <div class="stat-label">Critical Issues</div>
+            </div>
+        </div>
+
+        <!-- Tools Grid -->
+        <div id="toolsGrid" class="tools-grid" style="display: none;">
+            <!-- Tool cards will be dynamically inserted here -->
+        </div>
+    </main>
+
+    <script>
+        // AI Tools Data
+        let aiToolsData = null;
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Ensure content is visible immediately
+            setTimeout(() => {
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('statsGrid').style.display = 'grid';
+                document.getElementById('toolsGrid').style.display = 'grid';
+            }, 1000);
+            
+            await loadAIToolsData();
+            renderStats();
+            renderTools();
+        });
+
+        // Load AI tools data
+        async function loadAIToolsData() {
+            try {
+                // Try to load from the data-central directory with timeout
+                const response = await Promise.race([
+                    fetch('../data-central/ai-tools/analysis-results.json'),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
+                ]);
+                
+                if (response.ok) {
+                    aiToolsData = await response.json();
+                } else {
+                    // Fallback to mock data if file not found
+                    aiToolsData = getMockData();
+                }
+            } catch (error) {
+                aiToolsData = getMockData();
+            }
+
+            // Hide loading state and show content
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('statsGrid').style.display = 'grid';
+            document.getElementById('toolsGrid').style.display = 'grid';
+        }
+
+        // Get mock data for fallback
+        function getMockData() {
+            return {
+                type: "ai-analysis-results",
+                version: "1.0.0",
+                generated: new Date().toISOString(),
+                analyses: [
+                    {
+                        id: "analysis_001",
+                        type: "code-quality",
+                        score: 85.3,
+                        issues: [
+                            {
+                                severity: "medium",
+                                description: "Function complexity too high",
+                                location: "src/components/Dashboard.js:45"
+                            },
+                            {
+                                severity: "low", 
+                                description: "Missing JSDoc comments",
+                                location: "src/utils/helpers.js:12"
+                            }
+                        ],
+                        recommendations: [
+                            "Refactor complex functions into smaller components",
+                            "Add comprehensive documentation"
+                        ],
+                        timestamp: new Date().toISOString()
+                    },
+                    {
+                        id: "analysis_002",
+                        type: "security",
+                        score: 92.1,
+                        vulnerabilities: [
+                            {
+                                severity: "high",
+                                description: "Potential XSS vulnerability",
+                                location: "src/templates/user-input.html:23"
+                            }
+                        ],
+                        fixes: [
+                            "Implement input sanitization",
+                            "Add content security policy"
+                        ],
+                        timestamp: new Date().toISOString()
+                    },
+                    {
+                        id: "analysis_003", 
+                        type: "performance",
+                        score: 78.9,
+                        bottlenecks: [
+                            {
+                                type: "database",
+                                description: "Slow query execution",
+                                impact: "2.3s average response time"
+                            },
+                            {
+                                type: "memory",
+                                description: "Memory leak in component cleanup",
+                                impact: "15MB memory growth per hour"
+                            }
+                        ],
+                        optimizations: [
+                            "Add database indexes",
+                            "Implement proper cleanup procedures",
+                            "Enable query caching"
+                        ],
+                        timestamp: new Date().toISOString()
+                    }
+                ],
+                summary: {
+                    totalAnalyses: 3,
+                    averageScore: 85.4,
+                    totalIssues: 3,
+                    criticalIssues: 1,
+                    lastUpdated: new Date().toISOString()
+                }
+            };
+        }
+
+        // Render statistics
+        function renderStats() {
+            const summary = aiToolsData.summary;
+            
+            document.getElementById('totalAnalyses').textContent = summary.totalAnalyses;
+            document.getElementById('avgScore').textContent = summary.averageScore.toFixed(1);
+            document.getElementById('totalIssues').textContent = summary.totalIssues;
+            document.getElementById('criticalIssues').textContent = summary.criticalIssues;
+        }
+
+        // Render tool cards
+        function renderTools() {
+            const toolsGrid = document.getElementById('toolsGrid');
+            
+            aiToolsData.analyses.forEach(analysis => {
+                const toolCard = createToolCard(analysis);
+                toolsGrid.appendChild(toolCard);
+            });
+        }
+
+        // Create a tool card element
+        function createToolCard(analysis) {
+            const card = document.createElement('div');
+            card.className = 'tool-card';
+            
+            const toolConfig = getToolConfig(analysis.type);
+            
+            card.innerHTML = `
+                <div class="tool-header">
+                    <div class="tool-icon" style="background: ${toolConfig.bgColor}; color: ${toolConfig.color};">
+                        <i class="${toolConfig.icon}"></i>
+                    </div>
+                    <div class="tool-info">
+                        <h3>${toolConfig.name}</h3>
+                        <p>${toolConfig.description}</p>
+                    </div>
+                </div>
+                <div class="tool-content">
+                    <div class="score-display">
+                        <div class="score-circle" style="color: ${getScoreColor(analysis.score)};">
+                            ${analysis.score.toFixed(1)}
+                        </div>
+                        <div class="score-details">
+                            <h4>Analysis Score</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                                Last run: ${new Date(analysis.timestamp).toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    ${renderIssues(analysis)}
+                    ${renderRecommendations(analysis)}
+                </div>
+                <div class="tool-actions">
+                    <button class="btn-action btn-primary" onclick="runAnalysis('${analysis.id}')">
+                        <i class="fas fa-play"></i> Run Analysis
+                    </button>
+                    <button class="btn-action btn-secondary" onclick="viewDetails('${analysis.id}')">
+                        <i class="fas fa-eye"></i> View Details
+                    </button>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Get tool configuration
+        function getToolConfig(type) {
+            const configs = {
+                'code-quality': {
+                    name: 'Code Quality Analysis',
+                    description: 'Analyzes code quality, complexity, and maintainability',
+                    icon: 'fas fa-code',
+                    bgColor: 'rgba(99, 102, 241, 0.2)',
+                    color: 'var(--primary-color)'
+                },
+                'security': {
+                    name: 'Security Scanner',
+                    description: 'Identifies security vulnerabilities and threats',
+                    icon: 'fas fa-shield-alt',
+                    bgColor: 'rgba(239, 68, 68, 0.2)',
+                    color: 'var(--danger-color)'
+                },
+                'performance': {
+                    name: 'Performance Analyzer',
+                    description: 'Detects performance bottlenecks and optimization opportunities',
+                    icon: 'fas fa-tachometer-alt',
+                    bgColor: 'rgba(16, 185, 129, 0.2)',
+                    color: 'var(--success-color)'
+                }
+            };
+            
+            return configs[type] || configs['code-quality'];
+        }
+
+        // Get score color
+        function getScoreColor(score) {
+            if (score >= 90) return 'var(--success-color)';
+            if (score >= 75) return 'var(--warning-color)';
+            return 'var(--danger-color)';
+        }
+
+        // Render issues
+        function renderIssues(analysis) {
+            const issues = analysis.issues || analysis.vulnerabilities || analysis.bottlenecks || [];
+            
+            if (issues.length === 0) return '';
+            
+            let html = '<h5 style="margin-bottom: 1rem;">Issues Found</h5><ul class="issues-list">';
+            
+            issues.forEach(issue => {
+                const severity = issue.severity || issue.type || 'medium';
+                html += `
+                    <li class="issue-item ${severity}">
+                        <div class="issue-severity" style="color: ${getSeverityColor(severity)};">
+                            ${severity}
+                        </div>
+                        <div>${issue.description}</div>
+                        ${issue.location ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">${issue.location}</div>` : ''}
+                        ${issue.impact ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">Impact: ${issue.impact}</div>` : ''}
+                    </li>
+                `;
+            });
+            
+            html += '</ul>';
+            return html;
+        }
+
+        // Render recommendations
+        function renderRecommendations(analysis) {
+            const recommendations = analysis.recommendations || analysis.fixes || analysis.optimizations || [];
+            
+            if (recommendations.length === 0) return '';
+            
+            let html = '<div class="recommendations"><h5 style="margin-bottom: 0.5rem;">Recommendations</h5>';
+            
+            recommendations.forEach(rec => {
+                html += `<div class="recommendation-item">${rec}</div>`;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        // Get severity color
+        function getSeverityColor(severity) {
+            const colors = {
+                'high': 'var(--danger-color)',
+                'medium': 'var(--warning-color)',
+                'low': 'var(--success-color)',
+                'database': 'var(--warning-color)',
+                'memory': 'var(--danger-color)'
+            };
+            
+            return colors[severity] || 'var(--text-secondary)';
+        }
+
+        // Run analysis
+        function runAnalysis(analysisId) {
+            alert(`Running analysis ${analysisId}... This would trigger the AI analysis tool.`);
+        }
+
+        // View details
+        function viewDetails(analysisId) {
+            const analysis = aiToolsData.analyses.find(a => a.id === analysisId);
+            if (analysis) {
+                alert(`Detailed view for ${analysis.type} analysis (${analysis.id}).`);
+            }
+        }
+    </script>
+</body>
+</html>
