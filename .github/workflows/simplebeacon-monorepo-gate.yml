@@ -1,0 +1,67 @@
+# Parent-repo gate — matches SB-AUD full-tree profile (CascadeProjects + ai-platform).
+# Complements ai-platform-only workflows; fails PRs on high-severity findings repo-wide.
+
+name: Simplebeacon Monorepo Gate
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: simplebeacon-monorepo-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  monorepo-gate:
+    name: Monorepo compliance gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ai-platform/package-lock.json
+
+      - name: Install ai-platform dependencies
+        working-directory: ai-platform
+        run: npm ci
+
+      - name: Run Simplebeacon gate from repository root
+        run: |
+          node ai-platform/packages/simplebeacon-cli/bin/simplebeacon.js scan \
+            --path . \
+            --format json \
+            --output .simplebeacon/report.json \
+            --gate \
+            --fail-on high \
+            --verbose
+
+      - name: Add gate summary
+        if: always()
+        run: |
+          if [ -f .simplebeacon/report.json ]; then
+            node ai-platform/packages/simplebeacon-cli/bin/simplebeacon.js comment \
+              --report .simplebeacon/report.json \
+              --print-only >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Simplebeacon Monorepo" >> "$GITHUB_STEP_SUMMARY"
+            echo "No report generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload monorepo gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-monorepo-${{ github.run_id }}
+          path: .simplebeacon/report.json
+          if-no-files-found: ignore

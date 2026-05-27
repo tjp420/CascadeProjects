@@ -1,0 +1,176 @@
+name: Simplebeacon PR Gate
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "ai-platform/**"
+      - ".github/workflows/simplebeacon-pr-gate.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: simplebeacon-pr-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-compliance-gate:
+    name: PR compliance gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-platform
+
+    steps:
+      - name: Checkout repository source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ai-platform/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Simplebeacon report gate
+        run: npm run simplebeacon:report
+
+      - name: Fiction KPI guard (visibility, non-blocking)
+        if: always()
+        run: npm run guard:fiction-kpi:ci || true
+
+      - name: Extended schema coverage check (visibility, non-blocking)
+        if: always()
+        run: npm run schema:coverage:extended || true
+
+      - name: Build Simplebeacon assessment
+        run: npm run simplebeacon:assess -- --output .simplebeacon/assessment.json
+
+      - name: Generate compliance monitoring snapshot
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const reportPath = '.simplebeacon/report.json';
+          const assessmentPath = '.simplebeacon/assessment.json';
+          const outPath = '.simplebeacon/compliance-monitoring.json';
+          if (!fs.existsSync(reportPath)) {
+            console.log('No report.json found; skipping compliance monitoring snapshot.');
+            process.exit(0);
+          }
+          const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+          const assessment = fs.existsSync(assessmentPath)
+            ? JSON.parse(fs.readFileSync(assessmentPath, 'utf8'))
+            : null;
+          const snapshot = {
+            generatedAt: new Date().toISOString(),
+            gate: report.gate || null,
+            issueCount: Number(report.issueCount || 0),
+            severityCounts: report.severityCounts || {},
+            qualityScore: report.qualityScore ?? null,
+            consistencyScore: report.consistencyScore ?? null,
+            assessmentHeadline: assessment?.executiveSummary?.headline || null
+          };
+          fs.mkdirSync(path.dirname(outPath), { recursive: true });
+          fs.writeFileSync(outPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+          console.log(`Wrote ${outPath}`);
+          NODE
+
+      - name: Build quality maintenance metrics artifact
+        if: always()
+        run: npm run metrics:quality:build || true
+
+      - name: Publish trust verification payload (local + optional remote)
+        env:
+          TRUST_PUBLISH_ENDPOINT: ${{ secrets.SIMPLEBEACON_TRUST_PUBLISH_URL }}
+          TRUST_PUBLISH_TOKEN: ${{ secrets.SIMPLEBEACON_TRUST_PUBLISH_TOKEN }}
+          TRUST_PUBLISH_STRICT: 'false'
+          TRUST_PUBLISH_REQUIRED: 'false'
+          TRUST_PUBLISH_REQUIRE_TOKEN: 'false'
+          TRUST_PUBLISH_ALLOW_HTTP: 'false'
+        run: |
+          npm run trust:validate-env
+          npm run trust:publish
+
+      - name: Run npm audit supply-chain gate
+        run: npm audit --audit-level=high --json > .simplebeacon/npm-audit.json
+
+      - name: Verify Jest baseline behavior
+        run: npm test -- --no-coverage --passWithNoTests
+
+      - name: Add gate summary to workflow run
+        if: always()
+        run: |
+          if [ -f .simplebeacon/report.json ]; then
+            node packages/simplebeacon-cli/bin/simplebeacon.js comment \
+              --report .simplebeacon/report.json \
+              --print-only >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Simplebeacon" >> "$GITHUB_STEP_SUMMARY"
+            echo "No report generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f .simplebeacon/assessment.json ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Assessment headline" >> "$GITHUB_STEP_SUMMARY"
+            node -p "require('./.simplebeacon/assessment.json').executiveSummary?.headline || '—'" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Trust publish" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f .simplebeacon/trust-publish-env-validation.json ]; then
+            node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+            const env = require('./.simplebeacon/trust-publish-env-validation.json');
+            console.log(`- Env validation ready: ${env.ready}`);
+            console.log(`- Endpoint configured: ${env.endpointConfigured}`);
+            console.log(`- Token configured: ${env.tokenConfigured}`);
+            console.log(`- Endpoint: ${env.endpointRedacted || 'n/a'}`);
+          NODE
+          else
+            echo "- Env validation artifact missing" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f .simplebeacon/trust-publish-audit.json ]; then
+            node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+            const audit = require('./.simplebeacon/trust-publish-audit.json');
+            console.log(`- Publish status: ${audit.remote?.status || 'unknown'}`);
+            if (audit.remote?.reason) console.log(`- Publish reason: ${audit.remote.reason}`);
+            if (audit.remote?.message) console.log(`- Publish error: ${audit.remote.message}`);
+            console.log(`- Verification ID: ${audit.verificationId || 'n/a'}`);
+          NODE
+          else
+            echo "- Publish audit artifact missing" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Post PR compliance comment
+        if: github.event_name == 'pull_request' && always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -f .simplebeacon/report.json ]; then
+            npm run simplebeacon:comment
+          else
+            echo "::warning::Skipping PR comment because report.json is missing"
+          fi
+
+      - name: Upload PR gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-pr-gate-${{ github.run_id }}
+          path: |
+            ai-platform/.simplebeacon/report.json
+            ai-platform/.simplebeacon/assessment.json
+            ai-platform/.simplebeacon/npm-audit.json
+            ai-platform/.simplebeacon/fiction-kpi-guard-report.json
+            ai-platform/.simplebeacon/extended-schema-coverage.json
+            ai-platform/.simplebeacon/compliance-monitoring.json
+            ai-platform/.simplebeacon/quality-maintenance-metrics.json
+            ai-platform/.simplebeacon/trust-publish-env-validation.json
+            ai-platform/.simplebeacon/trust-publish-audit.json
+          if-no-files-found: ignore
