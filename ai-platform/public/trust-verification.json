@@ -1,28 +1,28 @@
 {
   "type": "simplebeacon-trust-verification",
-  "generatedAt": "2026-05-27T23:40:35.811Z",
+  "generatedAt": "2026-05-27T23:53:08.401Z",
   "verificationMethod": "simplebeacon-deterministic-gate",
   "platform": {
     "label": "Platform gate (ai-platform)",
     "projectRoot": "…/CascadeProjects/ai-platform",
-    "generatedAt": "2026-05-27T23:40:34.795Z",
+    "generatedAt": "2026-05-27T23:52:55.203Z",
     "reportVersion": 2,
     "gatePass": true,
-    "qualityScore": 100,
+    "qualityScore": 98,
     "schemaCompliance": 100,
     "schemaChecked": 43,
     "schemaPassed": 43,
-    "consistencyScore": 100,
+    "consistencyScore": 94,
     "consistencyChecked": 67,
-    "consistencyPassed": 67,
-    "issueCount": 0,
+    "consistencyPassed": 63,
+    "issueCount": 4,
     "severityCounts": {
       "critical": 0,
       "high": 0,
-      "medium": 0,
+      "medium": 4,
       "low": 0
     },
-    "repositoryFilesTotal": 16963,
+    "repositoryFilesTotal": 19379,
     "ruleScopedFilesAnalyzed": 193,
     "mockSampleFiles": 40,
     "fictionJsonFilesScanned": 67,
@@ -37,7 +37,7 @@
       "fiction-kpi-patterns"
     ],
     "profile": "configured",
-    "scopeNote": "Repository inventory: 16,963 files — gate rules checked 193 (mock paths, credentials, server/ leaks)."
+    "scopeNote": "Repository inventory: 19,379 files — gate rules checked 193 (mock paths, credentials, server/ leaks)."
   },
   "monorepo": {
     "label": "Monorepo root",
@@ -77,15 +77,15 @@
     "profile": "configured",
     "scopeNote": "Repository inventory: 24,140 files — gate rules checked 193 (mock paths, credentials, server/ leaks)."
   },
-  "headlineSource": "monorepo",
-  "headlineReason": "Monorepo snapshot is newer.",
+  "headlineSource": "platform",
+  "headlineReason": "Platform scan has higher issue count (4) than monorepo (0).",
   "headline": {
     "gatePass": true,
-    "qualityScore": 100,
-    "issueCount": 0,
+    "qualityScore": 98,
+    "issueCount": 4,
     "schemaCompliance": 100,
-    "lastScan": "2026-05-27T23:40:35.727Z",
-    "repositoryFilesTotal": 24140,
+    "lastScan": "2026-05-27T23:52:55.203Z",
+    "repositoryFilesTotal": 19379,
     "ruleScopedFilesAnalyzed": 193
   },
   "disclaimers": [
@@ -115,14 +115,14 @@
       "fictionScope": "repository-json"
     }
   },
-  "verificationId": "2cea94c2b3afe0f9",
+  "verificationId": "407f18e902c9fcbe",
   "repositoryHealth": {
     "type": "simplebeacon-repository-health",
-    "generatedAt": "2026-05-27T23:40:35.813Z",
+    "generatedAt": "2026-05-27T23:53:08.404Z",
     "platform": {
       "label": "Platform (ai-platform)",
       "projectRoot": "…/CascadeProjects/ai-platform",
-      "generatedAt": "2026-05-27T23:39:15.418Z",
+      "generatedAt": "2026-05-27T23:52:26.285Z",
       "reportVersion": 2,
       "repositoryHealthScore": 100,
       "optimizationPotential": "0B",
@@ -131,8 +131,8 @@
       "mergeCandidates": 0,
       "reductionOpportunities": 0,
       "oversizedFiles": 0,
-      "repositoryFilesTotal": 19345,
-      "repositoryFoldersTotal": 2521,
+      "repositoryFilesTotal": 19366,
+      "repositoryFoldersTotal": 2551,
       "repositoryFilesAudited": 43,
       "jsonFilesAnalyzed": 42,
       "sampleDataFilesAnalyzed": 43,
