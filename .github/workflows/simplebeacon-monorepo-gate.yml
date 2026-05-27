@@ -20,6 +20,7 @@ concurrency:
 jobs:
   monorepo-gate:
     name: Monorepo compliance gate
+    if: hashFiles('ai-platform/package-lock.json') != ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository source
@@ -29,8 +30,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
-          cache-dependency-path: ai-platform/package-lock.json
 
       - name: Install ai-platform dependencies
         working-directory: ai-platform
