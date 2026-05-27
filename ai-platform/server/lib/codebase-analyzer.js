@@ -81,7 +81,7 @@ async function analyzeFilesInBatches(files, rootDir, options = {}) {
 
     for (let offset = 0; offset < files.length; offset += concurrency) {
         const batch = files.slice(offset, offset + concurrency);
-        const results = await Promise.all(batch.map((file) => analyzeFileContent(file, rootDir)));
+        const results = await Promise.all(batch.map((file) => analyzeFileContent(file, rootDir, options)));
         for (let i = 0; i < results.length; i += 1) {
             const fileResult = results[i];
             const file = batch[i];
@@ -380,10 +380,16 @@ function isProductionPath(relativePath) {
 function isProductionRelevantPath(relativePath) {
     const rel = relativePath.replace(/\\/g, '/').toLowerCase();
     if (!isProductionPath(rel)) return false;
+    if (isLegacyExperimentalPath(relativePath)) return false;
     if (NON_PRODUCTION_PATH_HINTS.some((hint) => rel.includes(hint))) return false;
     const basename = rel.split('/').pop() || '';
     if (/\bdemo\b/i.test(basename)) return false;
     return true;
+}
+
+function shouldSkipLegacyExperimentalAnalysis(relativePath, options = {}) {
+    if (options.includeLegacyExperimental === true) return false;
+    return isLegacyExperimentalPath(relativePath);
 }
 
 function isPlaceholderCatalogOrMetaDoc(relativePath) {
@@ -506,6 +512,9 @@ async function walkCodeFiles(rootDir, options = {}) {
 
             if (!isCode) continue;
 
+            const relativePath = normalizeRelativePath(rootDir, fullPath);
+            if (shouldSkipLegacyExperimentalAnalysis(relativePath, options)) continue;
+
             try {
                 const stat = await fs.promises.stat(fullPath);
                 results.push({
@@ -513,7 +522,7 @@ async function walkCodeFiles(rootDir, options = {}) {
                     name: entry.name,
                     ext,
                     size: stat.size,
-                    relativePath: normalizeRelativePath(rootDir, fullPath),
+                    relativePath,
                     isArtifact
                 });
             } catch {
@@ -999,10 +1008,14 @@ async function loadEslintReportFromDisk(scanRoot, platformRoot) {
     return null;
 }
 
-async function analyzeFileContent(file, rootDir) {
+async function analyzeFileContent(file, rootDir, options = {}) {
     const findings = [];
     const rel = file.relativePath;
     let structure = null;
+
+    if (shouldSkipLegacyExperimentalAnalysis(rel, options)) {
+        return finalizeFileAnalysis(findings, rel, structure);
+    }
 
     if (file.isArtifact || rel.includes('security-reports/fixes/')) {
         pushFinding(findings, {
@@ -1236,6 +1249,19 @@ function countFindingTiers(findings = []) {
         acc[tier] = (acc[tier] || 0) + 1;
         return acc;
     }, { production: 0, documentation: 0, general: 0 });
+}
+
+function sortFindingsForReport(findings = []) {
+    const severityRank = { high: 0, medium: 1, low: 2 };
+    const tierRank = { production: 0, documentation: 1, general: 2 };
+    return [...findings].sort((a, b) => {
+        const tierDelta = (tierRank[classifyFindingTier(a.filePath)] ?? 9)
+            - (tierRank[classifyFindingTier(b.filePath)] ?? 9);
+        if (tierDelta !== 0) return tierDelta;
+        const sevDelta = (severityRank[a.severity] ?? 9) - (severityRank[b.severity] ?? 9);
+        if (sevDelta !== 0) return sevDelta;
+        return String(a.filePath || '').localeCompare(String(b.filePath || ''));
+    });
 }
 
 function aggregateCategories(findings = []) {
@@ -1487,7 +1513,8 @@ async function analyzeCodebase(baseDir, options = {}) {
     const { findings, structureSamples } = await analyzeFilesInBatches(filesToAnalyze, codeWalkRoot, {
         concurrency: context === 'complete'
             ? Number(process.env.CODEBASE_COMPLETE_CONCURRENCY) || Math.max(ANALYZE_FILE_CONCURRENCY, 48)
-            : options.concurrency
+            : options.concurrency,
+        includeLegacyExperimental: options.includeLegacyExperimental
     });
 
     findings.push(...detectDuplicateBasenames(files));
@@ -1548,7 +1575,8 @@ async function analyzeCodebase(baseDir, options = {}) {
     const codeFilesAnalyzed = filesToAnalyze.length;
     const healthScore = computeHealthScore(findings, codeFilesAnalyzed);
     const findingsTruncated = findings.length > findingsCap;
-    const findingsReturned = findings.slice(0, findingsCap);
+    const sortedFindings = sortFindingsForReport(findings);
+    const findingsReturned = sortedFindings.slice(0, findingsCap);
 
     return {
         type: 'codebase-analyzer-report',
