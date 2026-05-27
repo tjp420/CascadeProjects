@@ -37,8 +37,8 @@ export default [
         globalThis: 'readonly',
         fetch: 'readonly',
         AbortController: 'readonly',
-        window: 'readonly',
-        URL: 'readonly'
+        URL: 'readonly',
+        window: 'readonly'
       }
     },
     rules: {

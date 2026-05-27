@@ -665,7 +665,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 assessor: body.assessor,
                 aiProvider: providerOpts?.providerId || aiProvider,
                 summarizeFn: providerOpts
-                    ? async (providerId, payload, opts) => summarizeScanWithProvider(
+                    ? async (providerId, payload, _opts) => summarizeScanWithProvider(
                         providerId,
                         { reportKind: 'complete-audit-report', prompt: payload.prompt },
                         {

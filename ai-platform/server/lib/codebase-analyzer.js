@@ -163,7 +163,7 @@ const TECH_DEBT_PATTERNS = [
     { id: 'not-implemented', pattern: /not\s+implemented\s+yet|throw\s+new\s+Error\s*\(\s*['"]TODO/gi, label: 'Not implemented stub' }
 ];
 
-const DEBUG_PATTERNS = [
+const _DEBUG_PATTERNS = [
     { id: 'console-log', pattern: /\bconsole\.(log|debug|info)\s*\(/g, label: 'console.log/debug' },
     { id: 'debugger', pattern: /\bdebugger\s*;?/g, label: 'debugger statement' }
 ];
