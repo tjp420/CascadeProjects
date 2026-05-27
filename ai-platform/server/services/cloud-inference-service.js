@@ -89,7 +89,7 @@ async function resolveOllamaModel(registry = null, userCredentials = null, optio
 
 function listAvailableProviders(registry = null, userCredentials = null) {
     const activeModel = registry?.models?.find((m) => m.id === registry.activeModelId);
-    const ollamaRegistry = registry?.models?.some((m) => m.provider === 'ollama');
+    const _ollamaRegistry = registry?.models?.some((m) => m.provider === 'ollama');
     const ollamaUrl = resolveOllamaBaseUrl(registry, userCredentials);
     const ollamaModel = resolveOllamaModelSync(registry, userCredentials);
 

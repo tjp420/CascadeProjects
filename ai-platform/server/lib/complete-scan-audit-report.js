@@ -1256,7 +1256,7 @@ async function buildCompleteAuditReport(completeScan, options = {}) {
     });
 
     const slug = redactPathForDisplay(model.projectPath).replace(/[^\w.-]+/g, '-').slice(0, 40);
-    const date = new Date(model.generatedAt).toISOString().slice(0, 10);
+    const _date = new Date(model.generatedAt).toISOString().slice(0, 10);
 
     return {
         html,
@@ -1332,7 +1332,7 @@ function buildSampleAuditReportHtml(options = {}) {
         .replace('<body>', `<body>${siteBar}`);
 }
 
-function wrapSampleReportForWebsite(fullHtml) {
+function wrapSampleReportForWebsite(_fullHtml) {
     return buildSampleAuditReportHtml({ siteChrome: true });
 }
 

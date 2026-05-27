@@ -52,6 +52,15 @@ const { setupFlexibleAnalyzeAPI } = require('./routes/flexible-analyze-api');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const packageJsonPath = path.join(__dirname, '..', 'package.json');
+let cachedPackageJson = null;
+
+function getPackageJson() {
+  if (!cachedPackageJson) {
+    cachedPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  }
+  return cachedPackageJson;
+}
 
 // Initialize audit system
 initializeAudit().catch(console.error);
@@ -84,7 +93,7 @@ const authLoginRateLimit = rateLimit({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-const comingSoonRoot = path.join(__dirname, '../../coming-soon');
+const comingSoonRoot = path.join(__dirname, '../coming-soon');
 const webRoot = path.join(__dirname, '../web');
 const internalDashboard = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true';
 const {
@@ -100,21 +109,13 @@ function isVaultAuthenticated(req) {
   });
 }
 
-function sendLandingPage(res) {
-  const comingSoonIndex = path.join(comingSoonRoot, 'index.html');
-  const landingPage = path.join(webRoot, 'landing.html');
-  if (fs.existsSync(comingSoonIndex)) {
-    return res.sendFile(comingSoonIndex);
-  }
-  if (fs.existsSync(landingPage)) {
-    return res.sendFile(landingPage);
-  }
-  return res.status(404).send('Landing page not found');
+function sendComingSoonIndex(res) {
+  res.sendFile(path.join(comingSoonRoot, 'index.html'));
 }
 
 // Public storefront — same paywall as simplebeacon.ai (coming-soon/)
-app.get('/', (req, res) => sendLandingPage(res));
-app.get(['/landing', '/landing/'], (req, res) => sendLandingPage(res));
+app.get('/', (req, res) => sendComingSoonIndex(res));
+app.get(['/landing', '/landing/'], (req, res) => sendComingSoonIndex(res));
 app.get(['/sample-report', '/sample-report/'], (req, res) => {
   res.sendFile(path.join(comingSoonRoot, 'sample-report.html'));
 });
@@ -244,14 +245,7 @@ app.get('/api/project-structure', async (req, res) => {
 // Releases API
 app.get('/api/releases', (req, res) => {
   try {
-    const fs = require('fs').promises;
-    const path = require('path');
-    
-    // Look for actual release information
-    const packageJsonPath = path.join(__dirname, '..', 'package.json');
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
-    // Check for changelog or release notes
+    const packageJson = getPackageJson();
     const releases = [
       {
         version: packageJson.version || '2.0.0',
@@ -788,7 +782,7 @@ function validateFileStructure(file) {
   
   const score = tests.length > 0 ? 100 : 0;
   const status = issues.length === 0 ? 'passed' : 'failed';
-  const severity = issues.length > 0 ? issues[0].severity : 'info';
+  const _severity = issues.length > 0 ? issues[0].severity : 'info';
   
   return {
     file: file.path,
