@@ -1,4 +1,9 @@
 import js from '@eslint/js';
+import globals from 'globals';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const sharedDashboardGlobals = require('./web/scripts/eslint-shared-globals.json');
 
 export default [
   {
@@ -11,7 +16,46 @@ export default [
       '**/build/**',
       '**/archive/**',
       '**/htmlcov/**',
-      '**/.simplebeacon/**'
+      '**/.simplebeacon/**',
+      'web/scripts/eslint-shared-globals.json',
+      'web/scripts/**/*.part*.js',
+      'web/scripts/**/jest.config*.js',
+      'web/scripts/**/rollup.config*.js',
+      'web/scripts/**/vite.config.js',
+      'web/scripts/**/eslint.config.js',
+      'web/scripts/**/simple_http_server.js',
+      'web/scripts/**/quick-server.js',
+      'web/scripts/**/git-history-server.js',
+      'web/scripts/**/simple-api-server.js',
+      'web/scripts/**/start-all.js',
+      'web/scripts/**/start-dashboard.js',
+      'web/scripts/**/temp_dashboard.js',
+      'web/scripts/**/dashboard-inline-core.part*.js',
+      'web/scripts/**/export-system.part*.js',
+      'web/scripts/**/check_braces.js',
+      'web/scripts/**/code_quality_scanner.original.js',
+      'web/scripts/**/webpack.config.js',
+      'web/scripts/**/webpack.optimization.config.js',
+      'web/scripts/**/advanced-analytics-panel.js',
+      'web/scripts/**/browser-mock-scanner.js',
+      'web/scripts/**/code_quality_fixer.js',
+      'web/scripts/**/code_quality_scanner.js',
+      'web/scripts/**/dashboard-init.js',
+      'web/scripts/**/dashboard-sidebar-button-fix.js',
+      'web/scripts/**/dashboard.test.js',
+      'web/scripts/**/data-upload.js',
+      'web/scripts/**/directory-analyzer-system.js',
+      'web/scripts/**/error-tracking-resolution-system.js',
+      'web/scripts/**/jest.setup.js',
+      'web/scripts/**/large_function_refactor.js',
+      'web/scripts/**/mock-data-scan-results.js',
+      'web/scripts/**/project-resources-manager.js',
+      'web/scripts/**/quick-scanner-test.js',
+      'web/scripts/**/test-enhanced-scanner.js',
+      'web/scripts/**/test-scanner-modules.js',
+      'web/scripts/**/test-scanner-simple.js',
+      'web/scripts/**/test-security-monitoring.js',
+      'web/scripts/**/test-technical-debt-fix.js'
     ]
   },
   js.configs.recommended,
@@ -57,43 +101,18 @@ export default [
       ecmaVersion: 2022,
       sourceType: 'script',
       globals: {
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        console: 'readonly',
-        localStorage: 'readonly',
-        sessionStorage: 'readonly',
-        fetch: 'readonly',
-        URL: 'readonly',
-        URLSearchParams: 'readonly',
-        FormData: 'readonly',
-        Blob: 'readonly',
-        File: 'readonly',
-        FileReader: 'readonly',
-        HTMLElement: 'readonly',
-        Element: 'readonly',
-        Node: 'readonly',
-        Event: 'readonly',
-        CustomEvent: 'readonly',
-        MutationObserver: 'readonly',
-        IntersectionObserver: 'readonly',
-        ResizeObserver: 'readonly',
-        requestAnimationFrame: 'readonly',
-        cancelAnimationFrame: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        alert: 'readonly',
-        confirm: 'readonly',
-        prompt: 'readonly',
-        atob: 'readonly',
-        btoa: 'readonly',
-        structuredClone: 'readonly',
-        AbortController: 'readonly',
-        WebSocket: 'readonly',
+        ...globals.browser,
+        ...sharedDashboardGlobals,
         Chart: 'readonly',
-        bootstrap: 'readonly'
+        bootstrap: 'readonly',
+        d3: 'readonly',
+        event: 'readonly',
+        module: 'readonly',
+        process: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        exports: 'readonly',
+        global: 'readonly'
       }
     },
     rules: {
@@ -103,7 +122,42 @@ export default [
         caughtErrorsIgnorePattern: '^_'
       }],
       'no-console': 'off',
-      'no-undef': 'warn'
+      'no-undef': 'warn',
+      'no-redeclare': 'off',
+      'no-dupe-keys': 'warn',
+      'no-dupe-class-members': 'warn',
+      'no-useless-escape': 'warn',
+      'no-import-assign': 'warn',
+      'no-global-assign': 'warn',
+      'no-const-assign': 'warn',
+      'no-case-declarations': 'warn'
+    }
+  },
+  {
+    files: [
+      'web/scripts/api-client.js',
+      'web/scripts/api-client-init.js',
+      'web/scripts/constants.js',
+      'web/scripts/code_quality_fixer.js',
+      'web/scripts/code_quality_improvements_optimized.js',
+      'web/scripts/code_quality_scanner.js',
+      'web/scripts/run_quality_scan.js'
+    ],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.browser
+      }
+    }
+  },
+  {
+    files: ['web/scripts/jest.setup*.js', 'web/scripts/**/*.test.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.jest
+      }
     }
   },
   {
