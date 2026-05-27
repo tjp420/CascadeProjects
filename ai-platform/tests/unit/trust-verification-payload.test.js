@@ -35,6 +35,29 @@ describe('trust-verification-payload', () => {
         fs.writeFileSync(path.join(dir, 'report.json'), JSON.stringify(report), 'utf8');
     }
 
+    test('methodology documents fiction JSON scope from report metrics', () => {
+        writeReport(tmpRoot, {
+            type: 'simplebeacon-report',
+            generatedAt: '2026-05-27T23:10:28.816Z',
+            projectRoot: tmpRoot,
+            platformRoot: tmpRoot,
+            qualityScore: 100,
+            issueCount: 0,
+            fictionJsonFilesScanned: 67,
+            fictionSampleFilesScanned: 40,
+            fictionScope: 'repository-json',
+            mockSampleFiles: 40,
+            gate: { pass: true }
+        });
+
+        const payload = buildTrustVerificationPayload({ platformRoot: tmpRoot, monorepoRoot: tmpRoot });
+        expect(payload.fictionScope.fictionJsonFilesScanned).toBe(67);
+        expect(payload.fictionScope.fictionSampleFilesScanned).toBe(40);
+        expect(payload.fictionScope.mode).toBe('repository-json');
+        expect(payload.methodology.some((line) => /67 JSON pattern-checked/.test(line))).toBe(true);
+        expect(payload.methodology.some((line) => /config\.ignore/.test(line))).toBe(true);
+    });
+
     test('builds platform snapshot with scoped metrics', () => {
         writeReport(tmpRoot, {
             type: 'simplebeacon-report',
@@ -236,6 +259,9 @@ describe('trust-verification-payload', () => {
             schemaCompliance: 100,
             repositoryFilesTotal: 42000,
             ruleScopedFilesAnalyzed: 1200,
+            fictionJsonFilesScanned: 67,
+            fictionSampleFilesScanned: 40,
+            fictionScope: 'repository-json',
             gate: { pass: true }
         });
 
@@ -253,6 +279,8 @@ describe('trust-verification-payload', () => {
             expect(body.scope).toBeTruthy();
             expect(typeof body.scope.coveragePercent === 'number' || body.scope.coveragePercent === null).toBe(true);
             expect(Array.isArray(body.methodology)).toBe(true);
+            expect(body.fictionScope).toBeTruthy();
+            expect(body.scope.fictionJsonFilesScanned).toBe(67);
         } finally {
             await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
         }

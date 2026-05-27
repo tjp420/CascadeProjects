@@ -54,7 +54,9 @@ function buildReportSnapshot(report, label) {
         repositoryFilesTotal: report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles ?? null,
         ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? null,
         mockSampleFiles: report.mockSampleFiles ?? report.totalFiles ?? null,
-        fictionJsonFilesScanned: report.fictionJsonFilesScanned ?? null,
+        fictionJsonFilesScanned: report.fictionJsonFilesScanned ?? report.scanScope?.fictionJsonFilesScanned ?? null,
+        fictionSampleFilesScanned: report.fictionSampleFilesScanned ?? report.scanScope?.fictionSampleFilesScanned ?? null,
+        fictionScope: report.fictionScope ?? report.scanScope?.fictionScope ?? null,
         rulesEnabled: report.scanScope?.rulesEnabled || [],
         profile: report.scanScope?.profile || report.configPath ? 'configured' : 'standard',
         scopeNote: report.scanScope?.limitations?.[0]
@@ -135,6 +137,60 @@ function pickHeadlineSnapshot(platform, monorepo) {
     return { primary: platform, source: 'platform', reason: 'Platform snapshot is newer or equally recent.' };
 }
 
+function buildFictionScopeNote(snap) {
+    if (!snap) {
+        return 'Fiction/KPI rules use fictionScope repository-json when enabled — walk root is ai-platform, not the monorepo parent inventory.';
+    }
+    const mode = snap.fictionScope || 'repository-json';
+    const walkRoot = snap.platformRoot || snap.projectRoot || 'ai-platform';
+    const jsonCount = snap.fictionJsonFilesScanned;
+    const sampleCount = snap.fictionSampleFilesScanned ?? snap.mockSampleFiles;
+    if (jsonCount == null) {
+        return 'Fiction/KPI JSON scope (fictionScope ' + mode + '): recursive .json walk from ' + walkRoot + ' with config.ignore — see scan report for file counts.';
+    }
+    const samplePart = sampleCount != null
+        ? ' (' + sampleCount + ' dashboard mock JSON files among them)'
+        : '';
+    return 'Fiction/KPI JSON scope (fictionScope ' + mode + '): recursive walk from ' + walkRoot
+        + ', .json at most 512KB, minus config.ignore — ' + jsonCount + ' JSON pattern-checked'
+        + samplePart + '; explorer inventory totals are separate and much larger.';
+}
+
+function buildFictionScopeBlock(platformSnap, monorepoSnap, headlineSource) {
+    const primary = headlineSource === 'monorepo' ? monorepoSnap : platformSnap;
+    const walkRoot = platformSnap?.platformRoot || platformSnap?.projectRoot || null;
+    return {
+        mode: primary?.fictionScope || 'repository-json',
+        walkRoot,
+        fictionJsonFilesScanned: primary?.fictionJsonFilesScanned ?? null,
+        fictionSampleFilesScanned: primary?.fictionSampleFilesScanned ?? primary?.mockSampleFiles ?? null,
+        platform: platformSnap
+            ? {
+                fictionJsonFilesScanned: platformSnap.fictionJsonFilesScanned,
+                fictionSampleFilesScanned: platformSnap.fictionSampleFilesScanned ?? platformSnap.mockSampleFiles,
+                fictionScope: platformSnap.fictionScope
+            }
+            : null,
+        monorepo: monorepoSnap
+            ? {
+                fictionJsonFilesScanned: monorepoSnap.fictionJsonFilesScanned,
+                fictionSampleFilesScanned: monorepoSnap.fictionSampleFilesScanned ?? monorepoSnap.mockSampleFiles,
+                fictionScope: monorepoSnap.fictionScope
+            }
+            : null
+    };
+}
+
+function buildTrustMethodology(platformSnap, monorepoSnap, headlineSource) {
+    const primary = headlineSource === 'monorepo' ? monorepoSnap : platformSnap;
+    return [
+        'Simplebeacon runs deterministic pattern matching on configured mock/sample JSON, credentials, and production-path rules.',
+        buildFictionScopeNote(primary || platformSnap),
+        'Codebase analyzer (separate scan) flags TODO/FIXME, broken JSON, debug artifacts, and ESLint violations.',
+        'We publish scoped metrics so buyers can verify what was actually checked — not marketing averages.'
+    ];
+}
+
 function buildTrustVerificationPayload(options = {}) {
     const platformRoot = path.resolve(options.platformRoot || options.projectRoot || process.cwd());
     const monorepoRoot = options.monorepoRoot
@@ -177,12 +233,8 @@ function buildTrustVerificationPayload(options = {}) {
             }
             : null,
         disclaimers: buildTrustDisclaimers(platform, monorepo),
-        methodology: [
-            'Simplebeacon runs deterministic pattern matching on configured mock/sample JSON, credentials, and production-path rules.',
-            'Fiction/KPI rules can scan all repository JSON when fictionScope is repository-json.',
-            'Codebase analyzer (separate scan) flags TODO/FIXME, broken JSON, debug artifacts, and ESLint violations.',
-            'We publish scoped metrics so buyers can verify what was actually checked — not marketing averages.'
-        ]
+        methodology: buildTrustMethodology(platform, monorepo, picked.source),
+        fictionScope: buildFictionScopeBlock(platform, monorepo, picked.source)
     };
 
     payload.verificationId = verificationDigest(payload);
@@ -275,7 +327,7 @@ function esc(value) {
 
 function renderSnapshotRow(label, snap) {
     if (!snap) {
-        return `<section class="card"><h2>${esc(label)}</h2><p class="muted">No report on disk — run <code>npm run simplebeacon:report</code> first.</p></section>`;
+        return `<section class="card"><h2>${esc(label)}</h2><p class="muted">No report on disk — run <code>npm run trust:refresh</code> first.</p></section>`;
     }
     const gate = snap.gatePass ? 'pass' : 'review';
     const gateLabel = snap.gatePass ? 'GATE PASS' : 'GATE REVIEW';
@@ -356,6 +408,20 @@ function buildTrustVerifyHtml(payload) {
     </div>
     ${renderSnapshotRow('Platform gate (ai-platform)', payload.platform)}
     ${renderSnapshotRow('Monorepo root', payload.monorepo)}
+    ${payload.fictionScope ? `
+    <section class="card">
+      <h2>Fiction / KPI scope</h2>
+      <p class="muted">Walk root <code>${esc(payload.fictionScope.walkRoot)}</code> · mode <code>${esc(payload.fictionScope.mode)}</code></p>
+      <dl class="metrics">
+        <div><dt>JSON scanned</dt><dd>${esc(payload.fictionScope.fictionJsonFilesScanned)}</dd></div>
+        <div><dt>Mock JSON</dt><dd>${esc(payload.fictionScope.fictionSampleFilesScanned)}</dd></div>
+      </dl>
+    </section>` : ''}
+    ${(payload.methodology || []).length ? `
+    <section class="card">
+      <h2>Methodology</h2>
+      <ul>${(payload.methodology || []).map((line) => `<li>${esc(line)}</li>`).join('')}</ul>
+    </section>` : ''}
     <section class="card">
       <h2>Disclaimers</h2>
       <ul>${disclaimers}</ul>
@@ -393,6 +459,9 @@ module.exports = {
     buildTrustVerificationPayload,
     buildTrustBadgeSvg,
     buildReportSnapshot,
+    buildTrustMethodology,
+    buildFictionScopeNote,
+    buildFictionScopeBlock,
     buildTrustVerifyHtml,
     buildTrustVerifyCompact,
     buildTrustBadgeHtml,

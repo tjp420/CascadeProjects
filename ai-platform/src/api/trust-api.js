@@ -66,11 +66,16 @@ function buildScopeTransparency(payload) {
     const coveragePercent = repositoryFilesTotal && ruleScopedFilesAnalyzed
         ? Number(((ruleScopedFilesAnalyzed / Math.max(repositoryFilesTotal, 1)) * 100).toFixed(2))
         : null;
+    const fiction = payload?.fictionScope || null;
     return {
         headlineSource: payload?.headlineSource || null,
         repositoryFilesTotal,
         ruleScopedFilesAnalyzed,
         coveragePercent,
+        fictionScope: fiction?.mode || null,
+        fictionJsonFilesScanned: fiction?.fictionJsonFilesScanned ?? primary?.fictionJsonFilesScanned ?? null,
+        fictionSampleFilesScanned: fiction?.fictionSampleFilesScanned ?? primary?.fictionSampleFilesScanned ?? null,
+        fictionWalkRoot: fiction?.walkRoot ?? null,
         limitations: primary?.scopeNote
             ? [primary.scopeNote]
             : payload?.disclaimers || []
@@ -230,6 +235,7 @@ function setupTrustAPI(app, options = {}) {
                 verificationMethod: payload.verificationMethod || null,
                 methodology: payload.methodology || [],
                 disclaimers: payload.disclaimers || [],
+                fictionScope: payload.fictionScope || null,
                 scope: buildScopeTransparency(payload),
                 trend
             });
