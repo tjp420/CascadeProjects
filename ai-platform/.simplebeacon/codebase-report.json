@@ -3,20 +3,20 @@
   "reportVersion": 1,
   "title": "Codebase Analysis Report",
   "dataSource": "repository-audit",
-  "generatedAt": "2026-05-27T19:38:15.901Z",
+  "generatedAt": "2026-05-27T23:31:03.836Z",
   "generatedBy": "codebase-analyzer",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-    "totalFiles": 3005,
-    "totalFolders": 218,
+    "totalFiles": 2388,
+    "totalFolders": 152,
     "profile": "audit"
   },
   "summary": {
-    "repositoryFilesTotal": 3005,
-    "repositoryFoldersTotal": 218,
-    "codeFilesAnalyzed": 2565,
-    "codeFilesDiscovered": 2603,
+    "repositoryFilesTotal": 2388,
+    "repositoryFoldersTotal": 152,
+    "codeFilesAnalyzed": 2100,
+    "codeFilesDiscovered": 2138,
     "findingsTotal": 0,
     "findingsReturned": 0,
     "findingsTruncated": false,
@@ -139,6 +139,16 @@
         "approximateClasses": 0,
         "importOrIncludeCount": 1,
         "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "config/README.md",
+        "language": "markdown",
+        "lineCount": 22,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 1,
+        "complexity": "low",
         "tier": "baseline"
       },
       {
@@ -590,16 +600,6 @@
         "importOrIncludeCount": 1,
         "complexity": "medium",
         "tier": "baseline"
-      },
-      {
-        "filePath": "docs/ALL_ERRORS_SOLVED_FINAL.md",
-        "language": "markdown",
-        "lineCount": 59,
-        "approximateFunctions": 0,
-        "approximateClasses": 0,
-        "importOrIncludeCount": 0,
-        "complexity": "low",
-        "tier": "baseline"
       }
     ]
   },
@@ -621,12 +621,12 @@
     ],
     "description": "Complete scan profile — deep content analysis on every discovered code-like file (skips node_modules, .git, coverage). Not a semantic or security certification.",
     "limitations": [
-      "Complete scan: analyzed 2,565 of 2,603 code-like files.",
+      "Complete scan: analyzed 2,100 of 2,138 code-like files.",
       "Extension profile: universal (dashboard default: universal; complete/CLI: default; override with SCAN_PROFILE or scanProfile).",
       "52 language plugins (51 registry languages; Tier-2: Python, Rust, Go, SQL).",
       "Context-aware filtering reduces false positives in tests, docs, and example paths.",
       "Structure hints are regex-based Tier-1 estimates — not AST parsing.",
-      "ESLint ran on server/ and packages/ under the platform root when available.",
+      "ESLint ran on server, packages, web/scripts, web/components, web/simplebeacon-dashboard/js, src under the platform root when available.",
       "Does not prove dead-code elimination — flags debt markers and broken files only."
     ]
   }
