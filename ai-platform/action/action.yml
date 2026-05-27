@@ -31,7 +31,7 @@ inputs:
     required: false
     default: '20'
   package:
-    description: npm package to run (use file: path for monorepo dev)
+    description: "npm package to run (use a file path for monorepo dev)"
     required: false
     default: 'simplebeacon'
 
