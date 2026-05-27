@@ -150,7 +150,7 @@ describe('AI systems issue analyzer core', () => {
     `);
 
     expect(result.measured).toBeGreaterThan(3);
-    expect(result.insufficient.length).toBeLessThan(20);
+    expect(result.insufficient.length).toBeLessThan(30);
   });
 
   test('enrichScanContextForAnalyzers derives claims traces samples and benchmarks', () => {
@@ -189,12 +189,13 @@ describe('AI systems issue analyzer core', () => {
     expect(enriched.latencySamples).toBeGreaterThan(0);
   });
 
-  test('A-29 scores latency from scan duration metrics', () => {
+  test('A-29 scores latency from explicit latency samples', () => {
     const result = runAnalyzerScript(`
       const output = analyzer.buildAiSystemsIssueAnalysis(['A-29'], {
         'response-latency-analyzer': {
           metrics: { p95LatencyMs: 180, p50LatencyMs: 95 },
-          responseText: 'User-facing flow p95=180ms under nominal load.'
+          responseText: 'User-facing flow p95=180ms under nominal load.',
+          latencySamples: [{ latencyMs: 180, label: 'p95' }, { latencyMs: 95, label: 'p50' }]
         }
       });
       console.log(JSON.stringify(output.analyzerResults[0]));
@@ -203,6 +204,26 @@ describe('AI systems issue analyzer core', () => {
     expect(result.status).toBe('implemented');
     expect(result.evidenceStatus).toBe('sufficient');
     expect(result.metrics.find((m) => m.name === 'latency_score').value).toBeGreaterThan(50);
+    expect(result.severity).not.toBe('critical');
+  });
+
+  test('A-29 ignores batch scan duration in scan report context', () => {
+    const result = runAnalyzerScript(`
+      const output = analyzer.buildAiSystemsIssueAnalysis(['A-29'], {
+        context: {
+          inputKind: 'scan-report',
+          scanReportContext: true,
+          responseText: 'Repository scan complete in 21233 ms with 0 critical findings.',
+          metrics: { scanDurationMs: 21233, p95LatencyMs: 21233 },
+          fileReduction: { durationMs: 21233 }
+        }
+      });
+      console.log(JSON.stringify(output.analyzerResults[0]));
+    `);
+
+    expect(result.status).toBe('implemented');
+    expect(result.severity).not.toBe('critical');
+    expect(result.findings.some((finding) => finding.code === 'INSUFFICIENT_DATA')).toBe(true);
   });
 
   test('A-33 computes precision and recall from labeled pairs', () => {
@@ -310,15 +331,24 @@ describe('AI systems issue analyzer core', () => {
     expect(result.a23?.severity).not.toBe('high');
   });
 
-  test('stub analyzers execute safely with contract-valid output', () => {
+  test('A-07 catastrophic forgetting returns implemented output with retention metrics', () => {
     const result = runAnalyzerScript(`
-      const result = analyzer.buildAiSystemsIssueAnalysis(['A-07', 'A-07', 'A-99', '']);
+      const result = analyzer.buildAiSystemsIssueAnalysis(['A-07', 'A-07', 'A-99', ''], {
+        context: {
+          taskSequenceScores: [
+            { task: 'classification', score: 92, checkpoint: 1 },
+            { task: 'classification', score: 88, checkpoint: 2 },
+            { task: 'summarization', score: 85, checkpoint: 1 },
+            { task: 'summarization', score: 83, checkpoint: 2 }
+          ]
+        }
+      });
       console.log(JSON.stringify(result));
     `);
     expect(result.summary.selectedIssueCount).toBe(1);
     expect(result.payload.selectedIssueIds).toEqual(['A-07']);
     expect(result.analyzerResults).toHaveLength(1);
-    expect(result.analyzerResults[0].status).toBe('not_implemented');
+    expect(result.analyzerResults[0].status).toBe('implemented');
     expect(result.analyzerResults[0].severity).toBe('low');
     expect(result.analyzerResults[0].riskBand).toBe('Low');
     expect(result.analyzerResults[0]).toHaveProperty('score');
@@ -964,7 +994,7 @@ describe('AI systems issue analyzer core', () => {
     expect(result.metrics.find((m) => m.name === 'data_analyzed').value).toBeGreaterThan(0);
   });
 
-  test('runAllAnalyzers executes all 31 implemented analyzers with shared context', () => {
+  test('runAllAnalyzers executes all 48 implemented analyzers with shared context', () => {
     const result = runAnalyzerScript(`
       const output = analyzer.runAllAnalyzers({
         responseText: 'Decision trace with feature importance because step-by-step reasoning. GDPR audit logging human oversight escalation path decision owner provenance record training source rights attribution log renewable-powered compute.',
@@ -1027,9 +1057,9 @@ describe('AI systems issue analyzer core', () => {
       }));
     `);
 
-    expect(result.count).toBe(31);
-    expect(result.implemented).toBe(31);
-    expect(result.insufficient).toBeLessThanOrEqual(9);
+    expect(result.count).toBe(48);
+    expect(result.implemented).toBe(48);
+    expect(result.insufficient).toBeLessThanOrEqual(26);
     expect(result.dataAnalyzed.filter((row) => row.value === 0).map((row) => row.id)).toEqual(
       expect.arrayContaining(['A-14'])
     );

@@ -1,0 +1,16 @@
+{
+  "issueId": "A-47",
+  "category": "everyday-integration-issues",
+  "context": {
+    "customizationOptions": [
+      {
+        "name": "tone",
+        "success": true
+      },
+      {
+        "name": "format",
+        "success": true
+      }
+    ]
+  }
+}

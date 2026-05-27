@@ -1,0 +1,28 @@
+{
+  "issueId": "A-07",
+  "category": "technical-ai-issues",
+  "context": {
+    "taskSequenceScores": [
+      {
+        "task": "classification",
+        "score": 92,
+        "checkpoint": 1
+      },
+      {
+        "task": "classification",
+        "score": 88,
+        "checkpoint": 2
+      },
+      {
+        "task": "summarization",
+        "score": 85,
+        "checkpoint": 1
+      },
+      {
+        "task": "summarization",
+        "score": 83,
+        "checkpoint": 2
+      }
+    ]
+  }
+}

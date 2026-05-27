@@ -1,0 +1,16 @@
+{
+  "issueId": "A-40",
+  "category": "everyday-trust-safety-issues",
+  "context": {
+    "moderationDecisions": [
+      {
+        "harmful": true,
+        "blocked": true
+      },
+      {
+        "harmful": false,
+        "blocked": false
+      }
+    ]
+  }
+}

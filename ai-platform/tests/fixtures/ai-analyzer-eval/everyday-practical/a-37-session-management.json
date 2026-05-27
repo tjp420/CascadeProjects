@@ -1,0 +1,16 @@
+{
+  "issueId": "A-37",
+  "category": "everyday-practical-issues",
+  "context": {
+    "sessionTransitions": [
+      {
+        "stateIntact": true,
+        "recovered": true
+      },
+      {
+        "stateIntact": true,
+        "recovered": false
+      }
+    ]
+  }
+}

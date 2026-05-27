@@ -1,0 +1,13 @@
+{
+  "issueId": "A-35",
+  "category": "everyday-practical-issues",
+  "context": {
+    "domainTasks": [
+      {
+        "expected": "myocardial infarction",
+        "actual": "myocardial infarction",
+        "terminologyCorrect": true
+      }
+    ]
+  }
+}

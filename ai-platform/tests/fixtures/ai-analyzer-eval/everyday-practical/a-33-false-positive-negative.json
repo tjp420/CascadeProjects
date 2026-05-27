@@ -1,0 +1,20 @@
+{
+  "issueId": "A-33",
+  "category": "everyday-practical-issues",
+  "context": {
+    "classificationLabels": [
+      {
+        "predictedPositive": true,
+        "actualPositive": true
+      },
+      {
+        "predictedPositive": false,
+        "actualPositive": false
+      },
+      {
+        "predictedPositive": true,
+        "actualPositive": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "issueId": "A-30",
+  "category": "everyday-ux-problems",
+  "context": {
+    "pricingTiers": [
+      {
+        "name": "free",
+        "monthlyCost": 0,
+        "free": true
+      },
+      {
+        "name": "pro",
+        "monthlyCost": 20
+      }
+    ],
+    "responseText": "Affordable tiers with transparent pricing for all segments."
+  }
+}

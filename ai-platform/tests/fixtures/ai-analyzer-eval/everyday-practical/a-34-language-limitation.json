@@ -1,0 +1,18 @@
+{
+  "issueId": "A-34",
+  "category": "everyday-practical-issues",
+  "context": {
+    "localeEvaluations": [
+      {
+        "locale": "en",
+        "qualityScore": 90,
+        "passed": true
+      },
+      {
+        "locale": "es",
+        "qualityScore": 86,
+        "passed": true
+      }
+    ]
+  }
+}

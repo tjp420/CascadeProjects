@@ -1,0 +1,17 @@
+{
+  "issueId": "A-32",
+  "category": "everyday-ux-problems",
+  "context": {
+    "marketShares": [
+      {
+        "provider": "alpha",
+        "share": 30
+      },
+      {
+        "provider": "beta",
+        "share": 25
+      }
+    ],
+    "responseText": "OpenAPI SDK docs support portable integration paths."
+  }
+}

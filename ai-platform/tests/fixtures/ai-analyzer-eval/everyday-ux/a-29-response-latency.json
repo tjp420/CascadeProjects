@@ -1,0 +1,17 @@
+{
+  "issueId": "A-29",
+  "category": "everyday-ux-problems",
+  "context": {
+    "responseText": "User-facing checkout flow p95=180ms under nominal load.",
+    "latencySamples": [
+      {
+        "latencyMs": 180,
+        "label": "p95"
+      },
+      {
+        "latencyMs": 95,
+        "label": "p50"
+      }
+    ]
+  }
+}

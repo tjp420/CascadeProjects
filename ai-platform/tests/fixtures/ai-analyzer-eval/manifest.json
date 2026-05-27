@@ -1,5 +1,5 @@
 {
-  "version": "phase-1-mvp",
+  "version": "phase-2-full-48",
   "fixtures": [
     { "file": "technical-ai-issues/a-01-hallucination.json", "issueId": "A-01" },
     { "file": "technical-ai-issues/a-02-bias-detection.json", "issueId": "A-02" },
@@ -7,6 +7,7 @@
     { "file": "technical-ai-issues/a-04-data-quality.json", "issueId": "A-04" },
     { "file": "technical-ai-issues/a-05-scalability.json", "issueId": "A-05" },
     { "file": "technical-ai-issues/a-06-generalization.json", "issueId": "A-06" },
+    { "file": "technical-ai-issues/a-07-catastrophic-forgetting.json", "issueId": "A-07" },
     { "file": "technical-ai-issues/a-08-adversarial-vulnerability.json", "issueId": "A-08" },
     { "file": "ethical-societal/a-09-job-displacement.json", "issueId": "A-09" },
     { "file": "ethical-societal/a-10-privacy-violation.json", "issueId": "A-10" },
@@ -27,8 +28,26 @@
     { "file": "everyday-reliability/a-25-context-retention.json", "issueId": "A-25" },
     { "file": "everyday-reliability/a-26-knowledge-freshness.json", "issueId": "A-26" },
     { "file": "everyday-reliability/a-27-reasoning-capability.json", "issueId": "A-27" },
-    { "file": "everyday-reliability/a-48-output-reliability.json", "issueId": "A-48" },
+    { "file": "everyday-ux/a-28-prompt-engineering.json", "issueId": "A-28" },
+    { "file": "everyday-ux/a-29-response-latency.json", "issueId": "A-29" },
+    { "file": "everyday-ux/a-30-cost-barrier.json", "issueId": "A-30" },
+    { "file": "everyday-ux/a-31-usage-limit.json", "issueId": "A-31" },
+    { "file": "everyday-ux/a-32-platform-lock-in.json", "issueId": "A-32" },
+    { "file": "everyday-practical/a-33-false-positive-negative.json", "issueId": "A-33" },
+    { "file": "everyday-practical/a-34-language-limitation.json", "issueId": "A-34" },
+    { "file": "everyday-practical/a-35-domain-knowledge.json", "issueId": "A-35" },
+    { "file": "everyday-practical/a-36-output-consistency.json", "issueId": "A-36" },
+    { "file": "everyday-practical/a-37-session-management.json", "issueId": "A-37" },
+    { "file": "everyday-trust-safety/a-38-privacy-concern.json", "issueId": "A-38" },
     { "file": "everyday-trust-safety/a-39-security-risk.json", "issueId": "A-39" },
-    { "file": "everyday-integration/a-46-error-handling.json", "issueId": "A-46" }
+    { "file": "everyday-trust-safety/a-40-content-filtering.json", "issueId": "A-40" },
+    { "file": "everyday-trust-safety/a-41-transparency.json", "issueId": "A-41" },
+    { "file": "everyday-trust-safety/a-42-dependence-risk.json", "issueId": "A-42" },
+    { "file": "everyday-integration/a-43-api-complexity.json", "issueId": "A-43" },
+    { "file": "everyday-integration/a-44-compatibility.json", "issueId": "A-44" },
+    { "file": "everyday-integration/a-45-maintenance-overhead.json", "issueId": "A-45" },
+    { "file": "everyday-integration/a-46-error-handling.json", "issueId": "A-46" },
+    { "file": "everyday-integration/a-47-customization-limit.json", "issueId": "A-47" },
+    { "file": "everyday-reliability/a-48-output-reliability.json", "issueId": "A-48" }
   ]
 }

@@ -1,0 +1,18 @@
+{
+  "issueId": "A-28",
+  "category": "everyday-ux-problems",
+  "context": {
+    "promptAttempts": [
+      {
+        "expertise": "expert",
+        "attempts": 2,
+        "succeeded": true
+      },
+      {
+        "expertise": "novice",
+        "attempts": 3,
+        "succeeded": true
+      }
+    ]
+  }
+}

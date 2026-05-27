@@ -1,0 +1,14 @@
+{
+  "issueId": "A-36",
+  "category": "everyday-practical-issues",
+  "context": {
+    "structuredOutputs": [
+      {
+        "schemaValid": true
+      },
+      {
+        "schemaValid": true
+      }
+    ]
+  }
+}

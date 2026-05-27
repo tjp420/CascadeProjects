@@ -1,0 +1,8 @@
+{
+  "issueId": "A-43",
+  "category": "everyday-integration-issues",
+  "context": {
+    "codeText": "import { client } from 'sdk'; await client.request('/api/v1/run');",
+    "responseText": "OpenAPI SDK readme docs for integration."
+  }
+}

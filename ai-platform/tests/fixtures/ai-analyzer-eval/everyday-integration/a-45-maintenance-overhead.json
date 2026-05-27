@@ -1,0 +1,16 @@
+{
+  "issueId": "A-45",
+  "category": "everyday-integration-issues",
+  "context": {
+    "maintenanceEvents": [
+      {
+        "type": "deprecation",
+        "breaking": false
+      },
+      {
+        "type": "schema",
+        "breaking": false
+      }
+    ]
+  }
+}

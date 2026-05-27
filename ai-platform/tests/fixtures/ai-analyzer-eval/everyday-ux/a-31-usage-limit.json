@@ -1,0 +1,12 @@
+{
+  "issueId": "A-31",
+  "category": "everyday-ux-problems",
+  "context": {
+    "limitHitEvents": [
+      {
+        "impact": "delayed"
+      }
+    ],
+    "responseText": "Rate limit 429 encountered once during batch export."
+  }
+}
