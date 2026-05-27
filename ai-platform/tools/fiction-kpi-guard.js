@@ -25,11 +25,15 @@ const TARGET_EXTS = new Set(['.json', '.md']);
 const MAX_FILE_BYTES = 1024 * 1024; // 1 MB
 
 const PATTERNS = [
-    { id: 'completion-7417', regex: /\b74\.17(?:%|)\b/g },
-    { id: 'completion-87', regex: /\b87(?:\.0+)?(?:%|)\b/g },
-    { id: 'completion-943', regex: /\b94\.3(?:%|)\b/g },
-    { id: 'completion-66', regex: /\b66(?:\.0+)?(?:%|)\b/g },
-    { id: 'completion-62', regex: /\b62(?:\.0+)?(?:%|)\b/g },
+    { id: 'completion-7417', regex: /\b74\.17%\b/g },
+    { id: 'completion-87', regex: /\b87(?:\.0+)?%\b/g },
+    { id: 'completion-943', regex: /\b94\.3%\b/g },
+    { id: 'completion-66', regex: /\b66(?:\.0+)?%\b/g },
+    { id: 'completion-62', regex: /\b62(?:\.0+)?%\b/g },
+    {
+        id: 'completion-rate-field',
+        regex: /"(?:completionRate|currentCompletion)"\s*:\s*(?:74\.17|87|94\.3|66|62)\b/g
+    },
     { id: 'feature-47-context', regex: /\b(totalFeatures|featuresTracked|aiOptimizationsApplied)\b[\s\S]{0,32}\b47\b/gi },
     { id: 'feature-100-context', regex: /\b(totalFeatures|featuresTracked|aiOptimizationsApplied)\b[\s\S]{0,32}\b100\b/gi },
     { id: 'feature-156-context', regex: /\b(totalFeatures|featuresTracked|aiOptimizationsApplied)\b[\s\S]{0,32}\b156\b/gi },

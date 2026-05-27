@@ -183,7 +183,7 @@
   "riskManagement": [
     { "risk": "Stale dashboard cache", "impact": "Medium", "probability": "Medium", "mitigation": "Clear lastImplementationPlanModel / lastGgufAnalysisReport", "status": "mitigated" },
     { "risk": "Sample drift after test additions", "impact": "Low", "probability": "Medium", "mitigation": "Run npm test; sync via tools/sync-audit-baseline-samples.js", "status": "monitored" },
-    { "risk": "Legacy fiction plans pasted into chat", "impact": "Medium", "probability": "Medium", "mitigation": "Use implementation-plan-sample.json or path scan — not 502/33/62% templates", "status": "mitigated" },
+    { "risk": "Legacy fiction plans pasted into chat", "impact": "Medium", "probability": "Medium", "mitigation": "Use implementation-plan-sample.json or path scan — not legacy 502/33/stale-completion templates", "status": "mitigated" },
     { "risk": "GGUF inference not required for honest dashboard", "impact": "Low", "probability": "Low", "mitigation": "filesystem+gguf-path is acceptable baseline", "status": "accepted" }
   ],
   "milestones": [
