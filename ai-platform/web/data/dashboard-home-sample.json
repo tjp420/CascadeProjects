@@ -24,8 +24,8 @@
     "linesOfCode": "256.6KB",
     "codeQuality": 99,
     "securityScore": "80/100",
-    "totalTests": 782,
-    "passedTests": 782,
+    "totalTests": 783,
+    "passedTests": 783,
     "testSuites": 64,
     "sampleJsonFiles": 42,
     "measuredBaselines": 43,
@@ -37,7 +37,7 @@
       "codeQuality": "Scan Quality",
       "securityScore": "Security Posture"
     },
-    "notes": "mock-data-scanner: 42 files, 256.6KB, 0 issues, 100% schema (43/43), 99% quality. Jest: 782/782 with --no-coverage."
+    "notes": "mock-data-scanner: 42 files, 256.6KB, 0 issues, 100% schema (43/43), 99% quality. Jest: 783/783 with --no-coverage."
   },
   "subtitle": "Repository audit baseline • Jest health • mock-data-scanner",
   "chart": {
@@ -80,7 +80,7 @@
     ]
   },
   "comparativeAnalysis": [
-    { "metric": "Jest Tests", "previous": 885, "current": 782, "change": "+71 tests" },
+    { "metric": "Jest Tests", "previous": 885, "current": 783, "change": "+71 tests" },
     { "metric": "Mock / sample files", "previous": 36, "current": 42, "change": "+6 files" },
     { "metric": "Schema Pass Rate", "previous": "94%", "current": "100%", "change": "+6%" },
     { "metric": "Security Posture", "previous": "72/100", "current": "80/100", "change": "+8 pts" }
@@ -88,7 +88,7 @@
   "insights": [
     {
       "title": "Jest Suite Healthy",
-      "description": "782/782 tests pass across 64 suites; default npm test runs with --no-coverage."
+      "description": "783/783 tests pass across 64 suites; default npm test runs with --no-coverage."
     },
     {
       "title": "Repository-Audit Migration",
@@ -116,7 +116,7 @@
         "impact": "High — solo maintainer production profile"
       },
       {
-        "title": "Wire 782-test deploy gate",
+        "title": "Wire 783-test deploy gate",
         "target": "Promote Jest CI check to required before production deploy",
         "timeline": "1–2 weeks",
         "impact": "High — measured release safety"
@@ -146,7 +146,7 @@
     ]
   },
   "kpis": [
-    { "name": "Jest Pass Rate", "current": "782/782", "target": "782/782", "timeline": "ongoing", "priority": "high" },
+    { "name": "Jest Pass Rate", "current": "783/783", "target": "783/783", "timeline": "ongoing", "priority": "high" },
     { "name": "Schema Pass Rate", "current": "100%", "target": "100%", "timeline": "42/42 specs", "priority": "done" },
     { "name": "Measured Baselines", "current": "42/42", "target": "42/42", "timeline": "Complete", "priority": "done" },
     { "name": "Security Posture", "current": "80/100", "target": "85/100", "timeline": "30 days", "priority": "low" }
@@ -154,7 +154,7 @@
   "healthSummary": {
     "status": "HEALTHY",
     "highlights": [
-      "782/782 Jest tests passing across 64 suites",
+      "783/783 Jest tests passing across 64 suites",
       "42/42 page samples on repository-audit baselines",
       "100% schema pass (42/42) and 99% mock-scan quality measured",
       "0 open scanner issues — Istanbul coverage synced to Coverage Reports"

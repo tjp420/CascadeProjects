@@ -29,7 +29,7 @@
   "overview": {
     "sampleJsonFiles": 33,
     "measuredBaselines": 43,
-    "jestTests": "782/782",
+    "jestTests": "783/783",
     "scannerIssues": 0,
     "securityScore": 72,
     "notes": "Split views stay authoritative — this file links them; it does not replace them."
@@ -74,7 +74,7 @@
         "startDate": "2026-05-08T00:00:00.000Z",
         "endDate": "2026-05-14T00:00:00.000Z",
         "description": "Tier-1 dashboard stub routes and Jest coverage",
-        "features": ["Tier-1 stub API routes", "782 Jest tests passing (64 suites)"],
+        "features": ["Tier-1 stub API routes", "783 Jest tests passing (64 suites)"],
         "duration": "1 week",
         "teamSize": 1
       },
