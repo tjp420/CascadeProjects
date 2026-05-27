@@ -1,0 +1,342 @@
+{
+  "type": "project-reports-model",
+  "title": "Project Reports (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Dashboard JSON baselines — not 156 enterprise PDFs or unbreakable-oracle ratings."
+  },
+  "overview": {
+    "totalReports": 11,
+    "generatedThisMonth": 10,
+    "totalViews": null,
+    "avgRating": null,
+    "storageUsed": "~320 KB",
+    "activeProjects": 4,
+    "notes": "Counts measured repository-audit JSON reports — not fictional views or star ratings."
+  },
+  "reports": [
+    {
+      "id": "report_impl_plan",
+      "title": "Implementation Plan (Measured Baseline)",
+      "type": "Planning Report",
+      "project": "Sample Telemetry Cleanup",
+      "author": "Maintainer",
+      "status": "published",
+      "created": "2026-05-23T18:00:00.000Z",
+      "lastModified": "2026-05-23T18:00:00.000Z",
+      "views": null,
+      "rating": null,
+      "size": "44 KB",
+      "format": "JSON",
+      "tags": ["repository-audit", "planning", "solo-maintainer"],
+      "description": "Solo-maintainer sprint plan — 72% on-track, v0.8-beta at 75%; not $204k fiction"
+    },
+    {
+      "id": "report_feature_backlog",
+      "title": "Feature Backlog (Measured Baseline)",
+      "type": "Planning Report",
+      "project": "Sample Telemetry Cleanup",
+      "author": "Maintainer",
+      "status": "published",
+      "created": "2026-05-23T18:15:00.000Z",
+      "lastModified": "2026-05-23T18:15:00.000Z",
+      "views": null,
+      "rating": null,
+      "size": "18 KB",
+      "format": "JSON",
+      "tags": ["repository-audit", "backlog"],
+      "description": "75% completion (9/12 tracks) replacing 47-feature product fiction"
+    },
+    {
+      "id": "report_billing",
+      "title": "Billing System (Measured Baseline)",
+      "type": "Baseline Report",
+      "project": "Sample Telemetry Cleanup",
+      "author": "Maintainer",
+      "status": "published",
+      "created": "2026-05-23T19:00:00.000Z",
+      "lastModified": "2026-05-23T19:00:00.000Z",
+      "views": null,
+      "rating": null,
+      "size": "14 KB",
+      "format": "JSON",
+      "tags": ["repository-audit", "billing", "stub-api"],
+      "description": "Internal ops profile — no $234k MRR or Stripe integration"
+    },
+    {
+      "id": "report_debt_reduction",
+      "title": "Debt Reduction (Measured Baseline)",
+      "type": "Baseline Report",
+      "project": "Sample Telemetry Cleanup",
+      "author": "Maintainer",
+      "status": "published",
+      "created": "2026-05-23T18:30:00.000Z",
+      "lastModified": "2026-05-23T18:30:00.000Z",
+      "views": null,
+      "rating": null,
+      "size": "16 KB",
+      "format": "JSON",
+      "tags": ["repository-audit", "debt"],
+      "description": "84/99 measured tasks replacing 216 fictional tasks — no hour/cost fiction"
+    },
+    {
+      "id": "report_debt_analytics",
+      "title": "Debt Analytics (Measured Baseline)",
+      "type": "Analytics Report",
+      "project": "Sample Telemetry Cleanup",
+      "author": "Maintainer",
+      "status": "published",
+      "created": "2026-05-23T18:45:00.000Z",
+      "lastModified": "2026-05-23T18:45:00.000Z",
+      "views": null,
+      "rating": null,
+      "size": "15 KB",
+      "format": "JSON",
+      "tags": ["repository-audit", "debt", "analytics"],
+      "description": "12 open debt items — 43/43 samples complete, not 198-item AI forecast"
+    },
+    {
+      "id": "report_security",
+      "title": "Security Dashboard (Measured Baseline)",
+      "type": "Security Report",
+      "project": "Infrastructure & Auth",
+      "author": "Maintainer",
+      "status": "published",
+      "created": "2026-05-23T12:00:00.000Z",
+      "lastModified": "2026-05-23T12:00:00.000Z",
+      "views": null,
+      "rating": null,
+      "size": "22 KB",
+      "format": "JSON",
+      "tags": ["repository-audit", "security", "jwt"],
+      "description": "Honest threat baseline replacing SOC2/CVE template fiction"
+    },
+    {
+      "id": "report_merger",
+      "title": "Merger Tool (Measured Baseline)",
+      "type": "Technical Report",
+      "project": "Infrastructure & Auth",
+      "author": "Maintainer",
+      "status": "published",
+      "created": "2026-05-23T11:00:00.000Z",
+      "lastModified": "2026-05-23T11:00:00.000Z",
+      "views": null,
+      "rating": null,
+      "size": "12 KB",
+      "format": "JSON",
+      "tags": ["repository-audit", "merger", "git"],
+      "description": "master-only repo truth — not 25-merge fiction"
+    },
+    {
+      "id": "report_release",
+      "title": "Release Timeline (Measured Baseline)",
+      "type": "Planning Report",
+      "project": "Roadmap & Planning",
+      "author": "Maintainer",
+      "status": "published",
+      "created": "2026-05-23T17:00:00.000Z",
+      "lastModified": "2026-05-23T17:00:00.000Z",
+      "views": null,
+      "rating": null,
+      "size": "31 KB",
+      "format": "JSON",
+      "tags": ["repository-audit", "release"],
+      "description": "v0.1 → v1.0-internal — not shipped v2.0 fiction"
+    },
+    {
+      "id": "report_ai_roadmap",
+      "title": "AI Roadmap Report (Measured Baseline)",
+      "type": "Planning Report",
+      "project": "Roadmap & Planning",
+      "author": "Maintainer",
+      "status": "published",
+      "created": "2026-05-23T15:10:00.000Z",
+      "lastModified": "2026-05-23T15:10:00.000Z",
+      "views": null,
+      "rating": null,
+      "size": "38 KB",
+      "format": "JSON",
+      "tags": ["repository-audit", "roadmap", "gguf"],
+      "description": "Measured roadmap — phi-2.Q4_K_M.gguf active, 665/665 tests"
+    },
+    {
+      "id": "report_issues",
+      "title": "Issue Resolution Summary",
+      "type": "Quality Report",
+      "project": "Quality & Testing",
+      "author": "Maintainer",
+      "status": "published",
+      "created": "2026-05-23T16:00:00.000Z",
+      "lastModified": "2026-05-23T16:00:00.000Z",
+      "views": null,
+      "rating": null,
+      "size": "24 KB",
+      "format": "JSON",
+      "tags": ["scan", "issues", "quality"],
+      "description": "From mock-data-scanner — 0 open issues, batch fix API wired"
+    },
+    {
+      "id": "report_engineering_baseline",
+      "title": "Engineering Baseline (Corrected Analysis)",
+      "type": "Planning Report",
+      "project": "Roadmap & Planning",
+      "author": "Maintainer",
+      "status": "published",
+      "created": "2026-05-24T00:00:00.000Z",
+      "lastModified": "2026-05-24T00:00:00.000Z",
+      "views": null,
+      "rating": null,
+      "size": "28 KB",
+      "format": "JSON",
+      "tags": ["repository-audit", "baseline", "v0.8-beta"],
+      "description": "v0.1→v0.5→v0.8→v1.0-internal milestones — rejects v2.0/v3.0 UI fiction; $72k internal estimate"
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj_sample_cleanup",
+      "name": "Sample Telemetry Cleanup",
+      "reports": 5,
+      "lastActivity": "2026-05-24T00:00:00.000Z",
+      "status": "completed",
+      "progress": 100
+    },
+    {
+      "id": "proj_infra",
+      "name": "Infrastructure & Auth",
+      "reports": 2,
+      "lastActivity": "2026-05-23T12:00:00.000Z",
+      "status": "completed",
+      "progress": 100
+    },
+    {
+      "id": "proj_roadmap",
+      "name": "Roadmap & Planning",
+      "reports": 3,
+      "lastActivity": "2026-05-24T00:00:00.000Z",
+      "status": "active",
+      "progress": 75
+    },
+    {
+      "id": "proj_quality",
+      "name": "Quality & Testing",
+      "reports": 1,
+      "lastActivity": "2026-05-23T16:00:00.000Z",
+      "status": "active",
+      "progress": 90
+    }
+  ],
+  "analytics": {
+    "reportTypes": [
+      { "type": "Baseline Report", "count": 2, "percentage": 20 },
+      { "type": "Planning Report", "count": 4, "percentage": 40 },
+      { "type": "Security Report", "count": 1, "percentage": 10 },
+      { "type": "Technical Report", "count": 1, "percentage": 10 },
+      { "type": "Analytics Report", "count": 1, "percentage": 10 },
+      { "type": "Quality Report", "count": 1, "percentage": 10 }
+    ],
+    "monthlyGeneration": [
+      { "month": "Apr W1", "reports": 0 },
+      { "month": "Apr W2", "reports": 1 },
+      { "month": "May W1", "reports": 2 },
+      { "month": "May W2", "reports": 3 },
+      { "month": "May W3", "reports": 4 },
+      { "month": "May W4", "reports": 10 }
+    ],
+    "topProjects": [
+      { "project": "Sample Telemetry Cleanup", "reports": 5, "views": null },
+      { "project": "Roadmap & Planning", "reports": 2, "views": null },
+      { "project": "Infrastructure & Auth", "reports": 2, "views": null },
+      { "project": "Quality & Testing", "reports": 1, "views": null }
+    ],
+    "summary": {
+      "monthlyGrowth": "+10 baselines",
+      "thisMonth": 10,
+      "lastSixMonths": 10,
+      "avgPerDay": null
+    }
+  },
+  "templates": [
+    {
+      "id": "template_audit",
+      "name": "Repository Audit Baseline",
+      "description": "web/data/*-sample.json with dataSource: repository-audit",
+      "color": "primary"
+    },
+    {
+      "id": "template_roadmap",
+      "name": "Roadmap Report",
+      "description": "ai-roadmap-sample.json or dynamic-roadmap analyze output",
+      "color": "info"
+    },
+    {
+      "id": "template_security",
+      "name": "Security Baseline",
+      "description": "security-dashboard-sample.json honest threat model",
+      "color": "danger"
+    },
+    {
+      "id": "template_scan",
+      "name": "Mock Data Scan Export",
+      "description": "POST /api/models/active/analyze or mock-data-scanner",
+      "color": "warning"
+    }
+  ],
+  "recentActivity": [
+    {
+      "id": "act_billing",
+      "action": "Billing baseline published",
+      "description": "Maintainer shipped billing-system-sample.json with internal ops profile",
+      "time": "1 hour ago",
+      "details": "Sample Telemetry Cleanup project",
+      "icon": "💰",
+      "color": "success"
+    },
+    {
+      "id": "act_debt_analytics",
+      "action": "Debt analytics baseline published",
+      "description": "12-item engineering debt audit — 43/43 samples complete, not 198-item fiction",
+      "time": "2 hours ago",
+      "details": "Sample Telemetry Cleanup project",
+      "icon": "📊",
+      "color": "success"
+    },
+    {
+      "id": "act_feature_backlog",
+      "action": "Feature backlog baseline published",
+      "description": "12 engineering tracks replacing 47-feature template",
+      "time": "3 hours ago",
+      "details": "Sample Telemetry Cleanup project",
+      "icon": "📋",
+      "color": "info"
+    },
+    {
+      "id": "act_security",
+      "action": "Security baseline completed",
+      "description": "Security dashboard sample aligned to Phase 2 JWT and stub routes",
+      "time": "1 day ago",
+      "details": "Infrastructure & Auth project",
+      "icon": "🛡️",
+      "color": "success"
+    }
+  ],
+  "quickActions": [
+    { "label": "Open Reports Catalog", "icon": "📚", "section": "reports" },
+    { "label": "Export Baseline", "icon": "📥", "action": "export" },
+    { "label": "Run Platform Metrics", "icon": "📊", "section": "dashboard" },
+    { "label": "Open Implementation Plan", "icon": "📋", "section": "implementation-plan" }
+  ],
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousTotalReports": 156,
+    "previousTotalViews": 3456,
+    "previousAvgRating": 4.6,
+    "notes": "Old template used fictional PDF reports, 46/98 debt metrics, agi-chatbot active model fiction, and enterprise project names."
+  }
+}

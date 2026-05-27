@@ -1,0 +1,154 @@
+{
+  "type": "engineering-baseline-report",
+  "title": "Corrected Project Analysis — Actual Engineering Baseline",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Replaces v1.0/v2.0/v3.0 UI fiction — engineering milestones only, not shipped products."
+  },
+  "overview": {
+    "currentRelease": "v0.8-beta",
+    "currentReleaseProgress": 75,
+    "onTrackPercentage": 72,
+    "nextMilestone": "v1.0-internal",
+    "nextMilestoneDate": "2026-07-31",
+    "nextMilestoneProgress": 15,
+    "projectHealth": "Good",
+    "overallRisk": "Medium",
+    "jestTests": "954/954",
+    "repositoryAuditSamples": "42/42",
+    "teamSize": 1,
+    "internalBudgetEstimateUsd": 72000,
+    "activeModel": "phi-2.Q4_K_M.gguf (1.7GB)",
+    "inferenceMode": "filesystem+gguf-path"
+  },
+  "fictionVsReality": {
+    "rejected": [
+      "v1.0 shipped March 15, 2026",
+      "v1.5 shipped May 10, 2026",
+      "v2.0 at 75% (August 30, 2026)",
+      "v3.0 planned November 15, 2026",
+      "89% on-track",
+      "hardcoded overall completion percentages",
+      "$204,000 budget / 11-person team",
+      "unbreakable-oracle as active model"
+    ],
+    "accepted": [
+      "v0.1-alpha completed 2026-03-01 (Dashboard Shell)",
+      "v0.5-beta completed 2026-05-23 (Phase 2 Platform Core)",
+      "v0.8-beta at 75% — target 2026-06-28 (Honest Dashboard Data)",
+      "v1.0-internal at 15% — target 2026-07-31 (Internal Dashboard Ready)",
+      "72% on-track",
+      "954 Jest tests passing",
+      "42/42 repository-audit page samples",
+      "Mock scanner 0 open issues"
+    ]
+  },
+  "releaseMilestones": [
+    {
+      "version": "v0.1-alpha",
+      "title": "Dashboard Shell",
+      "date": "2026-03-01",
+      "status": "completed",
+      "highlights": ["32 dashboard pages", "Sample JSON", "Navigation shell", "Stub API layer"]
+    },
+    {
+      "version": "v0.5-beta",
+      "title": "Phase 2 Platform Core",
+      "date": "2026-05-23",
+      "status": "completed",
+      "highlights": ["JWT auth", "Local models API", "Mock-data scanner", "954 Jest tests passing"]
+    },
+    {
+      "version": "v0.8-beta",
+      "title": "Honest Dashboard Data",
+      "date": "2026-06-28",
+      "status": "in-progress",
+      "progress": 75,
+      "completed": [
+        "Root server delegate",
+        "Tier-1 stub API routes",
+        "42/42 page baselines on repository-audit",
+        "npm audit wired (SEC-004)",
+        "Istanbul Coverage in CI (dashboard-ci.yml test:coverage, ~79.5% line when coverage-summary.json is present)"
+      ],
+      "remaining": [
+        "docker-compose.phase2.yml CI smoke test — wired in dashboard-ci.yml",
+        "GGUF inference (LLAMA_CPP_BIN or Ollama)"
+      ]
+    },
+    {
+      "version": "v1.0-internal",
+      "title": "Internal Dashboard Ready",
+      "date": "2026-07-31",
+      "status": "upcoming",
+      "progress": 15,
+      "pending": [
+        "REQUIRE_AUTH production profile",
+        "Production Docker image",
+        "Deploy runbook",
+        "Enterprise scope definition (post v1.0-internal sign-off)"
+      ]
+    }
+  ],
+  "criticalPath": [
+    { "priority": 1, "item": "Docker validation — docker-compose.phase2.yml CI smoke test", "owner": "Maintainer" },
+    { "priority": 2, "item": "Coverage guardrails — keep Istanbul merge active in Coverage Reports", "owner": "Maintainer" },
+    { "priority": 3, "item": "GGUF inference — LLAMA_CPP_BIN or Ollama", "owner": "Maintainer" },
+    { "priority": 4, "item": "Auth profile — REQUIRE_AUTH production profile", "owner": "Maintainer" }
+  ],
+  "riskAssessment": {
+    "scheduleRisk": "Medium",
+    "resourceRisk": "Low",
+    "technicalRisk": "Medium",
+    "overallRiskLevel": "Medium",
+    "factors": [
+      "Infrastructure completion (Docker CI lifecycle)",
+      "GGUF inference enablement",
+      "Production auth profile",
+      "Enterprise scope not yet defined"
+    ]
+  },
+  "budgetEstimate": {
+    "totalUsd": 72000,
+    "note": "Solo-maintainer internal scope — not $204k enterprise fiction",
+    "breakdown": [
+      { "category": "Development", "amountUsd": 45000 },
+      { "category": "DevOps", "amountUsd": 12000 },
+      { "category": "Testing", "amountUsd": 8000 },
+      { "category": "Documentation", "amountUsd": 4000 },
+      { "category": "Contingency", "amountUsd": 3000 }
+    ]
+  },
+  "successMetrics": [
+    { "metric": "Release", "current": "v0.8-beta (75%)", "target": "v1.0-internal (2026-07-31)" },
+    { "metric": "Jest tests", "current": "954/954", "target": "954/954 + Istanbul merged in CI (~79.5% line)" },
+    { "metric": "Sample baselines", "current": "42/42", "target": "42/42 maintained" },
+    { "metric": "Auth", "current": "JWT dev routes", "target": "REQUIRE_AUTH profile" }
+  ],
+  "recommendations": {
+    "immediate": [
+      "Clear fictional v2.0/v3.0 data from localStorage if still visible",
+      "Tag v0.5-beta in git when Phase 2 bootstrap is stable",
+      "Finish Docker Phase2 CI smoke test"
+    ],
+    "shortTerm": [
+      "Complete v0.8-beta by 2026-06-28",
+      "Configure GGUF inference path"
+    ],
+    "strategic": [
+      "Define enterprise scope only after v1.0-internal",
+      "Keep release timeline as engineering milestones — not product ship history"
+    ]
+  },
+  "crossReferences": {
+    "releaseTimeline": "/data/release-timeline-sample.json",
+    "implementationPlan": "/data/implementation-plan-sample.json",
+    "masterRoadmap": "/data/master-roadmap-sample.json"
+  }
+}

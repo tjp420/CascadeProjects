@@ -1,0 +1,112 @@
+{
+  "type": "fictional-patterns-report",
+  "title": "Fictional Patterns — Repository-Audit Reject List",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "Simplebeacon",
+  "dataSource": "repository-audit",
+  "overview": {
+    "totalPatterns": 14,
+    "rejectedPatterns": 14,
+    "activePatterns": 14
+  },
+  "patterns": [
+    {
+      "pattern": "completionRate: <rejected-rate-a>",
+      "patternType": "completion_rate",
+      "severity": "high",
+      "description": "Known rejected completion rate example A",
+      "isRejected": true
+    },
+    {
+      "pattern": "completionRate: <rejected-rate-b>",
+      "patternType": "completion_rate",
+      "severity": "high",
+      "description": "Known rejected completion rate example B",
+      "isRejected": true
+    },
+    {
+      "pattern": "completionRate: <rejected-rate-c>",
+      "patternType": "completion_rate",
+      "severity": "high",
+      "description": "Known rejected completion rate example C",
+      "isRejected": true
+    },
+    {
+      "pattern": "totalFeatures: <rejected-count-a>",
+      "patternType": "feature_count",
+      "severity": "high",
+      "description": "Known rejected feature-count example A",
+      "isRejected": true
+    },
+    {
+      "pattern": "totalFeatures: <rejected-count-b>",
+      "patternType": "feature_count",
+      "severity": "high",
+      "description": "Known stale roadmap template feature-count example B",
+      "isRejected": true
+    },
+    {
+      "pattern": "totalFeatures: <rejected-count-c>",
+      "patternType": "feature_count",
+      "severity": "high",
+      "description": "Known rejected feature-count example C",
+      "isRejected": true
+    },
+    {
+      "pattern": "aiConfidence: <rejected-confidence-a>",
+      "patternType": "ai_confidence",
+      "severity": "high",
+      "description": "Known rejected AI confidence example A",
+      "isRejected": true
+    },
+    {
+      "pattern": "aiConfidence: <rejected-confidence-b>",
+      "patternType": "ai_confidence",
+      "severity": "high",
+      "description": "Known rejected AI confidence example B",
+      "isRejected": true
+    },
+    {
+      "pattern": "openIssues: <rejected-issue-count>",
+      "patternType": "open_issues",
+      "severity": "high",
+      "description": "Known rejected open-issue count example",
+      "isRejected": true
+    },
+    {
+      "pattern": "mockFiles: <rejected-mock-count>",
+      "patternType": "mock_file_count",
+      "severity": "medium",
+      "description": "Known rejected mock-file count example",
+      "isRejected": true
+    },
+    {
+      "pattern": "model: <rejected-model-a>",
+      "patternType": "model_name",
+      "severity": "medium",
+      "description": "Known rejected model-name example A",
+      "isRejected": true
+    },
+    {
+      "pattern": "model: <rejected-model-b>",
+      "patternType": "model_name",
+      "severity": "medium",
+      "description": "Known rejected model-name example B",
+      "isRejected": true
+    },
+    {
+      "pattern": "throughput: 1559",
+      "patternType": "throughput_claim",
+      "severity": "low",
+      "description": "Known fictional throughput claim (1559 files/s)",
+      "isRejected": true
+    },
+    {
+      "pattern": "throughput: 1,559",
+      "patternType": "throughput_claim",
+      "severity": "low",
+      "description": "Known fictional throughput claim (1,559 files/s)",
+      "isRejected": true
+    }
+  ]
+}

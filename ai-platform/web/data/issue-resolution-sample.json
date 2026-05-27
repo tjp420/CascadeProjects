@@ -1,0 +1,228 @@
+{
+  "type": "issue-resolution-model",
+  "title": "Issue Resolution (Measured Baseline)",
+  "dataSource": "repository-audit",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active"
+  },
+  "total": 5,
+  "openIssueCount": 0,
+  "resolvedCount": 5,
+  "inProgressCount": 0,
+  "pendingCount": 0,
+  "resolvedPct": 100,
+  "categories": [
+    {
+      "severity": "high",
+      "type": "Schema Violation",
+      "count": 2,
+      "description": "Empty-array specs now honor allowEmptyArrays in mock-data-schema-validator",
+      "recommendedAction": "Resolved — re-run scanner to confirm 42/42 schema pass",
+      "affectedFiles": [
+        "issue-resolution-sample.json",
+        "security-dashboard-sample.json"
+      ],
+      "status": "resolved"
+    },
+    {
+      "severity": "low",
+      "type": "Duplicate Data",
+      "count": 1,
+      "description": "Roadmap duplicate cleared — gguf-roadmap-sample.json vs gguf-development-roadmap-report.json (reportPurpose field)",
+      "recommendedAction": "Resolved — scanner reports 0 open duplicate groups",
+      "affectedFiles": [
+        "gguf-roadmap-sample.json",
+        "gguf-development-roadmap-report.json"
+      ],
+      "status": "resolved"
+    },
+    {
+      "severity": "info",
+      "type": "Sample Migration",
+      "count": 2,
+      "description": "Repository-audit migration completed for remaining tier-1 fiction samples",
+      "recommendedAction": "Resolved — 42/42 page baselines",
+      "affectedFiles": ["web/data/*-sample.json"],
+      "status": "resolved"
+    }
+  ],
+  "issues": [
+    {
+      "id": "ISS-001",
+      "type": "Schema Violation",
+      "severity": "high",
+      "description": "allowEmptyArrays not enforced for issue-resolution categories/issues",
+      "recommendedAction": "Fixed in mock-data-schema-validator.js",
+      "affectedFiles": ["issue-resolution-sample.json"],
+      "status": "resolved",
+      "automationAvailable": false,
+      "count": 1
+    },
+    {
+      "id": "ISS-002",
+      "type": "Schema Violation",
+      "severity": "high",
+      "description": "security-dashboard-sample.json empty threats array",
+      "recommendedAction": "Fixed — threats in allowEmptyArrays for security-dashboard spec",
+      "affectedFiles": ["security-dashboard-sample.json"],
+      "status": "resolved",
+      "automationAvailable": false,
+      "count": 1
+    },
+    {
+      "id": "ISS-003",
+      "type": "Duplicate Data",
+      "severity": "low",
+      "description": "Duplicate roadmap JSON content between sample and export slot",
+      "recommendedAction": "Resolved — reportPurpose field deduplicated content; 0 open scanner issues",
+      "affectedFiles": [
+        "gguf-roadmap-sample.json",
+        "gguf-development-roadmap-report.json"
+      ],
+      "status": "resolved",
+      "automationAvailable": false,
+      "count": 1
+    },
+    {
+      "id": "ISS-004",
+      "type": "Schema Scope",
+      "severity": "medium",
+      "description": "master-roadmap-sample.json counted against PAGE_SAMPLE_SPECS",
+      "recommendedAction": "Fixed — scanner validates only files listed in PAGE_SAMPLE_SPECS",
+      "affectedFiles": ["master-roadmap-sample.json"],
+      "status": "resolved",
+      "automationAvailable": false,
+      "count": 1
+    },
+    {
+      "id": "ISS-005",
+      "type": "Fiction Telemetry",
+      "severity": "medium",
+      "description": "Tier-1 samples (api, database, codegen, debt-calculator) still used GGUF fiction",
+      "recommendedAction": "Resolved — repository-audit rewrites + stale guards",
+      "affectedFiles": [
+        "api-sample.json",
+        "database-sample.json",
+        "code-generation-sample.json",
+        "debt-calculator-sample.json"
+      ],
+      "status": "resolved",
+      "automationAvailable": false,
+      "count": 1
+    }
+  ],
+  "insights": [
+    {
+      "priority": "medium",
+      "action": "v1.0-internal deploy sign-off",
+      "description": "REQUIRE_AUTH=true profile per docs/v1-internal-runbook.md — optional Phase 4 scope.",
+      "potentialSavings": "Production-ready internal deploy",
+      "impact": "Medium"
+    },
+    {
+      "priority": "low",
+      "action": "Optional GGUF inference",
+      "description": "Set LLAMA_CPP_BIN or Ollama for semantic hints — not required for honest dashboard.",
+      "potentialSavings": "Phase 4 backlog only",
+      "impact": "Low"
+    }
+  ],
+  "quality": {
+    "measuredFromScan": true,
+    "overallQuality": 99,
+    "dataIntegrity": 99,
+    "schemaCompliance": 100,
+    "consistencyScore": 98,
+    "completenessScore": 95
+  },
+  "actionPlan": [
+    {
+      "phase": 1,
+      "title": "Scanner backlog cleared",
+      "priority": "complete",
+      "timeline": "2026-05-24",
+      "target": "0 open mock-data-scanner issues",
+      "actions": [
+        "allowEmptyArrays honored in validator",
+        "Schema checks scoped to PAGE_SAMPLE_SPECS"
+      ]
+    },
+    {
+      "phase": 2,
+      "title": "SEC-004 closed — npm audit wired",
+      "priority": "complete",
+      "timeline": "2026-05-23",
+      "target": "Live npm audit on Security dashboard",
+      "actions": [
+        "GET /api/security/npm-audit endpoint",
+        "Security page merges dependency findings on refresh"
+      ]
+    },
+    {
+      "phase": 3,
+      "title": "CI + code-roadmap Phase 2",
+      "priority": "complete",
+      "timeline": "2026-05-23",
+      "target": "phase2-smoke + test:coverage in dashboard-ci.yml",
+      "actions": [
+        "docker-compose.phase2.yml smoke test — dashboard-ci.yml phase2-smoke job",
+        "Istanbul coverage on npm test in CI — npm run test:coverage on Node 20.x",
+        "Code-roadmap Phase 2 on path scan (cycles, fuzzy, HTML export)"
+      ]
+    },
+    {
+      "phase": 4,
+      "title": "Optional backlog",
+      "priority": "planned",
+      "timeline": "v1.0-internal",
+      "target": "Optional scope only",
+      "actions": [
+        "Optional LLAMA_CPP_BIN semantic hints"
+      ]
+    }
+  ],
+  "kpis": [
+    {
+      "name": "Open scanner issues",
+      "current": 0,
+      "target": 0,
+      "unit": "",
+      "timeline": "Maintained",
+      "status": "complete"
+    },
+    {
+      "name": "Schema pass rate (page samples)",
+      "current": 100,
+      "target": 100,
+      "unit": "%",
+      "timeline": "42/42 specs",
+      "status": "complete"
+    },
+    {
+      "name": "Jest pass rate",
+      "current": 665,
+      "target": 665,
+      "unit": "tests",
+      "timeline": "32 suites",
+      "status": "complete"
+    }
+  ],
+  "resources": {
+    "durationWeeks": 1,
+    "totalCost": null,
+    "summary": "1-week sprint • solo maintainer • no fictional budget",
+    "roles": [{ "role": "Maintainer", "allocation": "Solo", "focus": "Scanner + fix API", "cost": null }],
+    "storageSavingsMb": null
+  },
+  "deprecatedNarrative": {
+    "warning": "Prior UI claimed 156 issues (45+67+23+21) across fictional mock_data_*.json with fake 68% resolution and ISS-001B triplicate rows.",
+    "previousTotal": 156,
+    "previousResolvedPct": 68,
+    "previousGeneratedAt": "2026-05-21T23:34:54.262Z"
+  }
+}

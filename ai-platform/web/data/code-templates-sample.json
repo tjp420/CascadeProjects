@@ -1,0 +1,293 @@
+{
+  "type": "code-templates-model",
+  "title": "Code Templates (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Dashboard code patterns from this repo — not a 234-template marketplace."
+  },
+  "overview": {
+    "totalTemplates": 8,
+    "totalSnippets": 5,
+    "usedThisMonth": 33,
+    "totalDownloads": null,
+    "categories": 4,
+    "avgRating": null,
+    "contributors": 1,
+    "notes": "Reusable patterns extracted from page scripts, stub API, and Jest — not fictional FastAPI/React boilerplate."
+  },
+  "templates": [
+    {
+      "id": "tpl_page_script",
+      "name": "Self-Contained Page Script",
+      "type": "Page Pattern",
+      "language": "JavaScript",
+      "framework": "Dashboard",
+      "downloads": null,
+      "rating": null,
+      "category": "Dashboard Pages",
+      "tags": ["page-script", "normalizeModel", "renderModel"],
+      "author": "Maintainer",
+      "created": "2026-05-01T00:00:00.000Z",
+      "lastUpdated": "2026-05-23T19:00:00.000Z",
+      "description": "IIFE with SAMPLE_URL, fetch, localStorage guard, and renderModel — 32 pages use this",
+      "codeLines": 480,
+      "complexity": "Medium"
+    },
+    {
+      "id": "tpl_audit_sample",
+      "name": "repository-audit Sample JSON",
+      "type": "Data Baseline",
+      "language": "JSON",
+      "framework": "Dashboard",
+      "downloads": null,
+      "rating": null,
+      "category": "Sample JSON",
+      "tags": ["repository-audit", "dataSource", "deprecatedNarrative"],
+      "author": "Maintainer",
+      "created": "2026-05-20T00:00:00.000Z",
+      "lastUpdated": "2026-05-23T19:15:00.000Z",
+      "description": "web/data/*-sample.json with measured metrics and fiction removal notes",
+      "codeLines": 180,
+      "complexity": "Low"
+    },
+    {
+      "id": "tpl_stale_guard",
+      "name": "Stale localStorage Guard",
+      "type": "Init Pattern",
+      "language": "JavaScript",
+      "framework": "Dashboard",
+      "downloads": null,
+      "rating": null,
+      "category": "Dashboard Pages",
+      "tags": ["isStaleModel", "localStorage", "repository-audit"],
+      "author": "Maintainer",
+      "created": "2026-05-22T00:00:00.000Z",
+      "lastUpdated": "2026-05-23T19:30:00.000Z",
+      "description": "Reject cached models with unbreakable-oracle or old fiction counts before restore",
+      "codeLines": 24,
+      "complexity": "Low"
+    },
+    {
+      "id": "tpl_stub_route",
+      "name": "Stub API snapshotGet Route",
+      "type": "API Pattern",
+      "language": "JavaScript",
+      "framework": "Express",
+      "downloads": null,
+      "rating": null,
+      "category": "Stub API",
+      "tags": ["dashboard-stub-api", "snapshot", "tier-1"],
+      "author": "Maintainer",
+      "created": "2026-05-10T00:00:00.000Z",
+      "lastUpdated": "2026-05-23T12:00:00.000Z",
+      "description": "snapshotGet('/api/page', key, loader) serving web/data/*-sample.json",
+      "codeLines": 12,
+      "complexity": "Low"
+    },
+    {
+      "id": "tpl_page_samples_test",
+      "name": "page-samples.test.js Spec",
+      "type": "Test Pattern",
+      "language": "JavaScript",
+      "framework": "Jest",
+      "downloads": null,
+      "rating": null,
+      "category": "Tests",
+      "tags": ["page-samples", "schema", "routing"],
+      "author": "Maintainer",
+      "created": "2026-05-15T00:00:00.000Z",
+      "lastUpdated": "2026-05-23T15:00:00.000Z",
+      "description": "Validates sample JSON types, overview keys, and section routing for 33 pages",
+      "codeLines": 226,
+      "complexity": "Medium"
+    },
+    {
+      "id": "tpl_docker_phase2",
+      "name": "docker-compose.phase2.yml",
+      "type": "DevOps",
+      "language": "YAML",
+      "framework": "Docker",
+      "downloads": null,
+      "rating": null,
+      "category": "Production",
+      "tags": ["docker", "phase2", "REQUIRE_AUTH"],
+      "author": "Maintainer",
+      "created": "2026-05-18T00:00:00.000Z",
+      "lastUpdated": "2026-05-20T00:00:00.000Z",
+      "description": "Production profile compose file — not yet deployed",
+      "codeLines": 45,
+      "complexity": "Medium"
+    },
+    {
+      "id": "tpl_build_overview",
+      "name": "buildOverview Derived Metrics",
+      "type": "Data Pattern",
+      "language": "JavaScript",
+      "framework": "Dashboard",
+      "downloads": null,
+      "rating": null,
+      "category": "Dashboard Pages",
+      "tags": ["buildOverview", "repository-audit", "derive"],
+      "author": "Maintainer",
+      "created": "2026-05-22T00:00:00.000Z",
+      "lastUpdated": "2026-05-23T19:45:00.000Z",
+      "description": "Derive overview stats from arrays when dataSource === repository-audit",
+      "codeLines": 35,
+      "complexity": "Low"
+    },
+    {
+      "id": "tpl_jwt_auth",
+      "name": "Phase 2 JWT Auth Routes",
+      "type": "API Pattern",
+      "language": "JavaScript",
+      "framework": "Express",
+      "downloads": null,
+      "rating": null,
+      "category": "Stub API",
+      "tags": ["auth", "jwt", "phase2"],
+      "author": "Maintainer",
+      "created": "2026-05-12T00:00:00.000Z",
+      "lastUpdated": "2026-05-18T00:00:00.000Z",
+      "description": "/api/auth/login, /me, /logout with demo user dev@cascade.ai",
+      "codeLines": 120,
+      "complexity": "Medium"
+    }
+  ],
+  "categories": [
+    { "id": "cat_pages", "name": "Dashboard Pages", "count": 32, "downloads": null, "icon": "💻", "color": "primary" },
+    { "id": "cat_samples", "name": "Sample JSON", "count": 33, "downloads": null, "icon": "📄", "color": "info" },
+    { "id": "cat_stub", "name": "Stub API", "count": 25, "downloads": null, "icon": "🔌", "color": "success" },
+    { "id": "cat_tests", "name": "Tests", "count": 18, "downloads": null, "icon": "🧪", "color": "warning" }
+  ],
+  "languages": [
+    { "language": "JavaScript", "count": 32, "percentage": 72.7 },
+    { "language": "JSON", "count": 33, "percentage": 18.2 },
+    { "language": "YAML", "count": 2, "percentage": 4.5 },
+    { "language": "HTML", "count": 1, "percentage": 2.3 },
+    { "language": "Other", "count": 1, "percentage": 2.3 }
+  ],
+  "snippets": [
+    {
+      "id": "snippet_escape_html",
+      "name": "escapeHtml helper",
+      "language": "JavaScript",
+      "description": "Standard XSS-safe string escape used in every page script",
+      "lines": 6,
+      "used": 32
+    },
+    {
+      "id": "snippet_normalize",
+      "name": "normalizeModel unwrap",
+      "language": "JavaScript",
+      "description": "payload?.data && isModel(payload.data) ? payload.data : payload",
+      "lines": 4,
+      "used": 32
+    },
+    {
+      "id": "snippet_fetch_order",
+      "name": "Sample before localStorage",
+      "language": "JavaScript",
+      "description": "fetch sample/API first, restore cache only if not stale",
+      "lines": 12,
+      "used": 33
+    },
+    {
+      "id": "snippet_format_metric",
+      "name": "formatMetric null guard",
+      "language": "JavaScript",
+      "description": "Return — for null metrics instead of showing 0 fiction",
+      "lines": 4,
+      "used": 33
+    },
+    {
+      "id": "snippet_snapshot_get",
+      "name": "snapshotGet route",
+      "language": "JavaScript",
+      "description": "Register stub route reading web/data sample JSON",
+      "lines": 3,
+      "used": 25
+    }
+  ],
+  "analytics": {
+    "usageTrends": [
+      { "month": "Apr W1", "templates": 32, "snippets": 5, "downloads": null },
+      { "month": "Apr W2", "templates": 32, "snippets": 5, "downloads": null },
+      { "month": "May W1", "templates": 32, "snippets": 5, "downloads": null },
+      { "month": "May W2", "templates": 32, "snippets": 5, "downloads": null },
+      { "month": "May W3", "templates": 32, "snippets": 5, "downloads": null },
+      { "month": "May W4", "templates": 32, "snippets": 5, "downloads": null }
+    ],
+    "popularTemplates": [
+      { "name": "Self-Contained Page Script", "usage": "32 pages", "rating": null },
+      { "name": "repository-audit Sample JSON", "usage": "42/42 baselines", "rating": null },
+      { "name": "Stale localStorage Guard", "usage": "33 page scripts", "rating": null },
+      { "name": "page-samples.test.js Spec", "usage": "665/665 tests (32 suites)", "rating": null }
+    ],
+    "contributorStats": [
+      { "name": "Maintainer", "templates": 8, "downloads": null }
+    ],
+    "summary": {
+      "templatesThisMonth": 8,
+      "snippetsThisMonth": 5,
+      "downloadsThisMonth": null,
+      "avgMonthlyDownloads": null
+    }
+  },
+  "recentActivity": [
+    {
+      "id": "act_build_overview",
+      "action": "buildOverview pattern extended",
+      "description": "Maintainer added derived metrics to code-templates and assets-library pages",
+      "time": "1 hour ago",
+      "details": "repository-audit dataSource guard",
+      "icon": "✏️",
+      "color": "info"
+    },
+    {
+      "id": "act_stale_guard",
+      "action": "Stale cache guards shipped",
+      "description": "Billing, debt, roadmap, and assets pages reject old fiction from localStorage",
+      "time": "4 hours ago",
+      "details": "isStale*Model helpers",
+      "icon": "🛡️",
+      "color": "success"
+    },
+    {
+      "id": "act_page_samples",
+      "action": "page-samples tests passing",
+      "description": "Jest validates all 33 sample JSON files and page script presence",
+      "time": "1 day ago",
+      "details": "665/665 tests (32 suites)",
+      "icon": "🧪",
+      "color": "primary"
+    },
+    {
+      "id": "act_stub_api",
+      "action": "Tier-1 stub routes complete",
+      "description": "dashboard-stub-api integration tests cover all page endpoints",
+      "time": "1 week ago",
+      "details": "25+ routes",
+      "icon": "🔌",
+      "color": "warning"
+    }
+  ],
+  "quickActions": [
+    { "label": "Open Dev Tools", "icon": "🔧", "section": "dev-tools" },
+    { "label": "Export Patterns", "icon": "📥", "action": "export" },
+    { "label": "View Stub API", "icon": "🔌", "section": "api" },
+    { "label": "Run Jest Suite", "icon": "🧪", "section": "quality" }
+  ],
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousTotalTemplates": 234,
+    "previousTotalSnippets": 567,
+    "previousAvgRating": 4.7,
+    "notes": "Old template used fictional React/FastAPI boilerplate, 500-test counts, and 11-baseline fiction."
+  }
+}

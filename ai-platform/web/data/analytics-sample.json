@@ -1,0 +1,138 @@
+{
+  "type": "analytics-model",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Engineering metrics from repo audit — not 85,420 API calls, 47 users, or 1,559 req/s fiction."
+  },
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousApiCalls": 85420,
+    "previousAiJobs": 3842,
+    "previousThroughput": "1559 req/s",
+    "notes": "GGUF AI Platform telemetry fiction removed — no production APM in this repo."
+  },
+  "overview": {
+    "apiCalls": null,
+    "jestTests": 665,
+    "jestTestsTotal": 578,
+    "testSuites": 25,
+    "measuredBaselines": 43,
+    "sampleJsonFiles": 33,
+    "scannerIssues": 0,
+    "inferenceMode": "filesystem+gguf-path",
+    "jestRuntime": "~2.2s",
+    "statLabels": {
+      "apiCalls": "Jest Tests",
+      "dataQueries": "Test Suites",
+      "aiProcessingJobs": "Audit Pages",
+      "activeUsers": "Scanner Issues",
+      "uptime": "Inference Mode",
+      "avgResponseTime": "Jest Runtime"
+    },
+    "notes": "Local dashboard — not multi-tenant SaaS analytics."
+  },
+  "usageByCategory": [
+    { "category": "repository-audit samples", "count": 33, "percentage": 100, "trend": null },
+    { "category": "fiction remaining", "count": 0, "percentage": 0, "trend": null },
+    { "category": "roadmap tools", "count": 3, "percentage": 9, "trend": null },
+    { "category": "stub API routes", "count": 30, "percentage": 91, "trend": null }
+  ],
+  "trends": {
+    "labels": ["May W1", "May W2", "May W3", "May W4", "May W5", "May W6"],
+    "apiCalls": [450, 465, 480, 490, 574, 578],
+    "aiJobs": [8, 11, 14, 16, 26, 33],
+    "errors": [8, 7, 6, 5, 0, 0],
+    "seriesLabels": {
+      "apiCalls": "Jest tests passing",
+      "aiJobs": "Audit pages migrated",
+      "errors": "Scanner issues open"
+    }
+  },
+  "performance": {
+    "cpu": null,
+    "memory": null,
+    "memoryMax": null,
+    "storage": null,
+    "network": null,
+    "diskIO": null,
+    "cacheHitRate": null,
+    "throughput": "665/665 Jest",
+    "schemaPassRate": 100,
+    "scanQuality": 99
+  },
+  "topFeatures": [
+    { "name": "Jest Suite", "section": "coverage-reports", "requests": null, "avgTime": "~2.2s", "successRate": 100 },
+    { "name": "Mock Data Scanner", "section": "gguf-analysis", "requests": null, "avgTime": "36 files", "successRate": 99 },
+    { "name": "Stub API", "section": "api", "requests": null, "avgTime": "tier-1", "successRate": null },
+    { "name": "Issue Resolution", "section": "issue-resolution", "requests": null, "avgTime": "0 open", "successRate": 100 },
+    { "name": "Development Roadmap", "section": "roadmap", "requests": null, "avgTime": "path scan", "successRate": null }
+  ],
+  "alerts": [
+    {
+      "severity": "info",
+      "title": "Istanbul collected in CI",
+      "message": "Line 79.5% / branch 56.6% — dashboard-ci.yml runs npm run test:coverage",
+      "time": "2026-05-24",
+      "resolved": true
+    },
+    {
+      "severity": "info",
+      "title": "43/43 samples on repository-audit",
+      "message": "Sample telemetry migration complete — stale guards reject cached fiction",
+      "time": "2026-05-24",
+      "resolved": true
+    },
+    {
+      "severity": "info",
+      "title": "Scanner backlog cleared",
+      "message": "0 open mock-data-scanner issues — 42/42 page sample specs pass",
+      "time": "2026-05-24",
+      "resolved": true
+    },
+    {
+      "severity": "info",
+      "title": "Inference optional",
+      "message": "Analyze uses filesystem scan unless LLAMA_CPP_BIN/Ollama configured",
+      "time": "2026-05-23",
+      "resolved": true
+    }
+  ],
+  "businessIntelligence": [
+    { "icon": "🧪", "title": "Jest Health", "value": "665/665", "description": "79.5% Istanbul line in CI — default npm test uses --no-coverage" },
+    { "icon": "📊", "title": "Schema Pass", "value": "100%", "description": "42/42 page sample specs validate in scanner" },
+    { "icon": "🔍", "title": "Scan Quality", "value": "99%", "description": "36 mock files measured (245.6KB)" },
+    { "icon": "🛡️", "title": "Audit Progress", "value": "42/42", "description": "repository-audit sample migration complete" }
+  ],
+  "insights": [
+    {
+      "priority": "medium",
+      "title": "v1.0-internal deploy sign-off",
+      "description": "Deploy with REQUIRE_AUTH=true on shared host per docs/v1-internal-runbook.md.",
+      "impact": "Solo maintainer production profile"
+    },
+    {
+      "priority": "medium",
+      "title": "Validate docker-compose.phase2.yml in CI",
+      "description": "Production profile not smoke-tested yet.",
+      "impact": "Deploy confidence before v1.0"
+    },
+    {
+      "priority": "low",
+      "title": "Optional live telemetry",
+      "description": "Only add metrics that are actually collected — do not invent 85k API calls.",
+      "impact": "Truthful dashboards"
+    }
+  ],
+  "activity": [
+    { "time": "2026-05-24", "event": "665/665 Jest tests passed", "category": "CI", "status": "success" },
+    { "time": "2026-05-24", "event": "Analytics sample refreshed to 665/665 baseline", "category": "Samples", "status": "success" },
+    { "time": "2026-05-24", "event": "Mock scanner: 36 files, 0 issues", "category": "Scanner", "status": "success" },
+    { "time": "2026-05-23", "event": "Dashboard home + AI tools migrated", "category": "Samples", "status": "success" }
+  ]
+}

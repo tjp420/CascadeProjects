@@ -1,0 +1,50 @@
+{
+  "type": "ai-quality-metrics-report",
+  "title": "Simplebeacon Quality Metrics",
+  "generatedAt": "2026-05-24T04:43:11.700Z",
+  "generatedBy": "Simplebeacon",
+  "dataSource": "repository-audit",
+  "currentScore": 99,
+  "overview": {
+    "qualityScore": 99,
+    "schemaCompliance": 100,
+    "consistencyScore": 100
+  },
+  "metrics": [
+    {
+      "name": "schema_compliance",
+      "value": 100,
+      "threshold": 100,
+      "status": "pass",
+      "context": { "checked": 42, "passed": 42 }
+    },
+    {
+      "name": "consistency_score",
+      "value": 100,
+      "threshold": 95,
+      "status": "pass",
+      "context": { "samplesScanned": 42, "fictionHits": 0 }
+    },
+    {
+      "name": "quality_score",
+      "value": 99,
+      "threshold": 95,
+      "status": "pass",
+      "context": { "issueCount": 0, "gatePass": true }
+    },
+    {
+      "name": "credential_findings",
+      "value": 0,
+      "threshold": 0,
+      "status": "pass",
+      "context": { "scanned": 106 }
+    },
+    {
+      "name": "production_leak_findings",
+      "value": 0,
+      "threshold": 0,
+      "status": "pass",
+      "context": { "scanned": 63 }
+    }
+  ]
+}

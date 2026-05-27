@@ -1,0 +1,42 @@
+{
+  "type": "baseline-comparison-report",
+  "title": "Repository-Audit Baseline Comparison",
+  "generatedAt": "2026-05-24T04:43:11.700Z",
+  "generatedBy": "Simplebeacon",
+  "dataSource": "repository-audit",
+  "baselineType": "repository-audit",
+  "baselineValue": 100,
+  "currentValue": 100,
+  "variance": 0,
+  "varianceThreshold": 5,
+  "status": "within_threshold",
+  "overview": {
+    "compliance": "100%",
+    "jestTestsLabel": "665/665",
+    "pageSamplesLabel": "43/43",
+    "gatePass": true
+  },
+  "comparisons": [
+    {
+      "metric": "consistency_score",
+      "baselineValue": 100,
+      "currentValue": 100,
+      "variance": 0,
+      "status": "within_threshold"
+    },
+    {
+      "metric": "schema_compliance",
+      "baselineValue": 100,
+      "currentValue": 100,
+      "variance": 0,
+      "status": "within_threshold"
+    },
+    {
+      "metric": "page_samples",
+      "baselineValue": 42,
+      "currentValue": 42,
+      "variance": 0,
+      "status": "within_threshold"
+    }
+  ]
+}

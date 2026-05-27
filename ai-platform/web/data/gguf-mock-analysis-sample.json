@@ -1,0 +1,140 @@
+{
+  "success": true,
+  "type": "gguf-mock-data-analysis-report",
+  "title": "Mock Data Analysis (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "mock-data-scanner (repository-audit)",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "size": null,
+    "confidence": null,
+    "hash": null,
+    "status": "active",
+    "provider": "filesystem",
+    "notes": "Filesystem scan via mock-data-scanner — not legacy demo oracle or 98.5% confidence fiction."
+  },
+  "analysisOverview": {
+    "totalMockFiles": 40,
+    "dataQualityScore": 96,
+    "totalMockDataSize": "270.8KB",
+    "issuesDetected": 0,
+    "aiConfidence": null,
+    "schemaPassRate": 100,
+    "schemaFilesChecked": 34,
+    "schemaFilesPassed": 34,
+    "pageSampleSpecsLabel": "42/42",
+    "roadmapSchemaChecked": 4,
+    "roadmapSchemaPassed": 2,
+    "analysisSpeed": "filesystem scan",
+    "memoryUsage": "local",
+    "cpuUsage": "local",
+    "notes": "43/43 PAGE_SAMPLE_SPECS pass; 2/4 archived roadmap JSON specs (legacy files informational only)."
+  },
+  "inferenceMeta": {
+    "scanEngine": "mock-data-scanner",
+    "scanPaths": [
+      "web/data",
+      "data/mock",
+      "data-central/ai-tools/mock-data"
+    ],
+    "scannedFiles": 40,
+    "issueSource": "none",
+    "metricsSource": "scan",
+    "mode": "repository-audit"
+  },
+  "mockDataCategories": [
+    {
+      "category": "JSON Files",
+      "fileCount": 39,
+      "totalSize": "270.5KB",
+      "qualityScore": 99,
+      "issues": 0,
+      "confidence": null,
+      "description": "JSON Files discovered during filesystem scan"
+    },
+    {
+      "category": "Documentation Files",
+      "fileCount": 1,
+      "totalSize": "289B",
+      "qualityScore": 99,
+      "issues": 0,
+      "confidence": null,
+      "description": "Documentation Files discovered during filesystem scan"
+    }
+  ],
+  "qualityMetrics": {
+    "dataIntegrity": 96,
+    "schemaCompliance": 100,
+    "consistencyScore": 100,
+    "completenessScore": 95,
+    "overallQuality": 96,
+    "measuredFromScan": true,
+    "schemaFilesChecked": 34,
+    "schemaFilesPassed": 34,
+    "roadmapSchemaChecked": 4,
+    "roadmapSchemaPassed": 2,
+    "crossSampleConsistency": 100,
+    "credentialPatternsFound": 0
+  },
+  "detectedIssues": [],
+  "ggufAIInsights": {
+    "dataPatterns": [
+      "40 JSON/mock files across web/data, data/mock, and data-central/ai-tools/mock-data",
+      "42/42 dashboard page samples on repository-audit baselines",
+      "665/665 Jest tests passing across 32 suites",
+      "Schema validation on PAGE_SAMPLE_SPECS + roadmap JSON specs",
+      "Canonical mock analysis lives in web/data/gguf-mock-analysis-sample.json only"
+    ],
+    "optimizationRecommendations": [
+      {
+        "priority": "low",
+        "action": "Legacy roadmap archived",
+        "description": "cascade-project-roadmap.json moved to data/roadmap/archive/ (~4.8MB) — informational only, not blocking",
+        "potentialSavings": "Faster roadmap scans",
+        "impact": "Low"
+      },
+      {
+        "priority": "low",
+        "action": "Optional GGUF semantic hints",
+        "description": "phi-2.Q4_K_M.gguf active — set LLAMA_CPP_BIN for Phase 3 inference (not required for honest dashboard)",
+        "potentialSavings": "Semantic similarity beyond token-jaccard",
+        "impact": "Optional"
+      }
+    ],
+    "qualityImprovements": [
+      "Run npm test after sample KPI edits — baseline is 665/665",
+      "Use Analyze Mock Data for live mock-data-scanner results",
+      "Clear lastGgufAnalysisReport localStorage after baseline updates",
+      "Reject cached exports with legacy demo-oracle branding, 665/665 jest mismatches, or 98.5% aiConfidence"
+    ]
+  },
+  "privacyAndSecurity": {
+    "dataRetention": "local scan only",
+    "encryptionStatus": "N/A",
+    "accessControls": "local dashboard",
+    "complianceStatus": "measured engineering posture"
+  },
+  "performanceMetrics": {
+    "analysisDuration": "filesystem scan",
+    "filesProcessedPerSecond": null,
+    "memoryEfficiency": "Local",
+    "cpuOptimization": "Filesystem",
+    "scalabilityRating": "Very Good"
+  },
+  "rejectedFiction": {
+    "warning": "Prior demo scans used legacy oracle branding and 98.5% confidence",
+    "claims": [
+      "Legacy demo oracle generatedBy branding",
+      "98.5% aiConfidence on filesystem scan",
+      "665/665 jest baseline mismatch false positives"
+    ]
+  },
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousIssuesDetected": 156,
+    "previousAiConfidence": 98.5,
+    "notes": "Enterprise mock scan fiction removed."
+  }
+}

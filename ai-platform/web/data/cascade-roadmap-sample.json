@@ -1,0 +1,199 @@
+{
+  "sourceProjectPath": "…/CascadeProjects/ai-platform",
+  "projectTitle": "cascade-ai-platform",
+  "projectDescription": "Measured sprint roadmap — aligned with code-roadmap-generator v3.1 live scan",
+  "dataSource": "filesystem-scan",
+  "roadmap": {
+    "type": "dynamic-project-roadmap-analysis",
+    "dataSource": "filesystem-scan",
+    "timestamp": "2026-05-26T06:25:53.873Z",
+    "generatedBy": "code-roadmap-generator",
+    "version": "3.1.0",
+    "sourceProjectPath": "…/CascadeProjects/ai-platform",
+    "executiveSummary": {
+      "totalFeatures": 4,
+      "completedFeatures": 4,
+      "inProgressFeatures": 0,
+      "plannedFeatures": 0,
+      "completionRate": 100,
+      "projectHealth": "Healthy",
+      "aiConfidence": null,
+      "analysisDuration": null,
+      "lastUpdated": "2026-05-26T06:25:53.873Z",
+      "teamSize": 1,
+      "notes": "Sprint model from filesystem signals + repository-audit baselines — not 47-feature enterprise fiction"
+    },
+    "developmentPhases": [
+      {
+        "phase": "Sprint 1: Server & Auth",
+        "status": "completed",
+        "progress": 100,
+        "description": "Canonical server entry and optional JWT auth",
+        "features": ["Root server delegate", "Phase 2 JWT auth"],
+        "milestones": ["Single server entry", "Auth routes live"]
+      },
+      {
+        "phase": "Sprint 2: Stub APIs & Tests",
+        "status": "completed",
+        "progress": 100,
+        "description": "Stub API routes (100 detected) and 954/954 Jest tests (64 suites)",
+        "features": ["Tier-1 stub API routes", "954/954 Jest tests (64 suites)"],
+        "milestones": ["dashboard-stub-api.js", "954/954"]
+      },
+      {
+        "phase": "Sprint 3: Honest Dashboard Data",
+        "status": "completed",
+        "progress": 100,
+        "description": "43/43 page samples with repository-audit analyzers",
+        "features": [
+          "43/43 PAGE_SAMPLE_SPECS samples",
+          "SEC-004 npm audit wired to Security page",
+          "Mock-data scanner with schema validation",
+          "File merger reduction scanner"
+        ],
+        "milestones": ["Repository-audit samples", "Mock-data + merger scanners"]
+      },
+      {
+        "phase": "Sprint 4: Production Profile",
+        "status": "completed",
+        "progress": 100,
+        "description": "Docker Phase2, CI smoke test, Istanbul coverage, production profile",
+        "features": [
+          "docker-compose.phase2.yml present",
+          "Istanbul collected in CI",
+          "GGUF inference (LLAMA_CPP_BIN/Ollama) — optional",
+          "REQUIRE_AUTH production profile ready"
+        ],
+        "milestones": ["phase2-smoke CI job", "Production runbook"]
+      }
+    ],
+    "featureCategories": [
+      {
+        "category": "Server & Auth",
+        "completed": 1,
+        "total": 1,
+        "completionRate": 100,
+        "description": "Unified server entry and JWT middleware"
+      },
+      {
+        "category": "Stub APIs & Tests",
+        "completed": 1,
+        "total": 1,
+        "completionRate": 100,
+        "description": "Tier-1 page endpoints + 665/665 Jest (32 suites)"
+      },
+      {
+        "category": "Sample Baselines",
+        "completed": 1,
+        "total": 1,
+        "completionRate": 100,
+        "description": "43/43 PAGE_SAMPLE_SPECS — mock scanner 0 issues"
+      },
+      {
+        "category": "Production CI",
+        "completed": 3,
+        "total": 3,
+        "completionRate": 100,
+        "description": "Istanbul, phase2 config smoke, simplebeacon gate"
+      },
+      {
+        "category": "Production Deploy",
+        "completed": 0,
+        "total": 2,
+        "completionRate": 0,
+        "status": "deferred",
+        "description": "REQUIRE_AUTH sign-off started + Docker up/down pending host smoke"
+      }
+    ],
+    "keyMilestones": [
+      {
+        "milestone": "Server & Auth Live",
+        "status": "completed",
+        "date": "2026-05-07",
+        "description": "Root delegate + JWT routes"
+      },
+      {
+        "milestone": "Stub APIs Complete",
+        "status": "completed",
+        "date": "2026-05-14",
+        "description": "Tier-1 page endpoints + 665/665 tests"
+      },
+      {
+        "milestone": "Honest Dashboard Samples",
+        "status": "completed",
+        "date": "2026-05-23",
+        "description": "42/42 repository-audit page specs + Phase 2 code-roadmap scanner"
+      },
+      {
+        "milestone": "Production CI Profile",
+        "status": "completed",
+        "date": "2026-05-24",
+        "description": "Istanbul + phase2 config + simplebeacon gate"
+      },
+      {
+        "milestone": "Production Deploy",
+        "status": "deferred",
+        "date": "Post-Simplebeacon v0.1",
+        "description": "REQUIRE_AUTH sign-off in progress + Docker up/down pending host smoke"
+      }
+    ],
+    "recommendations": {
+      "immediate": [
+        "Complete local v1-internal verification (npm run verify:v1-internal-profile, npm run dashboard:v1-internal)"
+      ],
+      "shortTerm": [
+        "Production deploy sign-off after local auth smoke test passes",
+        "Configure LLAMA_CPP_BIN or Ollama for optional semantic hints",
+        "npm audit clean (0 vulnerabilities) — security samples at 80/100",
+        "Improve documentation coverage"
+      ],
+      "longTerm": [
+        "Define enterprise scope only after v1.0-internal"
+      ]
+    },
+    "v1InternalDeploy": {
+      "localStatus": "code_ready",
+      "productionStatus": "artifacts_ready",
+      "localEnvConfigured": false,
+      "productionEnvConfigured": false,
+      "stripeConfigured": false,
+      "gateRemaining": true,
+      "runbook": "docs/v1-internal-runbook.md",
+      "verifyLocal": "npm run verify:v1-internal-profile",
+      "verifyProduction": "npm run verify:production-deploy",
+      "deploy": "npm run simplebeacon:deploy"
+    },
+    "codeAnalysis": {
+      "phase2": {
+        "phase": "Phase 2 — Code intelligence",
+        "status": "active",
+        "resourceEstimate": {
+          "teamSize": 1,
+          "role": "Solo maintainer",
+          "remainingSprints": 0,
+          "estimatedHours": 0,
+          "budgetNote": "Internal notional estimate — not $204k enterprise fiction"
+        }
+      }
+    },
+    "projectStructure": {
+      "projectRoot": "…/CascadeProjects/ai-platform",
+      "platformRoot": "…/CascadeProjects/ai-platform",
+      "notes": "Use Build from Path for fresh filesystem counts"
+    },
+    "rejectedFiction": {
+      "warning": "Enterprise roadmap design claims not produced by RepositoryAudit",
+      "claims": [
+        "Hardcoded confidence percentages without reproducible evidence",
+        "2-3 developer team resource models",
+        "Hardcoded feature totals / completion defaults",
+        "$204k budget forecasts from scan"
+      ]
+    },
+    "deprecatedNarrative": {
+      "warning": "Prior cascade-roadmap-sample included hardcoded feature totals and completion rates alongside measured baselines.",
+      "previousTotalFeatures": null,
+      "previousCompletionRate": null
+    }
+  }
+}

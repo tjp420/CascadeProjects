@@ -1,0 +1,109 @@
+{
+  "jestTestsPassing": 954,
+  "jestTestsLabel": "954/954",
+  "jestSuites": 64,
+  "pageSamplesLabel": "43/43",
+  "pageSampleSpecCount": 43,
+  "currentRelease": "v0.8-beta",
+  "activeModel": "phi-2.Q4_K_M.gguf",
+  "dataSource": "repository-audit",
+  "rejectedFiction": {
+    "featureCounts": [
+      47,
+      100,
+      156,
+      8,
+      9
+    ],
+    "completionRates": [
+      74.17,
+      87,
+      94.3,
+      66,
+      62
+    ],
+    "mockFileCounts": [
+      1247,
+      999,
+      1000
+    ],
+    "openIssueCounts": [
+      156,
+      999
+    ],
+    "modelNames": [
+      "unbreakable-oracle",
+      "gpt-5-oracle",
+      "demo-oracle"
+    ],
+    "throughputClaims": [
+      "1559",
+      "1,559",
+      "9999"
+    ],
+    "aiConfidenceScores": [
+      98.5,
+      94.3,
+      87
+    ]
+  },
+  "documentedExceptions": [
+    {
+      "id": "deprecated-narrative-model-names",
+      "patterns": [
+        "modelNames:unbreakable-oracle",
+        "modelNames:demo-oracle",
+        "modelNames:gpt-5-oracle"
+      ],
+      "category": "B",
+      "scope": "deprecatedNarrative.previousModel, fictionRemoved, rejectedFiction.claims in web/data/*-sample.json",
+      "reason": "Anti-fiction provenance blocks documenting removed legacy oracle branding",
+      "reviewDate": "2026-05-25"
+    },
+    {
+      "id": "deprecated-narrative-kpi-refs",
+      "patterns": [
+        "openIssueCounts:156",
+        "aiConfidenceScores:98.5",
+        "mockFileCounts:1247"
+      ],
+      "category": "B",
+      "scope": "deprecatedNarrative.previous* and rejectedFiction.claims in measured baseline samples",
+      "reason": "Historical fiction values preserved as null-target warnings, not active KPI fields",
+      "reviewDate": "2026-05-25"
+    },
+    {
+      "id": "throughput-doc-refs",
+      "patterns": [
+        "throughputClaims:1559",
+        "throughputClaims:1,559"
+      ],
+      "category": "B",
+      "scope": "deprecatedNarrative.previousThroughput, previousProcessingSpeed in sample JSON",
+      "reason": "Documented prior demo throughput claims in narrative-only fields",
+      "reviewDate": "2026-05-25"
+    },
+    {
+      "id": "fictional-patterns-catalog",
+      "patterns": [
+        "throughputClaims:1559",
+        "throughputClaims:1,559"
+      ],
+      "category": "B",
+      "scope": "web/data/fictional-patterns-sample.json",
+      "reason": "Self-describing reject-list catalog for Simplebeacon fiction rule education",
+      "reviewDate": "2026-05-25"
+    },
+    {
+      "id": "local-models-demo-registry",
+      "patterns": [
+        "modelNames:unbreakable-oracle"
+      ],
+      "category": "B",
+      "scope": "web/data/local-models-sample.json models[].id unbreakable-oracle-demo",
+      "reason": "Registered demo model placeholder with provider:demo — active model is phi-2.Q4_K_M.gguf",
+      "reviewDate": "2026-05-25"
+    }
+  ],
+  "syncedAt": "2026-05-27T16:00:00.000Z"
+}

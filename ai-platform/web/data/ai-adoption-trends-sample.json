@@ -1,0 +1,54 @@
+{
+  "type": "ai-adoption-trends-report",
+  "title": "Simplebeacon Scan Trends",
+  "generatedAt": "2026-05-24T04:43:11.700Z",
+  "generatedBy": "Simplebeacon",
+  "dataSource": "repository-audit",
+  "overview": {
+    "totalScans": 5,
+    "latestQualityScore": 99,
+    "latestIssueCount": 0
+  },
+  "trends": [
+    {
+      "date": "2026-05-24T02:41:16.031Z",
+      "totalAiFiles": 38,
+      "validatedAiFiles": 38,
+      "rejectedAiFiles": 0,
+      "avgQualityScore": 99,
+      "toolsUsed": ["simplebeacon", "repository-audit"]
+    },
+    {
+      "date": "2026-05-24T02:47:33.100Z",
+      "totalAiFiles": 38,
+      "validatedAiFiles": 38,
+      "rejectedAiFiles": 0,
+      "avgQualityScore": 99,
+      "toolsUsed": ["simplebeacon", "repository-audit"]
+    },
+    {
+      "date": "2026-05-24T04:39:11.793Z",
+      "totalAiFiles": 38,
+      "validatedAiFiles": 38,
+      "rejectedAiFiles": 0,
+      "avgQualityScore": 99,
+      "toolsUsed": ["simplebeacon", "repository-audit"]
+    },
+    {
+      "date": "2026-05-24T04:42:18.696Z",
+      "totalAiFiles": 38,
+      "validatedAiFiles": 38,
+      "rejectedAiFiles": 0,
+      "avgQualityScore": 99,
+      "toolsUsed": ["simplebeacon", "repository-audit"]
+    },
+    {
+      "date": "2026-05-24T04:43:11.700Z",
+      "totalAiFiles": 42,
+      "validatedAiFiles": 42,
+      "rejectedAiFiles": 0,
+      "avgQualityScore": 99,
+      "toolsUsed": ["simplebeacon", "repository-audit", "code-roadmap-generator"]
+    }
+  ]
+}

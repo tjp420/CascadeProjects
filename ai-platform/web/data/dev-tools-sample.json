@@ -1,0 +1,84 @@
+{
+  "type": "dev-tools-model",
+  "generatedAt": "2026-05-25T02:45:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Real scripts and CI workflows — not 1,847 usage events or 96.2% success fiction."
+  },
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousTotalUsage": 1847,
+    "previousSuccessRate": 96.2,
+    "notes": "Fictional DevOps tool usage counts removed."
+  },
+  "overview": {
+    "totalTools": 11,
+    "activeTools": 11,
+    "totalUsage": null,
+    "runningWorkflows": 2,
+    "avgResponseTime": "~2.2s",
+    "jestPassRate": 100,
+    "successRate": null,
+    "categories": 6,
+    "statLabels": {
+      "totalTools": "Repo Tools",
+      "activeTools": "Active",
+      "totalUsage": "Tracked Runs",
+      "runningWorkflows": "CI Workflows",
+      "avgResponseTime": "Jest Runtime",
+      "successRate": "Jest Pass Rate"
+    }
+  },
+  "tools": [
+    { "id": "jest", "name": "Jest Test Suite", "description": "665/665 tests across 32 suites — npm test --no-coverage", "category": "Testing", "icon": "🧪", "status": "active", "usage": null, "successRate": 100, "avgTime": "~37s", "section": "coverage-reports" },
+    { "id": "simplebeacon", "name": "Simplebeacon", "description": "packages/simplebeacon-cli — npm run simplebeacon --gate", "category": "CI", "icon": "✅", "status": "active", "usage": null, "successRate": null, "avgTime": "gate", "section": "gguf-analysis" },
+    { "id": "mock-scanner", "name": "Mock Data Scanner", "description": "40 files, 100% schema (43/43), 99% quality, 0 blocking issues", "category": "Analysis", "icon": "🔍", "status": "active", "usage": null, "successRate": null, "avgTime": "40 files", "section": "gguf-analysis" },
+    { "id": "page-specs", "name": "Page Sample Specs", "description": "Validates 42/42 dashboard *-sample.json files", "category": "Testing", "icon": "📋", "status": "active", "usage": null, "successRate": null, "avgTime": "specs", "section": "quality" },
+    { "id": "stub-api", "name": "Dashboard Stub API", "description": "Tier-1 routes in dashboard-stub-api.js", "category": "Backend", "icon": "🔌", "status": "active", "usage": null, "successRate": null, "avgTime": "integration", "section": "api" },
+    { "id": "github-ci", "name": "GitHub Actions CI", "description": "dashboard-ci.yml + simplebeacon.yml — Jest, Istanbul, phase2 config smoke", "category": "CI", "icon": "⚙️", "status": "active", "usage": null, "successRate": null, "avgTime": "CI", "section": "implementation-plan" },
+    { "id": "code-roadmap", "name": "Code Roadmap Generator", "description": "Filesystem sprint roadmap — structure, deps, features; not 98% GGUF fiction", "category": "Planning", "icon": "🗺️", "status": "active", "usage": null, "successRate": null, "avgTime": "path scan", "section": "roadmap" },
+    { "id": "roadmap-scan", "name": "Roadmap Path Builder", "description": "POST /api/dynamic-roadmap/build-from-path — uses code-roadmap-generator", "category": "Planning", "icon": "🗺️", "status": "active", "usage": null, "successRate": null, "avgTime": "path scan", "section": "roadmap" },
+    { "id": "issue-fix", "name": "Issue Fix API", "description": "Wired from Issue Resolution to /api/gguf/issues", "category": "Maintenance", "icon": "🔧", "status": "active", "usage": null, "successRate": null, "avgTime": "0 open", "section": "issue-resolution" },
+    { "id": "analyzer-roadmap", "name": "Data Maintenance Analyzers", "description": "Measured analyzer roadmap — schema, dedup, npm audit live", "category": "Analysis", "icon": "🔬", "status": "active", "usage": null, "successRate": null, "avgTime": "roadmap", "section": "dev-tools", "sample": "/data/data-maintenance-analyzers-sample.json" },
+    { "id": "docker-phase2", "name": "Phase 2 Docker", "description": "docker-compose.phase2.yml — config validated in CI; live up/down smoke pending deploy host", "category": "Infrastructure", "icon": "🐳", "status": "beta", "usage": null, "successRate": null, "avgTime": "config smoke", "section": "implementation-plan" },
+    { "id": "npm-audit", "name": "Dependency Audit", "description": "npm audit wired to Security page (SEC-004 closed)", "category": "Security", "icon": "🛡️", "status": "active", "usage": null, "successRate": null, "avgTime": "stub API", "section": "security" }
+  ],
+  "workflows": [
+    { "id": "jest-ci", "name": "Jest CI", "description": "npm test + test:coverage on GitHub Actions", "tools": ["jest", "page-specs"], "status": "running", "duration": "~2.2s", "lastRun": "on push", "progress": 100 },
+    { "id": "truthcheck-gate", "name": "Simplebeacon Gate", "description": "npm run simplebeacon on ai-platform PRs", "tools": ["simplebeacon", "mock-scanner"], "status": "running", "duration": "manual", "lastRun": "on push", "progress": 100 },
+    { "id": "mock-scan", "name": "Mock Data Scan", "description": "Scanner + page-sample-specs validation", "tools": ["mock-scanner", "page-specs"], "status": "completed", "duration": "manual", "lastRun": "2026-05-24", "progress": 100 },
+    { "id": "sample-migration", "name": "Sample Migration", "description": "42/42 repository-audit samples complete", "tools": ["page-specs", "stub-api"], "status": "completed", "duration": "complete", "lastRun": "2026-05-24", "progress": 100 },
+    { "id": "production-ci", "name": "Production CI Profile", "description": "Istanbul + phase2 compose config + simplebeacon.yml", "tools": ["github-ci", "simplebeacon"], "status": "completed", "duration": "wired", "lastRun": "2026-05-24", "progress": 100 },
+    { "id": "production-deploy", "name": "Production Deploy Profile", "description": "REQUIRE_AUTH sign-off checklist started + Docker phase2 config smoke complete", "tools": ["docker-phase2", "github-ci"], "status": "in_progress", "duration": "staged", "lastRun": "2026-05-24 (profile verify)", "progress": 60 }
+  ],
+  "categories": [
+    { "name": "Testing", "count": 2, "usage": null },
+    { "name": "Analysis", "count": 2, "usage": null },
+    { "name": "CI", "count": 2, "usage": null },
+    { "name": "Planning", "count": 2, "usage": null },
+    { "name": "Maintenance", "count": 1, "usage": null },
+    { "name": "Infrastructure", "count": 1, "usage": null }
+  ],
+  "activity": [
+    { "time": "2026-05-24", "event": "simplebeacon CLI extracted — npm run simplebeacon", "tool": "simplebeacon", "status": "success" },
+    { "time": "2026-05-24", "event": "665/665 Jest tests passed (SIMPLEBEACON_INTERNAL_DASHBOARD in jest.config)", "tool": "jest", "status": "success" },
+    { "time": "2026-05-24", "event": "Mock scanner: 40 files, 0 blocking issues", "tool": "mock-scanner", "status": "success" },
+    { "time": "2026-05-23", "event": "GitHub Actions dashboard-ci green (Istanbul + phase2 config)", "tool": "github-ci", "status": "success" }
+  ],
+  "insights": [
+    { "priority": "high", "title": "Publish Simplebeacon v0.1", "description": "CLI + gate shipped locally — npm publish and PR comment bot next.", "impact": "Strategic pivot" },
+    { "priority": "medium", "title": "Production Deploy in progress", "description": "Config smoke is complete; run live Docker up/down and finalize REQUIRE_AUTH sign-off on deploy host.", "impact": "Deploy confidence" },
+    { "priority": "low", "title": "Do not invent usage counters", "description": "Prior 1,847 tool runs were demo fiction.", "impact": "Truthful dev-tools page" }
+  ],
+  "quickActions": [
+    { "label": "Run Simplebeacon", "command": "cd ai-platform && npm run simplebeacon", "icon": "✅" },
+    { "label": "Run Jest", "command": "cd ai-platform && npm test -- --no-coverage", "icon": "🧪" },
+    { "label": "Mock Scanner", "icon": "🔍", "section": "gguf-analysis" },
+    { "label": "Implementation Plan", "icon": "🚀", "section": "implementation-plan" }
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "type": "api-model",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Stub routes from dashboard-stub-api.js — not 128,456 requests or 99.95% uptime fiction."
+  },
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousTotalRequests": 128456,
+    "previousSuccessRate": 97.4,
+    "previousUptime": 99.95,
+    "notes": "Enterprise API telemetry removed — local stub server only."
+  },
+  "overview": {
+    "totalAPIs": 7,
+    "activeAPIs": 7,
+    "totalEndpoints": 107,
+    "totalRequests": null,
+    "avgResponseTime": null,
+    "overallSuccessRate": null,
+    "uptime": null,
+    "stubRouteCount": 107,
+    "jestTests": "665/665",
+    "jestRuntime": "~5s",
+    "jestPassRate": 100,
+    "statLabels": {
+      "totalAPIs": "API Groups",
+      "activeAPIs": "Active",
+      "totalEndpoints": "Stub Routes",
+      "totalRequests": "Request Counter",
+      "avgResponseTime": "Jest Runtime",
+      "overallSuccessRate": "Jest Pass Rate"
+    },
+    "notes": "No production APM — request counts are not collected."
+  },
+  "apis": [
+    {
+      "id": "tier1_page_stubs",
+      "name": "Tier-1 Page Stubs",
+      "version": "v1",
+      "status": "active",
+      "baseUrl": "/api",
+      "endpoints": 65,
+      "requests": null,
+      "avgResponseTime": null,
+      "successRate": null,
+      "lastDeployed": "2026-05-24T00:00:00.000Z",
+      "category": "Platform",
+      "authentication": "Optional (REQUIRE_AUTH)",
+      "rateLimit": "None (local)",
+      "icon": "📊",
+      "description": "Self-contained dashboard page routes — analytics, billing, quality, etc."
+    },
+    {
+      "id": "legacy_component_routes",
+      "name": "Legacy Component Routes",
+      "version": "v1",
+      "status": "active",
+      "baseUrl": "/api/patterns",
+      "endpoints": 12,
+      "requests": null,
+      "avgResponseTime": null,
+      "successRate": null,
+      "lastDeployed": "2026-05-22T00:00:00.000Z",
+      "category": "Analysis",
+      "authentication": "None",
+      "rateLimit": "None (local)",
+      "icon": "🔍",
+      "description": "patterns, optimization, performance component stubs"
+    },
+    {
+      "id": "dev_tools_api",
+      "name": "Dev Tools API",
+      "version": "v1",
+      "status": "active",
+      "baseUrl": "/api/dev-tools",
+      "endpoints": 3,
+      "requests": null,
+      "avgResponseTime": null,
+      "successRate": null,
+      "lastDeployed": "2026-05-23T00:00:00.000Z",
+      "category": "Development",
+      "authentication": "None",
+      "rateLimit": "None (local)",
+      "icon": "🔧"
+    },
+    {
+      "id": "analytics_api",
+      "name": "Analytics API",
+      "version": "v1",
+      "status": "active",
+      "baseUrl": "/api/analytics",
+      "endpoints": 6,
+      "requests": null,
+      "avgResponseTime": null,
+      "successRate": null,
+      "lastDeployed": "2026-05-23T00:00:00.000Z",
+      "category": "Monitoring",
+      "authentication": "None",
+      "rateLimit": "None (local)",
+      "icon": "📈"
+    },
+    {
+      "id": "models_registry",
+      "name": "Models Registry",
+      "version": "v1",
+      "status": "active",
+      "baseUrl": "/api/models",
+      "endpoints": 4,
+      "requests": null,
+      "avgResponseTime": null,
+      "successRate": null,
+      "lastDeployed": "2026-05-24T00:00:00.000Z",
+      "category": "Platform",
+      "authentication": "None",
+      "rateLimit": "None (local)",
+      "icon": "🧠",
+      "description": "GGUF path/upload registry when server runs"
+    },
+    {
+      "id": "issues_api",
+      "name": "Issues / GGUF Fix API",
+      "version": "v1",
+      "status": "active",
+      "baseUrl": "/api/issues",
+      "endpoints": 3,
+      "requests": null,
+      "avgResponseTime": null,
+      "successRate": null,
+      "lastDeployed": "2026-05-23T00:00:00.000Z",
+      "category": "Maintenance",
+      "authentication": "None",
+      "rateLimit": "None (local)",
+      "icon": "🔧",
+      "description": "Wired from Issue Resolution page"
+    },
+    {
+      "id": "roadmap_api",
+      "name": "Roadmap API",
+      "version": "v1",
+      "status": "active",
+      "baseUrl": "/api/dynamic-roadmap",
+      "endpoints": 2,
+      "requests": null,
+      "avgResponseTime": null,
+      "successRate": null,
+      "lastDeployed": "2026-05-22T00:00:00.000Z",
+      "category": "Planning",
+      "authentication": "None",
+      "rateLimit": "None (local)",
+      "icon": "🗺️",
+      "description": "On-demand filesystem path scan — latency varies by repo size; not APM-measured"
+    }
+  ],
+  "endpoints": [
+    { "method": "GET", "path": "/api/dashboard-home", "apiId": "tier1_page_stubs", "description": "Dashboard home model", "avgMs": null, "status": "healthy" },
+    { "method": "GET", "path": "/api/analytics/overview", "apiId": "analytics_api", "description": "Analytics overview slice", "avgMs": null, "status": "healthy" },
+    { "method": "GET", "path": "/api/dev-tools/tools", "apiId": "dev_tools_api", "description": "Dev tools list", "avgMs": null, "status": "healthy" },
+    { "method": "GET", "path": "/api/models", "apiId": "models_registry", "description": "Local model registry", "avgMs": null, "status": "healthy" },
+    { "method": "GET", "path": "/api/issues/resolution", "apiId": "issues_api", "description": "Issue resolution model", "avgMs": null, "status": "healthy" },
+    { "method": "POST", "path": "/api/dynamic-roadmap/build-from-path", "apiId": "roadmap_api", "description": "On-demand path scan — timing not collected (no APM)", "avgMs": null, "status": "healthy" },
+    { "method": "GET", "path": "/api/patterns/code", "apiId": "legacy_component_routes", "description": "Pattern analyzer stub", "avgMs": null, "status": "healthy" },
+    { "method": "GET", "path": "/api/performance/metrics", "apiId": "legacy_component_routes", "description": "Performance component stub", "avgMs": null, "status": "healthy" }
+  ],
+  "performanceMetrics": [
+    { "id": "routes", "name": "Stub Routes", "value": "107", "trend": null, "description": "Registered in dashboard-stub-api.js" },
+    { "id": "jest", "name": "Jest Pass Rate", "value": "100%", "trend": null, "description": "665/665 tests across 32 suites" },
+    { "id": "requests", "name": "Request Counter", "value": "—", "trend": null, "description": "Not collected — prior 128,456 was fiction" },
+    { "id": "runtime", "name": "Jest Runtime", "value": "~5s", "trend": null, "description": "Full unit suite locally" }
+  ],
+  "alerts": [
+    { "severity": "Info", "type": "info", "message": "107 stub routes — no production traffic metrics", "apiId": "tier1_page_stubs", "timestamp": "2026-05-24T00:00:00.000Z" },
+    { "severity": "Info", "type": "info", "message": "build-from-path is on-demand — no avgMs collected; duration depends on scan path size", "apiId": "roadmap_api", "timestamp": "2026-05-24T00:00:00.000Z" },
+    { "severity": "Info", "type": "info", "message": "WebSocket :8081 disabled in RealDataService", "apiId": "legacy_component_routes", "timestamp": "2026-05-23T00:00:00.000Z" }
+  ],
+  "activity": [
+    { "id": "act_001", "apiId": "tier1_page_stubs", "action": "GET", "path": "/api/dashboard-home", "timestamp": "2026-05-24T00:00:00.000Z", "user": "page-samples.test.js", "status": "success", "duration": null, "time": "Jest CI" },
+    { "id": "act_002", "apiId": "analytics_api", "action": "GET", "path": "/api/analytics", "timestamp": "2026-05-24T00:00:00.000Z", "user": "dashboard-stub-api.test.js", "status": "success", "duration": null, "time": "Jest CI" },
+    { "id": "act_003", "apiId": "dev_tools_api", "action": "GET", "path": "/api/dev-tools/tools", "timestamp": "2026-05-24T00:00:00.000Z", "user": "Dev Tools page", "status": "success", "duration": null, "time": "Sample load" }
+  ],
+  "insights": [
+    { "priority": "high", "title": "Do not invent request counters", "description": "Prior 128,456 total requests were demo fiction.", "impact": "Honest API page" },
+    { "priority": "medium", "title": "Consolidate stub routes", "description": "All tier-1 routes live in dashboard-stub-api.js.", "impact": "Easier maintenance" },
+    { "priority": "low", "title": "build-from-path timing", "description": "Path scan latency is not APM-instrumented — do not label healthy routes slow without measured avgMs.", "impact": "Honest endpoint table" }
+  ],
+  "categories": [
+    { "name": "Platform", "count": 2, "requests": null },
+    { "name": "Analysis", "count": 1, "requests": null },
+    { "name": "Development", "count": 1, "requests": null },
+    { "name": "Monitoring", "count": 1, "requests": null },
+    { "name": "Maintenance", "count": 1, "requests": null },
+    { "name": "Planning", "count": 1, "requests": null }
+  ]
+}

@@ -1,0 +1,189 @@
+{
+  "type": "feature-backlog-report",
+  "title": "Feature Backlog (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "featureStatistics": {
+    "totalFeatures": 14,
+    "completedFeatures": 12,
+    "inProgressFeatures": 0,
+    "pendingFeatures": 0,
+    "deferredFeatures": 2,
+    "completionRate": "86%",
+    "totalStoryPoints": null,
+    "averageVelocity": null,
+    "sprintsRemaining": 1,
+    "notes": "Engineering tracks for this repo — Production Deploy deferred for Simplebeacon pivot."
+  },
+  "featureCategories": [
+    {
+      "category": "Server & Auth",
+      "totalFeatures": 3,
+      "completedFeatures": 3,
+      "completionRate": "100%",
+      "description": "Unified server entry, JWT auth, health endpoints"
+    },
+    {
+      "category": "Stub APIs & Pages",
+      "totalFeatures": 4,
+      "completedFeatures": 3,
+      "completionRate": "75%",
+      "description": "dashboard-stub-api.js routes, SEC-004 npm audit, live analyze — expand live pages deferred"
+    },
+    {
+      "category": "Sample Telemetry Cleanup",
+      "totalFeatures": 3,
+      "completedFeatures": 3,
+      "completionRate": "100%",
+      "description": "42/42 repository-audit baselines, stale guards, mock scanner schema"
+    },
+    {
+      "category": "Production CI Profile",
+      "totalFeatures": 3,
+      "completedFeatures": 3,
+      "completionRate": "100%",
+      "description": "Istanbul in dashboard-ci.yml, phase2 compose config smoke, simplebeacon gate"
+    },
+    {
+      "category": "Production Deploy Profile",
+      "totalFeatures": 2,
+      "completedFeatures": 0,
+      "completionRate": "0%",
+      "status": "deferred",
+      "description": "Docker up/down CI smoke, REQUIRE_AUTH deploy sign-off — post-Simplebeacon v0.1"
+    }
+  ],
+  "currentSprintBacklog": [
+    {
+      "feature": "Root server delegate",
+      "category": "Server & Auth",
+      "status": "Completed",
+      "priority": "High",
+      "storyPoints": "—",
+      "assignee": "Maintainer"
+    },
+    {
+      "feature": "Tier-1 stub API routes",
+      "category": "Stub APIs",
+      "status": "Completed",
+      "priority": "High",
+      "storyPoints": "—",
+      "assignee": "Maintainer"
+    },
+    {
+      "feature": "Issue Resolution fix API wiring",
+      "category": "Stub APIs",
+      "status": "Completed",
+      "priority": "High",
+      "storyPoints": "—",
+      "assignee": "Maintainer"
+    },
+    {
+      "feature": "npm audit wired (SEC-004)",
+      "category": "Stub APIs",
+      "status": "Completed",
+      "priority": "High",
+      "storyPoints": "—",
+      "assignee": "Maintainer"
+    },
+    {
+      "feature": "42/42 repository-audit page samples",
+      "category": "Sample Baselines",
+      "status": "Completed",
+      "priority": "High",
+      "storyPoints": "—",
+      "assignee": "Maintainer"
+    },
+    {
+      "feature": "Stale fiction guards on page scripts",
+      "category": "Sample Baselines",
+      "status": "Completed",
+      "priority": "High",
+      "storyPoints": "—",
+      "assignee": "Maintainer"
+    },
+    {
+      "feature": "Live analyze on scan pages",
+      "category": "Sample Baselines",
+      "status": "Completed",
+      "priority": "Medium",
+      "storyPoints": "—",
+      "assignee": "Maintainer"
+    },
+    {
+      "feature": "Enable Istanbul coverage in CI",
+      "category": "Production CI Profile",
+      "status": "Completed",
+      "priority": "High",
+      "storyPoints": "—",
+      "assignee": "Maintainer"
+    },
+    {
+      "feature": "Validate docker-compose.phase2.yml config in CI",
+      "category": "Production CI Profile",
+      "status": "Completed",
+      "priority": "High",
+      "storyPoints": "—",
+      "assignee": "Maintainer"
+    },
+    {
+      "feature": "simplebeacon CLI + simplebeacon.yml gate",
+      "category": "Production CI Profile",
+      "status": "Completed",
+      "priority": "High",
+      "storyPoints": "—",
+      "assignee": "Maintainer"
+    }
+  ],
+  "upcomingFeatures": [
+    {
+      "feature": "Docker phase2 up/down lifecycle in CI",
+      "priority": "Medium",
+      "status": "Deferred",
+      "storyPoints": "—",
+      "description": "Extend phase2-smoke beyond compose config — post-Simplebeacon v0.1"
+    },
+    {
+      "feature": "Production Docker image + REQUIRE_AUTH sign-off",
+      "priority": "Medium",
+      "status": "Deferred",
+      "storyPoints": "—",
+      "description": "v1.0-internal deploy on shared host per docs/v1-internal-runbook.md"
+    },
+    {
+      "feature": "Expand live backend pages (5→12)",
+      "priority": "Low",
+      "status": "Deferred",
+      "storyPoints": "—",
+      "description": "Move Tier-1 pages from stub/sample to live backends — dashboard freeze"
+    },
+    {
+      "feature": "GGUF inference enablement",
+      "priority": "Low",
+      "status": "Deferred",
+      "storyPoints": "—",
+      "description": "Configure LLAMA_CPP_BIN or Ollama for active model (phi-2.Q4_K_M.gguf)"
+    }
+  ],
+  "velocityAnalysis": {
+    "currentVelocity": "solo sprint",
+    "targetVelocity": "Simplebeacon v0.1 publish",
+    "velocityTrend": "Measured",
+    "estimatedCompletion": "2026-07-31",
+    "notes": "Production Deploy profile deferred — Simplebeacon CLI is strategic priority."
+  },
+  "recommendations": [
+    "Treat backlog as engineering tracks — not 47 shipped product features",
+    "Production CI Profile is complete (Istanbul, compose config, simplebeacon gate)",
+    "Defer Production Deploy until Simplebeacon v0.1 is published",
+    "Clear lastFeatureBacklogReport if Production Profile still shows 0% without CI/Deploy split"
+  ],
+  "deprecatedNarrative": {
+    "warning": "Prior sample included hardcoded feature totals and completion percentages with non-measured team attribution.",
+    "previousTotalFeatures": null,
+    "previousCompletionRate": null,
+    "previousSampleTelemetryRate": "33%",
+    "previousProductionProfileRate": "0% undifferentiated — conflated CI complete with deploy incomplete"
+  }
+}

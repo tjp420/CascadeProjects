@@ -1,0 +1,230 @@
+{
+  "type": "merger-tool-model",
+  "title": "Merger Tool (Measured Baseline)",
+  "dataSource": "repository-audit",
+  "generatedAt": "2026-05-23T17:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Integration workstreams for this repo — not a live git merge queue."
+  },
+  "overview": {
+    "totalMerges": 4,
+    "activeMerges": 1,
+    "completedMerges": 2,
+    "failedMerges": 0,
+    "totalConflicts": 0,
+    "avgMergeTime": "engineering-track",
+    "successRate": 100
+  },
+  "merges": [
+    {
+      "id": "int-001",
+      "name": "Root Server Delegate",
+      "type": "Project Merge",
+      "status": "completed",
+      "source": "gguf-dashboard-server.js (root)",
+      "target": "ai-platform/gguf-dashboard-server.js",
+      "conflicts": 0,
+      "files": 2,
+      "progress": 100,
+      "estimatedTime": "done",
+      "priority": "high",
+      "author": "Maintainer",
+      "conflictsData": []
+    },
+    {
+      "id": "int-002",
+      "name": "Tier-1 Stub API Routes",
+      "type": "Project Merge",
+      "status": "completed",
+      "source": "dashboard-stub-api.js",
+      "target": "web/data/*-sample.json",
+      "conflicts": 0,
+      "files": 12,
+      "progress": 100,
+      "estimatedTime": "done",
+      "priority": "medium",
+      "author": "Maintainer",
+      "conflictsData": []
+    },
+    {
+      "id": "int-003",
+      "name": "Sample Telemetry Cleanup",
+      "type": "Schema Merge",
+      "status": "in-progress",
+      "source": "web/data/*-sample.json",
+      "target": "repository-audit baseline",
+      "conflicts": 0,
+      "files": 18,
+      "progress": 55,
+      "estimatedTime": "ongoing",
+      "priority": "high",
+      "author": "Maintainer",
+      "conflictsData": []
+    },
+    {
+      "id": "int-004",
+      "name": "Roadmap Sample Trim",
+      "type": "Schema Merge",
+      "status": "pending",
+      "source": "data/roadmap/archive/cascade-project-roadmap.json",
+      "target": "cascade-roadmap-sample.json",
+      "conflicts": 0,
+      "files": 2,
+      "progress": 0,
+      "estimatedTime": "planned",
+      "priority": "low",
+      "author": "Maintainer",
+      "conflictsData": []
+    }
+  ],
+  "statistics": {
+    "dailyMerges": 0,
+    "weeklyMerges": 0,
+    "monthlyMerges": 0,
+    "avgConflictsPerMerge": 0,
+    "conflictResolutionRate": 100,
+    "mergeTypes": {
+      "Project Merge": 2,
+      "Schema Merge": 2
+    }
+  },
+  "activity": [
+    {
+      "id": "a1",
+      "type": "merge_completed",
+      "description": "Root server delegate wired",
+      "timestamp": "2026-05-23T14:00:00.000Z",
+      "user": "Maintainer",
+      "details": "Single canonical entry under ai-platform/"
+    },
+    {
+      "id": "a2",
+      "type": "merge_completed",
+      "description": "Tier-1 stub routes added",
+      "timestamp": "2026-05-23T12:00:00.000Z",
+      "user": "Maintainer",
+      "details": "reports, issues, security, merger-tool stubs"
+    },
+    {
+      "id": "a3",
+      "type": "merge_started",
+      "description": "Sample telemetry cleanup started",
+      "timestamp": "2026-05-23T16:00:00.000Z",
+      "user": "Maintainer",
+      "details": "issues, reports, security pages rewritten"
+    },
+    {
+      "id": "a4",
+      "type": "merge_started",
+      "description": "Performance, Quality, and Support pages migrated",
+      "timestamp": "2026-05-23T17:30:00.000Z",
+      "user": "Maintainer",
+      "details": "repository-audit baselines applied"
+    }
+  ],
+  "insights": [
+    {
+      "priority": "high",
+      "title": "Not a live git merge feed",
+      "description": "Prior sample listed fictional branches (feature/self-contained-pages, release/v2.4) and 25 total merges. This repo is on master with integration tracks only.",
+      "impact": "Avoid false DevOps narrative"
+    },
+    {
+      "priority": "medium",
+      "title": "Finish sample telemetry cleanup",
+      "description": "Performance, Quality, Support, Security, and 14+ other pages now use repository-audit baselines. Dev Tools, Dashboard Home, and Analytics remain.",
+      "impact": "Honest dashboard metrics"
+    },
+    {
+      "priority": "low",
+      "title": "Trim 6MB+ roadmap JSON",
+      "description": "cascade-project-roadmap.json is oversized for dashboard load — keep cascade-roadmap-sample.json as the trimmed view.",
+      "impact": "Faster roadmap page"
+    }
+  ],
+  "quickActions": [
+    { "label": "Run Reduction Scan", "icon": "📁", "action": "refresh" },
+    { "label": "Refresh Integration List", "icon": "🔄", "action": "refresh" },
+    { "label": "Export Merge Report", "icon": "📥", "action": "export" },
+    { "label": "Open Dev Tools", "icon": "🔧", "section": "dev-tools" }
+  ],
+  "reductionScan": {
+    "type": "file-merger-reduction-report",
+    "dataSource": "repository-audit",
+    "scanEngine": "file-merger-reduction-scanner",
+    "inferenceMode": "filesystem — not GGUF semantic embeddings",
+    "summary": {
+      "filesAnalyzed": 44,
+      "totalSizeLabel": "4.9MB",
+      "mergeCandidates": 8,
+      "reductionOpportunities": 2,
+      "potentialSavingsLabel": "3.9MB",
+      "exactDuplicateGroups": 1,
+      "structureSimilarPairs": 7,
+      "oversizedFiles": 1
+    },
+    "mergeCandidates": [
+      {
+        "id": "exact-dup-1",
+        "mergeType": "exact-duplicate",
+        "similarity": 1,
+        "files": [
+          { "path": "web/data/gguf-mock-analysis-sample.json" },
+          { "path": "data/mock/gguf-mock-analysis-report.json" }
+        ],
+        "savingsLabel": "4.5KB",
+        "recommendation": "Keep web/data sample; remove data/mock duplicate after review",
+        "effort": "low",
+        "risk": "low"
+      },
+      {
+        "id": "struct-1",
+        "mergeType": "structure-based",
+        "similarity": 0.95,
+        "files": [
+          { "path": "web/data/gguf-roadmap-sample.json" },
+          { "path": "data/roadmap/gguf-roadmap-data.json" }
+        ],
+        "savingsLabel": "12KB",
+        "recommendation": "Align roadmap sample with measured data/roadmap baseline",
+        "effort": "medium",
+        "risk": "medium"
+      }
+    ],
+    "reductionOpportunities": [
+      {
+        "type": "format-optimization",
+        "method": "archive-or-trim",
+        "files": [{ "path": "data/roadmap/archive/cascade-project-roadmap.json" }],
+        "savingsLabel": "3.9MB",
+        "description": "Legacy 4.9MB export — keep cascade-roadmap-sample.json as trimmed dashboard view",
+        "risk": "medium"
+      },
+      {
+        "type": "duplicate-removal",
+        "method": "deduplicate",
+        "files": [
+          { "path": "web/data/gguf-mock-analysis-sample.json" },
+          { "path": "data/mock/gguf-mock-analysis-report.json" }
+        ],
+        "savingsLabel": "4.5KB",
+        "description": "2 files share identical JSON content"
+      }
+    ],
+    "rejectedFiction": {
+      "warning": "Enterprise merger design claims not implemented in v0.8-beta",
+      "claims": ["15-30% guaranteed savings", "GGUF embedding similarity", "Auto-merge executor", "1,559 files/s throughput"]
+    }
+  },
+  "deprecatedNarrative": {
+    "warning": "Prior sample claimed 25 merges, 11 conflicts, unbreakable-oracle confidence, and fictional branch/release names with partial catalog (6 loaded / 25 total).",
+    "previousModel": "unbreakable-oracle",
+    "previousTotalMerges": 25,
+    "previousActiveMerges": 2
+  }
+}
