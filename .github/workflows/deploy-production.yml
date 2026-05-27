@@ -1,0 +1,212 @@
+# Production deploy for simplebeacon.ai
+# Requires secrets: SERVER_HOST, SERVER_USER, SSH_PRIVATE_KEY
+# Optional: SIMPLEBEACON_DASHBOARD_URL (public URL for post-deploy verification)
+
+name: Deploy Simplebeacon Production
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/deploy-production.yml'
+  workflow_dispatch:
+    inputs:
+      skip_deploy:
+        description: Run compliance gate only (skip SSH deploy)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: deploy-production-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  WORKING_DIR: ai-platform
+
+jobs:
+  compliance-gate:
+    name: Simplebeacon compliance gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-platform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: ai-platform/package-lock.json
+
+      - run: npm ci
+
+      - name: Run Simplebeacon perimeter scan
+        run: npm run simplebeacon:report
+
+      - name: Build compliance assessment
+        run: npm run simplebeacon:assess -- --output .simplebeacon/assessment.json
+
+      - name: Run pre-deploy verification sequence
+        run: npm run verify:predeploy > .simplebeacon/predeploy-sequence.log 2>&1
+
+      - name: Run npm audit supply-chain gate
+        run: npm audit --audit-level=high --json > .simplebeacon/npm-audit.json
+
+      - name: Verify Docker production compose config
+        run: npm run simplebeacon:docker:config > .simplebeacon/docker-config.rendered.yml
+
+      - name: Verify audit API payload shape
+        run: |
+          node - <<'NODE'
+          const { buildAuditPayload, buildAuditLayers } = require('./packages/simplebeacon-cli/src/lib/dashboard-payload');
+          const report = require('./.simplebeacon/report.json');
+          const baseline = require('./.simplebeacon/baseline.json');
+          const layers = buildAuditLayers(report, baseline);
+          const payload = buildAuditPayload({ report, baseline, history: [], fictionCatalog: [] }, {});
+          if (!payload.auditLayers?.credentials) throw new Error('Missing credentials layer');
+          if (!payload.auditLayers?.fictionKpis) throw new Error('Missing fiction layer');
+          if (layers.gate.pass !== report.gate.pass) throw new Error('Gate mismatch');
+          console.log('Audit layers OK:', Object.keys(payload.auditLayers).join(', '));
+          NODE
+
+      - name: Run Jest suite
+        run: npm test -- --no-coverage --passWithNoTests
+
+      - name: Write compliance gate summary
+        if: always()
+        run: |
+          echo "## Deploy compliance gate" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f .simplebeacon/predeploy-sequence.log ]; then
+            DECISION="$(node -e "const fs=require('fs');const t=fs.readFileSync('.simplebeacon/predeploy-sequence.log','utf8');const m=t.match(/Decision:\s*(GO|NO-GO)/);process.stdout.write(m?m[1]:'UNKNOWN');")"
+            echo "- predeploy sequence decision: **${DECISION}**" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- predeploy sequence decision: **UNKNOWN** (no log)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f .simplebeacon/report.json ]; then
+            node - <<'NODE'
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('.simplebeacon/report.json', 'utf8'));
+            const gate = report.gate || {};
+            const line = `- simplebeacon gate: **${gate.pass ? 'PASS' : 'FAIL'}** (blocking=${gate.blockingCount ?? 'n/a'})`;
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${line}\n`);
+            NODE
+          fi
+          if [ -f .simplebeacon/report.json ]; then
+            node packages/simplebeacon-cli/bin/simplebeacon.js comment \
+              --report .simplebeacon/report.json \
+              --print-only >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Simplebeacon compliance" >> "$GITHUB_STEP_SUMMARY"
+            echo "No report generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f .simplebeacon/assessment.json ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Assessment headline" >> "$GITHUB_STEP_SUMMARY"
+            node -p "require('./.simplebeacon/assessment.json').executiveSummary?.headline || '—'" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f .simplebeacon/npm-audit.json ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### npm audit (high gate)" >> "$GITHUB_STEP_SUMMARY"
+            node - <<'NODE'
+            const fs = require('fs');
+            const audit = JSON.parse(fs.readFileSync('.simplebeacon/npm-audit.json', 'utf8'));
+            const vulns = audit.metadata?.vulnerabilities || {};
+            console.log(`critical=${vulns.critical || 0}, high=${vulns.high || 0}, moderate=${vulns.moderate || 0}, low=${vulns.low || 0}`);
+            NODE
+          fi
+
+      - name: Upload compliance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-compliance-${{ github.run_id }}
+          path: |
+            ai-platform/.simplebeacon/report.json
+            ai-platform/.simplebeacon/assessment.json
+            ai-platform/.simplebeacon/npm-audit.json
+            ai-platform/.simplebeacon/docker-config.rendered.yml
+            ai-platform/.simplebeacon/predeploy-sequence.log
+          if-no-files-found: ignore
+
+  deploy:
+    name: Deploy to production server
+    needs: compliance-gate
+    runs-on: ubuntu-latest
+    if: >-
+      needs.compliance-gate.result == 'success' &&
+      github.event_name != 'pull_request' &&
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_deploy != 'true')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            APP_DIR="${APP_DIR:-/var/www/simplebeacon}"
+            cd "$APP_DIR"
+            git fetch origin main
+            git checkout main
+            git pull origin main
+            cd ai-platform
+            bash scripts/deploy-simplebeacon.sh
+
+  verify:
+    name: Verify production health
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: needs.deploy.result == 'success'
+    steps:
+      - name: Health checks
+        env:
+          BASE_URL: ${{ secrets.SIMPLEBEACON_DASHBOARD_URL }}
+        run: |
+          if [ -z "$BASE_URL" ]; then
+            echo "SIMPLEBEACON_DASHBOARD_URL not set — skipping public health checks."
+            exit 0
+          fi
+          set -e
+          for path in /api/health /api/simplebeacon/baseline /api/simplebeacon/audit /api/simplebeacon/dashboard; do
+            echo "Checking ${BASE_URL}${path}"
+            curl -fsS "${BASE_URL}${path}" | head -c 200
+            echo ""
+          done
+
+      - name: Route smoke suite (post-deploy guard)
+        env:
+          SMOKE_BASE_URL: ${{ secrets.SIMPLEBEACON_DASHBOARD_URL }}
+          SMOKE_BEARER_TOKEN: ${{ secrets.SIMPLEBEACON_DASHBOARD_TOKEN }}
+          SMOKE_REQUIRE_AUTH: 'true'
+        run: |
+          if [ -z "$SMOKE_BASE_URL" ]; then
+            echo "SIMPLEBEACON_DASHBOARD_URL not set — skipping route smoke suite."
+            exit 0
+          fi
+          set -e
+          node ai-platform/tools/run-route-smoke-suite.js
+        working-directory: .
+        shell: bash
+
+      - name: Trigger post-deploy scan
+        env:
+          BASE_URL: ${{ secrets.SIMPLEBEACON_DASHBOARD_URL }}
+          TOKEN: ${{ secrets.SIMPLEBEACON_DASHBOARD_TOKEN }}
+        run: |
+          if [ -z "$BASE_URL" ]; then exit 0; fi
+          AUTH=()
+          if [ -n "$TOKEN" ]; then AUTH=(-H "Authorization: Bearer $TOKEN"); fi
+          curl -fsS -X POST "${BASE_URL%/}/api/simplebeacon/scan" \
+            -H "Content-Type: application/json" \
+            "${AUTH[@]}" \
+            -d '{}'
