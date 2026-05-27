@@ -25,20 +25,33 @@ permissions:
 
 jobs:
   simplebeacon:
-    if: hashFiles('ai-platform/package-lock.json') != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect ai-platform
+        id: detect
+        run: |
+          if [ -f ai-platform/package-lock.json ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "## Simplebeacon" >> "$GITHUB_STEP_SUMMARY"
+            echo "Skipped — ai-platform is not on this branch yet." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.detect.outputs.ready == 'true'
         with:
           node-version: '20'
 
       - name: Install dependencies
+        if: steps.detect.outputs.ready == 'true'
         working-directory: ai-platform
         run: npm ci
 
       - name: Run simplebeacon gate
+        if: steps.detect.outputs.ready == 'true'
         uses: ./ai-platform/action
         with:
           path: ai-platform
@@ -46,12 +59,12 @@ jobs:
           post-comment: true
 
       - name: Build compliance assessment
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         working-directory: ai-platform
         run: npm run simplebeacon:assess -- --output .simplebeacon/assessment.json
 
       - name: Generate compliance monitoring snapshot
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         working-directory: ai-platform
         run: |
           node - <<'NODE'
@@ -83,7 +96,7 @@ jobs:
           NODE
 
       - name: Publish trust verification payload (local + optional remote)
-        if: success()
+        if: success() && steps.detect.outputs.ready == 'true'
         working-directory: ai-platform
         env:
           TRUST_PUBLISH_ENDPOINT: ${{ secrets.SIMPLEBEACON_TRUST_PUBLISH_URL }}
@@ -97,7 +110,7 @@ jobs:
           npm run trust:publish
 
       - name: Add trust publish summary
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         working-directory: ai-platform
         run: |
           echo "### Trust publish" >> "$GITHUB_STEP_SUMMARY"
@@ -128,7 +141,7 @@ jobs:
           fi
 
       - name: Upload simplebeacon artifacts
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: simplebeacon-${{ github.run_id }}

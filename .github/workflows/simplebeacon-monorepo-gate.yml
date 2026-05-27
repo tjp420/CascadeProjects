@@ -20,22 +20,35 @@ concurrency:
 jobs:
   monorepo-gate:
     name: Monorepo compliance gate
-    if: hashFiles('ai-platform/package-lock.json') != ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository source
         uses: actions/checkout@v4
 
+      - name: Detect ai-platform
+        id: detect
+        run: |
+          if [ -f ai-platform/package-lock.json ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "## Simplebeacon Monorepo Gate" >> "$GITHUB_STEP_SUMMARY"
+            echo "Skipped — ai-platform is not on this branch yet." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Setup Node.js
+        if: steps.detect.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Install ai-platform dependencies
+        if: steps.detect.outputs.ready == 'true'
         working-directory: ai-platform
         run: npm ci
 
       - name: Run Simplebeacon gate from repository root
+        if: steps.detect.outputs.ready == 'true'
         run: |
           node ai-platform/packages/simplebeacon-cli/bin/simplebeacon.js scan \
             --path . \
@@ -46,7 +59,7 @@ jobs:
             --verbose
 
       - name: Add gate summary
-        if: always()
+        if: always() && steps.detect.outputs.ready == 'true'
         run: |
           if [ -f .simplebeacon/report.json ]; then
             node ai-platform/packages/simplebeacon-cli/bin/simplebeacon.js comment \
@@ -58,7 +71,7 @@ jobs:
           fi
 
       - name: Upload monorepo gate artifacts
-        if: always()
+        if: always() && steps.detect.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: simplebeacon-monorepo-${{ github.run_id }}

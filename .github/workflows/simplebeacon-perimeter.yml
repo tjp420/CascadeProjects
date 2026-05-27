@@ -51,7 +51,6 @@ env:
 jobs:
   perimeter-scan:
     name: Perimeter scan & compliance
-    if: hashFiles('ai-platform/package-lock.json') != ''
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -63,15 +62,30 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Detect ai-platform
+        id: detect
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ -f ai-platform/package-lock.json ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "## Perimeter scan" >> "$GITHUB_STEP_SUMMARY"
+            echo "Skipped — ai-platform is not on this branch yet." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Setup application environment
+        if: steps.detect.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install dependencies
+        if: steps.detect.outputs.ready == 'true'
         run: npm ci
 
       - name: Verify Simplebeacon cascade profile
+        if: steps.detect.outputs.ready == 'true'
         run: |
           test -f .simplebeacon/config.json || {
             echo "::error::Missing .simplebeacon/config.json — run 'npm run simplebeacon:init' locally and commit."
@@ -100,6 +114,7 @@ jobs:
           NODE
 
       - name: Run deep structure scanner (leaks, schema, fiction, roadmap)
+        if: steps.detect.outputs.ready == 'true'
         id: core_scan
         run: |
           if [ "${{ github.event.inputs.with-jest-baseline || 'false' }}" = "true" ]; then
@@ -115,15 +130,15 @@ jobs:
           fi
 
       - name: Fiction KPI guard (visibility, non-blocking)
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         run: npm run guard:fiction-kpi:ci || true
 
       - name: Extended schema coverage check (visibility, non-blocking)
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         run: npm run schema:coverage:extended || true
 
       - name: Evaluate pattern risk (fiction & narrative assessment)
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         run: |
           npm run simplebeacon:assess -- --output .simplebeacon/assessment.json
           node - <<'NODE'
@@ -150,7 +165,7 @@ jobs:
           NODE
 
       - name: Generate compliance monitoring snapshot
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         run: |
           node - <<'NODE'
           const fs = require('fs');
@@ -181,11 +196,11 @@ jobs:
           NODE
 
       - name: Build quality maintenance metrics artifact
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         run: npm run metrics:quality:build || true
 
       - name: Publish trust verification payload (local + optional remote)
-        if: success()
+        if: success() && steps.detect.outputs.ready == 'true'
         env:
           TRUST_PUBLISH_ENDPOINT: ${{ secrets.SIMPLEBEACON_TRUST_PUBLISH_URL }}
           TRUST_PUBLISH_TOKEN: ${{ secrets.SIMPLEBEACON_TRUST_PUBLISH_TOKEN }}
@@ -198,7 +213,7 @@ jobs:
           npm run trust:publish
 
       - name: Run Jest suite against measured baseline
-        if: success()
+        if: success() && steps.detect.outputs.ready == 'true'
         run: |
           npm test -- --no-coverage --passWithNoTests
           node - <<'NODE'
@@ -207,7 +222,7 @@ jobs:
           NODE
 
       - name: Write compliance summary to job log
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         run: |
           REPORT=".simplebeacon/report.json"
           if [ -f "$REPORT" ]; then
@@ -252,7 +267,7 @@ jobs:
           fi
 
       - name: Post compliance assessment to pull request
-        if: github.event_name == 'pull_request' && always()
+        if: github.event_name == 'pull_request' && steps.detect.outputs.ready == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -265,7 +280,7 @@ jobs:
           fi
 
       - name: Upload scan artifacts
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: simplebeacon-perimeter-${{ github.run_id }}
@@ -281,7 +296,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Sync metrics to live dashboard (optional webhook)
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         env:
           SIMPLEBEACON_DASHBOARD_URL: ${{ secrets.SIMPLEBEACON_DASHBOARD_URL }}
           SIMPLEBEACON_DASHBOARD_TOKEN: ${{ secrets.SIMPLEBEACON_DASHBOARD_TOKEN }}

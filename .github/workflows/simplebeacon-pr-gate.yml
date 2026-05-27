@@ -18,7 +18,6 @@ concurrency:
 jobs:
   pr-compliance-gate:
     name: PR compliance gate
-    if: hashFiles('ai-platform/package-lock.json') != ''
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,30 +27,46 @@ jobs:
       - name: Checkout repository source
         uses: actions/checkout@v4
 
+      - name: Detect ai-platform
+        id: detect
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ -f ai-platform/package-lock.json ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "## PR compliance gate" >> "$GITHUB_STEP_SUMMARY"
+            echo "Skipped — ai-platform is not on this branch yet." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Setup Node.js
+        if: steps.detect.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Install dependencies
+        if: steps.detect.outputs.ready == 'true'
         run: npm ci
 
       - name: Run Simplebeacon report gate
+        if: steps.detect.outputs.ready == 'true'
         run: npm run simplebeacon:report
 
       - name: Fiction KPI guard (visibility, non-blocking)
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         run: npm run guard:fiction-kpi:ci || true
 
       - name: Extended schema coverage check (visibility, non-blocking)
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         run: npm run schema:coverage:extended || true
 
       - name: Build Simplebeacon assessment
+        if: steps.detect.outputs.ready == 'true'
         run: npm run simplebeacon:assess -- --output .simplebeacon/assessment.json
 
       - name: Generate compliance monitoring snapshot
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         run: |
           node - <<'NODE'
           const fs = require('fs');
@@ -82,10 +97,11 @@ jobs:
           NODE
 
       - name: Build quality maintenance metrics artifact
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         run: npm run metrics:quality:build || true
 
       - name: Publish trust verification payload (local + optional remote)
+        if: steps.detect.outputs.ready == 'true'
         env:
           TRUST_PUBLISH_ENDPOINT: ${{ secrets.SIMPLEBEACON_TRUST_PUBLISH_URL }}
           TRUST_PUBLISH_TOKEN: ${{ secrets.SIMPLEBEACON_TRUST_PUBLISH_TOKEN }}
@@ -98,13 +114,15 @@ jobs:
           npm run trust:publish
 
       - name: Run npm audit supply-chain gate
+        if: steps.detect.outputs.ready == 'true'
         run: npm audit --audit-level=high --json > .simplebeacon/npm-audit.json
 
       - name: Verify Jest baseline behavior
+        if: steps.detect.outputs.ready == 'true'
         run: npm test -- --no-coverage --passWithNoTests
 
       - name: Add gate summary to workflow run
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         run: |
           if [ -f .simplebeacon/report.json ]; then
             node packages/simplebeacon-cli/bin/simplebeacon.js comment \
@@ -145,7 +163,7 @@ jobs:
           fi
 
       - name: Post PR compliance comment
-        if: github.event_name == 'pull_request' && always()
+        if: github.event_name == 'pull_request' && steps.detect.outputs.ready == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -158,7 +176,7 @@ jobs:
           fi
 
       - name: Upload PR gate artifacts
-        if: always()
+        if: steps.detect.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: simplebeacon-pr-gate-${{ github.run_id }}
