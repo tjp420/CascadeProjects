@@ -1,0 +1,22 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+
+> cascade-ai-platform@1.0.0 verify:stripe
+> node tools/verify-stripe-config.js
+
+Simplebeacon Stripe configuration
+=================================
+Monetization enabled: true
+Env file: C:\Users\Trevor\CascadeProjects\ai-platform\.env.production
+Γ¥î Missing STRIPE_SECRET_KEY ΓÇö set this in .env.production before verifying Stripe
+Γ£à teams_monthly: price_1TajTIAQ0e20kzI8BBj3lhAc (STRIPE_PRICE_ID_TEAMS_MONTHLY / SIMPLEBEACON_PRO_PRICE_ID)
+Γ£à teams_annual: price_1TajTLAQ0e20kzI86LiOWeTT (STRIPE_PRICE_ID_TEAMS_ANNUAL / SIMPLEBEACON_ANNUAL_PROMOTION_ID)
+Γ£à enterprise_setup: price_1TajTMAQ0e20kzI84Gow0QGF (STRIPE_PRICE_ID_ENTERPRISE_SETUP / SIMPLEBEACON_ENTERPRISE_SETUP_ID)
+Γ£à enterprise_retainer: price_1TajTOAQ0e20kzI8MYz3H63W (STRIPE_PRICE_ID_ENTERPRISE_RETAINER / SIMPLEBEACON_ENTERPRISE_RETAINER_ID)
+ΓÜá∩╕Å  STRIPE_WEBHOOK_SECRET not set (recommended)
+Γ£à SIMPLEBEACON_APP_URL set
+Γ£à SIMPLEBEACON_CALENDLY_URL set
+Γ¥î STRIPE_WEBHOOK_SECRET is required when monetization is enabled
+Γ£à SIMPLEBEACON_APP_URL: https://simplebeacon.ai
+Γä╣∩╕Å  Bypass email: dev@simplebeacon.ai
+
+Copy .env.production.example ΓåÆ .env.production and fill Stripe keys + Price IDs (price_...).

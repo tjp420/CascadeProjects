@@ -1,0 +1,32 @@
+# Regenerable artifacts (also covered by repo-root .gitignore)
+node_modules/
+coverage/
+temp/
+assets/
+archive/
+src/web/web/
+test-batch-data/
+api/upload.js
+htmlcov/
+__pycache__/
+*.log
+.venv/
+**/.venv/
+
+# Local secrets
+.env
+.env.local
+.env.production
+.env.v1-internal
+
+# Simplebeacon local scan cache (review before deleting)
+.simplebeacon/archive/
+
+# CI step log fragments (empty workflow captures — not source)
+docs/*-stdout*.txt
+docs/*-stderr*.txt
+
+# Local GGUF model weights (upload via /api/models/upload — never commit)
+data-central/ai-tools/ai-models/uploads/*.gguf
+data-central/ai-tools/ai-models/uploads/**
+!data-central/ai-tools/ai-models/uploads/.gitkeep

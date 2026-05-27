@@ -1,0 +1,237 @@
+{
+  "type": "reports-model",
+  "title": "Reports Catalog (Measured Baseline)",
+  "dataSource": "repository-audit",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "inferenceMode": "filesystem+gguf-path"
+  },
+  "overview": {
+    "totalReports": 8,
+    "readyReports": 8,
+    "processingReports": 0,
+    "failedReports": 0,
+    "scheduledReports": 2,
+    "totalSize": "412 KB",
+    "avgGenerationTime": "scan-derived",
+    "lastGenerated": "2026-05-24T00:00:00.000Z"
+  },
+  "catalogMeta": {
+    "loadedCount": 8,
+    "declaredTotal": 8,
+    "isPartial": false
+  },
+  "categories": [
+    { "name": "Analysis", "count": 3, "icon": "🔍" },
+    { "name": "Planning", "count": 3, "icon": "🗺️" },
+    { "name": "Quality", "count": 2, "icon": "✅" }
+  ],
+  "reports": [
+    {
+      "id": "rpt-gguf-scan",
+      "name": "GGUF Mock Data Analysis",
+      "category": "Analysis",
+      "reportType": "gguf-mock-data-analysis-report",
+      "format": "JSON",
+      "size": "48 KB",
+      "status": "ready",
+      "schedule": "on-demand",
+      "lastGenerated": "2026-05-24T00:00:00.000Z",
+      "section": "gguf-analysis",
+      "description": "mock-data-scanner: 35 files, 0 issues, 42/42 schema — not 1,247-file fiction.",
+      "confidence": 99,
+      "pages": 1
+    },
+    {
+      "id": "rpt-ai-analysis",
+      "name": "AI Codebase Analysis",
+      "category": "Analysis",
+      "reportType": "ai-analysis-model",
+      "format": "JSON",
+      "size": "52 KB",
+      "status": "ready",
+      "schedule": "on-demand",
+      "lastGenerated": "2026-05-24T00:00:00.000Z",
+      "section": "ai-analysis",
+      "description": "0 open scanner issues, 100% schema pass, 665/665 Jest.",
+      "confidence": 95,
+      "pages": 1
+    },
+    {
+      "id": "rpt-ai-roadmap",
+      "name": "AI Roadmap Report",
+      "category": "Planning",
+      "reportType": "ai-roadmap-report-model",
+      "format": "JSON",
+      "size": "38 KB",
+      "status": "ready",
+      "schedule": "on-demand",
+      "lastGenerated": "2026-05-24T00:00:00.000Z",
+      "section": "ai-roadmap",
+      "description": "Sprint 3 at 75% — 43/43 samples, SEC-004 closed, Docker CI + Istanbul remain.",
+      "confidence": 95,
+      "pages": 1
+    },
+    {
+      "id": "rpt-issues",
+      "name": "Issue Resolution Summary",
+      "category": "Quality",
+      "reportType": "issue-resolution-model",
+      "format": "JSON",
+      "size": "24 KB",
+      "status": "ready",
+      "schedule": "on-demand",
+      "lastGenerated": "2026-05-24T00:00:00.000Z",
+      "section": "issue-resolution",
+      "description": "5/5 historical findings resolved — 0 open mock-data-scanner issues.",
+      "confidence": 99,
+      "pages": 1
+    },
+    {
+      "id": "rpt-impl-plan",
+      "name": "Implementation Plan",
+      "category": "Planning",
+      "reportType": "implementation-plan-model",
+      "format": "JSON",
+      "size": "44 KB",
+      "status": "ready",
+      "schedule": "weekly",
+      "lastGenerated": "2026-05-23T14:00:00.000Z",
+      "section": "implementation-plan",
+      "description": "Solo maintainer plan targeting internal v1.0 — not 11 FTE fiction.",
+      "confidence": 78,
+      "pages": 1
+    },
+    {
+      "id": "rpt-release",
+      "name": "Release Timeline",
+      "category": "Planning",
+      "reportType": "release-timeline-report",
+      "format": "JSON",
+      "size": "31 KB",
+      "status": "ready",
+      "schedule": "weekly",
+      "lastGenerated": "2026-05-24T00:00:00.000Z",
+      "section": "release-timeline",
+      "description": "v0.8-beta at 75% — 665 tests, npm audit wired, not shipped v1.0 fiction.",
+      "confidence": 95,
+      "pages": 1
+    },
+    {
+      "id": "rpt-platform-metrics",
+      "name": "Platform Metrics Snapshot",
+      "category": "Analysis",
+      "reportType": "platform-metrics",
+      "format": "JSON",
+      "size": "12 KB",
+      "status": "ready",
+      "schedule": "on-demand",
+      "lastGenerated": "2026-05-24T00:00:00.000Z",
+      "section": "dashboard-home",
+      "description": "From scripts/measure-platform-metrics.js — 665 tests, 42/42 baselines.",
+      "confidence": 99,
+      "pages": 1
+    },
+    {
+      "id": "rpt-jest",
+      "name": "Jest Test Summary",
+      "category": "Quality",
+      "reportType": "test-summary",
+      "format": "JSON",
+      "size": "8 KB",
+      "status": "ready",
+      "schedule": "on-demand",
+      "lastGenerated": "2026-05-24T00:00:00.000Z",
+      "section": "quality",
+      "description": "665/665 tests passing across 32 suites (npm test --no-coverage).",
+      "confidence": 100,
+      "pages": 1
+    }
+  ],
+  "templates": [
+    {
+      "id": "tpl-scan",
+      "name": "Mock Data Scan Export",
+      "category": "Analysis",
+      "formats": ["JSON"],
+      "description": "Export from POST /api/models/active/analyze or mock-data-scanner."
+    },
+    {
+      "id": "tpl-roadmap",
+      "name": "Roadmap Baseline",
+      "category": "Planning",
+      "formats": ["JSON"],
+      "description": "ai-roadmap-sample.json with repository-audit fields."
+    },
+    {
+      "id": "tpl-security",
+      "name": "Security Audit Export",
+      "category": "Quality",
+      "formats": ["JSON"],
+      "description": "Security dashboard + /api/security/npm-audit merge."
+    }
+  ],
+  "insights": [
+    {
+      "priority": "low",
+      "title": "Catalog aligned — 8/8 loaded",
+      "description": "overview.totalReports matches reports.length; catalogMeta.isPartial is false.",
+      "impact": "No 12-report fiction drift"
+    },
+    {
+      "priority": "medium",
+      "title": "Enable Istanbul in CI",
+      "description": "Jest summary report exists but coverage metrics are null until CI collects Istanbul.",
+      "impact": "Honest Coverage Reports page"
+    },
+    {
+      "priority": "low",
+      "title": "Prefer /api/reports over static-only loads",
+      "description": "Stub API serves the same measured catalog as Load Sample.",
+      "impact": "Consistent dashboard wiring"
+    }
+  ],
+  "activity": [
+    {
+      "time": "00:00:00",
+      "report": "Reports Catalog",
+      "action": "Baseline refreshed — 8/8 aligned",
+      "format": "JSON",
+      "status": "success",
+      "duration": "measured"
+    },
+    {
+      "time": "23:45:00",
+      "report": "Security Dashboard",
+      "action": "SEC-004 npm audit wired",
+      "format": "JSON",
+      "status": "success",
+      "duration": "audit"
+    },
+    {
+      "time": "23:30:00",
+      "report": "GGUF Mock Data Analysis",
+      "action": "0 open scanner issues",
+      "format": "JSON",
+      "status": "success",
+      "duration": "scan"
+    },
+    {
+      "time": "22:00:00",
+      "report": "Jest Test Summary",
+      "action": "665/665 green",
+      "format": "JSON",
+      "status": "success",
+      "duration": "~5s"
+    }
+  ],
+  "deprecatedNarrative": {
+    "warning": "Prior catalog claimed 12 reports with fictional sizes, 156-issue references, and PDF security audits not generated by this repo.",
+    "previousTotalReports": 12
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "issueId": "A-23",
+  "category": "everyday-reliability-problems",
+  "context": {
+    "responses": [
+      "The service is up and healthy",
+      "The service is healthy and up",
+      "Service status is healthy"
+    ]
+  }
+}

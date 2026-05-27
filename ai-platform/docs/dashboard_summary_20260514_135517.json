@@ -1,0 +1,21 @@
+{
+  "dashboard_info": {
+    "timestamp": "2026-05-14T13:55:17.138534",
+    "type": "summary_dashboard",
+    "version": "1.0"
+  },
+  "key_metrics": {
+    "total_features": 0,
+    "total_files": 0,
+    "overall_quality": 0,
+    "overall_complexity": 0,
+    "health_score": 40.0
+  },
+  "status_indicators": {
+    "quality_status": "poor",
+    "complexity_status": "simple",
+    "overall_health": "critical"
+  },
+  "top_insights": [],
+  "feature_highlights": []
+}

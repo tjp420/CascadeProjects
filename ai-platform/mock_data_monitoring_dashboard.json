@@ -1,0 +1,31 @@
+{
+  "dashboard_info": {
+    "title": "Mock Data Quality Monitoring",
+    "last_updated": "2026-05-22T00:41:06.488683",
+    "update_frequency": "daily"
+  },
+  "metrics": {
+    "total_files": 1247,
+    "quality_score": 94.0,
+    "issues_resolved": 19,
+    "space_saved_mb": 0,
+    "templates_available": 6
+  },
+  "alerts": [
+    {
+      "type": "success",
+      "message": "Schema violations resolved",
+      "count": 1
+    },
+    {
+      "type": "info",
+      "message": "Duplicates consolidated",
+      "count": 0
+    }
+  ],
+  "trends": {
+    "quality_trend": "improving",
+    "storage_trend": "decreasing",
+    "issues_trend": "decreasing"
+  }
+}

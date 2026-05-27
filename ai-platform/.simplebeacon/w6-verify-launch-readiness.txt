@@ -1,0 +1,20 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+
+> cascade-ai-platform@1.0.0 verify:launch-readiness
+> node tools/verify-launch-readiness.js
+
+Running launch readiness framework...
+[FAIL] Predeploy sequence (3750ms)
+[PASS] Compliance gate (423ms)
+[PASS] Trust environment validation (390ms)
+[PASS] Trust publish (399ms)
+[PASS] Trust trend (384ms)
+
+=== Launch readiness summary ===
+- predeploy: FAIL (exit=1)
+- compliance: PASS (exit=0)
+- trust-env: PASS (exit=0)
+- trust-publish: PASS (exit=0)
+- trust-trend: PASS (exit=0)
+Decision: NO-GO
+Artifact: C:\Users\Trevor\CascadeProjects\ai-platform\.simplebeacon\launch-readiness-summary.json

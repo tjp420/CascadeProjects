@@ -1,0 +1,236 @@
+{
+  "archived": [
+    {
+      "from": "src/ai/models/ModelIntegrator.js",
+      "to": "archive/unintegrated-src/src/ai/models/ModelIntegrator.js",
+      "bytes": 18657
+    },
+    {
+      "from": "src/analysis/RoadmapIntegration.js",
+      "to": "archive/unintegrated-src/src/analysis/RoadmapIntegration.js",
+      "bytes": 19206
+    },
+    {
+      "from": "src/analytics/monitoring/AnalyticsFoundation.js",
+      "to": "archive/unintegrated-src/src/analytics/monitoring/AnalyticsFoundation.js",
+      "bytes": 24705
+    },
+    {
+      "from": "src/automation/workflows/AutomationEngine.js",
+      "to": "archive/unintegrated-src/src/automation/workflows/AutomationEngine.js",
+      "bytes": 25581
+    },
+    {
+      "from": "src/billing/stripe-integration.js",
+      "to": "archive/unintegrated-src/src/billing/stripe-integration.js",
+      "bytes": 13620
+    },
+    {
+      "from": "src/billing/pricing.html",
+      "to": "archive/unintegrated-src/src/billing/pricing.html",
+      "bytes": 10230
+    },
+    {
+      "from": "src/billing/subscription-management.html",
+      "to": "archive/unintegrated-src/src/billing/subscription-management.html",
+      "bytes": 16333
+    },
+    {
+      "from": "src/export/CompressionEngine.js",
+      "to": "archive/unintegrated-src/src/export/CompressionEngine.js",
+      "bytes": 10932
+    },
+    {
+      "from": "src/export/ExportEngine.js",
+      "to": "archive/unintegrated-src/src/export/ExportEngine.js",
+      "bytes": 34393
+    },
+    {
+      "from": "src/export/ExportValidator.js",
+      "to": "archive/unintegrated-src/src/export/ExportValidator.js",
+      "bytes": 14873
+    },
+    {
+      "from": "src/export/FormatConverter.js",
+      "to": "archive/unintegrated-src/src/export/FormatConverter.js",
+      "bytes": 18319
+    },
+    {
+      "from": "src/performance/PerformanceMonitor.js",
+      "to": "archive/unintegrated-src/src/performance/PerformanceMonitor.js",
+      "bytes": 17810
+    },
+    {
+      "from": "src/technical-debt/DebtDashboard.js",
+      "to": "archive/unintegrated-src/src/technical-debt/DebtDashboard.js",
+      "bytes": 34567
+    },
+    {
+      "from": "src/technical-debt/TechnicalDebtCalculator.js",
+      "to": "archive/unintegrated-src/src/technical-debt/TechnicalDebtCalculator.js",
+      "bytes": 26080
+    },
+    {
+      "from": "src/validation/AutoFixer.js",
+      "to": "archive/unintegrated-src/src/validation/AutoFixer.js",
+      "bytes": 27360
+    },
+    {
+      "from": "src/validation/ValidationEngine.js",
+      "to": "archive/unintegrated-src/src/validation/ValidationEngine.js",
+      "bytes": 24513
+    },
+    {
+      "from": "src/validation/ValidationRules.js",
+      "to": "archive/unintegrated-src/src/validation/ValidationRules.js",
+      "bytes": 38264
+    },
+    {
+      "from": "src/templates/report-templates/executive-summary-template.json",
+      "to": "archive/unintegrated-src/src/templates/report-templates/executive-summary-template.json",
+      "bytes": 1309
+    },
+    {
+      "from": "src/web/export-system.js",
+      "to": "archive/unintegrated-src/src/web/export-system.js",
+      "bytes": 488
+    },
+    {
+      "from": "server/config/security.js",
+      "to": "archive/unintegrated-server/server/config/security.js",
+      "bytes": 12163
+    },
+    {
+      "from": "server/connectors/huggingface-connector.js",
+      "to": "archive/unintegrated-server/server/connectors/huggingface-connector.js",
+      "bytes": 10133
+    },
+    {
+      "from": "server/connectors/registry.js",
+      "to": "archive/unintegrated-server/server/connectors/registry.js",
+      "bytes": 13773
+    },
+    {
+      "from": "server/middleware/compliance.js",
+      "to": "archive/unintegrated-server/server/middleware/compliance.js",
+      "bytes": 15081
+    },
+    {
+      "from": "server/middleware/featureFlags.js",
+      "to": "archive/unintegrated-server/server/middleware/featureFlags.js",
+      "bytes": 16939
+    },
+    {
+      "from": "server/middleware/resilience.js",
+      "to": "archive/unintegrated-server/server/middleware/resilience.js",
+      "bytes": 25614
+    },
+    {
+      "from": "server/middleware/validation.js",
+      "to": "archive/unintegrated-server/server/middleware/validation.js",
+      "bytes": 10408
+    },
+    {
+      "from": "server/routes/auth.js",
+      "to": "archive/unintegrated-server/server/routes/auth.js",
+      "bytes": 16713
+    },
+    {
+      "from": "server/routes/enhanced-auth-routes.js",
+      "to": "archive/unintegrated-server/server/routes/enhanced-auth-routes.js",
+      "bytes": 11639
+    },
+    {
+      "from": "server/services/sso-service.js",
+      "to": "archive/unintegrated-server/server/services/sso-service.js",
+      "bytes": 15949
+    },
+    {
+      "from": "server/services/nl-query-service.js",
+      "to": "archive/unintegrated-server/server/services/nl-query-service.js",
+      "bytes": 18264
+    },
+    {
+      "from": "server/simple_http_server.js",
+      "to": "archive/unintegrated-server/server/simple_http_server.js",
+      "bytes": 3353
+    },
+    {
+      "from": "web/central-data-integration.js",
+      "to": "archive/legacy-web-assets/web/central-data-integration.js",
+      "bytes": 57052
+    },
+    {
+      "from": "web/components/BaseComponent.js",
+      "to": "archive/legacy-web-assets/web/components/BaseComponent.js",
+      "bytes": 9484
+    },
+    {
+      "from": "web/enhanced-auth-system.js",
+      "to": "archive/legacy-web-assets/web/enhanced-auth-system.js",
+      "bytes": 33324
+    },
+    {
+      "from": "web/export-system.js",
+      "to": "archive/legacy-web-assets/web/export-system.js",
+      "bytes": 488
+    },
+    {
+      "from": "web/landing.html",
+      "to": "archive/legacy-web-assets/web/landing.html",
+      "bytes": 7003
+    },
+    {
+      "from": "web/services/CodeAnalysisService.js",
+      "to": "archive/legacy-web-assets/web/services/CodeAnalysisService.js",
+      "bytes": 18308
+    },
+    {
+      "from": "web/services/CodeUploadService.js",
+      "to": "archive/legacy-web-assets/web/services/CodeUploadService.js",
+      "bytes": 13977
+    },
+    {
+      "from": "web/services/IssueResolutionService.js",
+      "to": "archive/legacy-web-assets/web/services/IssueResolutionService.js",
+      "bytes": 15256
+    },
+    {
+      "from": "web/services/RealDataService.js",
+      "to": "archive/legacy-web-assets/web/services/RealDataService.js",
+      "bytes": 814
+    },
+    {
+      "from": "web/services/RealDataService.part1.js",
+      "to": "archive/legacy-web-assets/web/services/RealDataService.part1.js",
+      "bytes": 230920
+    },
+    {
+      "from": "web/services/RealDataService.part2.js",
+      "to": "archive/legacy-web-assets/web/services/RealDataService.part2.js",
+      "bytes": 155271
+    },
+    {
+      "from": "web/services/WebSocketService.js",
+      "to": "archive/legacy-web-assets/web/services/WebSocketService.js",
+      "bytes": 6895
+    },
+    {
+      "from": "web/api/server.py",
+      "to": "archive/legacy-web-assets/web/api/server.py",
+      "bytes": 14450
+    },
+    {
+      "from": "enhanced-auth-demo.html",
+      "to": "archive/legacy-web-assets/enhanced-auth-demo.html",
+      "bytes": 34866
+    },
+    {
+      "from": "enhanced-auth-dialog.html",
+      "to": "archive/legacy-web-assets/enhanced-auth-dialog.html",
+      "bytes": 15764
+    }
+  ],
+  "missing": [],
+  "bytes": 1161141
+}

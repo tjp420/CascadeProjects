@@ -1,0 +1,1003 @@
+# Trimmed to last 1000 lines — full copy in .simplebeacon/archive/quality-checks/
+# Original line count: 10731
+# Trimmed at: 2026-05-26T04:17:01.474Z
+  133:5   error  'console' is not defined     no-undef
+  139:5   error  'console' is not defined     no-undef
+  144:29  error  'document' is not defined    no-undef
+  165:28  error  'document' is not defined    no-undef
+  179:29  error  'document' is not defined    no-undef
+  193:32  error  'document' is not defined    no-undef
+  207:27  error  'document' is not defined    no-undef
+  229:1   error  'console' is not defined     no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\simple_http_server.js
+  13:5  error  'console' is not defined  no-undef
+  81:5  error  'console' is not defined  no-undef
+  82:5  error  'console' is not defined  no-undef
+  83:5  error  'console' is not defined  no-undef
+  84:5  error  'console' is not defined  no-undef
+  85:5  error  'console' is not defined  no-undef
+  89:5  error  'console' is not defined  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\sprint-status.js
+    2:1   error  'console' is not defined                       no-undef
+  124:10  error  'showSprintStatus' is defined but never used   no-unused-vars
+  279:10  error  'showSprintTab' is defined but never used      no-unused-vars
+  280:21  error  'document' is not defined                      no-undef
+  286:5   error  'document' is not defined                      no-undef
+  292:5   error  'event' is not defined                         no-undef
+  293:5   error  'event' is not defined                         no-undef
+  294:5   error  'event' is not defined                         no-undef
+  428:10  error  'editTask' is defined but never used           no-unused-vars
+  429:5   error  'console' is not defined                       no-undef
+  430:5   error  'alert' is not defined                         no-undef
+  433:10  error  'createNewSprint' is defined but never used    no-unused-vars
+  434:5   error  'console' is not defined                       no-undef
+  435:5   error  'alert' is not defined                         no-undef
+  438:10  error  'refreshSprintData' is defined but never used  no-unused-vars
+  439:5   error  'console' is not defined                       no-undef
+  440:5   error  'location' is not defined                      no-undef
+  443:10  error  'filterTasks' is defined but never used        no-unused-vars
+  444:5   error  'console' is not defined                       no-undef
+  449:27  error  'document' is not defined                      no-undef
+  501:1   error  'document' is not defined                      no-undef
+  503:1   error  'console' is not defined                       no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\start-all.js
+  13:1  error  'console' is not defined     no-undef
+  16:1  error  'console' is not defined     no-undef
+  23:5  error  'console' is not defined     no-undef
+  27:5  error  'console' is not defined     no-undef
+  31:1  error  'setTimeout' is not defined  no-undef
+  32:5  error  'console' is not defined     no-undef
+  39:9  error  'console' is not defined     no-undef
+  43:9  error  'console' is not defined     no-undef
+  46:5  error  'setTimeout' is not defined  no-undef
+  47:9  error  'console' is not defined     no-undef
+  48:9  error  'console' is not defined     no-undef
+  49:9  error  'console' is not defined     no-undef
+  50:9  error  'console' is not defined     no-undef
+  55:1  error  'process' is not defined     no-undef
+  56:5  error  'console' is not defined     no-undef
+  58:5  error  'process' is not defined     no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\start-dashboard.js
+  68:5  error  'console' is not defined  no-undef
+  69:5  error  'console' is not defined  no-undef
+  70:5  error  'console' is not defined  no-undef
+  71:5  error  'console' is not defined  no-undef
+  72:5  error  'console' is not defined  no-undef
+  77:9  error  'console' is not defined  no-undef
+  79:9  error  'console' is not defined  no-undef
+  83:1  error  'process' is not defined  no-undef
+  84:5  error  'console' is not defined  no-undef
+  86:5  error  'process' is not defined  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\subscription-access-control.js
+  104:28  error  'localStorage' is not defined  no-undef
+  120:36  error  'fetch' is not defined         no-undef
+  126:13  error  'console' is not defined       no-undef
+  231:33  error  'document' is not defined      no-undef
+  246:28  error  'document' is not defined      no-undef
+  262:30  error  'document' is not defined      no-undef
+  287:32  error  'document' is not defined      no-undef
+  292:24  error  'document' is not defined      no-undef
+  327:9   error  'document' is not defined      no-undef
+  330:9   error  'document' is not defined      no-undef
+  337:23  error  'document' is not defined      no-undef
+  384:9   error  'document' is not defined      no-undef
+  396:30  error  'localStorage' is not defined  no-undef
+  398:9   error  'localStorage' is not defined  no-undef
+  419:36  error  'localStorage' is not defined  no-undef
+  420:35  error  'localStorage' is not defined  no-undef
+  435:1   error  'document' is not defined      no-undef
+  440:38  error  'module' is not defined        no-undef
+  441:5   error  'module' is not defined        no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\summary-fix-override.js
+   10:5   error  'console' is not defined                            no-undef
+   13:39  error  'window' is not defined                             no-undef
+   16:5   error  'window' is not defined                             no-undef
+   17:9   error  'console' is not defined                            no-undef
+   25:13  error  'console' is not defined                            no-undef
+   44:13  error  'console' is not defined                            no-undef
+   48:76  error  'window' is not defined                             no-undef
+   49:17  error  'console' is not defined                            no-undef
+   52:17  error  'console' is not defined                            no-undef
+   59:13  error  'console' is not defined                            no-undef
+   63:13  error  'console' is not defined                            no-undef
+  112:17  error  'console' is not defined                            no-undef
+  119:17  error  'console' is not defined                            no-undef
+  126:17  error  'console' is not defined                            no-undef
+  132:13  error  'console' is not defined                            no-undef
+  138:13  error  'console' is not defined                            no-undef
+  145:19  error  'expectedFiles' is assigned a value but never used  no-unused-vars
+  146:13  error  'console' is not defined                            no-undef
+  241:21  error  'console' is not defined                            no-undef
+  294:5   error  'console' is not defined                            no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\support-page.js
+   76:13  error  'localStorage' is not defined  no-undef
+  139:36  error  'fetch' is not defined         no-undef
+  146:13  error  'console' is not defined       no-undef
+  150:42  error  'fetch' is not defined         no-undef
+  153:17  error  'fetch' is not defined         no-undef
+  154:17  error  'fetch' is not defined         no-undef
+  155:17  error  'fetch' is not defined         no-undef
+  156:17  error  'fetch' is not defined         no-undef
+  157:17  error  'fetch' is not defined         no-undef
+  187:13  error  'console' is not defined       no-undef
+  235:22  error  'document' is not defined      no-undef
+  245:23  error  'document' is not defined      no-undef
+  254:26  error  'document' is not defined      no-undef
+  259:27  error  'document' is not defined      no-undef
+  268:31  error  'document' is not defined      no-undef
+  277:35  error  'document' is not defined      no-undef
+  302:30  error  'document' is not defined      no-undef
+  327:24  error  'document' is not defined      no-undef
+  346:24  error  'document' is not defined      no-undef
+  388:27  error  'Chart' is not defined         no-undef
+  433:22  error  'document' is not defined      no-undef
+  454:27  error  'document' is not defined      no-undef
+  479:27  error  'document' is not defined      no-undef
+  508:27  error  'document' is not defined      no-undef
+  542:27  error  'document' is not defined      no-undef
+  563:27  error  'document' is not defined      no-undef
+  576:27  error  'document' is not defined      no-undef
+  591:9   error  'document' is not defined      no-undef
+  594:9   error  'document' is not defined      no-undef
+  595:9   error  'document' is not defined      no-undef
+  596:13  error  'window' is not defined        no-undef
+  598:9   error  'document' is not defined      no-undef
+  599:18  error  'window' is not defined        no-undef
+  600:30  error  'Blob' is not defined          no-undef
+  600:51  error  'window' is not defined        no-undef
+  601:23  error  'document' is not defined      no-undef
+  602:22  error  'URL' is not defined           no-undef
+  604:13  error  'document' is not defined      no-undef
+  606:13  error  'document' is not defined      no-undef
+  607:13  error  'URL' is not defined           no-undef
+  608:13  error  'window' is not defined        no-undef
+  610:9   error  'document' is not defined      no-undef
+  611:13  error  'document' is not defined      no-undef
+  613:9   error  'document' is not defined      no-undef
+  618:17  error  'window' is not defined        no-undef
+  620:17  error  'window' is not defined        no-undef
+  625:9   error  'document' is not defined      no-undef
+  634:20  error  'window' is not defined        no-undef
+  646:17  error  'window' is not defined        no-undef
+  656:9   error  'window' is not defined        no-undef
+  660:20  error  'window' is not defined        no-undef
+  661:29  error  'document' is not defined      no-undef
+  662:13  error  'window' is not defined        no-undef
+  666:13  error  'localStorage' is not defined  no-undef
+  678:25  error  'localStorage' is not defined  no-undef
+  686:13  error  'window' is not defined        no-undef
+  696:22  error  'document' is not defined      no-undef
+  699:36  error  'fetch' is not defined         no-undef
+  702:13  error  'window' is not defined        no-undef
+  704:13  error  'console' is not defined       no-undef
+  705:13  error  'window' is not defined        no-undef
+  712:22  error  'document' is not defined      no-undef
+  715:13  error  'window' is not defined        no-undef
+  716:37  error  'window' is not defined        no-undef
+  717:17  error  'window' is not defined        no-undef
+  720:29  error  'window' is not defined        no-undef
+  728:13  error  'window' is not defined        no-undef
+  735:17  error  'window' is not defined        no-undef
+  747:13  error  'console' is not defined       no-undef
+  751:17  error  'window' is not defined        no-undef
+  758:5   error  'window' is not defined        no-undef
+  759:5   error  'window' is not defined        no-undef
+  760:5   error  'window' is not defined        no-undef
+  761:5   error  'window' is not defined        no-undef
+  762:5   error  'window' is not defined        no-undef
+  763:5   error  'window' is not defined        no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\sw.js
+    6:7   error  'CACHE_NAME' is assigned a value but never used      no-unused-vars
+   20:7   error  'MAX_CACHE_SIZE' is assigned a value but never used  no-unused-vars
+   25:1   error  'self' is not defined                                no-undef
+   26:5   error  'console' is not defined                             no-undef
+   29:9   error  'caches' is not defined                              no-undef
+   30:13  error  'console' is not defined                             no-undef
+   35:5   error  'self' is not defined                                no-undef
+   41:1   error  'self' is not defined                                no-undef
+   42:5   error  'console' is not defined                             no-undef
+   45:9   error  'caches' is not defined                              no-undef
+   51:25  error  'console' is not defined                             no-undef
+   52:32  error  'caches' is not defined                              no-undef
+   59:5   error  'self' is not defined                                no-undef
+   65:1   error  'self' is not defined                                no-undef
+   66:21  error  'URL' is not defined                                 no-undef
+  102:25  error  'caches' is not defined                              no-undef
+  106:9   error  'console' is not defined                             no-undef
+  110:5   error  'console' is not defined                             no-undef
+  111:28  error  'fetch' is not defined                               no-undef
+  125:25  error  'caches' is not defined                              no-undef
+  128:9   error  'console' is not defined                             no-undef
+  129:32  error  'fetch' is not defined                               no-undef
+  138:9   error  'console' is not defined                             no-undef
+  146:20  error  'Response' is not defined                            no-undef
+  157:25  error  'caches' is not defined                              no-undef
+  161:26  error  'fetch' is not defined                               no-undef
+  173:9   error  'console' is not defined                             no-undef
+  184:16  error  'cleanCache' is defined but never used               no-unused-vars
+  185:25  error  'caches' is not defined                              no-undef
+  199:1   error  'self' is not defined                                no-undef
+  201:9   error  'self' is not defined                                no-undef
+  205:9   error  'caches' is not defined                              no-undef
+  207:47  error  'caches' is not defined                              no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\swap-dashboard-buttons.js
+    4:1   error  'console' is not defined                     no-undef
+    7:1   error  'window' is not defined                      no-undef
+    8:5   error  'console' is not defined                     no-undef
+   11:27  error  'document' is not defined                    no-undef
+   13:9   error  'console' is not defined                     no-undef
+   18:33  error  'document' is not defined                    no-undef
+   21:9   error  'console' is not defined                     no-undef
+   31:15  error  'badge' is assigned a value but never used   no-unused-vars
+   39:13  error  'console' is not defined                     no-undef
+   42:33  error  'document' is not defined                    no-undef
+   68:40  error  'document' is not defined                    no-undef
+   70:17  error  'console' is not defined                     no-undef
+   74:17  error  'console' is not defined                     no-undef
+   81:9   error  'console' is not defined                     no-undef
+   84:9   error  'setTimeout' is not defined                  no-undef
+   85:13  error  'console' is not defined                     no-undef
+   90:9   error  'console' is not defined                     no-undef
+   94:5   error  'setTimeout' is not defined                  no-undef
+   95:9   error  'console' is not defined                     no-undef
+   97:40  error  'document' is not defined                    no-undef
+   98:28  error  'document' is not defined                    no-undef
+  100:9   error  'console' is not defined                     no-undef
+  101:9   error  'console' is not defined                     no-undef
+  104:13  error  'console' is not defined                     no-undef
+  107:13  error  'console' is not defined                     no-undef
+  116:5   error  'console' is not defined                     no-undef
+  236:5   error  'setTimeout' is not defined                  no-undef
+  237:25  error  'document' is not defined                    no-undef
+  245:9   error  'console' is not defined                     no-undef
+  261:25  error  'document' is not defined                    no-undef
+  269:23  error  'performance' is not defined                 no-undef
+  279:13  error  'requestAnimationFrame' is not defined       no-undef
+  283:5   error  'requestAnimationFrame' is not defined       no-undef
+  287:10  error  'runCodeAnalysis' is defined but never used  no-unused-vars
+  288:5   error  'console' is not defined                     no-undef
+  291:5   error  'setTimeout' is not defined                  no-undef
+  296:10  error  'generateReport' is defined but never used   no-unused-vars
+  297:5   error  'console' is not defined                     no-undef
+  300:5   error  'setTimeout' is not defined                  no-undef
+  305:10  error  'showUploadModal' is defined but never used  no-unused-vars
+  306:5   error  'console' is not defined                     no-undef
+  310:10  error  'showSettings' is defined but never used     no-unused-vars
+  311:5   error  'console' is not defined                     no-undef
+  315:10  error  'refreshActivity' is defined but never used  no-unused-vars
+  316:5   error  'console' is not defined                     no-undef
+  325:22  error  'document' is not defined                    no-undef
+  331:26  error  'document' is not defined                    no-undef
+  337:5   error  'document' is not defined                    no-undef
+  340:5   error  'setTimeout' is not defined                  no-undef
+  349:5   error  'console' is not defined                     no-undef
+  351:5   error  'setTimeout' is not defined                  no-undef
+  352:9   error  'swapDashboardButtons' is not defined        no-undef
+  357:1   error  'document' is not defined                    no-undef
+  358:5   error  'console' is not defined                     no-undef
+  363:5   error  'console' is not defined                     no-undef
+  367:1   error  'window' is not defined                      no-undef
+  367:31  error  'swapDashboardButtons' is not defined        no-undef
+  368:1   error  'window' is not defined                      no-undef
+  370:1   error  'console' is not defined                     no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\team-optimization-system.js
+  24:25  error  Parsing error: Unexpected token .
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\team.js
+     2:1   error  'console' is not defined                           no-undef
+   259:10  error  'showTeam' is defined but never used               no-unused-vars
+   701:10  error  'getSkillLevelColor' is defined but never used     no-unused-vars
+   743:10  error  'showTeamTab' is defined but never used            no-unused-vars
+   744:21  error  'document' is not defined                          no-undef
+   750:5   error  'document' is not defined                          no-undef
+   756:5   error  'event' is not defined                             no-undef
+   757:5   error  'event' is not defined                             no-undef
+   758:5   error  'event' is not defined                             no-undef
+   781:10  error  'addTeamMember' is defined but never used          no-unused-vars
+   782:5   error  'console' is not defined                           no-undef
+   783:5   error  'alert' is not defined                             no-undef
+   786:10  error  'createDepartment' is defined but never used       no-unused-vars
+   787:5   error  'console' is not defined                           no-undef
+   788:5   error  'alert' is not defined                             no-undef
+   791:10  error  'exportTeamReport' is defined but never used       no-unused-vars
+   792:5   error  'console' is not defined                           no-undef
+   793:5   error  'alert' is not defined                             no-undef
+   796:10  error  'filterMembers' is defined but never used          no-unused-vars
+   797:5   error  'console' is not defined                           no-undef
+   798:5   error  'alert' is not defined                             no-undef
+   801:10  error  'refreshTeamData' is defined but never used        no-unused-vars
+   802:5   error  'console' is not defined                           no-undef
+   803:5   error  'alert' is not defined                             no-undef
+   806:10  error  'viewMemberProfile' is defined but never used      no-unused-vars
+   807:5   error  'console' is not defined                           no-undef
+   808:5   error  'alert' is not defined                             no-undef
+   811:10  error  'sendMessage' is defined but never used            no-unused-vars
+   812:5   error  'console' is not defined                           no-undef
+   813:5   error  'alert' is not defined                             no-undef
+   816:10  error  'viewDepartmentDetails' is defined but never used  no-unused-vars
+   817:5   error  'console' is not defined                           no-undef
+   818:5   error  'alert' is not defined                             no-undef
+   821:10  error  'editDepartment' is defined but never used         no-unused-vars
+   822:5   error  'console' is not defined                           no-undef
+   823:5   error  'alert' is not defined                             no-undef
+   826:10  error  'createProject' is defined but never used          no-unused-vars
+   827:5   error  'console' is not defined                           no-undef
+   828:5   error  'alert' is not defined                             no-undef
+   831:10  error  'viewProjectDetails' is defined but never used     no-unused-vars
+   832:5   error  'console' is not defined                           no-undef
+   833:5   error  'alert' is not defined                             no-undef
+   836:10  error  'editProject' is defined but never used            no-unused-vars
+   837:5   error  'console' is not defined                           no-undef
+   838:5   error  'alert' is not defined                             no-undef
+   841:10  error  'viewSkillDetails' is defined but never used       no-unused-vars
+   842:5   error  'console' is not defined                           no-undef
+   843:5   error  'alert' is not defined                             no-undef
+   847:6   error  'document' is not defined                          no-undef
+   848:19  error  'document' is not defined                          no-undef
+  1001:5   error  'document' is not defined                          no-undef
+  1004:1   error  'console' is not defined                           no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\technical-debt-analyzer.js
+     9:26  error  'document' is not defined                       no-undef
+    29:13  error  'console' is not defined                        no-undef
+    47:14  error  'document' is not defined                       no-undef
+    48:27  error  'document' is not defined                       no-undef
+   521:13  error  'document' is not defined                       no-undef
+   592:40  error  'RoadmapDataService' is not defined             no-undef
+   599:13  error  'console' is not defined                        no-undef
+   626:27  error  'document' is not defined                       no-undef
+   629:15  error  'totalDebt' is assigned a value but never used  no-unused-vars
+   632:15  error  'lowDebt' is assigned a value but never used    no-unused-vars
+   662:27  error  'document' is not defined                       no-undef
+   664:69  error  'index' is defined but never used               no-unused-vars
+   693:27  error  'document' is not defined                       no-undef
+   733:27  error  'document' is not defined                       no-undef
+   771:24  error  'document' is not defined                       no-undef
+   852:27  error  'document' is not defined                       no-undef
+   870:24  error  'document' is not defined                       no-undef
+   930:31  error  'document' is not defined                       no-undef
+   933:13  error  'setTimeout' is not defined                     no-undef
+   964:9   error  'document' is not defined                       no-undef
+   982:9   error  'setTimeout' is not defined                     no-undef
+  1008:23  error  'document' is not defined                       no-undef
+  1024:9   error  'document' is not defined                       no-undef
+  1030:26  error  'insightCard' is defined but never used         no-unused-vars
+  1032:30  error  'document' is not defined                       no-undef
+  1037:9   error  'setTimeout' is not defined                     no-undef
+  1049:30  error  'document' is not defined                       no-undef
+  1057:9   error  'document' is not defined                       no-undef
+  1059:9   error  'setTimeout' is not defined                     no-undef
+  1071:13  error  'clearInterval' is not defined                  no-undef
+  1074:27  error  'document' is not defined                       no-undef
+  1079:28  error  'setInterval' is not defined                    no-undef
+  1085:17  error  'console' is not defined                        no-undef
+  1096:13  error  'clearInterval' is not defined                  no-undef
+  1100:27  error  'document' is not defined                       no-undef
+  1130:16  error  'format' is assigned a value but never used     no-unused-vars
+  1132:13  error  'alert' is not defined                          no-undef
+  1143:26  error  'Blob' is not defined                           no-undef
+  1144:21  error  'URL' is not defined                            no-undef
+  1145:19  error  'document' is not defined                       no-undef
+  1148:9   error  'document' is not defined                       no-undef
+  1150:9   error  'document' is not defined                       no-undef
+  1151:9   error  'URL' is not defined                            no-undef
+  1175:30  error  'document' is not defined                       no-undef
+  1183:38  error  'module' is not defined                         no-undef
+  1184:5   error  'module' is not defined                         no-undef
+  1186:5   error  'window' is not defined                         no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\temp_dashboard.js
+  21:15  error  Parsing error: Unexpected token init
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-api-connection.js
+   7:5   error  'console' is not defined  no-undef
+  11:32  error  'fetch' is not defined    no-undef
+  21:13  error  'console' is not defined  no-undef
+  24:13  error  'console' is not defined  no-undef
+  29:9   error  'console' is not defined  no-undef
+  37:9   error  'console' is not defined  no-undef
+  38:9   error  'console' is not defined  no-undef
+  40:9   error  'console' is not defined  no-undef
+  41:9   error  'console' is not defined  no-undef
+  42:9   error  'console' is not defined  no-undef
+  43:9   error  'console' is not defined  no-undef
+  44:9   error  'console' is not defined  no-undef
+  45:9   error  'console' is not defined  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-api-server.js
+   7:5   error  'console' is not defined  no-undef
+  11:32  error  'fetch' is not defined    no-undef
+  21:13  error  'console' is not defined  no-undef
+  24:13  error  'console' is not defined  no-undef
+  29:9   error  'console' is not defined  no-undef
+  37:9   error  'console' is not defined  no-undef
+  38:9   error  'console' is not defined  no-undef
+  40:9   error  'console' is not defined  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-enhanced-scanner.js
+    8:5   error  'console' is not defined  no-undef
+    9:5   error  'console' is not defined  no-undef
+   13:37  error  'process' is not defined  no-undef
+   16:9   error  'console' is not defined  no-undef
+   17:9   error  'console' is not defined  no-undef
+   18:9   error  'console' is not defined  no-undef
+   29:9   error  'console' is not defined  no-undef
+   35:9   error  'console' is not defined  no-undef
+   38:9   error  'console' is not defined  no-undef
+   46:9   error  'console' is not defined  no-undef
+   47:9   error  'console' is not defined  no-undef
+   63:13  error  'console' is not defined  no-undef
+   67:21  error  'console' is not defined  no-undef
+   70:13  error  'console' is not defined  no-undef
+   71:13  error  'console' is not defined  no-undef
+   72:13  error  'console' is not defined  no-undef
+   73:13  error  'console' is not defined  no-undef
+   81:17  error  'console' is not defined  no-undef
+   87:21  error  'console' is not defined  no-undef
+   88:21  error  'console' is not defined  no-undef
+   93:13  error  'console' is not defined  no-undef
+  108:21  error  'console' is not defined  no-undef
+  110:21  error  'console' is not defined  no-undef
+  115:13  error  'console' is not defined  no-undef
+  118:13  error  'console' is not defined  no-undef
+  130:21  error  'console' is not defined  no-undef
+  136:9   error  'console' is not defined  no-undef
+  141:17  error  'console' is not defined  no-undef
+  144:13  error  'console' is not defined  no-undef
+  145:13  error  'console' is not defined  no-undef
+  146:13  error  'console' is not defined  no-undef
+  147:13  error  'console' is not defined  no-undef
+  148:13  error  'console' is not defined  no-undef
+  149:13  error  'console' is not defined  no-undef
+  152:17  error  'console' is not defined  no-undef
+  154:21  error  'console' is not defined  no-undef
+  159:13  error  'console' is not defined  no-undef
+  163:9   error  'console' is not defined  no-undef
+  164:9   error  'console' is not defined  no-undef
+  167:5   error  'console' is not defined  no-undef
+  168:5   error  'console' is not defined  no-undef
+  172:29  error  'console' is not defined  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-function-access.js
+   5:1   error  'console' is not defined                 no-undef
+   8:1   error  'setTimeout' is not defined              no-undef
+  10:9   error  'console' is not defined                 no-undef
+  14:13  error  'generateMockDataReport' is not defined  no-undef
+  15:13  error  'console' is not defined                 no-undef
+  17:13  error  'console' is not defined                 no-undef
+  20:9   error  'console' is not defined                 no-undef
+  21:9   error  'console' is not defined                 no-undef
+  21:57  error  'window' is not defined                  no-undef
+  21:86  error  'window' is not defined                  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-functions.js
+   5:1   error  'console' is not defined     no-undef
+   8:1   error  'setTimeout' is not defined  no-undef
+  19:5   error  'console' is not defined     no-undef
+  22:20  error  'window' is not defined      no-undef
+  23:13  error  'console' is not defined     no-undef
+  25:13  error  'console' is not defined     no-undef
+  30:16  error  'window' is not defined      no-undef
+  31:9   error  'console' is not defined     no-undef
+  34:13  error  'console' is not defined     no-undef
+  36:13  error  'console' is not defined     no-undef
+  40:5   error  'console' is not defined     no-undef
+  41:5   error  'console' is not defined     no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-optimize-code.js
+   7:5   error  'console' is not defined  no-undef
+  10:16  error  'window' is not defined   no-undef
+  11:9   error  'console' is not defined  no-undef
+  13:9   error  'console' is not defined  no-undef
+  18:16  error  'window' is not defined   no-undef
+  19:9   error  'console' is not defined  no-undef
+  21:9   error  'console' is not defined  no-undef
+  23:9   error  'window' is not defined   no-undef
+  25:17  error  'console' is not defined  no-undef
+  26:17  error  'alert' is not defined    no-undef
+  29:17  error  'console' is not defined  no-undef
+  37:20  error  'window' is not defined   no-undef
+  38:13  error  'console' is not defined  no-undef
+  40:13  error  'console' is not defined  no-undef
+  45:10  error  'window' is not defined   no-undef
+  46:9   error  'console' is not defined  no-undef
+  47:9   error  'window' is not defined   no-undef
+  72:5   error  'console' is not defined  no-undef
+  77:5   error  'console' is not defined  no-undef
+  81:9   error  'window' is not defined   no-undef
+  82:13  error  'console' is not defined  no-undef
+  84:13  error  'console' is not defined  no-undef
+  87:9   error  'console' is not defined  no-undef
+  92:1   error  'console' is not defined  no-undef
+  93:1   error  'console' is not defined  no-undef
+  94:1   error  'console' is not defined  no-undef
+  95:1   error  'console' is not defined  no-undef
+  98:1   error  'window' is not defined   no-undef
+  99:1   error  'window' is not defined   no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-scanner-fix.js
+   3:1   error  'console' is not defined          no-undef
+   7:5   error  'console' is not defined          no-undef
+  10:25  error  'MockDataScanner' is not defined  no-undef
+  12:9   error  'console' is not defined          no-undef
+  23:9   error  'console' is not defined          no-undef
+  26:13  error  'console' is not defined          no-undef
+  29:9   error  'console' is not defined          no-undef
+  32:5   error  'console' is not defined          no-undef
+  35:1   error  'console' is not defined          no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-scanner-modules.js
+   58:26  error  'Blob' is not defined     no-undef
+   59:20  error  'File' is not defined     no-undef
+   65:5   error  'console' is not defined  no-undef
+   73:9   error  'console' is not defined  no-undef
+   74:9   error  'console' is not defined  no-undef
+   75:9   error  'console' is not defined  no-undef
+   79:9   error  'console' is not defined  no-undef
+   80:9   error  'console' is not defined  no-undef
+   87:5   error  'console' is not defined  no-undef
+   90:9   error  'console' is not defined  no-undef
+   95:9   error  'console' is not defined  no-undef
+   99:13  error  'console' is not defined  no-undef
+  103:21  error  'console' is not defined  no-undef
+  108:13  error  'console' is not defined  no-undef
+  111:9   error  'console' is not defined  no-undef
+  117:5   error  'console' is not defined  no-undef
+  120:9   error  'console' is not defined  no-undef
+  126:9   error  'console' is not defined  no-undef
+  129:13  error  'console' is not defined  no-undef
+  132:9   error  'console' is not defined  no-undef
+  133:9   error  'console' is not defined  no-undef
+  134:9   error  'console' is not defined  no-undef
+  135:9   error  'console' is not defined  no-undef
+  136:9   error  'console' is not defined  no-undef
+  137:9   error  'console' is not defined  no-undef
+  140:13  error  'console' is not defined  no-undef
+  142:17  error  'console' is not defined  no-undef
+  147:13  error  'console' is not defined  no-undef
+  148:13  error  'console' is not defined  no-undef
+  149:13  error  'console' is not defined  no-undef
+  150:13  error  'console' is not defined  no-undef
+  156:9   error  'console' is not defined  no-undef
+  157:9   error  'console' is not defined  no-undef
+  164:5   error  'console' is not defined  no-undef
+  167:9   error  'console' is not defined  no-undef
+  172:5   error  'console' is not defined  no-undef
+  173:5   error  'console' is not defined  no-undef
+  177:9   error  'console' is not defined  no-undef
+  180:13  error  'console' is not defined  no-undef
+  182:17  error  'console' is not defined  no-undef
+  188:13  error  'console' is not defined  no-undef
+  192:9   error  'console' is not defined  no-undef
+  193:9   error  'console' is not defined  no-undef
+  199:5   error  'console' is not defined  no-undef
+  200:5   error  'console' is not defined  no-undef
+  205:5   error  'console' is not defined  no-undef
+  208:5   error  'console' is not defined  no-undef
+  212:5   error  'console' is not defined  no-undef
+  213:5   error  'console' is not defined  no-undef
+  217:21  error  'console' is not defined  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-scanner-simple.js
+   83:5   error  'console' is not defined               no-undef
+   97:30  error  'fileIndex' is defined but never used  no-unused-vars
+   98:9   error  'console' is not defined               no-undef
+   99:9   error  'console' is not defined               no-undef
+  104:17  error  'console' is not defined               no-undef
+  106:17  error  'console' is not defined               no-undef
+  110:9   error  'console' is not defined               no-undef
+  116:5   error  'console' is not defined               no-undef
+  120:44  error  'process' is not defined               no-undef
+  121:43  error  'process' is not defined               no-undef
+  123:9   error  'console' is not defined               no-undef
+  127:13  error  'console' is not defined               no-undef
+  129:13  error  'console' is not defined               no-undef
+  134:13  error  'console' is not defined               no-undef
+  136:13  error  'console' is not defined               no-undef
+  140:9   error  'console' is not defined               no-undef
+  146:13  error  'console' is not defined               no-undef
+  148:17  error  'console' is not defined               no-undef
+  151:13  error  'console' is not defined               no-undef
+  155:9   error  'console' is not defined               no-undef
+  161:5   error  'console' is not defined               no-undef
+  177:13  error  'console' is not defined               no-undef
+  188:13  error  'console' is not defined               no-undef
+  191:13  error  'console' is not defined               no-undef
+  192:13  error  'console' is not defined               no-undef
+  199:5   error  'console' is not defined               no-undef
+  200:5   error  'console' is not defined               no-undef
+  203:5   error  'console' is not defined               no-undef
+  206:5   error  'console' is not defined               no-undef
+  210:5   error  'console' is not defined               no-undef
+  211:5   error  'console' is not defined               no-undef
+  215:21  error  'console' is not defined               no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-scanner.js
+    6:7   error  'fs' is assigned a value but never used    no-unused-vars
+    6:12  error  'require' is not defined                   no-undef
+    7:7   error  'path' is assigned a value but never used  no-unused-vars
+    7:14  error  'require' is not defined                   no-undef
+   11:5   error  'console' is not defined                   no-undef
+   39:5   error  'console' is not defined                   no-undef
+   40:5   error  'console' is not defined                   no-undef
+   51:5   error  'console' is not defined                   no-undef
+   55:13  error  'console' is not defined                   no-undef
+   56:38  error  'console' is not defined                   no-undef
+   58:13  error  'console' is not defined                   no-undef
+   63:5   error  'console' is not defined                   no-undef
+   73:9   error  'console' is not defined                   no-undef
+   76:5   error  'console' is not defined                   no-undef
+   80:5   error  'console' is not defined                   no-undef
+  102:9   error  'console' is not defined                   no-undef
+  103:9   error  'console' is not defined                   no-undef
+  104:9   error  'console' is not defined                   no-undef
+  105:9   error  'console' is not defined                   no-undef
+  110:5   error  'console' is not defined                   no-undef
+  121:9   error  'console' is not defined                   no-undef
+  124:5   error  'console' is not defined                   no-undef
+  128:5   error  'console' is not defined                   no-undef
+  152:9   error  'console' is not defined                   no-undef
+  153:9   error  'console' is not defined                   no-undef
+  154:9   error  'console' is not defined                   no-undef
+  155:9   error  'console' is not defined                   no-undef
+  156:9   error  'console' is not defined                   no-undef
+  157:9   error  'console' is not defined                   no-undef
+  162:5   error  'console' is not defined                   no-undef
+  172:5   error  'console' is not defined                   no-undef
+  174:9   error  'console' is not defined                   no-undef
+  178:5   error  'console' is not defined                   no-undef
+  179:5   error  'console' is not defined                   no-undef
+  180:5   error  'console' is not defined                   no-undef
+  181:5   error  'console' is not defined                   no-undef
+  182:5   error  'console' is not defined                   no-undef
+  183:5   error  'console' is not defined                   no-undef
+  184:5   error  'console' is not defined                   no-undef
+  189:5   error  'console' is not defined                   no-undef
+  190:5   error  'console' is not defined                   no-undef
+  198:5   error  'console' is not defined                   no-undef
+  199:5   error  'console' is not defined                   no-undef
+  200:5   error  'console' is not defined                   no-undef
+  201:5   error  'console' is not defined                   no-undef
+  202:5   error  'console' is not defined                   no-undef
+  203:5   error  'console' is not defined                   no-undef
+  204:5   error  'console' is not defined                   no-undef
+  206:5   error  'console' is not defined                   no-undef
+  207:5   error  'console' is not defined                   no-undef
+  208:5   error  'console' is not defined                   no-undef
+  209:5   error  'console' is not defined                   no-undef
+  210:5   error  'console' is not defined                   no-undef
+  211:5   error  'console' is not defined                   no-undef
+  212:5   error  'console' is not defined                   no-undef
+  213:5   error  'console' is not defined                   no-undef
+  215:5   error  'console' is not defined                   no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-security-monitoring.js
+   11:5   error  'console' is not defined     no-undef
+   15:9   error  'console' is not defined     no-undef
+   21:9   error  'console' is not defined     no-undef
+   24:9   error  'console' is not defined     no-undef
+   25:9   error  'console' is not defined     no-undef
+   26:9   error  'console' is not defined     no-undef
+   27:9   error  'console' is not defined     no-undef
+   28:9   error  'console' is not defined     no-undef
+   31:9   error  'console' is not defined     no-undef
+   43:9   error  'console' is not defined     no-undef
+   47:38  error  'setTimeout' is not defined  no-undef
+   50:9   error  'console' is not defined     no-undef
+   51:9   error  'console' is not defined     no-undef
+   52:9   error  'console' is not defined     no-undef
+   53:9   error  'console' is not defined     no-undef
+   54:9   error  'console' is not defined     no-undef
+   57:9   error  'console' is not defined     no-undef
+   64:9   error  'console' is not defined     no-undef
+   73:9   error  'console' is not defined     no-undef
+   74:9   error  'console' is not defined     no-undef
+   75:9   error  'console' is not defined     no-undef
+   76:9   error  'console' is not defined     no-undef
+   79:9   error  'console' is not defined     no-undef
+   81:9   error  'console' is not defined     no-undef
+   82:9   error  'console' is not defined     no-undef
+   83:9   error  'console' is not defined     no-undef
+   84:9   error  'console' is not defined     no-undef
+   85:9   error  'console' is not defined     no-undef
+   88:9   error  'console' is not defined     no-undef
+   93:9   error  'console' is not defined     no-undef
+   96:9   error  'console' is not defined     no-undef
+   97:9   error  'console' is not defined     no-undef
+   98:9   error  'console' is not defined     no-undef
+   99:9   error  'console' is not defined     no-undef
+  100:9   error  'console' is not defined     no-undef
+  101:9   error  'console' is not defined     no-undef
+  102:9   error  'console' is not defined     no-undef
+  107:9   error  'console' is not defined     no-undef
+  115:9   error  'console' is not defined     no-undef
+  116:9   error  'process' is not defined     no-undef
+  118:9   error  'console' is not defined     no-undef
+  119:9   error  'process' is not defined     no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\test-technical-debt-fix.js
+   23:45  error  'setTimeout' is not defined   no-undef
+   24:46  error  'setTimeout' is not defined   no-undef
+   31:5   error  'console' is not defined      no-undef
+   38:9   error  'console' is not defined      no-undef
+   40:36  error  'setTimeout' is not defined   no-undef
+   43:9   error  'console' is not defined      no-undef
+   46:9   error  'console' is not defined      no-undef
+   48:9   error  'console' is not defined      no-undef
+   51:9   error  'console' is not defined      no-undef
+   52:27  error  'performance' is not defined  no-undef
+   54:25  error  'performance' is not defined  no-undef
+   56:9   error  'console' is not defined      no-undef
+   59:9   error  'console' is not defined      no-undef
+   60:9   error  'console' is not defined      no-undef
+   61:9   error  'console' is not defined      no-undef
+   62:9   error  'console' is not defined      no-undef
+   63:9   error  'console' is not defined      no-undef
+   65:9   error  'console' is not defined      no-undef
+   67:13  error  'console' is not defined      no-undef
+   76:13  error  'console' is not defined      no-undef
+   79:13  error  'console' is not defined      no-undef
+   84:13  error  'console' is not defined      no-undef
+   87:13  error  'console' is not defined      no-undef
+   92:13  error  'console' is not defined      no-undef
+   95:13  error  'console' is not defined      no-undef
+   98:9   error  'console' is not defined      no-undef
+  102:9   error  'console' is not defined      no-undef
+  110:9   error  'console' is not defined      no-undef
+  112:9   error  'console' is not defined      no-undef
+  115:5   error  'console' is not defined      no-undef
+  120:5   error  'window' is not defined       no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\tree-view-functions.js
+    8:30  error  'document' is not defined    no-undef
+   32:5   error  'console' is not defined     no-undef
+   36:5   error  'console' is not defined     no-undef
+   39:31  error  'document' is not defined    no-undef
+   66:5   error  'console' is not defined     no-undef
+   71:5   error  'console' is not defined     no-undef
+   74:31  error  'document' is not defined    no-undef
+  103:5   error  'console' is not defined     no-undef
+  109:26  error  'document' is not defined    no-undef
+  118:5   error  'document' is not defined    no-undef
+  121:5   error  'setTimeout' is not defined  no-undef
+  129:1   error  'document' is not defined    no-undef
+  130:5   error  'console' is not defined     no-undef
+  133:5   error  'setTimeout' is not defined  no-undef
+  134:30  error  'document' is not defined    no-undef
+  142:1   error  'window' is not defined      no-undef
+  143:1   error  'window' is not defined      no-undef
+  144:1   error  'window' is not defined      no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\ui-level-failsafe-fix.js
+    9:5   error  'console' is not defined           no-undef
+   20:13  error  'console' is not defined           no-undef
+   24:9   error  'console' is not defined           no-undef
+   25:9   error  'console' is not defined           no-undef
+   26:9   error  'console' is not defined           no-undef
+   27:9   error  'console' is not defined           no-undef
+   32:13  error  'console' is not defined           no-undef
+   43:13  error  'console' is not defined           no-undef
+   53:13  error  'console' is not defined           no-undef
+   57:9   error  'console' is not defined           no-undef
+   68:13  error  'console' is not defined           no-undef
+   79:13  error  'console' is not defined           no-undef
+   92:13  error  'console' is not defined           no-undef
+  102:9   error  'console' is not defined           no-undef
+  105:30  error  'MutationObserver' is not defined  no-undef
+  108:43  error  'Node' is not defined              no-undef
+  115:29  error  'console' is not defined           no-undef
+  124:26  error  'document' is not defined          no-undef
+  129:9   error  'console' is not defined           no-undef
+  149:25  error  'console' is not defined           no-undef
+  165:33  error  'document' is not defined          no-undef
+  166:31  error  'document' is not defined          no-undef
+  167:31  error  'document' is not defined          no-undef
+  173:17  error  'console' is not defined           no-undef
+  178:33  error  'document' is not defined          no-undef
+  181:43  error  'document' is not defined          no-undef
+  185:42  error  'document' is not defined          no-undef
+  203:20  error  'window' is not defined            no-undef
+  204:47  error  'window' is not defined            no-undef
+  206:13  error  'window' is not defined            no-undef
+  207:17  error  'console' is not defined           no-undef
+  211:21  error  'console' is not defined           no-undef
+  214:21  error  'console' is not defined           no-undef
+  218:21  error  'console' is not defined           no-undef
+  223:13  error  'console' is not defined           no-undef
+  225:13  error  'console' is not defined           no-undef
+  233:9   error  'console' is not defined           no-undef
+  242:9   error  'setTimeout' is not defined        no-undef
+  243:37  error  'document' is not defined          no-undef
+  249:9   error  'console' is not defined           no-undef
+  253:9   error  'document' is not defined          no-undef
+  254:9   error  'document' is not defined          no-undef
+  260:5   error  'setTimeout' is not defined        no-undef
+  262:5   error  'console' is not defined           no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\ultimate-files-with-findings-fix.js
+   10:5   error  'console' is not defined  no-undef
+   13:39  error  'window' is not defined   no-undef
+   16:5   error  'window' is not defined   no-undef
+   17:9   error  'console' is not defined  no-undef
+   18:9   error  'console' is not defined  no-undef
+   24:13  error  'console' is not defined  no-undef
+   25:13  error  'console' is not defined  no-undef
+   26:13  error  'console' is not defined  no-undef
+   30:17  error  'console' is not defined  no-undef
+   31:17  error  'console' is not defined  no-undef
+   32:17  error  'console' is not defined  no-undef
+   33:17  error  'console' is not defined  no-undef
+   34:17  error  'console' is not defined  no-undef
+   43:25  error  'console' is not defined  no-undef
+   44:25  error  'console' is not defined  no-undef
+   54:25  error  'console' is not defined  no-undef
+   55:25  error  'console' is not defined  no-undef
+   63:25  error  'console' is not defined  no-undef
+   69:25  error  'console' is not defined  no-undef
+   74:29  error  'console' is not defined  no-undef
+   77:25  error  'console' is not defined  no-undef
+   82:25  error  'console' is not defined  no-undef
+   88:25  error  'console' is not defined  no-undef
+   94:25  error  'console' is not defined  no-undef
+   98:21  error  'console' is not defined  no-undef
+   99:21  error  'console' is not defined  no-undef
+  102:21  error  'console' is not defined  no-undef
+  106:17  error  'console' is not defined  no-undef
+  107:17  error  'console' is not defined  no-undef
+  120:21  error  'console' is not defined  no-undef
+  127:17  error  'console' is not defined  no-undef
+  133:17  error  'console' is not defined  no-undef
+  139:17  error  'console' is not defined  no-undef
+  142:13  error  'console' is not defined  no-undef
+  143:13  error  'console' is not defined  no-undef
+  148:13  error  'console' is not defined  no-undef
+  149:13  error  'console' is not defined  no-undef
+  169:5   error  'console' is not defined  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\unified-dashboard-core.js
+  3072:18  error  Parsing error: Identifier 'formatBytes' has already been declared
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\update-mock-data-modal.js
+   53:26  error  'document' is not defined       no-undef
+   55:9   error  'console' is not defined        no-undef
+   65:5   error  'console' is not defined        no-undef
+  171:27  error  'setInterval' is not defined    no-undef
+  172:13  error  'document' is not defined       no-undef
+  174:13  error  'clearInterval' is not defined  no-undef
+  179:5   error  'setTimeout' is not defined     no-undef
+  179:22  error  'clearInterval' is not defined  no-undef
+  183:38  error  'module' is not defined         no-undef
+  184:5   error  'module' is not defined         no-undef
+  193:9   error  'document' is not defined       no-undef
+  194:9   error  'document' is not defined       no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\verify-enhanced-scanner.js
+    6:1   error  'console' is not defined  no-undef
+    7:1   error  'console' is not defined  no-undef
+   10:1   error  'console' is not defined  no-undef
+   35:5   error  'console' is not defined  no-undef
+   36:38  error  'console' is not defined  no-undef
+   40:1   error  'console' is not defined  no-undef
+   65:5   error  'console' is not defined  no-undef
+   69:1   error  'console' is not defined  no-undef
+   89:5   error  'console' is not defined  no-undef
+   93:1   error  'console' is not defined  no-undef
+  113:5   error  'console' is not defined  no-undef
+  117:1   error  'console' is not defined  no-undef
+  141:5   error  'console' is not defined  no-undef
+  145:1   error  'console' is not defined  no-undef
+  155:1   error  'console' is not defined  no-undef
+  156:1   error  'console' is not defined  no-undef
+  157:1   error  'console' is not defined  no-undef
+  160:1   error  'console' is not defined  no-undef
+  161:1   error  'console' is not defined  no-undef
+  162:1   error  'console' is not defined  no-undef
+  163:1   error  'console' is not defined  no-undef
+  164:1   error  'console' is not defined  no-undef
+  166:1   error  'console' is not defined  no-undef
+  167:1   error  'console' is not defined  no-undef
+  169:1   error  'console' is not defined  no-undef
+  170:1   error  'console' is not defined  no-undef
+  171:1   error  'console' is not defined  no-undef
+  172:1   error  'console' is not defined  no-undef
+  173:1   error  'console' is not defined  no-undef
+  174:1   error  'console' is not defined  no-undef
+  175:1   error  'console' is not defined  no-undef
+  176:1   error  'console' is not defined  no-undef
+  177:1   error  'console' is not defined  no-undef
+  178:1   error  'console' is not defined  no-undef
+  180:1   error  'console' is not defined  no-undef
+  181:1   error  'console' is not defined  no-undef
+  182:1   error  'console' is not defined  no-undef
+  183:1   error  'console' is not defined  no-undef
+  184:1   error  'console' is not defined  no-undef
+  185:1   error  'console' is not defined  no-undef
+  186:1   error  'console' is not defined  no-undef
+  188:1   error  'console' is not defined  no-undef
+  189:1   error  'console' is not defined  no-undef
+  190:1   error  'console' is not defined  no-undef
+  191:1   error  'console' is not defined  no-undef
+  192:1   error  'console' is not defined  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\vite.config.js
+  21:35  error  '__dirname' is not defined  no-undef
+  22:40  error  '__dirname' is not defined  no-undef
+  23:47  error  '__dirname' is not defined  no-undef
+  24:47  error  '__dirname' is not defined  no-undef
+  25:45  error  '__dirname' is not defined  no-undef
+  83:30  error  '__dirname' is not defined  no-undef
+  84:34  error  '__dirname' is not defined  no-undef
+  98:45  error  'process' is not defined    no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\webpack.config.js
+    1:14  error  'require' is not defined    no-undef
+    3:22  error  'require' is not defined    no-undef
+    4:27  error  'require' is not defined    no-undef
+    6:1   error  'module' is not defined     no-undef
+   15:32  error  '__dirname' is not defined  no-undef
+  108:35  error  '__dirname' is not defined  no-undef
+  109:39  error  '__dirname' is not defined  no-undef
+  138:36  error  '__dirname' is not defined  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\webpack.optimization.config.js
+    4:14  error  'require' is not defined    no-undef
+    6:22  error  'require' is not defined    no-undef
+    8:1   error  'module' is not defined     no-undef
+   20:28  error  '__dirname' is not defined  no-undef
+  134:31  error  '__dirname' is not defined  no-undef
+  135:41  error  '__dirname' is not defined  no-undef
+  136:36  error  '__dirname' is not defined  no-undef
+  137:37  error  '__dirname' is not defined  no-undef
+  185:14  error  'require' is not defined    no-undef
+  200:11  error  'process' is not defined    no-undef
+  203:14  error  'process' is not defined    no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\web\scripts\websocket-stabilizer.js
+    4:1   error  'console' is not defined             no-undef
+    7:1   error  'window' is not defined              no-undef
+   10:22  error  'WebSocket' is not defined           no-undef
+   19:7   error  'setTimeout' is not defined          no-undef
+   20:31  error  'WebSocket' is not defined           no-undef
+   32:1   error  'window' is not defined              no-undef
+   33:3   error  'console' is not defined             no-undef
+   39:24  error  'WebSocket' is not defined           no-undef
+   48:9   error  'setTimeout' is not defined          no-undef
+   49:33  error  'WebSocket' is not defined           no-undef
+   63:7   error  'console' is not defined             no-undef
+   66:7   error  'console' is not defined             no-undef
+   73:6   error  'window' is not defined              no-undef
+   74:3   error  'window' is not defined              no-undef
+   74:43  error  'console' is not defined             no-undef
+   75:3   error  'console' is not defined             no-undef
+   89:5   error  'window' is not defined              no-undef
+   89:49  error  'console' is not defined             no-undef
+   95:21  error  'document' is not defined            no-undef
+  110:3   error  'document' is not defined            no-undef
+  113:3   error  'setInterval' is not defined         no-undef
+  114:5   error  'testConnection' is not defined      no-undef
+  121:21  error  'document' is not defined            no-undef
+  151:33  error  'document' is not defined            no-undef
+  155:24  error  'document' is not defined            no-undef
+  164:3   error  'document' is not defined            no-undef
+  167:3   error  'setTimeout' is not defined          no-undef
+  175:1   error  'document' is not defined            no-undef
+  176:3   error  'console' is not defined             no-undef
+  182:3   error  'setTimeout' is not defined          no-undef
+  183:5   error  'stabilizeWebSocket' is not defined  no-undef
+  186:3   error  'console' is not defined             no-undef
+  190:1   error  'window' is not defined              no-undef
+  192:1   error  'console' is not defined             no-undef
+
+Γ£û 10151 problems (10010 errors, 141 warnings)
+
+

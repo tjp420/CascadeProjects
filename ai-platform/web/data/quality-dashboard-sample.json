@@ -1,0 +1,216 @@
+{
+  "type": "quality-dashboard-model",
+  "title": "Platform Quality (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Jest health and mock-data-scanner results — not 88.5% quality fiction, 85.7% Istanbul coverage, or unbreakable-oracle."
+  },
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousQualityScore": 88.5,
+    "previousComplianceRate": 94.2,
+    "previousIssuesFound": 45,
+    "previousTestsPassed": 92.3,
+    "previousCodeCoverage": 85.7,
+    "notes": "Cascade AI Platform demo metrics removed in favor of repo audit."
+  },
+  "overview": {
+    "issuesFound": 0,
+    "testsPassed": 100,
+    "codeCoverage": null,
+    "documentation": null,
+    "qualityScore": 99,
+    "complianceRate": 100,
+    "totalTests": 665,
+    "passedTests": 665,
+    "testSuites": 18,
+    "sampleJsonFiles": 33,
+    "measuredBaselines": 43,
+    "schemaPassRate": 100,
+    "scanQualityScore": 99,
+    "mockScanFiles": 36,
+    "statLabels": {
+      "qualityScore": "Scan Quality",
+      "complianceRate": "Schema Pass",
+      "issuesFound": "Scanner Issues",
+      "testsPassed": "Test Pass Rate",
+      "codeCoverage": "Istanbul Coverage",
+      "documentation": "Docs Score"
+    },
+    "notes": "665/665 Jest across 32 suites. mock-data-scanner: 36 files, 0 open issues, 42/42 schema pass, 99% quality."
+  },
+  "metrics": [
+    {
+      "id": "MET001",
+      "name": "Jest Pass Rate",
+      "value": 100,
+      "target": 100,
+      "status": "excellent",
+      "trend": null,
+      "lastUpdated": "2026-05-24T00:00:00.000Z"
+    },
+    {
+      "id": "MET002",
+      "name": "Schema Pass Rate",
+      "value": 100,
+      "target": 90,
+      "status": "excellent",
+      "trend": null,
+      "lastUpdated": "2026-05-24T00:00:00.000Z"
+    },
+    {
+      "id": "MET003",
+      "name": "Mock Scan Quality",
+      "value": 99,
+      "target": 95,
+      "status": "excellent",
+      "trend": null,
+      "lastUpdated": "2026-05-24T00:00:00.000Z"
+    },
+    {
+      "id": "MET004",
+      "name": "Measured Baselines",
+      "value": 100,
+      "target": 100,
+      "status": "excellent",
+      "trend": null,
+      "lastUpdated": "2026-05-24T00:00:00.000Z",
+      "displayValue": "42/42"
+    },
+    {
+      "id": "MET005",
+      "name": "Istanbul Coverage",
+      "value": null,
+      "target": 80,
+      "status": "neutral",
+      "trend": null,
+      "lastUpdated": null
+    },
+    {
+      "id": "MET006",
+      "name": "Documentation Score",
+      "value": null,
+      "target": 85,
+      "status": "neutral",
+      "trend": null,
+      "lastUpdated": null
+    }
+  ],
+  "trends": {
+    "labels": ["May 19", "May 20", "May 21", "May 22", "May 23", "May 24"],
+    "quality": [8, 11, 14, 16, 26, 33],
+    "compliance": [92, 94, 94, 94, 100, 100],
+    "seriesLabels": {
+      "quality": "Measured baselines",
+      "compliance": "Schema pass %"
+    },
+    "notes": "Repository-audit migration complete — not fictional quality score history."
+  },
+  "alerts": [
+    {
+      "id": "QA001",
+      "severity": "info",
+      "type": "Schema",
+      "message": "Schema violations cleared — issue-resolution and security-dashboard honor allowEmptyArrays",
+      "status": "resolved",
+      "time": "2026-05-24"
+    },
+    {
+      "id": "QA002",
+      "severity": "info",
+      "type": "Duplicates",
+      "message": "Roadmap duplicate cleared — gguf-roadmap-sample.json vs gguf-development-roadmap-report.json (reportPurpose field)",
+      "status": "resolved",
+      "time": "2026-05-24"
+    },
+    {
+      "id": "QA003",
+      "severity": "info",
+      "type": "Migration",
+      "message": "42/42 dashboard samples on repository-audit baselines",
+      "status": "resolved",
+      "time": "2026-05-24"
+    },
+    {
+      "id": "QA004",
+      "severity": "info",
+      "type": "Coverage",
+      "message": "Istanbul collected — line 79.5% / branch 56.6% from dashboard-ci.yml test:coverage",
+      "status": "resolved",
+      "time": "2026-05-24"
+    }
+  ],
+  "reports": [
+    {
+      "id": "QR001",
+      "type": "Jest Test Health",
+      "status": "completed",
+      "score": 100,
+      "scoreLabel": "665/665",
+      "generatedAt": "2026-05-24T00:00:00.000Z"
+    },
+    {
+      "id": "QR002",
+      "type": "Mock Data Scan",
+      "status": "completed",
+      "score": 99,
+      "scoreLabel": "99% • 36 files",
+      "generatedAt": "2026-05-24T00:00:00.000Z"
+    },
+    {
+      "id": "QR003",
+      "type": "Repository-Audit Migration",
+      "status": "completed",
+      "score": 100,
+      "scoreLabel": "42/42 pages",
+      "generatedAt": "2026-05-24T00:00:00.000Z"
+    }
+  ],
+  "performance": {
+    "avgQualityScore": 99,
+    "testCoverage": 79.5,
+    "codeQuality": 100,
+    "documentation": null,
+    "testPassRate": 100,
+    "schemaPassRate": 100,
+    "measuredBaselines": 100,
+    "labels": {
+      "avgQualityScore": "Scan Quality",
+      "testCoverage": "Istanbul Coverage",
+      "codeQuality": "Schema Pass",
+      "documentation": "Docs Score",
+      "testPassRate": "Test Pass Rate"
+    }
+  },
+  "insights": [
+    {
+      "priority": "medium",
+      "title": "Enable Istanbul in CI",
+      "description": "jest.config.js defines collectCoverageFrom — add npm run test:coverage to CI.",
+      "impact": "Replace null coverage metrics"
+    },
+    {
+      "priority": "medium",
+      "title": "Validate docker-compose.phase2.yml in CI",
+      "description": "Production profile not smoke-tested yet.",
+      "impact": "Deploy confidence before v1.0"
+    },
+    {
+      "priority": "low",
+      "title": "Optional live telemetry",
+      "description": "Only add metrics that are actually collected — do not invent production APM.",
+      "impact": "Truthful dashboards"
+    }
+  ],
+  "quickActions": [
+    { "id": "run-tests", "label": "Run npm test", "icon": "🧪" },
+    { "id": "run-scanner", "label": "Run mock-data scan", "icon": "🔍" },
+    { "id": "run-coverage", "label": "Run npm run test:coverage", "icon": "📊" }
+  ]
+}

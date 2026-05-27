@@ -1,0 +1,185 @@
+{
+  "type": "billing-system-model",
+  "title": "Billing System (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Internal ops profile — not a $234k MRR SaaS or unbreakable-oracle forecast."
+  },
+  "overview": {
+    "totalRevenue": 0,
+    "monthlyRevenue": 0,
+    "activeSubscriptions": 0,
+    "totalCustomers": 1,
+    "churnRate": null,
+    "avgRevenuePerCustomer": null,
+    "monthlyGrowth": null,
+    "ytdRevenue": 0,
+    "notes": "No payment processor integrated — dashboard billing page is stub API + sample JSON only."
+  },
+  "subscriptions": [
+    {
+      "id": "profile_local",
+      "name": "Local Dev Profile",
+      "price": 0,
+      "billingCycle": "n/a",
+      "activeCustomers": 1,
+      "revenue": 0,
+      "growth": "active",
+      "features": ["Solo maintainer", "Demo JWT auth", "Filesystem GGUF scan"],
+      "color": "success"
+    },
+    {
+      "id": "profile_ci",
+      "name": "CI Pipeline",
+      "price": 0,
+      "billingCycle": "n/a",
+      "activeCustomers": 1,
+      "revenue": 0,
+      "growth": "green",
+      "features": ["665/665 Jest tests (32 suites)", "GitHub Actions workflow", "Stub API integration tests"],
+      "color": "primary"
+    },
+    {
+      "id": "profile_production",
+      "name": "Production Profile",
+      "price": null,
+      "billingCycle": "planned",
+      "activeCustomers": 0,
+      "revenue": 0,
+      "growth": "planned",
+      "features": ["docker-compose.phase2.yml", "REQUIRE_AUTH", "Istanbul in CI pending"],
+      "color": "warning"
+    },
+    {
+      "id": "profile_stripe",
+      "name": "Stripe Integration",
+      "price": null,
+      "billingCycle": "not configured",
+      "activeCustomers": 0,
+      "revenue": 0,
+      "growth": "—",
+      "features": ["No payment processor", "No webhooks", "Stub /api/billing-system only"],
+      "color": "secondary"
+    }
+  ],
+  "recentTransactions": [
+    {
+      "id": "txn_ci",
+      "customer": "Maintainer",
+      "email": "dev@cascade.ai",
+      "plan": "CI Pipeline",
+      "amount": 0,
+      "status": "completed",
+      "date": "2026-05-23T15:00:00.000Z",
+      "method": "N/A",
+      "invoice": "—"
+    },
+    {
+      "id": "txn_auth",
+      "customer": "Maintainer",
+      "email": "dev@cascade.ai",
+      "plan": "Local Dev Profile",
+      "amount": 0,
+      "status": "completed",
+      "date": "2026-05-22T10:00:00.000Z",
+      "method": "N/A",
+      "invoice": "—"
+    },
+    {
+      "id": "txn_stripe",
+      "customer": "Not configured",
+      "email": "—",
+      "plan": "Stripe Integration",
+      "amount": null,
+      "status": "n/a",
+      "date": "2026-05-23T19:00:00.000Z",
+      "method": "—",
+      "invoice": "—"
+    }
+  ],
+  "invoices": [
+    {
+      "id": "inv_none",
+      "number": "—",
+      "customer": "Not configured",
+      "amount": 0,
+      "dueDate": null,
+      "status": "n/a",
+      "items": ["No Stripe or payment provider integrated"]
+    }
+  ],
+  "revenueAnalytics": {
+    "monthly": [
+      { "month": "Apr W1", "revenue": 0, "growth": 0 },
+      { "month": "Apr W2", "revenue": 0, "growth": 0 },
+      { "month": "May W1", "revenue": 0, "growth": 0 },
+      { "month": "May W2", "revenue": 0, "growth": 0 },
+      { "month": "May W3", "revenue": 0, "growth": 0 },
+      { "month": "May W4", "revenue": 0, "growth": 0 }
+    ],
+    "byPlan": [
+      { "plan": "Local Dev Profile", "revenue": 0, "percentage": 0 },
+      { "plan": "CI Pipeline", "revenue": 0, "percentage": 0 },
+      { "plan": "Production Profile", "revenue": 0, "percentage": 0 },
+      { "plan": "Stripe Integration", "revenue": 0, "percentage": 0 }
+    ],
+    "summary": {
+      "monthlyGrowth": "—",
+      "currentMonth": 0,
+      "previousMonth": 0,
+      "ytdRevenue": 0,
+      "notes": "No commercial billing — internal deployment profile only."
+    }
+  },
+  "metrics": [
+    { "name": "Payment Processor", "value": "Not configured", "percentage": 0, "color": "warning" },
+    { "name": "Billing API Routes", "value": "Stub only", "percentage": 100, "color": "info" },
+    { "name": "Demo Auth Users", "value": "1 (dev@cascade.ai)", "percentage": 100, "color": "success" },
+    { "name": "Production Billing Scope", "value": "Not planned", "percentage": 0, "color": "secondary" }
+  ],
+  "alerts": [
+    {
+      "id": "alert_no_stripe",
+      "title": "No payment processor connected",
+      "description": "Billing page renders sample JSON via dashboard-stub-api — Stripe or similar not integrated.",
+      "severity": "info",
+      "time": "Active",
+      "icon": "💳"
+    },
+    {
+      "id": "alert_fiction_removed",
+      "title": "SaaS MRR fiction removed",
+      "description": "Old template showed $234k MRR, 1,234 subscriptions, and John Doe transactions — not repo truth.",
+      "severity": "warning",
+      "time": "Active",
+      "icon": "⚠️"
+    },
+    {
+      "id": "alert_production",
+      "title": "Production go-live needs billing scoping",
+      "description": "If commercial SaaS is a goal, payment provider, webhooks, and auth billing must be designed separately.",
+      "severity": "info",
+      "time": "Active",
+      "icon": "📋"
+    }
+  ],
+  "quickActions": [
+    { "label": "View Stub API", "icon": "🔌", "action": "view-stub-api" },
+    { "label": "Export Baseline", "icon": "📥", "action": "export" },
+    { "label": "Open Implementation Plan", "icon": "📋", "section": "implementation-plan" },
+    { "label": "Open Settings", "icon": "⚙️", "section": "settings" }
+  ],
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousMonthlyRevenue": 234567.45,
+    "previousActiveSubscriptions": 1234,
+    "previousChurnRate": 2.3,
+    "notes": "Old template used fictional SaaS metrics, 500-test counts, example.com customers, and enterprise plan revenue."
+  }
+}

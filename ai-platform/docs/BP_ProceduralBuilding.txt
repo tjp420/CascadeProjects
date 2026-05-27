@@ -1,0 +1,59 @@
+# BP_ProceduralBuilding Blueprint Implementation
+
+## Variables (Details Panel)
+```
+Base Height (Float): 500.0
+Base Width (Float): 200.0
+Height Variation (Float): 300.0
+Width Variation (Float): 100.0
+bEnableGlowPanels (Boolean): true
+bEnableRings (Boolean): true
+GlowIntensity (Float): 2.0
+RingCount (Integer): 3
+Building Material (Material Instance): MI_CyberpunkBuilding
+```
+
+## Construction Script Logic
+1. Randomize building dimensions
+2. Apply scale to base mesh
+3. Enable/disable glow panels
+4. Generate rings based on RingCount
+5. Apply material parameters
+
+## Randomization Algorithm
+```
+RandomHeight = Base Height + Random Range(-Height Variation, Height Variation)
+RandomWidth = Base Width + Random Range(-Width Variation, Width Variation)
+Set Actor Scale3D = FVector(RandomWidth/200, RandomWidth/200, RandomHeight/500)
+```
+
+## Components Structure
+```
+Root Component (Scene Component)
+├── BaseMesh (Static Mesh): Cube/Building Base
+├── GlowPanelContainer (Scene Component)
+│   ├── GlowPanel_1 (Static Mesh)
+│   ├── GlowPanel_2 (Static Mesh)
+│   └── ...
+└── RingContainer (Scene Component)
+    ├── Ring_1 (Static Mesh)
+    ├── Ring_2 (Static Mesh)
+    └── ...
+```
+
+## Material Parameters
+- GlowIntensity: Controls emissive strength
+- PanelCount: Number of active glow panels
+- RingProgress: Animated ring effect
+- BaseColor: Building color variation
+
+## Functions
+- `RandomizeDimensions()`: Apply size variation
+- `UpdateGlowPanels()`: Toggle panel visibility
+- `GenerateRings()`: Create ring elements
+- `ApplyMaterialParams()`: Set material parameters
+
+## Event Graph
+- BeginPlay: Initialize building components
+- Construction Script: Apply all randomization
+- Tick: Update glow animations (if needed)

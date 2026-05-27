@@ -1,0 +1,309 @@
+{
+  "summary": {
+    "total_features": 156,
+    "total_files": 42,
+    "total_dependencies": 89,
+    "graph_density": 0.23
+  },
+  "quality_metrics": {
+    "average_feature_quality": 78.5,
+    "average_file_quality": 82.3,
+    "high_quality_features": 89,
+    "low_quality_features": 12
+  },
+  "complexity_metrics": {
+    "average_feature_complexity": 4.2,
+    "high_complexity_features": 18,
+    "technical_debt_score": 34.7,
+    "maintenance_score": 71.2
+  },
+  "feature_distribution": {
+    "by_type": {
+      "function": 98,
+      "class": 45,
+      "module": 13
+    },
+    "by_category": {
+      "auth": 15,
+      "data": 28,
+      "api": 22,
+      "ui": 19,
+      "util": 31,
+      "test": 18,
+      "config": 12,
+      "business": 11
+    }
+  },
+  "features": [
+    {
+      "name": "authenticate_user",
+      "file": "auth_service.py",
+      "quality": 85,
+      "complexity": 6,
+      "category": "auth"
+    },
+    {
+      "name": "process_data",
+      "file": "data_processor.py",
+      "quality": 72,
+      "complexity": 8,
+      "category": "data"
+    },
+    {
+      "name": "render_ui",
+      "file": "ui_components.py",
+      "quality": 90,
+      "complexity": 4,
+      "category": "ui"
+    },
+    {
+      "name": "validate_input",
+      "file": "validators.py",
+      "quality": 88,
+      "complexity": 3,
+      "category": "util"
+    },
+    {
+      "name": "calculate_metrics",
+      "file": "analytics.py",
+      "quality": 76,
+      "complexity": 7,
+      "category": "data"
+    }
+  ],
+  "recent_insights": [
+    {
+      "title": "High Technical Debt Detected",
+      "description": "3 features have technical debt scores above 70%",
+      "severity": "high",
+      "category": "quality",
+      "timestamp": "2026-05-14T10:30:00Z"
+    },
+    {
+      "title": "Unused Dependencies Found",
+      "description": "5 unused imports detected across the codebase",
+      "severity": "medium",
+      "category": "architecture",
+      "timestamp": "2026-05-14T11:15:00Z"
+    },
+    {
+      "title": "Good Test Coverage",
+      "description": "Test coverage is at 78%, above recommended threshold",
+      "severity": "low",
+      "category": "quality",
+      "timestamp": "2026-05-14T09:45:00Z"
+    }
+  ],
+  "historical_data": [
+    {
+      "date": "2026-04-14T14:20:16.412885",
+      "quality_score": 72.0,
+      "complexity_score": 2.5,
+      "feature_count": 117,
+      "technical_debt": 40.0
+    },
+    {
+      "date": "2026-04-15T14:20:16.412885",
+      "quality_score": 75.1,
+      "complexity_score": 3.9800000000000004,
+      "feature_count": 122,
+      "technical_debt": 42.7
+    },
+    {
+      "date": "2026-04-16T14:20:16.412885",
+      "quality_score": 78.2,
+      "complexity_score": 5.46,
+      "feature_count": 127,
+      "technical_debt": 45.4
+    },
+    {
+      "date": "2026-04-17T14:20:16.412885",
+      "quality_score": 75.3,
+      "complexity_score": 6.940000000000001,
+      "feature_count": 132,
+      "technical_debt": 48.1
+    },
+    {
+      "date": "2026-04-18T14:20:16.412885",
+      "quality_score": 78.4,
+      "complexity_score": 8.42,
+      "feature_count": 125,
+      "technical_debt": 38.8
+    },
+    {
+      "date": "2026-04-19T14:20:16.412885",
+      "quality_score": 81.5,
+      "complexity_score": 2.4000000000000004,
+      "feature_count": 131,
+      "technical_debt": 41.5
+    },
+    {
+      "date": "2026-04-20T14:20:16.412885",
+      "quality_score": 78.6,
+      "complexity_score": 3.88,
+      "feature_count": 130,
+      "technical_debt": 44.2
+    },
+    {
+      "date": "2026-04-21T14:20:16.412885",
+      "quality_score": 74.7,
+      "complexity_score": 5.36,
+      "feature_count": 135,
+      "technical_debt": 46.9
+    },
+    {
+      "date": "2026-04-22T14:20:16.412885",
+      "quality_score": 77.8,
+      "complexity_score": 6.84,
+      "feature_count": 128,
+      "technical_debt": 37.6
+    },
+    {
+      "date": "2026-04-23T14:20:16.412885",
+      "quality_score": 74.9,
+      "complexity_score": 8.32,
+      "feature_count": 133,
+      "technical_debt": 40.3
+    },
+    {
+      "date": "2026-04-24T14:20:16.412885",
+      "quality_score": 78.0,
+      "complexity_score": 2.3,
+      "feature_count": 139,
+      "technical_debt": 43.0
+    },
+    {
+      "date": "2026-04-25T14:20:16.412885",
+      "quality_score": 81.1,
+      "complexity_score": 3.7800000000000002,
+      "feature_count": 144,
+      "technical_debt": 45.7
+    },
+    {
+      "date": "2026-04-26T14:20:16.412885",
+      "quality_score": 78.2,
+      "complexity_score": 5.26,
+      "feature_count": 131,
+      "technical_debt": 36.4
+    },
+    {
+      "date": "2026-04-27T14:20:16.412885",
+      "quality_score": 81.3,
+      "complexity_score": 6.74,
+      "feature_count": 136,
+      "technical_debt": 39.1
+    },
+    {
+      "date": "2026-04-28T14:20:16.412885",
+      "quality_score": 77.4,
+      "complexity_score": 8.219999999999999,
+      "feature_count": 141,
+      "technical_debt": 41.8
+    },
+    {
+      "date": "2026-04-29T14:20:16.412885",
+      "quality_score": 74.5,
+      "complexity_score": 2.2,
+      "feature_count": 147,
+      "technical_debt": 44.5
+    },
+    {
+      "date": "2026-04-30T14:20:16.412885",
+      "quality_score": 77.6,
+      "complexity_score": 3.6799999999999997,
+      "feature_count": 140,
+      "technical_debt": 35.2
+    },
+    {
+      "date": "2026-05-01T14:20:16.412885",
+      "quality_score": 80.7,
+      "complexity_score": 5.16,
+      "feature_count": 145,
+      "technical_debt": 37.9
+    },
+    {
+      "date": "2026-05-02T14:20:16.412885",
+      "quality_score": 77.8,
+      "complexity_score": 6.640000000000001,
+      "feature_count": 144,
+      "technical_debt": 40.6
+    },
+    {
+      "date": "2026-05-03T14:20:16.412885",
+      "quality_score": 80.9,
+      "complexity_score": 8.120000000000001,
+      "feature_count": 149,
+      "technical_debt": 43.3
+    },
+    {
+      "date": "2026-05-04T14:20:16.412885",
+      "quality_score": 84.0,
+      "complexity_score": 2.0999999999999996,
+      "feature_count": 143,
+      "technical_debt": 34.0
+    },
+    {
+      "date": "2026-05-05T14:20:16.412885",
+      "quality_score": 74.1,
+      "complexity_score": 3.58,
+      "feature_count": 148,
+      "technical_debt": 36.7
+    },
+    {
+      "date": "2026-05-06T14:20:16.412885",
+      "quality_score": 77.2,
+      "complexity_score": 5.06,
+      "feature_count": 153,
+      "technical_debt": 39.4
+    },
+    {
+      "date": "2026-05-07T14:20:16.412885",
+      "quality_score": 80.3,
+      "complexity_score": 6.539999999999999,
+      "feature_count": 158,
+      "technical_debt": 42.1
+    },
+    {
+      "date": "2026-05-08T14:20:16.412885",
+      "quality_score": 77.4,
+      "complexity_score": 8.02,
+      "feature_count": 145,
+      "technical_debt": 32.8
+    },
+    {
+      "date": "2026-05-09T14:20:16.412885",
+      "quality_score": 80.5,
+      "complexity_score": 2,
+      "feature_count": 151,
+      "technical_debt": 35.5
+    },
+    {
+      "date": "2026-05-10T14:20:16.412885",
+      "quality_score": 83.6,
+      "complexity_score": 3.4800000000000004,
+      "feature_count": 156,
+      "technical_debt": 38.2
+    },
+    {
+      "date": "2026-05-11T14:20:16.412885",
+      "quality_score": 80.7,
+      "complexity_score": 4.96,
+      "feature_count": 161,
+      "technical_debt": 40.9
+    },
+    {
+      "date": "2026-05-12T14:20:16.412885",
+      "quality_score": 76.8,
+      "complexity_score": 6.4399999999999995,
+      "feature_count": 154,
+      "technical_debt": 31.6
+    },
+    {
+      "date": "2026-05-13T14:20:16.412885",
+      "quality_score": 79.9,
+      "complexity_score": 7.92,
+      "feature_count": 159,
+      "technical_debt": 34.3
+    }
+  ]
+}

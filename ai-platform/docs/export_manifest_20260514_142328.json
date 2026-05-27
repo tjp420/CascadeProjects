@@ -1,0 +1,45 @@
+{
+  "manifest_info": {
+    "timestamp": "2026-05-14T14:23:28.393566",
+    "version": "1.0",
+    "total_exports": 0
+  },
+  "available_exports": [
+    {
+      "name": "Features CSV Export",
+      "description": "Export all features to CSV format",
+      "function": "export_features_to_csv"
+    },
+    {
+      "name": "Insights JSON Export",
+      "description": "Export insights to JSON format",
+      "function": "export_insights_to_json"
+    },
+    {
+      "name": "Metrics CSV Export",
+      "description": "Export metrics to Excel-compatible CSV",
+      "function": "export_metrics_to_excel_csv"
+    },
+    {
+      "name": "Quality Report",
+      "description": "Detailed quality analysis report",
+      "function": "export_quality_report"
+    },
+    {
+      "name": "Complexity Report",
+      "description": "Detailed complexity analysis report",
+      "function": "export_complexity_report"
+    },
+    {
+      "name": "Trend Analysis",
+      "description": "Historical trend analysis",
+      "function": "export_trend_analysis"
+    },
+    {
+      "name": "Summary Dashboard",
+      "description": "Executive summary dashboard data",
+      "function": "export_summary_dashboard"
+    }
+  ],
+  "export_history": []
+}

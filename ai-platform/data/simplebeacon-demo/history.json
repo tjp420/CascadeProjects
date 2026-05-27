@@ -1,0 +1,22 @@
+[
+  {
+    "scanId": "demo-honeypot-gate-fail",
+    "date": "2026-05-24T19:36:29.102Z",
+    "issueCount": 6,
+    "qualityScore": 55,
+    "gatePass": false,
+    "severityCounts": { "high": 6, "medium": 0, "low": 0 },
+    "fictionPatternsFound": 1,
+    "totalFilesScanned": 4
+  },
+  {
+    "scanId": "demo-honeypot-baseline",
+    "date": "2026-05-20T14:00:00.000Z",
+    "issueCount": 4,
+    "qualityScore": 62,
+    "gatePass": false,
+    "severityCounts": { "high": 4, "medium": 0, "low": 0 },
+    "fictionPatternsFound": 1,
+    "totalFilesScanned": 4
+  }
+]

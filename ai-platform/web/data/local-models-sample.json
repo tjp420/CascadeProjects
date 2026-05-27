@@ -1,0 +1,89 @@
+{
+  "type": "local-models-model",
+  "title": "Local AI Models (Measured Baseline)",
+  "generatedAt": "2026-05-27T19:41:16.501Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Ollama",
+    "confidence": 98,
+    "status": "active",
+    "notes": "Live Ollama + GGUF path registry — primary inference via llama3.2-3b-q4_k_m"
+  },
+  "deprecatedNarrative": {
+    "previousModel": "platform-checklist",
+    "previousActiveModel": "platform-checklist-demo",
+    "previousConfidence": 95,
+    "previousOllamaAlias": "unbreakable-oracle",
+    "notes": "Post-cleanup demo-only registry replaced by Ollama + optional GGUF path registration."
+  },
+  "activeModelId": "llama3-2-3b-q4-k-m-mpogz7ea",
+  "ollamaBaseUrl": "http://127.0.0.1:11434",
+  "overview": {
+    "totalModels": 2,
+    "activeModels": 1,
+    "modelsWithHash": 1,
+    "registeredName": "llama3.2-3b-q4_k_m",
+    "registeredSize": null,
+    "inferenceMode": "ollama",
+    "ollamaConnected": true,
+    "uploadedModels": 0,
+    "pathModels": 1,
+    "lastRegistryUpdate": "2026-05-27T19:41:16.501Z",
+    "notes": "Live registry from GET /api/models when server is running."
+  },
+  "models": [
+    {
+      "id": "platform-checklist-demo",
+      "name": "platform-checklist",
+      "provider": "demo",
+      "type": "Internal",
+      "status": "registered",
+      "description": "Filesystem mock-data scan — not GGUF inference.",
+      "path": null,
+      "size": null,
+      "hash": null,
+      "isDefault": true,
+      "testStatus": "demo"
+    },
+    {
+      "id": "llama3-2-3b-q4-k-m-mpogz7ea",
+      "name": "llama3.2-3b-q4_k_m",
+      "provider": "path",
+      "type": "GGUF",
+      "status": "active",
+      "description": "GGUF path model from Ollama backup (no duplicate copy in uploads/)",
+      "path": "C:/Users/Trevor/.ollama/models/backup/other files/llama3.2-3b-q4_k_m.gguf",
+      "size": "1.9GB",
+      "hash": "sha256-dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff",
+      "isDefault": true,
+      "testStatus": "healthy"
+    }
+  ],
+  "providers": [
+    {
+      "id": "path",
+      "name": "Local file path",
+      "description": "Point to a .gguf file already on your machine",
+      "icon": "📁"
+    },
+    {
+      "id": "upload",
+      "name": "Upload GGUF",
+      "description": "Upload a model file into data-central/ai-tools/ai-models/uploads",
+      "icon": "⬆️"
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama",
+      "description": "Connect to a local Ollama instance (http://127.0.0.1:11434)",
+      "icon": "🦙"
+    }
+  ],
+  "quickActions": [
+    { "label": "Test Ollama", "action": "test-ollama" },
+    { "label": "Open Mock Data Analyzer", "section": "gguf-analysis" },
+    { "label": "Refresh registry", "action": "refresh" }
+  ]
+}

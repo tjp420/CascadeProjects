@@ -1,0 +1,103 @@
+{
+  "generatedAt": "2026-05-25T19:27:15.216Z",
+  "targetsChecked": 18,
+  "ok": 17,
+  "missing": 1,
+  "invalidJson": 0,
+  "schemaMiss": 0,
+  "passRate": 94,
+  "results": [
+    {
+      "path": ".simplebeacon/config.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": ".simplebeacon/baseline.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": ".simplebeacon/compliance-result.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": ".simplebeacon/assessment.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": ".simplebeacon/report.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": ".simplebeacon/compliance-monitoring.json",
+      "status": "missing",
+      "errors": [
+        "file missing"
+      ]
+    },
+    {
+      "path": "data/roadmap/ai-roadmap-report.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": "data/roadmap/gguf-roadmap-data.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": "web/data/gguf-mock-analysis-sample.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": "web/data/cascade-roadmap-sample.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": "web/data/master-roadmap-sample.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": "web/data/engineering-baseline-sample.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": "web/data/data-maintenance-analyzers-sample.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": "web/data/roadmap-comparison-sample.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": "web/data/simplebeacon-cli-sample.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": "web/data/ai-quality-metrics-sample.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": "web/data/baseline-comparison-sample.json",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "path": "web/data/ai-adoption-trends-sample.json",
+      "status": "ok",
+      "errors": []
+    }
+  ]
+}

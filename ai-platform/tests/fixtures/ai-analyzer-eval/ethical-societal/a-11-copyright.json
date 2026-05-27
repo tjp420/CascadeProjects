@@ -1,0 +1,8 @@
+{
+  "issueId": "A-11",
+  "category": "ethical-societal-ai-issues",
+  "context": {
+    "codeText": "/* GPL licensed module copied from upstream without permission. All rights reserved in bundled proprietary wrapper. */",
+    "responseText": "This output was scraped from a licensed corpus verbatim copy without attribution."
+  }
+}

@@ -1,0 +1,274 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-05-26T18:24:24.338Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\fixtures\\simplebeacon-toxic-fixtures",
+  "configPath": "c:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\fixtures\\simplebeacon-toxic-fixtures\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "c:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\fixtures\\simplebeacon-toxic-fixtures\\fixtures",
+    "c:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\fixtures\\simplebeacon-toxic-fixtures\\web\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\fixtures\\simplebeacon-toxic-fixtures",
+    "totalFiles": 8,
+    "totalFolders": 8,
+    "profile": "explorer"
+  },
+  "mockSampleFiles": 2,
+  "totalFiles": 2,
+  "ruleScopedFilesAnalyzed": 4,
+  "repositoryFilesTotal": 8,
+  "repositoryFoldersTotal": 8,
+  "filesAnalyzed": 8,
+  "totalSizeBytes": 130,
+  "totalSizeLabel": "130B",
+  "issueCount": 3,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 63,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 5,
+  "consistencyPassed": 5,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 5,
+  "fictionSampleFilesScanned": 2,
+  "fictionScope": "repository-json",
+  "credentialScanned": 4,
+  "credentialFindings": 1,
+  "productionLeakScanned": 2,
+  "productionLeakFindings": 2,
+  "sourceCodeFilesScanned": 2,
+  "sourceFictionPatternHits": 0,
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 1,
+    "high": 2,
+    "medium": 0,
+    "low": 0
+  },
+  "mockDataCategories": [
+    {
+      "category": "JSON Files",
+      "fileCount": 2,
+      "totalSize": "130B",
+      "qualityScore": 99,
+      "issues": 0,
+      "confidence": null,
+      "description": "JSON Files discovered during filesystem scan"
+    }
+  ],
+  "detectedIssues": [
+    {
+      "severity": "critical",
+      "severityBand": "critical",
+      "type": "Credential Pattern",
+      "count": 1,
+      "description": "src/server/auth-mock.js: possible aws access key in production path",
+      "pattern": "aws-access-key",
+      "line": 2,
+      "recommendation": "Immediately remove and rotate this credential; store only via environment/secret manager bindings",
+      "recommendedAction": "Immediately remove and rotate this credential; store only via environment/secret manager bindings",
+      "affectedFiles": [
+        "auth-mock.js"
+      ],
+      "filePaths": [
+        "src/server/auth-mock.js"
+      ],
+      "file": "src/server/auth-mock.js"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "src/server/config-loader.js:2 references mock/sample path (sample-json)",
+      "pattern": "sample-json",
+      "line": 2,
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "config-loader.js"
+      ],
+      "filePaths": [
+        "src/server/config-loader.js"
+      ],
+      "file": "src/server/config-loader.js"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "src/server/config-loader.js:2 references mock/sample path (fixtures-path)",
+      "pattern": "fixtures-path",
+      "line": 2,
+      "recommendation": "Audit fixture usage and remove mock references from production-bound modules",
+      "recommendedAction": "Audit fixture usage and remove mock references from production-bound modules",
+      "affectedFiles": [
+        "config-loader.js"
+      ],
+      "filePaths": [
+        "src/server/config-loader.js"
+      ],
+      "file": "src/server/config-loader.js"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "aws-access-key-auth-mock.js-111",
+      "severity": "high",
+      "severityBand": "critical",
+      "type": "Credential Pattern",
+      "filePath": "src/server/auth-mock.js",
+      "file": "src/server/auth-mock.js",
+      "line": 2,
+      "pattern": "aws-access-key",
+      "count": 1,
+      "description": "src/server/auth-mock.js: possible aws access key in production path",
+      "recommendation": "Immediately remove and rotate this credential; store only via environment/secret manager bindings",
+      "recommendedAction": "Immediately remove and rotate this credential; store only via environment/secret manager bindings",
+      "affectedFiles": [
+        "auth-mock.js"
+      ],
+      "metadata": {
+        "patternId": "aws-access-key",
+        "offset": 111,
+        "findingPayload": {
+          "file": "src/server/auth-mock.js",
+          "line": 2,
+          "pattern": "aws-access-key",
+          "recommendation": "Immediately remove and rotate this credential; store only via environment/secret manager bindings"
+        }
+      }
+    },
+    {
+      "id": "production-leak-sample-json-src/server/config-loader.js-110",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "src/server/config-loader.js",
+      "file": "src/server/config-loader.js",
+      "line": 2,
+      "pattern": "sample-json",
+      "count": 1,
+      "description": "src/server/config-loader.js:2 references mock/sample path (sample-json)",
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "config-loader.js"
+      ],
+      "metadata": {
+        "patternId": "sample-json",
+        "offset": 110,
+        "match": "'../../fixtures/user-sample.json'",
+        "findingPayload": {
+          "file": "src/server/config-loader.js",
+          "line": 2,
+          "pattern": "sample-json",
+          "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        }
+      }
+    },
+    {
+      "id": "production-leak-fixtures-path-src/server/config-loader.js-110",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "src/server/config-loader.js",
+      "file": "src/server/config-loader.js",
+      "line": 2,
+      "pattern": "fixtures-path",
+      "count": 1,
+      "description": "src/server/config-loader.js:2 references mock/sample path (fixtures-path)",
+      "recommendation": "Audit fixture usage and remove mock references from production-bound modules",
+      "recommendedAction": "Audit fixture usage and remove mock references from production-bound modules",
+      "affectedFiles": [
+        "config-loader.js"
+      ],
+      "metadata": {
+        "patternId": "fixtures-path",
+        "offset": 110,
+        "match": "'../../fixtures/user-sample.json'",
+        "findingPayload": {
+          "file": "src/server/config-loader.js",
+          "line": 2,
+          "pattern": "fixtures-path",
+          "recommendation": "Audit fixture usage and remove mock references from production-bound modules"
+        }
+      }
+    }
+  ],
+  "sampleFiles": [
+    "user-sample.json",
+    "metrics-sample.json"
+  ],
+  "scanScope": {
+    "profile": "standard",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "sample-consistency",
+      "production-leak",
+      "fiction-kpi-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 2,
+    "pageSpecCatalogSize": 43,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 2,
+    "productionPaths": [
+      "src/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 2,
+    "sourceFictionPatternHits": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 5,
+    "fictionSampleFilesScanned": 2,
+    "ruleScopedFilesAnalyzed": 4,
+    "repositoryFilesTotal": 8,
+    "repositoryFoldersTotal": 8,
+    "limitations": [
+      "Repository inventory: 8 files — gate rules checked 4 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (5) plus source code (2 files in configured paths).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
+    ]
+  },
+  "gate": {
+    "pass": false,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 2,
+    "warningCount": 0
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-05-26T18:24:24.340Z"
+}

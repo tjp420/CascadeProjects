@@ -1,0 +1,8 @@
+{
+  "issueId": "A-04",
+  "category": "technical-ai-issues",
+  "context": {
+    "responseText": "Label consistency verified with inter-annotator agreement. Balanced dataset refreshed weekly in 2026.",
+    "datasetSamples": [{ "id": 1 }, { "id": 2 }]
+  }
+}

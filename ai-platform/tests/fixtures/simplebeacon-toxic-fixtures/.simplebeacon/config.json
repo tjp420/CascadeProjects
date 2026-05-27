@@ -1,0 +1,26 @@
+{
+  "profile": "standard",
+  "scanPaths": ["fixtures", "web/data"],
+  "sampleDir": "web/data",
+  "productionPaths": ["src/"],
+  "ignore": [
+    "node_modules/**",
+    "coverage/**",
+    "dist/**",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "tests/**"
+  ],
+  "rules": {
+    "credentials": { "enabled": true, "scanProduction": true },
+    "json-schema": { "enabled": false },
+    "sample-consistency": { "enabled": true },
+    "roadmap": { "enabled": false },
+    "production-leak": { "enabled": true, "severity": "high" },
+    "jest-baseline": { "enabled": false, "runTests": false }
+  },
+  "gate": {
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"]
+  }
+}

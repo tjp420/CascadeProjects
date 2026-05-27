@@ -1,0 +1,207 @@
+{
+  "type": "assets-library-model",
+  "title": "Assets Library (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Repository file inventory — not a 1,234-asset DAM or unbreakable-oracle CDN."
+  },
+  "overview": {
+    "totalAssets": 38,
+    "storageUsed": "~5.8 GB",
+    "storageLimit": null,
+    "uploadedThisMonth": 33,
+    "totalDownloads": null,
+    "categories": 4,
+    "avgFileSize": "~156 MB",
+    "storageAvailable": null,
+    "downloadRateThisMonth": null,
+    "notes": "Counts from web/data samples (42/42), GGUF uploads (~5.8 GB), and mock fixtures — not marketing media downloads."
+  },
+  "assets": [
+    {
+      "id": "asset_gguf_active",
+      "name": "phi-2.Q4_K_M.gguf",
+      "type": "GGUF Models",
+      "format": "GGUF",
+      "size": "1.7 GB",
+      "uploaded": "2026-05-23T08:21:45.145Z",
+      "downloads": null,
+      "category": "Inference",
+      "tags": ["active-model", "gguf", "upload"],
+      "thumbnail": "🤖",
+      "status": "active",
+      "description": "Active registry model — filesystem scan or llama.cpp when configured"
+    },
+    {
+      "id": "asset_gguf_registered",
+      "name": "agi-chatbot-test",
+      "type": "GGUF Models",
+      "format": "GGUF",
+      "size": "4.1 GB",
+      "uploaded": "2026-05-23T08:31:20.771Z",
+      "downloads": null,
+      "category": "Uploads",
+      "tags": ["registered", "gguf", "upload"],
+      "thumbnail": "📦",
+      "status": "registered",
+      "description": "Registered upload — not the active analyze model"
+    },
+    {
+      "id": "asset_reports_sample",
+      "name": "reports-sample.json",
+      "type": "Sample JSON",
+      "format": "JSON",
+      "size": "18 KB",
+      "uploaded": "2026-05-24T00:00:00.000Z",
+      "downloads": null,
+      "category": "Dashboard Samples",
+      "tags": ["repository-audit", "reports"],
+      "thumbnail": "📄",
+      "status": "active",
+      "description": "Reports catalog with measured JSON export listings"
+    },
+    {
+      "id": "asset_project_reports",
+      "name": "project-reports-sample.json",
+      "type": "Sample JSON",
+      "format": "JSON",
+      "size": "12 KB",
+      "uploaded": "2026-05-24T00:00:00.000Z",
+      "downloads": null,
+      "category": "Dashboard Samples",
+      "tags": ["repository-audit", "baselines"],
+      "thumbnail": "📄",
+      "status": "active",
+      "description": "10 JSON baselines replacing 156-report enterprise fiction"
+    },
+    {
+      "id": "asset_mock_analysis",
+      "name": "gguf-mock-analysis-sample.json",
+      "type": "Mock Data",
+      "format": "JSON",
+      "size": "48 KB",
+      "uploaded": "2026-05-24T00:00:00.000Z",
+      "downloads": null,
+      "category": "Scan Fixtures",
+      "tags": ["mock-data-scanner", "analyze"],
+      "thumbnail": "🔍",
+      "status": "active",
+      "description": "Mock-data-scanner fixture — not 1,247-file template fiction"
+    }
+  ],
+  "categories": [
+    { "id": "cat_gguf", "name": "GGUF Models", "count": 2, "size": "~5.8 GB", "icon": "🤖", "color": "primary" },
+    { "id": "cat_samples", "name": "Dashboard Samples", "count": 33, "size": "~400 KB", "icon": "📄", "color": "info" },
+    { "id": "cat_mock", "name": "Mock & Scan Data", "count": 2, "size": "~212 KB", "icon": "🔍", "color": "warning" },
+    { "id": "cat_roadmap", "name": "Roadmap Data", "count": 1, "size": "~40 KB", "icon": "🗺️", "color": "success" }
+  ],
+  "analytics": {
+    "uploadTrends": [
+      { "month": "Apr W1", "uploads": 0, "downloads": null },
+      { "month": "Apr W2", "uploads": 1, "downloads": null },
+      { "month": "May W1", "uploads": 3, "downloads": null },
+      { "month": "May W2", "uploads": 8, "downloads": null },
+      { "month": "May W3", "uploads": 18, "downloads": null },
+      { "month": "May W4", "uploads": 33, "downloads": null }
+    ],
+    "popularAssets": [
+      { "name": "phi-2.Q4_K_M.gguf", "usage": "Active inference model", "type": "GGUF Models" },
+      { "name": "repository-audit samples", "usage": "42/42 measured baselines", "type": "Sample JSON" },
+      { "name": "mock-data-scanner fixtures", "usage": "Analyze page input", "type": "Mock Data" },
+      { "name": "agi-chatbot-test", "usage": "Registered GGUF upload", "type": "GGUF Models" }
+    ],
+    "storageUsage": {
+      "used": 5.8,
+      "limit": null,
+      "percentage": null,
+      "notes": "Dominated by GGUF uploads (1.7 GB active + 4.1 GB registered) — no SaaS quota."
+    },
+    "summary": {
+      "uploadsThisMonth": 33,
+      "downloadsThisMonth": null,
+      "avgMonthlyUploads": null,
+      "avgMonthlyDownloads": null
+    }
+  },
+  "collections": [
+    {
+      "id": "col_audit_samples",
+      "name": "Repository-Audit Samples",
+      "description": "web/data/*-sample.json files with dataSource: repository-audit",
+      "assets": 33,
+      "created": "2026-05-24T00:00:00.000Z"
+    },
+    {
+      "id": "col_gguf",
+      "name": "GGUF & Inference",
+      "description": "Active model path, uploads, and local-models API registry",
+      "assets": 2,
+      "created": "2026-05-23T08:21:45.145Z"
+    },
+    {
+      "id": "col_dashboard_samples",
+      "name": "Dashboard Sample JSON",
+      "description": "All 33 page sample files served by dashboard-stub-api",
+      "assets": 33,
+      "created": "2026-05-01T00:00:00.000Z"
+    }
+  ],
+  "recentActivity": [
+    {
+      "id": "act_project_reports",
+      "action": "Project reports baseline added",
+      "description": "Maintainer added project-reports-sample.json to repository-audit set",
+      "time": "2 hours ago",
+      "details": "Sample JSON • 12 KB",
+      "icon": "📄",
+      "color": "success"
+    },
+    {
+      "id": "act_billing",
+      "action": "Billing baseline added",
+      "description": "billing-system-sample.json replaced SaaS MRR fiction",
+      "time": "4 hours ago",
+      "details": "Sample JSON • 14 KB",
+      "icon": "💰",
+      "color": "info"
+    },
+    {
+      "id": "act_gguf",
+      "action": "Active GGUF model switched",
+      "description": "phi-2.Q4_K_M.gguf set as active model for analyze routes",
+      "time": "3 days ago",
+      "details": "1.7 GB • upload provider",
+      "icon": "🤖",
+      "color": "primary"
+    },
+    {
+      "id": "act_scanner",
+      "action": "Mock scanner schema validation",
+      "description": "Schema validation added to mock-data-scanner for sample files",
+      "time": "1 week ago",
+      "details": "33 dashboard samples checked — 42/42 schema pass",
+      "icon": "🔍",
+      "color": "warning"
+    }
+  ],
+  "quickActions": [
+    { "label": "Open Local Models", "icon": "🤖", "section": "local-models" },
+    { "label": "Export Inventory", "icon": "📥", "action": "export" },
+    { "label": "Run Mock Scan", "icon": "🔍", "section": "gguf-analysis" },
+    { "label": "Open Reports Catalog", "icon": "📚", "section": "reports" }
+  ],
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousTotalAssets": 1234,
+    "previousStorageUsed": "4.7GB",
+    "previousTotalDownloads": 5678,
+    "previousActiveModel": "agi-chatbot-test",
+    "notes": "Old template used fictional marketing DAM assets, agi-chatbot as active model, and 11-baseline counts."
+  }
+}

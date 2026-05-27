@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-05-25T21:40:38.499Z",
+  "verificationId": "7ac7c5839d427d8c",
+  "mode": {
+    "strict": false,
+    "endpointRequired": false,
+    "tokenRequired": false
+  },
+  "localArtifact": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\public\\trust-verification.json",
+  "historyArtifact": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\trust-history.json",
+  "envValidationPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\trust-publish-env-validation.json",
+  "envValidationReady": true,
+  "remote": {
+    "status": "skipped",
+    "reason": "missing-endpoint"
+  },
+  "headline": {
+    "gatePass": true,
+    "qualityScore": 98,
+    "issueCount": 4,
+    "schemaCompliance": 100,
+    "lastScan": "2026-05-25T21:40:36.857Z",
+    "repositoryFilesTotal": 42251,
+    "ruleScopedFilesAnalyzed": 546
+  }
+}

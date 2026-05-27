@@ -1,0 +1,13 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+
+> cascade-ai-platform@1.0.0 smoke:test
+> node tools/run-route-smoke-suite.js
+
+OK health -> 200
+OK platform status -> 200
+OK billing plan -> 200
+OK assessment health -> 200
+INFO REQUIRE_AUTH!=true, analyze/providers returned 200
+OK login token acquired
+OK analyze/providers (auth) -> 200
+SMOKE SUITE PASSED

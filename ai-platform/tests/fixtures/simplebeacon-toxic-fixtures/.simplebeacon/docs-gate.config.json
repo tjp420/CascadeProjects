@@ -1,0 +1,18 @@
+{
+  "profile": "minimal",
+  "scanPaths": ["docs"],
+  "productionPaths": [],
+  "ignore": ["**/*"],
+  "rules": {
+    "credentials": { "enabled": true, "scanProduction": false },
+    "json-schema": { "enabled": false },
+    "sample-consistency": { "enabled": false },
+    "roadmap": { "enabled": false },
+    "production-leak": { "enabled": false },
+    "jest-baseline": { "enabled": false, "runTests": false }
+  },
+  "gate": {
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"]
+  }
+}

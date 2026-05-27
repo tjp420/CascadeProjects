@@ -1,0 +1,12 @@
+{
+  "issueId": "A-17",
+  "category": "economic-regulatory-ai-issues",
+  "context": {
+    "marketShares": [
+      { "provider": "alpha", "share": 42 },
+      { "provider": "beta", "share": 28 },
+      { "provider": "gamma", "share": 18 }
+    ],
+    "responseText": "Single vendor lock-in and high switching costs limit provider mobility."
+  }
+}

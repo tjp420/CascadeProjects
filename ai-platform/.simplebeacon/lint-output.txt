@@ -1,0 +1,6 @@
+
+> cascade-ai-platform@1.0.0 lint
+> eslint --config eslint.config.js server packages web/scripts web/components src
+
+'eslint' is not recognized as an internal or external command,
+operable program or batch file.

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invalid Credentials Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>🔐 Testing Invalid Credentials</h1>
+        <p class="lead">This page demonstrates the helpful error messages when wrong credentials are used.</p>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h5>❌ Invalid Login Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="invalidLoginForm">
+                            <div class="mb-3">
+                                <label for="invalidEmail" class="form-label">Email (Wrong)</label>
+                                <input type="email" class="form-control" id="invalidEmail" value="wrong@demo.com">
+                            </div>
+                            <div class="mb-3">
+                                <label for="invalidPassword" class="form-label">Password (Wrong)</label>
+                                <input type="password" class="form-control" id="invalidPassword" value="wrongpass">
+                            </div>
+                            <button type="submit" class="btn btn-danger">Test Invalid Login</button>
+                        </form>
+                        
+                        <div class="mt-3">
+                            <button id="testPartialMatch" class="btn btn-warning">Test Partial Match (Right email, wrong password)</button>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button id="testValidLogin" class="btn btn-success">Test Valid Login (for comparison)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5>📋 Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults" class="alert alert-info">
+                            <strong>Ready to test!</strong><br>
+                            Try the invalid login buttons to see helpful error messages.
+                        </div>
+                        
+                        <div class="mt-3">
+                            <h6>Available Demo Credentials:</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <small>
+                                        <strong>Admin:</strong><br>
+                                        admin@demo.com<br>
+                                        admin123
+                                    </small>
+                                </div>
+                                <div class="col-6">
+                                    <small>
+                                        <strong>Analyst:</strong><br>
+                                        analyst@demo.com<br>
+                                        analyst123
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <small>
+                                        <strong>Developer:</strong><br>
+                                        developer@demo.com<br>
+                                        dev123
+                                    </small>
+                                </div>
+                                <div class="col-6">
+                                    <small>
+                                        <strong>Viewer:</strong><br>
+                                        viewer@demo.com<br>
+                                        view123
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5>🎯 What to Expect</h5>
+                </div>
+                <div class="card-body">
+                    <ul>
+                        <li><strong>Invalid credentials:</strong> Shows error message with available demo options</li>
+                        <li><strong>Partial match:</strong> Still shows same helpful error message</li>
+                        <li><strong>Valid credentials:</strong> Shows success message with user details</li>
+                        <li><strong>Notifications:</strong> Error messages appear as red notifications in top-right</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="auth/auth_manager.js"></script>
+    <script>
+        const resultsDiv = document.getElementById('testResults');
+        
+        // Test invalid login
+        document.getElementById('invalidLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('invalidEmail').value;
+            const password = document.getElementById('invalidPassword').value;
+            
+            resultsDiv.className = 'alert alert-warning';
+            resultsDiv.innerHTML = '<strong>Testing invalid credentials...</strong><br>Please wait...';
+            
+            try {
+                const result = await window.authManager.login(email, password);
+                
+                if (result.success) {
+                    resultsDiv.className = 'alert alert-success';
+                    resultsDiv.innerHTML = `
+                        <strong>Unexpected Success!</strong><br>
+                        This should have failed. Check the credentials.
+                    `;
+                } else {
+                    resultsDiv.className = 'alert alert-danger';
+                    resultsDiv.innerHTML = `
+                        <strong>✅ Expected Error Message:</strong><br>
+                        <code>${result.error}</code><br><br>
+                        <em>This error message shows users exactly what credentials to use!</em>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.className = 'alert alert-danger';
+                resultsDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        });
+        
+        // Test partial match
+        document.getElementById('testPartialMatch').addEventListener('click', async () => {
+            resultsDiv.className = 'alert alert-warning';
+            resultsDiv.innerHTML = '<strong>Testing partial match (right email, wrong password)...</strong>';
+            
+            try {
+                const result = await window.authManager.login('admin@demo.com', 'wrongpassword');
+                
+                if (result.success) {
+                    resultsDiv.className = 'alert alert-success';
+                    resultsDiv.innerHTML = '<strong>Unexpected Success!</strong>';
+                } else {
+                    resultsDiv.className = 'alert alert-danger';
+                    resultsDiv.innerHTML = `
+                        <strong>✅ Partial Match Error:</strong><br>
+                        <code>${result.error}</code><br><br>
+                        <em>Even with correct email, wrong password triggers helpful error!</em>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.className = 'alert alert-danger';
+                resultsDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        });
+        
+        // Test valid login
+        document.getElementById('testValidLogin').addEventListener('click', async () => {
+            resultsDiv.className = 'alert alert-warning';
+            resultsDiv.innerHTML = '<strong>Testing valid credentials...</strong>';
+            
+            try {
+                const result = await window.authManager.login('admin@demo.com', 'admin123');
+                
+                if (result.success) {
+                    resultsDiv.className = 'alert alert-success';
+                    resultsDiv.innerHTML = `
+                        <strong>✅ Login Successful!</strong><br>
+                        User: ${result.user.name}<br>
+                        Email: ${result.user.email}<br>
+                        Role: ${result.user.role}<br><br>
+                        <em>This is what successful login looks like.</em>
+                    `;
+                } else {
+                    resultsDiv.className = 'alert alert-danger';
+                    resultsDiv.innerHTML = `<strong>Unexpected Failure:</strong> ${result.error}`;
+                }
+            } catch (error) {
+                resultsDiv.className = 'alert alert-danger';
+                resultsDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

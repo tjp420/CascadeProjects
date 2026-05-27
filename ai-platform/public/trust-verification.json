@@ -1,0 +1,214 @@
+{
+  "type": "simplebeacon-trust-verification",
+  "generatedAt": "2026-05-25T21:40:38.489Z",
+  "verificationMethod": "simplebeacon-deterministic-gate",
+  "platform": {
+    "label": "Platform gate (ai-platform)",
+    "projectRoot": "…/CascadeProjects/ai-platform",
+    "generatedAt": "2026-05-25T21:40:36.857Z",
+    "reportVersion": 2,
+    "gatePass": true,
+    "qualityScore": 98,
+    "schemaCompliance": 100,
+    "schemaChecked": 45,
+    "schemaPassed": 45,
+    "consistencyScore": 98,
+    "consistencyChecked": 194,
+    "consistencyPassed": 190,
+    "issueCount": 4,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 4,
+      "low": 0
+    },
+    "repositoryFilesTotal": 42251,
+    "ruleScopedFilesAnalyzed": 546,
+    "mockSampleFiles": 42,
+    "fictionJsonFilesScanned": 194,
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak"
+    ],
+    "profile": "configured",
+    "scopeNote": "Repository inventory: 42,251 files — gate rules checked 546 (mock paths, credentials, server/ leaks)."
+  },
+  "monorepo": {
+    "label": "Monorepo root",
+    "projectRoot": "…/Trevor/CascadeProjects",
+    "platformRoot": "…/CascadeProjects/ai-platform",
+    "generatedAt": "2026-05-25T19:49:53.756Z",
+    "reportVersion": 2,
+    "gatePass": true,
+    "qualityScore": 100,
+    "schemaCompliance": 100,
+    "schemaChecked": 45,
+    "schemaPassed": 45,
+    "consistencyScore": 100,
+    "consistencyChecked": 194,
+    "consistencyPassed": 194,
+    "issueCount": 0,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "repositoryFilesTotal": 43527,
+    "ruleScopedFilesAnalyzed": 546,
+    "mockSampleFiles": 42,
+    "fictionJsonFilesScanned": 194,
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak"
+    ],
+    "profile": "configured",
+    "scopeNote": "Repository inventory: 43,527 files — gate rules checked 546 (mock paths, credentials, server/ leaks)."
+  },
+  "headlineSource": "platform",
+  "headlineReason": "Platform scan has higher issue count (4) than monorepo (0).",
+  "headline": {
+    "gatePass": true,
+    "qualityScore": 98,
+    "issueCount": 4,
+    "schemaCompliance": 100,
+    "lastScan": "2026-05-25T21:40:36.857Z",
+    "repositoryFilesTotal": 42251,
+    "ruleScopedFilesAnalyzed": 546
+  },
+  "disclaimers": [
+    "Quality score and zero-issue counts apply to configured gate rules and sample paths — not semantic review of every source file.",
+    "Repository file totals are explorer-style inventory counts; gate rules checked is a smaller scoped subset.",
+    "Publish both platform and monorepo snapshots when available — a PASS gate on sample JSON does not imply a clean monorepo fiction scan."
+  ],
+  "methodology": [
+    "Simplebeacon runs deterministic pattern matching on configured mock/sample JSON, credentials, and production-path rules.",
+    "Fiction/KPI rules can scan all repository JSON when fictionScope is repository-json.",
+    "Codebase analyzer (separate scan) flags TODO/FIXME, broken JSON, debug artifacts, and ESLint violations.",
+    "We publish scoped metrics so buyers can verify what was actually checked — not marketing averages."
+  ],
+  "verificationId": "7ac7c5839d427d8c",
+  "repositoryHealth": {
+    "type": "simplebeacon-repository-health",
+    "generatedAt": "2026-05-25T21:40:38.490Z",
+    "platform": {
+      "label": "Platform (ai-platform)",
+      "projectRoot": "…/CascadeProjects/ai-platform",
+      "generatedAt": "2026-05-25T20:04:10.738Z",
+      "reportVersion": 2,
+      "repositoryHealthScore": 100,
+      "optimizationPotential": "0B",
+      "optimizationPotentialBytes": 0,
+      "duplicateGroups": 0,
+      "mergeCandidates": 0,
+      "reductionOpportunities": 0,
+      "oversizedFiles": 0,
+      "repositoryFilesTotal": 42249,
+      "repositoryFoldersTotal": 4969,
+      "repositoryFilesAudited": 44,
+      "jsonFilesAnalyzed": 43,
+      "sampleDataFilesAnalyzed": 44,
+      "totalSizeLabel": "278.5KB",
+      "scanScope": "sample-data-consolidation",
+      "recommendations": [],
+      "scopeNote": "Duplicate and structure analysis on configured mock/sample JSON paths only."
+    },
+    "monorepo": {
+      "label": "Monorepo root",
+      "projectRoot": "…/Trevor/CascadeProjects",
+      "platformRoot": "…/CascadeProjects/ai-platform",
+      "generatedAt": "2026-05-25T19:49:56.292Z",
+      "reportVersion": 2,
+      "repositoryHealthScore": 100,
+      "optimizationPotential": "2.9MB",
+      "optimizationPotentialBytes": 3075890,
+      "duplicateGroups": 0,
+      "mergeCandidates": 0,
+      "reductionOpportunities": 10,
+      "oversizedFiles": 10,
+      "repositoryFilesTotal": 43527,
+      "repositoryFoldersTotal": 5363,
+      "repositoryFilesAudited": 16599,
+      "jsonFilesAnalyzed": 392,
+      "sampleDataFilesAnalyzed": 44,
+      "totalSizeLabel": "2.1GB",
+      "scanScope": "repository-consolidation",
+      "recommendations": [
+        {
+          "priority": "medium",
+          "action": "archive-or-trim",
+          "savings": "230.6KB",
+          "effort": "medium",
+          "risk": "medium",
+          "description": "jest-results.after-fix.json exceeds 250.0KB — trim or archive for dashboard load"
+        },
+        {
+          "priority": "medium",
+          "action": "archive-or-trim",
+          "savings": "232.5KB",
+          "effort": "medium",
+          "risk": "medium",
+          "description": "jest-results.baseline-cmd.json exceeds 250.0KB — trim or archive for dashboard load"
+        },
+        {
+          "priority": "medium",
+          "action": "archive-or-trim",
+          "savings": "254.0KB",
+          "effort": "medium",
+          "risk": "medium",
+          "description": "jest-results.json exceeds 250.0KB — trim or archive for dashboard load"
+        }
+      ],
+      "scopeNote": "Full repository inventory (explorer profile) plus JSON duplicate detection on audit-scoped paths — skips node_modules, .git, coverage, archive for merge logic."
+    },
+    "headline": {
+      "repositoryHealthScore": 100,
+      "optimizationPotential": "2.9MB",
+      "optimizationPotentialBytes": 3075890,
+      "duplicateGroups": 0,
+      "oversizedFiles": 10,
+      "reductionOpportunities": 10,
+      "mergeCandidates": 0,
+      "repositoryFilesTotal": 43527,
+      "repositoryFoldersTotal": 5363,
+      "lastScan": "2026-05-25T19:49:56.292Z"
+    },
+    "recommendations": [
+      {
+        "priority": "medium",
+        "action": "archive-or-trim",
+        "savings": "230.6KB",
+        "effort": "medium",
+        "risk": "medium",
+        "description": "jest-results.after-fix.json exceeds 250.0KB — trim or archive for dashboard load"
+      },
+      {
+        "priority": "medium",
+        "action": "archive-or-trim",
+        "savings": "232.5KB",
+        "effort": "medium",
+        "risk": "medium",
+        "description": "jest-results.baseline-cmd.json exceeds 250.0KB — trim or archive for dashboard load"
+      },
+      {
+        "priority": "medium",
+        "action": "archive-or-trim",
+        "savings": "254.0KB",
+        "effort": "medium",
+        "risk": "medium",
+        "description": "jest-results.json exceeds 250.0KB — trim or archive for dashboard load"
+      }
+    ],
+    "disclaimers": [
+      "Health score reflects measured duplicate groups, oversized files, and estimated savings — not security gate results.",
+      "Repository file totals are explorer inventory; JSON duplicate detection scans hashed JSON under audit scope.",
+      "Potential savings are opportunities — review before deleting or merging any file."
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "issueId": "A-06",
+  "category": "technical-ai-issues",
+  "context": {
+    "responseText": "OOD benchmark shows 92% retention with minimal degradation on unseen domain.",
+    "benchmarks": { "inDistributionAccuracy": 0.95, "outOfDistributionAccuracy": 0.87 }
+  }
+}

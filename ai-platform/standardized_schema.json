@@ -1,0 +1,17 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "created_at": "2026-05-22T00:41:06.022421",
+    "created_by": "GGUF AI Optimization"
+  },
+  "required_fields": {
+    "id": "string",
+    "timestamp": "string",
+    "status": "string"
+  },
+  "field_validations": {
+    "email": "regex_pattern",
+    "status": "enum_values",
+    "timestamp": "iso_format"
+  }
+}

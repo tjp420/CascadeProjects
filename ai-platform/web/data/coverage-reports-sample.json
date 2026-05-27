@@ -1,0 +1,355 @@
+{
+  "type": "coverage-reports-model",
+  "title": "Coverage Reports (Measured Baseline)",
+  "generatedAt": "2026-05-23T21:22:30.375Z",
+  "generatedBy": "jest-coverage-reader",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": null,
+    "status": "active",
+    "notes": "Istanbul metrics from coverage/dashboard/coverage-summary.json (npm run test:coverage)"
+  },
+  "overview": {
+    "overallCoverage": 79.5,
+    "lineCoverage": 79.5,
+    "branchCoverage": 56.6,
+    "functionCoverage": 74.2,
+    "statementCoverage": 78.8,
+    "testPassRate": 100,
+    "totalTests": 665,
+    "passedTests": 665,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "testSuites": 32,
+    "lastRun": "2026-05-23T21:22:30.375Z",
+    "coverageCollection": "istanbul",
+    "notes": "665/665 pass rate + Istanbul from jest collectCoverageFrom scope",
+    "coverageSummaryPath": "coverage/dashboard/coverage-summary.json"
+  },
+  "projects": [
+    {
+      "id": "proj_page_samples",
+      "name": "Page Samples & Specs",
+      "coverage": null,
+      "lineCoverage": null,
+      "branchCoverage": null,
+      "functionCoverage": null,
+      "statementCoverage": null,
+      "tests": 231,
+      "passed": 231,
+      "failed": 0,
+      "lastRun": "2026-05-24T00:00:00.000Z",
+      "status": "healthy",
+      "trend": "stable"
+    },
+    {
+      "id": "proj_e2e",
+      "name": "E2E Dashboard Pages",
+      "coverage": null,
+      "lineCoverage": null,
+      "branchCoverage": null,
+      "functionCoverage": null,
+      "statementCoverage": null,
+      "tests": 144,
+      "passed": 144,
+      "failed": 0,
+      "lastRun": "2026-05-24T00:00:00.000Z",
+      "status": "healthy",
+      "trend": "improving"
+    },
+    {
+      "id": "proj_stub_api",
+      "name": "Dashboard Stub API",
+      "coverage": 82.3,
+      "lineCoverage": 82.3,
+      "branchCoverage": 41.3,
+      "functionCoverage": 73.4,
+      "statementCoverage": 81.3,
+      "tests": 23,
+      "passed": 23,
+      "failed": 0,
+      "lastRun": "2026-05-24T00:00:00.000Z",
+      "status": "healthy",
+      "trend": "stable"
+    },
+    {
+      "id": "proj_routing",
+      "name": "Payload Routing",
+      "coverage": 94.4,
+      "lineCoverage": 94.4,
+      "branchCoverage": 88.4,
+      "functionCoverage": 100,
+      "statementCoverage": 91.2,
+      "tests": 55,
+      "passed": 55,
+      "failed": 0,
+      "lastRun": "2026-05-24T00:00:00.000Z",
+      "status": "healthy",
+      "trend": "stable"
+    },
+    {
+      "id": "proj_integration",
+      "name": "Phase 2 & Local Models",
+      "coverage": 59.5,
+      "lineCoverage": 59.5,
+      "branchCoverage": 40.1,
+      "functionCoverage": 71.4,
+      "statementCoverage": 56.6,
+      "tests": 23,
+      "passed": 23,
+      "failed": 0,
+      "lastRun": "2026-05-24T00:00:00.000Z",
+      "status": "warning",
+      "trend": "stable"
+    },
+    {
+      "id": "proj_unit_misc",
+      "name": "Unit & Scanner Tests",
+      "coverage": 92.6,
+      "lineCoverage": 92.6,
+      "branchCoverage": 74.4,
+      "functionCoverage": 92.9,
+      "statementCoverage": 90.1,
+      "tests": 26,
+      "passed": 26,
+      "failed": 0,
+      "lastRun": "2026-05-24T00:00:00.000Z",
+      "status": "healthy",
+      "trend": "stable"
+    }
+  ],
+  "coverageTrends": [
+    {
+      "week": "Apr W1",
+      "overall": 450,
+      "line": null,
+      "branch": null,
+      "function": null
+    },
+    {
+      "week": "Apr W2",
+      "overall": 465,
+      "line": null,
+      "branch": null,
+      "function": null
+    },
+    {
+      "week": "May W1",
+      "overall": 480,
+      "line": null,
+      "branch": null,
+      "function": null
+    },
+    {
+      "week": "May W2",
+      "overall": 490,
+      "line": null,
+      "branch": null,
+      "function": null
+    },
+    {
+      "week": "May W3",
+      "overall": 498,
+      "line": null,
+      "branch": null,
+      "function": null
+    },
+    {
+      "week": "May W4",
+      "overall": 578,
+      "line": 79.5,
+      "branch": 56.6,
+      "function": 74.2
+    }
+  ],
+  "uncoveredFiles": [
+    {
+      "name": "user-service.js",
+      "path": "server/services/user-service.js",
+      "coverage": 48.6,
+      "uncoveredLines": null,
+      "totalLines": null,
+      "risk": "high",
+      "lastModified": null,
+      "notes": "Istanbul line coverage 48.6% from jest collectCoverageFrom scope"
+    },
+    {
+      "name": "phase2-integration.js",
+      "path": "server/bootstrap/phase2-integration.js",
+      "coverage": 50,
+      "uncoveredLines": null,
+      "totalLines": null,
+      "risk": "medium",
+      "lastModified": null,
+      "notes": "Istanbul line coverage 50% from jest collectCoverageFrom scope"
+    },
+    {
+      "name": "database.js",
+      "path": "server/config/database.js",
+      "coverage": 80,
+      "uncoveredLines": null,
+      "totalLines": null,
+      "risk": "low",
+      "lastModified": null,
+      "notes": "Istanbul line coverage 80% from jest collectCoverageFrom scope"
+    },
+    {
+      "name": "dashboard-stub-api.js",
+      "path": "src/api/dashboard-stub-api.js",
+      "coverage": 82.3,
+      "uncoveredLines": null,
+      "totalLines": null,
+      "risk": "low",
+      "lastModified": null,
+      "notes": "Istanbul line coverage 82.3% from jest collectCoverageFrom scope"
+    },
+    {
+      "name": "npm-audit-runner.js",
+      "path": "server/lib/npm-audit-runner.js",
+      "coverage": 88.9,
+      "uncoveredLines": null,
+      "totalLines": null,
+      "risk": "low",
+      "lastModified": null,
+      "notes": "Istanbul line coverage 88.9% from jest collectCoverageFrom scope"
+    },
+    {
+      "name": "payload-routing.js",
+      "path": "web/scripts/payload-routing.js",
+      "coverage": 94.4,
+      "uncoveredLines": null,
+      "totalLines": null,
+      "risk": "low",
+      "lastModified": null,
+      "notes": "Istanbul line coverage 94.4% from jest collectCoverageFrom scope"
+    },
+    {
+      "name": "snapshot-resolver.js",
+      "path": "server/lib/snapshot-resolver.js",
+      "coverage": 96.3,
+      "uncoveredLines": null,
+      "totalLines": null,
+      "risk": "low",
+      "lastModified": null,
+      "notes": "Istanbul line coverage 96.3% from jest collectCoverageFrom scope"
+    }
+  ],
+  "recommendations": [
+    {
+      "type": "info",
+      "title": "Enable Istanbul in CI",
+      "description": "jest.config.js defines collectCoverageFrom but npm test runs with --no-coverage",
+      "impact": "High",
+      "effort": "Low",
+      "files": 6
+    },
+    {
+      "type": "warning",
+      "title": "Add page-script unit tests",
+      "description": "repository-audit pages rely on E2E structure tests — add focused unit tests for buildOverview/isStale guards",
+      "impact": "Medium",
+      "effort": "Medium",
+      "files": 12
+    },
+    {
+      "type": "info",
+      "title": "Wire 665-test deploy gate",
+      "description": "GitHub Actions runs Jest — promote to required check before production deploy",
+      "impact": "High",
+      "effort": "Low",
+      "files": 1
+    }
+  ],
+  "recentRuns": [
+    {
+      "project": "Full Jest suite",
+      "description": "665/665 tests passed — Istanbul line 79.5%",
+      "coverage": 79.5,
+      "tests": 578,
+      "time": "Recent",
+      "icon": "✅",
+      "color": "success"
+    },
+    {
+      "project": "Page Samples & Specs",
+      "description": "All 33 sample JSON files validate against page-sample-specs",
+      "coverage": null,
+      "tests": 231,
+      "time": "Recent",
+      "icon": "✅",
+      "color": "success"
+    },
+    {
+      "project": "Dashboard Stub API",
+      "description": "All tier-1 stub routes return data",
+      "coverage": null,
+      "tests": 23,
+      "time": "Recent",
+      "icon": "✅",
+      "color": "success"
+    },
+    {
+      "project": "Phase 2 Integration",
+      "description": "Auth login, JWT /me, health endpoints green",
+      "coverage": null,
+      "tests": 6,
+      "time": "Recent",
+      "icon": "✅",
+      "color": "success"
+    }
+  ],
+  "coverageGoals": [
+    {
+      "name": "Tests Passing",
+      "target": 665,
+      "current": 665,
+      "status": "met",
+      "unit": "tests"
+    },
+    {
+      "name": "Test Suites Green",
+      "target": 18,
+      "current": 18,
+      "status": "met",
+      "unit": "suites"
+    },
+    {
+      "name": "Istanbul Line Coverage",
+      "target": 70,
+      "current": null,
+      "status": "not-collected",
+      "unit": "percent"
+    },
+    {
+      "name": "CI Deploy Gate",
+      "target": 1,
+      "current": 0,
+      "status": "pending",
+      "unit": "workflow"
+    }
+  ],
+  "analytics": {
+    "summary": {
+      "currentCoverage": null,
+      "testPassRate": 100,
+      "sixWeekImprovement": 52,
+      "sixWeekImprovementLabel": "+52 tests",
+      "lineCoverage": null,
+      "branchCoverage": null
+    }
+  },
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousOverallCoverage": 73.4,
+    "previousTotalTests": 1234,
+    "previousFailedTests": 78,
+    "notes": "Old template used fictional Istanbul percentages, 5 enterprise projects, 500/500 test fiction, and 1156/1234 pass fiction."
+  },
+  "istanbulMeta": {
+    "summaryPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\coverage\\dashboard\\coverage-summary.json",
+    "filesInScope": 7,
+    "collectedAt": "2026-05-23T21:22:30.375Z"
+  }
+}

@@ -1,0 +1,221 @@
+{
+  "type": "debt-calculator-model",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Measured engineering debt — not unbreakable-oracle $75K / 502h estimates."
+  },
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousTotalDebt": 198,
+    "previousTotalCost": 75300,
+    "previousTotalHours": 502,
+    "notes": "Enterprise debt calculator fiction removed."
+  },
+  "overview": {
+    "totalDebt": 4,
+    "criticalDebt": 0,
+    "totalHours": null,
+    "totalCost": null,
+    "debtScore": 78,
+    "healthScore": 78,
+    "maintainability": 78,
+    "testCoverage": "79.5%",
+    "documentation": null,
+    "jestTests": "665/665",
+    "scannerIssues": 0,
+    "fictionSamplesRemaining": 0,
+    "statLabels": {
+      "totalDebt": "Debt Items",
+      "criticalDebt": "Scanner Issues",
+      "totalHours": "Est. Hours",
+      "totalCost": "Est. Cost"
+    },
+    "notes": "Open items are production profile and auth hardening — CI baseline (665 tests, Istanbul, phase2-smoke) is wired."
+  },
+  "categories": [
+    {
+      "id": "sample_fiction",
+      "name": "Sample Fiction",
+      "icon": "📋",
+      "totalDebt": 0,
+      "criticalDebt": 0,
+      "estimatedHours": null,
+      "cost": null,
+      "trend": "decreasing",
+      "issues": [
+        { "type": "Tier-1 samples migrated", "count": 4, "hours": null, "file": "api/database/codegen/debt-calculator", "status": "resolved" },
+        { "type": "All 35 samples on repository-audit", "count": 35, "hours": null, "file": "web/data/*-sample.json", "status": "resolved" }
+      ]
+    },
+    {
+      "id": "mock_scanner",
+      "name": "Mock Scanner Findings",
+      "icon": "🔍",
+      "totalDebt": 0,
+      "criticalDebt": 0,
+      "estimatedHours": null,
+      "cost": null,
+      "trend": "decreasing",
+      "issues": [
+        { "type": "Open scanner issues", "count": 0, "hours": null, "file": "mock-data-scanner.js", "status": "resolved" },
+        { "type": "Schema pass rate", "count": 35, "hours": null, "file": "43/43 PAGE_SAMPLE_SPECS", "status": "resolved" },
+        { "type": "Files scanned", "count": 41, "hours": null, "file": "simplebeacon gate" }
+      ]
+    },
+    {
+      "id": "testing",
+      "name": "Testing",
+      "icon": "🧪",
+      "totalDebt": 0,
+      "criticalDebt": 0,
+      "estimatedHours": null,
+      "cost": null,
+      "trend": "decreasing",
+      "issues": [
+        { "type": "Istanbul collected in CI", "count": 1, "hours": null, "file": "dashboard-ci.yml test:coverage (~79.5% line)", "status": "resolved" },
+        { "type": "Docker phase2-smoke in CI", "count": 1, "hours": null, "file": "dashboard-ci.yml phase2-smoke job", "status": "resolved" },
+        { "type": "Jest suite green", "count": 566, "hours": null, "file": "32 suites", "status": "resolved" }
+      ]
+    },
+    {
+      "id": "security",
+      "name": "Security",
+      "icon": "🛡️",
+      "totalDebt": 2,
+      "criticalDebt": 0,
+      "estimatedHours": null,
+      "cost": null,
+      "trend": "decreasing",
+      "issues": [
+        { "type": "SEC-004 npm audit wired", "count": 1, "hours": null, "file": "/api/security/npm-audit", "status": "resolved" },
+        { "type": "REQUIRE_AUTH optional", "count": 1, "hours": null, "file": "phase2-auth" },
+        { "type": "Production deploy runbook", "count": 1, "hours": null, "file": "Docker one-command flow" }
+      ]
+    },
+    {
+      "id": "architecture",
+      "name": "Architecture",
+      "icon": "🏗️",
+      "totalDebt": 2,
+      "criticalDebt": 0,
+      "estimatedHours": null,
+      "cost": null,
+      "trend": "decreasing",
+      "issues": [
+        { "type": "Large roadmap artifact", "count": 1, "hours": null, "file": "cascade-project-roadmap.json" },
+        { "type": "GGUF inference optional", "count": 1, "hours": null, "file": "filesystem+gguf-path" },
+        { "type": "WebSocket noise", "count": 1, "hours": null, "status": "resolved" }
+      ]
+    },
+    {
+      "id": "documentation",
+      "name": "Documentation",
+      "icon": "📚",
+      "totalDebt": 0,
+      "criticalDebt": 0,
+      "estimatedHours": null,
+      "cost": null,
+      "trend": "stable",
+      "issues": [
+        { "type": "Simplebeacon CLI docs", "count": 1, "hours": null, "file": "simplebeacon-cli-sample.json", "status": "resolved" }
+      ]
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "rec_1",
+      "title": "Extend phase2-smoke to container lifecycle",
+      "description": "Deferred — Production Deploy Profile post-Simplebeacon v0.1. Config smoke is done; up/down waits for real container exposure.",
+      "priority": "low",
+      "impact": "Deferred",
+      "status": "deferred",
+      "hours": null,
+      "cost": null,
+      "icon": "🐳"
+    },
+    {
+      "id": "rec_2",
+      "title": "Require auth in production profile",
+      "description": "Deferred — JWT/REQUIRE_AUTH not needed for CLI v1 or solo-maintainer dogfood. Revisit for Simplebeacon enterprise tier.",
+      "priority": "low",
+      "impact": "Deferred",
+      "status": "deferred",
+      "hours": null,
+      "cost": null,
+      "icon": "🛡️"
+    },
+    {
+      "id": "rec_3",
+      "title": "Do not invent hour/cost estimates",
+      "description": "Implemented — prior 502 hours and $75,300 were demo fiction; keep null until measured from real usage.",
+      "priority": "low",
+      "impact": "Truthful debt page",
+      "status": "resolved",
+      "hours": null,
+      "cost": null,
+      "icon": "🧮"
+    }
+  ],
+  "timeline": {
+    "labels": ["May W1", "May W2", "May W3", "May W4", "May W5", "May W6"],
+    "current": [26, 24, 22, 20, 12, 8],
+    "projected": [8, 7, 6, 6, 5, 5],
+    "currentDebt": 8,
+    "projectedDebt": 5,
+    "reductionPotential": 3,
+    "roi": null,
+    "seriesLabels": {
+      "current": "Measured debt items",
+      "projected": "Target after production hardening"
+    }
+  },
+  "impactAnalysis": [
+    {
+      "area": "Production Profile",
+      "severity": "Medium",
+      "speedImpact": 35,
+      "bugImpact": 30,
+      "moraleImpact": 38
+    },
+    {
+      "area": "Auth Hardening",
+      "severity": "Medium",
+      "speedImpact": 25,
+      "bugImpact": 35,
+      "moraleImpact": 32
+    },
+    {
+      "area": "Documentation",
+      "severity": "Low",
+      "speedImpact": 15,
+      "bugImpact": 20,
+      "moraleImpact": 25
+    }
+  ],
+  "priorityList": [
+    { "category": "Mock Scanner", "count": 0, "priority": "low" },
+    { "category": "Sample Fiction", "count": 0, "priority": "low" },
+    { "category": "Testing", "count": 0, "priority": "low" },
+    { "category": "Security", "count": 2, "priority": "medium" },
+    { "category": "Architecture", "count": 2, "priority": "medium" },
+    { "category": "Documentation", "count": 0, "priority": "low" }
+  ],
+  "insights": [
+    { "priority": "low", "title": "Scanner backlog cleared", "description": "0 open mock-data-scanner issues — 42/42 schema pass, 42/42 baselines.", "impact": "Honest debt KPIs" },
+    { "priority": "low", "title": "SEC-004 closed — npm audit wired", "description": "Security page merges /api/security/npm-audit on refresh and Run Scan.", "impact": "Measured dependency posture" },
+    { "priority": "low", "title": "CI baseline wired", "description": "665/665 Jest, Istanbul test:coverage (~79.5% line), and phase2-smoke in dashboard-ci.yml.", "impact": "Honest testing row" },
+    { "priority": "low", "title": "Clear lastDebtCalculatorModel after import", "description": "Stale localStorage may restore 198-item fiction, 665 tests, or 33-sample counts.", "impact": "Correct render" }
+  ],
+  "quickActions": [
+    { "label": "Mock Scanner", "icon": "🔍", "section": "gguf-analysis" },
+    { "label": "Security Page", "icon": "🛡️", "section": "security" },
+    { "label": "Export Report", "icon": "📥", "action": "export" },
+    { "label": "Project Roadmap", "icon": "🗺️", "section": "roadmap" }
+  ]
+}

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Folder Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        .file-input {
+            display: none;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+        .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .file-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Folder Upload Test</h1>
+        <p>This page tests the enhanced folder upload functionality across different browsers.</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <h3>📁 Drop a folder here or click to browse</h3>
+            <p>Test drag-and-drop and folder selection</p>
+            <button class="btn" onclick="document.getElementById('folderInput').click()">
+                Browse Folder
+            </button>
+            <input type="file" id="folderInput" class="file-input" webkitdirectory directory multiple>
+        </div>
+
+        <div class="results" id="results" style="display: none;">
+            <h3>Test Results</h3>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        class FolderUploadTest {
+            constructor() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.folderInput = document.getElementById('folderInput');
+                this.results = document.getElementById('results');
+                this.resultsContent = document.getElementById('resultsContent');
+                
+                this.initializeEventListeners();
+                this.detectBrowserSupport();
+            }
+
+            detectBrowserSupport() {
+                const support = {
+                    webkitdirectory: 'webkitdirectory' in document.createElement('input'),
+                    webkitGetAsEntry: 'webkitGetAsEntry' in DataTransferItem.prototype,
+                    dragAndDrop: 'draggable' in document.createElement('div')
+                };
+                
+                console.log('🔍 Browser Support:', support);
+                this.showResults('info', `Browser Support Detected: ${JSON.stringify(support, null, 2)}`);
+            }
+
+            initializeEventListeners() {
+                // Drag and drop events
+                this.uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.add('dragover');
+                });
+
+                this.uploadArea.addEventListener('dragleave', () => {
+                    this.uploadArea.classList.remove('dragover');
+                });
+
+                this.uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.remove('dragover');
+                    this.handleDrop(e.dataTransfer.items);
+                });
+
+                // File input change
+                this.folderInput.addEventListener('change', (e) => {
+                    this.handleFileSelection(e.target.files);
+                });
+            }
+
+            async handleDrop(items) {
+                console.log('📁 Drop event triggered');
+                this.showResults('info', 'Processing dropped content...');
+                
+                try {
+                    const files = await this.processDirectoryDrop(items);
+                    if (files.length > 0) {
+                        this.showSuccess(files);
+                    } else {
+                        this.showError('No files found in dropped content');
+                    }
+                } catch (error) {
+                    console.error('Drop error:', error);
+                    this.showError(`Error processing drop: ${error.message}`);
+                }
+            }
+
+            async handleFileSelection(files) {
+                console.log(`📁 Files selected via input: ${files.length}`);
+                this.showResults('info', 'Processing selected files...');
+                
+                if (files.length > 0) {
+                    this.showSuccess(files);
+                } else {
+                    this.showError('No files selected');
+                }
+            }
+
+            async processDirectoryDrop(items) {
+                const files = [];
+                const promises = [];
+
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    
+                    if (item.kind === 'file') {
+                        const promise = new Promise((resolve) => {
+                            const entry = item.webkitGetAsEntry();
+                            
+                            if (entry) {
+                                if (entry.isFile) {
+                                    entry.file((file) => {
+                                        files.push(file);
+                                        resolve();
+                                    }, resolve);
+                                } else if (entry.isDirectory) {
+                                    this.traverseDirectory(entry, entry.name, files).then(resolve);
+                                } else {
+                                    resolve();
+                                }
+                            } else {
+                                // Fallback for browsers that don't support webkitGetAsEntry
+                                const file = item.getAsFile();
+                                if (file) {
+                                    files.push(file);
+                                }
+                                resolve();
+                            }
+                        });
+                        
+                        promises.push(promise);
+                    }
+                }
+                
+                await Promise.all(promises);
+                return files;
+            }
+
+            traverseDirectory(directoryEntry, path, files) {
+                return new Promise((resolve) => {
+                    const directoryReader = directoryEntry.createReader();
+                    
+                    const readEntries = () => {
+                        directoryReader.readEntries((entries) => {
+                            if (entries.length === 0) {
+                                resolve();
+                            } else {
+                                const promises = entries.map(entry => {
+                                    if (entry.isFile) {
+                                        return new Promise((fileResolve) => {
+                                            entry.file((file) => {
+                                                Object.defineProperty(file, 'webkitRelativePath', {
+                                                    value: path + '/' + file.name,
+                                                    writable: false
+                                                });
+                                                files.push(file);
+                                                fileResolve();
+                                            }, fileResolve);
+                                        });
+                                    } else if (entry.isDirectory) {
+                                        return this.traverseDirectory(entry, path + '/' + entry.name, files);
+                                    }
+                                    return Promise.resolve();
+                                });
+                                
+                                Promise.all(promises).then(() => {
+                                    readEntries();
+                                });
+                            }
+                        }, resolve);
+                    };
+                    
+                    readEntries();
+                });
+            }
+
+            showSuccess(files) {
+                const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+                const fileTypes = {};
+                const directories = new Set();
+
+                files.forEach(file => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    fileTypes[ext] = (fileTypes[ext] || 0) + 1;
+                    
+                    if (file.webkitRelativePath) {
+                        const pathParts = file.webkitRelativePath.split('/');
+                        directories.add(pathParts[0]);
+                    }
+                });
+
+                const html = `
+                    <div class="success">
+                        <h4>✅ Upload Successful!</h4>
+                        <p><strong>Total Files:</strong> ${files.length}</p>
+                        <p><strong>Total Size:</strong> ${this.formatFileSize(totalSize)}</p>
+                        <p><strong>Directories:</strong> ${directories.size || 1}</p>
+                        <p><strong>File Types:</strong> ${Object.keys(fileTypes).length}</p>
+                        
+                        <h5>File Type Breakdown:</h5>
+                        ${Object.entries(fileTypes).map(([type, count]) => 
+                            `<p>.${type}: ${count} files</p>`
+                        ).join('')}
+                        
+                        <h5>First 10 Files:</h5>
+                        <div class="file-list">
+                            ${files.slice(0, 10).map(file => 
+                                `<div class="file-item">
+                                    📄 ${file.webkitRelativePath || file.name} (${this.formatFileSize(file.size)})
+                                </div>`
+                            ).join('')}
+                            ${files.length > 10 ? `<div class="file-item">... and ${files.length - 10} more files</div>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                this.resultsContent.innerHTML = html;
+                this.results.style.display = 'block';
+                this.results.className = 'results success';
+            }
+
+            showError(message) {
+                this.resultsContent.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Upload Failed</h4>
+                        <p>${message}</p>
+                        <p><strong>Troubleshooting:</strong></p>
+                        <ul>
+                            <li>Try using Chrome or Edge for best compatibility</li>
+                            <li>Make sure you're dropping a folder, not individual files</li>
+                            <li>Check browser console for detailed error messages</li>
+                            <li>Try the "Browse Folder" button instead</li>
+                        </ul>
+                    </div>
+                `;
+                this.results.style.display = 'block';
+                this.results.className = 'results error';
+            }
+
+            showResults(type, message) {
+                this.resultsContent.innerHTML = `<p>${message}</p>`;
+                this.results.style.display = 'block';
+                this.results.className = 'results';
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        }
+
+        // Initialize the test
+        const test = new FolderUploadTest();
+    </script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+{
+  "type": "simplebeacon-report",
+  "generatedAt": "2026-05-24T19:36:29.102Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "/demo/toxic-honeypot",
+  "configPath": "/demo/toxic-honeypot/.simplebeacon/config.json",
+  "scanPaths": [
+    "/demo/toxic-honeypot/fixtures",
+    "/demo/toxic-honeypot/web/data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "/demo/toxic-honeypot",
+    "totalFiles": 8,
+    "totalFolders": 8,
+    "profile": "explorer"
+  },
+  "mockSampleFiles": 2,
+  "totalFiles": 2,
+  "filesAnalyzed": 4,
+  "totalSizeBytes": 124,
+  "totalSizeLabel": "124B",
+  "issueCount": 6,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 55,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 1,
+  "consistencyPassed": 0,
+  "consistencyScore": 0,
+  "credentialScanned": 4,
+  "credentialFindings": 1,
+  "productionLeakScanned": 2,
+  "productionLeakFindings": 2,
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "high": 6,
+    "medium": 0,
+    "low": 0
+  },
+  "mockDataCategories": [
+    {
+      "category": "JSON Files",
+      "fileCount": 2,
+      "totalSize": "124B",
+      "qualityScore": 99,
+      "issues": 0,
+      "confidence": null,
+      "description": "JSON Files discovered during filesystem scan"
+    }
+  ],
+  "detectedIssues": [
+    {
+      "severity": "high",
+      "type": "Fictional KPI",
+      "count": 1,
+      "description": "metrics-sample.json: completionRate=62; 62% completion claim; totalFeatures=47",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "metrics-sample.json"
+      ],
+      "filePaths": [
+        "metrics-sample.json"
+      ]
+    },
+    {
+      "severity": "high",
+      "type": "Credential Pattern",
+      "count": 1,
+      "description": "src/server/auth-mock.js: possible aws access key in production path",
+      "recommendedAction": "Remove secret from repo; rotate credential if ever committed",
+      "affectedFiles": [
+        "auth-mock.js"
+      ],
+      "filePaths": [
+        "src/server/auth-mock.js"
+      ]
+    },
+    {
+      "severity": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "src/server/config-loader.js: references mock/sample path (sample-json) near offset 109",
+      "recommendedAction": "Serve measured data from scanners/APIs — do not hardcode sample JSON in production paths",
+      "affectedFiles": [
+        "config-loader.js"
+      ],
+      "filePaths": [
+        "src/server/config-loader.js"
+      ]
+    },
+    {
+      "severity": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "src/server/config-loader.js: references mock/sample path (fixtures-path) near offset 109",
+      "recommendedAction": "Serve measured data from scanners/APIs — do not hardcode sample JSON in production paths",
+      "affectedFiles": [
+        "config-loader.js"
+      ],
+      "filePaths": [
+        "src/server/config-loader.js"
+      ]
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "fiction-metrics-sample.json",
+      "severity": "high",
+      "type": "Fictional KPI",
+      "filePath": "metrics-sample.json",
+      "count": 3,
+      "description": "metrics-sample.json: completionRate=62; 62% completion claim; totalFeatures=47",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "metrics-sample.json"
+      ],
+      "metadata": {
+        "fictionHits": [
+          "completionRate=62",
+          "62% completion claim",
+          "totalFeatures=47"
+        ]
+      }
+    },
+    {
+      "id": "aws-access-key-auth-mock.js-110",
+      "severity": "high",
+      "type": "Credential Pattern",
+      "filePath": "src/server/auth-mock.js",
+      "count": 1,
+      "description": "src/server/auth-mock.js: possible aws access key in production path",
+      "recommendedAction": "Remove secret from repo; rotate credential if ever committed",
+      "affectedFiles": [
+        "auth-mock.js"
+      ],
+      "metadata": {
+        "patternId": "aws-access-key",
+        "offset": 110
+      }
+    },
+    {
+      "id": "production-leak-sample-json-src/server/config-loader.js-109",
+      "severity": "high",
+      "type": "Production Leak",
+      "filePath": "src/server/config-loader.js",
+      "count": 1,
+      "description": "src/server/config-loader.js: references mock/sample path (sample-json) near offset 109",
+      "recommendedAction": "Serve measured data from scanners/APIs — do not hardcode sample JSON in production paths",
+      "affectedFiles": [
+        "config-loader.js"
+      ],
+      "metadata": {
+        "patternId": "sample-json",
+        "offset": 109,
+        "match": "'../../fixtures/user-sample.json'"
+      }
+    },
+    {
+      "id": "production-leak-fixtures-path-src/server/config-loader.js-109",
+      "severity": "high",
+      "type": "Production Leak",
+      "filePath": "src/server/config-loader.js",
+      "count": 1,
+      "description": "src/server/config-loader.js: references mock/sample path (fixtures-path) near offset 109",
+      "recommendedAction": "Serve measured data from scanners/APIs — do not hardcode sample JSON in production paths",
+      "affectedFiles": [
+        "config-loader.js"
+      ],
+      "metadata": {
+        "patternId": "fixtures-path",
+        "offset": 109,
+        "match": "'../../fixtures/user-sample.json'"
+      }
+    }
+  ],
+  "sampleFiles": [
+    "user-sample.json",
+    "metrics-sample.json"
+  ],
+  "demoMode": true,
+  "demoLabel": "Toxic honey-pot fixture — gate FAIL (read-only preview)",
+  "gate": {
+    "pass": false,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 4,
+    "warningCount": 0
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "metadata": {
+    "id": "sql_injection",
+    "name": "SQL Injection",
+    "severity": "critical",
+    "generatedAt": "2026-05-23T08:42:51.423Z"
+  },
+  "description": "Injection of malicious SQL queries",
+  "detectionPatterns": [
+    "execute\\s*\\(\\s*[\"'].*?\\%s",
+    "query\\s*\\(\\s*[\"'].*?\\+"
+  ],
+  "examples": {
+    "vulnerable": "# Python - Dangerous\ncursor.execute(\"SELECT * FROM users WHERE name = '\" + user_input + \"'\")\n\ncursor.execute(\"SELECT * FROM users WHERE id = %s\" % user_input)",
+    "secure": "# Python - Safe\ncursor.execute(\"SELECT * FROM users WHERE name = %s\", (user_input,))\n\n# Using ORM\nUser.objects.filter(name=user_input)"
+  },
+  "solutions": [
+    "Always use parameterized queries",
+    "Use ORM frameworks when possible",
+    "Implement input validation",
+    "Use stored procedures",
+    "Apply principle of least privilege to database users"
+  ],
+  "prevention": [
+    "Enable SQL query logging and monitoring",
+    "Use database security scanning tools",
+    "Implement database access controls",
+    "Regular security assessments",
+    "Developer training on secure database access"
+  ],
+  "testingApproach": "SQL injection test suites, database query monitoring, ORM security testing",
+  "tools": [
+    {
+      "name": "SQLMap",
+      "description": "SQL injection testing tool"
+    },
+    {
+      "name": "ORM Security Scanners",
+      "description": "Framework-specific tools"
+    },
+    {
+      "name": "Database Activity Monitoring",
+      "description": "Runtime monitoring"
+    }
+  ]
+}

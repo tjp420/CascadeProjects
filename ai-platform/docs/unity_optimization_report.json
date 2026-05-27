@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-05-14T14:07:28.329593",
+  "optimization_type": "unity_library",
+  "items_removed": 10,
+  "space_freed": 6914319,
+  "errors": 0,
+  "removed_items": [
+    "C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Library\\ShaderCache",
+    "C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Library\\PackageManager",
+    "C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Library\\Search",
+    "C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Library\\Artifacts",
+    "C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Library\\ScriptAssemblies",
+    "C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Library\\ArtifactDB",
+    "C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Library\\SourceAssetDB",
+    "C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Library\\ShaderCache.db",
+    "C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Library\\ArtifactDB-lock",
+    "C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Library\\SourceAssetDB-lock"
+  ],
+  "errors_list": []
+}

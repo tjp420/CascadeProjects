@@ -1,0 +1,124 @@
+{
+  "type": "code-generation-model",
+  "title": "Code Generation (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Dashboard code patterns — not 156 AI generations or 94.2% success fiction."
+  },
+  "deprecatedNarrative": {
+    "previousTotalGenerated": 156,
+    "previousSuccessRate": 94.2,
+    "previousLinesGenerated": 12456,
+    "notes": "GGUF codegen telemetry removed — use Code Templates page for real patterns."
+  },
+  "stats": {
+    "totalGenerated": 0,
+    "thisWeek": null,
+    "successRate": null,
+    "avgGenerationTime": null,
+    "templatesUsed": 5,
+    "linesGenerated": null,
+    "languagesUsed": 2,
+    "statLabels": {
+      "totalGenerated": "Tracked Generations",
+      "thisWeek": "This Week",
+      "successRate": "Success Rate",
+      "avgGenerationTime": "Avg Time"
+    },
+    "notes": "No codegen telemetry collected — patterns live in code-templates-sample.json."
+  },
+  "templates": [
+    {
+      "id": "page-script-iife",
+      "name": "Self-Contained Page Script",
+      "category": "Dashboard",
+      "description": "IIFE with SAMPLE_URL, normalizeModel, renderModel, stale guards",
+      "usage": null,
+      "successRate": null,
+      "avgGenerationTime": null,
+      "language": "JavaScript"
+    },
+    {
+      "id": "stub-route",
+      "name": "Stub API Route",
+      "category": "Backend",
+      "description": "snapshotGet tier-1 route in dashboard-stub-api.js",
+      "usage": null,
+      "successRate": null,
+      "avgGenerationTime": null,
+      "language": "JavaScript"
+    },
+    {
+      "id": "page-sample-json",
+      "name": "Repository-Audit Sample",
+      "category": "Data",
+      "description": "web/data/*-sample.json with dataSource repository-audit",
+      "usage": null,
+      "successRate": null,
+      "avgGenerationTime": null,
+      "language": "JSON"
+    },
+    {
+      "id": "jest-page-spec",
+      "name": "Page Sample Spec Test",
+      "category": "Testing",
+      "description": "page-samples.test.js validates sample shape + script presence",
+      "usage": null,
+      "successRate": 100,
+      "avgGenerationTime": null,
+      "language": "JavaScript"
+    },
+    {
+      "id": "is-stale-guard",
+      "name": "isStale*Model Guard",
+      "category": "Dashboard",
+      "description": "Reject unbreakable-oracle, 156-generation fiction, and stale localStorage exports",
+      "usage": null,
+      "successRate": null,
+      "avgGenerationTime": null,
+      "language": "JavaScript"
+    }
+  ],
+  "history": [
+    {
+      "id": "hist_001",
+      "time": "2026-05-24",
+      "template": "Repository-Audit Sample",
+      "params": "42/42 repository-audit page samples, 665/665 Jest tests, stale guards on dashboard pages",
+      "status": "success",
+      "duration": "—",
+      "language": "JSON",
+      "codeGenerated": "// No live codegen server — sample migration is manual JSON + page script work."
+    }
+  ],
+  "languages": [
+    { "name": "JavaScript", "percentage": 72 },
+    { "name": "JSON", "percentage": 28 }
+  ],
+  "insights": [
+    {
+      "priority": "high",
+      "action": "Use Code Templates page",
+      "description": "Real reusable patterns live in code-templates-sample.json",
+      "impact": "Honest codegen page"
+    },
+    {
+      "priority": "medium",
+      "action": "Do not invent generation counters",
+      "description": "Prior 156 generated / 12,456 lines were demo fiction",
+      "impact": "Truthful metrics"
+    },
+    {
+      "priority": "low",
+      "action": "Wire optional LLM codegen later",
+      "description": "Requires configured GGUF/Ollama — not default today",
+      "impact": "Future feature"
+    }
+  ]
+}

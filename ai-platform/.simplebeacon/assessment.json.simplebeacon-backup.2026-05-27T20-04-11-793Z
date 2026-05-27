@@ -1,0 +1,183 @@
+{
+  "type": "simplebeacon-assessment-report",
+  "title": "Simplebeacon Free Assessment — ai-platform",
+  "generatedAt": "2026-05-27T19:53:35.065Z",
+  "generatedBy": "Simplebeacon",
+  "assessor": "",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+  "executiveSummary": {
+    "gateResult": "PASS",
+    "qualityScore": 100,
+    "filesScanned": 40,
+    "criticalIssues": 0,
+    "highIssues": 0,
+    "mediumIssues": 0,
+    "lowIssues": 0,
+    "headline": "Clean scan — no blocking mock/fiction findings in configured paths.",
+    "complianceScore": 100,
+    "complianceReady": true
+  },
+  "complianceChecklist": {
+    "type": "simplebeacon-compliance-checklist",
+    "version": "1.0.0",
+    "title": "Simplebeacon Corporate Safety Checklist",
+    "description": "Automated guardrails for AI-generated code — maps scan signals to deploy readiness.",
+    "evaluatedAt": "2026-05-27T19:53:35.065Z",
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "summary": {
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "total": 8,
+      "score": 100,
+      "readyForAutomation": true,
+      "headline": "8/8 applicable rules pass — safe to enable automated AI deploy gates"
+    },
+    "rules": [
+      {
+        "id": "GATE-001",
+        "title": "Merge gate passes on configured severities",
+        "category": "Automation",
+        "severity": "critical",
+        "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
+        "status": "pass",
+        "evidence": "Gate pass — no blocking issues at configured severities"
+      },
+      {
+        "id": "CRED-001",
+        "title": "No credential or secret patterns in scanned paths",
+        "category": "Security",
+        "severity": "critical",
+        "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
+        "status": "pass",
+        "evidence": "Scanned 247 path(s) — no credential patterns"
+      },
+      {
+        "id": "LEAK-001",
+        "title": "No mock/sample JSON paths referenced from production directories",
+        "category": "Data integrity",
+        "severity": "high",
+        "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
+        "status": "pass",
+        "evidence": "Scanned 192 production file(s) — no sample-path leaks"
+      },
+      {
+        "id": "DATA-001",
+        "title": "Registered page samples match schema specs",
+        "category": "Data integrity",
+        "severity": "high",
+        "remediation": "Fix schema violations listed in the scan report",
+        "status": "pass",
+        "evidence": "43/43 samples match schema specs"
+      },
+      {
+        "id": "DATA-002",
+        "title": "No fiction KPI or baseline drift in anchor samples",
+        "category": "Data integrity",
+        "severity": "high",
+        "remediation": "Replace fiction metrics with repository-audit baseline values",
+        "status": "pass",
+        "evidence": "Consistency score 100% — no fiction KPI drift"
+      },
+      {
+        "id": "SUPPLY-001",
+        "title": "No critical or high npm audit vulnerabilities",
+        "category": "Supply chain",
+        "severity": "critical",
+        "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
+        "status": "pass",
+        "evidence": "npm audit: 0 critical, 0 high (lockfile-heuristic)"
+      },
+      {
+        "id": "SUPPLY-002",
+        "title": "Moderate npm vulnerabilities within policy limit",
+        "category": "Supply chain",
+        "severity": "medium",
+        "remediation": "Upgrade dependencies flagged by npm audit (moderate severity)",
+        "status": "pass",
+        "evidence": "0 moderate (limit 0)"
+      },
+      {
+        "id": "AUTH-001",
+        "title": "Production profile has JWT auth enabled (REQUIRE_AUTH)",
+        "category": "Access control",
+        "severity": "medium",
+        "remediation": "Set REQUIRE_AUTH=true and real JWT secrets in .env.production on the deploy host",
+        "status": "pass",
+        "evidence": "REQUIRE_AUTH=true with non-placeholder JWT"
+      }
+    ]
+  },
+  "findings": {
+    "credentials": {
+      "scanned": 247,
+      "findings": 0,
+      "severity": "high",
+      "items": [],
+      "summary": "No credential patterns detected in scanned paths."
+    },
+    "fictionKpis": {
+      "scanned": 73,
+      "findings": 0,
+      "severity": "high",
+      "items": [],
+      "summary": "No fiction KPI or consistency drift detected."
+    },
+    "productionLeaks": {
+      "scanned": 192,
+      "findings": 0,
+      "severity": "medium",
+      "items": [],
+      "summary": "No mock/sample path references in production directories."
+    },
+    "schemaDrift": {
+      "checked": 43,
+      "passed": 43,
+      "severity": "high",
+      "items": [],
+      "summary": "All registered page samples match schema specs."
+    },
+    "other": {
+      "items": [],
+      "summary": "No other findings."
+    }
+  },
+  "recommendedActions": {
+    "immediate": [
+      "Add simplebeacon scan --gate to PR workflow (see docs/GITHUB-ACTION-QUICKSTART.md)"
+    ],
+    "next30Days": [
+      "Sync .simplebeacon/baseline.json after green test runs",
+      "Review production-leak allowlist for intentional seed files",
+      "Run consolidation scan to dedupe identical sample JSON"
+    ]
+  },
+  "complementaryStack": {
+    "keepUsing": [
+      "Snyk or GitHub Advanced Security for CVEs",
+      "SonarQube for code smells"
+    ],
+    "addSimplebeaconFor": [
+      "Mock/fiction drift in sample JSON",
+      "Hardcoded sample paths in production directories"
+    ]
+  },
+  "pilotProposal": {
+    "offer": "Wire simplebeacon gate + 30-day support",
+    "pricePlaceholder": "$2,000–10,000/year depending on team size",
+    "ask": "Will you run simplebeacon scan --gate on every PR for 2 weeks?"
+  },
+  "commandsRun": [
+    "npx simplebeacon scan --format json --output .simplebeacon/report.json --gate",
+    "npx simplebeacon assess --company \"ai-platform\""
+  ],
+  "sourceReport": {
+    "generatedAt": "2026-05-27T19:50:27.753Z",
+    "scanPaths": [
+      "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web\\data"
+    ],
+    "duplicateGroups": 0
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-05-27T19:53:35.067Z"
+}

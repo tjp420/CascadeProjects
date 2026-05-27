@@ -1,0 +1,137 @@
+[2026-04-22T22:12:54.807Z] [INFO] relay.startup port=9001 mcpClientPort=9002 editorPid=382744
+[2026-04-22T22:12:54.811Z] [INFO] log === RELAY SERVER STARTED === (unity-ai-relay v1.0.12-build.91)
+[2026-04-22T22:12:54.813Z] [INFO] log Starting relay server...
+[2026-04-22T22:12:54.815Z] [INFO] log Command line arguments: ["bun","B:/~BUN/root/relay_win.exe","--relay","--port","9001","--mcp-client-port","9002","--editor-pid","382744","--shutdown-delay","180","--log-dir","C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Logs"]
+[2026-04-22T22:12:54.816Z] [INFO] log Parsed config: {"port":9001,"mcpClientPort":9002,"editorPid":"382744","shutdownDelaySeconds":180}
+[2026-04-22T22:12:54.818Z] [INFO] log Initializing relay components...
+[2026-04-22T22:12:54.820Z] [INFO] log Creating RelayEditor...
+[2026-04-22T22:12:54.832Z] [INFO] log WebSocket server started
+[2026-04-22T22:12:54.838Z] [INFO] log Relay server initialization completed
+[2026-04-22T22:12:54.840Z] [INFO] log MCP Client initialized at port: 9002
+[2026-04-22T22:12:54.847Z] [WARN] log [shell-env] Shell environment did not contain a PATH variable
+[2026-04-22T22:12:54.865Z] [INFO] log Unity MCP Relay server started | Port: 9002 | Endpoints: /mcp/start-server, /mcp/stop-server, /mcp/server-status, /mcp/call-tool
+[2026-04-22T22:12:54.918Z] [INFO] log Unity client connected with ID: editor-382744-upkmgd (relay 1.0.12-build.91)
+[2026-04-22T22:12:54.921Z] [INFO] connection.established clientId=editor-382744-upkmgd port=9001
+[2026-04-22T22:13:04.923Z] [INFO] log Domain reload signal received from client editor-382744-upkmgd
+[2026-04-22T22:13:04.926Z] [DEBUG] log Relay->Editor communication is blocked
+[2026-04-22T22:13:04.929Z] [DEBUG] acp.queue.pause depth=0
+[2026-04-22T22:13:05.614Z] [DEBUG] log Relay->Editor communication is blocked
+[2026-04-22T22:13:05.617Z] [DEBUG] acp.queue.pause depth=0
+[2026-04-22T22:13:05.619Z] [INFO] log Client disconnected - blocking and caching for recovery
+[2026-04-22T22:13:05.622Z] [WARN] connection.lost clientId=null
+[2026-04-22T22:13:05.624Z] [WARN] log Client disconnected - sessions will persist until auto-shutdown, reason: Client disconnected
+[2026-04-22T22:13:05.627Z] [INFO] log Auto-shutdown timer started due to client disconnection
+[2026-04-22T22:13:08.137Z] [DEBUG] log Relay->Editor communication is unblocked
+[2026-04-22T22:13:08.141Z] [INFO] log Unity client connected with ID: editor-382744-pt1ox1 (relay 1.0.12-build.91)
+[2026-04-22T22:13:08.143Z] [INFO] connection.established clientId=editor-382744-pt1ox1 port=9001
+[2026-04-22T22:13:32.925Z] [INFO] log Domain reload signal received from client editor-382744-pt1ox1
+[2026-04-22T22:13:32.931Z] [DEBUG] log Relay->Editor communication is blocked
+[2026-04-22T22:13:32.934Z] [DEBUG] acp.queue.pause depth=0
+[2026-04-22T22:13:33.773Z] [DEBUG] log Relay->Editor communication is blocked
+[2026-04-22T22:13:33.777Z] [DEBUG] acp.queue.pause depth=0
+[2026-04-22T22:13:33.781Z] [INFO] log Client disconnected - blocking and caching for recovery
+[2026-04-22T22:13:33.784Z] [WARN] connection.lost clientId=null
+[2026-04-22T22:13:33.790Z] [WARN] log Client disconnected - sessions will persist until auto-shutdown, reason: Client disconnected
+[2026-04-22T22:13:33.795Z] [INFO] log Auto-shutdown timer started due to client disconnection
+[2026-04-22T22:13:36.092Z] [DEBUG] log Relay->Editor communication is unblocked
+[2026-04-22T22:13:36.096Z] [INFO] log Unity client connected with ID: editor-382744-w8kssk (relay 1.0.12-build.91)
+[2026-04-22T22:13:36.099Z] [INFO] connection.established clientId=editor-382744-w8kssk port=9001
+[2026-04-22T22:13:41.510Z] [INFO] log Domain reload signal received from client editor-382744-w8kssk
+[2026-04-22T22:13:41.514Z] [DEBUG] log Relay->Editor communication is blocked
+[2026-04-22T22:13:41.518Z] [DEBUG] acp.queue.pause depth=0
+[2026-04-22T22:13:42.254Z] [DEBUG] log Relay->Editor communication is blocked
+[2026-04-22T22:13:42.259Z] [DEBUG] acp.queue.pause depth=0
+[2026-04-22T22:13:42.263Z] [INFO] log Client disconnected - blocking and caching for recovery
+[2026-04-22T22:13:42.267Z] [WARN] connection.lost clientId=null
+[2026-04-22T22:13:42.271Z] [WARN] log Client disconnected - sessions will persist until auto-shutdown, reason: Client disconnected
+[2026-04-22T22:13:42.275Z] [INFO] log Auto-shutdown timer started due to client disconnection
+[2026-04-22T22:13:44.543Z] [DEBUG] log Relay->Editor communication is unblocked
+[2026-04-22T22:13:44.547Z] [INFO] log Unity client connected with ID: editor-382744-phrypl (relay 1.0.12-build.91)
+[2026-04-22T22:13:44.551Z] [INFO] connection.established clientId=editor-382744-phrypl port=9001
+[2026-04-22T22:13:55.749Z] [INFO] log Domain reload signal received from client editor-382744-phrypl
+[2026-04-22T22:13:55.754Z] [DEBUG] log Relay->Editor communication is blocked
+[2026-04-22T22:13:55.758Z] [DEBUG] acp.queue.pause depth=0
+[2026-04-22T22:13:56.499Z] [DEBUG] log Relay->Editor communication is blocked
+[2026-04-22T22:13:56.505Z] [DEBUG] acp.queue.pause depth=0
+[2026-04-22T22:13:56.510Z] [INFO] log Client disconnected - blocking and caching for recovery
+[2026-04-22T22:13:56.515Z] [WARN] connection.lost clientId=null
+[2026-04-22T22:13:56.519Z] [WARN] log Client disconnected - sessions will persist until auto-shutdown, reason: Client disconnected
+[2026-04-22T22:13:56.524Z] [INFO] log Auto-shutdown timer started due to client disconnection
+[2026-04-22T22:13:58.845Z] [DEBUG] log Relay->Editor communication is unblocked
+[2026-04-22T22:13:58.850Z] [INFO] log Unity client connected with ID: editor-382744-185ca4 (relay 1.0.12-build.91)
+[2026-04-22T22:13:58.853Z] [INFO] connection.established clientId=editor-382744-185ca4 port=9001
+[2026-04-22T22:14:58.551Z] [INFO] log Shutdown request received from client editor-382744-185ca4
+[2026-04-22T22:14:58.556Z] [INFO] log Unity client requested immediate shutdown - shutting down now, reason: Shutdown requested by client
+[2026-04-22T22:14:58.560Z] [INFO] log Shutdown: Initiating graceful shutdown: Shutdown requested by client
+[2026-04-22T22:16:00.184Z] [INFO] relay.startup port=9001 mcpClientPort=9002 editorPid=350340
+[2026-04-22T22:16:00.187Z] [INFO] log === RELAY SERVER STARTED === (unity-ai-relay v1.0.12-build.91)
+[2026-04-22T22:16:00.189Z] [INFO] log Starting relay server...
+[2026-04-22T22:16:00.191Z] [INFO] log Command line arguments: ["bun","B:/~BUN/root/relay_win.exe","--relay","--port","9001","--mcp-client-port","9002","--editor-pid","350340","--shutdown-delay","180","--log-dir","C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Logs"]
+[2026-04-22T22:16:00.192Z] [INFO] log Parsed config: {"port":9001,"mcpClientPort":9002,"editorPid":"350340","shutdownDelaySeconds":180}
+[2026-04-22T22:16:00.195Z] [INFO] log Initializing relay components...
+[2026-04-22T22:16:00.197Z] [INFO] log Creating RelayEditor...
+[2026-04-22T22:16:00.207Z] [INFO] log WebSocket server started
+[2026-04-22T22:16:00.213Z] [INFO] log Relay server initialization completed
+[2026-04-22T22:16:00.215Z] [INFO] log MCP Client initialized at port: 9002
+[2026-04-22T22:16:00.222Z] [WARN] log [shell-env] Shell environment did not contain a PATH variable
+[2026-04-22T22:16:00.241Z] [INFO] log Unity MCP Relay server started | Port: 9002 | Endpoints: /mcp/start-server, /mcp/stop-server, /mcp/server-status, /mcp/call-tool
+[2026-04-22T22:16:00.503Z] [INFO] log Unity client connected with ID: editor-350340-uw07rx (relay 1.0.12-build.91)
+[2026-04-22T22:16:00.507Z] [INFO] connection.established clientId=editor-350340-uw07rx port=9001
+[2026-04-22T22:18:56.098Z] [INFO] log Shutdown request received from client editor-350340-uw07rx
+[2026-04-22T22:18:56.101Z] [INFO] log Unity client requested immediate shutdown - shutting down now, reason: Shutdown requested by client
+[2026-04-22T22:18:56.105Z] [INFO] log Shutdown: Initiating graceful shutdown: Shutdown requested by client
+[2026-04-22T22:19:15.571Z] [INFO] relay.startup port=9001 mcpClientPort=9002 editorPid=351000
+[2026-04-22T22:19:15.574Z] [INFO] log === RELAY SERVER STARTED === (unity-ai-relay v1.0.12-build.91)
+[2026-04-22T22:19:15.576Z] [INFO] log Starting relay server...
+[2026-04-22T22:19:15.578Z] [INFO] log Command line arguments: ["bun","B:/~BUN/root/relay_win.exe","--relay","--port","9001","--mcp-client-port","9002","--editor-pid","351000","--shutdown-delay","180","--log-dir","C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Logs"]
+[2026-04-22T22:19:15.580Z] [INFO] log Parsed config: {"port":9001,"mcpClientPort":9002,"editorPid":"351000","shutdownDelaySeconds":180}
+[2026-04-22T22:19:15.582Z] [INFO] log Initializing relay components...
+[2026-04-22T22:19:15.583Z] [INFO] log Creating RelayEditor...
+[2026-04-22T22:19:15.589Z] [INFO] log WebSocket server started
+[2026-04-22T22:19:15.592Z] [INFO] log Relay server initialization completed
+[2026-04-22T22:19:15.600Z] [INFO] log MCP Client initialized at port: 9002
+[2026-04-22T22:19:15.607Z] [WARN] log [shell-env] Shell environment did not contain a PATH variable
+[2026-04-22T22:19:15.627Z] [INFO] log Unity MCP Relay server started | Port: 9002 | Endpoints: /mcp/start-server, /mcp/stop-server, /mcp/server-status, /mcp/call-tool
+[2026-04-22T22:19:15.953Z] [INFO] log Unity client connected with ID: editor-351000-vn4yzt (relay 1.0.12-build.91)
+[2026-04-22T22:19:15.956Z] [INFO] connection.established clientId=editor-351000-vn4yzt port=9001
+[2026-04-22T22:19:32.269Z] [DEBUG] log [SharedTask] get preferences: starting new task
+[2026-04-22T22:19:32.472Z] [DEBUG] log [GatewayPrefs] seeded preferences with user's environment {"Claude Code":{},"Codex":{},"Gemini":{}}
+[2026-04-22T22:19:32.479Z] [DEBUG] message.received type=gateway/providers_request
+[2026-04-22T22:19:32.515Z] [DEBUG] log [cursor] getCursorPostInstall: loginExec command="agent"
+[2026-04-22T22:19:32.624Z] [DEBUG] log [provider-version] Fetched versions: [{"id":"codex","version":"0.9.4","isCustom":true},{"id":"gemini","version":"0.26.0","isCustom":true}]
+[2026-04-22T22:19:32.626Z] [DEBUG] log Sent provider versions: 2 providers
+[2026-04-22T22:19:32.629Z] [DEBUG] log [GatewayPrefs] getPreferences completed successfully with 4 providers. Loaded from preferences: {"Success":true,"Value":null,"Exists":false,"Error":null}
+[2026-04-22T22:19:32.731Z] [DEBUG] log [provider-version] Fetched versions: [{"id":"codex","version":"0.9.4","isCustom":true},{"id":"gemini","version":"0.26.0","isCustom":true}]
+[2026-04-22T22:19:32.735Z] [DEBUG] log [GatewayPrefs] Emitted PreferencesUpdated with 2 versions
+[2026-04-22T22:19:48.319Z] [INFO] log Session start request received from client editor-351000-vn4yzt (protocol: assistant)
+[2026-04-22T22:19:48.324Z] [INFO] log Cloud session create: wss://api-beta-v2.prd.azure.muse.unity.com/v1/assistant/ws
+[2026-04-22T22:19:48.330Z] [INFO] assistant.session.create conversationId= cloudBackendUri=wss://api-beta-v2.prd.azure.muse.unity.com/v1/assistant/ws
+[2026-04-22T22:19:48.333Z] [INFO] log createCloudSession: after cleanup, sessionSequenceId=0
+[2026-04-22T22:19:48.337Z] [INFO] log Creating new cloud session (seqId=1)
+[2026-04-22T22:19:48.340Z] [DEBUG] log Target endpoint: wss://api-beta-v2.prd.azure.muse.unity.com/v1/assistant/ws
+[2026-04-22T22:19:48.343Z] [DEBUG] log Using headers: ["Authorization","org-id","project-id","analytics-session-id","analytics-session-count","analytics-user-id","version-editor","version-package","version-api-specification"]
+[2026-04-22T22:19:48.346Z] [INFO] log Opening WebSocket connection to cloud: wss://api-beta-v2.prd.azure.muse.unity.com/v1/assistant/ws
+[2026-04-22T22:19:49.299Z] [INFO] log Cloud session connected successfully
+[2026-04-22T22:19:49.305Z] [DEBUG] log Cloud->Relay:  {"$type":"DISCUSSION_INITIALIZATION_V1","conversation_id":"04447b97-d661-4498-baa6-d2607d8e20c1","chat_timeout_seconds":300,"max_message_size_bytes":34000}
+[2026-04-22T22:19:49.311Z] [DEBUG] assistant.message.received size=155
+[2026-04-22T22:19:49.316Z] [INFO] log New conversation started - clearing session state
+[2026-04-22T22:19:49.319Z] [DEBUG] log Cloud->Relay:  {"$type":"CAPABILITIES_REQUEST_V1"}
+[2026-04-22T22:19:49.322Z] [DEBUG] assistant.message.received size=35
+[2026-04-22T22:19:49.347Z] [DEBUG] message.received type=CAPABILITIES_RESPONSE_V1
+[2026-04-22T22:19:49.352Z] [DEBUG] log Forwarding to cloud - length: 82845
+[2026-04-22T22:19:49.359Z] [DEBUG] message.received type=CHAT_REQUEST_V1
+[2026-04-22T22:19:49.363Z] [DEBUG] log Forwarding to cloud - length: 156
+[2026-04-22T22:19:49.600Z] [DEBUG] log Cloud->Relay:  {"$type":"SKILLS_REQUEST_V1"}
+[2026-04-22T22:19:49.605Z] [DEBUG] assistant.message.received size=29
+[2026-04-22T22:19:49.617Z] [DEBUG] message.received type=SKILLS_RESPONSE_V1
+[2026-04-22T22:19:49.621Z] [DEBUG] log Forwarding to cloud - length: 1616
+[2026-04-22T22:19:49.772Z] [DEBUG] log Cloud->Relay:  {"$type":"CHAT_ACKNOWLEDGMENT_V1","message_id":"c4f48dc9-ab1e-42e1-b033-3f9e5ed94ab0","timestamp":1776896390408,"markdown":"Scan my project and give me improvement ideas","attached_context_metadata":[...
+[2026-04-22T22:19:49.777Z] [DEBUG] assistant.message.received size=202
+[2026-04-22T22:19:49.978Z] [DEBUG] log Cloud->Relay:  {"$type":"SERVER_DISCONNECT_V1","disconnect_reason":{"type":"CRITICAL_ERROR","user_message":"Your organization does not have an active AI subscription. Please check your subscription status."}}
+[2026-04-22T22:19:49.983Z] [DEBUG] assistant.message.received size=193
+[2026-04-22T22:19:49.987Z] [INFO] log Cloud WS close event: seqId=1, current sessionSequenceId=1, code=1011
+[2026-04-22T22:19:49.991Z] [INFO] log Cloud session disconnected: code=1011, purpose="Internal server error — the server encountered an unexpected condition", reason=No subscription, wasConnected=true
+[2026-04-22T22:19:50.006Z] [INFO] log Session end request received from client editor-351000-vn4yzt (protocol: assistant)
+[2026-04-22T22:20:28.179Z] [INFO] log Shutdown request received from client editor-351000-vn4yzt
+[2026-04-22T22:20:28.184Z] [INFO] log Unity client requested immediate shutdown - shutting down now, reason: Shutdown requested by client
+[2026-04-22T22:20:28.188Z] [INFO] log Shutdown: Initiating graceful shutdown: Shutdown requested by client

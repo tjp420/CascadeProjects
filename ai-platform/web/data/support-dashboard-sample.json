@@ -1,0 +1,206 @@
+{
+  "type": "support-dashboard-model",
+  "title": "Platform Maintenance (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Maintainer backlog from repo audit — not hardcoded ticket totals, named demo customers, hardcoded CSAT, or unbreakable-oracle helpdesk fiction."
+  },
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousOpenTickets": 45,
+    "previousTotalTickets": null,
+    "previousCsat": null,
+    "previousAgents": ["Sarah Wilson", "Mike Chen", "Emily Park", "Alex Rivera"],
+    "notes": "Cascade AI Platform helpdesk fiction removed — no multi-agent support queue in this repo."
+  },
+  "overview": {
+    "openTickets": 2,
+    "resolvedToday": 3,
+    "avgResponseTime": null,
+    "satisfactionRate": null,
+    "totalTickets": 7,
+    "activeAgents": 1,
+    "pendingIssues": 2,
+    "resolvedIssues": 5,
+    "measuredBaselines": 43,
+    "sampleJsonFiles": 33,
+    "statLabels": {
+      "openTickets": "Open Issues",
+      "resolvedToday": "Resolved Today",
+      "avgResponseTime": "Avg Response",
+      "satisfactionRate": "CSAT",
+      "totalTickets": "Total Issues",
+      "activeAgents": "Maintainers"
+    },
+    "notes": "Queue rows map to maintainer backlog — schema, duplicate, and migration items resolved 2026-05-24."
+  },
+  "trends": {
+    "labels": ["May 19", "May 20", "May 21", "May 22", "May 23", "May 24"],
+    "openTickets": [8, 7, 6, 5, 5, 2],
+    "satisfaction": [8, 11, 14, 16, 26, 33],
+    "seriesLabels": {
+      "openTickets": "Pending issues",
+      "satisfaction": "Measured baselines"
+    },
+    "notes": "Open issues dropped after schema/duplicate/migration fixes — not CSAT history."
+  },
+  "tickets": [
+    {
+      "id": "ISS-001",
+      "customer": "page-sample-specs",
+      "subject": "Schema violation: issue-resolution-sample.json empty arrays",
+      "priority": "high",
+      "status": "resolved",
+      "agent": "Local Maintainer",
+      "createdAt": "2026-05-23T08:00:00.000Z"
+    },
+    {
+      "id": "ISS-002",
+      "customer": "page-sample-specs",
+      "subject": "Schema violation: security-dashboard-sample.json empty threats",
+      "priority": "high",
+      "status": "resolved",
+      "agent": "Local Maintainer",
+      "createdAt": "2026-05-23T08:00:00.000Z"
+    },
+    {
+      "id": "ISS-003",
+      "customer": "mock-data-scanner",
+      "subject": "Duplicate roadmap JSON content",
+      "priority": "low",
+      "status": "resolved",
+      "agent": "Local Maintainer",
+      "createdAt": "2026-05-22T16:00:00.000Z"
+    },
+    {
+      "id": "ISS-004",
+      "customer": "repository-audit",
+      "subject": "Fiction dashboard samples migration",
+      "priority": "medium",
+      "status": "resolved",
+      "agent": "Local Maintainer",
+      "createdAt": "2026-05-21T14:00:00.000Z"
+    },
+    {
+      "id": "ISS-005",
+      "customer": "npm audit",
+      "subject": "Dependency audit wired to Security page (SEC-004)",
+      "priority": "medium",
+      "status": "resolved",
+      "agent": "Local Maintainer",
+      "createdAt": "2026-05-20T10:00:00.000Z"
+    },
+    {
+      "id": "ISS-006",
+      "customer": "ci-pipeline",
+      "subject": "docker-compose.phase2.yml not smoke-tested in CI",
+      "priority": "medium",
+      "status": "open",
+      "agent": "Local Maintainer",
+      "createdAt": "2026-05-24T00:00:00.000Z"
+    },
+    {
+      "id": "ISS-007",
+      "customer": "jest-coverage",
+      "subject": "Istanbul coverage not collected in CI",
+      "priority": "medium",
+      "status": "open",
+      "agent": "Local Maintainer",
+      "createdAt": "2026-05-24T00:00:00.000Z"
+    }
+  ],
+  "agents": [
+    {
+      "id": "MAINT-001",
+      "name": "Local Maintainer",
+      "status": "online",
+      "ticketsHandled": 7,
+      "satisfaction": null,
+      "avgResponse": "—",
+      "notes": "Single-maintainer local setup"
+    },
+    {
+      "id": "TOOL-001",
+      "name": "mock-data-scanner",
+      "status": "online",
+      "ticketsHandled": 5,
+      "satisfaction": null,
+      "avgResponse": "—",
+      "notes": "35 files / 212.7KB — 0 open issues"
+    },
+    {
+      "id": "TOOL-002",
+      "name": "Jest test suite",
+      "status": "online",
+      "ticketsHandled": 578,
+      "satisfaction": null,
+      "avgResponse": "—",
+      "notes": "665/665 passing"
+    }
+  ],
+  "analytics": {
+    "firstResponseTime": null,
+    "resolutionTime": null,
+    "escalationRate": null,
+    "slaCompliance": null,
+    "backlogTrend": null,
+    "jestPassRate": "665/665",
+    "schemaPassRate": "100%",
+    "measuredBaselines": "42/42",
+    "fictionPagesRemaining": 0,
+    "labels": {
+      "firstResponseTime": "First Response",
+      "resolutionTime": "Resolution Time",
+      "escalationRate": "Escalation Rate",
+      "slaCompliance": "SLA Compliance",
+      "backlogTrend": "Backlog Trend"
+    },
+    "auditLabels": {
+      "jestPassRate": "Jest Pass Rate",
+      "schemaPassRate": "Schema Pass",
+      "measuredBaselines": "Measured Baselines",
+      "fictionPagesRemaining": "Fiction Pages Left",
+      "backlogTrend": "Migration Progress"
+    }
+  },
+  "satisfaction": {
+    "overall": null,
+    "nps": null,
+    "csat": null,
+    "promoters": null,
+    "passives": null,
+    "detractors": null,
+    "notes": "No helpdesk CSAT/NPS in this repo — use Jest and schema metrics instead."
+  },
+  "insights": [
+    {
+      "priority": "high",
+      "title": "Not a customer helpdesk",
+      "description": "John Doe tickets, named support agents, and hardcoded CSAT were template fiction. This queue tracks repo maintenance findings.",
+      "impact": "Avoid false support narrative"
+    },
+    {
+      "priority": "medium",
+      "title": "Enable Istanbul in CI",
+      "description": "Run npm run test:coverage in CI to replace null Coverage Reports metrics.",
+      "impact": "Honest coverage dashboard"
+    },
+    {
+      "priority": "low",
+      "title": "Maintainer backlog aligned",
+      "description": "ISS-001 through ISS-005 resolved — 42/42 schema pass, 0 duplicate groups, 42/42 repository-audit samples.",
+      "impact": "Support queue reflects measured repo state"
+    }
+  ],
+  "quickActions": [
+    { "id": "open-issues", "label": "Open Issue Resolution", "icon": "🔧" },
+    { "id": "run-scanner", "label": "Run mock-data scan", "icon": "🔍" },
+    { "id": "export-queue", "label": "Export JSON", "icon": "📊" }
+  ]
+}

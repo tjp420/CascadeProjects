@@ -1,0 +1,11 @@
+{
+  "centralDataTruth": {
+    "mockDataScan": {
+      "paths": [
+        "web/data",
+        "data/mock",
+        "data-central/ai-tools/mock-data"
+      ]
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "type": "simplebeacon-cli-model",
+  "title": "Simplebeacon CLI Documentation",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Measured CLI docs from packages/simplebeacon-cli — not dashboard page fiction."
+  },
+  "overview": {
+    "totalItems": 8,
+    "commands": 4,
+    "rules": 6,
+    "packageVersion": "1.1.0",
+    "notes": "Product SKU: simplebeacon — CLI + GitHub Action gate."
+  },
+  "items": [
+    {
+      "id": "cli-installation",
+      "title": "Installation",
+      "description": "npm install -D simplebeacon or npx simplebeacon init from repo root",
+      "section": "getting-started",
+      "path": "packages/simplebeacon-cli/README.md",
+      "command": "npx simplebeacon init"
+    },
+    {
+      "id": "cli-scan",
+      "title": "Scan & Gate",
+      "description": "Scan mock JSON, credentials, roadmap fiction; exit 1 on high severity with --gate",
+      "section": "usage",
+      "path": "packages/simplebeacon-cli/bin/simplebeacon.js",
+      "command": "npm run simplebeacon"
+    },
+    {
+      "id": "cli-config",
+      "title": "Configuration",
+      "description": ".simplebeacon/config.json — scanPaths, rules, gate.failOn; baseline.json for Jest counts",
+      "section": "configuration",
+      "path": "ai-platform/.simplebeacon/config.json"
+    },
+    {
+      "id": "cli-rules",
+      "title": "Rules",
+      "description": "credentials, json-schema, sample-consistency, roadmap, production-leak, jest-baseline",
+      "section": "rules",
+      "path": "packages/simplebeacon-cli/src/rules/"
+    },
+    {
+      "id": "cli-baseline-sync",
+      "title": "Baseline Sync",
+      "description": "Run Jest and write pass counts to .simplebeacon/baseline.json after green test run",
+      "section": "usage",
+      "path": "packages/simplebeacon-cli/src/baseline-sync.js",
+      "command": "npm run simplebeacon:baseline-sync"
+    },
+    {
+      "id": "cli-github-action",
+      "title": "GitHub Actions",
+      "description": "simplebeacon.yml on PRs — report artifact + PR comment via GITHUB_TOKEN",
+      "section": "integration",
+      "path": ".github/workflows/simplebeacon.yml"
+    },
+    {
+      "id": "cli-composite-action",
+      "title": "Composite Action",
+      "description": "ai-platform/action/action.yml — reusable scan step for monorepos",
+      "section": "integration",
+      "path": "ai-platform/action/action.yml"
+    },
+    {
+      "id": "cli-publish",
+      "title": "Publish v1.0",
+      "description": "npm pack verified — publish simplebeacon@1.0.0 to npm org",
+      "section": "examples",
+      "path": "packages/simplebeacon-cli/package.json",
+      "command": "cd packages/simplebeacon-cli && npm pack"
+    }
+  ],
+  "commands": [
+    { "name": "init", "usage": "simplebeacon init", "purpose": "Create .simplebeacon/config.json and baseline.json" },
+    { "name": "scan", "usage": "simplebeacon scan --gate", "purpose": "Scan project and fail on blocking severities" },
+    { "name": "baseline sync", "usage": "simplebeacon baseline sync", "purpose": "Sync Jest pass counts to baseline.json" },
+    { "name": "comment", "usage": "simplebeacon comment --report .simplebeacon/report.json", "purpose": "Post GitHub PR comment from JSON report" }
+  ],
+  "rules": [
+    { "id": "credentials", "severity": "high", "detects": "API keys, tokens, private keys in source" },
+    { "id": "json-schema", "severity": "high", "detects": "Sample JSON violating PAGE_SAMPLE_SPECS" },
+    { "id": "sample-consistency", "severity": "high", "detects": "Cross-file KPI drift vs anchor samples" },
+    { "id": "roadmap", "severity": "medium", "detects": "Legacy fiction roadmaps and oversized exports" },
+    { "id": "production-leak", "severity": "medium", "detects": "Mock/sample paths referenced from production code" },
+    { "id": "jest-baseline", "severity": "high", "detects": "Jest pass count drift vs baseline (optional, --with-jest)" }
+  ],
+  "deprecatedNarrative": {
+    "previousFocus": "Dashboard page URL params and per-page documentation",
+    "notes": "Documentation pivot — Help center maps to Simplebeacon CLI, not 156-article fiction."
+  }
+}

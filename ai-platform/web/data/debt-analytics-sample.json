@@ -1,0 +1,192 @@
+{
+  "type": "debt-analytics-model",
+  "title": "Debt Analytics (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Engineering debt metrics — not unbreakable-oracle predictive forecasts."
+  },
+  "overview": {
+    "totalDebt": 12,
+    "criticalIssues": 4,
+    "resolutionRate": 72,
+    "monthlyTrend": "-12%",
+    "avgResolutionTime": null,
+    "teamVelocity": null,
+    "predictiveAccuracy": null,
+    "notes": "Open items are CI hardening and production profile — not 198 fictional debt items or 23 fiction samples."
+  },
+  "trends": {
+    "monthly": [
+      { "month": "Apr W1", "debt": 33, "resolved": 0, "added": 0 },
+      { "month": "Apr W2", "debt": 31, "resolved": 2, "added": 0 },
+      { "month": "May W1", "debt": 28, "resolved": 3, "added": 0 },
+      { "month": "May W2", "debt": 23, "resolved": 5, "added": 0 },
+      { "month": "May W3", "debt": 18, "resolved": 5, "added": 0 },
+      { "month": "May W4", "debt": 12, "resolved": 6, "added": 0 }
+    ],
+    "categories": [
+      { "category": "Sample Telemetry", "current": 0, "trend": "decreasing", "change": "-100%" },
+      { "category": "Security", "current": 2, "trend": "decreasing", "change": "-75%" },
+      { "category": "Documentation", "current": 6, "trend": "stable", "change": "0%" },
+      { "category": "Performance", "current": 2, "trend": "decreasing", "change": "-60%" },
+      { "category": "Testing", "current": 2, "trend": "decreasing", "change": "-90%" },
+      { "category": "Page Migration", "current": 0, "trend": "decreasing", "change": "-100%" }
+    ],
+    "severity": [
+      { "severity": "Critical", "count": 4, "percentage": 33.3, "trend": "decreasing" },
+      { "severity": "High", "count": 3, "percentage": 25.0, "trend": "decreasing" },
+      { "severity": "Medium", "count": 3, "percentage": 25.0, "trend": "stable" },
+      { "severity": "Low", "count": 2, "percentage": 16.7, "trend": "stable" }
+    ]
+  },
+  "predictions": {
+    "nextMonth": {
+      "debt": 8,
+      "confidence": 85,
+      "factors": ["Validate docker-compose.phase2.yml in CI", "Enable Istanbul coverage in CI"],
+      "notes": "Engineering target — not an AI forecast."
+    },
+    "nextQuarter": {
+      "debt": 4,
+      "confidence": 72,
+      "factors": ["Production Docker profile", "REQUIRE_AUTH production gate"],
+      "notes": "Engineering target — not an AI forecast."
+    },
+    "nextYear": {
+      "debt": 2,
+      "confidence": 55,
+      "factors": ["Full page documentation", "Live GGUF inference enabled"],
+      "notes": "Engineering target — not an AI forecast."
+    }
+  },
+  "kpis": {
+    "resolutionRate": 0.72,
+    "sampleBaselineCoverage": 1.0,
+    "testSuiteHealth": 0.90,
+    "pageMigrationProgress": 1.0,
+    "documentationCoverage": 0.10
+  },
+  "reports": [
+    {
+      "id": "audit_snapshot",
+      "name": "Repository Audit Snapshot",
+      "type": "Baseline",
+      "generatedAt": "2026-05-24T00:00:00.000Z",
+      "size": "12KB",
+      "format": "JSON",
+      "insights": 6
+    },
+    {
+      "id": "jest_summary",
+      "name": "Jest Test Summary",
+      "type": "Weekly",
+      "generatedAt": "2026-05-24T00:00:00.000Z",
+      "size": "4KB",
+      "format": "JSON",
+      "insights": 3
+    },
+    {
+      "id": "sample_audit",
+      "name": "Sample Telemetry Audit",
+      "type": "Custom",
+      "generatedAt": "2026-05-24T00:00:00.000Z",
+      "size": "8KB",
+      "format": "JSON",
+      "insights": 10
+    },
+    {
+      "id": "debt_reduction_sync",
+      "name": "Debt Reduction Baseline Sync",
+      "type": "Custom",
+      "generatedAt": "2026-05-24T00:00:00.000Z",
+      "size": "6KB",
+      "format": "JSON",
+      "insights": 5
+    }
+  ],
+  "insights": [
+    {
+      "id": "insight_tests",
+      "title": "665/665 Jest tests green",
+      "description": "Routing, page samples, stub APIs, and live-server smoke pass — wire deploy gate next.",
+      "priority": "success",
+      "confidence": 95,
+      "impact": "Positive",
+      "icon": "🧪"
+    },
+    {
+      "id": "insight_samples",
+      "title": "43/43 samples on repository-audit",
+      "description": "All dashboard page samples migrated — mock scanner 0 open issues, 42/42 schema pass.",
+      "priority": "success",
+      "confidence": 98,
+      "impact": "High",
+      "icon": "📋"
+    },
+    {
+      "id": "insight_docs",
+      "title": "Documentation gap persists",
+      "description": "No page docs or URL param reference yet — six documentation tasks remain on the checklist.",
+      "priority": "warning",
+      "confidence": 88,
+      "impact": "Medium",
+      "icon": "📚"
+    },
+    {
+      "id": "insight_security",
+      "title": "Production profile pending",
+      "description": "Phase 2 JWT auth and SEC-004 npm audit shipped — REQUIRE_AUTH gate and Docker deploy runbook remain.",
+      "priority": "danger",
+      "confidence": 90,
+      "impact": "Critical",
+      "icon": "🛡️"
+    }
+  ],
+  "alerts": [
+    {
+      "id": "alert_ci",
+      "title": "CI hardening backlog active",
+      "description": "Istanbul coverage not collected in CI; docker-compose.phase2.yml not smoke-tested yet.",
+      "severity": "warning",
+      "icon": "🧪",
+      "time": "Active"
+    },
+    {
+      "id": "alert_security",
+      "title": "Stub auth review before production",
+      "description": "dashboard-stub-api routes serve sample JSON — confirm REQUIRE_AUTH and middleware before go-live.",
+      "severity": "danger",
+      "icon": "⚠️",
+      "time": "Active"
+    },
+    {
+      "id": "alert_tests",
+      "title": "665-test suite milestone",
+      "description": "Dashboard Jest suite at 665/665 (32 suites) — promote to required CI deploy gate on main.",
+      "severity": "success",
+      "icon": "✅",
+      "time": "1 day ago"
+    }
+  ],
+  "quickActions": [
+    { "label": "Generate Report", "icon": "📊", "action": "generate-report" },
+    { "label": "Export Analytics", "icon": "📥", "action": "export" },
+    { "label": "Open Calculator", "icon": "🧮", "section": "debt-calculator" },
+    { "label": "Open Reduction", "icon": "🔨", "section": "debt-reduction" }
+  ],
+  "deprecatedNarrative": {
+    "previousModel": "unbreakable-oracle",
+    "previousTotalDebt": 198,
+    "previousCriticalIssues": 58,
+    "previousTestCount": 206,
+    "previousPredictiveAccuracy": 82,
+    "previousSampleFictionCount": 23,
+    "notes": "Old template used 46 debt items, 23 fiction samples, 500-test counts, and AI predictive accuracy."
+  }
+}

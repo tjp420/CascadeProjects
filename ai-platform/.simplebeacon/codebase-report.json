@@ -1,0 +1,633 @@
+{
+  "type": "codebase-analyzer-report",
+  "reportVersion": 1,
+  "title": "Codebase Analysis Report",
+  "dataSource": "repository-audit",
+  "generatedAt": "2026-05-27T19:38:15.901Z",
+  "generatedBy": "codebase-analyzer",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "totalFiles": 3005,
+    "totalFolders": 218,
+    "profile": "audit"
+  },
+  "summary": {
+    "repositoryFilesTotal": 3005,
+    "repositoryFoldersTotal": 218,
+    "codeFilesAnalyzed": 2565,
+    "codeFilesDiscovered": 2603,
+    "findingsTotal": 0,
+    "findingsReturned": 0,
+    "findingsTruncated": false,
+    "scanContext": "complete",
+    "healthScore": 100,
+    "severityCounts": {
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "tierCounts": {
+      "production": 0,
+      "documentation": 0,
+      "general": 0
+    },
+    "eslintErrors": 0,
+    "eslintWarnings": 0,
+    "eslintSource": "command",
+    "eslintReportPath": null,
+    "eslintSkipped": null,
+    "categoryCounts": {},
+    "analyzerCounts": {
+      "debugArtifacts": 0,
+      "placeholderOrFictionalData": 0,
+      "eslintFindings": 0
+    }
+  },
+  "rubric": {
+    "version": "phase1.0",
+    "severityBands": {
+      "high": "Merge-risk issue or reliability/security concern in production-relevant paths",
+      "medium": "Should-fix quality issue with direct maintainability/runtime impact",
+      "low": "Hygiene issue; track and clean as capacity allows"
+    },
+    "categoryMapping": {
+      "debug-artifact": "Debug Artifact Analyzer",
+      "meaningless-data": "Placeholder & Fictional Data Analyzer",
+      "eslint": "ESLint Integration Analyzer",
+      "tech-debt": "Technical debt markers (TODO/FIXME/HACK)",
+      "broken": "Broken or invalid files",
+      "artifact": "Backup/generated artifacts in tree",
+      "empty": "Empty or whitespace-only files",
+      "oversized": "Oversized source files",
+      "duplicate": "Duplicate basenames"
+    }
+  },
+  "eslintSummary": {
+    "source": "command",
+    "reportPath": null,
+    "filesWithIssues": 0,
+    "totalIssues": 0,
+    "errors": 0,
+    "warnings": 0,
+    "warningTrend": [
+      {
+        "bucket": "errors",
+        "count": 0
+      },
+      {
+        "bucket": "warnings",
+        "count": 0
+      }
+    ],
+    "topRules": [],
+    "categorizedWarnings": [],
+    "topDirectories": []
+  },
+  "categories": [],
+  "findings": [],
+  "structureInsights": {
+    "summary": {
+      "sampledFiles": 50,
+      "byLanguage": {
+        "yaml": 8,
+        "markdown": 39,
+        "python": 1,
+        "nginx": 1,
+        "bash": 1
+      },
+      "approximateFunctions": 119,
+      "approximateClasses": 29,
+      "tier": "baseline"
+    },
+    "samples": [
+      {
+        "filePath": "action/action.yml",
+        "language": "yaml",
+        "lineCount": 105,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 2,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "AI_PLATFORM_ROADMAP.md",
+        "language": "markdown",
+        "lineCount": 347,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 1,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "batch_consolidator.py",
+        "language": "python",
+        "lineCount": 52,
+        "approximateFunctions": 6,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 4,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "config/docker-compose.yml",
+        "language": "yaml",
+        "lineCount": 131,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 1,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "data-central/ai-tools/mock-data/README.md",
+        "language": "markdown",
+        "lineCount": 4,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "data-central/README.md",
+        "language": "markdown",
+        "lineCount": 5,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "DATA_MIGRATION_PLAN.md",
+        "language": "markdown",
+        "lineCount": 342,
+        "approximateFunctions": 0,
+        "approximateClasses": 1,
+        "importOrIncludeCount": 5,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "DEPLOYMENT.md",
+        "language": "markdown",
+        "lineCount": 292,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 1,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docker/cloudflared/config.yml",
+        "language": "yaml",
+        "lineCount": 20,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docker/cloudflared/docker-compose.cloudflared.yml",
+        "language": "yaml",
+        "lineCount": 14,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docker/nginx/simplebeacon.conf",
+        "language": "nginx",
+        "lineCount": 41,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docker/simplebeacon-collector.sh",
+        "language": "bash",
+        "lineCount": 48,
+        "approximateFunctions": 2,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docker-compose.phase2.yml",
+        "language": "yaml",
+        "lineCount": 38,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docker-compose.simplebeacon.dev.yml",
+        "language": "yaml",
+        "lineCount": 11,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docker-compose.simplebeacon.full.yml",
+        "language": "yaml",
+        "lineCount": 14,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docker-compose.simplebeacon.yml",
+        "language": "yaml",
+        "lineCount": 115,
+        "approximateFunctions": 4,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/2015-01-30.md",
+        "language": "markdown",
+        "lineCount": 61,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 3,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/90-DAY-EXECUTION-COMPLETE.md",
+        "language": "markdown",
+        "lineCount": 413,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 1,
+        "complexity": "high",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/ABOUT_BUTTONS_FIX_SUMMARY.md",
+        "language": "markdown",
+        "lineCount": 384,
+        "approximateFunctions": 14,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/action-plan-2026-05-26.md",
+        "language": "markdown",
+        "lineCount": 112,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 2,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/action_plan.md",
+        "language": "markdown",
+        "lineCount": 203,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 1,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/ACTIVE_SIGNATURE_SUCCESS.md",
+        "language": "markdown",
+        "lineCount": 219,
+        "approximateFunctions": 11,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 3,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/ACTUAL_IMPLEMENTATION.md",
+        "language": "markdown",
+        "lineCount": 99,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/ADVANCED_FILTERING_IMPLEMENTED.md",
+        "language": "markdown",
+        "lineCount": 255,
+        "approximateFunctions": 10,
+        "approximateClasses": 4,
+        "importOrIncludeCount": 4,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/ADVANCED_FILTERING_PERFORMANCE_ANALYSIS.md",
+        "language": "markdown",
+        "lineCount": 198,
+        "approximateFunctions": 7,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 2,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/ADVANCED_FILTERING_TEST_RESULTS.md",
+        "language": "markdown",
+        "lineCount": 319,
+        "approximateFunctions": 21,
+        "approximateClasses": 1,
+        "importOrIncludeCount": 4,
+        "complexity": "high",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/advanced_test_guide.md",
+        "language": "markdown",
+        "lineCount": 79,
+        "approximateFunctions": 0,
+        "approximateClasses": 1,
+        "importOrIncludeCount": 1,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AESTHETIC_METAMORPHOSIS_SUCCESS.md",
+        "language": "markdown",
+        "lineCount": 224,
+        "approximateFunctions": 3,
+        "approximateClasses": 1,
+        "importOrIncludeCount": 3,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AGENTS.md",
+        "language": "markdown",
+        "lineCount": 27,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AGENT_ZERO_32772_SETUP.md",
+        "language": "markdown",
+        "lineCount": 74,
+        "approximateFunctions": 0,
+        "approximateClasses": 2,
+        "importOrIncludeCount": 3,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AGENT_ZERO_FINAL_SETUP.md",
+        "language": "markdown",
+        "lineCount": 124,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 3,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AGENT_ZERO_FINAL_STATUS.md",
+        "language": "markdown",
+        "lineCount": 59,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 3,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AGENT_ZERO_OLLAMA_SETUP.md",
+        "language": "markdown",
+        "lineCount": 141,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 3,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AGENT_ZERO_WORKING_SOLUTION.md",
+        "language": "markdown",
+        "lineCount": 92,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 1,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/ai-problem-analyzer-business-case.md",
+        "language": "markdown",
+        "lineCount": 61,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 2,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/ai-problem-analyzer-decision-framework-8-weeks.md",
+        "language": "markdown",
+        "lineCount": 85,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 2,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/ai-problem-analyzer-kpi-instrumentation-plan.md",
+        "language": "markdown",
+        "lineCount": 62,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 3,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_ANALYSIS_EXECUTIVE_RESPONSE.md",
+        "language": "markdown",
+        "lineCount": 261,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_CAPABILITY_MATRIX.md",
+        "language": "markdown",
+        "lineCount": 209,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 4,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_CODING_ADVANCEMENT_SUMMARY.md",
+        "language": "markdown",
+        "lineCount": 295,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 13,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_DASHBOARD_ROADMAP_SUMMARY.md",
+        "language": "markdown",
+        "lineCount": 337,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_EMPOWERMENT_BLUEPRINT.md",
+        "language": "markdown",
+        "lineCount": 488,
+        "approximateFunctions": 30,
+        "approximateClasses": 9,
+        "importOrIncludeCount": 3,
+        "complexity": "high",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_INTERFACE_DOCUMENTATION.md",
+        "language": "markdown",
+        "lineCount": 58,
+        "approximateFunctions": 0,
+        "approximateClasses": 1,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_MANIFEST.md",
+        "language": "markdown",
+        "lineCount": 81,
+        "approximateFunctions": 0,
+        "approximateClasses": 2,
+        "importOrIncludeCount": 4,
+        "complexity": "low",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_OS_INTEGRATION_SUCCESS.md",
+        "language": "markdown",
+        "lineCount": 262,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 1,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_OS_SECURITY_FIX_SUMMARY.md",
+        "language": "markdown",
+        "lineCount": 250,
+        "approximateFunctions": 4,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_PLATFORM_ENHANCEMENT_PLAN.md",
+        "language": "markdown",
+        "lineCount": 377,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 1,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_POWERED_SYSTEM_BLUEPRINT.md",
+        "language": "markdown",
+        "lineCount": 430,
+        "approximateFunctions": 7,
+        "approximateClasses": 7,
+        "importOrIncludeCount": 1,
+        "complexity": "high",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/AI_RECOMMENDATIONS_IMPLEMENTED.md",
+        "language": "markdown",
+        "lineCount": 207,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 1,
+        "complexity": "medium",
+        "tier": "baseline"
+      },
+      {
+        "filePath": "docs/ALL_ERRORS_SOLVED_FINAL.md",
+        "language": "markdown",
+        "lineCount": 59,
+        "approximateFunctions": 0,
+        "approximateClasses": 0,
+        "importOrIncludeCount": 0,
+        "complexity": "low",
+        "tier": "baseline"
+      }
+    ]
+  },
+  "scanScope": {
+    "mode": "codebase-audit-complete",
+    "scanProfile": "universal",
+    "scanContext": "complete",
+    "universalLanguageCount": 52,
+    "dedicatedLanguagePlugins": [
+      "zscript",
+      "acs",
+      "decorate",
+      "glsl",
+      "lua",
+      "python",
+      "rust",
+      "go",
+      "sql"
+    ],
+    "description": "Complete scan profile — deep content analysis on every discovered code-like file (skips node_modules, .git, coverage). Not a semantic or security certification.",
+    "limitations": [
+      "Complete scan: analyzed 2,565 of 2,603 code-like files.",
+      "Extension profile: universal (dashboard default: universal; complete/CLI: default; override with SCAN_PROFILE or scanProfile).",
+      "52 language plugins (51 registry languages; Tier-2: Python, Rust, Go, SQL).",
+      "Context-aware filtering reduces false positives in tests, docs, and example paths.",
+      "Structure hints are regex-based Tier-1 estimates — not AST parsing.",
+      "ESLint ran on server/ and packages/ under the platform root when available.",
+      "Does not prove dead-code elimination — flags debt markers and broken files only."
+    ]
+  }
+}

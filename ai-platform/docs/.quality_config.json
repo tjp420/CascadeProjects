@@ -1,0 +1,7 @@
+{
+  "max_line_length": 120,
+  "require_docstrings": true,
+  "max_complexity": 7,
+  "min_test_coverage": 80,
+  "quality_threshold": 85
+}

@@ -1,0 +1,10 @@
+# Dev overrides — mount workspace samples and Simplebeacon state for live iteration.
+services:
+  dashboard:
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./.simplebeacon:/app/.simplebeacon
+      - ./web/data:/app/web/data
+      - ./packages/simplebeacon-cli:/app/packages/simplebeacon-cli
+      - ./src/api/simplebeacon-api.js:/app/src/api/simplebeacon-api.js

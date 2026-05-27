@@ -1,0 +1,174 @@
+{
+  "type": "database-model",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "File-based dashboard storage — not PostgreSQL/MongoDB with 6.9M records."
+  },
+  "deprecatedNarrative": {
+    "previousTotalRecords": 6979191,
+    "previousTotalSize": "11.8GB",
+    "previousDatabases": ["PostgreSQL", "MongoDB", "Redis"],
+    "notes": "Enterprise database fleet fiction removed."
+  },
+  "overview": {
+    "totalDatabases": 4,
+    "connectedDatabases": 3,
+    "totalSize": "212.7KB",
+    "totalRecords": 33,
+    "avgQueryTime": null,
+    "backupStatus": "N/A — file-based",
+    "statLabels": {
+      "connectedDatabases": "Connected Stores",
+      "totalSize": "Sample JSON Size",
+      "totalRecords": "Sample Files",
+      "avgQueryTime": "Query Latency"
+    },
+    "notes": "33 web/data/*-sample.json files — no production DB cluster."
+  },
+  "databases": [
+    {
+      "id": "sample_json",
+      "name": "Dashboard Sample JSON",
+      "type": "JSON files",
+      "icon": "📋",
+      "host": "web/data",
+      "port": null,
+      "status": "connected",
+      "size": "212.7KB",
+      "tables": 33,
+      "records": 33,
+      "lastBackup": "git tracked",
+      "connections": 1,
+      "maxConnections": null,
+      "queryTime": null,
+      "indexUsage": 94,
+      "description": "33 *-sample.json files validated by page-samples.test.js"
+    },
+    {
+      "id": "local_storage",
+      "name": "Browser localStorage",
+      "type": "localStorage",
+      "icon": "💾",
+      "host": "browser",
+      "port": null,
+      "status": "connected",
+      "size": "—",
+      "tables": 0,
+      "records": null,
+      "lastBackup": "manual export",
+      "connections": 1,
+      "maxConnections": null,
+      "queryTime": null,
+      "description": "last*Model keys — clear when migrating samples"
+    },
+    {
+      "id": "stub_cache",
+      "name": "Stub API Snapshot Cache",
+      "type": "In-memory",
+      "icon": "⚡",
+      "host": "dashboard-stub-api.js",
+      "port": null,
+      "status": "connected",
+      "size": "—",
+      "tables": 0,
+      "records": null,
+      "lastBackup": "ephemeral",
+      "connections": 1,
+      "maxConnections": null,
+      "queryTime": null,
+      "description": "snapshotGet cache for tier-1 routes"
+    },
+    {
+      "id": "gguf_path",
+      "name": "GGUF Model Path",
+      "type": "Filesystem",
+      "icon": "🧠",
+      "host": "local path",
+      "port": null,
+      "status": "disconnected",
+      "size": "4.1GB",
+      "tables": 0,
+      "records": 1,
+      "lastBackup": "N/A",
+      "connections": 0,
+      "maxConnections": 1,
+      "queryTime": null,
+      "description": "agi-chatbot-test when LLAMA_CPP_BIN/Ollama configured"
+    }
+  ],
+  "recentQueries": [
+    {
+      "id": "q1",
+      "time": "2026-05-24",
+      "database": "Sample JSON",
+      "query": "page-samples.test.js validates 33 *-sample.json files",
+      "duration": null,
+      "status": "success"
+    },
+    {
+      "id": "q2",
+      "time": "2026-05-24",
+      "database": "Stub Cache",
+      "query": "GET /api/database returns wrapped database-sample.json",
+      "duration": null,
+      "status": "success"
+    },
+    {
+      "id": "q3",
+      "time": "2026-05-23",
+      "database": "localStorage",
+      "query": "lastDatabaseModel restore blocked when stale fiction detected",
+      "duration": null,
+      "status": "success"
+    },
+    {
+      "id": "q4",
+      "time": "2026-05-23",
+      "database": "Mock Scanner",
+      "query": "35 files scanned — 0 issues, 100% schema (43/43), 99% quality",
+      "duration": null,
+      "status": "success"
+    }
+  ],
+  "performanceMetrics": [
+    { "label": "Sample Files", "value": "33", "score": 100, "trend": null, "trendType": "neutral" },
+    { "label": "Schema Pass Rate", "value": "94%", "score": 94, "trend": null, "trendType": "neutral" },
+    { "label": "Query Latency", "value": "—", "score": null, "trend": null, "trendType": "neutral" },
+    { "label": "Scan Quality", "value": "98%", "score": 98, "trend": null, "trendType": "neutral" }
+  ],
+  "systemHealth": [
+    { "label": "Sample JSON Valid", "value": "42/42", "percentage": 100, "level": "good" },
+    { "label": "Repository-Audit Pages", "value": "42/42", "percentage": 100, "level": "good" },
+    { "label": "Fiction Remaining", "value": "0 samples", "percentage": 0, "level": "good" },
+    { "label": "Production DB", "value": "None", "percentage": 0, "level": "info" }
+  ],
+  "insights": [
+    {
+      "priority": "high",
+      "title": "No PostgreSQL/MongoDB in this repo",
+      "description": "Prior 6,979,191 records and 11.8GB were demo fiction.",
+      "impact": "Honest database page",
+      "confidence": 95
+    },
+    {
+      "priority": "medium",
+      "title": "Clear stale localStorage on sample migration",
+      "description": "lastDatabaseModel may restore old enterprise payloads.",
+      "impact": "Correct page render",
+      "confidence": 92
+    },
+    {
+      "priority": "low",
+      "title": "GGUF path optional",
+      "description": "Fourth store stays disconnected until inference configured.",
+      "impact": "Expected local-only state",
+      "confidence": 90
+    }
+  ]
+}

@@ -1,0 +1,330 @@
+{
+  "targets_considered": 36,
+  "touched_count": 24,
+  "total_before": 37348499,
+  "total_after": 35297168,
+  "total_saved": 2051331,
+  "results": [
+    {
+      "file": "reports/technical-debt/raw/eslint-report.json",
+      "before": 11063148,
+      "after": 11063147,
+      "saved": 1,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\reports__technical-debt__raw__eslint-report.json.premin.json.gz"
+    },
+    {
+      "file": "reports/technical-debt/raw/jscpd/jscpd-report.json",
+      "before": 7219638,
+      "after": 5413093,
+      "saved": 1806545,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\reports__technical-debt__raw__jscpd__jscpd-report.json.premin.json.gz"
+    },
+    {
+      "file": "reports/technical-debt/raw\\complexity-report.json",
+      "before": 129,
+      "after": 129,
+      "saved": 0,
+      "action": "parse_failed",
+      "error": "Expecting value: line 1 column 1 (char 0)"
+    },
+    {
+      "file": "reports/technical-debt/raw\\compliance-endpoint-response.json",
+      "before": 9833,
+      "after": 9833,
+      "saved": 0,
+      "action": "unchanged"
+    },
+    {
+      "file": "reports/technical-debt/raw\\depcheck.json",
+      "before": 189424,
+      "after": 189424,
+      "saved": 0,
+      "action": "parse_failed",
+      "error": "[Errno 2] No such file or directory: 'reports\\\\technical-debt\\\\archive\\\\raw-json-gzip\\\\reports__technical-debt__raw\\\\depcheck.json.premin.json.gz'"
+    },
+    {
+      "file": "reports/technical-debt/raw\\eslint-report.json",
+      "before": 11063147,
+      "after": 11063147,
+      "saved": 0,
+      "action": "unchanged"
+    },
+    {
+      "file": "reports/technical-debt/raw\\jscpd\\jscpd-report.json",
+      "before": 5413093,
+      "after": 5413093,
+      "saved": 0,
+      "action": "unchanged"
+    },
+    {
+      "file": "reports/technical-debt/raw\\knip.json",
+      "before": 291860,
+      "after": 291860,
+      "saved": 0,
+      "action": "parse_failed",
+      "error": "[Errno 2] No such file or directory: 'reports\\\\technical-debt\\\\archive\\\\raw-json-gzip\\\\reports__technical-debt__raw\\\\knip.json.premin.json.gz'"
+    },
+    {
+      "file": "reports/technical-debt/raw\\madge-tree.json",
+      "before": 39021,
+      "after": 39021,
+      "saved": 0,
+      "action": "parse_failed",
+      "error": "[Errno 2] No such file or directory: 'reports\\\\technical-debt\\\\archive\\\\raw-json-gzip\\\\reports__technical-debt__raw\\\\madge-tree.json.premin.json.gz'"
+    },
+    {
+      "file": "reports/technical-debt/raw\\metrics-summary.json",
+      "before": 1048,
+      "after": 1048,
+      "saved": 0,
+      "action": "parse_failed",
+      "error": "[Errno 2] No such file or directory: 'reports\\\\technical-debt\\\\archive\\\\raw-json-gzip\\\\reports__technical-debt__raw\\\\metrics-summary.json.premin.json.gz'"
+    },
+    {
+      "file": "reports/technical-debt/raw\\npm-audit.json",
+      "before": 386,
+      "after": 386,
+      "saved": 0,
+      "action": "parse_failed",
+      "error": "[Errno 2] No such file or directory: 'reports\\\\technical-debt\\\\archive\\\\raw-json-gzip\\\\reports__technical-debt__raw\\\\npm-audit.json.premin.json.gz'"
+    },
+    {
+      "file": "reports/technical-debt/raw\\npm-ls-depth0.json",
+      "before": 6033,
+      "after": 6033,
+      "saved": 0,
+      "action": "parse_failed",
+      "error": "[Errno 2] No such file or directory: 'reports\\\\technical-debt\\\\archive\\\\raw-json-gzip\\\\reports__technical-debt__raw\\\\npm-ls-depth0.json.premin.json.gz'"
+    },
+    {
+      "file": "reports/technical-debt/raw\\npm-outdated.json",
+      "before": 2847,
+      "after": 2847,
+      "saved": 0,
+      "action": "parse_failed",
+      "error": "[Errno 2] No such file or directory: 'reports\\\\technical-debt\\\\archive\\\\raw-json-gzip\\\\reports__technical-debt__raw\\\\npm-outdated.json.premin.json.gz'"
+    },
+    {
+      "file": "reports/technical-debt/raw\\unimported.json",
+      "before": 27833,
+      "after": 27833,
+      "saved": 0,
+      "action": "parse_failed",
+      "error": "Expecting value: line 2 column 8 (char 8)"
+    },
+    {
+      "file": ".simplebeacon/oversized-files-report.json",
+      "before": 7347,
+      "after": 5549,
+      "saved": 1798,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__oversized-files-report.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/source-kpi-findings-with-docs.json",
+      "before": 267821,
+      "after": 197960,
+      "saved": 69861,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__source-kpi-findings-with-docs.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/source-kpi-findings.json",
+      "before": 258684,
+      "after": 191309,
+      "saved": 67375,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__source-kpi-findings.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/report-expanded.json",
+      "before": 128559,
+      "after": 107528,
+      "saved": 21031,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__report-expanded.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/report-fresh.json",
+      "before": 2670,
+      "after": 2180,
+      "saved": 490,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__report-fresh.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/report.json",
+      "before": 5254,
+      "after": 4306,
+      "saved": 948,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__report.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/assessment.json",
+      "before": 62359,
+      "after": 50074,
+      "saved": 12285,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__assessment.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/compliance-result.json",
+      "before": 3404,
+      "after": 2795,
+      "saved": 609,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__compliance-result.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/consolidation-report.json",
+      "before": 3076,
+      "after": 2477,
+      "saved": 599,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__consolidation-report.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/gate-test-report.json",
+      "before": 7053,
+      "after": 5656,
+      "saved": 1397,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__gate-test-report.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/history.json",
+      "before": 9442,
+      "after": 6952,
+      "saved": 2490,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__history.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/jest-result.json",
+      "before": 200,
+      "after": 154,
+      "saved": 46,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__jest-result.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/json-validation.json",
+      "before": 132,
+      "after": 111,
+      "saved": 21,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__json-validation.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/live-dup-test.json",
+      "before": 2670,
+      "after": 2180,
+      "saved": 490,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__live-dup-test.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/repo-credential-scan.json",
+      "before": 14078,
+      "after": 10899,
+      "saved": 3179,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__repo-credential-scan.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/test-credentials-report.json",
+      "before": 180601,
+      "after": 171284,
+      "saved": 9317,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__test-credentials-report.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/test-fiction-report.json",
+      "before": 177525,
+      "after": 168833,
+      "saved": 8692,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__test-fiction-report.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/test-fictional-kpis-report.json",
+      "before": 177538,
+      "after": 168846,
+      "saved": 8692,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__test-fictional-kpis-report.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/test-report-timing.json",
+      "before": 177525,
+      "after": 168833,
+      "saved": 8692,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__test-report-timing.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/test-report.json",
+      "before": 177525,
+      "after": 168833,
+      "saved": 8692,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__test-report.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/test-schema-report.json",
+      "before": 177525,
+      "after": 168833,
+      "saved": 8692,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__test-schema-report.json.premin.json.gz"
+    },
+    {
+      "file": ".simplebeacon/test-schema-violation-report.json",
+      "before": 180071,
+      "after": 170682,
+      "saved": 9389,
+      "action": "minified_in_place",
+      "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\.simplebeacon__test-schema-violation-report.json.premin.json.gz"
+    }
+  ],
+  "runtime_checks": [
+    {
+      "file": "web/api/mock-backend.js",
+      "check": "node --check",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "web/dashboard.html",
+      "check": "html_header_presence",
+      "ok": true
+    },
+    {
+      "file": "web/dashboard-new.html",
+      "check": "html_header_presence",
+      "ok": true
+    },
+    {
+      "file": "web/scripts/dashboard-scripts.js",
+      "check": "node --check",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "web/services/RealDataService.js",
+      "check": "node --check",
+      "ok": true,
+      "stderr": ""
+    },
+    {
+      "file": "web/unified-dashboard.html",
+      "check": "html_header_presence",
+      "ok": true
+    }
+  ],
+  "runtime_files_touched": []
+}

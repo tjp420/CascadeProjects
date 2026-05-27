@@ -1,0 +1,142 @@
+{
+  "type": "security-dashboard-model",
+  "title": "Security Dashboard (Measured Baseline)",
+  "dataSource": "repository-audit",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Engineering security posture — 42/42 repository-audit samples, npm audit wired (SEC-004), not live SOC/WAF fiction."
+  },
+  "overview": {
+    "activeThreats": 0,
+    "criticalVulnerabilities": 0,
+    "openVulnerabilities": 0,
+    "openEngineeringFindings": 2,
+    "securityScore": 80,
+    "complianceRate": 80,
+    "totalIncidents": 1,
+    "resolvedIncidents": 1,
+    "npmAuditTotal": 0,
+    "notes": "Checklist (SEC-001..004) + live npm audit on refresh. npm audit clean after natural@8 upgrade (2026-05-24)."
+  },
+  "trends": {
+    "labels": ["May W1", "May W2", "May W3", "May W4"],
+    "threats": [0, 0, 0, 0],
+    "score": [68, 70, 76, 80]
+  },
+  "threats": [],
+  "vulnerabilities": [
+    {
+      "id": "SEC-001",
+      "title": "Auth optional by default — v1.0-internal profile ready (REQUIRE_AUTH=true)",
+      "severity": "medium",
+      "status": "open",
+      "component": "phase2-auth",
+      "cve": "—"
+    },
+    {
+      "id": "SEC-002",
+      "title": "Demo JWT users shipped for local testing",
+      "severity": "low",
+      "status": "open",
+      "component": "server/middleware/auth",
+      "cve": "—"
+    },
+    {
+      "id": "SEC-003",
+      "title": "Repository-audit sample migration complete (42/42)",
+      "severity": "low",
+      "status": "resolved",
+      "component": "web/data/*-sample.json",
+      "cve": "—"
+    },
+    {
+      "id": "SEC-004",
+      "title": "Dependency audit wired to Security page (npm audit)",
+      "severity": "medium",
+      "status": "resolved",
+      "component": "npm audit",
+      "cve": "—"
+    }
+  ],
+  "incidents": [
+    {
+      "id": "INC-AUTH-404",
+      "title": "Sign-in API route not found (dual server drift)",
+      "severity": "medium",
+      "status": "resolved",
+      "reportedAt": "2026-05-23T08:00:00.000Z"
+    }
+  ],
+  "compliance": {
+    "overall": 80,
+    "auditsScheduled": 0,
+    "frameworks": [
+      { "label": "Local-only processing", "value": 100 },
+      { "label": "JWT auth available", "value": 100 },
+      { "label": "Repository-audit sample baselines", "value": 100 },
+      { "label": "REQUIRE_AUTH production profile", "value": 90 },
+      { "label": "Unified server entry", "value": 100 },
+      { "label": "Enterprise audit frameworks (SOC2/GDPR)", "value": 0 }
+    ]
+  },
+  "insights": [
+    {
+      "priority": "high",
+      "title": "Not a live threat feed",
+      "description": "Malware/DDoS/WAF rows were template fiction. This dashboard tracks platform engineering findings only.",
+      "impact": "Avoid false SOC narrative"
+    },
+    {
+      "priority": "high",
+      "title": "passport-saml migrated to @node-saml/passport-saml",
+      "description": "GHSA-4mxg-3p6v-xgq3 closed — SAML stack upgraded; natural@8 removes uuid moderate CVE — npm audit now 0 across all severities.",
+      "impact": "Dependency posture improved for optional SSO path"
+    },
+    {
+      "priority": "medium",
+      "title": "Enable REQUIRE_AUTH for shared deployments",
+      "description": "Phase 2 JWT auth works but is optional until REQUIRE_AUTH=true in production profile.",
+      "impact": "Closes default-open auth gap"
+    },
+    {
+      "priority": "low",
+      "title": "Live npm audit on refresh",
+      "description": "Run Scan or Refresh merges /api/security/npm-audit results into the vulnerability table.",
+      "impact": "Measured dependency tracking — SEC-004 closed"
+    },
+    {
+      "priority": "low",
+      "title": "Sample migration closed",
+      "description": "SEC-003 resolved — 42/42 dashboard samples on repository-audit baselines.",
+      "impact": "No demo telemetry fiction on tier-1 pages"
+    }
+  ],
+  "quickActions": [
+    { "id": "refresh-security", "label": "Refresh Checklist", "icon": "🔄" },
+    { "id": "run-npm-audit", "label": "Run npm audit", "icon": "📦" },
+    { "id": "export-report", "label": "Export JSON", "icon": "📊" },
+    { "id": "open-auth-docs", "label": "Review Phase 2 Auth", "icon": "🔐" }
+  ],
+  "deprecatedNarrative": {
+    "warning": "Prior sample claimed 12 active threats, DDoS/CDN sources, SOC2 94%, GDPR 98%, and fictional CVE-2024-XXXX.",
+    "previousModel": "unbreakable-oracle",
+    "previousActiveThreats": 12
+  },
+  "npmAudit": {
+    "generatedAt": "2026-05-24T15:30:00.000Z",
+    "summary": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "error": null
+  }
+}

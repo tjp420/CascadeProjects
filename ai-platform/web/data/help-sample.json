@@ -1,0 +1,407 @@
+{
+  "type": "help-model",
+  "title": "Help & Support (Simplebeacon SPA)",
+  "generatedAt": "2026-05-24T18:30:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "In-repo docs and workflows — not 156 articles, community forum fiction, or John Doe contributors."
+  },
+  "overview": {
+    "totalDocs": 7,
+    "totalTutorials": 5,
+    "faqItems": 10,
+    "forumPosts": 32,
+    "supportTickets": null,
+    "satisfaction": null,
+    "avgResponseTime": null,
+    "statLabels": {
+      "totalDocs": "Repo Docs",
+      "totalTutorials": "Workflows",
+      "faqItems": "FAQ Items",
+      "forumPosts": "Page Scripts"
+    },
+    "notes": "Help content mapped to files in this repo — no external forum, video library, or CSAT scores."
+  },
+  "quickLinks": [
+    {
+      "title": "Simplebeacon Dashboard",
+      "description": "SPA at / — Dashboard, Analyze, Assessments, Compliance Audit, Results",
+      "icon": "📊",
+      "category": "product",
+      "time": "web/simplebeacon-dashboard/"
+    },
+    {
+      "title": "Assessment Portal",
+      "description": "Client scan flow — repo URL or signed-in local path → assessment JSON",
+      "icon": "📑",
+      "category": "enterprise",
+      "time": "#/assessments"
+    },
+    {
+      "title": "v1-internal runbook",
+      "description": "Local deploy, auth, Stripe env, Cloudflare — docs/v1-internal-runbook.md",
+      "icon": "📘",
+      "category": "developer",
+      "time": "docs/v1-internal-runbook.md"
+    },
+    {
+      "title": "Platform README",
+      "description": "Project structure, npm scripts, and getting started",
+      "icon": "🚀",
+      "category": "beginner",
+      "time": "README.md"
+    },
+    {
+      "title": "Page Sample Specs",
+      "description": "Jest validation for web/data/*-sample.json",
+      "icon": "📋",
+      "category": "developer",
+      "time": "page-samples.test.js"
+    },
+    {
+      "title": "repository-audit Pattern",
+      "description": "Replace dashboard fiction with measured baselines",
+      "icon": "🛡️",
+      "category": "workflow",
+      "time": "web/scripts/*-page.js"
+    },
+    {
+      "title": "Run Tests",
+      "description": "665/665 Jest tests — npm test in ai-platform/",
+      "icon": "🧪",
+      "category": "support",
+      "time": "npm test"
+    },
+    {
+      "title": "Clear Page Cache",
+      "description": "Remove stale localStorage dashboard models",
+      "icon": "🗑️",
+      "category": "troubleshooting",
+      "time": "localStorage"
+    },
+    {
+      "title": "Dashboard Server",
+      "description": "npm run dashboard:v1-internal — port 54355, Simplebeacon API + SPA",
+      "icon": "🖥️",
+      "category": "developer",
+      "time": "npm run dashboard:v1-internal"
+    }
+  ],
+  "documentation": [
+    {
+      "id": "doc_truthcheck",
+      "title": "Simplebeacon CLI",
+      "category": "Product",
+      "difficulty": "Beginner",
+      "readTime": "10 min",
+      "lastUpdated": "2026-05-24T00:00:00.000Z",
+      "path": "packages/simplebeacon-cli/README.md",
+      "status": "current",
+      "author": "Maintainer",
+      "description": "npm run simplebeacon --gate, rules, .simplebeacon/config.json, GitHub Action"
+    },
+    {
+      "id": "doc_readme",
+      "title": "Cascade AI Platform README",
+      "category": "Getting Started",
+      "difficulty": "Beginner",
+      "readTime": "5 min",
+      "lastUpdated": "2026-05-23T19:00:00.000Z",
+      "path": "README.md",
+      "status": "current",
+      "author": "Maintainer",
+      "description": "Overview, project structure, npm scripts, and platform layout"
+    },
+    {
+      "id": "doc_page_samples",
+      "title": "Page Sample Specs",
+      "category": "Testing",
+      "difficulty": "Intermediate",
+      "readTime": "8 min",
+      "lastUpdated": "2026-05-23T20:00:00.000Z",
+      "path": "tests/unit/page-samples.test.js",
+      "status": "current",
+      "author": "Maintainer",
+      "description": "Validates all 33 dashboard sample JSON files and page script presence"
+    },
+    {
+      "id": "doc_stub_api",
+      "title": "Dashboard Stub API",
+      "category": "Development",
+      "difficulty": "Intermediate",
+      "readTime": "10 min",
+      "lastUpdated": "2026-05-23T19:00:00.000Z",
+      "path": "src/api/dashboard-stub-api.js",
+      "status": "current",
+      "author": "Maintainer",
+      "description": "Express routes serving web/data/*-sample.json snapshots"
+    },
+    {
+      "id": "doc_jest",
+      "title": "Jest Configuration",
+      "category": "Testing",
+      "difficulty": "Beginner",
+      "readTime": "4 min",
+      "lastUpdated": "2026-05-23T19:00:00.000Z",
+      "path": "jest.config.js",
+      "status": "current",
+      "author": "Maintainer",
+      "description": "665 tests, 32 suites — default npm test uses --no-coverage"
+    },
+    {
+      "id": "doc_dashboard_server",
+      "title": "GGUF Dashboard Server",
+      "category": "Development",
+      "difficulty": "Intermediate",
+      "readTime": "6 min",
+      "lastUpdated": "2026-05-23T19:00:00.000Z",
+      "path": "simplebeacon-server.js",
+      "status": "current",
+      "author": "Maintainer",
+      "description": "Serves dashboard-new.html, page scripts, and stub API endpoints"
+    },
+    {
+      "id": "doc_unified",
+      "title": "Unified Platform Documentation",
+      "category": "Reference",
+      "difficulty": "Advanced",
+      "readTime": "15 min",
+      "lastUpdated": "2026-05-20T09:00:00.000Z",
+      "path": "UNIFIED_PLATFORM_DOCUMENTATION.md",
+      "status": "reference",
+      "author": "Maintainer",
+      "description": "Consolidated platform architecture and integration notes"
+    }
+  ],
+  "tutorials": [
+    {
+      "id": "tut_audit",
+      "title": "Migrate a Page to repository-audit",
+      "type": "Workflow",
+      "duration": "30 min",
+      "difficulty": "Intermediate",
+      "path": "web/data/*-sample.json",
+      "author": "Maintainer",
+      "thumbnail": "🛡️",
+      "category": "Dashboard",
+      "description": "Rewrite sample JSON, add stale guard + init order in *-page.js, run page-samples tests"
+    },
+    {
+      "id": "tut_refresh",
+      "title": "Hard Refresh After Baseline Update",
+      "type": "Workflow",
+      "duration": "2 min",
+      "difficulty": "Beginner",
+      "path": "browser DevTools",
+      "author": "Maintainer",
+      "thumbnail": "🔄",
+      "category": "Troubleshooting",
+      "description": "Restart server, Ctrl+Shift+R, clear last*Model localStorage key, click Refresh"
+    },
+    {
+      "id": "tut_tests",
+      "title": "Run Dashboard Tests Locally",
+      "type": "Workflow",
+      "duration": "5 min",
+      "difficulty": "Beginner",
+      "path": "npm test",
+      "author": "Maintainer",
+      "thumbnail": "🧪",
+      "category": "Testing",
+      "description": "cd ai-platform && npm test -- --testPathPattern=page-samples"
+    },
+    {
+      "id": "tut_stub",
+      "title": "Add a Stub API Route",
+      "type": "Workflow",
+      "duration": "15 min",
+      "difficulty": "Intermediate",
+      "path": "dashboard-stub-api.js",
+      "author": "Maintainer",
+      "thumbnail": "🚂",
+      "category": "Development",
+      "description": "Wire snapshotGet for a new page sample and add integration test"
+    },
+    {
+      "id": "tut_sample",
+      "title": "Author a Page Sample JSON",
+      "type": "Workflow",
+      "duration": "20 min",
+      "difficulty": "Intermediate",
+      "path": "server/lib/page-sample-specs.js",
+      "author": "Maintainer",
+      "thumbnail": "📄",
+      "category": "Dashboard",
+      "description": "Match type, overviewKeys, arrayKeys in page-sample-specs.js"
+    }
+  ],
+  "faq": [
+    {
+      "question": "Why does the dashboard show 42 files but my repo has 40k+ files?",
+      "answer": "The gate scans configured mock/sample paths (~42 JSON files on ai-platform). Repo file count is an explorer inventory for context — Simplebeacon does not fiction-scan every file in node_modules or the full monorepo unless you scope a scan there.",
+      "category": "Dashboard",
+      "helpful": null,
+      "views": null
+    },
+    {
+      "question": "What is the difference between quality and consistency scores?",
+      "answer": "Quality score is a capped mock-scan heuristic (often 99%). Consistency score reflects fiction/KPI checks on page samples — use consistency on Dashboard and Compliance Audit for accurate pass/fail.",
+      "category": "Dashboard",
+      "helpful": null,
+      "views": null
+    },
+    {
+      "question": "Why does Results show 0 issues?",
+      "answer": "Gate PASS with zero issues on configured paths is correct for ai-platform. Results filters rawIssues from the latest scan — an empty list means a clean deterministic scan, not a broken page.",
+      "category": "Dashboard",
+      "helpful": null,
+      "views": null
+    },
+    {
+      "question": "Why does my dashboard still show old numbers after an update?",
+      "answer": "Hard-refresh (Ctrl+Shift+R), restart the dashboard server, and clear stale localStorage keys (cascadeAuthToken, simplebeaconRecentAssessments, last*Model). Re-run scan to refresh .simplebeacon/report.json.",
+      "category": "Troubleshooting",
+      "helpful": null,
+      "views": null
+    },
+    {
+      "question": "What is repository-audit?",
+      "answer": "A dataSource flag on sample JSON meaning metrics come from this repo (tests, file counts, git state) — not fictional SaaS telemetry.",
+      "category": "Dashboard",
+      "helpful": null,
+      "views": null
+    },
+    {
+      "question": "How do I run tests?",
+      "answer": "From ai-platform/: npm test. Filter with --testPathPattern=page-samples or -t \"help\" for a single page.",
+      "category": "Testing",
+      "helpful": null,
+      "views": null
+    },
+    {
+      "question": "Why is coverage shown as — on Coverage Reports?",
+      "answer": "Default npm test uses --no-coverage. Jest pass rate (665/665) is measured; Istanbul line/branch % are not collected unless enabled in CI.",
+      "category": "Testing",
+      "helpful": null,
+      "views": null
+    },
+    {
+      "question": "Where do dashboard pages load data from?",
+      "answer": "Most pages fetch web/data/*-sample.json via stub API (/api/*). ~5 pages have live backends; the rest use dashboard-stub-api.js snapshots.",
+      "category": "Architecture",
+      "helpful": null,
+      "views": null
+    },
+    {
+      "question": "Is unbreakable-oracle a real model?",
+      "answer": "No — it was demo fiction in sample JSON. The active local model is agi-chatbot-test (~4.1GB). New baselines use platform-checklist.",
+      "category": "Models",
+      "helpful": null,
+      "views": null
+    }
+  ],
+  "community": {
+    "forumPosts": 32,
+    "activeUsers": 17,
+    "topics": [
+      { "name": "Sample JSON Files", "posts": 33, "active": true },
+      { "name": "Page Scripts", "posts": 32, "active": true },
+      { "name": "Measured Baselines", "posts": 17, "active": true },
+      { "name": "Jest Test Suites", "posts": 17, "active": true },
+      { "name": "Stub API Routes", "posts": 28, "active": true },
+      { "name": "Fiction Remaining", "posts": 16, "active": true }
+    ],
+    "topContributors": [
+      { "name": "Maintainer", "contributions": 17, "reputation": null }
+    ]
+  },
+  "support": {
+    "tickets": {
+      "open": 16,
+      "inProgress": 1,
+      "resolved": 17,
+      "averageResponseTime": null
+    },
+    "channels": [
+      { "name": "npm test", "available": true, "responseTime": "local terminal" },
+      { "name": "README.md", "available": true, "responseTime": "in-repo" },
+      { "name": "Jest output", "available": true, "responseTime": "on failure" },
+      { "name": "Community forum", "available": false, "responseTime": "not deployed" }
+    ],
+    "satisfaction": null
+  },
+  "popularContent": [
+    {
+      "id": "pop_readme",
+      "title": "Cascade AI Platform README",
+      "type": "Documentation",
+      "path": "README.md",
+      "description": "Start here for structure and npm scripts"
+    },
+    {
+      "id": "pop_audit",
+      "title": "repository-audit Migration",
+      "type": "Workflow",
+      "path": "web/scripts/*-page.js",
+      "description": "Pattern used across mature dashboard pages"
+    },
+    {
+      "id": "pop_tests",
+      "title": "page-samples.test.js",
+      "type": "Test Spec",
+      "path": "tests/unit/page-samples.test.js",
+      "description": "Guards all dashboard sample JSON shape and routing"
+    },
+    {
+      "id": "pop_refresh",
+      "title": "Clear localStorage Cache",
+      "type": "Troubleshooting",
+      "path": "browser DevTools",
+      "description": "Fix stale fiction after baseline updates"
+    }
+  ],
+  "recentUpdates": [
+    {
+      "id": "update_settings",
+      "title": "Settings Baseline Published",
+      "description": "Replaced 1234-user SaaS fiction with 33 sample pages / 17 measured baselines",
+      "time": "1 hour ago",
+      "icon": "⚙️"
+    },
+    {
+      "id": "update_coverage",
+      "title": "Coverage Reports Reframed",
+      "description": "665/665 Jest health replaces 73.4% Istanbul and 5 fake projects",
+      "time": "3 hours ago",
+      "icon": "📊"
+    },
+    {
+      "id": "update_help",
+      "title": "Help Center Baseline",
+      "description": "Mapped docs to in-repo files — removed forum and video library fiction",
+      "time": "just now",
+      "icon": "❓"
+    }
+  ],
+  "searchSuggestions": [
+    "repository-audit",
+    "localStorage cache",
+    "npm test",
+    "page-samples.test.js"
+  ],
+  "deprecatedNarrative": {
+    "previousTotalDocs": 156,
+    "previousTotalTutorials": 48,
+    "previousFaqItems": 89,
+    "previousForumPosts": 1234,
+    "previousSatisfaction": 4.7,
+    "previousContributors": ["John Doe", "Jane Smith"],
+    "previousModel": "unbreakable-oracle",
+    "notes": "Removed external help center, video tutorials, live chat, and community forum metrics."
+  }
+}

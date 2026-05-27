@@ -1,0 +1,19 @@
+# Cloudflare Tunnel — expose origin dashboard without opening port 54355 publicly.
+# Docs: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
+#
+# Setup:
+#   1. cloudflared tunnel login
+#   2. cloudflared tunnel create simplebeacon
+#   3. Copy tunnel UUID below and credentials JSON to this directory
+#   4. cloudflared tunnel route dns simplebeacon simplebeacon.ai
+#   5. docker compose -f docker-compose.simplebeacon.yml -f docker/cloudflared/docker-compose.cloudflared.yml up -d
+
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: simplebeacon.ai
+    service: http://dashboard:54355
+  - hostname: www.simplebeacon.ai
+    service: http://dashboard:54355
+  - service: http_status:404

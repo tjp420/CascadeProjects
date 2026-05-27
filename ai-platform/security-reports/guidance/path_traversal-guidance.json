@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "id": "path_traversal",
+    "name": "Path Traversal",
+    "severity": "high",
+    "generatedAt": "2026-05-23T08:42:51.427Z"
+  },
+  "description": "Access to files outside intended directory",
+  "detectionPatterns": [
+    "\\.\\.\\/|\\.\\.\\\\"
+  ],
+  "examples": {
+    "vulnerable": "# Python - Dangerous\nfilename = getUserInput()\nwith open('/var/www/' + filename, 'r') as f:\n    content = f.read()",
+    "secure": "# Python - Safe\nimport os\nfilename = getUserInput()\nsafe_path = os.path.join('/var/www', os.path.basename(filename))\nif not safe_path.startswith('/var/www/'):\n    raise ValueError('Invalid path')\nwith open(safe_path, 'r') as f:\n    content = f.read()"
+  },
+  "solutions": [
+    "Use os.path.basename() to extract filename",
+    "Validate paths against allowed directories",
+    "Use chroot or containerization",
+    "Implement file access controls",
+    "Use file access libraries with built-in security"
+  ],
+  "prevention": [
+    "Never concatenate user input with file paths",
+    "Implement strict path validation",
+    "Use filesystem sandboxing",
+    "Regular security testing",
+    "Monitor file access patterns"
+  ],
+  "testingApproach": "File access testing, path validation unit tests, filesystem sandbox testing",
+  "tools": [
+    {
+      "name": "Path Sanitization Libraries",
+      "description": "Language-specific libraries"
+    },
+    {
+      "name": "File Access Auditing Tools",
+      "description": "Filesystem monitoring"
+    },
+    {
+      "name": "Static Analysis Tools",
+      "description": "Code pattern detection"
+    }
+  ]
+}

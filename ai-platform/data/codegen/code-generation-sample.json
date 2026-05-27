@@ -1,0 +1,154 @@
+{
+  "type": "code-generation-model",
+  "stats": {
+    "totalGenerated": 156,
+    "thisWeek": 23,
+    "successRate": 94.2,
+    "avgGenerationTime": 2.3,
+    "templatesUsed": 8,
+    "linesGenerated": 12456,
+    "languagesUsed": 8
+  },
+  "templates": [
+    {
+      "id": "react-component",
+      "name": "React Component",
+      "category": "Frontend",
+      "description": "Generate React component with hooks and state management",
+      "usage": 234,
+      "successRate": 94.2,
+      "avgGenerationTime": 2.3,
+      "language": "TypeScript"
+    },
+    {
+      "id": "api-endpoint",
+      "name": "API Endpoint",
+      "category": "Backend",
+      "description": "Generate REST API endpoint with validation and error handling",
+      "usage": 156,
+      "successRate": 96.8,
+      "avgGenerationTime": 1.8,
+      "language": "JavaScript"
+    },
+    {
+      "id": "data-model",
+      "name": "Data Model",
+      "category": "Database",
+      "description": "Generate database model class with relationships and methods",
+      "usage": 89,
+      "successRate": 92.1,
+      "avgGenerationTime": 2.1,
+      "language": "Python"
+    },
+    {
+      "id": "test-suite",
+      "name": "Test Suite",
+      "category": "Testing",
+      "description": "Generate comprehensive test suite with unit and integration tests",
+      "usage": 345,
+      "successRate": 95.5,
+      "avgGenerationTime": 3.2,
+      "language": "JavaScript"
+    },
+    {
+      "id": "docker-config",
+      "name": "Docker Config",
+      "category": "DevOps",
+      "description": "Generate Docker configuration with multi-stage build",
+      "usage": 67,
+      "successRate": 98.3,
+      "avgGenerationTime": 1.5,
+      "language": "Dockerfile"
+    },
+    {
+      "id": "utility-function",
+      "name": "Utility Function",
+      "category": "General",
+      "description": "Generate reusable utility function with error handling",
+      "usage": 123,
+      "successRate": 93.7,
+      "avgGenerationTime": 1.2,
+      "language": "JavaScript"
+    }
+  ],
+  "history": [
+    {
+      "id": "hist_001",
+      "time": "14:32:15",
+      "template": "React Component",
+      "params": "ComponentName: UserCard, Props: {name: string, email: string}",
+      "status": "success",
+      "duration": "2.3",
+      "language": "TypeScript",
+      "codeGenerated": "import React, { useState } from 'react';\n\nconst UserCard = ({ name, email }) => {\n  const [expanded, setExpanded] = useState(false);\n\n  return (\n    <div className=\"user-card\">\n      <h3>{name}</h3>\n      <p>{email}</p>\n    </div>\n  );\n};\n\nexport default UserCard;"
+    },
+    {
+      "id": "hist_002",
+      "time": "14:28:42",
+      "template": "API Endpoint",
+      "params": "Endpoint: /api/users, Method: GET, Auth: JWT",
+      "status": "success",
+      "duration": "1.8",
+      "language": "JavaScript",
+      "codeGenerated": "const express = require('express');\nconst router = express.Router();\n\nrouter.get('/users', async (req, res) => {\n  try {\n    const users = await User.find();\n    res.json(users);\n  } catch (error) {\n    res.status(500).json({ error: error.message });\n  }\n});\n\nmodule.exports = router;"
+    },
+    {
+      "id": "hist_003",
+      "time": "14:15:33",
+      "template": "Test Suite",
+      "params": "Framework: Jest, Coverage: 90%, Types: unit, integration",
+      "status": "success",
+      "duration": "3.2",
+      "language": "JavaScript",
+      "codeGenerated": "const { test, expect } = require('@jest/globals');\n\ntest('renders user name', () => {\n  expect(true).toBe(true);\n});"
+    },
+    {
+      "id": "hist_004",
+      "time": "13:52:18",
+      "template": "Docker Config",
+      "params": "Image: node:16-alpine, Ports: 3000, Env: production",
+      "status": "success",
+      "duration": "1.5",
+      "language": "Dockerfile",
+      "codeGenerated": "FROM node:16-alpine\nWORKDIR /app\nCOPY package*.json ./\nRUN npm ci --only=production\nCOPY . .\nEXPOSE 3000\nCMD [\"npm\", \"start\"]"
+    },
+    {
+      "id": "hist_005",
+      "time": "13:45:07",
+      "template": "Data Model",
+      "params": "Table: users, Fields: id, name, email, created_at",
+      "status": "failed",
+      "duration": "2.1",
+      "language": "Python",
+      "codeGenerated": "// Generation failed due to invalid parameters"
+    }
+  ],
+  "languages": [
+    { "name": "JavaScript", "percentage": 34 },
+    { "name": "TypeScript", "percentage": 28 },
+    { "name": "Python", "percentage": 18 },
+    { "name": "SQL", "percentage": 10 },
+    { "name": "Other", "percentage": 10 }
+  ],
+  "insights": [
+    {
+      "priority": "high",
+      "action": "Use React Component template for UI scaffolding",
+      "description": "Highest success rate for frontend components with GGUF AI assistance",
+      "impact": "94.2% success rate"
+    },
+    {
+      "priority": "medium",
+      "action": "Batch generate API endpoints",
+      "description": "Generate multiple REST endpoints from OpenAPI schema definitions",
+      "impact": "3x faster backend setup"
+    },
+    {
+      "priority": "low",
+      "action": "Enable test suite auto-generation",
+      "description": "Automatically create tests after each successful code generation",
+      "impact": "Improved coverage"
+    }
+  ],
+  "generatedAt": "2026-05-21T23:34:54.262Z"
+}

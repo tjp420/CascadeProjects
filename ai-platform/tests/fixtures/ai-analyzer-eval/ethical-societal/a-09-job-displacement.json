@@ -1,0 +1,11 @@
+{
+  "issueId": "A-09",
+  "category": "ethical-societal-ai-issues",
+  "context": {
+    "responseText": "AI rollout will automate customer support, data entry, and document review across operations teams.",
+    "roleTasks": [
+      { "role": "support", "task": "customer support triage", "exposureWeight": 32 },
+      { "role": "operations", "task": "data entry", "exposureWeight": 36 }
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "issueId": "A-14",
+  "category": "ethical-societal-ai-issues",
+  "context": {
+    "responseText": "Policy requires human in the loop manual authorization, fail-safe kill switch, and command authority chain before any lethal force action."
+  }
+}

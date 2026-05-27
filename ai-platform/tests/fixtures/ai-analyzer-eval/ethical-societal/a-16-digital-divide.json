@@ -1,0 +1,11 @@
+{
+  "issueId": "A-16",
+  "category": "ethical-societal-ai-issues",
+  "context": {
+    "accessSegments": [
+      { "segment": "urban", "accessRate": 85, "affordabilityScore": 72 },
+      { "segment": "rural", "accessRate": 58, "affordabilityScore": 42 }
+    ],
+    "responseText": "Subsidized access program launched for low-income users to reduce digital divide barriers."
+  }
+}

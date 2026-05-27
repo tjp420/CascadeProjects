@@ -1,0 +1,331 @@
+{
+  "version": "2026-05-25",
+  "objective": "Execution tracker for 6-12 month operating plan targeting plausible $10M-$25M valuation narrative",
+  "statusScale": [
+    "on_track",
+    "at_risk",
+    "off_track"
+  ],
+  "kpis": [
+    {
+      "id": "kpi_mrr_usd",
+      "name": "MRR",
+      "unit": "USD",
+      "current": 0,
+      "status": "at_risk",
+      "owner": "<Finance Lead>",
+      "monthlyTargets": {
+        "M1": 0,
+        "M2": 1500,
+        "M3": 5000,
+        "M4": 9000,
+        "M5": 14000,
+        "M6": 20000,
+        "M7": 28000,
+        "M8": 38000,
+        "M9": 52000,
+        "M10": 68000,
+        "M11": 85000,
+        "M12": 105000
+      },
+      "dependencies": [
+        "First paying customers",
+        "Billing reliability",
+        "Retention performance"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "kpi_customers_paid",
+      "name": "Paying customers",
+      "unit": "count",
+      "current": 0,
+      "status": "at_risk",
+      "owner": "<GTM Lead>",
+      "monthlyTargets": {
+        "M1": 0,
+        "M2": 3,
+        "M3": 8,
+        "M4": 14,
+        "M5": 22,
+        "M6": 32,
+        "M7": 45,
+        "M8": 60,
+        "M9": 78,
+        "M10": 98,
+        "M11": 120,
+        "M12": 145
+      },
+      "dependencies": [
+        "Sales pipeline",
+        "Onboarding cycle time",
+        "Referenceable outcomes"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "kpi_retention_gross_monthly_pct",
+      "name": "Gross monthly retention",
+      "unit": "percent",
+      "current": 0,
+      "status": "at_risk",
+      "owner": "<Product Lead>",
+      "monthlyTargets": {
+        "M1": 0,
+        "M2": 90,
+        "M3": 92,
+        "M4": 93,
+        "M5": 93,
+        "M6": 94,
+        "M7": 94,
+        "M8": 94,
+        "M9": 95,
+        "M10": 95,
+        "M11": 95,
+        "M12": 95
+      },
+      "dependencies": [
+        "Product reliability",
+        "Support responsiveness",
+        "Outcome quality"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "kpi_cac_usd",
+      "name": "Customer acquisition cost",
+      "unit": "USD",
+      "current": 0,
+      "status": "at_risk",
+      "owner": "<GTM Ops>",
+      "monthlyTargets": {
+        "M1": 0,
+        "M2": 900,
+        "M3": 850,
+        "M4": 820,
+        "M5": 800,
+        "M6": 780,
+        "M7": 760,
+        "M8": 750,
+        "M9": 740,
+        "M10": 730,
+        "M11": 720,
+        "M12": 700
+      },
+      "dependencies": [
+        "Attribution instrumentation",
+        "Pipeline quality",
+        "Conversion improvements"
+      ],
+      "blockers": [
+        "CAC instrumentation is not yet fully wired to billing and campaign sources"
+      ]
+    },
+    {
+      "id": "kpi_analyzers_production_count",
+      "name": "Analyzers in production use",
+      "unit": "count",
+      "current": 6,
+      "status": "on_track",
+      "owner": "<Analyzer Lead>",
+      "monthlyTargets": {
+        "M1": 8,
+        "M2": 10,
+        "M3": 12,
+        "M4": 14,
+        "M5": 18,
+        "M6": 22,
+        "M7": 26,
+        "M8": 30,
+        "M9": 34,
+        "M10": 38,
+        "M11": 42,
+        "M12": 47
+      },
+      "dependencies": [
+        "Critical analyzer lane completion",
+        "Test coverage",
+        "Performance acceptance"
+      ],
+      "blockers": [
+        "A-39 and A-46 active-critical closure required before broad expansion"
+      ]
+    },
+    {
+      "id": "kpi_uptime_pct",
+      "name": "Platform uptime",
+      "unit": "percent",
+      "current": 0,
+      "status": "at_risk",
+      "owner": "<SRE Lead>",
+      "monthlyTargets": {
+        "M1": 99.0,
+        "M2": 99.2,
+        "M3": 99.3,
+        "M4": 99.4,
+        "M5": 99.5,
+        "M6": 99.5,
+        "M7": 99.6,
+        "M8": 99.6,
+        "M9": 99.7,
+        "M10": 99.7,
+        "M11": 99.8,
+        "M12": 99.8
+      },
+      "dependencies": [
+        "Operational readiness",
+        "Incident response",
+        "Infra hardening"
+      ],
+      "blockers": [
+        "Host-level backup and restore drill sign-off is still pending"
+      ]
+    },
+    {
+      "id": "kpi_nps",
+      "name": "NPS",
+      "unit": "score",
+      "current": 0,
+      "status": "at_risk",
+      "owner": "<Customer Success Lead>",
+      "monthlyTargets": {
+        "M1": 0,
+        "M2": 20,
+        "M3": 25,
+        "M4": 30,
+        "M5": 32,
+        "M6": 35,
+        "M7": 37,
+        "M8": 39,
+        "M9": 40,
+        "M10": 42,
+        "M11": 44,
+        "M12": 45
+      },
+      "dependencies": [
+        "Customer onboarding quality",
+        "Feature reliability",
+        "Support response times"
+      ],
+      "blockers": []
+    }
+  ],
+  "criticalPath": [
+    {
+      "id": "cp_production_live",
+      "name": "Production deployment and reliability",
+      "status": "at_risk",
+      "targetMonth": "M1",
+      "dependencies": [
+        "Security sign-offs",
+        "Ops sign-offs",
+        "verify:predeploy passes"
+      ],
+      "blockers": [
+        "Secret rotation and branch-protection approvals not verified in-repo"
+      ],
+      "owner": "<Eng Lead>"
+    },
+    {
+      "id": "cp_first_paid",
+      "name": "First paying customers",
+      "status": "at_risk",
+      "targetMonth": "M2",
+      "dependencies": [
+        "Pricing and billing readiness",
+        "Onboarding process",
+        "Outbound pipeline"
+      ],
+      "blockers": [],
+      "owner": "<GTM Lead>"
+    },
+    {
+      "id": "cp_mrr_curve",
+      "name": "MRR milestones",
+      "status": "at_risk",
+      "targetMonth": "M3-M12",
+      "dependencies": [
+        "Customer acquisition",
+        "Retention",
+        "Expansion revenue"
+      ],
+      "blockers": [],
+      "owner": "<Finance Lead>"
+    },
+    {
+      "id": "cp_enterprise_deal",
+      "name": "First enterprise deal",
+      "status": "off_track",
+      "targetMonth": "M8",
+      "dependencies": [
+        "Enterprise security package",
+        "Procurement support",
+        "Reference customers"
+      ],
+      "blockers": [
+        "Enterprise pipeline not yet evidenced in current repo artifacts"
+      ],
+      "owner": "<Enterprise Sales Lead>"
+    }
+  ],
+  "repoReality": {
+    "completed": [
+      {
+        "item": "Predeploy go/no-go sequence available",
+        "evidence": "docs/production-operator-predeploy-checklist.md"
+      },
+      {
+        "item": "Production profile hardening for Docker and CI marked READY",
+        "evidence": "docs/production-profile-verification-status.md"
+      },
+      {
+        "item": "Analyzer tracker and tranche structure established",
+        "evidence": "docs/planning/ai-problem-analyzer-suite/analyzer-tracker.json"
+      },
+      {
+        "item": "Trust verification runbook and scripts present",
+        "evidence": "docs/trust-verification-publish-runbook.md"
+      }
+    ],
+    "pending": [
+      {
+        "item": "Repo admin required checks in branch protection",
+        "owner": "<Repo Admin>",
+        "evidence": "docs/production-profile-verification-status.md"
+      },
+      {
+        "item": "Production secret provisioning and rotation sign-off",
+        "owner": "<Security/Platform>",
+        "evidence": "docs/production-profile-verification-status.md"
+      },
+      {
+        "item": "Host backup and restore verification on target infrastructure",
+        "owner": "<SRE/Ops>",
+        "evidence": "docs/production-profile-verification-status.md"
+      },
+      {
+        "item": "Contracted customer commitments",
+        "owner": "<GTM/Leadership>",
+        "evidence": "Not represented as committed contracts in repo"
+      }
+    ]
+  },
+  "reviewCadence": {
+    "frequency": "weekly",
+    "day": "Monday",
+    "durationMinutes": 60,
+    "requiredAttendees": [
+      "<CEO/GM>",
+      "<Eng Lead>",
+      "<GTM Lead>",
+      "<Finance Lead>",
+      "<SRE/Security Lead>"
+    ],
+    "agenda": [
+      "Refresh KPI actuals and status colors",
+      "Evaluate monthly go/no-go gate",
+      "Resolve critical path blockers",
+      "Assign owners and due dates for next week"
+    ]
+  }
+}

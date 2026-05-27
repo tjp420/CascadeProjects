@@ -1,0 +1,122 @@
+{
+  "type": "file-merger-reduction-report",
+  "reportVersion": 2,
+  "title": "File Merger & Reduction Scan (Measured Baseline)",
+  "dataSource": "repository-audit",
+  "generatedAt": "2026-05-27T20:53:42.474Z",
+  "generatedBy": "file-merger-reduction-scanner",
+  "scanEngine": "file-merger-reduction-scanner",
+  "inferenceMode": "filesystem + fuzzy-match",
+  "advancedAnalysis": {
+    "fuzzyNearDuplicates": {
+      "threshold": 0.85,
+      "pairsFound": 0,
+      "pairs": []
+    },
+    "patternConsolidation": {
+      "groupsFound": 0,
+      "recommendations": []
+    },
+    "semanticHints": {
+      "enabled": false,
+      "mode": "filesystem-only",
+      "hints": [],
+      "note": "Set LLAMA_CPP_BIN for optional semantic review hints on fuzzy pairs"
+    }
+  },
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+  "scanPaths": [
+    "web/data",
+    "data/mock",
+    "data-central/ai-tools/mock-data",
+    "data/roadmap"
+  ],
+  "scanScope": {
+    "mode": "sample-data-consolidation",
+    "description": "Duplicate and structure analysis on configured mock/sample JSON paths only.",
+    "sampleDataPaths": [
+      "web/data",
+      "data/mock",
+      "data-central/ai-tools/mock-data",
+      "data/roadmap"
+    ],
+    "sampleDataFilesAnalyzed": 43,
+    "jsonFilesAnalyzed": 42,
+    "repositoryFilesAudited": 43,
+    "repositoryInventoryProfile": "explorer",
+    "repositoryInventoryIncluded": true,
+    "repositoryFilesTotal": 25763,
+    "repositoryFoldersTotal": 3302,
+    "limitations": [
+      "Sample-path mode only — use scope=repository for full tree inventory.",
+      "Structure similarity does not scan application source code."
+    ]
+  },
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "totalFiles": 25763,
+    "totalFolders": 3302,
+    "profile": "explorer"
+  },
+  "summary": {
+    "filesAnalyzed": 43,
+    "sampleDataFilesAnalyzed": 43,
+    "jsonFilesAnalyzed": 42,
+    "repositoryFilesTotal": 25763,
+    "repositoryFilesAudited": 43,
+    "repositoryFoldersTotal": 3302,
+    "totalSizeBytes": 275160,
+    "totalSizeLabel": "268.7KB",
+    "mergeCandidates": 0,
+    "reductionOpportunities": 0,
+    "potentialSavingsBytes": 0,
+    "potentialSavingsLabel": "0B",
+    "exactDuplicateGroups": 0,
+    "structureSimilarPairs": 0,
+    "fuzzyNearDuplicatePairs": 0,
+    "patternConsolidationGroups": 0,
+    "oversizedFiles": 0
+  },
+  "mergeCandidates": [],
+  "reductionOpportunities": [],
+  "recommendations": [],
+  "rejectedFiction": {
+    "warning": "Enterprise design claims not implemented in v0.8-beta",
+    "claims": [
+      "15-30% storage savings guarantee",
+      "40-60% faster file processing",
+      "GGUF embedding semantic similarity",
+      "Auto-merge executor with rollback",
+      "1,559 files/s throughput"
+    ]
+  },
+  "implementationPhases": [
+    {
+      "phase": "Phase 1 — Core scanner (done)",
+      "status": "complete",
+      "items": [
+        "Exact duplicate detection",
+        "JSON structure similarity",
+        "Oversized file report"
+      ]
+    },
+    {
+      "phase": "Phase 2 — Advanced analysis",
+      "status": "complete",
+      "items": [
+        "Fuzzy content match (threshold 85%)",
+        "Pattern consolidation recommendations",
+        "Optional GGUF hints when LLAMA_CPP_BIN set"
+      ]
+    },
+    {
+      "phase": "Phase 3 — Safe merge preview",
+      "status": "complete",
+      "items": [
+        "Merge plan preview API",
+        "Confirmation + quarantine (no auto-delete)",
+        "Audit log + rollback"
+      ]
+    }
+  ]
+}

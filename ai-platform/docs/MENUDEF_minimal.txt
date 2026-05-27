@@ -1,0 +1,16 @@
+// Minimal test version - use this first to verify menu loading works
+AddOptionMenu "OptionsMenu"
+{
+    StaticText "R3DR00M Test", "Red"
+    Submenu "R3DR00M Monster System", "R3DMonsterMenuMinimal"
+}
+
+OptionMenu "R3DMonsterMenuMinimal"
+{
+    Title "R3DR00M MONSTER SYSTEM"
+    StaticText ""
+    StaticText "Menu is working!", "Green"
+    StaticText ""
+    Command "Summon Test Monster", "summon HellfireCorruptedSoldier"
+    Command "Kill All Monsters", "kill monsters"
+}

@@ -1,0 +1,6 @@
+=== Pre-deploy verification summary ===
+- stripe: FAIL (exit=1)
+- production: FAIL (exit=1)
+- trust: PASS (exit=0)
+
+Decision: NO-GO

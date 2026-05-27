@@ -1,0 +1,64 @@
+# Demo Map Setup Guide
+
+## Map: Demo_ProceduralBuildings
+
+## Level Setup
+1. Create new level: Demo_ProceduralBuildings
+2. Level Size: 5000x5000 units
+3. Lighting: Cyberpunk night scene
+
+## Lighting Configuration
+```
+Directional Light:
+- Rotation: Pitch -45, Yaw 45
+- Intensity: 3.0
+- Light Color: RGB(0.8, 0.9, 1.0)
+
+Sky Light:
+- Intensity: 1.0
+- Cubemap: C_CyberpunkSky
+
+Post Process Volume:
+- Bloom Intensity: 1.5
+- Color Grading: Cyberpunk blue/purple tint
+- Vignette: 0.3
+```
+
+## Generator Placement
+```
+BP_BuildingGenerator instances:
+- Generator_Grid: Center of map, Grid layout
+- Generator_Radial: Offset 2000 units, Radial layout
+- Generator_Dense: Small area, high density
+
+Camera Positions:
+- Camera_Overview: Top-down view
+- Camera_GroundLevel: Street-level view
+- Camera_Angled: 45-degree showcase view
+```
+
+## Environment Assets
+- Ground Plane: 5000x5000 cyberpunk ground texture
+- Background Buildings: Static backdrop buildings
+- Atmosphere: Fog and particle effects
+- Neon Signs: Additional cyberpunk props
+
+## Showcase Sequence
+1. Empty level → Generate grid buildings
+2. Clear → Generate radial buildings  
+3. Clear → Generate dense urban area
+4. Day/night cycle demonstration
+5. Parameter adjustment showcase
+
+## Performance Testing
+- Scene Complexity: Medium
+- Draw Calls: <1000
+- Frame Rate: 60+ FPS target
+- Memory Usage: <500MB
+
+## Screenshot Locations
+1. Wide shot: Entire generated city
+2. Close-up: Individual building details
+3. Ground level: Street view perspective
+4. Overview: Top-down city layout
+5. Night scene: Glow effects showcase

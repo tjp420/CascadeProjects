@@ -1,0 +1,11 @@
+{
+  "users": {
+    "dev@simplebeacon.ai": {
+      "openai": null,
+      "anthropic": null,
+      "ollamaBaseUrl": "http://127.0.0.1:11434",
+      "ollamaModel": "unbreakable-oracle:latest",
+      "updatedAt": "2026-05-24T22:37:55.940Z"
+    }
+  }
+}

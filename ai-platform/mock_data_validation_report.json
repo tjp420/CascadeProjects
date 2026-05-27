@@ -1,0 +1,176 @@
+{
+  "summary": {
+    "validation_date": "2026-05-22T00:41:06.483226",
+    "files_validated": 126,
+    "total_issues": 19,
+    "severity_breakdown": {
+      "low": 0,
+      "medium": 15,
+      "high": 0,
+      "critical": 4
+    },
+    "issue_type_breakdown": {
+      "Invalid Timestamp Format": 1,
+      "JSON Syntax Error": 4,
+      "Invalid Item Type": 14
+    },
+    "quality_score": 62,
+    "recommendations": [
+      "\ud83d\udea8 Address critical issues immediately - they prevent system functionality"
+    ]
+  },
+  "detailed_results": [
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Timestamp Format",
+      "description": "Invalid timestamp format: 2026-05-22T00:41:06.014862",
+      "file_path": ".\\mock_data_6.json",
+      "location": "root.timestamp",
+      "recommended_action": "Use ISO 8601 timestamp format"
+    },
+    {
+      "severity": "critical",
+      "issue_type": "JSON Syntax Error",
+      "description": "Invalid JSON syntax: Expecting value: line 733 column 5 (char 21210)",
+      "file_path": ".\\reports\\mock-data-analysis-report-2026-05-21-v12.json",
+      "location": "syntax",
+      "recommended_action": "Fix JSON syntax errors"
+    },
+    {
+      "severity": "critical",
+      "issue_type": "JSON Syntax Error",
+      "description": "Invalid JSON syntax: Expecting ',' delimiter: line 706 column 19 (char 20480)",
+      "file_path": ".\\reports\\mock-data-analysis-report-2026-05-21-v6.json",
+      "location": "syntax",
+      "recommended_action": "Fix JSON syntax errors"
+    },
+    {
+      "severity": "critical",
+      "issue_type": "JSON Syntax Error",
+      "description": "Invalid JSON syntax: Expecting property name enclosed in double quotes: line 937 column 7 (char 26802)",
+      "file_path": ".\\reports\\mock-data-analysis-report-2026-05-21-v7.json",
+      "location": "syntax",
+      "recommended_action": "Fix JSON syntax errors"
+    },
+    {
+      "severity": "critical",
+      "issue_type": "JSON Syntax Error",
+      "description": "Invalid JSON syntax: Expecting value: line 302 column 5 (char 8728)",
+      "file_path": ".\\reports\\mock-data-analysis-report-2026-05-21-v9.json",
+      "location": "syntax",
+      "recommended_action": "Fix JSON syntax errors"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_0.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_1.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_2.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_21.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_22.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_3.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_31.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_32.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_35.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_37.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_4.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_40.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_5.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    },
+    {
+      "severity": "medium",
+      "issue_type": "Invalid Item Type",
+      "description": "Item must be an object",
+      "file_path": ".\\test-batch-data\\mock_data_7.json",
+      "location": "[1]",
+      "recommended_action": "Convert item to object"
+    }
+  ]
+}

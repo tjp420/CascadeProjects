@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: cascade_postgres
+    environment:
+      POSTGRES_USER: cascade_user
+      POSTGRES_PASSWORD: cascade_password
+      POSTGRES_DB: cascade_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cascade_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Celery
+  redis:
+    image: redis:7-alpine
+    container_name: cascade_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  api:
+    build:
+      context: ./web/api
+      dockerfile: Dockerfile
+    container_name: cascade_api
+    environment:
+      - DATABASE_URL=postgresql://cascade_user:cascade_password@postgres:5432/cascade_db
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - ENVIRONMENT=development
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SMTP_SERVER=${SMTP_SERVER:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - CSRF_SECRET_KEY=${CSRF_SECRET_KEY:-}
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./web/api:/app
+      - ./logs:/app/logs
+      - ./exports:/app/exports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8081/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: uvicorn app:app --host 0.0.0.0 --port 8081 --reload
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: ./web/api
+      dockerfile: Dockerfile
+    container_name: cascade_celery_worker
+    environment:
+      - DATABASE_URL=postgresql://cascade_user:cascade_password@postgres:5432/cascade_db
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - ENVIRONMENT=development
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    volumes:
+      - ./web/api:/app
+      - ./logs:/app/logs
+      - ./exports:/app/exports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A celery_config worker --loglevel=info
+
+  # Celery Beat (for scheduled tasks)
+  celery_beat:
+    build:
+      context: ./web/api
+      dockerfile: Dockerfile
+    container_name: cascade_celery_beat
+    environment:
+      - DATABASE_URL=postgresql://cascade_user:cascade_password@postgres:5432/cascade_db
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - ENVIRONMENT=development
+    volumes:
+      - ./web/api:/app
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+    command: celery -A celery_config beat --loglevel=info
+
+  # Frontend (serve static files)
+  frontend:
+    image: nginx:alpine
+    container_name: cascade_frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./web:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: cascade_network

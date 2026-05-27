@@ -1,0 +1,196 @@
+{
+  "type": "settings-model",
+  "title": "Platform Settings (Measured Baseline)",
+  "generatedAt": "2026-05-24T00:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": 95,
+    "status": "active",
+    "notes": "Local dashboard configuration from this repo — not 1234 users, v2.4.1 production fiction, or John Doe."
+  },
+  "overview": {
+    "totalUsers": 34,
+    "activeUsers": 34,
+    "platformVersion": "1.0.0",
+    "environment": "local",
+    "maintenanceMode": false,
+    "integrationsEnabled": 4,
+    "lastConfigChange": "2026-05-24T00:00:00.000Z",
+    "statLabels": {
+      "totalUsers": "Sample Pages",
+      "activeUsers": "Measured Baselines",
+      "platformVersion": "Platform Version",
+      "integrationsEnabled": "Repo Tools"
+    },
+    "notes": "42/42 web/data/*-sample.json files on repository-audit. Single-maintainer local setup — not a multi-tenant SaaS."
+  },
+  "userSettings": {
+    "profile": {
+      "name": "Local Maintainer",
+      "email": "not configured",
+      "avatar": "🛠️",
+      "role": "Maintainer",
+      "department": "Platform Dev",
+      "timezone": "local",
+      "language": "English"
+    },
+    "preferences": {
+      "theme": "system",
+      "notifications": {
+        "email": false,
+        "push": false,
+        "sms": false,
+        "desktop": false
+      },
+      "privacy": {
+        "profileVisibility": "local only",
+        "activityTracking": false,
+        "analyticsSharing": false
+      },
+      "display": {
+        "dashboardLayout": "sidebar",
+        "itemsPerPage": 25,
+        "autoRefresh": null,
+        "compactMode": false
+      }
+    }
+  },
+  "systemSettings": {
+    "platform": {
+      "version": "1.0.0",
+      "environment": "local",
+      "maintenance": false,
+      "apiVersion": "stub-v1",
+      "lastUpdate": "2026-05-24T00:00:00.000Z",
+      "serverEntry": "simplebeacon-server.js",
+      "gitBranch": "master"
+    },
+    "security": {
+      "twoFactorAuth": false,
+      "sessionTimeout": null,
+      "passwordPolicy": "n/a (local dev)",
+      "apiRateLimit": null,
+      "ipWhitelist": false
+    },
+    "performance": {
+      "cacheEnabled": false,
+      "cacheTTL": null,
+      "compressionEnabled": true,
+      "cdnEnabled": false,
+      "monitoringEnabled": true
+    },
+    "integrations": {
+      "github": true,
+      "jest": true,
+      "express": true,
+      "node": true,
+      "slack": false,
+      "jira": false,
+      "discord": false,
+      "email": false
+    }
+  },
+  "adminSettings": {
+    "users": {
+      "totalUsers": 34,
+      "activeUsers": 34,
+      "newUsersThisMonth": null,
+      "roles": ["Maintainer", "Contributor"]
+    },
+    "permissions": {
+      "defaultRole": "Maintainer",
+      "customRoles": null,
+      "permissionGroups": null,
+      "lastAudit": "2026-05-24T00:00:00.000Z"
+    },
+    "backups": {
+      "enabled": false,
+      "frequency": "git history only",
+      "retention": null,
+      "lastBackup": null,
+      "storageUsed": null
+    },
+    "logs": {
+      "level": "info",
+      "retention": null,
+      "maxSize": null,
+      "alerts": false
+    }
+  },
+  "systemHealth": [
+    {
+      "service": "Dashboard Server",
+      "description": "simplebeacon-server.js static + stub API",
+      "status": "healthy",
+      "uptime": "local process"
+    },
+    {
+      "service": "Jest Test Suite",
+      "description": "npm test — 665/665 passing, 32 suites",
+      "status": "healthy",
+      "uptime": "last run OK"
+    },
+    {
+      "service": "Stub API",
+      "description": "dashboard-stub-api.js serving web/data samples",
+      "status": "healthy",
+      "uptime": "in-process"
+    },
+    {
+      "service": "Sample JSON Baselines",
+      "description": "42/42 pages on repository-audit",
+      "status": "healthy",
+      "uptime": "complete"
+    }
+  ],
+  "quickActions": [
+    { "label": "Run npm test", "icon": "🧪", "action": "run-tests" },
+    { "label": "Clear Page Cache", "icon": "🗑️", "action": "clear-localstorage" },
+    { "label": "Export Settings", "icon": "📥", "action": "export-settings" },
+    { "label": "View Sample Specs", "icon": "📋", "action": "view-specs" },
+    { "label": "Show Tour", "icon": "🎯", "action": "show-tour" }
+  ],
+  "recentActivity": [
+    {
+      "action": "Coverage Reports Baseline",
+      "user": "Maintainer",
+      "time": "1 hour ago",
+      "details": "Replaced 73.4% Istanbul fiction with 665/665 Jest health (32 suites)",
+      "icon": "📊"
+    },
+    {
+      "action": "Code Templates Baseline",
+      "user": "Maintainer",
+      "time": "2 hours ago",
+      "details": "Mapped 8 repo patterns instead of 234 marketplace templates",
+      "icon": "📝"
+    },
+    {
+      "action": "Jest Suite Green",
+      "user": "CI/local",
+      "time": "3 hours ago",
+      "details": "665 tests passing across 32 suites (default --no-coverage)",
+      "icon": "✅"
+    },
+    {
+      "action": "Repository Audit",
+      "user": "platform-checklist",
+      "time": "5 hours ago",
+      "details": "Continued replacing unbreakable-oracle fiction across dashboard pages",
+      "icon": "🛡️"
+    }
+  ],
+  "deprecatedNarrative": {
+    "previousTotalUsers": 1234,
+    "previousActiveUsers": 891,
+    "previousVersion": "2.4.1",
+    "previousEnvironment": "production",
+    "previousProfile": "John Doe",
+    "previousModel": "unbreakable-oracle",
+    "previousMeasuredBaselines": 17,
+    "notes": "Removed SaaS user counts, 17-baseline fiction, 500-test counts, Redis/CDN uptime fiction, and 45.6GB backup claims."
+  }
+}

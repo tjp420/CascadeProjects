@@ -1,0 +1,282 @@
+{
+  "generatedAt": "2026-05-23T08:42:51.433Z",
+  "errorTypes": [
+    {
+      "id": "eval_usage",
+      "name": "eval() Usage",
+      "severity": "critical",
+      "description": "Use of eval() function which executes arbitrary code"
+    },
+    {
+      "id": "command_injection",
+      "name": "Command Injection",
+      "severity": "critical",
+      "description": "Execution of system commands with user input"
+    },
+    {
+      "id": "xss_vulnerability",
+      "name": "Cross-Site Scripting (XSS)",
+      "severity": "high",
+      "description": "Injection of malicious scripts into web pages"
+    },
+    {
+      "id": "sql_injection",
+      "name": "SQL Injection",
+      "severity": "critical",
+      "description": "Injection of malicious SQL queries"
+    },
+    {
+      "id": "path_traversal",
+      "name": "Path Traversal",
+      "severity": "high",
+      "description": "Access to files outside intended directory"
+    },
+    {
+      "id": "insecure_deserialization",
+      "name": "Insecure Deserialization",
+      "severity": "high",
+      "description": "Untrusted data deserialization leading to code execution"
+    }
+  ],
+  "prioritization": [
+    {
+      "rank": 1,
+      "id": "eval_usage",
+      "name": "eval() Usage",
+      "severity": "critical",
+      "description": "Use of eval() function which executes arbitrary code",
+      "patterns": [
+        {},
+        {}
+      ],
+      "examples": {
+        "vulnerable": "// Dangerous\nconst userInput = getUserInput();\nconst result = eval(userInput);\n\n// JSON parsing\nconst data = eval('(' + jsonString + ')');\n\n// Mathematical expression\nconst result = eval('2 + 2');",
+        "secure": "// Safe JSON parsing\nconst data = JSON.parse(jsonString);\n\n// Safe mathematical evaluation\nimport { parse } from 'expr-eval';\nconst result = parse('2 + 2').evaluate();\n\n// Avoid dynamic code execution\nconst functions = { add: (a, b) => a + b };\nconst result = functions[userInput](a, b);"
+      },
+      "solutions": [
+        "Replace eval() with JSON.parse() for JSON parsing",
+        "Use dedicated expression parser libraries for mathematical expressions",
+        "Implement function whitelisting for dynamic function calls",
+        "Use template literals or string interpolation instead of eval",
+        "Consider using Web Workers for isolated code execution"
+      ],
+      "prevention": [
+        "Never use eval() with user input",
+        "Enable linter rules to detect eval() usage",
+        "Implement code review checks for eval() patterns",
+        "Use static analysis tools in CI/CD pipeline",
+        "Educate developers on eval() dangers"
+      ]
+    },
+    {
+      "rank": 2,
+      "id": "command_injection",
+      "name": "Command Injection",
+      "severity": "critical",
+      "description": "Execution of system commands with user input",
+      "patterns": [
+        {},
+        {},
+        {}
+      ],
+      "examples": {
+        "vulnerable": "# Python - Dangerous\nimport subprocess\nuser_input = getUserInput()\nsubprocess.call(user_input, shell=True)\n\nos.system(user_input)",
+        "secure": "# Python - Safe\nimport subprocess\nuser_input = getUserInput()\nsubprocess.run(['ls', user_input], shell=False)\n\n# Validate input\nif not re.match(r'^[a-zA-Z0-9_]+$', user_input):\n    raise ValueError('Invalid input')"
+      },
+      "solutions": [
+        "Never use shell=True in subprocess calls",
+        "Use list arguments instead of string commands",
+        "Validate and sanitize all user inputs",
+        "Use whitelist-based input validation",
+        "Implement proper error handling"
+      ],
+      "prevention": [
+        "Disable shell execution when possible",
+        "Use principle of least privilege",
+        "Implement input validation frameworks",
+        "Use parameterized APIs",
+        "Regular security audits"
+      ]
+    },
+    {
+      "rank": 3,
+      "id": "sql_injection",
+      "name": "SQL Injection",
+      "severity": "critical",
+      "description": "Injection of malicious SQL queries",
+      "patterns": [
+        {},
+        {}
+      ],
+      "examples": {
+        "vulnerable": "# Python - Dangerous\ncursor.execute(\"SELECT * FROM users WHERE name = '\" + user_input + \"'\")\n\ncursor.execute(\"SELECT * FROM users WHERE id = %s\" % user_input)",
+        "secure": "# Python - Safe\ncursor.execute(\"SELECT * FROM users WHERE name = %s\", (user_input,))\n\n# Using ORM\nUser.objects.filter(name=user_input)"
+      },
+      "solutions": [
+        "Always use parameterized queries",
+        "Use ORM frameworks when possible",
+        "Implement input validation",
+        "Use stored procedures",
+        "Apply principle of least privilege to database users"
+      ],
+      "prevention": [
+        "Enable SQL query logging and monitoring",
+        "Use database security scanning tools",
+        "Implement database access controls",
+        "Regular security assessments",
+        "Developer training on secure database access"
+      ]
+    },
+    {
+      "rank": 4,
+      "id": "xss_vulnerability",
+      "name": "Cross-Site Scripting (XSS)",
+      "severity": "high",
+      "description": "Injection of malicious scripts into web pages",
+      "patterns": [
+        {},
+        {},
+        {}
+      ],
+      "examples": {
+        "vulnerable": "// Dangerous\nelement.innerHTML = userInput;\ndocument.write(userInput);\n\n// React\n<div dangerouslySetInnerHTML={{ __html: userInput }} />",
+        "secure": "// Safe\nelement.textContent = userInput;\nelement.innerText = userInput;\n\n// React\n<div>{userInput}</div>\n\n// Sanitization\nimport DOMPurify from 'dompurify';\nelement.innerHTML = DOMPurify.sanitize(userInput);"
+      },
+      "solutions": [
+        "Use textContent instead of innerHTML",
+        "Implement content security policy (CSP)",
+        "Use HTML sanitization libraries",
+        "Encode user input before rendering",
+        "Validate and sanitize on both client and server"
+      ],
+      "prevention": [
+        "Implement Content Security Policy headers",
+        "Use HTTP-only and Secure cookies",
+        "Enable XSS protection in frameworks",
+        "Regular security testing",
+        "Input validation and output encoding"
+      ]
+    },
+    {
+      "rank": 5,
+      "id": "path_traversal",
+      "name": "Path Traversal",
+      "severity": "high",
+      "description": "Access to files outside intended directory",
+      "patterns": [
+        {}
+      ],
+      "examples": {
+        "vulnerable": "# Python - Dangerous\nfilename = getUserInput()\nwith open('/var/www/' + filename, 'r') as f:\n    content = f.read()",
+        "secure": "# Python - Safe\nimport os\nfilename = getUserInput()\nsafe_path = os.path.join('/var/www', os.path.basename(filename))\nif not safe_path.startswith('/var/www/'):\n    raise ValueError('Invalid path')\nwith open(safe_path, 'r') as f:\n    content = f.read()"
+      },
+      "solutions": [
+        "Use os.path.basename() to extract filename",
+        "Validate paths against allowed directories",
+        "Use chroot or containerization",
+        "Implement file access controls",
+        "Use file access libraries with built-in security"
+      ],
+      "prevention": [
+        "Never concatenate user input with file paths",
+        "Implement strict path validation",
+        "Use filesystem sandboxing",
+        "Regular security testing",
+        "Monitor file access patterns"
+      ]
+    },
+    {
+      "rank": 6,
+      "id": "insecure_deserialization",
+      "name": "Insecure Deserialization",
+      "severity": "high",
+      "description": "Untrusted data deserialization leading to code execution",
+      "patterns": [
+        {},
+        {},
+        {}
+      ],
+      "examples": {
+        "vulnerable": "# Python - Dangerous\nimport pickle\ndata = pickle.loads(user_input)\n\n# JavaScript - Potentially dangerous\nconst data = JSON.parse(user_input);",
+        "secure": "# Python - Safe\nimport json\ndata = json.loads(user_input)\n\n# Use safe formats\nimport yaml\ndata = yaml.safe_load(user_input)"
+      },
+      "solutions": [
+        "Avoid pickle for untrusted data",
+        "Use JSON or other safe serialization formats",
+        "Implement integrity checks (HMAC)",
+        "Use type-safe deserialization",
+        "Validate deserialized objects"
+      ],
+      "prevention": [
+        "Never deserialize untrusted data",
+        "Use digital signatures",
+        "Implement object validation",
+        "Use safe serialization formats",
+        "Regular security testing"
+      ]
+    }
+  ],
+  "remediationPlan": {
+    "immediate": [
+      "eval() Usage",
+      "Command Injection",
+      "SQL Injection"
+    ],
+    "shortTerm": [
+      "Cross-Site Scripting (XSS)",
+      "Path Traversal",
+      "Insecure Deserialization"
+    ],
+    "phases": [
+      {
+        "phase": 1,
+        "duration": "1-2 weeks",
+        "focus": "Critical vulnerabilities",
+        "actions": [
+          "Address eval() Usage",
+          "Address Command Injection",
+          "Address SQL Injection"
+        ]
+      },
+      {
+        "phase": 2,
+        "duration": "2-4 weeks",
+        "focus": "High severity issues",
+        "actions": [
+          "Address Cross-Site Scripting (XSS)",
+          "Address Path Traversal",
+          "Address Insecure Deserialization"
+        ]
+      },
+      {
+        "phase": 3,
+        "duration": "Ongoing",
+        "focus": "Prevention and monitoring",
+        "actions": [
+          "Implement security testing",
+          "Set up CI/CD security scanning",
+          "Developer training",
+          "Regular security audits"
+        ]
+      }
+    ]
+  },
+  "resources": [
+    {
+      "name": "OWASP Top 10",
+      "url": "https://owasp.org/www-project-top-ten/"
+    },
+    {
+      "name": "CWE Top 25",
+      "url": "https://cwe.mitre.org/top25/"
+    },
+    {
+      "name": "Security Best Practices",
+      "url": "https://cheatsheetseries.owasp.org/"
+    },
+    {
+      "name": "SANS Security Resources",
+      "url": "https://www.sans.org/"
+    }
+  ]
+}

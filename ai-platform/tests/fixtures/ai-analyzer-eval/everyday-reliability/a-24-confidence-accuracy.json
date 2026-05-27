@@ -1,0 +1,12 @@
+{
+  "issueId": "A-24",
+  "category": "everyday-reliability-problems",
+  "context": {
+    "calibrationRecords": [
+      { "claimedConfidence": 0.91, "correct": true },
+      { "claimedConfidence": 0.87, "correct": true },
+      { "claimedConfidence": 0.94, "correct": false },
+      { "claimedConfidence": 0.72, "correct": true }
+    ]
+  }
+}

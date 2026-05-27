@@ -1,0 +1,37 @@
+# Local PostgreSQL + Redis for Phase 2 dashboard development.
+# Usage:
+#   npm run phase2:infra
+#   ENABLE_DATABASE=true DATABASE_URL=postgresql://cascade_user:secure_password@localhost:5432/cascade_ai_platform \
+#   ENABLE_REDIS=true REDIS_URL=redis://127.0.0.1:6379 node gguf-dashboard-server.js
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: cascade_phase2_postgres
+    environment:
+      POSTGRES_USER: cascade_user
+      POSTGRES_PASSWORD: secure_password
+      POSTGRES_DB: cascade_ai_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - phase2_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cascade_user -d cascade_ai_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cascade_phase2_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  phase2_postgres_data:

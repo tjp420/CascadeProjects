@@ -1,0 +1,114 @@
+# Simplebeacon local stack — dashboard, optional metrics collector, optional Phase 2 DB.
+#
+# Quick start (dashboard only):
+#   npm run simplebeacon:docker
+#   open http://localhost:54355/simplebeacon-dashboard/
+#
+# Full stack (dashboard + collector + Postgres + Redis):
+#   npm run simplebeacon:docker:full
+#
+# Dev mode (live-mount .simplebeacon + web/data):
+#   npm run simplebeacon:docker:dev
+#
+# CI webhook target (GitHub Actions secret):
+#   SIMPLEBEACON_DASHBOARD_URL=http://host.docker.internal:54355
+
+name: simplebeacon
+
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: simplebeacon_dashboard
+    ports:
+      - "${SIMPLEBEACON_PORT:-54355}:54355"
+      - "${SIMPLEBEACON_WS_PORT:-8081}:8081"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      ENABLE_DATABASE: ${ENABLE_DATABASE:-false}
+      ENABLE_REDIS: ${ENABLE_REDIS:-false}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://cascade_user:secure_password@postgres:5432/cascade_ai_platform}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      REQUIRE_AUTH: ${REQUIRE_AUTH:-false}
+      SEED_DEMO_USERS: ${SEED_DEMO_USERS:-false}
+      ALLOW_LEGACY_LOGIN: ${ALLOW_LEGACY_LOGIN:-false}
+    volumes:
+      - simplebeacon_state:/app/.simplebeacon
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:54355/api/simplebeacon/baseline').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 10s
+      start_period: 45s
+      retries: 3
+    networks:
+      - simplebeacon_net
+
+  metrics-collector:
+    image: curlimages/curl:8.5.0
+    container_name: simplebeacon_collector
+    profiles: [collector, full]
+    depends_on:
+      dashboard:
+        condition: service_healthy
+    environment:
+      SIMPLEBEACON_COLLECT_INTERVAL_SEC: ${SIMPLEBEACON_COLLECT_INTERVAL_SEC:-600}
+      SIMPLEBEACON_DASHBOARD_URL: http://dashboard:54355
+      SIMPLEBEACON_DASHBOARD_TOKEN: ${SIMPLEBEACON_DASHBOARD_TOKEN:-}
+    volumes:
+      - ./docker/simplebeacon-collector.sh:/scripts/collector.sh:ro
+    entrypoint: ["/bin/sh", "/scripts/collector.sh"]
+    networks:
+      - simplebeacon_net
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: simplebeacon_postgres
+    profiles: [db, full]
+    environment:
+      POSTGRES_USER: cascade_user
+      POSTGRES_PASSWORD: secure_password
+      POSTGRES_DB: cascade_ai_platform
+    ports:
+      - "${SIMPLEBEACON_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - simplebeacon_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cascade_user -d cascade_ai_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - simplebeacon_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: simplebeacon_redis
+    profiles: [db, full]
+    ports:
+      - "${SIMPLEBEACON_REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - simplebeacon_net
+
+volumes:
+  simplebeacon_state:
+  simplebeacon_postgres_data:
+
+networks:
+  simplebeacon_net:
+    name: simplebeacon_net

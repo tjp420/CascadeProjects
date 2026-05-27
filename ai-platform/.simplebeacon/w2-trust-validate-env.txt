@@ -1,0 +1,12 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+
+> cascade-ai-platform@1.0.0 trust:validate-env
+> node tools/validate-trust-publish-env.js
+
+Trust publish environment validation
+  ready: true
+  endpoint configured: false
+  token configured: false
+  endpoint: n/a
+  warning: No trust publish endpoint configured; remote publish will be skipped.
+  warning: No trust publish token configured; publish will proceed without Authorization header.

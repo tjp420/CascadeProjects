@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-05-14T14:08:05.195846",
+  "management_type": "virtual_environments",
+  "items_removed": 4,
+  "items_centralized": 1,
+  "space_freed": 12497,
+  "errors": 0,
+  "removed_items": [
+    "C:\\Users\\Trevor\\CascadeProjects\\ReasonAI\\node_modules\\@next\\env",
+    "C:\\Users\\Trevor\\CascadeProjects\\ReasonAI\\node_modules\\axios\\lib\\env",
+    "C:\\Users\\Trevor\\CascadeProjects\\ReasonAI\\frontend\\node_modules\\axios\\lib\\env",
+    "C:\\Users\\Trevor\\CascadeProjects\\coding-challenge-extension\\node_modules\\axios\\lib\\env"
+  ],
+  "errors_list": []
+}

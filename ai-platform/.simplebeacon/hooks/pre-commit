@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+# Simplebeacon pre-commit — Community tier local gate
+# https://www.npmjs.com/package/simplebeacon
+set -e
+echo "Simplebeacon pre-commit..."
+npx simplebeacon scan --gate --fail-on high
+echo "Simplebeacon pre-commit passed"

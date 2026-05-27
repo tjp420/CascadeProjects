@@ -1,0 +1,12 @@
+{
+  "issueId": "A-26",
+  "category": "everyday-reliability-problems",
+  "context": {
+    "knowledgeCutoff": "2025-10-01",
+    "freshnessTests": [
+      { "topic": "framework-release", "referenceDate": "2026-04-15", "answeredCorrectly": true },
+      { "topic": "security-advisory", "referenceDate": "2026-05-01", "answeredCorrectly": true },
+      { "topic": "deprecated-api", "referenceDate": "2026-03-20", "answeredCorrectly": false, "isStale": true }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+# Docker build context for Simplebeacon dashboard
+node_modules
+npm-debug.log*
+coverage
+.git
+.github
+docs/archive
+**/*.gguf
+reports
+logs
+tmp
+temp
+.env
+.env.*
+*.log
+.vscode
+.idea
+**/*.test.js
+**/*.spec.js
+tests
+packages/simplebeacon-cli/tests
+config/docker-compose.yml

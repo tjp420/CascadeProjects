@@ -1,0 +1,228 @@
+{
+  "type": "production-deploy-profile-w1-w6-tracker",
+  "updatedAt": "2026-05-25T19:46:00.000Z",
+  "canonicalFramework": {
+    "sourceDoc": "docs/reports/LAUNCH_ACTION_PLAN.md",
+    "adaptationNote": "Mapped to 6-week production deploy profile execution while preserving non-repo host/governance blockers."
+  },
+  "strictMode": {
+    "nonBreakingDefaults": [
+      "TRUST_PUBLISH_STRICT=false",
+      "TRUST_PUBLISH_REQUIRED=false",
+      "TRUST_PUBLISH_REQUIRE_TOKEN=false"
+    ],
+    "releaseDecisionPath": [
+      "npm run verify:predeploy",
+      "npm run verify:launch-readiness"
+    ]
+  },
+  "weeks": [
+    {
+      "week": "W1",
+      "theme": "Critical path deploy gates",
+      "go_no_go_gate": "Predeploy sequence must output Decision: GO and production deploy verifier must have zero FAIL lines.",
+      "items": [
+        {
+          "id": "W1-AUTH-FAILFAST",
+          "owner": "<owner-platform-security>",
+          "status": "done",
+          "command_or_evidence": "server/bootstrap/phase2-integration.js",
+          "done_condition": "Production auth fail-fast blocks unsafe auth settings (REQUIRE_AUTH, demo users, legacy login).",
+          "blocker_reason": ""
+        },
+        {
+          "id": "W1-PREDEPLOY-SEQUENCE",
+          "owner": "<owner-platform>",
+          "status": "in_progress",
+          "command_or_evidence": "npm run verify:predeploy > .simplebeacon/w1-verify-predeploy.txt 2>&1",
+          "done_condition": "verify:predeploy returns Decision: GO.",
+          "blocker_reason": "Current NO-GO: missing production env/secrets (JWT_EXPIRES_IN, REFRESH_TOKEN_EXPIRES_IN, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)."
+        },
+        {
+          "id": "W1-PROD-ENV-VALIDATOR",
+          "owner": "<owner-sre>",
+          "status": "blocked",
+          "command_or_evidence": "npm run verify:production-deploy > .simplebeacon/w1-verify-production-deploy.txt 2>&1",
+          "done_condition": "No FAIL lines in verify-production-deploy output.",
+          "blocker_reason": "Host-side env values unresolved: JWT_EXPIRES_IN, REFRESH_TOKEN_EXPIRES_IN; Stripe key checks fail while monetization enabled."
+        },
+        {
+          "id": "W1-CI-GATE-CHECK",
+          "owner": "<owner-repo-admin>",
+          "status": "done",
+          "command_or_evidence": ".simplebeacon/w1-ci-deploy-gate-check.txt",
+          "done_condition": "deploy-production workflow contains required predeploy/audit/docker summary gates.",
+          "blocker_reason": ""
+        }
+      ]
+    },
+    {
+      "week": "W2",
+      "theme": "Quality and trust validation",
+      "go_no_go_gate": "Compliance + smoke + trust checks pass with auditable artifacts.",
+      "items": [
+        {
+          "id": "W2-COMPLIANCE",
+          "owner": "<owner-security>",
+          "status": "done",
+          "command_or_evidence": "npm run compliance:check > .simplebeacon/w2-compliance-check.txt 2>&1",
+          "done_condition": "Compliance checklist passes applicable rules.",
+          "blocker_reason": ""
+        },
+        {
+          "id": "W2-SMOKE",
+          "owner": "<owner-qa>",
+          "status": "done",
+          "command_or_evidence": "npm run smoke:test > .simplebeacon/w2-smoke-test.txt 2>&1",
+          "done_condition": "Smoke suite passes.",
+          "blocker_reason": ""
+        },
+        {
+          "id": "W2-TRUST-LOCAL",
+          "owner": "<owner-platform>",
+          "status": "done",
+          "command_or_evidence": "npm run trust:publish > .simplebeacon/w2-trust-publish.txt 2>&1",
+          "done_condition": "Local trust payload + audit artifacts are generated.",
+          "blocker_reason": ""
+        },
+        {
+          "id": "W2-TRUST-REMOTE-ENDPOINT",
+          "owner": "<owner-devops>",
+          "status": "blocked",
+          "command_or_evidence": "npm run trust:validate-env > .simplebeacon/w2-trust-validate-env.txt 2>&1",
+          "done_condition": "Endpoint/token configured and validated for remote trust publish path.",
+          "blocker_reason": "No TRUST_PUBLISH_ENDPOINT / token configured; currently non-strict and skip-remote by design."
+        }
+      ]
+    },
+    {
+      "week": "W3",
+      "theme": "Optimization and hardening",
+      "go_no_go_gate": "Docker/compose and deploy scripts are production-ready with rollback-aware checks.",
+      "items": [
+        {
+          "id": "W3-DOCKER-READINESS",
+          "owner": "<owner-platform>",
+          "status": "done",
+          "command_or_evidence": "npm run simplebeacon:docker:config > .simplebeacon/w1-docker-config.txt 2>&1",
+          "done_condition": "Docker compose renders with security defaults and health checks.",
+          "blocker_reason": ""
+        },
+        {
+          "id": "W3-DEPLOY-SCRIPT-PRECHECK",
+          "owner": "<owner-platform>",
+          "status": "done",
+          "command_or_evidence": "scripts/deploy-simplebeacon.sh",
+          "done_condition": "Deploy script fails fast on verify:predeploy before deployment.",
+          "blocker_reason": ""
+        }
+      ]
+    },
+    {
+      "week": "W4",
+      "theme": "Strategic governance and controls",
+      "go_no_go_gate": "Branch protection and required checks enforced for production branch.",
+      "items": [
+        {
+          "id": "W4-BRANCH-PROTECTION",
+          "owner": "<owner-repo-admin>",
+          "status": "blocked",
+          "command_or_evidence": "docs/production-profile-verification-status.md",
+          "done_condition": "Required checks enforced in GitHub branch protection and evidenced by repo admin.",
+          "blocker_reason": "External GitHub org setting; not verifiable in-repo."
+        },
+        {
+          "id": "W4-SECURITY-SIGNOFF",
+          "owner": "<owner-security>",
+          "status": "blocked",
+          "command_or_evidence": "docs/production-profile-verification-status.md",
+          "done_condition": "Security policy/sign-off recorded for auth/public route posture and secret handling.",
+          "blocker_reason": "Human/org sign-off required."
+        }
+      ]
+    },
+    {
+      "week": "W5",
+      "theme": "Deploy and rollback readiness",
+      "go_no_go_gate": "Dry-run deployment and production smoke pass, rollback triggers defined.",
+      "items": [
+        {
+          "id": "W5-DRY-RUN-DEPLOY",
+          "owner": "<owner-sre>",
+          "status": "blocked",
+          "command_or_evidence": "npm run simplebeacon:deploy",
+          "done_condition": "Successful production-like dry run with post-deploy smoke.",
+          "blocker_reason": "Blocked behind W1 env/secret failures and host access requirements."
+        },
+        {
+          "id": "W5-ROLLBACK-DRILL",
+          "owner": "<owner-sre>",
+          "status": "blocked",
+          "command_or_evidence": "docs/v1-internal-runbook.md",
+          "done_condition": "Rollback drill executed and signed off.",
+          "blocker_reason": "Host-side execution and human sign-off required."
+        }
+      ]
+    },
+    {
+      "week": "W6",
+      "theme": "Monitoring and operations",
+      "go_no_go_gate": "Launch readiness framework reaches GO and weekly operations checks are green.",
+      "items": [
+        {
+          "id": "W6-LAUNCH-FRAMEWORK",
+          "owner": "<owner-platform>",
+          "status": "in_progress",
+          "command_or_evidence": "npm run verify:launch-readiness > .simplebeacon/w6-verify-launch-readiness.txt 2>&1",
+          "done_condition": "verify-launch-readiness returns Decision: GO.",
+          "blocker_reason": "Current decision is NO-GO due to unresolved W1 blockers."
+        },
+        {
+          "id": "W6-TRUST-TREND-OPS",
+          "owner": "<owner-ops>",
+          "status": "done",
+          "command_or_evidence": "npm run trust:trend > .simplebeacon/w2-trust-trend.txt 2>&1",
+          "done_condition": "Trend report provides stable pass-rate/quality/issue metrics for operations review.",
+          "blocker_reason": ""
+        }
+      ]
+    }
+  ],
+  "minimum_path_to_go": [
+    {
+      "step": 1,
+      "owner": "<owner-sre>",
+      "action": "Set production env values on host",
+      "commands": [
+        "npm run verify:production-deploy > .simplebeacon/w1-verify-production-deploy.txt 2>&1"
+      ],
+      "success_criteria": "No FAIL lines in verify-production-deploy output."
+    },
+    {
+      "step": 2,
+      "owner": "<owner-billing-security>",
+      "action": "Provision Stripe live secrets for enabled monetization",
+      "commands": [
+        "npm run verify:stripe > .simplebeacon/w1-verify-stripe.txt 2>&1"
+      ],
+      "success_criteria": "Stripe verification passes with no blocking FAIL lines."
+    },
+    {
+      "step": 3,
+      "owner": "<owner-platform-qa>",
+      "action": "Re-run predeploy and launch framework gates",
+      "commands": [
+        "npm run verify:predeploy > .simplebeacon/w1-verify-predeploy.txt 2>&1",
+        "npm run verify:launch-readiness > .simplebeacon/w6-verify-launch-readiness.txt 2>&1"
+      ],
+      "success_criteria": "Both commands return Decision: GO."
+    },
+    {
+      "step": 4,
+      "owner": "<owner-repo-admin-security-sre>",
+      "action": "Complete external governance sign-offs",
+      "commands": [],
+      "success_criteria": "Branch protection and security/ops sign-offs recorded."
+    }
+  ]
+}

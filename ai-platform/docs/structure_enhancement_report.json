@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-05-14T14:09:29.785339",
+  "enhancement_type": "structure",
+  "empty_dirs_removed": 20,
+  "duplicates_removed": 0,
+  "items_removed": 20,
+  "space_freed": 0,
+  "errors": 0,
+  "removed_items": [
+    "C:\\Users\\Trevor\\CascadeProjects\\windsurf-project\\extension\\src",
+    "C:\\Users\\Trevor\\CascadeProjects\\windsurf-guardrails-extension\\src",
+    "C:\\Users\\Trevor\\CascadeProjects\\snake-game\\src",
+    "C:\\Users\\Trevor\\CascadeProjects\\ReasonAI\\frontend\\src",
+    "C:\\Users\\Trevor\\CascadeProjects\\PowerSense\\bin",
+    "C:\\Users\\Trevor\\CascadeProjects\\LifeWave\\frontend\\src",
+    "C:\\Users\\Trevor\\CascadeProjects\\LifeWave\\backend\\src\\tests",
+    "C:\\Users\\Trevor\\CascadeProjects\\enhanced-services\\unity-scanner\\unity-scanner-local-ai-package\\tests",
+    "C:\\Users\\Trevor\\CascadeProjects\\enhanced-services\\unity-ai-platform\\docs",
+    "C:\\Users\\Trevor\\CascadeProjects\\enhanced-services\\unity-ai-os\\business\\src",
+    "C:\\Users\\Trevor\\CascadeProjects\\enhanced-services\\unity-ai-os\\backend\\src",
+    "C:\\Users\\Trevor\\CascadeProjects\\enhanced-services\\src\\pages",
+    "C:\\Users\\Trevor\\CascadeProjects\\enhanced-services\\merged_programs\\nodejs_programs\\unified_frontend\\contextual-intelligence-service",
+    "C:\\Users\\Trevor\\CascadeProjects\\enhanced-services\\go-to-market",
+    "C:\\Users\\Trevor\\CascadeProjects\\enhanced-services\\file_analyzer\\templates",
+    "C:\\Users\\Trevor\\CascadeProjects\\enhanced-services\\developer-tools\\vscode-extension\\src",
+    "C:\\Users\\Trevor\\CascadeProjects\\enhanced-services\\contextual-intelligence-service",
+    "C:\\Users\\Trevor\\CascadeProjects\\data",
+    "C:\\Users\\Trevor\\CascadeProjects\\cascade-ai-extension\\src",
+    "C:\\Users\\Trevor\\CascadeProjects\\builds"
+  ],
+  "errors_list": []
+}

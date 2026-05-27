@@ -1,0 +1,5037 @@
+{
+  "generatedAt": "2026-05-27T20:59:49.884Z",
+  "includeDocs": false,
+  "sourceScope": false,
+  "filesScanned": 1396,
+  "findingFiles": 622,
+  "totalFindings": 1363,
+  "summaryByPattern": {
+    "kpi-feature-count-47": 7,
+    "placeholder-todo": 1327,
+    "placeholder-coming-soon": 6,
+    "placeholder-tbd": 18,
+    "kpi-open-issues-156": 5
+  },
+  "findings": [
+    {
+      "file": "data/simplebeacon-demo/report.json",
+      "pattern": "kpi-feature-count-47",
+      "count": 3
+    },
+    {
+      "file": "packages/simplebeacon-cli/tests/assessment.test.js",
+      "pattern": "kpi-feature-count-47",
+      "count": 1
+    },
+    {
+      "file": "packages/simplebeacon-cli/tests/proxy.test.js",
+      "pattern": "kpi-feature-count-47",
+      "count": 1
+    },
+    {
+      "file": "packages/simplebeacon-cli/tests/report-sanitizer.test.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "public/trust-verification.json",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "reports/technical-debt/artifacts/build-artifacts.js",
+      "pattern": "placeholder-todo",
+      "count": 5
+    },
+    {
+      "file": "reports/technical-debt/artifacts/prioritized-action-items.md",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "reports/technical-debt/artifacts/technical-debt-report.md",
+      "pattern": "placeholder-todo",
+      "count": 3
+    },
+    {
+      "file": "reports/technical-debt/raw/compliance-endpoint-response.json",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "scripts/build-cascade-vsix.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "scripts/build-vsix.py",
+      "pattern": "placeholder-todo",
+      "count": 5
+    },
+    {
+      "file": "scripts/build_cleanup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "scripts/build_env.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "scripts/descriptor_props.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "scripts/javascript.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "scripts/master_analyzer_runner.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "scripts/real_mock_detector.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "scripts/refactor_build_vsix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "scripts/restart_scanner.py",
+      "pattern": "placeholder-todo",
+      "count": 3
+    },
+    {
+      "file": "scripts/run_comprehensive_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "scripts/run_dry_run.py",
+      "pattern": "placeholder-todo",
+      "count": 4
+    },
+    {
+      "file": "scripts/run_improvements.py",
+      "pattern": "placeholder-todo",
+      "count": 3
+    },
+    {
+      "file": "scripts/run_master_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "scripts/scripting.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "scripts/simple-ai-server.js",
+      "pattern": "kpi-feature-count-47",
+      "count": 1
+    },
+    {
+      "file": "scripts/simple-build.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "scripts/start-general-intelligence.py",
+      "pattern": "placeholder-todo",
+      "count": 8
+    },
+    {
+      "file": "scripts/start.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "scripts/start_integrated_services.py",
+      "pattern": "placeholder-todo",
+      "count": 5
+    },
+    {
+      "file": "scripts/start_server_58656.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "scripts/start_services.py",
+      "pattern": "placeholder-todo",
+      "count": 5
+    },
+    {
+      "file": "scripts/strategic_roadmap_builder.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "scripts/utilities/cleanup_project.py",
+      "pattern": "placeholder-todo",
+      "count": 12
+    },
+    {
+      "file": "server/dashboard-server.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "server/index.js",
+      "pattern": "placeholder-todo",
+      "count": 4
+    },
+    {
+      "file": "server/lib/audit-remediation-recipes.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "server/lib/code-roadmap-generator.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "server/lib/code-understanding/semantic-analyzer.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "server/lib/codebase-analyzer.js",
+      "pattern": "placeholder-coming-soon",
+      "count": 1
+    },
+    {
+      "file": "server/lib/codebase-analyzer.js",
+      "pattern": "placeholder-tbd",
+      "count": 8
+    },
+    {
+      "file": "server/lib/codebase-analyzer.js",
+      "pattern": "placeholder-todo",
+      "count": 18
+    },
+    {
+      "file": "server/lib/complete-scan-audit-report.js",
+      "pattern": "placeholder-todo",
+      "count": 5
+    },
+    {
+      "file": "server/lib/language-patterns/go-patterns.js",
+      "pattern": "placeholder-todo",
+      "count": 3
+    },
+    {
+      "file": "server/lib/language-patterns/python-patterns.js",
+      "pattern": "placeholder-todo",
+      "count": 3
+    },
+    {
+      "file": "server/lib/language-patterns/rust-patterns.js",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "server/lib/language-patterns/sql-patterns.js",
+      "pattern": "placeholder-todo",
+      "count": 3
+    },
+    {
+      "file": "server/lib/language-patterns/universal-baseline-patterns.js",
+      "pattern": "placeholder-todo",
+      "count": 3
+    },
+    {
+      "file": "server/lib/secret-config.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "server/lib/trust-verification-payload.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "server/routes/repository-scanner-api.js",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "src/server/index.js",
+      "pattern": "placeholder-todo",
+      "count": 4
+    },
+    {
+      "file": "templates/FUNCTION_DOCUMENTATION_TEMPLATE.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/common_test.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/easy_xml_test.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/input_test.py",
+      "pattern": "placeholder-todo",
+      "count": 4
+    },
+    {
+      "file": "tests/integration/AnalysisEndToEndTest.js",
+      "pattern": "kpi-open-issues-156",
+      "count": 1
+    },
+    {
+      "file": "tests/MSVSSettings_test.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/ninja_test.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/pattern_fix_tester.py",
+      "pattern": "placeholder-todo",
+      "count": 16
+    },
+    {
+      "file": "tests/test_actual_windows_endings.py",
+      "pattern": "placeholder-todo",
+      "count": 6
+    },
+    {
+      "file": "tests/test_adaptive-neural-network.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_add_method.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_add_method_final.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_add_method_to_class.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_advanced_corruption_scanner.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_advanced_mock.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_advanced_multi_format_reporting.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_advanced_neural_network_service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_advanced_neural_network_service_consolidated.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_advanced_neural_network_service_fixed.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_agent.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_agent_zero_ollama_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_agent_zero_ollama_fix_simple.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_aggressive_119_elimination.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_aggressive_cleanup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_AGGRESSIVE_SCANNER_TERMINATOR.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_aggressive_style_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_aggressive_style_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_aggressive_style_restructure.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_aggressive_whitespace_elimination.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ai-marketplace-service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ai-server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ai_auto_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ai_bridge.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ai_issue_resolver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ai_prompt_generator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ai_sample_heavy.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ai_service_adaptor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_analysis_config_updates.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_analytics.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_analyzer_bugs.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_analyze_provided_scan_data.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_analyze_scanner_interface.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_analyze_style_issues.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_android.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_api.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_api_client.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_api_server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_api_server_1_2.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_app.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_app_alpha.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_app_beta.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_astronomical_scale_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_astronomical_scale_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_auth.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_auth_service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_auth_service_1_2.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_auth_system.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_autocompletion.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_automated_issue_fixer_17853.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_automated_project_improver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_automated_quality_monitor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_automated_remediation_orchestrator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_automated_remediation_orchestrator_fixed.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_automated_reporting_system.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_automated_whitespace_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_autonomous-operations-service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_AutoWireframeGenerator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_auto_error_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_auto_fix_all_issues.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_base.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_base_command.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_batch_decision_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_billing_service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_brand_new_scanner.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_build-cascade-vsix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_build-vsix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_build_env.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_bulk_style_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_bytecode_issue_resolver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_cache.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_cascade_ai_system.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_cascade_guardrails_setup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_cascade_guardrail_bridge.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_cascade_integration_protocol.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_certify_breakthrough_state.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_check_issues.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_claw_offline.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_claw_windsurf.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_cleanup_project.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_clean_cosmic_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_clean_dashboard.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_clean_enhanced_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_clean_working_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_clear_caches.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_cmake.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code-analysis-service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code_assistant.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code_based_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code_editor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code_generator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code_graph_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code_navigator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code_quality.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code_quality_dashboard.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code_quality_improver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code_understanding.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_code_understanding_fixed.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_collaborative-ai-platform.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_common.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comparative_scan_analysis.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_compile_commands_json.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_153_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_9042_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_all_issues_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_automated_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_business_intelligence.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_directory_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_exclusion_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_file_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_final_cleanup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_fixable_issues_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_fixable_issues_processor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_issue_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_issue_fixer_1_2.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_issue_resolution_report.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_reduction_report.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_scan_analysis.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_scan_demo.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_scan_intelligence_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_scan_processor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_style_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_comprehensive_verification.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_computer-vision-engine.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_config.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_configure_agent_zero.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_config_manager.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_consolidated_add_method.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_consolidated_add_method_1_1.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_consolidated_ai_bridge.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_consolidated_ai_bridge_1_1.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_consolidated_ollama_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_consolidated_ollama_fix_1_1.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_container_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_core_analyzer_engine.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_corruption_prevention_system.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_cosmic_scale_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_cosmic_scale_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_Create_Blueprints.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_create_custom_dockerfile.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_create_fresh_agent_zero.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_create_pptx_from_text.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_creative-problem-solving.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_critical_bugs_fixes.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_csp.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_current_scan_intelligence.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_customer_demo.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_dashboard_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_dashboard_api.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_dashboard_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_dashboard_issues_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_dashboard_server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_database.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_database_manager.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_database_service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_database_service_1_2.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_database_service_1_2_3_4.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_data_processor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_data_processor_1_2.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_data_sources.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_decision-analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_decision-scanner.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_decision_analysis_api.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_decision_analytics.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_decompress_gz.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_delete_venv.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_demo.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_demo_ai_cleanup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_demo_execution.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_demo_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 10
+    },
+    {
+      "file": "tests/test_demo_integration.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_demo_script.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_demo_server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_demo_trailing_whitespace.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_dependency_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_dependency_analyzer_fixed.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_dependency_link_analysis_demo.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_deploy.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_deployment_preparation.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_deployment_verification.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_deploy_agent_zero_simple.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_detailed_scan_processor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_dev_intelligence.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_directory_analyzer_false_positive_resolver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_direct_analyzer_analysis.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_direct_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_direct_method_patch.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_direct_models_patch.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_dump_dependency_json.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_easy_xml.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_eclipse.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_edge-ai-processor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_emergency_app_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_emergency_scanner_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enable_real_data.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced-cli.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_analyzer_false_positive_resolver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_analyzer_issue_resolver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_automated_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_automated_fixer_17853.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_auto_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_auto_fixer_1_2.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_code_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_dashboard.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_dashboard_server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_directory_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_fixer_engine.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_gui_with_smart_model_management.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_intelligence_dashboard.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_issue_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_link_resolver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_math_response_generator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_monitoring.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_multi_tenant_service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_multi_tenant_service_1_2.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_multi_tenant_service_1_2_3_4.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_services_sdk.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enhanced_trailing_whitespace_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enlightened_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enterprise_demo.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enterprise_improvement_executor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enterprise_pattern_intelligence.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enterprise_project_optimizer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_enterprise_scan_intelligence_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_env_scanner_bypass.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_error_detection_helper.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_escalated_security_final_report.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_escalated_security_system.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ethical_ai.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_execute_improvements.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_execute_json_cleanup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_execute_post_optimizations.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_execution_engine.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_executive_sparring_personality_customizer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_expanded_python_issues_resolver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_export_tools.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_export_utils.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_extreme_style_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_false_positive_filter.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_feature_complexity_optimizer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_feature_registry.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_file.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_final_119_whitespace_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_139_optimization.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_breakthrough_verification.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_bytecode_resolution.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_completion_report.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_fix_summary_report.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_issues_resolution_executor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_issue_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_ollama_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_optimization.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_project_archive_and_delivery.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_project_celebration.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_project_closure_and_handover.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_project_completion_certification.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_project_completion_summary.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_project_delivery_and_deployment.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_project_delivery_and_deployment_fixed.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_project_handover.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_project_showcase.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_FINAL_SCANNER_BYPASS.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_scanner_solution.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_source_cleanup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_style_cleanup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_style_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_validation_and_certification.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_verification_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_verification_report.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_final_working_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fixed_dashboard.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fixed_web_server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fix_153_style_issues.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fix_agent_zero_models.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fix_async_iteration.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fix_demo.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fix_indentation.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fix_long_lines.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fix_openrouter_error.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fix_remaining_issues.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fix_scanner_js.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fix_style_issues.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_flatted.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_flatted_1_2.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_flatted_1_2_3_4.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_flock_tool.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_focused_code_improver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_folder_analysis_summary.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_force_exclusion_update.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_force_ollama_config.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_force_scanner_update.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_FORM_ONLY_ANALYZER.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_fresh_html_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_full_scan_data_processor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_generate_email_from_latest_summary.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_gyp.py",
+      "pattern": "placeholder-todo",
+      "count": 10
+    },
+    {
+      "file": "tests/test_gypd.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_gypsh.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_gyp_main.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_gzip_server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_helpers.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_high_priority_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_html_analyzer_replica.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_html_auditor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_input.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_INSTANT_FEEDBACK_ANALYZER.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_INSTANT_WIREFRAME.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_integrated_analysis_service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_intelligent_generator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_intelligent_project_improver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_issue_reduction_pipeline.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_KILL_ALL_SCANNERS.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_LABEL_BASED_ANALYZER.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_large_scale_json_scan_processor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_large_scale_project_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_large_scale_scan_intelligence_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_lead-generation-engine.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_leadership_development.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_legendary_scale_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_legendary_scale_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_link_resolver_clean.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_link_resolver_simple.py",
+      "pattern": "placeholder-todo",
+      "count": 3
+    },
+    {
+      "file": "tests/test_llm.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_mac_tool.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_main_1_2.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_main_fixed.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_make.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_markers.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_massive_issue_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_massive_issue_fixer_fixed.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_massive_scale_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_massive_scale_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_massive_scan_false_positive_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_massive_scan_processor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_massive_scan_processor_fixed.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_master_analyzer_runner.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_metadata.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_method_content.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_method_to_add.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ml-pipeline.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_mock_llm.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_modal_functionality.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_models.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_MODERN_DROP_ANALYZER.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_monitoring_service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_msvs.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_MSVSNew.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_MSVSProject.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_MSVSSettings.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_MSVSToolFile.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_MSVSUserFile.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_MSVSUtil.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_MSVSVersion.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_msvs_emulation.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_multi_format_comparison.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_mythical_scale_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_mythical_scale_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_natural-language-processor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ninja.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ninja_syntax.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_nuke_scanner_config.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ollama_litellm_config.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ollama_setup.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_optimized_data_access.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_oracle-intelligence-service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_oracle_system.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_organize_project.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_password_generator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_patch_agent_zero.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_patch_agent_zero_container.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_pattern-recognition-system.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_pattern_intelligence.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_performance_optimization_service.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_performance_optimizer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_PERMANENT_SCANNER_KILLER.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_phase1_critical_security_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_phase1_manual_cleanup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_phase2_advanced_regex.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_phase2_performance_optimizer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_phase3_code_quality_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_phase3_encoding_standardization.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_phase4_content_structure.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_phase5_final_validation.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_platform_config.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_post_optimization_executor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_precise_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_precision_corruption_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_predictive-analytics-engine.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_print.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_process_scan_results.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_process_user_scan_data.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_production_config.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_program_consolidation_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_project_celebration_implementation.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_project_closure_finalization.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_project_completion_handoff.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_project_delivery_and_handover.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_project_statistics_optimizer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_Python_Image_Processor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_python_source_issues_resolver.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_quality_monitor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_quality_target_achiever.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_quick_auto_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_quick_fix_launcher.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_realistic_issue_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_real_time_monitoring.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_reflection.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_remediation_orchestrator_simple.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_repeated_scan_request_handler.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_reporting_engine.py",
+      "pattern": "placeholder-todo",
+      "count": 3
+    },
+    {
+      "file": "tests/test_requirements.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_response_generator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_restart_scanner.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_results.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_robust_cleanup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_run_comprehensive_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_run_dry_run.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_run_improvements.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_run_master_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_sample_long_line.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_sample_python.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_sample_trailing_whitespace.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scanner_bypass.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scanner_config_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scanner_exclusion_config.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scanner_exclusion_update.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_SCANNER_FINAL_SOLUTION.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scanner_improvements.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_scanner_killer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scanner_override.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scanner_reliability_system.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scanner_wrapper.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scan_analysis_integration.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scan_comparison_analysis.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scan_config.py",
+      "pattern": "placeholder-todo",
+      "count": 5
+    },
+    {
+      "file": "tests/test_scan_evolution_comparator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scan_evolution_summary.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scan_execution_helper.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_scan_results_analysis.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_security_best_practices.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_security_implementation_summary.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_security_quality_gate.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_security_review_system.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_security_training_generator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_security_vulnerability_scanner.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_server.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_server_fixed.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_session.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_settings.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_setup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_setup_guardrails.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_setup_ide_integration.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_setup_production.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple-build.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple-webgl-server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_api_server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_app.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_auto_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_copy.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_docker_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_SIMPLE_FIREFOX_ANALYZER.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_intelligence_dashboard.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_patch.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_scan_validator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_style_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_working_dashboard.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_simple_working_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_specifiers.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_start-general-intelligence.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_start.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_start_integrated_services.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_start_server_58656.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_start_visualization_demo.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_stop_all_scanners.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_storage_optimization_script.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_strategic_action_plan.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_strategic_planning.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_style_cleanup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_style_cleanup_automation.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_style_prevention_system.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_style_standardizer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_suite_generator.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tests/test_swe1_editor.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_system-intelligence-collector.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_system_scanner_disable.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_tags.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_targeted_119_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_targeted_cleanup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_targeted_critical_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_targeted_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_targeted_issue_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_targeted_whitespace_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_temporal_scan_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_test_email_generator.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_tools.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ui_components.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ULTIMATE_FIX.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ultimate_optimization.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ultimate_scale_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ultimate_scale_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ULTIMATE_SCANNER_FIX.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_ultra_aggressive_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_unbreakable_oracle.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_unified-intelligence-framework.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_unified_analysis_pipeline.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_unity-web-server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_universal_ai_gateway.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_updated_pattern_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_user_code_analyzer_suite.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_utils_1_2.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_validate_enterprise_scan_analyzer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_validate_fixes.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_validators.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_vendor_package_status.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_verify_container.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_verify_files.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_verify_optimal_state.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_version.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_views.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_visualization_demo.py",
+      "pattern": "placeholder-todo",
+      "count": 6
+    },
+    {
+      "file": "tests/test_webgl_server_fixed.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_web_server.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_windows_line_endings.py",
+      "pattern": "placeholder-todo",
+      "count": 7
+    },
+    {
+      "file": "tests/test_windsurf_guardrails_auto.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_windsurf_guardrails_setup.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_windsurf_integration.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_windsurf_integration_complete.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_win_tool.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_working_auto_fixer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_working_dashboard.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_working_ollama_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_working_patch.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_xcode.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_xcodeproj_file.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_xcode_emulation.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_xcode_ninja.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test_xml_fix.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test__compat.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test__dists.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test__elffile.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test__envs.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test__manylinux.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test__musllinux.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test__parser.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test__structures.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/test__tokenizer.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/unit/codebase-analyzer.test.js",
+      "pattern": "placeholder-coming-soon",
+      "count": 5
+    },
+    {
+      "file": "tests/unit/codebase-analyzer.test.js",
+      "pattern": "placeholder-tbd",
+      "count": 7
+    },
+    {
+      "file": "tests/unit/codebase-analyzer.test.js",
+      "pattern": "placeholder-todo",
+      "count": 11
+    },
+    {
+      "file": "tests/unit/complete-scan-audit-report.test.js",
+      "pattern": "placeholder-todo",
+      "count": 11
+    },
+    {
+      "file": "tests/unit/dashboard-metrics-service.test.js",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tests/unit/universal-language-framework.test.js",
+      "pattern": "placeholder-todo",
+      "count": 6
+    },
+    {
+      "file": "tools/api_gateway.py",
+      "pattern": "placeholder-todo",
+      "count": 2
+    },
+    {
+      "file": "tools/code_quality_checker.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tools/code_quality_tools.py",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tools/create_test_templates.py",
+      "pattern": "placeholder-todo",
+      "count": 4
+    },
+    {
+      "file": "tools/demo_script.py",
+      "pattern": "placeholder-todo",
+      "count": 4
+    },
+    {
+      "file": "tools/scan-credential-patterns-repo.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tools/scan-source-kpi-patterns.js",
+      "pattern": "placeholder-tbd",
+      "count": 1
+    },
+    {
+      "file": "tools/scan-source-kpi-patterns.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "tools/verify-stripe-config.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    },
+    {
+      "file": "web/api/mock-backend.js",
+      "pattern": "kpi-feature-count-47",
+      "count": 1
+    },
+    {
+      "file": "web/api/mock-backend.js",
+      "pattern": "kpi-open-issues-156",
+      "count": 4
+    },
+    {
+      "file": "web/api/mock-backend.js",
+      "pattern": "placeholder-tbd",
+      "count": 2
+    },
+    {
+      "file": "web/services/DashboardMetricsService.js",
+      "pattern": "placeholder-todo",
+      "count": 1
+    }
+  ],
+  "byFile": {
+    "data/simplebeacon-demo/report.json": {
+      "kpi-feature-count-47": 3
+    },
+    "packages/simplebeacon-cli/tests/assessment.test.js": {
+      "kpi-feature-count-47": 1
+    },
+    "packages/simplebeacon-cli/tests/proxy.test.js": {
+      "kpi-feature-count-47": 1
+    },
+    "packages/simplebeacon-cli/tests/report-sanitizer.test.js": {
+      "placeholder-todo": 1
+    },
+    "public/trust-verification.json": {
+      "placeholder-todo": 1
+    },
+    "reports/technical-debt/artifacts/build-artifacts.js": {
+      "placeholder-todo": 5
+    },
+    "reports/technical-debt/artifacts/prioritized-action-items.md": {
+      "placeholder-todo": 1
+    },
+    "reports/technical-debt/artifacts/technical-debt-report.md": {
+      "placeholder-todo": 3
+    },
+    "reports/technical-debt/raw/compliance-endpoint-response.json": {
+      "placeholder-todo": 1
+    },
+    "scripts/build-cascade-vsix.py": {
+      "placeholder-todo": 1
+    },
+    "scripts/build-vsix.py": {
+      "placeholder-todo": 5
+    },
+    "scripts/build_cleanup.py": {
+      "placeholder-todo": 2
+    },
+    "scripts/build_env.py": {
+      "placeholder-todo": 1
+    },
+    "scripts/descriptor_props.py": {
+      "placeholder-todo": 2
+    },
+    "scripts/javascript.py": {
+      "placeholder-todo": 1
+    },
+    "scripts/master_analyzer_runner.py": {
+      "placeholder-todo": 1
+    },
+    "scripts/real_mock_detector.py": {
+      "placeholder-todo": 2
+    },
+    "scripts/refactor_build_vsix.py": {
+      "placeholder-todo": 2
+    },
+    "scripts/restart_scanner.py": {
+      "placeholder-todo": 3
+    },
+    "scripts/run_comprehensive_fix.py": {
+      "placeholder-todo": 2
+    },
+    "scripts/run_dry_run.py": {
+      "placeholder-todo": 4
+    },
+    "scripts/run_improvements.py": {
+      "placeholder-todo": 3
+    },
+    "scripts/run_master_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "scripts/scripting.py": {
+      "placeholder-todo": 1
+    },
+    "scripts/simple-ai-server.js": {
+      "kpi-feature-count-47": 1
+    },
+    "scripts/simple-build.py": {
+      "placeholder-todo": 2
+    },
+    "scripts/start-general-intelligence.py": {
+      "placeholder-todo": 8
+    },
+    "scripts/start.py": {
+      "placeholder-todo": 1
+    },
+    "scripts/start_integrated_services.py": {
+      "placeholder-todo": 5
+    },
+    "scripts/start_server_58656.py": {
+      "placeholder-todo": 1
+    },
+    "scripts/start_services.py": {
+      "placeholder-todo": 5
+    },
+    "scripts/strategic_roadmap_builder.py": {
+      "placeholder-todo": 1
+    },
+    "scripts/utilities/cleanup_project.py": {
+      "placeholder-todo": 12
+    },
+    "server/dashboard-server.js": {
+      "placeholder-todo": 1
+    },
+    "server/index.js": {
+      "placeholder-todo": 4
+    },
+    "server/lib/audit-remediation-recipes.js": {
+      "placeholder-todo": 1
+    },
+    "server/lib/code-roadmap-generator.js": {
+      "placeholder-todo": 1
+    },
+    "server/lib/code-understanding/semantic-analyzer.js": {
+      "placeholder-todo": 1
+    },
+    "server/lib/codebase-analyzer.js": {
+      "placeholder-coming-soon": 1,
+      "placeholder-tbd": 8,
+      "placeholder-todo": 18
+    },
+    "server/lib/complete-scan-audit-report.js": {
+      "placeholder-todo": 5
+    },
+    "server/lib/language-patterns/go-patterns.js": {
+      "placeholder-todo": 3
+    },
+    "server/lib/language-patterns/python-patterns.js": {
+      "placeholder-todo": 3
+    },
+    "server/lib/language-patterns/rust-patterns.js": {
+      "placeholder-todo": 2
+    },
+    "server/lib/language-patterns/sql-patterns.js": {
+      "placeholder-todo": 3
+    },
+    "server/lib/language-patterns/universal-baseline-patterns.js": {
+      "placeholder-todo": 3
+    },
+    "server/lib/secret-config.js": {
+      "placeholder-todo": 1
+    },
+    "server/lib/trust-verification-payload.js": {
+      "placeholder-todo": 1
+    },
+    "server/routes/repository-scanner-api.js": {
+      "placeholder-todo": 2
+    },
+    "src/server/index.js": {
+      "placeholder-todo": 4
+    },
+    "templates/FUNCTION_DOCUMENTATION_TEMPLATE.js": {
+      "placeholder-todo": 1
+    },
+    "tests/common_test.py": {
+      "placeholder-todo": 1
+    },
+    "tests/easy_xml_test.py": {
+      "placeholder-todo": 1
+    },
+    "tests/input_test.py": {
+      "placeholder-todo": 4
+    },
+    "tests/integration/AnalysisEndToEndTest.js": {
+      "kpi-open-issues-156": 1
+    },
+    "tests/MSVSSettings_test.py": {
+      "placeholder-todo": 2
+    },
+    "tests/ninja_test.py": {
+      "placeholder-todo": 1
+    },
+    "tests/pattern_fix_tester.py": {
+      "placeholder-todo": 16
+    },
+    "tests/test_actual_windows_endings.py": {
+      "placeholder-todo": 6
+    },
+    "tests/test_adaptive-neural-network.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_add_method.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_add_method_final.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_add_method_to_class.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_advanced_corruption_scanner.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_advanced_mock.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_advanced_multi_format_reporting.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_advanced_neural_network_service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_advanced_neural_network_service_consolidated.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_advanced_neural_network_service_fixed.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_agent.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_agent_zero_ollama_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_agent_zero_ollama_fix_simple.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_aggressive_119_elimination.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_aggressive_cleanup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_AGGRESSIVE_SCANNER_TERMINATOR.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_aggressive_style_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_aggressive_style_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_aggressive_style_restructure.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_aggressive_whitespace_elimination.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ai-marketplace-service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ai-server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ai_auto_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ai_bridge.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ai_issue_resolver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ai_prompt_generator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ai_sample_heavy.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ai_service_adaptor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_analysis_config_updates.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_analytics.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_analyzer.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_analyzer_bugs.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_analyze_provided_scan_data.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_analyze_scanner_interface.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_analyze_style_issues.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_android.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_api.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_api_client.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_api_server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_api_server_1_2.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_app.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_app_alpha.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_app_beta.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_astronomical_scale_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_astronomical_scale_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_auth.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_auth_service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_auth_service_1_2.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_auth_system.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_autocompletion.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_automated_issue_fixer_17853.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_automated_project_improver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_automated_quality_monitor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_automated_remediation_orchestrator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_automated_remediation_orchestrator_fixed.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_automated_reporting_system.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_automated_whitespace_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_autonomous-operations-service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_AutoWireframeGenerator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_auto_error_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_auto_fix_all_issues.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_base.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_base_command.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_batch_decision_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_billing_service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_brand_new_scanner.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_build-cascade-vsix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_build-vsix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_build_env.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_bulk_style_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_bytecode_issue_resolver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_cache.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_cascade_ai_system.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_cascade_guardrails_setup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_cascade_guardrail_bridge.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_cascade_integration_protocol.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_certify_breakthrough_state.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_check_issues.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_claw_offline.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_claw_windsurf.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_cleanup_project.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_clean_cosmic_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_clean_dashboard.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_clean_enhanced_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_clean_working_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_clear_caches.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_cmake.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code-analysis-service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code_assistant.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code_based_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code_editor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code_generator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code_graph_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code_navigator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code_quality.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code_quality_dashboard.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code_quality_improver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code_understanding.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_code_understanding_fixed.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_collaborative-ai-platform.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_common.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comparative_scan_analysis.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_compile_commands_json.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_153_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_9042_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_all_issues_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_automated_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_business_intelligence.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_directory_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_exclusion_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_file_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_final_cleanup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_fixable_issues_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_fixable_issues_processor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_issue_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_issue_fixer_1_2.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_issue_resolution_report.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_reduction_report.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_scan_analysis.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_scan_demo.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_scan_intelligence_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_scan_processor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_style_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_comprehensive_verification.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_computer-vision-engine.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_config.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_configure_agent_zero.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_config_manager.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_consolidated_add_method.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_consolidated_add_method_1_1.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_consolidated_ai_bridge.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_consolidated_ai_bridge_1_1.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_consolidated_ollama_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_consolidated_ollama_fix_1_1.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_container_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_core_analyzer_engine.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_corruption_prevention_system.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_cosmic_scale_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_cosmic_scale_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_Create_Blueprints.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_create_custom_dockerfile.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_create_fresh_agent_zero.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_create_pptx_from_text.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_creative-problem-solving.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_critical_bugs_fixes.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_csp.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_current_scan_intelligence.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_customer_demo.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_dashboard_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_dashboard_api.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_dashboard_fix.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_dashboard_issues_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_dashboard_server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_database.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_database_manager.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_database_service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_database_service_1_2.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_database_service_1_2_3_4.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_data_processor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_data_processor_1_2.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_data_sources.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_decision-analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_decision-scanner.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_decision_analysis_api.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_decision_analytics.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_decompress_gz.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_delete_venv.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_demo.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_demo_ai_cleanup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_demo_execution.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_demo_fix.py": {
+      "placeholder-todo": 10
+    },
+    "tests/test_demo_integration.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_demo_script.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_demo_server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_demo_trailing_whitespace.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_dependency_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_dependency_analyzer_fixed.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_dependency_link_analysis_demo.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_deploy.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_deployment_preparation.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_deployment_verification.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_deploy_agent_zero_simple.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_detailed_scan_processor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_dev_intelligence.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_directory_analyzer_false_positive_resolver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_direct_analyzer_analysis.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_direct_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_direct_method_patch.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_direct_models_patch.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_dump_dependency_json.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_easy_xml.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_eclipse.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_edge-ai-processor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_emergency_app_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_emergency_scanner_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enable_real_data.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced-cli.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_analyzer_false_positive_resolver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_analyzer_issue_resolver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_automated_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_automated_fixer_17853.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_auto_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_auto_fixer_1_2.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_code_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_dashboard.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_dashboard_server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_directory_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_fixer_engine.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_gui_with_smart_model_management.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_intelligence_dashboard.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_issue_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_link_resolver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_math_response_generator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_monitoring.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_multi_tenant_service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_multi_tenant_service_1_2.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_multi_tenant_service_1_2_3_4.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_services_sdk.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enhanced_trailing_whitespace_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enlightened_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enterprise_demo.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enterprise_improvement_executor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enterprise_pattern_intelligence.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enterprise_project_optimizer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_enterprise_scan_intelligence_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_env_scanner_bypass.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_error_detection_helper.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_escalated_security_final_report.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_escalated_security_system.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ethical_ai.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_execute_improvements.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_execute_json_cleanup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_execute_post_optimizations.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_execution_engine.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_executive_sparring_personality_customizer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_expanded_python_issues_resolver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_export_tools.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_export_utils.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_extreme_style_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_false_positive_filter.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_feature_complexity_optimizer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_feature_registry.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_file.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_final_119_whitespace_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_139_optimization.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_breakthrough_verification.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_bytecode_resolution.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_completion_report.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_fix_summary_report.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_issues_resolution_executor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_issue_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_ollama_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_optimization.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_project_archive_and_delivery.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_project_celebration.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_project_closure_and_handover.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_project_completion_certification.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_project_completion_summary.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_project_delivery_and_deployment.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_project_delivery_and_deployment_fixed.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_project_handover.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_project_showcase.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_FINAL_SCANNER_BYPASS.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_scanner_solution.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_source_cleanup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_style_cleanup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_style_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_validation_and_certification.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_verification_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_verification_report.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_final_working_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fixed_dashboard.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fixed_web_server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fix_153_style_issues.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fix_agent_zero_models.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fix_async_iteration.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fix_demo.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fix_indentation.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fix_long_lines.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fix_openrouter_error.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fix_remaining_issues.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fix_scanner_js.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fix_style_issues.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_flatted.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_flatted_1_2.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_flatted_1_2_3_4.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_flock_tool.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_focused_code_improver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_folder_analysis_summary.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_force_exclusion_update.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_force_ollama_config.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_force_scanner_update.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_FORM_ONLY_ANALYZER.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_fresh_html_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_full_scan_data_processor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_generate_email_from_latest_summary.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_gyp.py": {
+      "placeholder-todo": 10
+    },
+    "tests/test_gypd.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_gypsh.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_gyp_main.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_gzip_server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_helpers.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_high_priority_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_html_analyzer_replica.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_html_auditor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_input.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_INSTANT_FEEDBACK_ANALYZER.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_INSTANT_WIREFRAME.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_integrated_analysis_service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_intelligent_generator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_intelligent_project_improver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_issue_reduction_pipeline.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_KILL_ALL_SCANNERS.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_LABEL_BASED_ANALYZER.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_large_scale_json_scan_processor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_large_scale_project_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_large_scale_scan_intelligence_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_lead-generation-engine.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_leadership_development.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_legendary_scale_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_legendary_scale_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_link_resolver_clean.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_link_resolver_simple.py": {
+      "placeholder-todo": 3
+    },
+    "tests/test_llm.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_mac_tool.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_main_1_2.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_main_fixed.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_make.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_markers.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_massive_issue_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_massive_issue_fixer_fixed.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_massive_scale_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_massive_scale_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_massive_scan_false_positive_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_massive_scan_processor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_massive_scan_processor_fixed.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_master_analyzer_runner.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_metadata.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_method_content.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_method_to_add.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ml-pipeline.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_mock_llm.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_modal_functionality.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_models.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_MODERN_DROP_ANALYZER.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_monitoring_service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_msvs.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_MSVSNew.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_MSVSProject.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_MSVSSettings.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_MSVSToolFile.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_MSVSUserFile.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_MSVSUtil.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_MSVSVersion.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_msvs_emulation.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_multi_format_comparison.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_mythical_scale_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_mythical_scale_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_natural-language-processor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ninja.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ninja_syntax.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_nuke_scanner_config.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ollama_litellm_config.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ollama_setup.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_optimized_data_access.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_oracle-intelligence-service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_oracle_system.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_organize_project.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_password_generator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_patch_agent_zero.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_patch_agent_zero_container.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_pattern-recognition-system.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_pattern_intelligence.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_performance_optimization_service.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_performance_optimizer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_PERMANENT_SCANNER_KILLER.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_phase1_critical_security_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_phase1_manual_cleanup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_phase2_advanced_regex.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_phase2_performance_optimizer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_phase3_code_quality_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_phase3_encoding_standardization.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_phase4_content_structure.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_phase5_final_validation.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_platform_config.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_post_optimization_executor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_precise_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_precision_corruption_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_predictive-analytics-engine.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_print.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_process_scan_results.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_process_user_scan_data.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_production_config.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_program_consolidation_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_project_celebration_implementation.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_project_closure_finalization.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_project_completion_handoff.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_project_delivery_and_handover.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_project_statistics_optimizer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_Python_Image_Processor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_python_source_issues_resolver.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_quality_monitor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_quality_target_achiever.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_quick_auto_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_quick_fix_launcher.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_realistic_issue_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_real_time_monitoring.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_reflection.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_remediation_orchestrator_simple.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_repeated_scan_request_handler.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_reporting_engine.py": {
+      "placeholder-todo": 3
+    },
+    "tests/test_requirements.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_response_generator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_restart_scanner.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_results.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_robust_cleanup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_run_comprehensive_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_run_dry_run.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_run_improvements.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_run_master_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_sample_long_line.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_sample_python.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_sample_trailing_whitespace.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scanner_bypass.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scanner_config_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scanner_exclusion_config.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scanner_exclusion_update.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_SCANNER_FINAL_SOLUTION.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scanner_improvements.js": {
+      "placeholder-todo": 1
+    },
+    "tests/test_scanner_killer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scanner_override.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scanner_reliability_system.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scanner_wrapper.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scan_analysis_integration.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scan_comparison_analysis.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scan_config.py": {
+      "placeholder-todo": 5
+    },
+    "tests/test_scan_evolution_comparator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scan_evolution_summary.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scan_execution_helper.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_scan_results_analysis.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_security_best_practices.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_security_implementation_summary.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_security_quality_gate.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_security_review_system.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_security_training_generator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_security_vulnerability_scanner.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_server.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_server_fixed.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_session.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_settings.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_setup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_setup_guardrails.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_setup_ide_integration.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_setup_production.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple-build.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple-webgl-server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_api_server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_app.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_auto_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_copy.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_docker_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_SIMPLE_FIREFOX_ANALYZER.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_intelligence_dashboard.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_patch.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_scan_validator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_style_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_working_dashboard.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_simple_working_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_specifiers.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_start-general-intelligence.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_start.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_start_integrated_services.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_start_server_58656.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_start_visualization_demo.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_stop_all_scanners.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_storage_optimization_script.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_strategic_action_plan.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_strategic_planning.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_style_cleanup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_style_cleanup_automation.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_style_prevention_system.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_style_standardizer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_suite_generator.py": {
+      "placeholder-todo": 1
+    },
+    "tests/test_swe1_editor.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_system-intelligence-collector.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_system_scanner_disable.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_tags.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_targeted_119_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_targeted_cleanup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_targeted_critical_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_targeted_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_targeted_issue_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_targeted_whitespace_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_temporal_scan_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_test_email_generator.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_tools.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ui_components.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ULTIMATE_FIX.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ultimate_optimization.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ultimate_scale_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ultimate_scale_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ULTIMATE_SCANNER_FIX.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_ultra_aggressive_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_unbreakable_oracle.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_unified-intelligence-framework.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_unified_analysis_pipeline.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_unity-web-server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_universal_ai_gateway.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_updated_pattern_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_user_code_analyzer_suite.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_utils_1_2.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_validate_enterprise_scan_analyzer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_validate_fixes.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_validators.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_vendor_package_status.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_verify_container.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_verify_files.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_verify_optimal_state.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_version.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_views.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_visualization_demo.py": {
+      "placeholder-todo": 6
+    },
+    "tests/test_webgl_server_fixed.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_web_server.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_windows_line_endings.py": {
+      "placeholder-todo": 7
+    },
+    "tests/test_windsurf_guardrails_auto.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_windsurf_guardrails_setup.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_windsurf_integration.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_windsurf_integration_complete.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_win_tool.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_working_auto_fixer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_working_dashboard.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_working_ollama_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_working_patch.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_xcode.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_xcodeproj_file.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_xcode_emulation.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_xcode_ninja.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test_xml_fix.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test__compat.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test__dists.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test__elffile.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test__envs.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test__manylinux.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test__musllinux.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test__parser.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test__structures.py": {
+      "placeholder-todo": 2
+    },
+    "tests/test__tokenizer.py": {
+      "placeholder-todo": 2
+    },
+    "tests/unit/codebase-analyzer.test.js": {
+      "placeholder-coming-soon": 5,
+      "placeholder-tbd": 7,
+      "placeholder-todo": 11
+    },
+    "tests/unit/complete-scan-audit-report.test.js": {
+      "placeholder-todo": 11
+    },
+    "tests/unit/dashboard-metrics-service.test.js": {
+      "placeholder-todo": 2
+    },
+    "tests/unit/universal-language-framework.test.js": {
+      "placeholder-todo": 6
+    },
+    "tools/api_gateway.py": {
+      "placeholder-todo": 2
+    },
+    "tools/code_quality_checker.py": {
+      "placeholder-todo": 1
+    },
+    "tools/code_quality_tools.py": {
+      "placeholder-todo": 1
+    },
+    "tools/create_test_templates.py": {
+      "placeholder-todo": 4
+    },
+    "tools/demo_script.py": {
+      "placeholder-todo": 4
+    },
+    "tools/scan-credential-patterns-repo.js": {
+      "placeholder-todo": 1
+    },
+    "tools/scan-source-kpi-patterns.js": {
+      "placeholder-tbd": 1,
+      "placeholder-todo": 1
+    },
+    "tools/verify-stripe-config.js": {
+      "placeholder-todo": 1
+    },
+    "web/api/mock-backend.js": {
+      "kpi-feature-count-47": 1,
+      "kpi-open-issues-156": 4,
+      "placeholder-tbd": 2
+    },
+    "web/services/DashboardMetricsService.js": {
+      "placeholder-todo": 1
+    }
+  }
+}

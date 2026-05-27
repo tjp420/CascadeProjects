@@ -1,0 +1,55 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+
+> cascade-ai-platform@1.0.0 verify:predeploy
+> node tools/verify-predeploy-sequence.js
+
+Running pre-deploy verification sequence...
+[FAIL] Stripe verification (621ms)
+  Γ£à enterprise_setup: price_1TajTMAQ0e20kzI84Gow0QGF (STRIPE_PRICE_ID_ENTERPRISE_SETUP / SIMPLEBEACON_ENTERPRISE_SETUP_ID)
+  Γ£à enterprise_retainer: price_1TajTOAQ0e20kzI8MYz3H63W (STRIPE_PRICE_ID_ENTERPRISE_RETAINER / SIMPLEBEACON_ENTERPRISE_RETAINER_ID)
+  ΓÜá∩╕Å  STRIPE_WEBHOOK_SECRET not set (recommended)
+  Γ£à SIMPLEBEACON_APP_URL set
+  Γ£à SIMPLEBEACON_CALENDLY_URL set
+  Γ¥î STRIPE_WEBHOOK_SECRET is required when monetization is enabled
+  Γ£à SIMPLEBEACON_APP_URL: https://simplebeacon.ai
+  Γä╣∩╕Å  Bypass email: dev@simplebeacon.ai
+  
+  Copy .env.production.example ΓåÆ .env.production and fill Stripe keys + Price IDs (price_...).
+  [stderr] npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+  [spawn] Command failed: npm run verify:stripe
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+
+[FAIL] Production deploy verification (397ms)
+  OK    JWT_SECRET ΓÇö configured
+  OK    JWT_REFRESH_SECRET ΓÇö configured
+  FAIL  JWT_EXPIRES_IN ΓÇö required in .env.production (example: 7d)
+  FAIL  REFRESH_TOKEN_EXPIRES_IN ΓÇö required in .env.production (example: 30d)
+  OK    SEED_DEMO_USERS ΓÇö false
+  OK    ALLOW_LEGACY_LOGIN ΓÇö disabled
+  OK    SIMPLEBEACON_APP_URL ΓÇö https://simplebeacon.ai
+  FAIL  Stripe keys ΓÇö set STRIPE_SECRET_KEY and STRIPE_PRICE_ID_TEAMS_MONTHLY (or STRIPE_PRICE_ID) when monetization is enabled
+  
+  Fix blocking items, then: npm run simplebeacon:deploy
+  [stderr] npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+  [spawn] Command failed: npm run verify:production-deploy
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+
+[PASS] Trust/compliance precheck (2279ms)
+  > node packages/simplebeacon-cli/bin/simplebeacon.js scan --path . --format json --output .simplebeacon/report.json --gate
+  
+  
+  > cascade-ai-platform@1.0.0 simplebeacon:assess
+  > node packages/simplebeacon-cli/bin/simplebeacon.js assess --path . --report .simplebeacon/report.json --output .simplebeacon/assessment.json
+  
+  Assessment written to C:\Users\Trevor\CascadeProjects\ai-platform\.simplebeacon\assessment.json
+  Gate: PASS
+  Compliance: 8/8 rules pass (score 100)
+  Headline: 4 fiction/KPI issue(s). Gate passes ΓÇö MEDIUM findings are warnings under current failOn policy.
+
+=== Pre-deploy verification summary ===
+- stripe: FAIL (exit=1)
+- production: FAIL (exit=1)
+- trust: PASS (exit=0)
+
+Decision: NO-GO
+Action: fix failing step(s), then re-run `npm run verify:predeploy`.

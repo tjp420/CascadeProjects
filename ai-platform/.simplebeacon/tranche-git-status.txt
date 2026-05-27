@@ -1,0 +1,6 @@
+?? .github/workflows/deploy-production.yml
+?? ai-platform/docker-compose.simplebeacon.yml
+?? ai-platform/docker/env.simplebeacon.example
+?? ai-platform/docs/production-profile-verification-status.md
+?? ai-platform/docs/v1-internal-runbook.md
+?? ai-platform/server/bootstrap/phase2-integration.js
