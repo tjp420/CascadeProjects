@@ -574,10 +574,16 @@ export class AnalyzeView {
       categoryDistribution,
       riskSummary,
       topPriorityIssues,
+      coverageGaps,
       mitigationThemes,
       architecture,
       payload
     } = this.aiIssueAnalysisResult;
+    const executionStatus = riskSummary.executionStatus || {
+      measured: riskSummary.measuredAnalyzerCount || 0,
+      insufficientData: 0,
+      stub: summary.stubCount || 0
+    };
     return `
       <div class="card mt-4">
         <div class="section-heading">
@@ -591,6 +597,12 @@ export class AnalyzeView {
           <div class="metric-chip"><strong>${riskSummary.averageRiskScore}</strong> avg risk score</div>
           <div class="metric-chip"><strong>${riskSummary.totalRiskScore}</strong> total risk score</div>
         </div>
+        <h3 class="card-subtitle">Execution coverage</h3>
+        <div class="metrics-row mb-4">
+          <div class="metric-chip"><strong>${executionStatus.measured}</strong> measured</div>
+          <div class="metric-chip"><strong>${executionStatus.insufficientData}</strong> insufficient data</div>
+          <div class="metric-chip"><strong>${executionStatus.stub}</strong> stub</div>
+        </div>
         <h3 class="card-subtitle">Category distribution</h3>
         <ul class="roadmap-phase-list mb-4">
           ${categoryDistribution.map((item) => `
@@ -600,22 +612,43 @@ export class AnalyzeView {
             </li>
           `).join('')}
         </ul>
-        <h3 class="card-subtitle">Risk summary</h3>
+        <h3 class="card-subtitle">Risk summary (measured analyzers only)</h3>
         <p class="text-muted mb-3" style="font-size: var(--font-size-sm); margin-top: 0;">
           Critical: <strong>${riskSummary.severityCounts.critical}</strong> ·
           High: <strong>${riskSummary.severityCounts.high}</strong> ·
           Medium: <strong>${riskSummary.severityCounts.medium}</strong> ·
           Low: <strong>${riskSummary.severityCounts.low}</strong>
+          <span class="text-muted"> (${riskSummary.measuredAnalyzerCount} measured)</span>
         </p>
         <h3 class="card-subtitle">Top priority issues</h3>
-        <ul class="roadmap-phase-list mb-4">
-          ${topPriorityIssues.map((issue) => `
-            <li>
-              <strong>${escapeHtml(issue.id)} · ${escapeHtml(issue.title)}</strong>
-              <span class="text-muted"> — score ${issue.priorityScore}, ${escapeHtml(issue.severity)} severity (${escapeHtml(issue.riskBand)} band)</span>
-            </li>
-          `).join('')}
-        </ul>
+        ${topPriorityIssues.length ? `
+          <ul class="roadmap-phase-list mb-4">
+            ${topPriorityIssues.map((issue) => `
+              <li>
+                <strong>${escapeHtml(issue.id)} · ${escapeHtml(issue.title)}</strong>
+                <span class="text-muted"> — score ${issue.priorityScore}, ${escapeHtml(issue.severity)} severity (${escapeHtml(issue.riskBand)} band)</span>
+              </li>
+            `).join('')}
+          </ul>
+        ` : `
+          <p class="text-muted mb-4" style="font-size: var(--font-size-sm); margin-top: 0;">
+            No measured analyzers reported elevated risk. Review coverage gaps below to improve input completeness.
+          </p>
+        `}
+        <h3 class="card-subtitle">Coverage gaps</h3>
+        ${coverageGaps?.length ? `
+          <ul class="roadmap-phase-list mb-4">
+            ${coverageGaps.map((gap) => `
+              <li>
+                <strong>${escapeHtml(gap.id)} · ${escapeHtml(gap.title)}</strong>
+                <span class="text-muted"> — missing ${escapeHtml(gap.missingInputPointer)}</span>
+                <div class="text-muted" style="font-size: var(--font-size-sm); margin-top: var(--space-1);">${escapeHtml(gap.detail)}</div>
+              </li>
+            `).join('')}
+          </ul>
+        ` : `
+          <p class="text-muted mb-4" style="font-size: var(--font-size-sm); margin-top: 0;">All implemented analyzers received sufficient input.</p>
+        `}
         <h3 class="card-subtitle">Mitigation themes</h3>
         <ul class="roadmap-phase-list mb-4">
           ${mitigationThemes.map((item) => `
