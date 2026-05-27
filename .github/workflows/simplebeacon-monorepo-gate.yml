@@ -1,0 +1,79 @@
+# Parent-repo gate — matches SB-AUD full-tree profile (CascadeProjects + ai-platform).
+# Complements ai-platform-only workflows; fails PRs on high-severity findings repo-wide.
+
+name: Simplebeacon Monorepo Gate
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: simplebeacon-monorepo-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  monorepo-gate:
+    name: Monorepo compliance gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository source
+        uses: actions/checkout@v4
+
+      - name: Detect ai-platform
+        id: detect
+        run: |
+          if [ -f ai-platform/package-lock.json ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "## Simplebeacon Monorepo Gate" >> "$GITHUB_STEP_SUMMARY"
+            echo "Skipped — ai-platform is not on this branch yet." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Setup Node.js
+        if: steps.detect.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install ai-platform dependencies
+        if: steps.detect.outputs.ready == 'true'
+        working-directory: ai-platform
+        run: npm ci
+
+      - name: Run Simplebeacon gate from repository root
+        if: steps.detect.outputs.ready == 'true'
+        run: |
+          node ai-platform/packages/simplebeacon-cli/bin/simplebeacon.js scan \
+            --path . \
+            --format json \
+            --output .simplebeacon/report.json \
+            --gate \
+            --fail-on high \
+            --verbose
+
+      - name: Add gate summary
+        if: always() && steps.detect.outputs.ready == 'true'
+        run: |
+          if [ -f .simplebeacon/report.json ]; then
+            node ai-platform/packages/simplebeacon-cli/bin/simplebeacon.js comment \
+              --report .simplebeacon/report.json \
+              --print-only >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Simplebeacon Monorepo" >> "$GITHUB_STEP_SUMMARY"
+            echo "No report generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload monorepo gate artifacts
+        if: always() && steps.detect.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-monorepo-${{ github.run_id }}
+          path: .simplebeacon/report.json
+          if-no-files-found: ignore
