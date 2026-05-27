@@ -16,7 +16,7 @@ Deliver a stable near-term baseline by implementing the next 4 analyzers (A-03, 
 - Implemented analyzer count trajectory: 5 -> 7 -> 9 -> 9.
 - Regression count in `tests/unit/ai-systems-issue-analyzer.test.js`: target 0.
 - Open critical findings from analyzer release checks: target 0 at sprint close.
-- Backlog freshness (`analyzer-tracker.json` rows updated): target 47/47 weekly.
+- Backlog freshness (`analyzer-tracker.json` rows updated): target 48/48 weekly.
 
 ## Mandatory weekly command set
 Run from `ai-platform`:

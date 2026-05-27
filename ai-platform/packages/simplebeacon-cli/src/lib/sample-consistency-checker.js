@@ -36,6 +36,29 @@ const SKIP_FICTION_PATHS = new Set([
 
 const LEGACY_SKIP_PATH_ALIASES = new Set(['deprecatedNarrative', 'deprecated']);
 
+/** Scan/trust metric counts — not roadmap completion-rate KPIs. */
+const NON_FICTION_METRIC_KEYS = new Set([
+    'consistencyChecked',
+    'consistencyPassed',
+    'schemaChecked',
+    'schemaPassed',
+    'pageSampleSchemaChecked',
+    'pageSampleSchemaPassed',
+    'fictionJsonFilesScanned',
+    'fictionSampleFilesScanned',
+    'ruleScopedFilesAnalyzed',
+    'repositoryFilesTotal',
+    'repositoryFoldersTotal',
+    'repositoryFilesAudited',
+    'jsonFilesAnalyzed',
+    'sampleDataFilesAnalyzed',
+    'mockSampleFiles',
+    'issueCount',
+    'credentialScanned',
+    'productionLeakScanned',
+    'sourceCodeFilesScanned'
+]);
+
 const ACTIVE_MODEL_KEYS = new Set(['name', 'activeModel', 'model', 'currentModel']);
 
 function isCatalogModelNamePath(keyPath) {
@@ -100,6 +123,7 @@ function deepIncludesFiction(value, baseline, depth = 0, keyPath = '') {
     }
 
     if (typeof value === 'number') {
+        if (NON_FICTION_METRIC_KEYS.has(leafKey)) return hits;
         if ((fiction.completionRates || []).includes(value)) hits.push(`${value}% completion claim`);
         if ((fiction.openIssueCounts || []).includes(value)) hits.push(`${value} open issues claim`);
         if ((fiction.aiConfidenceScores || []).includes(value)) hits.push(`${value}% AI confidence claim`);

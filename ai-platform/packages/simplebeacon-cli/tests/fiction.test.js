@@ -99,6 +99,20 @@ test('deepIncludesFiction ignores bare number 8 outside totalFeatures', () => {
     assert.equal(hits.length, 0);
 });
 
+test('deepIncludesFiction ignores trust scan metric counts that match rejected completion rates', () => {
+    const baseline = {
+        rejectedFiction: {
+            completionRates: [66, 62]
+        }
+    };
+    const hits = deepIncludesFiction({
+        consistencyChecked: 66,
+        consistencyPassed: 62,
+        fictionJsonFilesScanned: 66
+    }, baseline);
+    assert.equal(hits.length, 0);
+});
+
 test('real ai-tools-sample overview metrics are not fiction KPIs', () => {
     const samplePath = path.join(__dirname, '../../../web/data/ai-tools-sample.json');
     if (!fs.existsSync(samplePath)) {

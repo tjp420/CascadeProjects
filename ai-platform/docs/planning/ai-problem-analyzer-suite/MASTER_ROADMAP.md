@@ -35,7 +35,7 @@
 - No release-critical contract regressions in analyzer payload shape.
 
 ### M4 (Week 48) - Full taxonomy gate
-- Implemented count target: 47/47.
+- Implemented count target: 48/48.
 - `status: not_implemented` is absent for release-selected analyzers.
 
 ## Common dependencies and command gates
