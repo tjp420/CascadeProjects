@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-05-27T23:34:20.497Z",
+  "generatedAt": "2026-05-27T23:40:35.727Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "platformRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
@@ -11,16 +11,16 @@
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-    "totalFiles": 8706,
-    "totalFolders": 496,
+    "totalFiles": 24140,
+    "totalFolders": 2840,
     "profile": "explorer"
   },
   "mockSampleFiles": 40,
   "totalFiles": 40,
   "ruleScopedFilesAnalyzed": 193,
-  "repositoryFilesTotal": 8706,
-  "repositoryFoldersTotal": 496,
-  "filesAnalyzed": 8706,
+  "repositoryFilesTotal": 24140,
+  "repositoryFoldersTotal": 2840,
+  "filesAnalyzed": 24140,
   "totalSizeBytes": 264583,
   "totalSizeLabel": "258.4KB",
   "issueCount": 0,
@@ -157,10 +157,10 @@
     "fictionJsonFilesScanned": 67,
     "fictionSampleFilesScanned": 40,
     "ruleScopedFilesAnalyzed": 193,
-    "repositoryFilesTotal": 8706,
-    "repositoryFoldersTotal": 496,
+    "repositoryFilesTotal": 24140,
+    "repositoryFoldersTotal": 2840,
     "limitations": [
-      "Repository inventory: 8,706 files — gate rules checked 193 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 24,140 files — gate rules checked 193 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
       "Fiction/KPI rules scan repository JSON (67) plus source code (193 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
@@ -179,5 +179,5 @@
     "warningCount": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-05-27T23:34:20.499Z"
+  "sanitizedAt": "2026-05-27T23:40:35.730Z"
 }

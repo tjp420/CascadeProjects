@@ -44,6 +44,7 @@ module.exports = {
         '**/tests/unit/app-logger.test.js',
         '**/tests/unit/src-app-logger.test.js',
         '**/tests/unit/trust-verification-payload.test.js',
+        '**/tests/unit/trust-ci-tools.test.js',
         '**/tests/unit/trust-api-routes.test.js',
         '**/tests/unit/repository-health-payload.test.js',
         '**/tests/unit/repository-health-preview-ui.test.js',

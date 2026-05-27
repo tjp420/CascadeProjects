@@ -1,6 +1,6 @@
 /**
  * Publish trust-verification.json for static hosting (e.g. trust.simplebeacon.ai).
- * Run after simplebeacon scan: npm run trust:publish
+ * Run after scans write reports: npm run trust:refresh (or simplebeacon:report + trust:publish)
  */
 
 const fs = require('fs');
@@ -118,6 +118,10 @@ async function main() {
     const payload = buildTrustVerificationPayload({ platformRoot, monorepoRoot });
     fs.mkdirSync(path.dirname(PUBLIC_TRUST_PATH), { recursive: true });
     fs.writeFileSync(PUBLIC_TRUST_PATH, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+    const signinTrust = path.join(monorepoRoot, 'deployments', 'signin-site', 'trust-verification.json');
+    if (fs.existsSync(path.dirname(signinTrust))) {
+        fs.copyFileSync(PUBLIC_TRUST_PATH, signinTrust);
+    }
     const historyWrite = appendTrustSnapshot({
         payload,
         historyPath,

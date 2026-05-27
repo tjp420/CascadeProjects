@@ -2504,26 +2504,47 @@ function runReasoningCapabilityAnalyzer(definition, issueId, input = {}) {
 
 const UX_LATENCY_THRESHOLD_MS = 3000;
 
+function isBatchLatencyLabel(label = '') {
+  const normalized = String(label).toLowerCase();
+  return normalized.includes('scan_duration')
+    || normalized.includes('data_quality_scan')
+    || normalized.includes('batch')
+    || normalized.includes('file_reduction');
+}
+
+function excludeBatchDurationFromUxLatency(input = {}) {
+  return isScanReportContext(input);
+}
+
 function collectLatencySamples(input = {}) {
+  const skipBatchDuration = excludeBatchDurationFromUxLatency(input);
   if (Array.isArray(input.latencySamples) && input.latencySamples.length) {
-    return input.latencySamples.map((row) => ({
-      latencyMs: Number(row.latencyMs ?? row.durationMs ?? row.ms ?? 0),
-      label: String(row.label || row.kind || 'sample')
-    })).filter((row) => row.latencyMs > 0);
+    return input.latencySamples
+      .map((row) => ({
+        latencyMs: Number(row.latencyMs ?? row.durationMs ?? row.ms ?? 0),
+        label: String(row.label || row.kind || 'sample')
+      }))
+      .filter((row) => row.latencyMs > 0 && !(skipBatchDuration && isBatchLatencyLabel(row.label)));
   }
   const metrics = input.metrics || {};
   const derived = [];
-  if (Number(metrics.p95LatencyMs) > 0) derived.push({ latencyMs: Number(metrics.p95LatencyMs), label: 'p95' });
+  if (Number(metrics.p95LatencyMs) > 0 && !(skipBatchDuration && Number(metrics.scanDurationMs) === Number(metrics.p95LatencyMs))) {
+    derived.push({ latencyMs: Number(metrics.p95LatencyMs), label: 'p95' });
+  }
   if (Number(metrics.p50LatencyMs) > 0) derived.push({ latencyMs: Number(metrics.p50LatencyMs), label: 'p50' });
-  if (Number(metrics.scanDurationMs) > 0) derived.push({ latencyMs: Number(metrics.scanDurationMs), label: 'scan_duration' });
+  if (!skipBatchDuration && Number(metrics.scanDurationMs) > 0) {
+    derived.push({ latencyMs: Number(metrics.scanDurationMs), label: 'scan_duration' });
+  }
   const text = combineAnalyzerText(input);
-  const p95Match = text.match(/\bp95\s*[:=]?\s*(\d+)\s*ms\b/i);
-  if (p95Match) derived.push({ latencyMs: Number(p95Match[1]), label: 'p95_text' });
-  const durationMatch = text.match(/\bcompleted in (\d+)ms\b/i);
-  if (durationMatch) derived.push({ latencyMs: Number(durationMatch[1]), label: 'duration_text' });
-  for (const match of text.match(/\b(\d{2,5})\s*ms\b/gi) || []) {
-    const ms = Number(match.match(/\d+/)?.[0] || 0);
-    if (ms > 0) derived.push({ latencyMs: ms, label: 'text_ms' });
+  if (!skipBatchDuration) {
+    const p95Match = text.match(/\bp95\s*[:=]?\s*(\d+)\s*ms\b/i);
+    if (p95Match) derived.push({ latencyMs: Number(p95Match[1]), label: 'p95_text' });
+    const durationMatch = text.match(/\bcompleted in (\d+)ms\b/i);
+    if (durationMatch) derived.push({ latencyMs: Number(durationMatch[1]), label: 'duration_text' });
+    for (const match of text.match(/\b(\d{2,5})\s*ms\b/gi) || []) {
+      const ms = Number(match.match(/\d+/)?.[0] || 0);
+      if (ms > 0) derived.push({ latencyMs: ms, label: 'text_ms' });
+    }
   }
   const seen = new Set();
   return derived.filter((row) => {
@@ -2535,7 +2556,21 @@ function collectLatencySamples(input = {}) {
 }
 
 function runResponseLatencyAnalyzer(definition, issueId, input = {}) {
-  const samples = collectLatencySamples(input);
+  let samples = collectLatencySamples(input);
+  if (isScanReportContext(input)) {
+    const metrics = input.metrics || {};
+    const scanDurationMs = Number(
+      metrics.scanDurationMs
+      ?? metrics.dataQualityScanDurationMs
+      ?? input.fileReduction?.durationMs
+      ?? 0
+    );
+    samples = samples.filter((row) => {
+      if (row.label === 'scan_duration' || row.label === 'duration_text') return false;
+      if (scanDurationMs > 0 && row.latencyMs === scanDurationMs) return false;
+      return true;
+    });
+  }
   if (!samples.length) {
     return buildInsufficientResult(definition, issueId, 'latencySamples|metrics|responseText', 'No latency timing samples or duration metrics supplied.', [
       { name: 'latency_score', value: 0, unit: 'percent', direction: 'higher_better' },
@@ -4019,6 +4054,29 @@ export function enrichScanContextForAnalyzers(context = {}) {
   return next;
 }
 
+const EXTENDED_STRUCTURED_CONTEXT_KEYS = [
+  'taskSequenceScores',
+  'promptAttempts',
+  'pricingTiers',
+  'limitHitEvents',
+  'localeEvaluations',
+  'domainTasks',
+  'structuredOutputs',
+  'sessionTransitions',
+  'moderationDecisions',
+  'compatibilityMatrix',
+  'maintenanceEvents',
+  'customizationOptions'
+];
+
+function pickExtendedStructuredContextFields(context = {}) {
+  return Object.fromEntries(
+    EXTENDED_STRUCTURED_CONTEXT_KEYS
+      .filter((key) => Array.isArray(context[key]) && context[key].length)
+      .map((key) => [key, context[key]])
+  );
+}
+
 function resolveAnalyzerContext(analyzerInputs = {}) {
   const { context: nestedContext, default: defaultInput, ...rest } = analyzerInputs;
   const reserved = new Set(['default', 'context', ...Object.keys(IMPLEMENTED_RUNNERS)]);
@@ -4225,10 +4283,13 @@ export function collectAnalyzerInputs(context = {}) {
       groundTruth: Array.isArray(enriched.groundTruth) ? enriched.groundTruth : undefined
     }
   };
+  const extendedStructuredFields = pickExtendedStructuredContextFields(enriched);
   for (const analyzerId of Object.keys(IMPLEMENTED_RUNNERS)) {
     if (!perAnalyzer[analyzerId]) {
-      perAnalyzer[analyzerId] = { ...shared };
+      perAnalyzer[analyzerId] = { ...shared, ...extendedStructuredFields };
+      continue;
     }
+    perAnalyzer[analyzerId] = { ...perAnalyzer[analyzerId], ...extendedStructuredFields };
   }
   return perAnalyzer;
 }

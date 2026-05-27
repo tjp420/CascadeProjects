@@ -66,6 +66,14 @@ jobs:
             node ai-platform/packages/simplebeacon-cli/bin/simplebeacon.js comment \
               --report .simplebeacon/report.json \
               --print-only >> "$GITHUB_STEP_SUMMARY"
+            node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+            const report = require('./.simplebeacon/report.json');
+            console.log('');
+            console.log('### Fiction / KPI scope (monorepo scan)');
+            console.log(`- fictionJsonFilesScanned: ${report.fictionJsonFilesScanned ?? '—'}`);
+            console.log(`- fictionSampleFilesScanned: ${report.fictionSampleFilesScanned ?? '—'}`);
+            console.log(`- fictionScope: ${report.fictionScope ?? '—'}`);
+          NODE
           else
             echo "## Simplebeacon Monorepo" >> "$GITHUB_STEP_SUMMARY"
             echo "No report generated." >> "$GITHUB_STEP_SUMMARY"

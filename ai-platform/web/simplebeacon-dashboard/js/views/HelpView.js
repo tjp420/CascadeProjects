@@ -281,6 +281,7 @@ npx simplebeacon hook install
 
 # Monorepo dev (this repo)
 npm run simplebeacon:report
+npm run trust:refresh
 
 # Local dashboard (v1-internal, port 54355)
 npm run dashboard:v1-internal

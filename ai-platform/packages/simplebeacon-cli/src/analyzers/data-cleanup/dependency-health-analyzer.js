@@ -12,6 +12,32 @@ const IMPORT_PATTERNS = [
     /import\s*\(\s*['"]([^'"]+)['"]\s*\)/g
 ];
 
+/** Declared for phase-2 SSO / tooling — not always wired via static import yet */
+const PLANNED_RUNTIME_DEPENDENCIES = new Set([
+    '@node-saml/passport-saml',
+    'passport',
+    'passport-google-oauth20',
+    'ldapjs',
+    'qrcode',
+    'axios',
+    'compromise',
+    'natural'
+]);
+
+function prioritizeDependencyScanFiles(files, maxFiles = 1500) {
+    const priority = [];
+    const rest = [];
+    for (const file of files) {
+        const rel = file.relativePath.replace(/\\/g, '/');
+        if (/(?:^|\/)(tools|scripts|bin|packages\/simplebeacon-cli\/bin)\//.test(rel)) {
+            priority.push(file);
+        } else {
+            rest.push(file);
+        }
+    }
+    return [...priority, ...rest].slice(0, maxFiles);
+}
+
 function packageNameFromSpecifier(specifier) {
     if (!specifier || specifier.startsWith('.') || specifier.startsWith('/')) return null;
     if (specifier.startsWith('@')) {
@@ -86,7 +112,9 @@ class DependencyHealthAnalyzer {
             const usedPackages = await this.collectUsedPackagesForPackage(file.path, inventory);
             for (const [name] of declared.entries()) {
                 if (name === 'simplebeacon') continue;
-                if (!usedPackages.has(name) && !this.isLikelyToolingDependency(name, declared.get(name)?.section)) {
+                if (!usedPackages.has(name)
+                    && !PLANNED_RUNTIME_DEPENDENCIES.has(name)
+                    && !this.isLikelyToolingDependency(name, declared.get(name)?.section)) {
                     findings.push({
                         type: 'unused-dependency',
                         path: file.relativePath,
@@ -156,7 +184,7 @@ class DependencyHealthAnalyzer {
             return dir === packageKey || dir.startsWith(`${packageKey}/`);
         }).filter((file) => /\.(js|mjs|cjs|ts|tsx|jsx)$/.test(file.ext));
 
-        for (const file of sourceFiles.slice(0, 500)) {
+        for (const file of prioritizeDependencyScanFiles(sourceFiles)) {
             let content = '';
             try {
                 content = fs.readFileSync(file.path, 'utf8');

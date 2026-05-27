@@ -7,6 +7,7 @@
     "prepare": "husky",
     "simplebeacon:compliance:local": "sh scripts/simplebeacon-compliance-check.sh",
     "simplebeacon:gate": "npm run simplebeacon --prefix ai-platform",
+    "trust:refresh": "npm run trust:refresh --prefix ai-platform",
     "simplebeacon:full": "npm run simplebeacon:full --prefix ai-platform",
     "pre-commit": "npm test --prefix ai-platform/packages/simplebeacon-cli -- fiction.test.js"
   }

@@ -105,6 +105,14 @@ Cached last Jest summary (when run): `.simplebeacon/jest-result.json`.
 
 **Exclusions:** `node_modules`, `coverage`, `.simplebeacon/archive`, `tests`, `docs`, `*.test.js`, and patterns listed in `config.ignore`.
 
+**Fiction JSON file count (`fictionJsonFilesScanned`):**
+
+- Walk root is always **`ai-platform`** (`platformRoot`), even when the CLI is invoked from the monorepo parent.
+- Scope: `fictionScope: repository-json` — recursive `.json` under platform root, max 512KB per file, minus `config.ignore`.
+- Typical published count: **~67** JSON (includes **40** `web/data/*-sample.json` plus operational JSON such as `package.json`, roadmap, security guidance).
+- **Not** the explorer inventory total (25k–32k files) and **not** legacy trust figures (~194) from older ignore lists.
+- Publish aligned snapshots: `npm run trust:refresh` (platform + monorepo scan with `--output`, then `trust:publish`).
+
 **Note:** `resolveMockDataScanPaths` (file-merger / mock-data-scanner) uses `data-central/config/central-data-config.json` → `mockDataScan.paths`, not the expanded Simplebeacon `sourceCodeScanPaths`.
 
 ## Source vs JSON fiction
@@ -129,8 +137,9 @@ Weekly or after test-count changes:
 2. `npm run simplebeacon:baseline-sync` — if counts changed
 3. Sync anchor sample Jest KPIs if baseline changed
 4. `npm run simplebeacon:report` — 0 JSON fiction hits, gate PASS
-5. Optional: `npm run simplebeacon:full` before release (includes live Jest)
-6. Optional: `npm run scan:kpi:source:code` for broader source audits
+5. `npm run trust:refresh` — refresh `public/trust-verification.json` when publishing buyer-facing trust
+6. Optional: `npm run simplebeacon:full` before release (includes live Jest)
+7. Optional: `npm run scan:kpi:source:code` for broader source audits
 
 ## Quick validation
 

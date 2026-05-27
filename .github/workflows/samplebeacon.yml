@@ -83,6 +83,11 @@ jobs:
           console.log(`Wrote ${outPath}`);
           NODE
 
+      - name: Refresh monorepo scan report for trust
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: npm run trust:scan-monorepo --prefix ai-platform
+
       - name: Publish trust verification payload (local + optional remote)
         if: success()
         working-directory: ai-platform
@@ -100,33 +105,7 @@ jobs:
       - name: Add trust publish summary
         if: always()
         working-directory: ai-platform
-        run: |
-          echo "### Trust publish" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f .simplebeacon/trust-publish-env-validation.json ]; then
-            node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
-            const env = require('./.simplebeacon/trust-publish-env-validation.json');
-            console.log(`- Env validation ready: ${env.ready}`);
-            console.log(`- Endpoint configured: ${env.endpointConfigured}`);
-            console.log(`- Token configured: ${env.tokenConfigured}`);
-            console.log(`- Endpoint: ${env.endpointRedacted || 'n/a'}`);
-            if (env.warnings?.length) {
-              console.log(`- Warnings: ${env.warnings.join(' | ')}`);
-            }
-          NODE
-          else
-            echo "- Env validation artifact missing" >> "$GITHUB_STEP_SUMMARY"
-          fi
-          if [ -f .simplebeacon/trust-publish-audit.json ]; then
-            node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
-            const audit = require('./.simplebeacon/trust-publish-audit.json');
-            console.log(`- Publish status: ${audit.remote?.status || 'unknown'}`);
-            if (audit.remote?.reason) console.log(`- Publish reason: ${audit.remote.reason}`);
-            if (audit.remote?.message) console.log(`- Publish error: ${audit.remote.message}`);
-            console.log(`- Verification ID: ${audit.verificationId || 'n/a'}`);
-          NODE
-          else
-            echo "- Publish audit artifact missing" >> "$GITHUB_STEP_SUMMARY"
-          fi
+        run: npm run trust:ci-summary
 
       - name: Upload simplebeacon artifacts
         if: always()

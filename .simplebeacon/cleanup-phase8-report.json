@@ -1,0 +1,50 @@
+{
+  "type": "simplebeacon-cleanup-phase-report",
+  "phase": 8,
+  "completedAt": "2026-05-28T00:30:00.000Z",
+  "projectPath": "C:\\Users\\Trevor\\CascadeProjects",
+  "focus": "Resolve final unused-file false positive; scanner hardening; report archival",
+  "actions": [
+    {
+      "category": "unused-file-resolution",
+      "path": "ai-platform/src/web/export-system.js",
+      "action": "protected",
+      "reason": "Legacy HTML compatibility shim (loads /scripts/export-system.js); maintained by scripts/sync-export-system.sh",
+      "scannerChange": "Added skip path pattern in unused-file-detector.js"
+    },
+    {
+      "category": "scanner-test",
+      "action": "added",
+      "file": "packages/simplebeacon-cli/tests/file-reduction.test.js",
+      "result": "14/14 passed"
+    },
+    {
+      "category": "cleanup-report-archival",
+      "action": "moved",
+      "files": 11,
+      "destination": ".simplebeacon/archive/cleanup-reports/",
+      "kept": [
+        "cleanup-phase7-report.json",
+        "cleanup-verification-report.json",
+        "cleanup-consolidation-summary.json",
+        "cleanup-brief-phase1.json"
+      ]
+    },
+    {
+      "category": "scan-refresh",
+      "action": "updated",
+      "path": ".simplebeacon/file-reduction-current.json",
+      "unusedFileCandidates": 0,
+      "missingEnvKeys": 0
+    }
+  ],
+  "verification": {
+    "smokeSuite": "SMOKE SUITE PASSED",
+    "fileReductionTests": "14/14 passed"
+  },
+  "cumulative": {
+    "phasesComplete": "1-8",
+    "unusedFileCandidates": 0,
+    "note": "node_modules remains regenerable safe-to-delete when dev server can stop"
+  }
+}

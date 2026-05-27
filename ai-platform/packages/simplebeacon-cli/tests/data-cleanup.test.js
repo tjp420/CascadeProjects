@@ -94,6 +94,20 @@ test('EnvironmentVariableAnalyzer detects get() and resolveCredential env refere
     assert.ok(!result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'STRIPE_PUBLISHABLE_KEY'));
 });
 
+test('DependencyHealthAnalyzer detects tools/ requires before file cap', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({
+            dependencies: { archiver: '^6.0.1', express: '^4.18.0' }
+        }),
+        'index.js': "const express = require('express');\n",
+        'tools/bundle.js': "const archiver = require('archiver');\n"
+    });
+    const inventory = await walkProjectFiles(root);
+    const scanner = new DependencyHealthAnalyzer();
+    const result = await scanner.scan(root, { inventory });
+    assert.ok(!result.findings.some((f) => f.type === 'unused-dependency' && f.metadata.dependency === 'archiver'));
+});
+
 test('DependencyHealthAnalyzer ignores node_modules package manifests', async () => {
     const root = makeTempProject({
         'apps/a/package.json': JSON.stringify({

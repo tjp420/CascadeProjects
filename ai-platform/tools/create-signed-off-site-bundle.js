@@ -23,7 +23,18 @@ async function ensureDir(dir) {
 }
 
 async function removeDir(target) {
-  await fs.promises.rm(target, { recursive: true, force: true });
+  if (!fs.existsSync(target)) return;
+  const lst = await fs.promises.lstat(target);
+  if (lst.isSymbolicLink() || !lst.isDirectory()) {
+    await removeTreeOrLink(target);
+    return;
+  }
+
+  const entries = await fs.promises.readdir(target, { withFileTypes: true });
+  for (const entry of entries) {
+    await removeTreeOrLink(path.join(target, entry.name));
+  }
+  await fs.promises.rmdir(target);
 }
 
 async function copyDir(src, dest) {

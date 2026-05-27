@@ -12,7 +12,8 @@ function normalizeStaticTrustPayload(data) {
     monorepo: data.monorepo || null,
     repositoryHealth: data.repositoryHealth || null,
     disclaimers: Array.isArray(data.disclaimers) ? data.disclaimers : [],
-    methodology: Array.isArray(data.methodology) ? data.methodology : []
+    methodology: Array.isArray(data.methodology) ? data.methodology : [],
+    fictionScope: data.fictionScope || null
   };
   return { success: true, live, staticHost: true, staticPayload: true };
 }
@@ -43,7 +44,8 @@ function normalizeTrustApiPayload(data) {
       monorepo: data.monorepo || null,
       repositoryHealth: data.repositoryHealth || null,
       disclaimers: Array.isArray(data.disclaimers) ? data.disclaimers : [],
-      methodology: Array.isArray(data.methodology) ? data.methodology : []
+      methodology: Array.isArray(data.methodology) ? data.methodology : [],
+      fictionScope: data.fictionScope || null
     },
     publishedAt: data.publishedAt || null
   };
@@ -94,6 +96,8 @@ function renderSnapshot(snap, title) {
         <div class="metric-chip"><strong>${formatNumber(snap.repositoryFilesTotal ?? '—')}</strong> repo files</div>
         <div class="metric-chip"><strong>${formatNumber(snap.ruleScopedFilesAnalyzed ?? '—')}</strong> gate checked</div>
         <div class="metric-chip"><strong>${formatNumber(snap.mockSampleFiles ?? '—')}</strong> mock/sample</div>
+        <div class="metric-chip"><strong>${formatNumber(snap.fictionJsonFilesScanned ?? '—')}</strong> fiction JSON</div>
+        <div class="metric-chip"><strong>${formatNumber(snap.fictionSampleFilesScanned ?? snap.mockSampleFiles ?? '—')}</strong> fiction samples</div>
       </div>
       <p class="text-muted" style="font-size:var(--font-size-xs);margin:0;">${escapeHtml(snap.scopeNote || '')}</p>
     </div>
@@ -120,6 +124,7 @@ export class TrustView {
     const staticHost = Boolean(this.data?.staticHost);
     const disclaimers = live?.disclaimers || [];
     const methodology = live?.methodology || [];
+    const fictionScope = live?.fictionScope || null;
 
     return `
       <div class="section-block">
@@ -178,6 +183,21 @@ export class TrustView {
           </div>
         ` : ''}
 
+        ${fictionScope ? `
+          <div class="card mb-4">
+            <h3 class="mb-2" style="font-size:var(--font-size-base);">Fiction / KPI scope</h3>
+            <div class="metrics-row mb-3">
+              <div class="metric-chip"><strong>${escapeHtml(fictionScope.mode || 'repository-json')}</strong> mode</div>
+              <div class="metric-chip"><strong>${formatNumber(fictionScope.fictionJsonFilesScanned ?? '—')}</strong> JSON scanned</div>
+              <div class="metric-chip"><strong>${formatNumber(fictionScope.fictionSampleFilesScanned ?? '—')}</strong> mock JSON</div>
+            </div>
+            <p class="text-muted" style="margin:0;font-size:var(--font-size-xs);">
+              Walk root: <code>${escapeHtml(redactPathForDisplay(fictionScope.walkRoot || 'ai-platform'))}</code>
+              · Pattern matching only (config.ignore applied)
+            </p>
+          </div>
+        ` : ''}
+
         ${methodology.length ? `
           <div class="card mb-4">
             <h3 class="mb-2" style="font-size:var(--font-size-base);">Methodology</h3>
@@ -191,7 +211,7 @@ export class TrustView {
           <h3 class="mb-2" style="font-size:var(--font-size-base);">Embed badge</h3>
           <pre class="audit-log" style="margin:0;font-size:var(--font-size-xs);">&lt;img src="${escapeHtml(window.location.origin)}/api/trust/badge.svg?raw=1" alt="Simplebeacon gate verification badge" width="320" height="72"&gt;</pre>
           <p class="text-muted mt-2 mb-0" style="font-size:var(--font-size-xs);">
-            Daily publish: <code>npm run trust:publish</code> after <code>simplebeacon scan</code>
+            Refresh reports + publish: <code>npm run trust:refresh</code> (platform + monorepo scan with <code>--output</code>, then trust publish)
           </p>
         </div>
       </div>

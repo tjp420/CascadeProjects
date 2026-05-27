@@ -4,7 +4,9 @@ This runbook documents safe trust badge publishing for CI and local runs.
 
 ## What now runs in CI
 
-Both workflows now execute `npm run trust:publish` after a successful scan:
+Platform workflows run `npm run simplebeacon:report`, refresh the monorepo-root report via `npm run trust:scan-monorepo`, then `npm run trust:publish`. Job summaries include fiction JSON counts via `npm run trust:ci-summary`.
+
+Both workflow families execute trust publish after a successful platform scan:
 
 - `.github/workflows/simplebeacon-perimeter.yml`
 - `.github/workflows/simplebeacon-pr-gate.yml`
@@ -76,10 +78,17 @@ Recommended URL target:
 
 ## Local validation
 
-Run from `ai-platform/`:
+Run from `ai-platform/` (recommended — platform + monorepo reports, publish, signin-site mirror):
+
+```bash
+npm run trust:refresh
+```
+
+Equivalent manual steps:
 
 ```bash
 npm run simplebeacon:report
+# From monorepo root: npm run simplebeacon:report --prefix ai-platform (parent scan writes ../.simplebeacon/report.json)
 npm run trust:publish
 ```
 
@@ -214,8 +223,7 @@ Run:
 
 ```bash
 npm run trust:validate-env
-npm run simplebeacon:report
-npm run trust:publish
+npm run trust:refresh
 npm run trust:trend
 ```
 
@@ -229,7 +237,7 @@ Response playbook:
 
 1. Confirm whether issue increase came from scope additions or real regressions.
 2. Triage high-severity findings first (`gate` blockers).
-3. Re-run `npm run simplebeacon:report` after fixes and republish trust snapshot.
+3. Re-run `npm run trust:refresh` after fixes (writes fresh reports and republishes trust).
 4. Inspect `.simplebeacon/trust-publish-audit.json` and step summary for publish status.
 
 ### Weekly checks

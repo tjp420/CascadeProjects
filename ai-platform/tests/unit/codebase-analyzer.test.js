@@ -707,10 +707,17 @@ describe('codebase analyzer', () => {
         const { walkCodeFiles } = require('../../server/lib/codebase-analyzer');
         const { resolvePlatformRoot } = require('../../packages/simplebeacon-cli/src/project-detect');
         const { platformRoot } = resolvePlatformRoot(parentDir);
-        const parentScopedFiles = await walkCodeFiles(platformRoot, { scanProfile: 'universal' });
-        const platformFiles = await walkCodeFiles(baseDir, { scanProfile: 'universal' });
-
         expect(platformRoot).toBe(baseDir);
+
+        let parentScopedFiles = [];
+        let platformFiles = [];
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            parentScopedFiles = await walkCodeFiles(platformRoot, { scanProfile: 'universal' });
+            platformFiles = await walkCodeFiles(baseDir, { scanProfile: 'universal' });
+            if (parentScopedFiles.length === platformFiles.length) break;
+            await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+
         expect(parentScopedFiles.length).toBe(platformFiles.length);
     }, 60000);
 

@@ -1,8 +1,32 @@
 {
   "type": "simplebeacon-trust-history",
   "version": 1,
-  "generatedAt": "2026-05-27T23:34:20.568Z",
+  "generatedAt": "2026-05-27T23:40:35.815Z",
   "entries": [
+    {
+      "recordedAt": "2026-05-27T23:40:35.815Z",
+      "generatedAt": "2026-05-27T23:40:35.811Z",
+      "verificationId": "2cea94c2b3afe0f9",
+      "verificationMethod": "simplebeacon-deterministic-gate",
+      "source": "trust:publish",
+      "headlineSource": "monorepo",
+      "gatePass": true,
+      "qualityScore": 100,
+      "issues": 0,
+      "schemaCompliance": 100,
+      "repositoryFilesTotal": 24140,
+      "ruleScopedFilesAnalyzed": 193,
+      "platform": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T23:40:34.795Z"
+      },
+      "monorepo": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T23:40:35.727Z"
+      }
+    },
     {
       "recordedAt": "2026-05-27T23:34:20.567Z",
       "generatedAt": "2026-05-27T23:34:20.562Z",
