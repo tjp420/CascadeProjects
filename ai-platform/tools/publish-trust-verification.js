@@ -119,7 +119,13 @@ async function main() {
     fs.mkdirSync(path.dirname(PUBLIC_TRUST_PATH), { recursive: true });
     fs.writeFileSync(PUBLIC_TRUST_PATH, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
     const signinTrust = path.join(monorepoRoot, 'deployments', 'signin-site', 'trust-verification.json');
-    if (fs.existsSync(path.dirname(signinTrust))) {
+    if (fs.existsSync(signinTrust)) {
+        const pubStat = fs.statSync(PUBLIC_TRUST_PATH);
+        const signinStat = fs.statSync(signinTrust);
+        if (pubStat.ino !== signinStat.ino || pubStat.dev !== signinStat.dev) {
+            fs.copyFileSync(PUBLIC_TRUST_PATH, signinTrust);
+        }
+    } else if (fs.existsSync(path.dirname(signinTrust))) {
         fs.copyFileSync(PUBLIC_TRUST_PATH, signinTrust);
     }
     const historyWrite = appendTrustSnapshot({

@@ -262,6 +262,8 @@ jobs:
             ai-platform/.simplebeacon/quality-maintenance-metrics.json
             ai-platform/.simplebeacon/trust-publish-env-validation.json
             ai-platform/.simplebeacon/trust-publish-audit.json
+            ai-platform/public/trust-verification.json
+            .simplebeacon/report.json
           if-no-files-found: ignore
 
       - name: Sync metrics to live dashboard (optional webhook)

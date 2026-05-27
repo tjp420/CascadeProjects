@@ -54,9 +54,21 @@ function main() {
     console.log('Publishing trust verification…');
     run('Trust publish', platformRoot, [publishScript, platformRoot, monorepoRoot]);
 
-    if (fs.existsSync(publicTrust) && fs.existsSync(path.dirname(signinTrust))) {
-        fs.copyFileSync(publicTrust, signinTrust);
-        console.log(`Mirrored trust artifact: ${signinTrust}`);
+    if (fs.existsSync(publicTrust)) {
+        const signinDir = path.dirname(signinTrust);
+        if (fs.existsSync(signinDir)) {
+            try {
+                const pubStat = fs.statSync(publicTrust);
+                const signinStat = fs.statSync(signinTrust);
+                if (pubStat.ino !== signinStat.ino || pubStat.dev !== signinStat.dev) {
+                    fs.copyFileSync(publicTrust, signinTrust);
+                    console.log(`Mirrored trust artifact: ${signinTrust}`);
+                }
+            } catch {
+                fs.copyFileSync(publicTrust, signinTrust);
+                console.log(`Mirrored trust artifact: ${signinTrust}`);
+            }
+        }
     }
 
     const payload = JSON.parse(fs.readFileSync(publicTrust, 'utf8'));

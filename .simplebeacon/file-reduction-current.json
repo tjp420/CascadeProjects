@@ -2,11 +2,11 @@
   "type": "data-cleanup-report",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "dryRun": true,
-  "generatedAt": "2026-05-27T23:38:18.272Z",
-  "durationMs": 26638,
+  "generatedAt": "2026-05-27T23:42:22.232Z",
+  "durationMs": 31362,
   "inventory": {
-    "totalFiles": 19508,
-    "totalDirectories": 2552
+    "totalFiles": 19518,
+    "totalDirectories": 2560
   },
   "scanners": {
     "build-artifacts": {
@@ -23,8 +23,8 @@
       "reclaimableBytes": 1083
     },
     "unused-files": {
-      "sourceFilesScanned": 14490,
-      "entryPoints": 2350,
+      "sourceFilesScanned": 14500,
+      "entryPoints": 2351,
       "unusedCandidates": 0
     },
     "config-management": {
@@ -60,7 +60,7 @@
       "patternFindings": 0
     },
     "data-privacy": {
-      "dataFilesScanned": 245,
+      "dataFilesScanned": 249,
       "privacyFindings": 55,
       "credentialHits": 1,
       "piiHits": 54
@@ -3829,6 +3829,7 @@
       "ai-platform/tools/validate-mock-backend-compat.js",
       "ai-platform/tools/validate-trust-publish-env.js",
       "ai-platform/tools/verify-eslint-deps.js",
+      "ai-platform/tools/verify-export-system-shim.js",
       "ai-platform/tools/verify-launch-readiness.js",
       "ai-platform/tools/verify-mock-scan.js",
       "ai-platform/tools/verify-predeploy-sequence.js",
@@ -5820,8 +5821,8 @@
     },
     "unusedFiles": {
       "candidates": 0,
-      "sourceFilesScanned": 14490,
-      "entryPoints": 2350,
+      "sourceFilesScanned": 14500,
+      "entryPoints": 2351,
       "note": "Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting."
     },
     "summaryTable": [
@@ -5860,7 +5861,7 @@
   },
   "executiveSummary": {
     "profile": "all",
-    "generatedAt": "2026-05-27T23:38:18.272Z",
+    "generatedAt": "2026-05-27T23:42:22.232Z",
     "priorityActions": [
       {
         "priority": "medium",
@@ -5941,9 +5942,9 @@
     "scope": "workspace",
     "scopeNote": "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
     "project": {
-      "totalFiles": 19508,
-      "totalDirectories": 2552,
-      "durationMs": 26638,
+      "totalFiles": 19518,
+      "totalDirectories": 2560,
+      "durationMs": 31362,
       "projectRoot": "C:\\Users\\Trevor\\CascadeProjects"
     },
     "scanners": {
@@ -6025,7 +6026,7 @@
       "data-privacy": {
         "label": "Data Privacy",
         "stats": {
-          "dataFilesScanned": 245,
+          "dataFilesScanned": 249,
           "privacyFindings": 55,
           "credentialHits": 1,
           "piiHits": 54

@@ -118,4 +118,6 @@ jobs:
             ai-platform/.simplebeacon/compliance-monitoring.json
             ai-platform/.simplebeacon/trust-publish-env-validation.json
             ai-platform/.simplebeacon/trust-publish-audit.json
+            ai-platform/public/trust-verification.json
+            .simplebeacon/report.json
           if-no-files-found: ignore

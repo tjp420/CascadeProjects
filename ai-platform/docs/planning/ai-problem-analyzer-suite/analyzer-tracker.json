@@ -6,14 +6,14 @@
     "A-46"
   ],
   "totalAnalyzers": 48,
-  "implementedCount": 25,
+  "implementedCount": 48,
   "dataPipeline": {
-    "status": "phase-2-economic-regulatory-complete",
+    "status": "phase-2-full-48-complete",
     "collectAnalyzerInputs": "wired",
     "analyzeViewContext": "wired",
-    "evalFixtures": "tests/fixtures/ai-analyzer-eval",
+    "evalFixtures": "tests/fixtures/ai-analyzer-eval/manifest.json (48 fixtures)",
     "runAllAnalyzers": "exported",
-    "notes": "All 25 implemented analyzers receive shared response/code/log context; INSUFFICIENT_DATA only when zero evidence."
+    "notes": "All 48 analyzers implemented with deterministic runners; eval fixtures in tests/fixtures/ai-analyzer-eval (phase-2-full-48). A-29 excludes batch scan duration in scan-report context."
   },
   "generatedFor": "weekly-execution-review",
   "reviewCommands": [
@@ -23,53 +23,437 @@
     "npm run verify:production-deploy"
   ],
   "items": [
-    { "id": "A-01", "name": "Hallucination Analyzer", "status": "implemented", "priority": "P1-High", "phase": "P1 (Weeks 3-8)", "complexity": "M", "owner": "core-analyzers-lane (confirm by 2026-05-31)" },
-    { "id": "A-02", "name": "Bias Detection Analyzer", "status": "implemented", "priority": "P1-High", "phase": "P1 (Weeks 3-8)", "complexity": "M", "owner": "core-analyzers-lane (confirm by 2026-05-31)" },
-    { "id": "A-03", "name": "Interpretability Analyzer", "status": "implemented", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-04", "name": "Data Quality Analyzer", "status": "implemented", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-05", "name": "Scalability Analyzer", "status": "implemented", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-06", "name": "Generalization Analyzer", "status": "implemented", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-07", "name": "Catastrophic Forgetting Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-08", "name": "Adversarial Vulnerability Analyzer", "status": "implemented", "priority": "P1-High", "phase": "P1 (Weeks 3-8)", "complexity": "M", "owner": "trust-security-lane (assign by 2026-06-07)" },
-    { "id": "A-09", "name": "Job Displacement Impact Analyzer", "status": "implemented", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-10", "name": "Privacy Violation Analyzer", "status": "implemented", "priority": "P1-High", "phase": "P1 (Weeks 3-8)", "complexity": "M", "owner": "trust-security-lane (assign by 2026-06-07)" },
-    { "id": "A-11", "name": "Copyright Infringement Analyzer", "status": "implemented", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-12", "name": "Misinformation Generation Analyzer", "status": "implemented", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-13", "name": "Deepfake Detection Analyzer", "status": "implemented", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-14", "name": "Autonomous Weapon Safety Analyzer", "status": "implemented", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-15", "name": "Surveillance Impact Analyzer", "status": "implemented", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-16", "name": "Digital Divide Analyzer", "status": "implemented", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-17", "name": "Market Monopolization Analyzer", "status": "implemented", "priority": "P3-Low", "phase": "P3 (Weeks 21-36)", "complexity": "H", "owner": "long-tail-lane (assign by 2026-06-21)" },
-    { "id": "A-18", "name": "Environmental Impact Analyzer", "status": "implemented", "priority": "P3-Low", "phase": "P3 (Weeks 21-36)", "complexity": "H", "owner": "long-tail-lane (assign by 2026-06-21)" },
-    { "id": "A-19", "name": "Regulatory Compliance Analyzer", "status": "implemented", "priority": "P3-Low", "phase": "P3 (Weeks 21-36)", "complexity": "H", "owner": "long-tail-lane (assign by 2026-06-21)" },
-    { "id": "A-20", "name": "Liability Assessment Analyzer", "status": "implemented", "priority": "P3-Low", "phase": "P3 (Weeks 21-36)", "complexity": "H", "owner": "long-tail-lane (assign by 2026-06-21)" },
-    { "id": "A-21", "name": "Market Manipulation Analyzer", "status": "implemented", "priority": "P3-Low", "phase": "P3 (Weeks 21-36)", "complexity": "H", "owner": "long-tail-lane (assign by 2026-06-21)" },
-    { "id": "A-22", "name": "Intellectual Property Analyzer", "status": "implemented", "priority": "P1-High", "phase": "P1 (Weeks 3-8)", "complexity": "H", "owner": "core-analyzers-lane (confirm by 2026-05-31)" },
-    { "id": "A-23", "name": "Response Consistency Analyzer", "status": "implemented", "priority": "P1-High", "phase": "P1 (Weeks 3-8)", "complexity": "M", "owner": "core-analyzers-lane (confirm by 2026-05-31)" },
-    { "id": "A-24", "name": "Confidence Accuracy Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-25", "name": "Context Retention Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-26", "name": "Knowledge Freshness Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-27", "name": "Reasoning Capability Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-28", "name": "Prompt Engineering Difficulty Analyzer", "status": "stub", "priority": "P3-Low", "phase": "P3 (Weeks 21-36)", "complexity": "M", "owner": "long-tail-lane (assign by 2026-06-21)" },
-    { "id": "A-29", "name": "Response Latency Analyzer", "status": "stub", "priority": "P3-Low", "phase": "P3 (Weeks 21-36)", "complexity": "M", "owner": "long-tail-lane (assign by 2026-06-21)" },
-    { "id": "A-30", "name": "Cost Barrier Analyzer", "status": "stub", "priority": "P3-Low", "phase": "P3 (Weeks 21-36)", "complexity": "M", "owner": "long-tail-lane (assign by 2026-06-21)" },
-    { "id": "A-31", "name": "Usage Limit Analyzer", "status": "stub", "priority": "P3-Low", "phase": "P3 (Weeks 21-36)", "complexity": "M", "owner": "long-tail-lane (assign by 2026-06-21)" },
-    { "id": "A-32", "name": "Platform Lock-in Analyzer", "status": "stub", "priority": "P3-Low", "phase": "P3 (Weeks 21-36)", "complexity": "M", "owner": "long-tail-lane (assign by 2026-06-21)" },
-    { "id": "A-33", "name": "False Positive/Negative Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-34", "name": "Language Limitation Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-35", "name": "Domain Knowledge Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-36", "name": "Output Consistency Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-37", "name": "Session Management Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-38", "name": "Privacy Concern Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "H", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-39", "name": "Security Risk Analyzer", "status": "active-critical", "priority": "P0-Critical", "phase": "P0 (Weeks 1-2)", "complexity": "H", "owner": "critical-lane (confirm by 2026-05-31)" },
-    { "id": "A-40", "name": "Content Filtering Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "H", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-41", "name": "Transparency Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "H", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-42", "name": "Dependence Risk Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "H", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-43", "name": "API Complexity Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-44", "name": "Compatibility Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-45", "name": "Maintenance Overhead Analyzer", "status": "stub", "priority": "P2-Medium", "phase": "P2 (Weeks 9-20)", "complexity": "M", "owner": "coverage-expansion-lane (assign by 2026-06-14)" },
-    { "id": "A-46", "name": "Error Handling Analyzer", "status": "implemented+hardened", "priority": "P0-Critical", "phase": "P0 (Weeks 1-2)", "complexity": "M", "owner": "critical-lane (confirm by 2026-05-31)" },
-    { "id": "A-47", "name": "Customization Limit Analyzer", "status": "stub", "priority": "P3-Low", "phase": "P3 (Weeks 21-36)", "complexity": "M", "owner": "long-tail-lane (assign by 2026-06-21)" },
-    { "id": "A-48", "name": "AI Output Reliability Analyzer", "status": "implemented", "priority": "P1-High", "phase": "P1 (Weeks 3-8)", "complexity": "M", "owner": "core-analyzers-lane (confirm by 2026-05-31)" }
+    {
+      "id": "A-01",
+      "name": "Hallucination Analyzer",
+      "status": "implemented",
+      "priority": "P1-High",
+      "phase": "P1 (Weeks 3-8)",
+      "complexity": "M",
+      "owner": "core-analyzers-lane (confirm by 2026-05-31)"
+    },
+    {
+      "id": "A-02",
+      "name": "Bias Detection Analyzer",
+      "status": "implemented",
+      "priority": "P1-High",
+      "phase": "P1 (Weeks 3-8)",
+      "complexity": "M",
+      "owner": "core-analyzers-lane (confirm by 2026-05-31)"
+    },
+    {
+      "id": "A-03",
+      "name": "Interpretability Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-04",
+      "name": "Data Quality Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-05",
+      "name": "Scalability Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-06",
+      "name": "Generalization Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-07",
+      "name": "Catastrophic Forgetting Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-08",
+      "name": "Adversarial Vulnerability Analyzer",
+      "status": "implemented",
+      "priority": "P1-High",
+      "phase": "P1 (Weeks 3-8)",
+      "complexity": "M",
+      "owner": "trust-security-lane (assign by 2026-06-07)"
+    },
+    {
+      "id": "A-09",
+      "name": "Job Displacement Impact Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-10",
+      "name": "Privacy Violation Analyzer",
+      "status": "implemented",
+      "priority": "P1-High",
+      "phase": "P1 (Weeks 3-8)",
+      "complexity": "M",
+      "owner": "trust-security-lane (assign by 2026-06-07)"
+    },
+    {
+      "id": "A-11",
+      "name": "Copyright Infringement Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-12",
+      "name": "Misinformation Generation Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-13",
+      "name": "Deepfake Detection Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-14",
+      "name": "Autonomous Weapon Safety Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-15",
+      "name": "Surveillance Impact Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-16",
+      "name": "Digital Divide Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-17",
+      "name": "Market Monopolization Analyzer",
+      "status": "implemented",
+      "priority": "P3-Low",
+      "phase": "P3 (Weeks 21-36)",
+      "complexity": "H",
+      "owner": "long-tail-lane (assign by 2026-06-21)"
+    },
+    {
+      "id": "A-18",
+      "name": "Environmental Impact Analyzer",
+      "status": "implemented",
+      "priority": "P3-Low",
+      "phase": "P3 (Weeks 21-36)",
+      "complexity": "H",
+      "owner": "long-tail-lane (assign by 2026-06-21)"
+    },
+    {
+      "id": "A-19",
+      "name": "Regulatory Compliance Analyzer",
+      "status": "implemented",
+      "priority": "P3-Low",
+      "phase": "P3 (Weeks 21-36)",
+      "complexity": "H",
+      "owner": "long-tail-lane (assign by 2026-06-21)"
+    },
+    {
+      "id": "A-20",
+      "name": "Liability Assessment Analyzer",
+      "status": "implemented",
+      "priority": "P3-Low",
+      "phase": "P3 (Weeks 21-36)",
+      "complexity": "H",
+      "owner": "long-tail-lane (assign by 2026-06-21)"
+    },
+    {
+      "id": "A-21",
+      "name": "Market Manipulation Analyzer",
+      "status": "implemented",
+      "priority": "P3-Low",
+      "phase": "P3 (Weeks 21-36)",
+      "complexity": "H",
+      "owner": "long-tail-lane (assign by 2026-06-21)"
+    },
+    {
+      "id": "A-22",
+      "name": "Intellectual Property Analyzer",
+      "status": "implemented",
+      "priority": "P1-High",
+      "phase": "P1 (Weeks 3-8)",
+      "complexity": "H",
+      "owner": "core-analyzers-lane (confirm by 2026-05-31)"
+    },
+    {
+      "id": "A-23",
+      "name": "Response Consistency Analyzer",
+      "status": "implemented",
+      "priority": "P1-High",
+      "phase": "P1 (Weeks 3-8)",
+      "complexity": "M",
+      "owner": "core-analyzers-lane (confirm by 2026-05-31)"
+    },
+    {
+      "id": "A-24",
+      "name": "Confidence Accuracy Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-25",
+      "name": "Context Retention Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-26",
+      "name": "Knowledge Freshness Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-27",
+      "name": "Reasoning Capability Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-28",
+      "name": "Prompt Engineering Difficulty Analyzer",
+      "status": "implemented",
+      "priority": "P3-Low",
+      "phase": "P3 (Weeks 21-36)",
+      "complexity": "M",
+      "owner": "long-tail-lane (assign by 2026-06-21)"
+    },
+    {
+      "id": "A-29",
+      "name": "Response Latency Analyzer",
+      "status": "implemented",
+      "priority": "P3-Low",
+      "phase": "P3 (Weeks 21-36)",
+      "complexity": "M",
+      "owner": "long-tail-lane (assign by 2026-06-21)"
+    },
+    {
+      "id": "A-30",
+      "name": "Cost Barrier Analyzer",
+      "status": "implemented",
+      "priority": "P3-Low",
+      "phase": "P3 (Weeks 21-36)",
+      "complexity": "M",
+      "owner": "long-tail-lane (assign by 2026-06-21)"
+    },
+    {
+      "id": "A-31",
+      "name": "Usage Limit Analyzer",
+      "status": "implemented",
+      "priority": "P3-Low",
+      "phase": "P3 (Weeks 21-36)",
+      "complexity": "M",
+      "owner": "long-tail-lane (assign by 2026-06-21)"
+    },
+    {
+      "id": "A-32",
+      "name": "Platform Lock-in Analyzer",
+      "status": "implemented",
+      "priority": "P3-Low",
+      "phase": "P3 (Weeks 21-36)",
+      "complexity": "M",
+      "owner": "long-tail-lane (assign by 2026-06-21)"
+    },
+    {
+      "id": "A-33",
+      "name": "False Positive/Negative Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-34",
+      "name": "Language Limitation Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-35",
+      "name": "Domain Knowledge Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-36",
+      "name": "Output Consistency Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-37",
+      "name": "Session Management Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-38",
+      "name": "Privacy Concern Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "H",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-39",
+      "name": "Security Risk Analyzer",
+      "status": "active-critical",
+      "priority": "P0-Critical",
+      "phase": "P0 (Weeks 1-2)",
+      "complexity": "H",
+      "owner": "critical-lane (confirm by 2026-05-31)"
+    },
+    {
+      "id": "A-40",
+      "name": "Content Filtering Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "H",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-41",
+      "name": "Transparency Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "H",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-42",
+      "name": "Dependence Risk Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "H",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-43",
+      "name": "API Complexity Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-44",
+      "name": "Compatibility Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-45",
+      "name": "Maintenance Overhead Analyzer",
+      "status": "implemented",
+      "priority": "P2-Medium",
+      "phase": "P2 (Weeks 9-20)",
+      "complexity": "M",
+      "owner": "coverage-expansion-lane (assign by 2026-06-14)"
+    },
+    {
+      "id": "A-46",
+      "name": "Error Handling Analyzer",
+      "status": "implemented+hardened",
+      "priority": "P0-Critical",
+      "phase": "P0 (Weeks 1-2)",
+      "complexity": "M",
+      "owner": "critical-lane (confirm by 2026-05-31)"
+    },
+    {
+      "id": "A-47",
+      "name": "Customization Limit Analyzer",
+      "status": "implemented",
+      "priority": "P3-Low",
+      "phase": "P3 (Weeks 21-36)",
+      "complexity": "M",
+      "owner": "long-tail-lane (assign by 2026-06-21)"
+    },
+    {
+      "id": "A-48",
+      "name": "AI Output Reliability Analyzer",
+      "status": "implemented",
+      "priority": "P1-High",
+      "phase": "P1 (Weeks 3-8)",
+      "complexity": "M",
+      "owner": "core-analyzers-lane (confirm by 2026-05-31)"
+    }
   ]
 }

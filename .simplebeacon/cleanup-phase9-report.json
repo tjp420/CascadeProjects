@@ -1,0 +1,49 @@
+{
+  "type": "simplebeacon-cleanup-phase-report",
+  "phase": 9,
+  "completedAt": "2026-05-28T01:00:00.000Z",
+  "projectPath": "C:\\Users\\Trevor\\CascadeProjects",
+  "focus": "node_modules refresh, dependency scanner hardening, Windows export-system check",
+  "actions": [
+    {
+      "category": "node_modules-refresh",
+      "path": "ai-platform/node_modules",
+      "action": "deleted-and-reinstalled",
+      "packagesAudited": 789,
+      "vulnerabilities": 0
+    },
+    {
+      "category": "dependency-scanner",
+      "action": "hardened",
+      "changes": [
+        "Prioritize tools/scripts/bin in dependency scan order",
+        "Document phase-2 SSO deps as planned runtime (passport, ldapjs, qrcode, etc.)",
+        "archiver now detected via tools/create-signed-off-site-bundle.js"
+      ],
+      "unusedDependenciesAfter": 0
+    },
+    {
+      "category": "export-system-check",
+      "action": "added",
+      "file": "ai-platform/tools/verify-export-system-shim.js",
+      "npmScript": "export-system:check uses node (Windows-compatible)"
+    },
+    {
+      "category": "scan-refresh",
+      "path": ".simplebeacon/file-reduction-current.json",
+      "unusedFileCandidates": 0,
+      "unusedDependencies": 0,
+      "missingEnvKeys": 0
+    }
+  ],
+  "verification": {
+    "dataCleanupTests": "19/19 passed",
+    "fileReductionTests": "14/14 passed",
+    "exportSystemCheck": "passed",
+    "smokeSuite": "SMOKE SUITE PASSED"
+  },
+  "notes": [
+    "SSO-related dependencies retained in package.json for phase-2 auth — not removed.",
+    "Dev server on :54355 remained healthy after node_modules reinstall (in-memory modules)."
+  ]
+}
