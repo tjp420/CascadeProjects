@@ -720,6 +720,18 @@ describe('codebase analyzer', () => {
         expect(debug.some((f) => f.type === 'r-print')).toBe(false);
     });
 
+    test('skips demo and test HTML pages from plugin debug findings', async () => {
+        await fs.promises.writeFile(
+            path.join(tempDir, 'ai-tools-test.html'),
+            '<script>console.log("fixture");</script>\n',
+            'utf8'
+        );
+
+        const report = await analyzeCodebase(tempDir, { includeEslint: false, scanProfile: 'universal' });
+        const debug = report.findings.filter((f) => f.category === 'debug-artifact');
+        expect(debug.length).toBe(0);
+    });
+
     test('audit remediation recipes are not flagged as production tech debt', async () => {
         await fs.promises.mkdir(path.join(tempDir, 'server', 'lib'), { recursive: true });
         await fs.promises.writeFile(

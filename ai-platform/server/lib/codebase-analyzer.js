@@ -369,6 +369,10 @@ function isNonProductionAuditContentPath(relativePath) {
     if (/^tests\//.test(rel) || /^test\//.test(rel) || rel.startsWith('templates/')) return true;
     if (/^(test-|phase\d+-test)/.test(basename)) return true;
     if (basename === 'enhanced-auth-demo.html' || basename === 'mock-backend.js') return true;
+    if (/-test\.html$/i.test(basename) || /(?:^|-)test(?:-|\.)/i.test(basename)) return true;
+    if (basename === 'test-gateway.js') return true;
+    if (/^gguf-.*-test\.html$/i.test(basename)) return true;
+    if (basename === 'gguf-operational-dashboard.html') return true;
     return false;
 }
 
@@ -803,6 +807,10 @@ function isDebugScanPath(relativePath) {
 
 function detectDebugArtifacts(content, relativePath) {
     if (isCliToolingPath(relativePath)) {
+        return [];
+    }
+    const rel = normalizedAuditPath(relativePath);
+    if (rel.endsWith('test-gateway.js') || rel.endsWith('/test-gateway.js')) {
         return [];
     }
     if (!isDebugScanPath(relativePath) || !isProductionRelevantPath(relativePath)) {

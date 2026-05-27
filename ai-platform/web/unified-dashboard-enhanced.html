@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified AI Platform Dashboard - Cascade (Enhanced Auth)</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Enhanced Auth Styles -->
+    <style>
+        .auth-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999; opacity: 0; visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .auth-modal-overlay.active { opacity: 1; visibility: visible; }
+        .auth-dialog {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-radius: 20px; padding: 2rem; width: 100%; max-width: 450px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: translateY(-20px); transition: transform 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .auth-modal-overlay.active .auth-dialog { transform: translateY(0); }
+        .auth-header { text-align: center; margin-bottom: 2rem; color: white; }
+        .auth-header h3 { margin: 0; font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .auth-header .lead { color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; margin: 0; }
+        .auth-tabs { display: flex; margin-bottom: 2rem; background: rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 0.25rem; }
+        .auth-tab { flex: 1; padding: 0.75rem; background: transparent; border: none; color: rgba(255, 255, 255, 0.7); border-radius: 8px; cursor: pointer; transition: all 0.3s ease; font-weight: 500; }
+        .auth-tab.active { background: rgba(255, 255, 255, 0.2); color: white; }
+        .auth-tab:hover:not(.active) { color: rgba(255, 255, 255, 0.9); }
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+        .form-floating { margin-bottom: 1.5rem; }
+        .form-floating input {
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white; border-radius: 10px;
+        }
+        .form-floating input:focus {
+            background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25); color: white;
+        }
+        .form-floating label { color: rgba(255, 255, 255, 0.7); }
+        .form-floating input:focus ~ label { color: rgba(255, 255, 255, 0.9); }
+        .auth-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; }
+        .auth-options input[type="checkbox"] { margin-right: 0.5rem; }
+        .auth-options a { color: rgba(255, 255, 255, 0.8); text-decoration: none; }
+        .auth-options a:hover { color: white; }
+        .social-auth { margin: 2rem 0; text-align: center; }
+        .social-auth p { color: rgba(255, 255, 255, 0.7); margin-bottom: 1rem; font-size: 0.9rem; }
+        .social-buttons { display: flex; gap: 1rem; justify-content: center; }
+        .social-btn {
+            flex: 1; padding: 0.75rem; border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1); color: white; border-radius: 8px;
+            cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        }
+        .social-btn:hover { background: rgba(255, 255, 255, 0.2); transform: translateY(-2px); }
+        .auth-actions { display: flex; gap: 1rem; margin-top: 2rem; }
+        .auth-actions button { flex: 1; padding: 0.75rem; border-radius: 10px; font-weight: 500; transition: all 0.3s ease; }
+        .btn-cancel { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; }
+        .btn-cancel:hover { background: rgba(255, 255, 255, 0.2); }
+        .btn-submit { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; position: relative; overflow: hidden; }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4); }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+        .auth-error { background: rgba(220, 53, 69, 0.2); border: 1px solid rgba(220, 53, 69, 0.5); color: #ff6b6b; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; display: none; }
+        .auth-success { background: rgba(40, 167, 69, 0.2); border: 1px solid rgba(40, 167, 69, 0.5); color: #51cf66; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; display: none; }
+        .password-strength { margin-top: 0.5rem; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+        .password-strength-bar { height: 100%; transition: all 0.3s ease; border-radius: 2px; }
+        .strength-weak { background: #ff6b6b; width: 33%; }
+        .strength-medium { background: #ffd93d; width: 66%; }
+        .strength-strong { background: #51cf66; width: 100%; }
+        .loading-spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.3); border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .demo-badge { background: rgba(255, 193, 7, 0.2); border: 1px solid rgba(255, 193, 7, 0.5); color: #ffc107; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem; }
+    </style>
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            --dark-bg: #0f172a;
+            --card-bg: #1e293b;
+            --sidebar-bg: #1a1f3a;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --accent-gradient: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1f3a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .main-header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-online {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .auth-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .auth-status {
+            padding: 0.5rem 1rem;
+            background: rgba(100, 116, 139, 0.2);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .auth-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .auth-btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        .auth-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .auth-btn-outline {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .auth-btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        /* Layout */
+        .main-layout {
+            display: flex;
+            min-height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        /* Navigation */
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            letter-spacing: 0.05em;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border-left-color: var(--primary-color);
+        }
+
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+        }
+
+        .nav-item i {
+            width: 20px;
+            margin-right: 0.75rem;
+        }
+
+        /* Content */
+        .content-header {
+            margin-bottom: 2rem;
+        }
+
+        .content-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .content-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border-color: var(--primary-color);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Charts */
+        .chart-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 80px;
+                height: calc(100vh - 80px);
+                transform: translateX(-100%);
+                z-index: 999;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .content-area {
+                padding: 1rem;
+            }
+
+            .header-content {
+                padding: 0 1rem;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        /* Loading states */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Enhanced Authentication Modal -->
+    <div id="enhanced-auth-modal" class="auth-modal-overlay">
+        <div class="auth-dialog">
+            <div class="auth-header">
+                <h3><i class="fas fa-shield-alt me-2"></i>Authentication Portal</h3>
+                <p class="lead">Secure access to Cascade AI Platform</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="signin">
+                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                </button>
+                <button class="auth-tab" data-tab="signup">
+                    <i class="fas fa-user-plus me-2"></i>Sign Up
+                </button>
+                <button class="auth-tab" data-tab="reset">
+                    <i class="fas fa-key me-2"></i>Reset
+                </button>
+            </div>
+            
+            <div id="auth-error" class="auth-error"></div>
+            <div id="auth-success" class="auth-success"></div>
+            
+            <form id="signin-form" class="auth-form active">
+                <div class="form-floating">
+                    <input type="email" class="form-control" id="signin-email" placeholder="Email" value="dev@cascade.ai" required autocomplete="username">
+                    <label for="signin-email"><i class="fas fa-envelope me-2"></i>Email Address</label>
+                </div>
+                
+                <div class="form-floating">
+                    <input type="password" class="form-control" id="signin-password" placeholder="Password" value="demo123" required autocomplete="current-password">
+                    <label for="signin-password"><i class="fas fa-lock me-2"></i>Password</label>
+                </div>
+                
+                <div class="auth-options">
+                    <div>
+                        <input type="checkbox" id="remember-me">
+                        <label for="remember-me">Remember me</label>
+                    </div>
+                    <a href="#" id="forgot-password-link">Forgot password?</a>
+                </div>
+                
+                <div class="auth-actions">
+                    <button type="button" class="btn-cancel" id="signin-cancel">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn-submit" id="signin-submit">
+                        <span class="loading-spinner me-2"></span>
+                        <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                    </button>
+                </div>
+            </form>
+            
+            <form id="signup-form" class="auth-form">
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="signup-name" placeholder="Full Name" required autocomplete="name">
+                    <label for="signup-name"><i class="fas fa-user me-2"></i>Full Name</label>
+                </div>
+                
+                <div class="form-floating">
+                    <input type="email" class="form-control" id="signup-email" placeholder="Email" required autocomplete="email">
+                    <label for="signup-email"><i class="fas fa-envelope me-2"></i>Email Address</label>
+                </div>
+                
+                <div class="form-floating">
+                    <input type="password" class="form-control" id="signup-password" placeholder="Password" required autocomplete="new-password">
+                    <label for="signup-password"><i class="fas fa-lock me-2"></i>Password</label>
+                    <div class="password-strength">
+                        <div class="password-strength-bar"></div>
+                    </div>
+                </div>
+                
+                <div class="form-floating">
+                    <input type="password" class="form-control" id="signup-confirm-password" placeholder="Confirm Password" required autocomplete="new-password">
+                    <label for="signup-confirm-password"><i class="fas fa-lock me-2"></i>Confirm Password</label>
+                </div>
+                
+                <div class="auth-options">
+                    <div>
+                        <input type="checkbox" id="agree-terms" required>
+                        <label for="agree-terms">I agree to the <a href="#" style="color: white;">Terms & Conditions</a></label>
+                    </div>
+                </div>
+                
+                <div class="auth-actions">
+                    <button type="button" class="btn-cancel" id="signup-cancel">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn-submit" id="signup-submit">
+                        <span class="loading-spinner me-2"></span>
+                        <i class="fas fa-user-plus me-2"></i>Sign Up
+                    </button>
+                </div>
+            </form>
+            
+            <form id="reset-form" class="auth-form">
+                <div class="form-floating">
+                    <input type="email" class="form-control" id="reset-email" placeholder="Email" required autocomplete="email">
+                    <label for="reset-email"><i class="fas fa-envelope me-2"></i>Email Address</label>
+                </div>
+                
+                <p style="color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                    Enter your email address and we'll send you instructions to reset your password.
+                </p>
+                
+                <div class="auth-actions">
+                    <button type="button" class="btn-cancel" id="reset-cancel">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn-submit" id="reset-submit">
+                        <span class="loading-spinner me-2"></span>
+                        <i class="fas fa-paper-plane me-2"></i>Send Reset
+                    </button>
+                </div>
+            </form>
+            
+            <div class="social-auth">
+                <p>Or continue with:</p>
+                <div class="social-buttons">
+                    <button type="button" class="social-btn" id="google-auth">
+                        <i class="fab fa-google"></i>
+                        Google
+                    </button>
+                    <button type="button" class="social-btn" id="github-auth">
+                        <i class="fab fa-github"></i>
+                        GitHub
+                    </button>
+                    <button type="button" class="social-btn" id="microsoft-auth">
+                        <i class="fab fa-microsoft"></i>
+                        Microsoft
+                    </button>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 1rem;">
+                <span class="demo-badge">
+                    <i class="fas fa-flask me-1"></i>Demo Mode
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo">
+                    <i class="fas fa-cube me-2"></i>Cascade AI Platform
+                </div>
+            </div>
+            
+            <div class="status-indicators">
+                <div class="status-badge status-online">
+                    <i class="fas fa-circle"></i>
+                    Platform Online
+                </div>
+                
+                <!-- Enhanced Auth Toolbar -->
+                <div class="auth-toolbar">
+                    <span class="auth-status" data-auth-status>Guest</span>
+                    <button class="auth-btn auth-btn-primary" data-auth-action="signin" onclick="enhancedAuth.signIn()">
+                        <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                    </button>
+                    <button class="auth-btn auth-btn-outline" data-auth-action="signout" onclick="enhancedAuth.signOut()" style="display: none;">
+                        <i class="fas fa-sign-out-alt me-2"></i>Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-title">Main</div>
+                    <a href="#overview" class="nav-item active">
+                        <i class="fas fa-home"></i>
+                        Overview
+                    </a>
+                    <a href="#dashboard" class="nav-item">
+                        <i class="fas fa-chart-line"></i>
+                        Dashboard
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-title">AI Tools</div>
+                    <a href="#ai-tools" class="nav-item">
+                        <i class="fas fa-robot"></i>
+                        AI Tools
+                    </a>
+                    <a href="#gguf-analysis" class="nav-item">
+                        <i class="fas fa-brain"></i>
+                        GGUF Analysis
+                    </a>
+                    <a href="#mock-data" class="nav-item">
+                        <i class="fas fa-database"></i>
+                        Mock Data Analyzer
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-title">Development</div>
+                    <a href="#dev-tools" class="nav-item">
+                        <i class="fas fa-code"></i>
+                        Development Tools
+                    </a>
+                    <a href="#api" class="nav-item">
+                        <i class="fas fa-plug"></i>
+                        API Documentation
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-title">Analytics</div>
+                    <a href="#analytics" class="nav-item">
+                        <i class="fas fa-chart-bar"></i>
+                        Analytics
+                    </a>
+                    <a href="#reports" class="nav-item">
+                        <i class="fas fa-file-alt"></i>
+                        Reports
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Content Area -->
+        <main class="content-area">
+            <div class="content-header fade-in">
+                <h1 class="content-title">Platform Overview</h1>
+                <p class="content-subtitle">Welcome to the Cascade AI Platform - Your unified AI development environment</p>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid fade-in">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">AI Models</h3>
+                        <div class="card-icon" style="background: rgba(99, 102, 241, 0.2); color: #6366f1;">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                    </div>
+                    <div class="card-value">12</div>
+                    <div class="card-description">Active AI models deployed</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">API Calls</h3>
+                        <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                    </div>
+                    <div class="card-value">45.2K</div>
+                    <div class="card-description">API calls this month</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Projects</h3>
+                        <div class="card-icon" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                    </div>
+                    <div class="card-value">28</div>
+                    <div class="card-description">Active projects</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Uptime</h3>
+                        <div class="card-icon" style="background: rgba(139, 92, 246, 0.2); color: #8b5cf6;">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="card-value">99.9%</div>
+                    <div class="card-description">Platform uptime</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <h3 class="chart-title">Platform Activity</h3>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-light active">24H</button>
+                        <button class="btn btn-outline-light">7D</button>
+                        <button class="btn btn-outline-light">30D</button>
+                    </div>
+                </div>
+                <canvas id="activityChart" height="100"></canvas>
+            </div>
+
+            <div class="dashboard-grid fade-in">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Model Performance</h3>
+                    </div>
+                    <canvas id="performanceChart" height="200"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Resource Usage</h3>
+                    </div>
+                    <canvas id="resourceChart" height="200"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Enhanced Auth System -->
+    <script src="enhanced-auth-system.js"></script>
+    
+    <!-- Chart.js Initialization -->
+    <script>
+        // Activity Chart
+        const activityCtx = document.getElementById('activityChart').getContext('2d');
+        new Chart(activityCtx, {
+            type: 'line',
+            data: {
+                labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                datasets: [{
+                    label: 'API Calls',
+                    data: [120, 90, 200, 450, 380, 290, 150],
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Performance Chart
+        const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(performanceCtx, {
+            type: 'bar',
+            data: {
+                labels: ['GGUF', 'BERT', 'GPT', 'Claude', 'Llama'],
+                datasets: [{
+                    label: 'Accuracy (%)',
+                    data: [94, 89, 92, 96, 91],
+                    backgroundColor: [
+                        '#6366f1',
+                        '#8b5cf6',
+                        '#10b981',
+                        '#f59e0b',
+                        '#ef4444'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Resource Chart
+        const resourceCtx = document.getElementById('resourceChart').getContext('2d');
+        new Chart(resourceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['CPU', 'Memory', 'GPU', 'Storage'],
+                datasets: [{
+                    data: [35, 25, 30, 10],
+                    backgroundColor: [
+                        '#6366f1',
+                        '#8b5cf6',
+                        '#10b981',
+                        '#f59e0b'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all items
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                
+                // Add active class to clicked item
+                this.classList.add('active');
+                
+                // Update content based on selection
+                const section = this.getAttribute('href').substring(1);
+                updateContent(section);
+            });
+        });
+
+        function updateContent(section) {
+            const contentArea = document.querySelector('.content-area');
+            const contentHeader = contentArea.querySelector('.content-header');
+            
+            // Update header
+            const titles = {
+                overview: 'Platform Overview',
+                dashboard: 'Analytics Dashboard',
+                'ai-tools': 'AI Tools',
+                'gguf-analysis': 'GGUF Analysis',
+                'mock-data': 'Mock Data Analyzer',
+                'dev-tools': 'Development Tools',
+                api: 'API Documentation',
+                analytics: 'Analytics',
+                reports: 'Reports'
+            };
+            
+            contentHeader.querySelector('.content-title').textContent = titles[section] || 'Platform Overview';
+            
+            // Add fade-in animation
+            contentHeader.classList.remove('fade-in');
+            void contentHeader.offsetWidth; // Trigger reflow
+            contentHeader.classList.add('fade-in');
+        }
+
+        // Mobile sidebar toggle
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        // Authentication success callback
+        window.onAuthSuccess = function(user) {
+            // Show welcome notification
+            showNotification(`Welcome back, ${user.name}!`, 'success');
+        };
+
+        // Authentication logout callback
+        window.onAuthLogout = function() {
+            showNotification('You have been signed out', 'info');
+        };
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 10000; min-width: 300px;';
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                    ${message}
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
