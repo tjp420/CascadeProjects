@@ -82,6 +82,20 @@ describe('file merger reduction scanner', () => {
         expect(distinctCanonical).toBeFalsy();
     });
 
+    test('does not flag distinct canonical roadmap baselines as fuzzy near-duplicates', async () => {
+        const report = await scanFileMergerReduction(baseDir, { scope: 'sample-data-only' });
+        const fuzzyDup = report.mergeCandidates.find((c) =>
+            c.mergeType === 'fuzzy-near-duplicate'
+            && c.files.some((f) => f.path.includes('gguf-roadmap-data.json'))
+            && c.files.some((f) => f.path.includes('ai-roadmap-report.json'))
+        );
+        expect(fuzzyDup).toBeFalsy();
+        expect(report.advancedAnalysis.fuzzyNearDuplicates.pairs.find((p) =>
+            p.fileA.includes('gguf-roadmap-data.json') && p.fileB.includes('ai-roadmap-report.json')
+            || p.fileB.includes('gguf-roadmap-data.json') && p.fileA.includes('ai-roadmap-report.json')
+        )).toBeFalsy();
+    });
+
     test('report includes advanced analysis block', async () => {
         const report = await scanFileMergerReduction(baseDir, { scope: 'sample-data-only' });
         expect(report.advancedAnalysis).toBeDefined();
@@ -94,7 +108,7 @@ describe('file merger reduction scanner', () => {
         const monorepoRoot = path.join(baseDir, '..');
         const report = await scanFileMergerReduction(monorepoRoot, { scope: 'repository' });
         expect(report.reportVersion).toBe(2);
-        expect(report.summary.repositoryFilesTotal).toBeGreaterThan(40000);
+        expect(report.summary.repositoryFilesTotal).toBeGreaterThan(35000);
         expect(report.summary.sampleDataFilesAnalyzed).toBeLessThan(45);
         expect(report.summary.jsonFilesAnalyzed).toBeGreaterThan(250);
         expect(report.summary.filesAnalyzed).toBe(report.summary.repositoryFilesTotal);

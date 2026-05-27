@@ -36,9 +36,9 @@
         "phase": "Sprint 2: Stub APIs & Tests",
         "status": "completed",
         "progress": 100,
-        "description": "Stub API routes (100 detected) and 954/954 Jest tests (64 suites)",
-        "features": ["Tier-1 stub API routes", "954/954 Jest tests (64 suites)"],
-        "milestones": ["dashboard-stub-api.js", "954/954"]
+        "description": "Stub API routes (100 detected) and 956/956 Jest tests (64 suites)",
+        "features": ["Tier-1 stub API routes", "956/956 Jest tests (64 suites)"],
+        "milestones": ["dashboard-stub-api.js", "956/956"]
       },
       {
         "phase": "Sprint 3: Honest Dashboard Data",
