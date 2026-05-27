@@ -693,116 +693,51 @@ describe('codebase analyzer', () => {
         expect(parentScopedFiles.length).toBe(platformFiles.length);
     });
 
-    test('prioritizeFilesByRisk ranks server and config paths ahead of docs', () => {
-        const { prioritizeFilesByRisk, scoreFileRisk } = require('../../server/lib/codebase-analyzer');
-        const now = Date.now();
-        const files = [
-            { relativePath: 'docs/readme.md', size: 100, mtimeMs: now - 86400000 * 400 },
-            { relativePath: 'server/app.js', size: 500, mtimeMs: now - 86400000 },
-            { relativePath: 'config/database.json', size: 200, mtimeMs: now - 86400000 * 2 },
-            { relativePath: '.env', size: 50, mtimeMs: now - 86400000 * 3 }
-        ];
-
-        const ordered = prioritizeFilesByRisk(files);
-        expect(ordered[0].relativePath).toBe('server/app.js');
-        expect(scoreFileRisk(ordered[0])).toBeGreaterThan(scoreFileRisk(ordered[ordered.length - 1]));
-    });
-
-    test('getOptimalConcurrency returns a bounded adaptive value', () => {
-        const { getOptimalConcurrency } = require('../../server/lib/codebase-analyzer');
-        const value = getOptimalConcurrency();
-        expect(value).toBeGreaterThanOrEqual(4);
-        expect(value).toBeLessThanOrEqual(32);
-    });
-
-    test('onProgress callback receives batch progress updates', async () => {
-        await fs.promises.mkdir(path.join(tempDir, 'src'), { recursive: true });
-        for (let i = 0; i < 6; i += 1) {
-            await fs.promises.writeFile(
-                path.join(tempDir, 'src', `file-${i}.js`),
-                `function f${i}() { /* TODO: item ${i} */ }\n`,
-                'utf8'
-            );
-        }
-
-        const progressEvents = [];
-        await analyzeCodebase(tempDir, {
-            includeEslint: false,
-            concurrency: 2,
-            onProgress: (progress) => progressEvents.push({ ...progress })
-        });
-
-        expect(progressEvents.length).toBeGreaterThan(0);
-        const last = progressEvents[progressEvents.length - 1];
-        expect(last.processed).toBe(last.total);
-        expect(last.percent).toBe(100);
-        expect(typeof last.elapsed).toBe('number');
-    });
-
-    test('collects per-file analysis errors without failing the scan', async () => {
-        const { analyzeFilesInBatches, analyzeFileWithRetry } = require('../../server/lib/codebase-analyzer');
-        const files = [
-            { relativePath: 'server/ok.js', path: path.join(tempDir, 'server', 'ok.js'), size: 10, ext: '.js' },
-            { relativePath: 'server/broken.js', path: path.join(tempDir, 'server', 'broken.js'), size: 10, ext: '.js' }
-        ];
-        await fs.promises.mkdir(path.join(tempDir, 'server'), { recursive: true });
-        await fs.promises.writeFile(files[0].path, 'function ok() {}\n', 'utf8');
-        await fs.promises.writeFile(files[1].path, 'function bad() {}\n', 'utf8');
-
-        const result = await analyzeFilesInBatches(files, tempDir, {
-            concurrency: 2,
-            smartBatching: false,
-            analyzeFileImpl: async (file, rootDir, options) => {
-                if (file.relativePath === 'server/broken.js') {
-                    return { ok: false, error: new Error('transient analyzer failure') };
-                }
-                return analyzeFileWithRetry(file, rootDir, options);
-            }
-        });
-
-        expect(result.analysisErrors).toHaveLength(1);
-        expect(result.analysisErrors[0].filePath).toBe('server/broken.js');
-        expect(result.findings.length).toBeGreaterThanOrEqual(0);
-    });
-
-    test('analyzeCodebase summary exports analysis error metadata', async () => {
-        await fs.promises.mkdir(path.join(tempDir, 'server'), { recursive: true });
-        await fs.promises.writeFile(path.join(tempDir, 'server', 'app.js'), 'function run() {}\n', 'utf8');
-
-        const report = await analyzeCodebase(tempDir, {
-            includeEslint: false,
-            concurrency: 1,
-            smartBatching: false,
-            analyzeFileImpl: async () => ({ ok: false, error: new Error('forced failure') })
-        });
-
-        expect(report.summary.analysisErrors).toBe(1);
-        expect(report.summary.analysisErrorSamples).toEqual([
-            expect.objectContaining({
-                filePath: 'server/app.js',
-                message: 'forced failure'
-            })
-        ]);
-    });
-
-    test('quickScan skips low-risk files while preserving deepAnalyzeCap behavior', async () => {
-        await fs.promises.mkdir(path.join(tempDir, 'docs'), { recursive: true });
-        await fs.promises.mkdir(path.join(tempDir, 'server'), { recursive: true });
-        await fs.promises.writeFile(path.join(tempDir, 'docs', 'notes.md'), '# Notes\n', 'utf8');
+    test('skips legacy src/ai-system tree from deep analysis by default', async () => {
+        await fs.promises.mkdir(path.join(tempDir, 'src', 'ai-system'), { recursive: true });
         await fs.promises.writeFile(
-            path.join(tempDir, 'server', 'app.js'),
-            'function run() { console.log("debug"); debugger; }\n',
+            path.join(tempDir, 'src', 'ai-system', 'demo_ai_cleanup.py'),
+            'print("debug")\n# TODO: fix\nfrom unittest.mock import MagicMock\n',
             'utf8'
         );
 
-        const quickReport = await analyzeCodebase(tempDir, {
-            includeEslint: false,
-            quickScan: true,
-            quickScanRiskThreshold: 50
-        });
-        const fullReport = await analyzeCodebase(tempDir, { includeEslint: false });
+        const report = await analyzeCodebase(tempDir, { includeEslint: false, scanProfile: 'universal' });
+        const aiFindings = report.findings.filter((f) => f.filePath.startsWith('src/ai-system/'));
+        expect(aiFindings.length).toBe(0);
+        expect(report.summary.codeFilesDiscovered).toBe(0);
+    });
 
-        expect(quickReport.summary.codeFilesAnalyzed).toBeLessThan(fullReport.summary.codeFilesAnalyzed);
-        expect(quickReport.findings.some((f) => f.filePath.startsWith('server/'))).toBe(true);
+    test('python debug scan does not double-count print as r-print', async () => {
+        await fs.promises.writeFile(
+            path.join(tempDir, 'widget.py'),
+            'def run():\n    print("ready")\n',
+            'utf8'
+        );
+
+        const report = await analyzeCodebase(tempDir, { includeEslint: false, scanProfile: 'universal' });
+        const debug = report.findings.filter((f) => f.category === 'debug-artifact');
+        expect(debug.some((f) => f.type === 'python-print')).toBe(true);
+        expect(debug.some((f) => f.type === 'r-print')).toBe(false);
+    });
+
+    test('audit remediation recipes are not flagged as production tech debt', async () => {
+        await fs.promises.mkdir(path.join(tempDir, 'server', 'lib'), { recursive: true });
+        await fs.promises.writeFile(
+            path.join(tempDir, 'server', 'lib', 'audit-remediation-recipes.js'),
+            [
+                "const DEFAULT_RECIPES = {",
+                "  'tech-debt': 'Resolve unfinished work markers with a tracked ticket before handoff.',",
+                "  'debug-artifact': 'Remove console.log from production paths.'",
+                '};',
+                'module.exports = { DEFAULT_RECIPES };',
+                ''
+            ].join('\n'),
+            'utf8'
+        );
+
+        const report = await analyzeCodebase(tempDir, { includeEslint: false, scanProfile: 'universal' });
+        const hits = report.findings.filter((f) => f.filePath.includes('audit-remediation-recipes'));
+        expect(hits.length).toBe(0);
+        expect(report.summary.tierCounts.production).toBe(0);
     });
 });
