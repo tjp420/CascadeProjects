@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service — SimpleBeacon</title>
+  <meta name="robots" content="index, follow">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="site">
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">🛡️</span> SimpleBeacon</a>
+        <nav class="topnav"><a href="/">Home</a><a href="/pricing">Pricing</a></nav>
+      </div>
+    </header>
+    <main class="section">
+      <div class="container legal-doc">
+        <h1>Terms of Service</h1>
+        <p class="text-muted">Last updated: May 26, 2026</p>
+        <h2>1. Service</h2>
+        <p>SimpleBeacon provides open-source CLI tooling and paid pre-launch repository audits. The CLI is available on <a href="https://github.com/tjp420/simplebeacon">GitHub</a> as <code>simplebeacon</code>. Paid audits are opinion-based, read-only static reviews — not a guarantee of security or legal compliance.</p>
+        <h2>2. Pre-launch audit ($499 flat)</h2>
+        <p>Audits are governed by a short Statement of Work (SOW) sent on booking acceptance: one repository (named branch), read-only access, written deliverable within 48 business hours after access is granted. You must have authority to grant repository access.</p>
+        <h2>3. Accounts &amp; billing</h2>
+        <p>Audit fees are invoiced or paid via agreed payment link before work begins. Optional future hosted products may use Stripe; those terms will be published separately. You are responsible for accurate billing contact information.</p>
+        <h2>4. Acceptable use</h2>
+        <p>You may only scan repositories you own or are authorized to analyze. Do not use the service to attack third-party systems or exfiltrate data without permission.</p>
+        <h2>5. Read-only scans</h2>
+        <p>Default scan modes are read-only. Optional merge/quarantine features require explicit confirmation and are your responsibility to review before execution.</p>
+        <h2>6. Disclaimer</h2>
+        <p>Scans are deterministic pattern matching — not a guarantee of security or compliance. Results are scoped to configured rules and paths. See published trust metrics for scope.</p>
+        <h2>6. Limitation of liability</h2>
+        <p>To the maximum extent permitted by law, SimpleBeacon’s liability is limited to fees paid in the twelve months preceding a claim.</p>
+        <h2>8. Contact</h2>
+        <p><a href="mailto:legal@simplebeacon.ai">legal@simplebeacon.ai</a> · Toronto, ON, Canada</p>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <p>&copy; <span id="year"></span> SimpleBeacon · <a href="/privacy">Privacy</a> · <a href="/refund">Refunds</a></p>
+      </div>
+    </footer>
+  </div>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

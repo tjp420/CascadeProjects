@@ -18,8 +18,47 @@ const DEFAULT_LINEAGE_ALLOWLIST = [
     'data/roadmap/**',
     'docker-compose*.yml',
     'tests/fixtures/**',
-    'reports/archive/**'
+    '**/tests/fixtures/**',
+    'reports/archive/**',
+    'mock_data*.json',
+    '**/mock_data*.json',
+    'gguf_*report*.json',
+    'comprehensive-analysis-results.json'
 ];
+
+const SOURCE_SCAN_PRIORITY_PREFIXES = [
+    'server/',
+    'web/',
+    'src/',
+    'packages/simplebeacon-cli/src/',
+    'tools/'
+];
+
+function isVendorPath(relativePath) {
+    const rel = String(relativePath || '').replace(/\\/g, '/').toLowerCase();
+    return rel.startsWith('node_modules/')
+        || rel.includes('/node_modules/')
+        || rel.startsWith('coverage/')
+        || rel.startsWith('.git/');
+}
+
+function prioritizeSourceFiles(files, maxFiles) {
+    const limit = Number.isFinite(maxFiles) ? maxFiles : 3000;
+    const prioritized = [];
+    const remainder = [];
+
+    for (const file of files) {
+        if (isVendorPath(file.relativePath)) continue;
+        const rel = String(file.relativePath || '').replace(/\\/g, '/');
+        if (SOURCE_SCAN_PRIORITY_PREFIXES.some((prefix) => rel.startsWith(prefix))) {
+            prioritized.push(file);
+        } else {
+            remainder.push(file);
+        }
+    }
+
+    return [...prioritized, ...remainder].slice(0, limit);
+}
 
 function globToRegExp(pattern) {
     const normalized = String(pattern || '').replace(/\\/g, '/').trim();
@@ -59,15 +98,18 @@ class DataLineageAnalyzer {
 
     async scan(projectRoot, options = {}) {
         const inventory = options.inventory;
-        const dataFiles = inventory.files.filter((file) => isDataFile(file));
-        const sourceFiles = inventory.files.filter((file) => SOURCE_EXTENSIONS.has(file.ext));
+        const dataFiles = inventory.files.filter((file) => isDataFile(file) && !isVendorPath(file.relativePath));
+        const sourceFiles = prioritizeSourceFiles(
+            inventory.files.filter((file) => SOURCE_EXTENSIONS.has(file.ext)),
+            options.maxSourceFiles ?? 3000
+        );
         const consumers = new Map();
 
         for (const dataFile of dataFiles) {
             consumers.set(dataFile.relativePath, new Set());
         }
 
-        for (const sourceFile of sourceFiles.slice(0, 3000)) {
+        for (const sourceFile of sourceFiles) {
             let content = '';
             try {
                 content = await fs.promises.readFile(sourceFile.path, 'utf8');
@@ -146,5 +188,7 @@ module.exports = {
     DataLineageAnalyzer,
     DEFAULT_LINEAGE_ALLOWLIST,
     isLineageAllowlisted,
-    buildAllowlistPatterns
+    buildAllowlistPatterns,
+    isVendorPath,
+    prioritizeSourceFiles
 };

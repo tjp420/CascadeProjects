@@ -1,7 +1,11 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { analyzeCodebase } = require('../../server/lib/codebase-analyzer');
+const {
+    analyzeCodebase,
+    ESLINT_TARGET_DIRS,
+    resolveEslintTargets
+} = require('../../server/lib/codebase-analyzer');
 
 describe('codebase analyzer', () => {
     let tempDir;
@@ -32,6 +36,25 @@ describe('codebase analyzer', () => {
         expect(report.findings.some((f) => f.type === 'empty-file')).toBe(true);
         expect(report.findings.some((f) => f.category === 'tech-debt')).toBe(true);
         expect(report.summary.healthScore).toBeLessThan(100);
+    });
+
+    test('resolveEslintTargets includes dirs with lintable JS and skips empty trees', async () => {
+        await fs.promises.mkdir(path.join(tempDir, 'server'), { recursive: true });
+        await fs.promises.mkdir(path.join(tempDir, 'web', 'components'), { recursive: true });
+        await fs.promises.mkdir(path.join(tempDir, 'src'), { recursive: true });
+        await fs.promises.writeFile(path.join(tempDir, 'server', 'app.js'), 'module.exports = {};\n', 'utf8');
+        await fs.promises.writeFile(path.join(tempDir, 'src', 'app.js'), 'module.exports = {};\n', 'utf8');
+        const targets = resolveEslintTargets(tempDir);
+        expect(ESLINT_TARGET_DIRS).toEqual([
+            'server',
+            'packages',
+            'web/scripts',
+            'web/components',
+            'web/simplebeacon-dashboard/js',
+            'src'
+        ]);
+        expect(targets).toHaveLength(2);
+        expect(targets.every((p) => p.startsWith(tempDir))).toBe(true);
     });
 
     test('includes repository inventory counts', async () => {

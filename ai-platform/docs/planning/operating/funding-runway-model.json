@@ -1,0 +1,153 @@
+{
+  "version": "2026-05-25",
+  "currency": "USD",
+  "purpose": "Operating runway and breakeven model to support execution decisions",
+  "caveat": "Illustrative planning model; not investment advice or committed financing.",
+  "startingCashAssumptions": {
+    "conservative": 350000,
+    "moderate": 500000,
+    "aggressive": 750000
+  },
+  "phaseCostsByMonth": {
+    "phase_1_foundation_m1_m3": {
+      "description": "Production hardening, initial GTM motion, critical analyzer completion",
+      "monthlyCostRange": {
+        "conservative": 45000,
+        "moderate": 55000,
+        "aggressive": 70000
+      }
+    },
+    "phase_2_traction_m4_m8": {
+      "description": "Customer growth, enterprise readiness, reliability scaling",
+      "monthlyCostRange": {
+        "conservative": 60000,
+        "moderate": 80000,
+        "aggressive": 105000
+      }
+    },
+    "phase_3_scale_m9_m12": {
+      "description": "Enterprise closing motion, retention expansion, valuation readiness",
+      "monthlyCostRange": {
+        "conservative": 75000,
+        "moderate": 100000,
+        "aggressive": 140000
+      }
+    }
+  },
+  "expectedRevenueTrajectoryMRR": {
+    "conservative": {
+      "M1": 0,
+      "M2": 1000,
+      "M3": 2500,
+      "M4": 4500,
+      "M5": 7000,
+      "M6": 10000,
+      "M7": 13500,
+      "M8": 18000,
+      "M9": 23000,
+      "M10": 29000,
+      "M11": 35000,
+      "M12": 42000
+    },
+    "moderate": {
+      "M1": 0,
+      "M2": 1500,
+      "M3": 5000,
+      "M4": 9000,
+      "M5": 14000,
+      "M6": 20000,
+      "M7": 28000,
+      "M8": 38000,
+      "M9": 52000,
+      "M10": 68000,
+      "M11": 85000,
+      "M12": 105000
+    },
+    "aggressive": {
+      "M1": 0,
+      "M2": 3000,
+      "M3": 9000,
+      "M4": 17000,
+      "M5": 27000,
+      "M6": 40000,
+      "M7": 56000,
+      "M8": 74000,
+      "M9": 96000,
+      "M10": 122000,
+      "M11": 152000,
+      "M12": 185000
+    }
+  },
+  "scenarioSummary": {
+    "conservative": {
+      "targetYear1ARR": 50000,
+      "estimatedBurnMonthsAtStartCash": 6.4,
+      "breakevenMonth": "not within 12 months",
+      "notes": "Requires tight cost control or additional financing before month 9."
+    },
+    "moderate": {
+      "targetYear1ARR": 150000,
+      "estimatedBurnMonthsAtStartCash": 7.5,
+      "breakevenMonth": "M11-M12 (if costs do not exceed phase plan)",
+      "notes": "Most plausible base-case if customer acquisition and retention stay near target."
+    },
+    "aggressive": {
+      "targetYear1ARR": 300000,
+      "estimatedBurnMonthsAtStartCash": 8.2,
+      "breakevenMonth": "M8-M10",
+      "notes": "Depends on faster enterprise conversion and lower churn than baseline."
+    }
+  },
+  "runwayDecisionRules": [
+    {
+      "rule": "If projected cash-out date is within 6 months, freeze non-critical hiring and re-baseline costs within 7 days."
+    },
+    {
+      "rule": "If MRR misses target by >20% for 2 consecutive months, trigger GTM strategy correction and scenario downgrade."
+    },
+    {
+      "rule": "If retention drops below 90% for 2 consecutive months, halt expansion spend until root causes are corrected."
+    },
+    {
+      "rule": "If enterprise deal cycle exceeds 120 days median without late-stage progression, de-risk plan by emphasizing SMB revenue path."
+    }
+  ],
+  "breakevenScenarios": [
+    {
+      "name": "conservative",
+      "assumptions": {
+        "grossMargin": 0.78,
+        "monthlyChurn": 0.07,
+        "costControl": "strict"
+      },
+      "breakevenEstimate": "beyond month 12",
+      "riskLevel": "high"
+    },
+    {
+      "name": "moderate",
+      "assumptions": {
+        "grossMargin": 0.82,
+        "monthlyChurn": 0.05,
+        "costControl": "disciplined"
+      },
+      "breakevenEstimate": "month 11-12",
+      "riskLevel": "medium"
+    },
+    {
+      "name": "aggressive",
+      "assumptions": {
+        "grossMargin": 0.84,
+        "monthlyChurn": 0.035,
+        "costControl": "balanced with growth spend"
+      },
+      "breakevenEstimate": "month 8-10",
+      "riskLevel": "medium-high"
+    }
+  ],
+  "linkedRepoArtifacts": [
+    "docs/ai-problem-analyzer-finance-model.json",
+    "docs/ai-problem-analyzer-business-case.md",
+    "docs/production-profile-verification-status.md",
+    "docs/planning/ai-problem-analyzer-suite/analyzer-tracker.json"
+  ]
+}

@@ -23,7 +23,6 @@ const FILES = [
   'site-config.js',
   'app-links.js',
   'audit-booking.js',
-  'js/diagnostic-hook.js',
   'diagnostic-scanner.js',
   'diagnostic-bundle-lib.js',
   'sample-report.html',
@@ -67,15 +66,16 @@ function assertNoSecrets() {
     /\bAKIA[0-9A-Z]{16}\b/,
     /re_[a-zA-Z0-9]{20,}/
   ];
-  const patternDefinitionFiles = new Set([
-    'js/diagnostic-hook.js',
-    'diagnostic-scanner.js'
-  ]);
+  const exampleAllowlist = [
+    'AKIAIOSFODNN7EXAMPLE'
+  ];
   for (const rel of FILES) {
-    if (patternDefinitionFiles.has(rel)) continue;
     const filePath = path.join(OUT, rel);
     if (!fs.existsSync(filePath) || !/\.(html|js|css)$/i.test(rel)) continue;
-    const text = fs.readFileSync(filePath, 'utf8');
+    let text = fs.readFileSync(filePath, 'utf8');
+    for (const example of exampleAllowlist) {
+      text = text.split(example).join('');
+    }
     for (const pattern of secretPatterns) {
       if (pattern.test(text)) {
         throw new Error(`Possible secret in ${rel}`);
@@ -92,12 +92,7 @@ function assertAssetsLinked() {
     }
   }
   const index = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8');
-  if (
-    !index.includes('/styles.css')
-    || !index.includes('/site-config.js')
-    || !index.includes('/js/diagnostic-hook.js')
-    || !index.includes('/diagnostic-scanner.js')
-  ) {
+  if (!index.includes('/styles.css') || !index.includes('/site-config.js') || !index.includes('/diagnostic-scanner.js')) {
     throw new Error('index.html missing core asset references');
   }
 }

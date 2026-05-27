@@ -1,0 +1,9 @@
+{
+  "file": "reports/technical-debt/raw/pattern-console-log.txt",
+  "archivedFullArtifact": "reports/technical-debt/archive/reports__technical-debt__raw__pattern-console-log.txt.full.1779732807589.gz",
+  "originalBytes": 516022,
+  "currentBytes": 38660,
+  "archivedBytes": 64819,
+  "reductionMode": "text-head-tail-pointer",
+  "generatedAt": "2026-05-25T18:13:27.048Z"
+}

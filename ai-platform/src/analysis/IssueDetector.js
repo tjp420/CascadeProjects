@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * Issue Detection System
  * 
@@ -22,7 +23,7 @@ class IssueDetector {
     this.enableAutoResolution = options.enableAutoResolution !== false;
     
     this.initializeDetectors();
-    console.log('[ISSUE_DETECTOR] Issue detector initialized');
+    logger.debug('[ISSUE_DETECTOR] Issue detector initialized');
   }
 
   // Initialize detectors
@@ -152,7 +153,7 @@ class IssueDetector {
       defaultSeverity: 'medium'
     });
 
-    console.log(`[ISSUE_DETECTOR] Initialized ${this.detectors.size} detectors`);
+    logger.debug(`[ISSUE_DETECTOR] Initialized ${this.detectors.size} detectors`);
   }
 
   // Add detector
@@ -164,19 +165,19 @@ class IssueDetector {
       resolutions: 0,
       lastDetected: null
     });
-    console.log(`[ISSUE_DETECTOR] Added detector: ${name}`);
+    logger.debug(`[ISSUE_DETECTOR] Added detector: ${name}`);
   }
 
   // Initialize issue detector
   async initialize() {
     if (this.isInitialized) {
-      console.log('[ISSUE_DETECTOR] Issue detector already initialized');
+      logger.debug('[ISSUE_DETECTOR] Issue detector already initialized');
       return;
     }
 
     try {
       this.isInitialized = true;
-      console.log('[ISSUE_DETECTOR] Issue detector initialized successfully');
+      logger.debug('[ISSUE_DETECTOR] Issue detector initialized successfully');
       
     } catch (error) {
       console.error('[ISSUE_DETECTOR] Failed to initialize issue detector:', error.message);
@@ -387,7 +388,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifyEmptyObject(issue) {
+  classifyEmptyObject(_issue) {
     return {
       severity: 'medium',
       category: 'structure',
@@ -434,7 +435,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifyUndefinedValue(issue) {
+  classifyUndefinedValue(_issue) {
     return {
       severity: 'low',
       category: 'content',
@@ -476,7 +477,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifyNullValue(issue) {
+  classifyNullValue(_issue) {
     return {
       severity: 'low',
       category: 'content',
@@ -515,7 +516,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifyEmptyString(issue) {
+  classifyEmptyString(_issue) {
     return {
       severity: 'low',
       category: 'content',
@@ -556,7 +557,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifyInvalidFormat(issue) {
+  classifyInvalidFormat(_issue) {
     return {
       severity: 'medium',
       category: 'format',
@@ -568,7 +569,7 @@ class IssueDetector {
     };
   }
 
-  resolveInvalidFormat(issue, options = {}) {
+  resolveInvalidFormat(issue, _options = {}) {
     // This would require more complex circular reference resolution
     return {
       success: false,
@@ -595,7 +596,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifyEncodingIssue(issue) {
+  classifyEncodingIssue(_issue) {
     return {
       severity: 'medium',
       category: 'format',
@@ -607,7 +608,7 @@ class IssueDetector {
     };
   }
 
-  resolveEncodingIssue(issue, options = {}) {
+  resolveEncodingIssue(issue, _options = {}) {
     const fixedData = issue.value
       .replace(/\uFFFD/g, '')
       .replace(/[\u2018\u2019]/g, "'");
@@ -636,7 +637,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifyNaNValue(issue) {
+  classifyNaNValue(_issue) {
     return {
       severity: 'high',
       category: 'quality',
@@ -674,7 +675,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifyInfiniteValue(issue) {
+  classifyInfiniteValue(_issue) {
     return {
       severity: 'high',
       category: 'quality',
@@ -734,7 +735,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifySensitiveData(issue) {
+  classifySensitiveData(_issue) {
     return {
       severity: 'high',
       category: 'security',
@@ -799,7 +800,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifySQLInjection(issue) {
+  classifySQLInjection(_issue) {
     return {
       severity: 'critical',
       category: 'security',
@@ -812,7 +813,7 @@ class IssueDetector {
     };
   }
 
-  resolveSQLInjection(issue, options = {}) {
+  resolveSQLInjection(issue, _options = {}) {
     const fixedData = issue.value
       .replace(/DROP\s+TABLE/gi, '-- REMOVED')
       .replace(/DELETE\s+FROM/gi, '-- REMOVED')
@@ -851,7 +852,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifyLargeFile(issue) {
+  classifyLargeFile(_issue) {
     return {
       severity: 'medium',
       category: 'performance',
@@ -863,7 +864,7 @@ class IssueDetector {
     };
   }
 
-  resolveLargeFile(issue, options = {}) {
+  resolveLargeFile(issue, _options = {}) {
     return {
       success: false,
       resolution: 'Large file splitting requires manual review'
@@ -889,7 +890,7 @@ class IssueDetector {
     return issues;
   }
 
-  classifyDeepNesting(issue) {
+  classifyDeepNesting(_issue) {
     return {
       severity: 'medium',
       category: 'performance',
@@ -901,7 +902,7 @@ class IssueDetector {
     };
   }
 
-  resolveDeepNesting(issue, options = {}) {
+  resolveDeepNesting(issue, _options = {}) {
     return {
       success: false,
       resolution: 'Deep nesting flattening requires manual review'
@@ -1139,7 +1140,7 @@ class IssueDetector {
     this.detectionHistory = [];
     
     this.isInitialized = false;
-    console.log('[ISSUE_DETECTOR] Issue detector destroyed');
+    logger.debug('[ISSUE_DETECTOR] Issue detector destroyed');
   }
 }
 
@@ -1161,3 +1162,4 @@ module.exports = {
   IssueDetector,
   initializeIssueDetector
 };
+

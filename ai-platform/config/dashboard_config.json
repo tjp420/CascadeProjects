@@ -1,0 +1,136 @@
+{
+  "api": {
+    "server": {
+      "host": "localhost",
+      "port": 8081,
+      "timeout": 30000,
+      "retry_attempts": 3,
+      "retry_delay": 1000
+    },
+    "authentication": {
+      "enabled": true,
+      "jwt_expiry_hours": 24,
+      "refresh_token_enabled": true,
+      "token_refresh_threshold_minutes": 30
+    },
+    "endpoints": {
+      "project_overview": "/api/project/overview",
+      "file_structure": "/api/file-structure",
+      "code_structure": "/api/code-structure",
+      "code_quality": "/api/analysis/quality",
+      "technical_debt": "/api/analysis/technical-debt",
+      "recommendations": "/api/recommendations",
+      "health_check": "/api/health",
+      "login": "/api/auth/login",
+      "logout": "/api/auth/logout",
+      "refresh_token": "/api/auth/refresh",
+      "performance": "/api/analysis/performance",
+      "security": "/api/analysis/security"
+    },
+    "cache": {
+      "timeout_minutes": 5,
+      "max_size": 100,
+      "cleanup_interval_minutes": 10
+    },
+    "batch": {
+      "max_concurrent_requests": 3,
+      "batch_timeout_ms": 50,
+      "queue_size_limit": 50
+    }
+  },
+  "dashboard": {
+    "ui": {
+      "auto_refresh_interval_minutes": 5,
+      "notification_duration_ms": 3000,
+      "loading_animation_duration_ms": 300,
+      "chart_animation_duration_ms": 500
+    },
+    "export": {
+      "default_format": "markdown",
+      "supported_formats": ["markdown", "pdf", "excel", "csv"],
+      "filename_template": "{report_type}-{date}",
+      "date_format": "YYYY-MM-DD"
+    },
+    "charts": {
+      "responsive": true,
+      "animation_duration_ms": 750,
+      "color_scheme": {
+        "primary": "#3498db",
+        "success": "#27ae60",
+        "warning": "#f39c12",
+        "danger": "#e74c3c",
+        "info": "#9b59b6"
+      }
+    }
+  },
+  "analysis": {
+    "quality": {
+      "excellent_threshold": 85,
+      "good_threshold": 70,
+      "fair_threshold": 50,
+      "poor_threshold": 30
+    },
+    "technical_debt": {
+      "high_threshold_hours": 100,
+      "medium_threshold_hours": 50,
+      "low_threshold_hours": 20
+    },
+    "complexity": {
+      "very_high_files": 10000,
+      "high_files": 5000,
+      "medium_files": 1000,
+      "low_files": 500
+    }
+  },
+  "performance": {
+    "monitoring": {
+      "track_response_times": true,
+      "track_cache_hits": true,
+      "track_error_rates": true,
+      "log_performance_metrics": true
+    },
+    "optimization": {
+      "enable_request_batching": true,
+      "enable_smart_caching": true,
+      "enable_progressive_loading": true,
+      "enable_background_processing": true
+    }
+  },
+  "security": {
+    "api_key_required": false,
+    "rate_limiting": {
+      "enabled": false,
+      "requests_per_minute": 100,
+      "burst_size": 20
+    },
+    "cors": {
+      "enabled": true,
+      "allowed_origins": ["http://localhost:8080", "http://127.0.0.1:8080"],
+      "allowed_methods": ["GET", "POST", "PUT", "DELETE"],
+      "allowed_headers": ["Content-Type", "Authorization"]
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "logs/dashboard.log",
+    "max_file_size_mb": 10,
+    "backup_count": 5,
+    "console_output": true
+  },
+  "features": {
+    "real_time_updates": true,
+    "advanced_analytics": true,
+    "predictive_analysis": false,
+    "team_collaboration": false,
+    "export_scheduling": false,
+    "api_documentation": true
+  },
+  "development": {
+    "debug_mode": false,
+    "mock_data_enabled": false,
+    "api_simulation": false,
+    "performance_profiling": false,
+    "verbose_logging": false
+  }
+}

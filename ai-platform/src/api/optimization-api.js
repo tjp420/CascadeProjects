@@ -1,9 +1,10 @@
+const logger = require('../lib/production-logger');
 /**
  * Repository optimization API — health metrics, merge preview, safe execution.
  */
 
 const path = require('path');
-const fs = require('fs');
+const _fs = require('fs');
 const { scanFileMergerReduction } = require('../../server/lib/file-merger-reduction-scanner');
 const { resolvePlatformRoot } = require('../../packages/simplebeacon-cli/src/project-detect');
 const {
@@ -181,7 +182,7 @@ function setupOptimizationAPI(app, options = {}) {
         }
     });
 
-    console.log('✅ Repository optimization API at /api/optimization/* (health, compliance, merge-preview)');
+    logger.debug('✅ Repository optimization API at /api/optimization/* (health, compliance, merge-preview)');
 }
 
 function computeHealthFromReport(report) {
@@ -190,3 +191,4 @@ function computeHealthFromReport(report) {
 }
 
 module.exports = { setupOptimizationAPI };
+

@@ -4,12 +4,13 @@
  */
 
 require('dotenv').config();
+const logger = require('../../server/lib/app-logger');
 const express = require('express');
 const path = require('path');
 
 // Security: Allow demo mode without Stripe key
 if (!process.env.STRIPE_SECRET_KEY) {
-  console.log('⚠️  STRIPE_SECRET_KEY not found - running in demo mode');
+  logger.debug('⚠️  STRIPE_SECRET_KEY not found - running in demo mode');
 }
 
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -44,7 +45,7 @@ app.get('/web/stable_dashboard.html', (req, res) => {
 });
 
 // In-memory storage for demo purposes (replace with real database in production)
-const users = new Map();
+const _users = new Map();
 const subscriptions = new Map();
 
 /**
@@ -59,7 +60,7 @@ app.get('/api/health', (req, res) => {
  */
 app.get('/api/project-structure', async (req, res) => {
   try {
-    const fs = require('fs').promises;
+    const _fs = require('fs').promises;
     const path = require('path');
     
     const projectRoot = path.join(__dirname, '../..');
@@ -71,7 +72,7 @@ app.get('/api/project-structure', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Project structure analysis error:', error);
+    logger.error('Project structure analysis error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to analyze project structure',
@@ -85,7 +86,7 @@ app.get('/api/project-structure', async (req, res) => {
  */
 app.get('/api/backlog', async (req, res) => {
   try {
-    const fs = require('fs').promises;
+    const _fs = require('fs').promises;
     const path = require('path');
     
     const projectRoot = path.join(__dirname, '../..');
@@ -97,7 +98,7 @@ app.get('/api/backlog', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Backlog detection error:', error);
+    logger.error('Backlog detection error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to detect backlog items',
@@ -112,7 +113,7 @@ app.get('/api/backlog', async (req, res) => {
 app.post('/api/mock-analysis', async (req, res) => {
   try {
     const { scanPath, patterns, options } = req.body;
-    const fs = require('fs').promises;
+    const _fs = require('fs').promises;
     const path = require('path');
     
     const analysisPath = scanPath || path.join(__dirname, '../..');
@@ -124,7 +125,7 @@ app.post('/api/mock-analysis', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Mock analysis error:', error);
+    logger.error('Mock analysis error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to perform mock analysis',
@@ -139,7 +140,7 @@ app.post('/api/mock-analysis', async (req, res) => {
 app.post('/api/mock-data-analysis', async (req, res) => {
   try {
     const { scanPath, includePatterns, excludePatterns, analysisOptions = {} } = req.body;
-    const fs = require('fs').promises;
+    const _fs = require('fs').promises;
     const path = require('path');
     
     const analysisPath = scanPath || path.join(__dirname, '../..');
@@ -151,7 +152,7 @@ app.post('/api/mock-data-analysis', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Comprehensive mock analysis error:', error);
+    logger.error('Comprehensive mock analysis error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to perform comprehensive mock data analysis',
@@ -174,7 +175,7 @@ app.post('/api/mock-conversion', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Mock conversion error:', error);
+    logger.error('Mock conversion error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to convert mock data',
@@ -197,7 +198,7 @@ app.post('/api/mock-validation', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Mock validation error:', error);
+    logger.error('Mock validation error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to validate mock data',
@@ -220,7 +221,7 @@ app.post('/api/mock-generation', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Mock generation error:', error);
+    logger.error('Mock generation error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate mock data',
@@ -243,7 +244,7 @@ app.post('/api/mock-cleaning', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Mock cleaning error:', error);
+    logger.error('Mock cleaning error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to clean mock data',
@@ -276,7 +277,7 @@ app.get('/api/mock-export', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Mock export error:', error);
+    logger.error('Mock export error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to export mock data',
@@ -291,8 +292,8 @@ app.get('/api/mock-export', async (req, res) => {
 app.post('/api/mock-cleaning-batch', async (req, res) => {
   try {
     const { files, directory, pattern, cleaningRules, options = {} } = req.body;
-    const fs = require('fs').promises;
-    const path = require('path');
+    const _fs = require('fs').promises;
+    const _path = require('path');
     
     const batchResult = await performBatchMockCleaning(files, directory, pattern, cleaningRules, options);
     
@@ -302,7 +303,7 @@ app.post('/api/mock-cleaning-batch', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Batch mock cleaning error:', error);
+    logger.error('Batch mock cleaning error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to perform batch mock cleaning',
@@ -319,7 +320,7 @@ app.post('/api/ai-build', async (req, res) => {
     const { requirements, projectType, techStack, includeTests, includeDocs, includeDeployment } =
       req.body;
 
-    console.log('🤖 AI Build Request:', { requirements, projectType, techStack });
+    logger.debug('🤖 AI Build Request:', { requirements, projectType, techStack });
 
     // Import and use the internal AI system
     const { spawn } = require('child_process');
@@ -328,7 +329,7 @@ app.post('/api/ai-build', async (req, res) => {
     // Path to the internal AI system
     const aiSystemPath = path.join(__dirname, 'src', 'gguf_data');
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       const aiProcess = spawn('python', ['main.py', requirements], {
         cwd: aiSystemPath,
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -346,7 +347,7 @@ app.post('/api/ai-build', async (req, res) => {
       });
 
       aiProcess.on('close', code => {
-        console.log('AI Process completed with code:', code);
+        logger.debug('AI Process completed with code:', code);
 
         if (code === 0) {
           // Parse the results from the AI system
@@ -372,7 +373,7 @@ app.post('/api/ai-build', async (req, res) => {
 
           resolve(res.json(results));
         } else {
-          console.error('AI Process Error:', errorOutput);
+          logger.error('AI Process Error:', errorOutput);
           resolve(
             res.status(500).json({
               success: false,
@@ -384,7 +385,7 @@ app.post('/api/ai-build', async (req, res) => {
       });
 
       aiProcess.on('error', error => {
-        console.error('AI Process Spawn Error:', error);
+        logger.error('AI Process Spawn Error:', error);
         resolve(
           res.status(500).json({
             success: false,
@@ -395,7 +396,7 @@ app.post('/api/ai-build', async (req, res) => {
       });
     });
   } catch (error) {
-    console.error('AI Build API Error:', error);
+    logger.error('AI Build API Error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error',
@@ -419,7 +420,7 @@ app.post('/api/performance-optimization', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Performance optimization error:', error);
+    logger.error('Performance optimization error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to perform performance optimization',
@@ -443,7 +444,7 @@ app.post('/api/cicd-integration', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('CI/CD integration error:', error);
+    logger.error('CI/CD integration error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to perform CI/CD integration',
@@ -467,7 +468,7 @@ app.post('/api/testing-suite', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Testing suite error:', error);
+    logger.error('Testing suite error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to run testing suite',
@@ -491,7 +492,7 @@ app.post('/api/documentation-generation', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Documentation generation error:', error);
+    logger.error('Documentation generation error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate documentation',
@@ -515,7 +516,7 @@ app.post('/api/deployment-prep', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Deployment preparation error:', error);
+    logger.error('Deployment preparation error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to prepare deployment',
@@ -537,7 +538,7 @@ app.get('/api/phase3-progress', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Phase 3 progress error:', error);
+    logger.error('Phase 3 progress error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get Phase 3 progress',
@@ -729,7 +730,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       !process.env.STRIPE_SECRET_KEY ||
       process.env.STRIPE_SECRET_KEY.includes('your_secret_key')
     ) {
-      console.log('🎭 Demo mode: Returning mock checkout session');
+      logger.debug('🎭 Demo mode: Returning mock checkout session');
       const mockSessionId = `cs_demo_${Date.now()}`;
       const tier = getTierFromPriceId(priceId);
 
@@ -772,7 +773,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
 
     res.json({ id: session.id, url: session.url });
   } catch (error) {
-    console.error('Checkout session creation error:', error);
+    logger.error('Checkout session creation error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -799,7 +800,7 @@ app.get('/api/subscription-status', async (req, res) => {
       !process.env.STRIPE_SECRET_KEY ||
       process.env.STRIPE_SECRET_KEY.includes('your_secret_key')
     ) {
-      console.log('🎭 Demo mode: Returning mock subscription status');
+      logger.debug('🎭 Demo mode: Returning mock subscription status');
       return res.json({
         status: subscription.status || 'active',
         tier: subscription.tier || 'basic',
@@ -821,7 +822,7 @@ app.get('/api/subscription-status', async (req, res) => {
       cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
     });
   } catch (error) {
-    console.error('Subscription status error:', error);
+    logger.error('Subscription status error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -858,7 +859,7 @@ app.post('/api/cancel-subscription', async (req, res) => {
       currentPeriodEnd: new Date(canceledSubscription.current_period_end * 1000).toISOString(),
     });
   } catch (error) {
-    console.error('Cancel subscription error:', error);
+    logger.error('Cancel subscription error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -908,7 +909,7 @@ app.post('/api/update-subscription', async (req, res) => {
       tier: subscription.tier,
     });
   } catch (error) {
-    console.error('Update subscription error:', error);
+    logger.error('Update subscription error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -938,7 +939,7 @@ app.post('/api/billing-portal', async (req, res) => {
 
     res.json({ url: portalSession.url });
   } catch (error) {
-    console.error('Billing portal error:', error);
+    logger.error('Billing portal error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -960,34 +961,39 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
       event = JSON.parse(req.body);
     }
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    logger.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   // Handle the event
   switch (event.type) {
-    case 'checkout.session.completed':
+    case 'checkout.session.completed': {
       const session = event.data.object;
       await handleCheckoutSessionCompleted(session);
       break;
-    case 'customer.subscription.updated':
+    }
+    case 'customer.subscription.updated': {
       const subscription = event.data.object;
       await handleSubscriptionUpdated(subscription);
       break;
-    case 'customer.subscription.deleted':
+    }
+    case 'customer.subscription.deleted': {
       const deletedSubscription = event.data.object;
       await handleSubscriptionDeleted(deletedSubscription);
       break;
-    case 'invoice.payment_succeeded':
+    }
+    case 'invoice.payment_succeeded': {
       const invoice = event.data.object;
       await handleInvoicePaymentSucceeded(invoice);
       break;
-    case 'invoice.payment_failed':
+    }
+    case 'invoice.payment_failed': {
       const failedInvoice = event.data.object;
       await handleInvoicePaymentFailed(failedInvoice);
       break;
+    }
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      logger.debug(`Unhandled event type ${event.type}`);
   }
 
   res.json({ received: true });
@@ -997,7 +1003,7 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
  * Webhook handlers
  */
 async function handleCheckoutSessionCompleted(session) {
-  console.log('Checkout session completed:', session.id);
+  logger.debug('Checkout session completed:', session.id);
 
   // In production, you would:
   // 1. Get customer info from session
@@ -1018,22 +1024,22 @@ async function handleCheckoutSessionCompleted(session) {
 }
 
 async function handleSubscriptionUpdated(subscription) {
-  console.log('Subscription updated:', subscription.id);
+  logger.debug('Subscription updated:', subscription.id);
   // Update subscription status in database
 }
 
 async function handleSubscriptionDeleted(subscription) {
-  console.log('Subscription deleted:', subscription.id);
+  logger.debug('Subscription deleted:', subscription.id);
   // Handle subscription cancellation in database
 }
 
 async function handleInvoicePaymentSucceeded(invoice) {
-  console.log('Invoice payment succeeded:', invoice.id);
+  logger.debug('Invoice payment succeeded:', invoice.id);
   // Send payment confirmation email
 }
 
 async function handleInvoicePaymentFailed(invoice) {
-  console.log('Invoice payment failed:', invoice.id);
+  logger.debug('Invoice payment failed:', invoice.id);
   // Send payment failed notification
 }
 
@@ -1104,11 +1110,11 @@ async function analyzeProjectStructure(projectRoot) {
           }
         } catch (error) {
           // Skip files that can't be accessed
-          console.warn(`Skipping ${itemPath}: ${error.message}`);
+          logger.warn(`Skipping ${itemPath}: ${error.message}`);
         }
       }
     } catch (error) {
-      console.warn(`Cannot scan directory ${dirPath}: ${error.message}`);
+      logger.warn(`Cannot scan directory ${dirPath}: ${error.message}`);
     }
   }
   
@@ -1221,7 +1227,7 @@ async function detectBacklogItems(projectRoot) {
   return backlog;
 }
 
-async function performMockAnalysis(scanPath, patterns = [], options = {}) {
+async function performMockAnalysis(scanPath, patterns = [], _options = {}) {
   const fs = require('fs').promises;
   const path = require('path');
   
@@ -1354,7 +1360,7 @@ async function convertMockData(mockData, targetFormat, options = {}) {
   return converted;
 }
 
-function convertToCSV(data, options = {}) {
+function convertToCSV(data, _options = {}) {
   if (!Array.isArray(data)) {
     throw new Error('Data must be an array for CSV conversion');
   }
@@ -1440,7 +1446,7 @@ function escapeXML(str) {
     .replace(/'/g, '&#39;');
 }
 
-async function validateMockData(data, schema = null, options = {}) {
+async function validateMockData(data, _schema = null, _options = {}) {
   const validation = {
     isValid: true,
     errors: [],
@@ -1496,7 +1502,7 @@ async function generateMockData(pattern, count = 10, options = {}) {
   return generated;
 }
 
-function generateDataItem(pattern, index, options = {}) {
+function generateDataItem(pattern, index, _options = {}) {
   const generators = {
     user: () => ({
       id: index + 1,
@@ -1524,7 +1530,7 @@ function generateDataItem(pattern, index, options = {}) {
   return generator();
 }
 
-async function cleanMockData(data, cleaningRules = [], options = {}) {
+async function cleanMockData(data, cleaningRules = [], _options = {}) {
   const cleaned = {
     originalCount: Array.isArray(data) ? data.length : 1,
     cleanedCount: 0,
@@ -1617,8 +1623,8 @@ async function exportMockData(data, format = 'json', filename = null) {
  * Batch Mock Data Cleaning Function
  */
 async function performBatchMockCleaning(files = [], directory = null, pattern = null, cleaningRules = ['remove_nulls', 'remove_empty', 'standardize_keys'], options = {}) {
-  const fs = require('fs').promises;
-  const path = require('path');
+  const _fs = require('fs').promises;
+  const _path = require('path');
   
   const batchResult = {
     timestamp: new Date().toISOString(),
@@ -1698,8 +1704,8 @@ async function performBatchMockCleaning(files = [], directory = null, pattern = 
   }
   
   // Calculate overall statistics
-  const totalIssues = batchResult.cleanedFiles.reduce((sum, file) => sum + file.issuesFixed, 0);
-  const totalFiles = batchResult.cleanedFiles.length;
+  const _totalIssues = batchResult.cleanedFiles.reduce((sum, file) => sum + file.issuesFixed, 0);
+  const _totalFiles = batchResult.cleanedFiles.length;
   
   // Calculate optimization (simplified calculation)
   const avgOptimization = batchResult.cleanedFiles.length > 0 
@@ -1720,7 +1726,7 @@ async function performBatchMockCleaning(files = [], directory = null, pattern = 
 /**
  * Scan directory for mock data files
  */
-async function scanDirectoryForMockFiles(directory, pattern = null) {
+async function scanDirectoryForMockFiles(directory, _pattern = null) {
   const fs = require('fs').promises;
   const path = require('path');
   const { shouldSkipBatchScanFile } = require('../../scripts/test-batch-shard-store');
@@ -1951,7 +1957,7 @@ function applyMockCleaningRules(data, cleaningRules) {
  * Comprehensive Mock Data Analysis Function
  */
 async function performComprehensiveMockDataAnalysis(scanPath, includePatterns = [], excludePatterns = [], analysisOptions = {}) {
-  const fs = require('fs').promises;
+  const _fs = require('fs').promises;
   const path = require('path');
   
   const analysis = {
@@ -2398,7 +2404,7 @@ function generateRecommendations(analysis) {
 /**
  * Phase 3: Performance Optimization Function
  */
-async function performPerformanceOptimization(optimizationType, targetArea, options = {}) {
+async function performPerformanceOptimization(optimizationType, targetArea, _options = {}) {
   const optimization = {
     timestamp: new Date().toISOString(),
     optimizationType,
@@ -2470,7 +2476,7 @@ async function performPerformanceOptimization(optimizationType, targetArea, opti
 /**
  * Phase 3: CI/CD Integration Function
  */
-async function performCICDIntegration(integrationType, provider, config = {}) {
+async function performCICDIntegration(integrationType, provider, _config = {}) {
   const integration = {
     timestamp: new Date().toISOString(),
     integrationType,
@@ -2531,7 +2537,7 @@ async function performCICDIntegration(integrationType, provider, config = {}) {
 /**
  * Phase 3: Testing Suite Function
  */
-async function performTestingSuite(testType, coverage, options = {}) {
+async function performTestingSuite(testType, coverage, _options = {}) {
   const testing = {
     timestamp: new Date().toISOString(),
     testType,
@@ -2615,7 +2621,7 @@ async function performTestingSuite(testType, coverage, options = {}) {
 /**
  * Phase 3: Documentation Generation Function
  */
-async function generateDocumentation(docType, format, options = {}) {
+async function generateDocumentation(docType, format, _options = {}) {
   const documentation = {
     timestamp: new Date().toISOString(),
     docType,
@@ -2686,7 +2692,7 @@ async function generateDocumentation(docType, format, options = {}) {
 /**
  * Phase 3: Deployment Preparation Function
  */
-async function prepareDeployment(environment, options = {}) {
+async function prepareDeployment(environment, _options = {}) {
   const deployment = {
     timestamp: new Date().toISOString(),
     environment,
@@ -2872,12 +2878,13 @@ async function getPhase3Progress() {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Stripe payment server running on port ${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`💳 Stripe configured: ${!!process.env.STRIPE_SECRET_KEY}`);
-  console.log(`🔧 Mock data processing APIs enabled`);
-  console.log(`🔧 Batch mock data cleaning API enabled`);
-  console.log(`🔧 Comprehensive mock data analysis API enabled`);
+  logger.debug(`🚀 Stripe payment server running on port ${PORT}`);
+  logger.debug(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.debug(`💳 Stripe configured: ${!!process.env.STRIPE_SECRET_KEY}`);
+  logger.debug(`🔧 Mock data processing APIs enabled`);
+  logger.debug(`🔧 Batch mock data cleaning API enabled`);
+  logger.debug(`🔧 Comprehensive mock data analysis API enabled`);
 });
 
 module.exports = app;
+

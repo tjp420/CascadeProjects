@@ -44,8 +44,7 @@ const CASCADE_ANCHORS = [
     'implementation-plan-sample.json',
     'master-roadmap-sample.json',
     'release-timeline-sample.json',
-    'dashboard-home-sample.json',
-    'gguf-mock-analysis-sample.json'
+    'dashboard-home-sample.json'
 ];
 
 function pathExists(baseDir, relativePath) {
@@ -103,7 +102,7 @@ function detectPlatformSignalsAt(baseDir) {
         cascadeLayout: isCascadeMonorepo(root),
         pageSampleDir: pathExists(root, 'web/data'),
         stubApi: fs.existsSync(path.join(root, 'src/api/dashboard-stub-api.js')),
-        serverEntry: fs.existsSync(path.join(root, 'gguf-dashboard-server.js'))
+        serverEntry: fs.existsSync(path.join(root, 'simplebeacon-server.js'))
     };
 }
 

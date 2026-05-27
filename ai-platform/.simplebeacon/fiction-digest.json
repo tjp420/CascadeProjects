@@ -1,0 +1,209 @@
+{
+  "type": "simplebeacon-fiction-digest",
+  "generatedAt": "2026-05-27T18:08:33.807Z",
+  "conclusion": "No fiction KPI hits in 97 JSON files scanned (40 *-sample.json among them). Gate passes on configured severities. Repository: 39,943 files; gate rules checked 3579. Jest baseline: 954 verified during scan. Fiction/KPI rules scan repository JSON (97) plus source code (3579 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
+  "fictionIssues": [],
+  "nonFictionIssues": [],
+  "sourceReport": {
+    "type": "simplebeacon-report",
+    "reportVersion": 2,
+    "generatedAt": "2026-05-27T18:08:14.374Z",
+    "generatedBy": "Simplebeacon",
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\config.json",
+    "scanPaths": [
+      "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web\\data",
+      "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\data\\mock",
+      "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\data-central\\ai-tools\\mock-data"
+    ],
+    "repositoryInventory": {
+      "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+      "totalFiles": 39943,
+      "totalFolders": 4922,
+      "profile": "explorer"
+    },
+    "mockSampleFiles": 42,
+    "totalFiles": 42,
+    "ruleScopedFilesAnalyzed": 3579,
+    "repositoryFilesTotal": 39943,
+    "repositoryFoldersTotal": 4922,
+    "filesAnalyzed": 39943,
+    "totalSizeBytes": 265687,
+    "totalSizeLabel": "259.5KB",
+    "issueCount": 0,
+    "invalidJson": 0,
+    "emptyFiles": 0,
+    "qualityScore": 100,
+    "schemaCompliance": 100,
+    "schemaChecked": 45,
+    "schemaPassed": 45,
+    "pageSampleSchemaChecked": 43,
+    "pageSampleSchemaPassed": 43,
+    "duplicateGroups": 0,
+    "roadmapSchemaChecked": 2,
+    "roadmapSchemaPassed": 2,
+    "consistencyChecked": 97,
+    "consistencyPassed": 97,
+    "consistencyScore": 100,
+    "fictionJsonFilesScanned": 97,
+    "fictionSampleFilesScanned": 40,
+    "fictionScope": "repository-json",
+    "credentialScanned": 596,
+    "credentialFindings": 0,
+    "productionLeakScanned": 535,
+    "productionLeakFindings": 0,
+    "sourceCodeFilesScanned": 3579,
+    "sourceFictionPatternHits": 0,
+    "jestBaselineChecked": true,
+    "jestBaselinePassed": true,
+    "jestSummary": {
+      "testsPassed": 954,
+      "testsTotal": 954,
+      "testsFailed": 0,
+      "suitesPassed": 64,
+      "suitesTotal": 64
+    },
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "mockDataCategories": [
+      {
+        "category": "JSON Files",
+        "fileCount": 41,
+        "totalSize": "259.2KB",
+        "qualityScore": 99,
+        "issues": 0,
+        "confidence": null,
+        "description": "JSON Files discovered during filesystem scan"
+      },
+      {
+        "category": "Documentation Files",
+        "fileCount": 1,
+        "totalSize": "289B",
+        "qualityScore": 99,
+        "issues": 0,
+        "confidence": null,
+        "description": "Documentation Files discovered during filesystem scan"
+      }
+    ],
+    "detectedIssues": [],
+    "rawIssues": [],
+    "sampleFiles": [
+      "ai-adoption-trends-sample.json",
+      "ai-analysis-sample.json",
+      "ai-quality-metrics-sample.json",
+      "ai-tools-sample.json",
+      "analytics-sample.json",
+      "api-sample.json",
+      "assets-library-sample.json",
+      "baseline-comparison-sample.json",
+      "billing-system-sample.json",
+      "cascade-roadmap-sample.json",
+      "code-generation-sample.json",
+      "code-templates-sample.json",
+      "coverage-reports-sample.json",
+      "dashboard-home-sample.json",
+      "data-maintenance-analyzers-sample.json",
+      "database-sample.json",
+      "debt-analytics-sample.json",
+      "debt-calculator-sample.json",
+      "debt-reduction-sample.json",
+      "dev-tools-sample.json",
+      "engineering-baseline-sample.json",
+      "feature-backlog-sample.json",
+      "fictional-patterns-sample.json",
+      "gguf-mock-analysis-sample.json",
+      "help-sample.json",
+      "implementation-plan-sample.json",
+      "issue-resolution-sample.json",
+      "local-models-sample.json",
+      "master-roadmap-sample.json",
+      "merger-tool-sample.json",
+      "performance-sample.json",
+      "project-reports-sample.json",
+      "quality-dashboard-sample.json",
+      "release-timeline-sample.json",
+      "reports-sample.json",
+      "roadmap-comparison-sample.json",
+      "security-dashboard-sample.json",
+      "settings-sample.json",
+      "simplebeacon-cli-sample.json",
+      "support-dashboard-sample.json",
+      "gguf-mock-analysis-report.json",
+      "README.md"
+    ],
+    "scanScope": {
+      "profile": "standard",
+      "scannerVersion": "1.0.0",
+      "rulesEnabled": [
+        "credentials",
+        "json-schema",
+        "sample-consistency",
+        "roadmap",
+        "production-leak",
+        "jest-baseline",
+        "fiction-kpi-patterns"
+      ],
+      "gatePolicy": {
+        "failOn": [
+          "high"
+        ],
+        "warnOn": [
+          "medium",
+          "low"
+        ]
+      },
+      "mockSampleFilesInScanPaths": 42,
+      "pageSpecCatalogSize": 43,
+      "pageSpecsValidated": 43,
+      "pageSpecsFromScanPaths": 40,
+      "pageSpecsFromAliasPaths": 3,
+      "productionDirsScanned": 535,
+      "productionPaths": [
+        "server/",
+        "src/",
+        "app/",
+        "lib/"
+      ],
+      "sourceCodeScanPaths": [
+        "server",
+        "src/api",
+        "src/server",
+        "packages/simplebeacon-cli/src"
+      ],
+      "sourceCodeFilesScanned": 3579,
+      "sourceFictionPatternHits": 0,
+      "jestExecutedDuringScan": true,
+      "consistencyAnchorCount": 6,
+      "fictionScope": "repository-json",
+      "fictionJsonFilesScanned": 97,
+      "fictionSampleFilesScanned": 40,
+      "ruleScopedFilesAnalyzed": 3579,
+      "repositoryFilesTotal": 39943,
+      "repositoryFoldersTotal": 4922,
+      "limitations": [
+        "Repository inventory: 39,943 files — gate rules checked 3579 (mock paths, credentials, server/ leaks).",
+        "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+        "Fiction/KPI rules scan repository JSON (97) plus source code (3579 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
+        "Jest was executed during this scan."
+      ]
+    },
+    "gate": {
+      "pass": true,
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ],
+      "blockingCount": 0,
+      "warningCount": 0
+    },
+    "sanitized": true,
+    "sanitizedAt": "2026-05-27T18:08:14.375Z"
+  }
+}

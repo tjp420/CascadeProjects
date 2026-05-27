@@ -1,0 +1,7 @@
+# Prelaunch: noindex in HTML — search engines deprioritize until public launch.
+# Remove noindex from index.html + community.html when ready for SEO.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://simplebeacon.ai/sitemap.xml

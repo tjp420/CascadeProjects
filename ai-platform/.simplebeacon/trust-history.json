@@ -1,0 +1,127 @@
+{
+  "type": "simplebeacon-trust-history",
+  "version": 1,
+  "generatedAt": "2026-05-25T21:40:38.494Z",
+  "entries": [
+    {
+      "recordedAt": "2026-05-25T21:40:38.494Z",
+      "generatedAt": "2026-05-25T21:40:38.489Z",
+      "verificationId": "7ac7c5839d427d8c",
+      "verificationMethod": "simplebeacon-deterministic-gate",
+      "source": "trust:publish",
+      "headlineSource": "platform",
+      "gatePass": true,
+      "qualityScore": 98,
+      "issues": 4,
+      "schemaCompliance": 100,
+      "repositoryFilesTotal": 42251,
+      "ruleScopedFilesAnalyzed": 546,
+      "platform": {
+        "issueCount": 4,
+        "gatePass": true,
+        "generatedAt": "2026-05-25T21:40:36.857Z"
+      },
+      "monorepo": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-25T19:49:53.756Z"
+      }
+    },
+    {
+      "recordedAt": "2026-05-25T19:46:38.049Z",
+      "generatedAt": "2026-05-25T19:46:38.045Z",
+      "verificationId": "a090aca282ae8267",
+      "verificationMethod": "simplebeacon-deterministic-gate",
+      "source": "trust:publish",
+      "headlineSource": "platform",
+      "gatePass": true,
+      "qualityScore": 100,
+      "issues": 0,
+      "schemaCompliance": 100,
+      "repositoryFilesTotal": 42231,
+      "ruleScopedFilesAnalyzed": 546,
+      "platform": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-25T19:45:48.846Z"
+      },
+      "monorepo": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-25T19:22:30.468Z"
+      }
+    },
+    {
+      "recordedAt": "2026-05-25T19:42:58.930Z",
+      "generatedAt": "2026-05-25T19:42:58.924Z",
+      "verificationId": "31b6f755ee7ff193",
+      "verificationMethod": "simplebeacon-deterministic-gate",
+      "source": "trust:publish",
+      "headlineSource": "platform",
+      "gatePass": true,
+      "qualityScore": 100,
+      "issues": 0,
+      "schemaCompliance": 100,
+      "repositoryFilesTotal": 42217,
+      "ruleScopedFilesAnalyzed": 546,
+      "platform": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-25T19:42:56.986Z"
+      },
+      "monorepo": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-25T19:22:30.468Z"
+      }
+    },
+    {
+      "recordedAt": "2026-05-25T19:31:43.493Z",
+      "generatedAt": "2026-05-25T19:31:43.488Z",
+      "verificationId": "92ac9ad4072dafe7",
+      "verificationMethod": "simplebeacon-deterministic-gate",
+      "source": "trust:publish",
+      "headlineSource": "platform",
+      "gatePass": true,
+      "qualityScore": 100,
+      "issues": 0,
+      "schemaCompliance": 100,
+      "repositoryFilesTotal": 42210,
+      "ruleScopedFilesAnalyzed": 546,
+      "platform": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-25T19:31:41.882Z"
+      },
+      "monorepo": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-25T19:22:30.468Z"
+      }
+    },
+    {
+      "recordedAt": "2026-05-25T19:29:14.901Z",
+      "generatedAt": "2026-05-25T19:29:14.897Z",
+      "verificationId": "75a28879ed1cdf7a",
+      "verificationMethod": "simplebeacon-deterministic-gate",
+      "source": "trust:publish",
+      "headlineSource": "platform",
+      "gatePass": true,
+      "qualityScore": 100,
+      "issues": 0,
+      "schemaCompliance": 100,
+      "repositoryFilesTotal": 42186,
+      "ruleScopedFilesAnalyzed": 546,
+      "platform": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-25T19:27:14.831Z"
+      },
+      "monorepo": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-25T19:22:30.468Z"
+      }
+    }
+  ]
+}

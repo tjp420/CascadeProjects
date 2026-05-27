@@ -42,7 +42,15 @@ const LEGACY_REDIRECTS = {
   '/security-dashboard': '/#/quality',
   '/support-dashboard': '/#/help',
   '/implementation-plan': '/#/platform',
-  '/project-reports': '/#/results'
+  '/project-reports': '/#/results',
+  '/context-search': '/#/analyze',
+  '/website-analyzer': '/#/analyze',
+  '/gguf-roadmap-enhanced': '/#/platform',
+  '/unified-roadmap-enhanced': '/#/platform',
+  '/directory-analyzer': '/#/analyze',
+  '/url-analyzer': '/#/analyze',
+  '/roadmap-builder': '/#/platform',
+  '/enhanced-roadmap-dashboard': '/#/platform'
 };
 
 function shouldLogRuntimeInfo() {

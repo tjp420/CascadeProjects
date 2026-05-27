@@ -1,0 +1,70 @@
+{
+  "updatedAt": "2026-05-25T19:08:35.767Z",
+  "sourceReport": ".simplebeacon/report.json",
+  "sourceCoverage": "coverage/dashboard/coverage-summary.json",
+  "sourceSecurity": "web/data/security-dashboard-sample.json",
+  "targetsByWeek": {
+    "week4": "Stabilize baseline artifact + CI guard",
+    "week8": "Lift branch coverage and tighten scan scope",
+    "week12": "Hold target posture for two weeks"
+  },
+  "metrics": {
+    "securityPosture": {
+      "current": 80,
+      "target": 88,
+      "unit": "score"
+    },
+    "testCountPassRate": {
+      "currentCount": 717,
+      "targetCount": 760,
+      "currentPassRate": 100,
+      "targetPassRate": 100,
+      "unit": "percent"
+    },
+    "schemaCompliance": {
+      "current": 100,
+      "target": 100,
+      "unit": "percent"
+    },
+    "scanQuality": {
+      "current": 100,
+      "target": 100,
+      "unit": "score"
+    },
+    "mockFileCount": {
+      "current": 56,
+      "target": 65,
+      "unit": "files"
+    },
+    "scanPathCount": {
+      "current": 9,
+      "target": 10,
+      "unit": "paths"
+    },
+    "coverage": {
+      "line": { "current": 85.45, "target": 88 },
+      "branch": { "current": 64.55, "target": 70 },
+      "function": { "current": 77.46, "target": 82 },
+      "statement": { "current": 84.65, "target": 87 },
+      "unit": "percent"
+    },
+    "dependencyAudit": {
+      "highOrCriticalCurrent": 0,
+      "highOrCriticalTarget": 0
+    }
+  },
+  "weeklyReviewCommands": [
+    "npm run simplebeacon:report",
+    "npm run simplebeacon:assess -- --output .simplebeacon/assessment.json",
+    "npm run test:coverage",
+    "npm audit --audit-level=high",
+    "npm run compliance:check",
+    "npm run compliance:audit-baseline"
+  ],
+  "ownerPlaceholders": {
+    "quality": "<owner-quality>",
+    "security": "<owner-security>",
+    "compliance": "<owner-compliance>",
+    "release": "<owner-release>"
+  }
+}

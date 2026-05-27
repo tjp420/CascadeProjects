@@ -1,0 +1,195 @@
+{
+  "type": "vscode-export-directory-analysis",
+  "detail": {
+    "action": "export-directory-structure-analysis",
+    "data": {
+      "path": ".",
+      "statistics": {
+        "total_files": 4892,
+        "total_directories": 223,
+        "file_types": {
+          ".py": 1344,
+          ".md": 1068,
+          ".json": 445,
+          ".js": 314,
+          ".html": 268,
+          ".ts": 78,
+          ".tsx": 86,
+          ".cs": 83,
+          ".dll": 141,
+          ".txt": 280,
+          ".bat": 88,
+          ".meta": 156,
+          ".asset": 64,
+          ".png": 58,
+          ".ps1": 18,
+          ".csv": 18,
+          ".yml": 35,
+          ".yaml": 30,
+          ".css": 35,
+          ".vsix": 8,
+          ".exe": 10,
+          ".unity": 8,
+          ".config": 14,
+          ".modulecompilationtrigger": 32,
+          ".traceevents": 12,
+          ".dag": 5,
+          ".outputdata": 5,
+          ".payloads": 5,
+          ".dag_derived": 5,
+          ".dag_fsmtime": 5,
+          ".gz": 6,
+          ".sh": 4,
+          ".sql": 7,
+          ".info": 3,
+          ".dwlt": 3,
+          ".svg": 3,
+          ".pdb": 1,
+          ".pdf": 1,
+          ".db": 9,
+          ".db-journal": 1,
+          ".typed": 2,
+          ".toml": 2,
+          ".conf": 1,
+          ".ini": 1,
+          ".example": 3,
+          ".agent-zero-ollama": 1,
+          ".agent-zero-ollama-hardcoded": 1,
+          ".simple-ollama": 1,
+          ".jsonl": 1,
+          ".p7m": 1,
+          ".digestcache": 1,
+          ".scancache": 1,
+          ".state": 1,
+          ".map": 1,
+          ".index": 1,
+          ".settings": 2,
+          ".assets": 4,
+          ".data": 2,
+          ".wasm": 2,
+          ".xaml": 2,
+          ".csproj": 1,
+          ".zs": 1,
+          ".cfg": 3,
+          ".production": 1,
+          ".pptx": 1,
+          ".fish": 1,
+          ".rs": 1,
+          ".woff2": 7,
+          ".ico": 9,
+          ".buildreport": 2,
+          ".catalog": 2,
+          ".bin": 2,
+          ".prefs": 2
+        },
+        "depth": 6
+      },
+      "analysis_summary": {
+        "project_overview": {
+          "total_files": 4892,
+          "total_directories": 223,
+          "max_depth": 6,
+          "complexity_score": 85
+        },
+        "file_type_distribution": {
+          "most_common": [
+            { "type": ".py", "count": 1344, "percentage": 27.5 },
+            { "type": ".md", "count": 1068, "percentage": 21.8 },
+            { "type": ".json", "count": 445, "percentage": 9.1 },
+            { "type": ".js", "count": 314, "percentage": 6.4 },
+            { "type": ".html", "count": 268, "percentage": 5.5 }
+          ],
+          "development_files": {
+            "python": 1344,
+            "javascript": 314,
+            "typescript": 164,
+            "csharp": 83,
+            "css": 35,
+            "total_dev": 1940
+          },
+          "documentation_files": {
+            "markdown": 1068,
+            "txt": 280,
+            "pdf": 1,
+            "total_docs": 1349
+          },
+          "unity_files": {
+            "unity": 8,
+            "csharp": 83,
+            "meta": 156,
+            "asset": 64,
+            "total_unity": 311
+          }
+        },
+        "project_complexity": {
+          "complexity_level": "High",
+          "file_diversity": 73,
+          "avg_files_per_directory": 21.9,
+          "depth_assessment": "Medium",
+          "technology_stack": "Multi-language"
+        }
+      },
+      "insights": [
+        {
+          "title": "Large Python Codebase",
+          "description": "This is a Python-heavy project with 1,344 Python files (27.5% of total files)",
+          "severity": "medium",
+          "category": "architecture",
+          "impact": "High"
+        },
+        {
+          "title": "Excellent Documentation Coverage",
+          "description": "Strong documentation with 1,068 Markdown files providing comprehensive project documentation",
+          "severity": "low",
+          "category": "documentation",
+          "impact": "Positive"
+        },
+        {
+          "title": "Multi-Technology Stack",
+          "description": "Diverse technology stack including Python, JavaScript/TypeScript, C#, Unity, and web technologies",
+          "severity": "low",
+          "category": "architecture",
+          "impact": "Medium"
+        },
+        {
+          "title": "Unity Game Development Components",
+          "description": "Contains Unity projects with C# scripts, assets, and build configurations indicating game development focus",
+          "severity": "medium",
+          "category": "gaming",
+          "impact": "Medium"
+        },
+        {
+          "title": "VSCode Extension Development",
+          "description": "Multiple VSCode extension projects with TypeScript/JavaScript source code for tooling development",
+          "severity": "medium",
+          "category": "development",
+          "impact": "Medium"
+        },
+        {
+          "title": "High Project Complexity",
+          "description": "With 4,892 files across 223 directories, this is a complex project requiring careful maintenance",
+          "severity": "medium",
+          "category": "complexity",
+          "impact": "High"
+        }
+      ],
+      "recommendations": [
+        "Consider organizing the large number of Python files into more focused modules to improve maintainability",
+        "The project structure is well-organized with good separation of concerns - maintain this practice",
+        "Documentation is comprehensive - continue this practice for new components",
+        "Multiple Unity projects suggest game development focus - consider creating shared utility libraries",
+        "VSCode extensions indicate tooling development - consider consolidating similar functionality",
+        "Given the high complexity, implement automated testing and continuous integration",
+        "Consider using dependency management tools to handle the diverse technology stack"
+      ],
+      "health_metrics": {
+        "documentation_ratio": 27.6,
+        "code_to_docs_ratio": 3.6,
+        "technology_diversity": "High",
+        "maintainability_score": 72,
+        "organization_score": 85
+      }
+    },
+    "timestamp": "2026-05-14T14:45:13.685977"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-05-14T14:10:01.783984",
+  "maintenance_type": "quality",
+  "initial_score": 50,
+  "final_score": 50,
+  "target_score": 85,
+  "improvement": 0,
+  "success": false,
+  "fixes_applied": 0,
+  "errors": 0,
+  "fixes_list": [],
+  "errors_list": []
+}

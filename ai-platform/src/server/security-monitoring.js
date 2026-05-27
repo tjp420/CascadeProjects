@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * Advanced Security Monitoring System
  * Real-time security monitoring and threat detection
@@ -6,6 +7,7 @@
 const EventEmitter = require('events');
 const fs = require('fs');
 const path = require('path');
+const { readJsonFileCached } = require('../../server/lib/json-file-cache');
 
 class SecurityMonitoring extends EventEmitter {
   constructor() {
@@ -50,15 +52,17 @@ class SecurityMonitoring extends EventEmitter {
     // Initialize threat patterns
     this.initializeThreatPatterns();
     
-    console.log('🔒 Advanced security monitoring initialized');
+    logger.debug('🔒 Advanced security monitoring initialized');
   }
 
   loadSecurityData() {
     try {
       const dataPath = path.join(__dirname, '../../security-data.json');
       if (fs.existsSync(dataPath)) {
-        const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-        this.securityData = { ...this.securityData, ...data };
+        const data = readJsonFileCached(dataPath);
+        if (data) {
+          this.securityData = { ...this.securityData, ...data };
+        }
       }
     } catch (error) {
       console.error('Error loading security data:', error.message);
@@ -332,7 +336,7 @@ class SecurityMonitoring extends EventEmitter {
     // Emit report event
     this.emit('security-report', report);
 
-    console.log('📊 Security report generated');
+    logger.debug('📊 Security report generated');
   }
 
   generateRecommendations() {
@@ -398,7 +402,7 @@ class SecurityMonitoring extends EventEmitter {
 
   // Simulate security scan
   async runSecurityScan() {
-    console.log('🔍 Running security scan...');
+    logger.debug('🔍 Running security scan...');
     
     this.securityData.metrics.securityScans++;
     
@@ -412,7 +416,7 @@ class SecurityMonitoring extends EventEmitter {
     // Generate report
     this.generateSecurityReport();
     
-    console.log(`✅ Security scan completed. Found ${vulnerabilities} vulnerabilities. Score: ${this.securityData.score}/100`);
+    logger.debug(`✅ Security scan completed. Found ${vulnerabilities} vulnerabilities. Score: ${this.securityData.score}/100`);
     
     return this.getSecurityStatus();
   }

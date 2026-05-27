@@ -2,7 +2,7 @@ const assessmentRouter = require('./index');
 const controller = require('./AssessmentController');
 
 /**
- * Register assessment routes on an Express app (gguf-dashboard-server bootstrap).
+ * Register assessment routes on an Express app (simplebeacon-server bootstrap).
  */
 function setupAssessmentRoutes(app) {
   app.use('/api/assessment', assessmentRouter);

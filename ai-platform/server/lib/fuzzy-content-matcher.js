@@ -7,6 +7,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
 const { buildSemanticHints } = require('./llama-cpp-hints');
+const { isDistinctCanonicalRoadmapPair } = require('./canonical-roadmap-files');
 
 const DEFAULT_FUZZY_THRESHOLD = 0.85;
 const MAX_FUZZY_PAIRS = 16;
@@ -32,6 +33,16 @@ function isKnownGeneratedArtifactPair(fileA, fileB) {
         return true;
     }
     return false;
+}
+
+/** CI workflow step log placeholders (often empty) — not merge candidates. */
+function isCiLogFragmentPath(relativePath) {
+    const rel = normalizeAuditRelativePath(relativePath);
+    return /^docs\/\d+-(?:stdout|stderr|stdout-stderr)(?:-\d+)?\.txt$/i.test(rel);
+}
+
+function isCiLogFragmentPair(fileA, fileB) {
+    return isCiLogFragmentPath(fileA) && isCiLogFragmentPath(fileB);
 }
 
 function hasChunkLoaderForPattern(files, patternKey) {
@@ -109,6 +120,7 @@ function findFuzzyNearDuplicates(files, options = {}) {
         && f.size <= MAX_CONTENT_BYTES
         && !String(f.relativePath || '').includes('/archive/')
         && !String(f.relativePath || '').includes('/.simplebeacon/archive/')
+        && !isCiLogFragmentPath(f.relativePath || f.path || '')
     ).slice(0, options.maxFiles ?? 120);
 
     const loaded = [];
@@ -125,6 +137,8 @@ function findFuzzyNearDuplicates(files, options = {}) {
             const fileA = loaded[i].file.relativePath || loaded[i].file.name;
             const fileB = loaded[j].file.relativePath || loaded[j].file.name;
             if (isKnownGeneratedArtifactPair(fileA, fileB)) continue;
+            if (isCiLogFragmentPair(fileA, fileB)) continue;
+            if (isDistinctCanonicalRoadmapPair(fileA, fileB)) continue;
             const tokenScore = tokenJaccardSimilarity(loaded[i].normalized, loaded[j].normalized);
             const lineScore = lineHashJaccardSimilarity(loaded[i].raw, loaded[j].raw);
             const similarity = Math.max(tokenScore, lineScore);
@@ -256,8 +270,10 @@ module.exports = {
     combinedSimilarity,
     findFuzzyNearDuplicates,
     findPatternConsolidationCandidates,
-    buildFuzzyMergeCandidates,
     buildAdvancedAnalysis,
+    buildFuzzyMergeCandidates,
+    isCiLogFragmentPath,
+    isCiLogFragmentPair,
     DEFAULT_FUZZY_THRESHOLD,
     MAX_FUZZY_PAIRS
 };

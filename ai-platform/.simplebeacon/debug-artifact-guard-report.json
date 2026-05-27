@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-05-27T19:26:14.521Z",
+  "strict": false,
+  "roots": [
+    "server",
+    "src",
+    "web/api"
+  ],
+  "filesScanned": 516,
+  "filesWithFindings": 4,
+  "totalFindings": 6,
+  "findings": [
+    {
+      "file": "server/lib/audit-remediation-recipes.js",
+      "hits": [
+        {
+          "pattern": "debugger-statement",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "file": "server/lib/file-quality-heuristics.js",
+      "hits": [
+        {
+          "pattern": "debugger-statement",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "file": "src/web/modules/mock-patterns.js",
+      "hits": [
+        {
+          "pattern": "debugger-statement",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "file": "src/web/vite.config.js",
+      "hits": [
+        {
+          "pattern": "debugger-statement",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

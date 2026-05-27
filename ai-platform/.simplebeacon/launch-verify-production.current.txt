@@ -1,0 +1,23 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+
+> cascade-ai-platform@1.0.0 verify:production-deploy
+> node tools/verify-production-deploy-readiness.js
+
+=== Production deploy readiness ===
+OK    production env template ΓÇö .env.production.example
+OK    deploy script ΓÇö scripts/deploy-simplebeacon.sh
+OK    Cloudflare tunnel config ΓÇö docker/cloudflared/config.yml
+OK    nginx config ΓÇö docker/nginx/simplebeacon.conf
+OK    runbook ΓÇö docs/v1-internal-runbook.md
+OK    production env file ΓÇö .env.production present
+OK    REQUIRE_AUTH ΓÇö true
+OK    JWT_SECRET ΓÇö configured
+OK    JWT_REFRESH_SECRET ΓÇö configured
+FAIL  JWT_EXPIRES_IN ΓÇö required in .env.production (example: 7d)
+FAIL  REFRESH_TOKEN_EXPIRES_IN ΓÇö required in .env.production (example: 30d)
+OK    SEED_DEMO_USERS ΓÇö false
+OK    ALLOW_LEGACY_LOGIN ΓÇö disabled
+OK    SIMPLEBEACON_APP_URL ΓÇö https://simplebeacon.ai
+FAIL  Stripe keys ΓÇö set STRIPE_SECRET_KEY and STRIPE_PRICE_ID_TEAMS_MONTHLY (or STRIPE_PRICE_ID) when monetization is enabled
+
+Fix blocking items, then: npm run simplebeacon:deploy

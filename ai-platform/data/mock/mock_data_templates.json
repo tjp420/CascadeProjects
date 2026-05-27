@@ -1,0 +1,39 @@
+{
+  "user_profile_template": {
+    "id": "auto_generated_uuid",
+    "username": "sample_user",
+    "email": "user@example.com",
+    "timestamp": "2026-05-21T00:00:00Z",
+    "status": "active",
+    "profile_data": {}
+  },
+  "api_response_template": {
+    "status": "success",
+    "data": {},
+    "timestamp": "2026-05-21T00:00:00Z",
+    "request_id": "auto_generated_uuid",
+    "response_time_ms": 100
+  },
+  "analytics_template": {
+    "metric_name": "sample_metric",
+    "value": 0,
+    "timestamp": "2026-05-21T00:00:00Z",
+    "category": "performance",
+    "tags": []
+  },
+  "configuration_template": {
+    "key": "sample_config",
+    "value": "sample_value",
+    "environment": "development",
+    "version": "1.0.0",
+    "description": "Sample configuration"
+  },
+  "test_scenario_template": {
+    "test_id": "auto_generated_uuid",
+    "description": "Sample test scenario",
+    "expected_result": {},
+    "actual_result": {},
+    "status": "pending",
+    "timestamp": "2026-05-21T00:00:00Z"
+  }
+}

@@ -1,0 +1,309 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-05-26T17:24:32.820Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-test-repo",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-test-repo\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-test-repo\\web\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-test-repo",
+    "totalFiles": 6,
+    "totalFolders": 5,
+    "profile": "explorer"
+  },
+  "mockSampleFiles": 1,
+  "totalFiles": 1,
+  "ruleScopedFilesAnalyzed": 8,
+  "repositoryFilesTotal": 6,
+  "repositoryFoldersTotal": 5,
+  "filesAnalyzed": 6,
+  "totalSizeBytes": 115,
+  "totalSizeLabel": "115B",
+  "issueCount": 4,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 55,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 4,
+  "consistencyPassed": 3,
+  "consistencyScore": 75,
+  "fictionJsonFilesScanned": 4,
+  "fictionSampleFilesScanned": 1,
+  "fictionScope": "repository-json",
+  "credentialScanned": 3,
+  "credentialFindings": 1,
+  "productionLeakScanned": 2,
+  "productionLeakFindings": 2,
+  "sourceCodeFilesScanned": 2,
+  "sourceFictionPatternHits": 0,
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 1,
+    "high": 3,
+    "medium": 0,
+    "low": 0
+  },
+  "mockDataCategories": [
+    {
+      "category": "JSON Files",
+      "fileCount": 1,
+      "totalSize": "115B",
+      "qualityScore": 99,
+      "issues": 0,
+      "confidence": null,
+      "description": "JSON Files discovered during filesystem scan"
+    }
+  ],
+  "detectedIssues": [
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Fictional KPI",
+      "count": 1,
+      "description": "web/data/metrics-sample.json: 156 open issues claim",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Replace with repository-audit baseline sample values",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "web/data/metrics-sample.json"
+      ],
+      "filePaths": [
+        "web/data/metrics-sample.json"
+      ],
+      "file": "web/data/metrics-sample.json"
+    },
+    {
+      "severity": "critical",
+      "severityBand": "critical",
+      "type": "Credential Pattern",
+      "count": 1,
+      "description": "src/keys.js: possible stripe key in production path",
+      "pattern": "stripe-key",
+      "line": 2,
+      "recommendation": "Immediately remove and rotate this credential; store only via environment/secret manager bindings",
+      "recommendedAction": "Immediately remove and rotate this credential; store only via environment/secret manager bindings",
+      "affectedFiles": [
+        "keys.js"
+      ],
+      "filePaths": [
+        "src/keys.js"
+      ],
+      "file": "src/keys.js"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "src/components/DashboardView.tsx:2 references mock/sample path (sample-json)",
+      "pattern": "sample-json",
+      "line": 2,
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "DashboardView.tsx"
+      ],
+      "filePaths": [
+        "src/components/DashboardView.tsx"
+      ],
+      "file": "src/components/DashboardView.tsx"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "src/components/DashboardView.tsx:2 references mock/sample path (web-data-sample)",
+      "pattern": "web-data-sample",
+      "line": 2,
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "DashboardView.tsx"
+      ],
+      "filePaths": [
+        "src/components/DashboardView.tsx"
+      ],
+      "file": "src/components/DashboardView.tsx"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "fiction-web/data/metrics-sample.json",
+      "severity": "high",
+      "type": "Fictional KPI",
+      "filePath": "web/data/metrics-sample.json",
+      "count": 1,
+      "description": "web/data/metrics-sample.json: 156 open issues claim",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "web/data/metrics-sample.json"
+      ],
+      "metadata": {
+        "fictionHits": [
+          "156 open issues claim"
+        ]
+      }
+    },
+    {
+      "id": "stripe-key-keys.js-85",
+      "severity": "high",
+      "severityBand": "critical",
+      "type": "Credential Pattern",
+      "filePath": "src/keys.js",
+      "file": "src/keys.js",
+      "line": 2,
+      "pattern": "stripe-key",
+      "count": 1,
+      "description": "src/keys.js: possible stripe key in production path",
+      "recommendation": "Immediately remove and rotate this credential; store only via environment/secret manager bindings",
+      "recommendedAction": "Immediately remove and rotate this credential; store only via environment/secret manager bindings",
+      "affectedFiles": [
+        "keys.js"
+      ],
+      "metadata": {
+        "patternId": "stripe-key",
+        "offset": 85,
+        "findingPayload": {
+          "file": "src/keys.js",
+          "line": 2,
+          "pattern": "stripe-key",
+          "recommendation": "Immediately remove and rotate this credential; store only via environment/secret manager bindings"
+        }
+      }
+    },
+    {
+      "id": "production-leak-sample-json-src/components/DashboardView.tsx-55",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "src/components/DashboardView.tsx",
+      "file": "src/components/DashboardView.tsx",
+      "line": 2,
+      "pattern": "sample-json",
+      "count": 1,
+      "description": "src/components/DashboardView.tsx:2 references mock/sample path (sample-json)",
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "DashboardView.tsx"
+      ],
+      "metadata": {
+        "patternId": "sample-json",
+        "offset": 55,
+        "match": "'../../web/data/metrics-sample.json'",
+        "findingPayload": {
+          "file": "src/components/DashboardView.tsx",
+          "line": 2,
+          "pattern": "sample-json",
+          "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        }
+      }
+    },
+    {
+      "id": "production-leak-web-data-sample-src/components/DashboardView.tsx-55",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "src/components/DashboardView.tsx",
+      "file": "src/components/DashboardView.tsx",
+      "line": 2,
+      "pattern": "web-data-sample",
+      "count": 1,
+      "description": "src/components/DashboardView.tsx:2 references mock/sample path (web-data-sample)",
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "DashboardView.tsx"
+      ],
+      "metadata": {
+        "patternId": "web-data-sample",
+        "offset": 55,
+        "match": "'../../web/data/metrics-sample.json'",
+        "findingPayload": {
+          "file": "src/components/DashboardView.tsx",
+          "line": 2,
+          "pattern": "web-data-sample",
+          "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        }
+      }
+    }
+  ],
+  "sampleFiles": [
+    "metrics-sample.json"
+  ],
+  "scanScope": {
+    "profile": "standard",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "fiction-kpi-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 1,
+    "pageSpecCatalogSize": 43,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 2,
+    "productionPaths": [
+      "src/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 2,
+    "sourceFictionPatternHits": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 4,
+    "fictionSampleFilesScanned": 1,
+    "ruleScopedFilesAnalyzed": 8,
+    "repositoryFilesTotal": 6,
+    "repositoryFoldersTotal": 5,
+    "limitations": [
+      "Repository inventory: 6 files — gate rules checked 8 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (4) plus source code (2 files in configured paths).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
+    ]
+  },
+  "gate": {
+    "pass": false,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 3,
+    "warningCount": 0
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-05-26T17:24:32.822Z"
+}

@@ -1,29 +1,32 @@
 const fs = require('fs');
 const path = require('path');
 
+const fsp = fs.promises;
+
 function bookingsFilePath(options) {
   const dataDir = options.dataDir || path.join(__dirname, '..', '..', 'data');
   return path.join(dataDir, 'audit-bookings.json');
 }
 
-function loadBookings(options) {
+async function loadBookings(options) {
   const file = bookingsFilePath(options);
   try {
-    if (!fs.existsSync(file)) return [];
-    const rows = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const raw = await fsp.readFile(file, 'utf8');
+    const rows = JSON.parse(raw);
     return Array.isArray(rows) ? rows : [];
   } catch (err) {
+    if (err && err.code === 'ENOENT') return [];
     console.warn('[audit-booking] load failed:', err.message);
     return [];
   }
 }
 
-function saveBooking(entry, options) {
+async function saveBooking(entry, options) {
   const file = bookingsFilePath(options);
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const rows = loadBookings(options);
+  await fsp.mkdir(path.dirname(file), { recursive: true });
+  const rows = await loadBookings(options);
   rows.push(entry);
-  fs.writeFileSync(file, JSON.stringify(rows, null, 2));
+  await fsp.writeFile(file, JSON.stringify(rows, null, 2));
   return { rows, bookingId: rows.length, entry };
 }
 
@@ -80,7 +83,7 @@ async function handleAuditBooking(req, res, options = {}) {
 
   let saved;
   try {
-    saved = saveBooking(entry, options);
+    saved = await saveBooking(entry, options);
   } catch (err) {
     console.warn('[audit-booking] persist failed:', err.message);
     return res.status(500).json({ error: 'save_failed', message: err.message });
@@ -102,11 +105,11 @@ async function handleAuditBooking(req, res, options = {}) {
   }
 }
 
-function handleListAuditBookings(req, res, options = {}) {
+async function handleListAuditBookings(req, res, options = {}) {
   const landingEnabled = options.landingEnabled !== false;
   if (!landingEnabled) return res.status(404).json({ error: 'not_found' });
 
-  const rows = loadBookings(options).slice().reverse();
+  const rows = (await loadBookings(options)).slice().reverse();
   return res.json({
     ok: true,
     count: rows.length,
@@ -132,8 +135,18 @@ function registerOperatorInboxPage(app, options = {}) {
 }
 
 function registerAuditBookingRoute(app, options = {}) {
-  app.post('/api/audit-booking', (req, res) => handleAuditBooking(req, res, options));
-  app.get('/api/audit-bookings', (req, res) => handleListAuditBookings(req, res, options));
+  app.post('/api/audit-booking', (req, res) => {
+    handleAuditBooking(req, res, options).catch((err) => {
+      console.warn('[audit-booking] request failed:', err.message);
+      res.status(500).json({ error: 'request_failed', message: err.message });
+    });
+  });
+  app.get('/api/audit-bookings', (req, res) => {
+    handleListAuditBookings(req, res, options).catch((err) => {
+      console.warn('[audit-booking] list failed:', err.message);
+      res.status(500).json({ error: 'list_failed', message: err.message });
+    });
+  });
   registerOperatorInboxPage(app, options);
 }
 

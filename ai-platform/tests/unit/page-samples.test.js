@@ -17,16 +17,6 @@ describe('sample path resolver', () => {
         expect(resolved.replace(/\\/g, '/')).toContain('data/roadmap/ai-roadmap-report.json');
         expect(fs.existsSync(resolved)).toBe(true);
     });
-
-    test('maps gguf roadmap sample aliases to canonical data path', () => {
-        for (const filename of ['gguf-roadmap-sample.json', 'gguf-development-roadmap-report.json']) {
-            const resolved = sampleFilePath(filename);
-            expect(resolved.replace(/\\/g, '/')).toContain('data/roadmap/gguf-roadmap-data.json');
-            expect(fs.existsSync(resolved)).toBe(true);
-        }
-        expect(fs.existsSync(path.join(DATA_DIR, 'gguf-roadmap-sample.json'))).toBe(false);
-        expect(fs.existsSync(path.join(DATA_DIR, 'gguf-development-roadmap-report.json'))).toBe(false);
-    });
 });
 
 describe('dashboard page sample JSON files', () => {
@@ -96,54 +86,5 @@ describe('dashboard page sample JSON files', () => {
             const hasRoadmap = payload.roadmap || payload.developmentPhases || payload.projectOverview;
             expect(hasRoadmap).toBeTruthy();
         });
-    });
-});
-
-describe('self-contained page scripts exist for samples', () => {
-    const PAGE_SCRIPTS = [
-        'ai-analysis-page.js',
-        'ai-roadmap-page.js',
-        'development-roadmap-page.js',
-        'development-roadmap-core.js',
-        'ai-tools-page.js',
-        'analytics-page.js',
-        'api-page.js',
-        'code-generation-page.js',
-        'database-page.js',
-        'dashboard-home-page.js',
-        'dashboard-deferred-init.js',
-        'dashboard-bootstrap.js',
-        'dashboard-shell.js',
-        'roadmap-feature-chart.js',
-        'roadmap-path-builder.js',
-        'debt-reduction-page.js',
-        'debt-analytics-page.js',
-        'feature-backlog-page.js',
-        'release-timeline-page.js',
-        'billing-system-page.js',
-        'project-reports-page.js',
-        'assets-library-page.js',
-        'code-templates-page.js',
-        'coverage-reports-page.js',
-        'settings-page.js',
-        'help-page.js',
-        'implementation-plan-page.js',
-        'debt-calculator-page.js',
-        'dev-tools-page.js',
-        'gguf-analysis-page.js',
-        'gguf-enhanced-features.js',
-        'issue-resolution-page.js',
-        'merger-tool-page.js',
-        'performance-page.js',
-        'quality-page.js',
-        'security-page.js',
-        'support-page.js',
-        'reports-page.js'
-    ];
-
-    const SCRIPTS_DIR = path.join(__dirname, '../../web/scripts');
-
-    test.each(PAGE_SCRIPTS)('%s is present', (script) => {
-        expect(fs.existsSync(path.join(SCRIPTS_DIR, script))).toBe(true);
     });
 });

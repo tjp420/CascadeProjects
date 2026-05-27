@@ -50,7 +50,7 @@ function infrastructureScore() {
         githubActionsCi: fs.existsSync(path.join(root, '..', '.github', 'workflows', 'dashboard-ci.yml')),
         ggufIssuesApi: fs.existsSync(path.join(root, 'src/api/gguf-issues-api.js')),
         schemaValidator: fs.existsSync(path.join(root, 'server/lib/mock-data-schema-validator.js')),
-        singleServerEntry: !fs.existsSync(path.join(root, '..', 'gguf-dashboard-server.js')),
+        singleServerEntry: !fs.existsSync(path.join(root, '..', 'simplebeacon-server.js')),
         productionDockerfile: fs.existsSync(path.join(root, 'Dockerfile')),
         monitoringDocs: fs.existsSync(path.join(root, 'DEPLOYMENT.md'))
     };

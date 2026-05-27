@@ -13,6 +13,7 @@ const { analyzeCodebase } = require('../server/lib/codebase-analyzer');
 const { buildRoadmapFromPath } = require('../server/routes/flexible-analyze-api');
 const { runDataCleanupScan } = require('../server/lib/data-cleanup-scan');
 const { buildCleanupAssistantBrief } = require('../packages/simplebeacon-cli/src/lib/cleanup-assistant-brief');
+const { writeCompleteScanOutput } = require('../server/lib/complete-scan-artifacts');
 
 const COMPLETE_STEP_COUNT = 8;
 
@@ -194,11 +195,11 @@ async function main() {
         payload = enrichCompleteScan(payload);
     }
 
-    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+    const written = writeCompleteScanOutput(outputPath, payload);
 
     const summary = {
-        outputPath,
+        outputPath: written.outputPath,
+        archivePath: written.archivePath,
         enriched,
         errors: errors.length,
         stepsCompleted,

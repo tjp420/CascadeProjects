@@ -1,0 +1,8 @@
+{
+  "issueId": "A-19",
+  "category": "economic-regulatory-ai-issues",
+  "context": {
+    "complianceControls": ["gdpr", "audit-logging", "human-oversight"],
+    "responseText": "GDPR data retention policy with audit logging and human oversight for high-risk decisions."
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-05-25T23:26:30.284Z",
+  "scanRoots": [
+    "web/data",
+    "data/roadmap",
+    "src/data",
+    "data/mock",
+    "data-central/ai-tools/mock-data"
+  ],
+  "scannedJsonFiles": 46,
+  "byPattern": {
+    "completionRate:74.17": 0,
+    "completionRate:87": 0,
+    "completionRate:94.3": 0,
+    "completionRate:66": 0,
+    "completionRate:62": 0,
+    "totalFeatures:47": 0,
+    "totalFeatures:100": 0,
+    "totalFeatures:156": 0,
+    "totalFeatures:8": 0,
+    "totalFeatures:9": 0,
+    "aiConfidence:98.5": 0,
+    "aiConfidence:94.3": 0
+  },
+  "byFile": {}
+}

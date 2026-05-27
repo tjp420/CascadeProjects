@@ -1,0 +1,47 @@
+{
+  "metadata": {
+    "id": "insecure_deserialization",
+    "name": "Insecure Deserialization",
+    "severity": "high",
+    "generatedAt": "2026-05-23T08:42:51.430Z"
+  },
+  "description": "Untrusted data deserialization leading to code execution",
+  "detectionPatterns": [
+    "pickle\\.loads",
+    "unpickle",
+    "JSON\\.parse"
+  ],
+  "examples": {
+    "vulnerable": "# Python - Dangerous\nimport pickle\ndata = pickle.loads(user_input)\n\n# JavaScript - Potentially dangerous\nconst data = JSON.parse(user_input);",
+    "secure": "# Python - Safe\nimport json\ndata = json.loads(user_input)\n\n# Use safe formats\nimport yaml\ndata = yaml.safe_load(user_input)"
+  },
+  "solutions": [
+    "Avoid pickle for untrusted data",
+    "Use JSON or other safe serialization formats",
+    "Implement integrity checks (HMAC)",
+    "Use type-safe deserialization",
+    "Validate deserialized objects"
+  ],
+  "prevention": [
+    "Never deserialize untrusted data",
+    "Use digital signatures",
+    "Implement object validation",
+    "Use safe serialization formats",
+    "Regular security testing"
+  ],
+  "testingApproach": "Deserialization fuzzing, object validation testing, integrity check testing",
+  "tools": [
+    {
+      "name": "Serialization Libraries",
+      "description": "Safe serialization frameworks"
+    },
+    {
+      "name": "Fuzzing Tools",
+      "description": "Input fuzzing for deserialization"
+    },
+    {
+      "name": "Object Validation Frameworks",
+      "description": "Type-safe deserialization"
+    }
+  ]
+}

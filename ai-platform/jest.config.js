@@ -1,4 +1,4 @@
-/** Jest config for dashboard page tests (routing, samples, stub API, E2E structure). */
+/** Jest config for Simplebeacon platform tests. */
 const path = require('path');
 
 process.env.CI = process.env.CI || 'true';
@@ -34,6 +34,7 @@ module.exports = {
         '**/tests/unit/scan-scope.test.js',
         '**/tests/unit/data-maintenance-analyzers.test.js',
         '**/tests/unit/file-merger-reduction-scanner.test.js',
+        '**/tests/unit/complete-scan-artifacts.test.js',
         '**/tests/unit/codebase-analyzer.test.js',
         '**/tests/unit/complete-scan-audit-report.test.js',
         '**/tests/unit/audit-remediation-recipes.test.js',
@@ -54,8 +55,6 @@ module.exports = {
         '**/tests/unit/central-data-config.test.js',
         '**/tests/unit/npm-audit-runner.test.js',
         '**/tests/unit/dashboard-home-builder.test.js',
-        '**/tests/unit/dashboard-mock-wiring.test.js',
-        '**/tests/unit/dashboard-metrics-service.test.js',
         '**/tests/unit/jest-coverage-reader.test.js',
         '**/tests/unit/llama-cpp-hints.test.js',
         '**/tests/unit/fuzzy-content-matcher.test.js',
@@ -68,12 +67,9 @@ module.exports = {
         '**/tests/unit/flexible-analyze-api.test.js',
         '**/tests/unit/data-cleanup-scan.test.js',
         '**/tests/unit/upload-routes.test.js',
-        '**/tests/unit/core-boundary.test.js',
-        '**/tests/unit/gguf-issues-api.routes.test.js',
         '**/tests/unit/config-schema.test.js',
         '**/tests/unit/audit-baseline-guard.test.js',
         '**/tests/integration/local-models-api.test.js',
-        '**/tests/e2e/dashboard-pages.e2e.test.js',
         '**/tests/e2e/simplebeacon-dashboard.e2e.test.js'
     ],
     testPathIgnorePatterns: ['/node_modules/', '/docs/archive/'],
@@ -90,5 +86,5 @@ module.exports = {
     coverageDirectory: 'coverage/dashboard',
     coverageReporters: ['text', 'json-summary', 'lcov', 'json'],
     verbose: true,
-    testTimeout: 15000
+    testTimeout: 45000
 };

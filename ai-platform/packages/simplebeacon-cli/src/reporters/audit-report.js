@@ -222,7 +222,7 @@ function buildRemainingSummary(mediumRemainder, lowIssues) {
     return `### Medium — Additional schema and consistency notes (summary)\n\n${lines.join('\n')}`;
 }
 
-function buildActionPlanRows(issues) {
+function _buildActionPlanRows(issues) {
     if (!issues.length) {
         return '| — | — | No findings detected |';
     }

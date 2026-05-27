@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SimpleBeacon Diagnostic Prep — Local Bundle Builder</title>
+  <meta name="robots" content="noindex">
+  <style>
+    :root { color-scheme: dark; --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3; --muted: #8b949e; --green: #2ea043; --red: #f85149; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+    h1 { font-size: 1.5rem; margin: 0 0 0.5rem; }
+    .lead { color: var(--muted); margin: 0 0 1.5rem; }
+    .panel { border: 1px solid var(--border); border-radius: 8px; background: var(--panel); padding: 1.25rem; margin-bottom: 1rem; }
+    .drop { border: 1px dashed #484f58; border-radius: 8px; padding: 1.5rem; text-align: center; cursor: pointer; }
+    .drop.drag { border-color: var(--green); background: rgba(46,164,79,.08); }
+    button, .btn { display: inline-block; border: none; border-radius: 8px; padding: 0.75rem 1rem; font-weight: 700; cursor: pointer; text-decoration: none; }
+    .btn-primary { background: var(--green); color: #fff; width: 100%; margin-top: 0.75rem; }
+    .btn-secondary { background: rgba(255,255,255,.06); color: var(--text); border: 1px solid var(--border); margin-top: 0.5rem; width: 100%; }
+    ul { margin: 0; padding-left: 1.2rem; color: var(--muted); font-size: 0.9rem; }
+    .files { margin-top: 1rem; font-size: 0.85rem; }
+    .file-row { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .status { margin-top: 0.75rem; font-size: 0.85rem; color: var(--muted); min-height: 1.2em; }
+    .status.ok { color: var(--green); }
+    .status.err { color: var(--red); }
+    code { font-family: ui-monospace, monospace; font-size: 0.85em; }
+    .foot { margin-top: 1.5rem; font-size: 0.8rem; color: var(--muted); }
+    .foot a { color: #79c0ff; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>SimpleBeacon diagnostic prep</h1>
+    <p class="lead">Pick local config/code files on your machine. This page builds a <code>simplebeacon-diagnostic-bundle.json</code> you can drop on the homepage scanner. <strong>Nothing uploads</strong> — all processing stays in your browser.</p>
+
+    <div class="panel">
+      <div id="drop" class="drop">
+        <p><strong>Click to choose files</strong> or drag them here</p>
+        <p style="color: var(--muted); font-size: 0.85rem;">.json · .js · .ts · .env · .yaml · .yml · .txt (max 256 KB total)</p>
+        <input id="fileInput" type="file" multiple accept=".json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.env,.yaml,.yml,.txt,.md" hidden>
+      </div>
+      <div id="fileList" class="files"></div>
+      <button type="button" class="btn-primary" id="buildBtn" disabled>Download diagnostic bundle JSON</button>
+      <button type="button" class="btn-secondary" id="clearBtn" disabled>Clear selection</button>
+      <p id="status" class="status"></p>
+    </div>
+
+    <div class="panel">
+      <p><strong>Next step</strong></p>
+      <ul>
+        <li>Save the downloaded JSON file</li>
+        <li>Open <a href="/">simplebeacon.ai</a></li>
+        <li>Drop the bundle on the diagnostic box → <strong>Run diagnostic</strong></li>
+      </ul>
+    </div>
+
+    <p class="foot"><a href="/">← Back to homepage</a> · Full repo audits are $499 — email zip after payment.</p>
+  </div>
+
+  <script src="/diagnostic-bundle-lib.js"></script>
+  <script>
+    (function () {
+      var lib = window.SIMPLEBEACON_DIAGNOSTIC_BUNDLE;
+      var snippets = [];
+      var drop = document.getElementById('drop');
+      var input = document.getElementById('fileInput');
+      var list = document.getElementById('fileList');
+      var buildBtn = document.getElementById('buildBtn');
+      var clearBtn = document.getElementById('clearBtn');
+      var status = document.getElementById('status');
+
+      function totalBytes() {
+        return snippets.reduce(function (n, s) {
+          return n + new Blob([s.content]).size + new Blob([s.path]).size;
+        }, 0);
+      }
+
+      function renderList() {
+        list.innerHTML = snippets.map(function (s) {
+          return '<div class="file-row"><span>' + s.path + '</span><span>' + new Blob([s.content]).size + ' B</span></div>';
+        }).join('');
+        buildBtn.disabled = !snippets.length;
+        clearBtn.disabled = !snippets.length;
+        status.textContent = snippets.length
+          ? snippets.length + ' file(s) · ' + totalBytes() + ' / ' + lib.MAX_TOTAL_BYTES + ' bytes'
+          : '';
+        status.className = 'status';
+      }
+
+      function addFiles(fileList) {
+        Array.prototype.forEach.call(fileList || [], function (file) {
+          if (!lib.isAllowedFile(file.name)) {
+            status.textContent = 'Skipped unsupported type: ' + file.name;
+            status.className = 'status err';
+            return;
+          }
+          if (file.size > lib.MAX_SNIPPET_BYTES) {
+            status.textContent = 'Skipped (file too large): ' + file.name;
+            status.className = 'status err';
+            return;
+          }
+          var reader = new FileReader();
+          reader.onload = function () {
+            snippets.push({ path: file.name, content: String(reader.result || '') });
+            while (totalBytes() > lib.MAX_TOTAL_BYTES) snippets.pop();
+            renderList();
+          };
+          reader.readAsText(file);
+        });
+      }
+
+      drop.addEventListener('click', function () { input.click(); });
+      input.addEventListener('change', function () { addFiles(input.files); input.value = ''; });
+      drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('drag'); });
+      drop.addEventListener('dragleave', function () { drop.classList.remove('drag'); });
+      drop.addEventListener('drop', function (e) {
+        e.preventDefault();
+        drop.classList.remove('drag');
+        addFiles(e.dataTransfer.files);
+      });
+
+      clearBtn.addEventListener('click', function () {
+        snippets = [];
+        renderList();
+      });
+
+      buildBtn.addEventListener('click', function () {
+        if (!snippets.length) return;
+        var bundle = lib.buildBundle(snippets, { generator: 'diagnostic-prep.html' });
+        var blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'simplebeacon-diagnostic-bundle.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        status.textContent = 'Bundle downloaded — drop it on the homepage diagnostic box.';
+        status.className = 'status ok';
+      });
+    })();
+  </script>
+</body>
+</html>

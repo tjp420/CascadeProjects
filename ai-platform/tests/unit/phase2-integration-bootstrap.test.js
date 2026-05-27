@@ -1,6 +1,8 @@
 const express = require('express');
+const os = require('os');
+const path = require('path');
 
-jest.mock('../../src/core/DatabaseAdapter', () => jest.fn());
+jest.mock('../../server/lib/database-adapter', () => jest.fn());
 jest.mock('../../server/config/database', () => ({
     getDatabaseConfig: jest.fn(() => ({ host: 'localhost' })),
     isDatabaseEnabled: jest.fn(() => false)
@@ -35,7 +37,7 @@ jest.mock('../../server/lib/snapshot-seeds', () => ({
 }));
 
 const fs = require('fs');
-const DatabaseAdapter = require('../../src/core/DatabaseAdapter');
+const DatabaseAdapter = require('../../server/lib/database-adapter');
 const databaseConfig = require('../../server/config/database');
 const redisConfig = require('../../server/config/redis');
 const redisCache = require('../../server/lib/redis-cache');
@@ -88,21 +90,14 @@ describe('phase2 integration bootstrap branches', () => {
     test('seedDashboardSnapshotsFromSamples seeds valid files and skips parse failures', async () => {
         const db = { query: jest.fn(async () => {}) };
         const redis = { get: jest.fn(), set: jest.fn() };
-        const realReadFileSync = fs.readFileSync;
-
-        jest.spyOn(fs, 'readFileSync').mockImplementation((filePath, ...args) => {
-            const normalized = String(filePath).replace(/\\/g, '/');
-            if (normalized.endsWith('/ok.json')) {
-                return JSON.stringify({ payload: { ok: true } });
-            }
-            if (normalized.endsWith('/bad.json')) {
-                throw new Error('parse failure');
-            }
-            return realReadFileSync.call(fs, filePath, ...args);
-        });
+        const webRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-web-seed-'));
+        const dataDir = path.join(webRoot, 'data');
+        fs.mkdirSync(dataDir, { recursive: true });
+        fs.writeFileSync(path.join(dataDir, 'ok.json'), JSON.stringify({ payload: { ok: true } }));
+        fs.writeFileSync(path.join(dataDir, 'bad.json'), 'not-json');
         redisCache.invalidateAllSnapshotCaches.mockResolvedValueOnce(3);
 
-        await seedDashboardSnapshotsFromSamples(db, 'C:/tmp/web', redis);
+        await seedDashboardSnapshotsFromSamples(db, webRoot, redis);
 
         expect(db.query).toHaveBeenCalled();
         expect(redisCache.invalidateAllSnapshotCaches).toHaveBeenCalledWith(redis);

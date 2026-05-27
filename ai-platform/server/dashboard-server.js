@@ -25,9 +25,32 @@
  * NODE_ENV=production node dashboard-server.js
  */
 
-const logger = require('../lib/app-logger');
+const logger = require('./lib/app-logger');
 
 const path = require('path');
+const fs = require('fs');
+
+const webRoot = path.join(__dirname, '..', 'web');
+
+function resolveDashboardIndex() {
+  const candidates = [
+    path.join(webRoot, 'simplebeacon-dashboard', 'index.html'),
+    path.join(webRoot, 'dashboard-new.html'),
+    path.join(webRoot, 'dashboard.html')
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
+}
+
+function sendDashboardIndex(res) {
+  const indexPath = resolveDashboardIndex();
+  if (!fs.existsSync(indexPath)) {
+    return res.status(404).send(`Dashboard not found at: ${indexPath}`);
+  }
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  return res.sendFile(indexPath);
+}
 
 const compression = require('compression');
 const cors = require('cors');
@@ -181,18 +204,18 @@ if (NODE_ENV === 'production') {
   /**
    * Static file serving with caching
    *
-   * Serves static files from the src/pages directory with aggressive caching
+   * Serves static files from the canonical web directory with aggressive caching
    * headers, ETags, and last-modified timestamps for optimal performance.
    *
    * @middleware
-   * @param {string} path.join(__dirname, 'src/pages') - Static files directory
+   * @param {string} webRoot - Static files directory
    * @param {Object} options - Caching options
    * @param {number} options.maxAge - Cache duration in milliseconds
    * @param {boolean} options.etag - Enable ETag generation
    * @param {boolean} options.lastModified - Enable Last-Modified headers
    */
   app.use(
-    express.static(path.join(__dirname, 'src/pages'), {
+    express.static(webRoot, {
       maxAge: cacheDuration,
       etag: true,
       lastModified: true,
@@ -236,13 +259,10 @@ const apiLimiter = rateLimit({
  */
 app.use('/api/', apiLimiter);
 
-// Serve specific files from src/pages directory
-app.use('/src/pages', express.static(path.join(__dirname, 'src/pages')));
+// Serve canonical web directory
+app.use('/web', express.static(webRoot));
 
-// Serve specific files from src/web directory
-app.use('/src/web', express.static(path.join(__dirname, 'src/web')));
-
-// Serve web directory
+// Serve web directory (canonical frontend)
 app.use('/web', express.static(path.join(__dirname, 'web')));
 
 // Serve components directory for CSS files
@@ -273,7 +293,7 @@ app.use('/data-central', express.static(path.join(__dirname, 'data-central')));
 
 // Serve root directory with index.html (SPA routing)
 app.use(
-  express.static(path.join(__dirname, 'src/pages'), {
+  express.static(webRoot, {
     index: 'index.html',
   })
 );
@@ -290,29 +310,10 @@ app.get('/real_mock_analysis_results.json', (req, res) => {
 });
 
 // Main dashboard route - now serves consolidated version
-app.get('/', (req, res) => {
-  const indexPath = path.join(__dirname, 'src/pages/index.html');
-  const indexExists = require('fs').existsSync(indexPath);
-  if (indexExists) {
-    // Add cache-busting headers
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send(`Dashboard not found at: ${indexPath}`);
-  }
-});
+app.get('/', (_req, res) => sendDashboardIndex(res));
 
 // Explicit index.html route
-app.get('/index.html', (req, res) => {
-  const indexPath = path.join(__dirname, 'src/pages/index.html');
-  if (require('fs').existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('Dashboard not found');
-  }
-});
+app.get('/index.html', (_req, res) => sendDashboardIndex(res));
 
 // Performance Metrics Endpoint
 app.get('/api/performance-metrics', (req, res) => {
@@ -332,7 +333,7 @@ app.get('/api/performance-metrics', (req, res) => {
 });
 
 // GGUF Analysis API Endpoints
-const ggufAnalysisAPI = require('../src/web/api/gguf-analysis');
+const ggufAnalysisAPI = require('./lib/gguf-analysis');
 
 // GET /api/gguf/analysis
 app.get('/api/gguf/analysis', ggufAnalysisAPI.getAnalysis);
@@ -622,17 +623,12 @@ app.get('*', (req, res) => {
   }
 
   // Serve index.html for SPA routing
-  const indexPath = path.join(__dirname, 'src/pages/index.html');
-  if (require('fs').existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('Not found');
-  }
+  sendDashboardIndex(res);
 });
 
 const server = app.listen(PORT, () => {
   logger.debug(`🚀 Dashboard server running on http://localhost:${PORT}`);
-  logger.debug(`📁 Serving files from: ${path.join(__dirname, 'src/pages')}`);
+  logger.debug(`📁 Serving files from: ${webRoot}`);
   logger.debug(`🌐 Dashboard available at: http://localhost:${PORT}`);
   logger.debug(`🔧 Environment: ${NODE_ENV}`);
   logger.debug(`⚡ Compression: ${NODE_ENV === 'production' ? 'enabled' : 'disabled'}`);

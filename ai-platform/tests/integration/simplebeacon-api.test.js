@@ -2,10 +2,15 @@ const express = require('express');
 const setupSimplebeaconAPI = require('../../src/api/simplebeacon-api');
 const { REPOSITORY_AUDIT_BASELINE } = require('../../server/lib/repository-audit-baseline');
 
+const allowPaid = (_req, _res, next) => next();
+
 async function withSimplebeaconServer(fn) {
   const app = express();
   app.use(express.json());
-  setupSimplebeaconAPI(app);
+  setupSimplebeaconAPI(app, {
+    requirePaid: allowPaid,
+    requirePaidWithQuota: allowPaid
+  });
 
   const server = await new Promise((resolve) => {
     const s = app.listen(0, () => resolve(s));

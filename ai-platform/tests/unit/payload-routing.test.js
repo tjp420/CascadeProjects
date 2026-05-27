@@ -40,7 +40,7 @@ describe('payload-routing detectPayloadType', () => {
         ['issue-resolution-model', 'issue-resolution'],
         ['reports-model', 'reports'],
         ['gguf-mock-data-analysis-report', 'mock-analysis'],
-        ['gguf-development-roadmap-report', 'gguf-roadmap'],
+        ['mock-data-analysis-report', 'mock-analysis'],
         ['ai-roadmap-report-model', 'ai-roadmap']
     ])('detects explicit type %s → %s', (type, expected) => {
         expect(detectPayloadType({ type })).toBe(expected);

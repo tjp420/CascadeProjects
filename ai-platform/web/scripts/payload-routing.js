@@ -39,7 +39,7 @@
         if (payload.type === 'support-dashboard-model') return 'support';
         if (payload.type === 'dev-tools-model') return 'dev-tools';
         if (payload.type === 'dynamic-project-roadmap-analysis') return 'dynamic-roadmap';
-        if (payload.type === 'gguf-development-roadmap-report') return 'gguf-roadmap';
+        if (payload.type === 'gguf-development-roadmap-report') return 'ai-roadmap';
         if (payload.type === 'roadmap-comparison-report') return 'roadmap-comparison';
         if (payload.type === 'engineering-baseline-report') return 'project-reports';
         if (payload.type === 'fictional-patterns-report') return 'quality';
@@ -48,7 +48,7 @@
         if (payload.type === 'ai-adoption-trends-report') return 'quality';
         if (payload.type === 'data-maintenance-analyzers-report') return 'dev-tools';
         if (payload.type === 'local-models-model') return 'local-models';
-        if (payload.type === 'gguf-mock-data-analysis-report') return 'mock-analysis';
+        if (payload.type === 'gguf-mock-data-analysis-report' || payload.type === 'mock-data-analysis-report') return 'mock-analysis';
         if (payload.type === 'issue-resolution-model') return 'issue-resolution';
         if (payload.type === 'merger-tool-model') return 'merger-tool';
         if (payload.type === 'performance-model') return 'performance';

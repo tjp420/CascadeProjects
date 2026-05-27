@@ -1,0 +1,58 @@
+{
+  "type": "simplebeacon-merge-preview",
+  "previewId": "bbc2345c-841a-4d0a-be89-f4adc20a4503",
+  "generatedAt": "2026-05-26T05:35:41.846Z",
+  "expiresAt": "2026-05-26T06:35:41.846Z",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "strategy": "manual-merge-review",
+  "mergeType": "fuzzy-near-duplicate",
+  "candidateId": "fuzzy-near-dup-1",
+  "keepFile": ".simplebeacon/report.json",
+  "removeFiles": [],
+  "affectedFiles": [
+    ".simplebeacon/report.json",
+    "ai-platform/.simplebeacon/report.json"
+  ],
+  "conflicts": [],
+  "safeToExecute": false,
+  "requiresConfirmation": true,
+  "riskAssessment": {
+    "level": "medium",
+    "autoMergeAllowed": false,
+    "requiresConfirmation": true,
+    "factors": [
+      "Fuzzy similarity 96% — not byte-identical"
+    ],
+    "quarantineOnly": true
+  },
+  "confirmationPhrase": "QUARANTINE_DUPLICATES",
+  "gracePeriodHours": 24,
+  "executionMode": "quarantine-not-delete",
+  "rollbackPlan": {
+    "method": "restore-from-quarantine-or-backup",
+    "backupDir": ".simplebeacon/merge-backups",
+    "quarantineDir": ".simplebeacon/merge-quarantine",
+    "instructions": [
+      "Duplicates are moved to merge-quarantine — not permanently deleted.",
+      "Backups are written before any move.",
+      "Grace window: 24 hours before manual purge (no auto-delete in v1)."
+    ]
+  },
+  "savingsBytes": 0,
+  "snapshots": [
+    {
+      "path": ".simplebeacon/report.json",
+      "exists": true,
+      "validJson": true,
+      "sizeBytes": 5665,
+      "preview": "{\n  \"type\": \"simplebeacon-report\",\n  \"reportVersion\": 2,\n  \"generatedAt\": \"2026-05-26T05:19:23.731Z\",\n  \"generatedBy\": \"Simplebeacon\",\n  \"projectRoot\": \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\",\n  \"platformRoot\": \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\\\\ai-platform\",\n  \"configPath\": \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\\\\ai-platform\\\\.simplebeacon\\\\config.json\",\n  \"scanPaths\": [\n    \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\\\\ai-platform\\\\web\\\\data\",\n    \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\\\\ai-platform\\\\data\\\\mock\",\n    \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\\\\ai-platform\\\\data-central\\\\ai-tools\\\\mock-data\"\n  ],\n  \"repositoryInventory\": {\n    \"projectRoot\": \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\",\n    \"totalFiles\": 43130,\n    \"totalFolders\": 5467,\n    \"profile\": \"explorer\"\n  },\n  \"mockSampleFiles\": 42,\n  \"totalFiles\": 42,\n  \"ruleScopedFilesAnalyzed\": 4829,\n  \"repositoryFilesTotal\": 43130,\n  \"repositoryFoldersTotal\": 5467,\n  \"filesAnalyzed\": 43130,\n  \"totalSizeBytes\": 265699,\n  \"totalSizeLabel\": \"259.5KB\",\n  \"issueCount\": 0,\n  \"invalidJson\": 0,\n  \"emptyFiles\": 0,\n  \"qualityScore\": 100,\n  \"schemaCompliance\": 100,\n  \"schemaChecked\": 45,\n  \"schemaPassed\": 45,\n  \"pageSampleSchemaChecked\": 43,\n  \"pageSampleSchem\n…"
+    },
+    {
+      "path": "ai-platform/.simplebeacon/report.json",
+      "exists": true,
+      "validJson": true,
+      "sizeBytes": 5622,
+      "preview": "{\n  \"type\": \"simplebeacon-report\",\n  \"reportVersion\": 2,\n  \"generatedAt\": \"2026-05-26T05:33:17.906Z\",\n  \"generatedBy\": \"Simplebeacon\",\n  \"projectRoot\": \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\\\\ai-platform\",\n  \"configPath\": \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\\\\ai-platform\\\\.simplebeacon\\\\config.json\",\n  \"scanPaths\": [\n    \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\\\\ai-platform\\\\web\\\\data\",\n    \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\\\\ai-platform\\\\data\\\\mock\",\n    \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\\\\ai-platform\\\\data-central\\\\ai-tools\\\\mock-data\"\n  ],\n  \"repositoryInventory\": {\n    \"projectRoot\": \"C:\\\\Users\\\\Trevor\\\\CascadeProjects\\\\ai-platform\",\n    \"totalFiles\": 41916,\n    \"totalFolders\": 5065,\n    \"profile\": \"explorer\"\n  },\n  \"mockSampleFiles\": 42,\n  \"totalFiles\": 42,\n  \"ruleScopedFilesAnalyzed\": 4829,\n  \"repositoryFilesTotal\": 41916,\n  \"repositoryFoldersTotal\": 5065,\n  \"filesAnalyzed\": 41916,\n  \"totalSizeBytes\": 265699,\n  \"totalSizeLabel\": \"259.5KB\",\n  \"issueCount\": 0,\n  \"invalidJson\": 0,\n  \"emptyFiles\": 0,\n  \"qualityScore\": 100,\n  \"schemaCompliance\": 100,\n  \"schemaChecked\": 45,\n  \"schemaPassed\": 45,\n  \"pageSampleSchemaChecked\": 43,\n  \"pageSampleSchemaPassed\": 43,\n  \"duplicateGroups\": 0,\n  \"ro\n…"
+    }
+  ]
+}

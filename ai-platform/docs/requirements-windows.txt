@@ -1,0 +1,8 @@
+# Windows-compatible Database Requirements
+# Use pre-compiled wheels to avoid build issues
+
+# PostgreSQL adapter - Windows compatible version
+psycopg2-binary==2.9.9
+
+# Environment variable management
+python-dotenv==1.0.0

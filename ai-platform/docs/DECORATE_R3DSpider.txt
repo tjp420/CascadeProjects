@@ -1,0 +1,211 @@
+// =============================================================================
+// R3DSpiderMastermind Monster Definitions - Fixed Scale
+// =============================================================================
+
+ACTOR R3DSpiderMastermindmodel1 : Monster
+{
+    //$Category R3DR00M Monsters
+    //$Sprite R3D1A0
+    Health 200
+    Radius 64
+    Height 128
+    Mass 200
+    Speed 16
+    Painchance 128
+    Monster
+    +FLOORCLIP
+    +MELEERANGE
+    +QUICKTORETALIATE
+    +ALWAYSFAST
+    MeleeRange 96
+    SeeSound "spider/sight"
+    AttackSound "spider/attack"
+    PainSound "spider/pain"
+    DeathSound "spider/death"
+    ActiveSound "spider/active"
+    Obituary "%o was shredded by a R3DSpider Mastermind"
+    
+    States
+    {
+    Spawn:
+        R3D1 A 4 A_Look
+        Loop
+    See:
+        R3D1 A 2 A_Chase
+        Loop
+    Melee:
+        R3D1 B 3 A_FaceTarget
+        R3D1 C 4 A_CustomMeleeAttack(random(10,25), "Melee", "spider/attack")
+        Goto See
+    Missile:
+        R3D1 B 3 A_FaceTarget
+        R3D1 C 4 A_CustomMeleeAttack(random(10,25), "Melee", "spider/attack")
+        Goto See
+    Pain:
+        R3D1 D 3
+        R3D1 D 3 A_Pain
+        Goto See
+    Death:
+        R3D1 E 5
+        R3D1 F 5 A_Scream
+        R3D1 G 5 A_NoBlocking
+        R3D1 H 5
+        Stop
+    }
+}
+
+ACTOR R3DSpiderMastermindmodel2 : R3DSpiderMastermindmodel1
+{
+    //$Sprite R3D2A0
+    Health 250
+    Speed 18
+    DamageType "Plasma"
+    MeleeRange 112
+    Radius 72
+    Height 144
+    
+    States
+    {
+    Spawn:
+        R3D2 A 4 A_Look
+        Loop
+    See:
+        R3D2 A 2 A_Chase
+        Loop
+    Melee:
+        R3D2 B 3 A_FaceTarget
+        R3D2 C 4 A_CustomMeleeAttack(random(15,30), "Melee", "spider/attack")
+        Goto See
+    Missile:
+        R3D2 B 3 A_FaceTarget
+        R3D2 C 4 A_CustomMeleeAttack(random(15,30), "Melee", "spider/attack")
+        Goto See
+    Pain:
+        R3D2 D 3
+        R3D2 D 3 A_Pain
+        Goto See
+    Death:
+        R3D2 E 5
+        R3D2 F 5 A_Scream
+        R3D2 G 5 A_NoBlocking
+        R3D2 H 5
+        Stop
+    }
+}
+
+ACTOR R3DSpiderMastermindmodel3 : R3DSpiderMastermindmodel1
+{
+    //$Sprite R3D3A0
+    Health 300
+    Speed 20
+    DamageType "Fire"
+    MeleeRange 128
+    Radius 80
+    Height 160
+    
+    States
+    {
+    Spawn:
+        R3D3 A 4 A_Look
+        Loop
+    See:
+        R3D3 A 2 A_Chase
+        Loop
+    Melee:
+        R3D3 B 3 A_FaceTarget
+        R3D3 C 4 A_CustomMeleeAttack(random(20,35), "Melee", "spider/attack")
+        Goto See
+    Missile:
+        R3D3 B 3 A_FaceTarget
+        R3D3 C 4 A_CustomMeleeAttack(random(20,35), "Melee", "spider/attack")
+        Goto See
+    Pain:
+        R3D3 D 3
+        R3D3 D 3 A_Pain
+        Goto See
+    Death:
+        R3D3 E 5
+        R3D3 F 5 A_Scream
+        R3D3 G 5 A_NoBlocking
+        R3D3 H 5
+        Stop
+    }
+}
+
+ACTOR R3DSpiderMastermindmodel4 : R3DSpiderMastermindmodel1
+{
+    //$Sprite R3D4A0
+    Health 350
+    Speed 22
+    DamageType "Ice"
+    MeleeRange 144
+    Radius 88
+    Height 176
+    
+    States
+    {
+    Spawn:
+        R3D4 A 4 A_Look
+        Loop
+    See:
+        R3D4 A 2 A_Chase
+        Loop
+    Melee:
+        R3D4 B 3 A_FaceTarget
+        R3D4 C 4 A_CustomMeleeAttack(random(25,40), "Melee", "spider/attack")
+        Goto See
+    Missile:
+        R3D4 B 3 A_FaceTarget
+        R3D4 C 4 A_CustomMeleeAttack(random(25,40), "Melee", "spider/attack")
+        Goto See
+    Pain:
+        R3D4 D 3
+        R3D4 D 3 A_Pain
+        Goto See
+    Death:
+        R3D4 E 5
+        R3D4 F 5 A_Scream
+        R3D4 G 5 A_NoBlocking
+        R3D4 H 5
+        Stop
+    }
+}
+
+ACTOR R3DSpiderMastermindmodel5 : R3DSpiderMastermindmodel1
+{
+    //$Sprite R3D5A0
+    Health 400
+    Speed 24
+    DamageType "Electric"
+    MeleeRange 160
+    Radius 96
+    Height 192
+    
+    States
+    {
+    Spawn:
+        R3D5 A 4 A_Look
+        Loop
+    See:
+        R3D5 A 2 A_Chase
+        Loop
+    Melee:
+        R3D5 B 3 A_FaceTarget
+        R3D5 C 4 A_CustomMeleeAttack(random(30,45), "Melee", "spider/attack")
+        Goto See
+    Missile:
+        R3D5 B 3 A_FaceTarget
+        R3D5 C 4 A_CustomMeleeAttack(random(30,45), "Melee", "spider/attack")
+        Goto See
+    Pain:
+        R3D5 D 3
+        R3D5 D 3 A_Pain
+        Goto See
+    Death:
+        R3D5 E 5
+        R3D5 F 5 A_Scream
+        R3D5 G 5 A_NoBlocking
+        R3D5 H 5
+        Stop
+    }
+}

@@ -1,0 +1,1159 @@
+{
+  "type": "dynamic-project-roadmap-analysis",
+  "timestamp": "2026-05-24T03:04:33.180Z",
+  "generatedAt": "2026-05-24T03:04:33.180Z",
+  "generatedBy": "code-roadmap-generator",
+  "dataSource": "filesystem-scan",
+  "version": "3.1.0",
+  "inferenceMode": "filesystem + fuzzy-match",
+  "projectTitle": "cascade-ai-platform",
+  "projectName": "cascade-ai-platform",
+  "executiveSummary": {
+    "totalFeatures": 4,
+    "completedFeatures": 4,
+    "inProgressFeatures": 0,
+    "plannedFeatures": 0,
+    "completionRate": 100,
+    "projectHealth": "Healthy",
+    "aiConfidence": null,
+    "analysisDuration": null,
+    "lastUpdated": "2026-05-24T03:04:33.180Z",
+    "teamSize": 1,
+    "notes": "Sprint model from filesystem signals + repository-audit baselines — not 47-feature enterprise fiction"
+  },
+  "developmentPhases": [
+    {
+      "phase": "Sprint 1: Server & Auth",
+      "status": "completed",
+      "progress": 100,
+      "description": "Canonical server entry and optional JWT auth",
+      "features": [
+        "Root server delegate",
+        "Phase 2 JWT auth"
+      ],
+      "milestones": [
+        "Single server entry",
+        "Auth routes live"
+      ]
+    },
+    {
+      "phase": "Sprint 2: Stub APIs & Tests",
+      "status": "completed",
+      "progress": 100,
+      "description": "Stub API routes (102 detected) and 596/596 Jest tests (27 suites)",
+      "features": [
+        "Tier-1 stub API routes",
+        "596/596 Jest tests (27 suites)"
+      ],
+      "milestones": [
+        "dashboard-stub-api.js",
+        "596/596"
+      ]
+    },
+    {
+      "phase": "Sprint 3: Honest Dashboard Data",
+      "status": "completed",
+      "progress": 100,
+      "description": "38/38 page samples with repository-audit analyzers",
+      "features": [
+        "38/38 PAGE_SAMPLE_SPECS samples",
+        "SEC-004 npm audit wired to Security page",
+        "Mock-data scanner with schema validation",
+        "File merger reduction scanner"
+      ],
+      "milestones": [
+        "Repository-audit samples",
+        "Mock-data + merger scanners"
+      ]
+    },
+    {
+      "phase": "Sprint 4: Production Profile",
+      "status": "completed",
+      "progress": 100,
+      "description": "Docker Phase2, CI smoke test, Istanbul coverage, production profile",
+      "features": [
+        "docker-compose.phase2.yml present",
+        "Istanbul collected in CI",
+        "GGUF inference (LLAMA_CPP_BIN/Ollama) — optional",
+        "REQUIRE_AUTH production profile ready"
+      ],
+      "milestones": [
+        "phase2-smoke CI job",
+        "Production runbook"
+      ]
+    }
+  ],
+  "projectOverview": {
+    "projectName": "cascade-ai-platform",
+    "projectType": "Scanned Codebase",
+    "totalFeatures": 4,
+    "completedFeatures": 4,
+    "inProgressFeatures": 0,
+    "plannedFeatures": 0,
+    "completionRate": 100,
+    "overallProgress": "Complete",
+    "projectHealth": "Healthy",
+    "developmentVelocity": "Measured",
+    "teamProductivity": "Filesystem scan"
+  },
+  "codeAnalysis": {
+    "structure": {
+      "totalFiles": 14579,
+      "codeFiles": 8639,
+      "languages": {
+        "other": 1450,
+        ".example": 6,
+        ".production": 2,
+        ".json": 319,
+        ".md": 2472,
+        ".yml": 3,
+        ".js": 1072,
+        ".css": 112,
+        ".png": 32,
+        ".ico": 6,
+        ".svg": 4,
+        ".scss": 1,
+        ".py": 7565,
+        ".template": 2,
+        ".html": 179,
+        ".txt": 203,
+        ".log": 13,
+        ".cs": 34,
+        ".1779127590273": 1,
+        ".1779127590180": 1,
+        ".1779127590225": 1,
+        ".1779127590196": 1,
+        ".1779127570372": 1,
+        ".1779127590289": 1,
+        ".1779127590241": 1,
+        ".1779127570072": 1,
+        ".1779127590258": 1,
+        ".1779127590163": 1,
+        ".1779127570208": 1,
+        ".1779127590212": 1,
+        ".jsx": 2,
+        ".ini": 1,
+        ".bat": 18,
+        ".sh": 8,
+        ".rst": 4,
+        ".pdf": 2,
+        ".xlsx": 1,
+        ".csv": 1,
+        ".ps1": 3,
+        ".backup": 470,
+        ".sql": 1,
+        ".h": 62,
+        ".pyd": 55,
+        ".pth": 2,
+        ".pyi": 35,
+        ".typed": 105,
+        ".pem": 3,
+        ".apache": 5,
+        ".bsd": 5,
+        ".gz": 2,
+        ".python": 2,
+        ".cpp": 30,
+        ".hpp": 26,
+        ".cmd": 2,
+        ".asm": 4,
+        ".obj": 4,
+        ".c": 8,
+        ".psf": 2,
+        ".cfg": 12,
+        ".afm": 4,
+        ".pfb": 36,
+        ".sfd": 2,
+        ".ttf": 10,
+        ".pyx": 10,
+        ".pxd": 2,
+        ".tab": 8,
+        ".zi": 2,
+        ".fish": 2,
+        ".exe": 60,
+        ".mako": 13,
+        ".db": 6,
+        ".yaml": 3,
+        ".zip": 1,
+        ".woff2": 7,
+        ".cjs": 10,
+        ".toml": 2,
+        ".pyc": 38,
+        ".1779127569939": 1
+      },
+      "topDirectories": [
+        "action",
+        "api",
+        "assets",
+        "backups",
+        "config",
+        "coverage-results",
+        "data",
+        "data-central",
+        "development-roadmap",
+        "docs",
+        "logs",
+        "packages"
+      ]
+    },
+    "dependencies": {
+      "internalCount": 280,
+      "externalCount": 60,
+      "externalPackages": [
+        "express",
+        "multer",
+        "path",
+        "fs",
+        "crypto",
+        "archiver",
+        "unzipper",
+        "http",
+        "child_process",
+        "react",
+        "react-router-dom",
+        "@mui",
+        "socket.io-client",
+        "react-dom",
+        "@testing-library",
+        "axios",
+        "@jest",
+        "ws",
+        "dotenv",
+        "os",
+        "ajv",
+        "mathjs",
+        "jest-fetch-mock",
+        "expr-eval"
+      ],
+      "sampleInternal": [
+        "development-roadmap/run-analysis-fixed.js -> ./RoadmapAnalyzer",
+        "development-roadmap/run-analysis.js -> ./RoadmapAnalyzer",
+        "docs/archive/archive/real-simulation-scanner.js -> ./config/constants.js",
+        "docs/archive/react/App.js -> ./components/Header",
+        "docs/archive/react/App.js -> ./components/Footer",
+        "docs/archive/react/App.js -> ./pages/Dashboard",
+        "docs/archive/react/App.js -> ./pages/ModelManagement",
+        "docs/archive/react/App.js -> ./pages/OracleInterface"
+      ]
+    },
+    "features": [
+      {
+        "name": "Dashboard Server",
+        "category": "Infrastructure",
+        "status": "implemented"
+      },
+      {
+        "name": "Phase 2 JWT Auth",
+        "category": "Security",
+        "status": "implemented"
+      },
+      {
+        "name": "Dashboard Stub API",
+        "category": "API",
+        "status": "implemented"
+      },
+      {
+        "name": "Mock Data Scanner",
+        "category": "Analysis",
+        "status": "implemented"
+      },
+      {
+        "name": "npm Audit Runner",
+        "category": "Security",
+        "status": "implemented"
+      },
+      {
+        "name": "File Merger Scanner",
+        "category": "Analysis",
+        "status": "implemented"
+      },
+      {
+        "name": "Code Roadmap Generator",
+        "category": "Planning",
+        "status": "implemented"
+      },
+      {
+        "name": "Page Sample Baselines",
+        "category": "Data",
+        "status": "implemented",
+        "count": 38
+      },
+      {
+        "name": "Jest Test Suite",
+        "category": "Testing",
+        "status": "implemented",
+        "count": 596,
+        "label": "596/596",
+        "suites": 27
+      },
+      {
+        "name": "Phase2 Docker Compose",
+        "category": "Infrastructure",
+        "status": "implemented"
+      },
+      {
+        "name": "GitHub Actions CI",
+        "category": "CI",
+        "status": "implemented"
+      }
+    ],
+    "samples": {
+      "onDisk": 38,
+      "withSpecs": 38,
+      "specTotal": 38
+    },
+    "signals": {
+      "serverEntry": true,
+      "phase2Auth": true,
+      "stubApi": true,
+      "mockScanner": true,
+      "codeRoadmapGenerator": true,
+      "fileMergerScanner": true,
+      "npmAudit": true,
+      "dockerPhase2": true,
+      "githubCi": true,
+      "istanbulInCi": true,
+      "phase2SmokeInCi": true,
+      "pageSampleDir": true,
+      "buildFromPath": true
+    },
+    "phase2": {
+      "phase": "Phase 2 — Code intelligence",
+      "status": "active",
+      "dependencyGraph": {
+        "summary": {
+          "nodes": 322,
+          "edges": 157,
+          "circularCycles": 0
+        },
+        "circularDependencies": [],
+        "sampleEdges": [
+          {
+            "from": "development-roadmap/run-analysis-fixed.js",
+            "to": "development-roadmap/RoadmapAnalyzer.js",
+            "type": "require"
+          },
+          {
+            "from": "development-roadmap/run-analysis.js",
+            "to": "development-roadmap/RoadmapAnalyzer.js",
+            "type": "require"
+          },
+          {
+            "from": "docs/archive/react/index.js",
+            "to": "docs/archive/react/App.js",
+            "type": "require"
+          },
+          {
+            "from": "fixed-server.js",
+            "to": "src/api/dashboard-stub-api.js",
+            "type": "require"
+          },
+          {
+            "from": "fixed-server.js",
+            "to": "src/api/gguf-issues-api.js",
+            "type": "require"
+          },
+          {
+            "from": "gguf-dashboard-server.js",
+            "to": "src/core/GlobalContextManager.js",
+            "type": "require"
+          },
+          {
+            "from": "gguf-dashboard-server.js",
+            "to": "src/core/WebsiteAnalyzer.js",
+            "type": "require"
+          },
+          {
+            "from": "gguf-dashboard-server.js",
+            "to": "src/core/GGUFRoadmapAnalyzer.js",
+            "type": "require"
+          },
+          {
+            "from": "gguf-dashboard-server.js",
+            "to": "src/core/DirectoryAnalyzer.js",
+            "type": "require"
+          },
+          {
+            "from": "gguf-dashboard-server.js",
+            "to": "src/api/export-api.js",
+            "type": "require"
+          },
+          {
+            "from": "gguf-dashboard-server.js",
+            "to": "src/api/development-roadmap-api.js",
+            "type": "require"
+          },
+          {
+            "from": "gguf-dashboard-server.js",
+            "to": "src/api/ai-roadmap-report-api.js",
+            "type": "require"
+          }
+        ]
+      },
+      "fuzzySimilarity": {
+        "method": "token-jaccard",
+        "threshold": 0.92,
+        "pairsFound": 0,
+        "pairs": [],
+        "gguf": {
+          "available": false,
+          "executable": false,
+          "llamaCppBin": null,
+          "mode": "filesystem-only",
+          "semanticSimilarity": "Fuzzy token match only — set LLAMA_CPP_BIN for optional hints",
+          "note": "No embedding model run during filesystem scan unless analyze uses model.path"
+        }
+      },
+      "semanticHints": {
+        "enabled": false,
+        "mode": "filesystem-only",
+        "hints": [],
+        "note": "Set LLAMA_CPP_BIN for optional semantic review hints on fuzzy pairs"
+      },
+      "resourceEstimate": {
+        "teamSize": 1,
+        "role": "Solo maintainer",
+        "remainingSprints": 0,
+        "estimatedHours": 0,
+        "hourlyRateUsd": 75,
+        "internalBudgetUsd": 0,
+        "budgetNote": "Internal notional estimate — not $204k enterprise fiction",
+        "sprintBreakdown": []
+      },
+      "visualization": {
+        "circularDependencyGraph": {
+          "nodes": [],
+          "edges": []
+        }
+      },
+      "rejectedFiction": {
+        "claims": [
+          "85-95% roadmap accuracy guarantees",
+          "Multi-FTE team composition from GGUF",
+          "$204k budget forecasts from scan"
+        ]
+      }
+    }
+  },
+  "resourceEstimate": {
+    "teamSize": 1,
+    "role": "Solo maintainer",
+    "remainingSprints": 0,
+    "estimatedHours": 0,
+    "hourlyRateUsd": 75,
+    "internalBudgetUsd": 0,
+    "budgetNote": "Internal notional estimate — not $204k enterprise fiction",
+    "sprintBreakdown": []
+  },
+  "implementationPhases": [
+    {
+      "phase": "Phase 1 — Sprint detection",
+      "status": "complete",
+      "items": [
+        "Filesystem signals",
+        "Sprint roadmap",
+        "API route counts"
+      ]
+    },
+    {
+      "phase": "Phase 2 — Code intelligence",
+      "status": "active",
+      "items": [
+        "Circular dependency detection",
+        "Fuzzy similarity pairs",
+        "Solo resource estimate",
+        "HTML executive export"
+      ]
+    },
+    {
+      "phase": "Phase 3 — Optional GGUF",
+      "status": "planned",
+      "items": [
+        "Semantic hints when analyze endpoint wired",
+        "Not 85-95% accuracy claims"
+      ]
+    }
+  ],
+  "featureCategories": [
+    {
+      "category": "Infrastructure",
+      "completed": 2,
+      "total": 2,
+      "completionRate": 100
+    },
+    {
+      "category": "Security",
+      "completed": 2,
+      "total": 2,
+      "completionRate": 100
+    },
+    {
+      "category": "API",
+      "completed": 1,
+      "total": 1,
+      "completionRate": 100
+    },
+    {
+      "category": "Analysis",
+      "completed": 2,
+      "total": 2,
+      "completionRate": 100
+    },
+    {
+      "category": "Planning",
+      "completed": 1,
+      "total": 1,
+      "completionRate": 100
+    },
+    {
+      "category": "Data",
+      "completed": 1,
+      "total": 1,
+      "completionRate": 100
+    },
+    {
+      "category": "Testing",
+      "completed": 1,
+      "total": 1,
+      "completionRate": 100
+    },
+    {
+      "category": "CI",
+      "completed": 1,
+      "total": 1,
+      "completionRate": 100
+    }
+  ],
+  "progressMetrics": {
+    "overall": 100,
+    "phases": {
+      "Sprint 1: Server & Auth": 100,
+      "Sprint 2: Stub APIs & Tests": 100,
+      "Sprint 3: Honest Dashboard Data": 100,
+      "Sprint 4: Production Profile": 100
+    },
+    "categories": {
+      "AI Tools": 100,
+      "Analytics": 100,
+      "Development Tools": 100,
+      "Infrastructure": 100
+    },
+    "metrics": {
+      "codebaseMaturity": 100,
+      "featureCompleteness": 100,
+      "documentationCoverage": 45.031743688173634,
+      "testCoverage": 79.5,
+      "lineCoverage": 79.5,
+      "branchCoverage": 56.5,
+      "jestTests": "596/596",
+      "jestSuites": 27,
+      "pageSamples": "35/35",
+      "apiRouteCount": 102
+    }
+  },
+  "recommendations": {
+    "immediate": [
+      "v1.0-internal deploy sign-off (REQUIRE_AUTH=true per docs/v1-internal-runbook.md)"
+    ],
+    "shortTerm": [
+      "Configure LLAMA_CPP_BIN or Ollama for optional semantic hints",
+      "Security posture to 80/100 (2 moderate npm audit items remain)",
+      "Improve documentation coverage"
+    ],
+    "longTerm": [
+      "Define enterprise scope only after v1.0-internal"
+    ],
+    "priorities": {
+      "high": [
+        "v1.0-internal deploy sign-off (REQUIRE_AUTH=true per docs/v1-internal-runbook.md)"
+      ],
+      "medium": [
+        "Configure LLAMA_CPP_BIN or Ollama for optional semantic hints",
+        "Security posture to 80/100 (2 moderate npm audit items remain)"
+      ],
+      "low": [
+        "Optional GGUF semantic feature extraction"
+      ]
+    }
+  },
+  "sourceProjectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+  "platformRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+  "rejectedFiction": {
+    "warning": "Enterprise roadmap design claims not produced by this scanner",
+    "claims": [
+      "98% GGUF confidence / 94.3% prediction accuracy",
+      "47 features / 66-74% completion defaults",
+      "85-95% accuracy enhancement guarantees",
+      "Multi-FTE team and budget estimation from GGUF",
+      "Auto-merge roadmap executor"
+    ],
+    "replacedBy": "Sprint deliverable detection from filesystem + package.json + API route counts"
+  },
+  "deprecatedNarrative": {
+    "warning": "RoadmapDataAnalyzer previously returned hardcoded 47 features and Phase 1-4 enterprise phases.",
+    "previousTotalFeatures": 47,
+    "previousCompletionRate": 74.17
+  },
+  "projectStructure": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "platformRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "totalDirectories": 96,
+    "totalFiles": 3175,
+    "mainCategories": {
+      "action": {
+        "name": "action",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\action",
+        "exists": true,
+        "fileCount": 1,
+        "subdirectoryCount": 0,
+        "fileTypes": {
+          ".yml": 1
+        },
+        "totalSize": 2589,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "api": {
+        "name": "api",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\api",
+        "exists": true,
+        "fileCount": 1,
+        "subdirectoryCount": 0,
+        "fileTypes": {
+          ".js": 1
+        },
+        "totalSize": 13158,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "assets": {
+        "name": "assets",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\assets",
+        "exists": true,
+        "fileCount": 109,
+        "subdirectoryCount": 2,
+        "fileTypes": {
+          ".css": 101,
+          ".png": 5,
+          ".ico": 1,
+          ".svg": 1,
+          ".scss": 1
+        },
+        "totalSize": 465616,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "backups": {
+        "name": "backups",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\backups",
+        "exists": true,
+        "fileCount": 0,
+        "subdirectoryCount": 1,
+        "fileTypes": {},
+        "totalSize": 0,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "config": {
+        "name": "config",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\config",
+        "exists": true,
+        "fileCount": 10,
+        "subdirectoryCount": 0,
+        "fileTypes": {
+          "": 3,
+          ".example": 2,
+          ".production": 1,
+          ".template": 2,
+          ".json": 1,
+          ".yml": 1
+        },
+        "totalSize": 16309,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": "dashboard_config.json",
+            "size": 3621,
+            "type": ".json",
+            "modified": "2026-05-17T16:28:49.085Z"
+          },
+          {
+            "name": "docker-compose.yml",
+            "size": 3508,
+            "type": ".yml",
+            "modified": "2026-05-18T19:39:58.520Z"
+          }
+        ]
+      },
+      "coverage-results": {
+        "name": "coverage-results",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\coverage-results",
+        "exists": true,
+        "fileCount": 0,
+        "subdirectoryCount": 0,
+        "fileTypes": {},
+        "totalSize": 0,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "data": {
+        "name": "data",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\data",
+        "exists": true,
+        "fileCount": 0,
+        "subdirectoryCount": 4,
+        "fileTypes": {},
+        "totalSize": 0,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "data-central": {
+        "name": "data-central",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\data-central",
+        "exists": true,
+        "fileCount": 1,
+        "subdirectoryCount": 10,
+        "fileTypes": {
+          ".md": 1
+        },
+        "totalSize": 12320,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": "README.md",
+            "size": 12320,
+            "type": ".md",
+            "modified": "2026-05-21T17:48:44.335Z"
+          }
+        ]
+      },
+      "development-roadmap": {
+        "name": "development-roadmap",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\development-roadmap",
+        "exists": true,
+        "fileCount": 4,
+        "subdirectoryCount": 1,
+        "fileTypes": {
+          ".md": 1,
+          ".js": 3
+        },
+        "totalSize": 57093,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": "README.md",
+            "size": 11325,
+            "type": ".md",
+            "modified": "2026-05-21T18:43:31.513Z"
+          }
+        ]
+      },
+      "docs": {
+        "name": "docs",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\docs",
+        "exists": true,
+        "fileCount": 2044,
+        "subdirectoryCount": 3,
+        "fileTypes": {
+          ".json": 22,
+          ".txt": 175,
+          ".md": 1842,
+          ".rst": 4,
+          ".pdf": 1
+        },
+        "totalSize": 21688236,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": ".quality_config.json",
+            "size": 141,
+            "type": ".json",
+            "modified": "2026-05-14T19:57:21.358Z"
+          },
+          {
+            "name": "CHANGELOG.md",
+            "size": 23839,
+            "type": ".md",
+            "modified": "2026-04-01T05:39:02.924Z"
+          },
+          {
+            "name": "CHANGELOG_100.md",
+            "size": 701,
+            "type": ".md",
+            "modified": "2026-05-21T13:31:48.996Z"
+          },
+          {
+            "name": "CHANGELOG_101.md",
+            "size": 7799,
+            "type": ".md",
+            "modified": "2026-05-21T13:31:47.738Z"
+          },
+          {
+            "name": "CHANGELOG_102.md",
+            "size": 2648,
+            "type": ".md",
+            "modified": "2026-05-21T13:31:47.575Z"
+          },
+          {
+            "name": "CHANGELOG_103.md",
+            "size": 4292,
+            "type": ".md",
+            "modified": "2026-05-21T13:31:48.101Z"
+          },
+          {
+            "name": "CHANGELOG_104.md",
+            "size": 9431,
+            "type": ".md",
+            "modified": "2026-05-21T12:55:36.078Z"
+          },
+          {
+            "name": "CHANGELOG_105.md",
+            "size": 3543,
+            "type": ".md",
+            "modified": "2026-05-21T13:31:48.282Z"
+          }
+        ]
+      },
+      "logs": {
+        "name": "logs",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\logs",
+        "exists": true,
+        "fileCount": 2,
+        "subdirectoryCount": 0,
+        "fileTypes": {
+          ".log": 2
+        },
+        "totalSize": 24768,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "packages": {
+        "name": "packages",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages",
+        "exists": true,
+        "fileCount": 0,
+        "subdirectoryCount": 1,
+        "fileTypes": {},
+        "totalSize": 0,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "reports": {
+        "name": "reports",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\reports",
+        "exists": true,
+        "fileCount": 46,
+        "subdirectoryCount": 0,
+        "fileTypes": {
+          ".md": 5,
+          ".json": 40,
+          ".csv": 1
+        },
+        "totalSize": 1044157,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": "README.md",
+            "size": 7186,
+            "type": ".md",
+            "modified": "2026-05-21T17:17:08.435Z"
+          }
+        ]
+      },
+      "scripts": {
+        "name": "scripts",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\scripts",
+        "exists": true,
+        "fileCount": 126,
+        "subdirectoryCount": 2,
+        "fileTypes": {
+          ".py": 46,
+          ".js": 69,
+          ".bat": 5,
+          ".sh": 5,
+          ".ps1": 1
+        },
+        "totalSize": 1108687,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": "fix-api-client-fallback.js",
+            "size": 4508,
+            "type": ".js",
+            "modified": "2026-05-19T15:50:45.112Z"
+          },
+          {
+            "name": "fix-remaining-template-literals-v2.js",
+            "size": 1656,
+            "type": ".js",
+            "modified": "2026-05-20T23:23:10.326Z"
+          },
+          {
+            "name": "fix-remaining-template-literals.js",
+            "size": 2165,
+            "type": ".js",
+            "modified": "2026-05-20T23:23:10.326Z"
+          },
+          {
+            "name": "remove-malformed-api-client.js",
+            "size": 725,
+            "type": ".js",
+            "modified": "2026-05-19T15:52:05.156Z"
+          },
+          {
+            "name": "simple-ai-server.js",
+            "size": 5940,
+            "type": ".js",
+            "modified": "2026-05-21T20:22:20.460Z"
+          },
+          {
+            "name": "start-dashboard-with-roadmap.js",
+            "size": 2899,
+            "type": ".js",
+            "modified": "2026-05-21T19:09:15.148Z"
+          },
+          {
+            "name": "test-ai-server.js",
+            "size": 2410,
+            "type": ".js",
+            "modified": "2026-05-21T19:22:58.822Z"
+          },
+          {
+            "name": "test-fixed-dashboard.js",
+            "size": 2812,
+            "type": ".js",
+            "modified": "2026-05-21T19:27:35.822Z"
+          }
+        ]
+      },
+      "security-reports": {
+        "name": "security-reports",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\security-reports",
+        "exists": true,
+        "fileCount": 0,
+        "subdirectoryCount": 2,
+        "fileTypes": {},
+        "totalSize": 0,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "server": {
+        "name": "server",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server",
+        "exists": true,
+        "fileCount": 4,
+        "subdirectoryCount": 9,
+        "fileTypes": {
+          ".js": 4
+        },
+        "totalSize": 60858,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": "api-server-optimizations.js",
+            "size": 7884,
+            "type": ".js",
+            "modified": "2026-05-20T17:33:21.733Z"
+          },
+          {
+            "name": "dashboard-server.js",
+            "size": 20998,
+            "type": ".js",
+            "modified": "2026-05-22T00:37:06.193Z"
+          },
+          {
+            "name": "index.js",
+            "size": 28751,
+            "type": ".js",
+            "modified": "2026-05-22T05:38:22.972Z"
+          },
+          {
+            "name": "simple_http_server.js",
+            "size": 3225,
+            "type": ".js",
+            "modified": "2026-05-21T17:12:33.372Z"
+          }
+        ]
+      },
+      "src": {
+        "name": "src",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src",
+        "exists": true,
+        "fileCount": 0,
+        "subdirectoryCount": 18,
+        "fileTypes": {},
+        "totalSize": 0,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "templates": {
+        "name": "templates",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\templates",
+        "exists": true,
+        "fileCount": 1,
+        "subdirectoryCount": 0,
+        "fileTypes": {
+          ".js": 1
+        },
+        "totalSize": 3266,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "test-batch-data": {
+        "name": "test-batch-data",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\test-batch-data",
+        "exists": true,
+        "fileCount": 105,
+        "subdirectoryCount": 0,
+        "fileTypes": {
+          ".json": 105
+        },
+        "totalSize": 52398,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "tests": {
+        "name": "tests",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests",
+        "exists": true,
+        "fileCount": 690,
+        "subdirectoryCount": 10,
+        "fileTypes": {
+          ".js": 14,
+          ".py": 617,
+          ".html": 18,
+          ".pyc": 38,
+          ".db": 1,
+          ".pyi": 1,
+          ".1779127569939": 1
+        },
+        "totalSize": 3239069,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": "dashboard-components.test.js",
+            "size": 15053,
+            "type": ".js",
+            "modified": "2026-05-19T14:02:59.892Z"
+          },
+          {
+            "name": "dashboard-server.test.js",
+            "size": 5653,
+            "type": ".js",
+            "modified": "2026-05-20T17:29:00.892Z"
+          },
+          {
+            "name": "DashboardAnalytics.test.js",
+            "size": 24077,
+            "type": ".js",
+            "modified": "2026-05-20T23:23:10.331Z"
+          },
+          {
+            "name": "test_server.js",
+            "size": 2499,
+            "type": ".js",
+            "modified": "2026-05-20T23:23:10.337Z"
+          }
+        ]
+      },
+      "tools": {
+        "name": "tools",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tools",
+        "exists": true,
+        "fileCount": 18,
+        "subdirectoryCount": 1,
+        "fileTypes": {
+          ".py": 12,
+          ".js": 6
+        },
+        "totalSize": 133922,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": "start-v1-internal-dashboard.js",
+            "size": 472,
+            "type": ".js",
+            "modified": "2026-05-23T21:03:11.060Z"
+          }
+        ]
+      },
+      "web": {
+        "name": "web",
+        "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web",
+        "exists": true,
+        "fileCount": 13,
+        "subdirectoryCount": 10,
+        "fileTypes": {
+          ".html": 8,
+          ".js": 2,
+          ".ico": 1,
+          ".svg": 1,
+          ".md": 1
+        },
+        "totalSize": 1813687,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": "dashboard-new.html",
+            "size": 590734,
+            "type": ".html",
+            "modified": "2026-05-24T02:40:47.714Z"
+          },
+          {
+            "name": "dashboard.html",
+            "size": 662394,
+            "type": ".html",
+            "modified": "2026-05-22T19:01:27.619Z"
+          },
+          {
+            "name": "unified-dashboard-enhanced.html",
+            "size": 37268,
+            "type": ".html",
+            "modified": "2026-05-23T08:54:41.589Z"
+          },
+          {
+            "name": "unified-dashboard.html",
+            "size": 354918,
+            "type": ".html",
+            "modified": "2026-05-23T14:12:38.883Z"
+          }
+        ]
+      }
+    },
+    "note": "Top-level categories only — use platformRoot for sprint metrics; full tree omitted from export"
+  },
+  "codebaseMetrics": {
+    "totalLinesOfCode": 0,
+    "languages": {},
+    "complexity": {},
+    "testCoverage": 0,
+    "documentation": {
+      "readmeFiles": 0,
+      "totalDocs": 0,
+      "coverage": 0
+    },
+    "dependencies": {}
+  },
+  "aiIntegration": {
+    "level": "basic",
+    "features": {
+      "analysis": true,
+      "generation": true,
+      "processing": true,
+      "automation": true
+    },
+    "models": [
+      "gguf",
+      "gpt",
+      "claude",
+      "llama",
+      "bert"
+    ],
+    "apiRouteCount": 102,
+    "confidence": null,
+    "notes": "GGUF semantic roadmap not run — use optional Phase 2 inference"
+  },
+  "scanOptions": {
+    "includePaths": [],
+    "excludePatterns": []
+  }
+}

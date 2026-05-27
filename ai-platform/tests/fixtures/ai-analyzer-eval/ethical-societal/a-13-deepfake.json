@@ -1,0 +1,12 @@
+{
+  "issueId": "A-13",
+  "category": "ethical-societal-ai-issues",
+  "context": {
+    "responseText": "Uploaded clip appears AI-generated with face swap artifacts and metadata stripped; no C2PA provenance metadata available.",
+    "mediaMetadata": {
+      "type": "video",
+      "generator": "stable diffusion pipeline",
+      "notes": "voice clone detected with lip sync mismatch"
+    }
+  }
+}

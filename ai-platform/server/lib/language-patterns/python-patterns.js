@@ -25,7 +25,9 @@ module.exports = {
         { id: 'python-not-implemented', pattern: /\braise\s+NotImplementedError\b/g, label: 'NotImplementedError stub' }
     ],
     productionLeak: [
-        { id: 'python-mock-in-prod', pattern: /\b(mock_|MagicMock|@patch\b)/g, label: 'Mock/patch usage' },
+        { id: 'python-unittest-mock', pattern: /\b(unittest\.mock|from\s+unittest\s+import\s+mock|from\s+unittest\.mock\b)/g, label: 'unittest.mock in production path' },
+        { id: 'python-magic-mock', pattern: /\b(MagicMock\s*\(|@patch\s*\(|@mock\.patch\b)/g, label: 'Mock/patch usage' },
+        { id: 'python-mock-module-call', pattern: /\bmock\.(patch|MagicMock|Mock)\b/g, label: 'mock.patch/MagicMock usage' },
         { id: 'python-pytest-import', pattern: /^\s*import\s+pytest\b|^\s*from\s+pytest\b/gm, label: 'pytest import in production path' }
     ]
 };

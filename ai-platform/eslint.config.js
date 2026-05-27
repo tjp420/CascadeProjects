@@ -55,7 +55,9 @@ export default [
       'web/scripts/**/test-scanner-modules.js',
       'web/scripts/**/test-scanner-simple.js',
       'web/scripts/**/test-security-monitoring.js',
-      'web/scripts/**/test-technical-debt-fix.js'
+      'web/scripts/**/test-technical-debt-fix.js',
+      'src/web/**',
+      'src/ai-system/**'
     ]
   },
   js.configs.recommended,
@@ -89,7 +91,7 @@ export default [
       'no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
-        caughtErrorsIgnorePattern: '^_'
+        caughtErrors: 'none'
       }],
       'no-console': 'off',
       'no-undef': 'warn'
@@ -119,7 +121,7 @@ export default [
       'no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
-        caughtErrorsIgnorePattern: '^_'
+        caughtErrors: 'none'
       }],
       'no-console': 'off',
       'no-undef': 'warn',
@@ -152,6 +154,27 @@ export default [
     }
   },
   {
+    files: ['web/simplebeacon-dashboard/js/**/*.js', 'web/simplebeacon-dashboard/js/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...sharedDashboardGlobals
+      }
+    },
+    rules: {
+      'no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrors: 'none'
+      }],
+      'no-console': 'off',
+      'no-undef': 'warn',
+      'no-empty': ['error', { allowEmptyCatch: true }]
+    }
+  },
+  {
     files: ['web/scripts/jest.setup*.js', 'web/scripts/**/*.test.js'],
     languageOptions: {
       globals: {
@@ -164,6 +187,66 @@ export default [
     files: ['server/simple_http_server.js'],
     languageOptions: {
       sourceType: 'module'
+    }
+  },
+  {
+    files: ['src/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        exports: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        global: 'readonly',
+        globalThis: 'readonly',
+        fetch: 'readonly',
+        AbortController: 'readonly',
+        URL: 'readonly'
+      }
+    },
+    rules: {
+      'no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrors: 'none'
+      }],
+      'no-console': 'off',
+      'no-undef': 'warn',
+      'no-case-declarations': 'warn',
+      'no-dupe-keys': 'warn',
+      'no-ex-assign': 'warn',
+      'no-useless-escape': 'warn'
+    }
+  },
+  {
+    files: ['src/analysis/**/*.js', 'src/lib/*-logger.js'],
+    languageOptions: {
+      globals: {
+        window: 'readonly',
+        document: 'readonly'
+      }
+    }
+  },
+  {
+    files: ['src/validation/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        DOMParser: 'readonly',
+        localStorage: 'readonly',
+        window: 'readonly',
+        document: 'readonly'
+      }
     }
   }
 ];

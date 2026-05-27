@@ -32,18 +32,7 @@ const {
   logSecurityEvent
 } = require('./middleware/audit');
 
-// Import status protection middleware
-const { roadmapProtection } = require('./middleware/statusProtection');
-
-// Import roadmap routes
-const roadmapRoutes = require('./api/roadmap/RoadmapRoutes');
-
-// Import AI roadmap routes
-const aiRoadmapRoutes = require('./api/ai/AIRoadmapRoutes');
 const assessmentRoutes = require('./api/assessment/index');
-
-// Import GGUF analysis routes
-const { getAnalysis, getIssues, updateIssueStatus, getRecommendations, updateRecommendationProgress } = require('../src/web/api/gguf-analysis');
 
 // Import upload routes and security
 const uploadRoutes = require('./routes/upload');
@@ -957,19 +946,10 @@ app.get('/api/status', authenticate, (req, res) => {
   });
 });
 
-// Roadmap API with status protection
-app.use('/api/roadmap', roadmapRoutes);
-
-// Apply status protection to general development-roadmap endpoints
-app.use('/api/development-roadmap', roadmapProtection);
-
-// AI Roadmap API endpoints
-app.use('/api/ai', aiRoadmapRoutes);
-
 // Assessment API (Simplebeacon scan + compliance checklist deliverable)
 app.use('/api/assessment', assessmentRoutes);
 
-// Flexible analyze API — roadmap, codebase, inventory (shared path-safety with gguf-dashboard-server)
+// Flexible analyze API — codebase scan and inventory (shared path-safety with simplebeacon-server)
 const platformRoot = path.join(__dirname, '..');
 setupFlexibleAnalyzeAPI(app, {
     baseDir: platformRoot,
@@ -978,13 +958,6 @@ setupFlexibleAnalyzeAPI(app, {
 
 // Upload API: optional JWT (anonymous allowed unless REQUIRE_AUTH=true in upload-security)
 app.use('/api/upload', optionalAuthenticate, uploadSecurity, contentValidation, uploadRoutes);
-
-// GGUF Analysis API endpoints
-app.get('/api/gguf/analysis', getAnalysis);
-app.get('/api/gguf/issues', getIssues);
-app.patch('/api/gguf/issues/:id/status', updateIssueStatus);
-app.get('/api/gguf/recommendations', getRecommendations);
-app.patch('/api/gguf/recommendations/:id/progress', updateRecommendationProgress);
 
 // Static file serving for JavaScript files
 app.use('/src', express.static(path.join(__dirname, '../src'), {

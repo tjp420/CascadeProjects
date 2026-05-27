@@ -1,0 +1,6 @@
+# Cloudflare Pages — static marketing site
+# Do NOT add /page -> /page.html 200 rules here: Pages already serves foo.html at /foo
+# and those rewrites cause infinite 308 redirect loops with pretty URLs.
+
+/community           /                  301
+/community/          /                  301

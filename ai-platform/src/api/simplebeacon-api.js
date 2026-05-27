@@ -507,7 +507,13 @@ function setupSimplebeaconAPI(app, options = {}) {
             cliExitCode: err.code
           });
         } catch (recoverErr) {
-          err = recoverErr;
+          return res.status(recoverErr.killed ? 504 : 500).json({
+            error: 'Scan failed',
+            message: recoverErr.message,
+            stdout: recoverErr.stdout?.slice(-2000),
+            stderr: recoverErr.stderr?.slice(-500),
+            partialReport: null
+          });
         }
       }
       res.status(err.killed ? 504 : 500).json({

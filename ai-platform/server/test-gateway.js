@@ -82,16 +82,18 @@ test('live gateway blocks sensitive prompt when RUN_LIVE_GATEWAY_TEST=1', async 
     assert.match(response.body, /Request blocked/);
 });
 
+const logger = require('./lib/app-logger');
+
 if (require.main === module && process.argv.includes('--manual')) {
     postToGateway({
         model: 'gpt-4',
         messages: [{ role: 'user', content: 'My SSN is 123-45-6789 and card 4111-1111-1111-1111' }]
     }).then((response) => {
-        console.log('Status:', response.status);
-        console.log('Body:', response.body);
+        logger.info('Status:', response.status);
+        logger.info('Body:', response.body);
     }).catch((error) => {
-        console.error('Gateway test failed. Start with: npm run dlp:start');
-        console.error(error.message);
+        logger.error('Gateway test failed. Start with: npm run dlp:start');
+        logger.error(error.message);
         process.exit(1);
     });
 }

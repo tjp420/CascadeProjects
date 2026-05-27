@@ -1,0 +1,87 @@
+# M_Wireframe Material Setup
+
+## Material Type: Unlit Wireframe
+
+## Material Properties
+```
+Material Domain: Surface
+Blend Mode: Opaque
+Shading Model: Unlit
+Two Sided: True
+Wireframe: Enabled
+```
+
+## Material Graph Structure
+
+### Main Material Node Inputs
+- Base Color: White (1, 1, 1)
+- Emissive Color: White (1, 1, 1)
+- Metallic: 0.0
+- Roughness: 0.0
+- Specular: 0.0
+- Normal: (0, 0, 1)
+
+### Material Expressions
+```
+VectorParameter (WireframeColor):
+  Default: (1, 1, 1)
+  Parameter Name: WireframeColor
+
+ScalarParameter (WireframeThickness):
+  Default: 1.0
+  Parameter Name: WireframeThickness
+
+Constant (White):
+  Value: (1, 1, 1, 1)
+```
+
+### Material Connections
+```
+WireframeColor → Base Color
+WireframeColor → Emissive Color
+WireframeThickness → Custom Data (if supported)
+```
+
+## Advanced Features
+
+### Animated Wireframe
+```
+Time Node → Sine → Multiply with WireframeColor
+Result → Emissive Color (for pulsing effect)
+```
+
+### Depth-Based Coloring
+```
+SceneDepth → Linearize → Color Ramp → Base Color
+```
+
+### Edge Detection Enhancement
+```
+SceneTexture: PostProcessInput0 → Edge Detection → Multiply
+```
+
+## Material Instances
+
+### MI_Wireframe_White
+- WireframeColor: (1, 1, 1)
+- WireframeThickness: 1.0
+
+### MI_Wireframe_Blue
+- WireframeColor: (0, 0, 1)
+- WireframeThickness: 1.5
+
+### MI_Wireframe_Red
+- WireframeColor: (1, 0, 0)
+- WireframeThickness: 2.0
+
+## Usage Notes
+- Works best with Static Mesh components
+- Disable lighting for clean wireframes
+- Use with unlit environments
+- Compatible with VR rendering
+
+## Performance Tips
+- Keep material simple for better performance
+- Avoid complex material functions
+- Use material instances for variations
+- Test on target hardware early

@@ -183,23 +183,13 @@ const NON_PRODUCTION_PATH_HINTS = [
     '/storybook/', '/scripts/', '/dev/', '/demo/', '.original.'
 ];
 const NON_PRODUCTION_PATH_PREFIXES = ['docs/', 'scripts/', 'tools/', 'tests/', 'test/', 'templates/', 'data-central/'];
-const LEGACY_EXPERIMENTAL_PREFIXES = ['src/ai-system/'];
+const LEGACY_EXPERIMENTAL_PREFIXES = ['src/ai-system/', 'src/server/'];
 const WEB_DATA_DIR = ['web', 'data'].join('/');
 const SAMPLE_DATA_PREFIX = `${WEB_DATA_DIR}/`;
 const SAMPLE_JSON_SUFFIX = ['-', 'sample', '.json'].join('');
 const META_SCANNER_PATHS = new Set([
     'tools/scan-source-kpi-patterns.js',
-    'src/server/api/routers/mock_data_analysis.py',
-    'src/server/api/mock_scanner.py',
-    'src/server/api/seed_database.py',
-    'src/server/api/seed_data.py',
-    'src/server/api/seed_dashboard_data.py',
-    'src/server/api/setup_dashboard_scheduling.py',
-    'src/server/api/models/export_history.py',
-    'src/server/api/models/export_settings.py',
-    'src/server/api/enhanced_models.py',
-    'src/server/api/app.py',
-    'src/server/api/routers/ma_due_diligence.py',
+    'server/lib/codebase-analyzer.js',
     'server/lib/file-quality-heuristics.js'
 ]);
 const DUPLICATE_MIRROR_PREFIXES = [
@@ -245,7 +235,6 @@ const DUPLICATE_STAGING_PREFIXES = [
     'src/analysis/',
     'src/core/',
     'src/lib/',
-    'src/server/api/models/',
     'api/',
     'development-roadmap/'
 ];
@@ -271,6 +260,44 @@ const ESLINT_REPORT_CANDIDATES = [
     '.simplebeacon/eslint-report.json',
     'eslint-report.json'
 ];
+
+/** Directories linted by runEslint — must stay aligned with eslint.config.js and npm run lint. */
+const ESLINT_TARGET_DIRS = [
+    'server',
+    'packages',
+    'web/scripts',
+    'web/components',
+    'web/simplebeacon-dashboard/js',
+    'src'
+];
+
+function directoryHasLintableJsFiles(dirPath, depth = 0) {
+    if (depth > 14) return false;
+    let entries;
+    try {
+        entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    } catch {
+        return false;
+    }
+    for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+            if (REPO_SKIP_DIRS.has(entry.name)) continue;
+            if (directoryHasLintableJsFiles(fullPath, depth + 1)) return true;
+            continue;
+        }
+        if (entry.isFile() && /\.(?:c?js|mjs)$/i.test(entry.name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function resolveEslintTargets(platformRoot) {
+    return ESLINT_TARGET_DIRS
+        .map((dir) => path.join(platformRoot, dir))
+        .filter((dir) => fs.existsSync(dir) && directoryHasLintableJsFiles(dir));
+}
 
 const FINDING_RUBRIC = {
     version: 'phase1.0',
@@ -837,7 +864,6 @@ function checkJsSyntax(content, relativePath) {
         return null;
     }
     try {
-        // eslint-disable-next-line no-new
         new vm.Script(normalized, { filename: relativePath });
         return null;
     } catch (error) {
@@ -1443,9 +1469,7 @@ async function runEslint(projectRoot, platformRoot) {
         };
     }
 
-    const targets = ['server', 'packages']
-        .map((dir) => path.join(platformRoot, dir))
-        .filter((dir) => fs.existsSync(dir));
+    const targets = resolveEslintTargets(platformRoot);
 
     if (!targets.length) {
         return {
@@ -1704,7 +1728,7 @@ async function analyzeCodebase(baseDir, options = {}) {
                 'Context-aware filtering reduces false positives in tests, docs, and example paths.',
                 'Structure hints are regex-based Tier-1 estimates — not AST parsing.',
                 includeEslint
-                    ? 'ESLint ran on server/ and packages/ under the platform root when available.'
+                    ? `ESLint ran on ${ESLINT_TARGET_DIRS.join(', ')} under the platform root when available.`
                     : 'ESLint not run in this request — set includeEslint=true or use Complete scan.',
                 'Does not prove dead-code elimination — flags debt markers and broken files only.'
             ].filter(Boolean)
@@ -1721,10 +1745,12 @@ module.exports = {
     resolveDeepAnalyzeCap,
     resolveFindingsCap,
     resolveScanContext,
+    resolveEslintTargets,
     scanContentPatterns,
     dedupeFindings,
     analyzeFilesInBatches,
     REPO_SKIP_DIRS,
+    ESLINT_TARGET_DIRS,
     CODE_EXTENSIONS,
     getCodeExtensions
 };

@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * Pattern Detection System
  * 
@@ -19,7 +20,7 @@ class PatternDetector {
     
     this.initializePatterns();
     this.initializeTemplates();
-    console.log('[PATTERN_DETECTOR] Pattern detector initialized');
+    logger.debug('[PATTERN_DETECTOR] Pattern detector initialized');
   }
 
   // Initialize patterns
@@ -136,7 +137,7 @@ class PatternDetector {
       category: 'quality'
     });
 
-    console.log(`[PATTERN_DETECTOR] Initialized ${this.patterns.size} patterns`);
+    logger.debug(`[PATTERN_DETECTOR] Initialized ${this.patterns.size} patterns`);
   }
 
   // Initialize templates
@@ -152,7 +153,7 @@ class PatternDetector {
     // URL template
     this.addTemplate('url', {
       name: 'URL Template',
-      pattern: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/,
+      pattern: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/,
       description: 'URL template',
       confidence: 0.9
     });
@@ -181,7 +182,7 @@ class PatternDetector {
       confidence: 0.9
     });
 
-    console.log(`[PATTERN_DETECTOR] Initialized ${this.templates.size} templates`);
+    logger.debug(`[PATTERN_DETECTOR] Initialized ${this.templates.size} templates`);
   }
 
   // Add pattern
@@ -192,7 +193,7 @@ class PatternDetector {
       detections: 0,
       lastDetected: null
     });
-    console.log(`[PATTERN_DETECTOR] Added pattern: ${name}`);
+    logger.debug(`[PATTERN_DETECTOR] Added pattern: ${name}`);
   }
 
   // Add template
@@ -203,13 +204,13 @@ class PatternDetector {
       matches: 0,
       lastMatched: null
     });
-    console.log(`[PATTERN_DETECTOR] Added template: ${name}`);
+    logger.debug(`[PATTERN_DETECTOR] Added template: ${name}`);
   }
 
   // Initialize pattern detector
   async initialize() {
     if (this.isInitialized) {
-      console.log('[PATTERN_DETECTOR] Pattern detector already initialized');
+      logger.debug('[PATTERN_DETECTOR] Pattern detector already initialized');
       return;
     }
 
@@ -220,7 +221,7 @@ class PatternDetector {
       }
       
       this.isInitialized = true;
-      console.log('[PATTERN_DETECTOR] Pattern detector initialized successfully');
+      logger.debug('[PATTERN_DETECTOR] Pattern detector initialized successfully');
       
     } catch (error) {
       console.error('[PATTERN_DETECTOR] Failed to initialize pattern detector:', error.message);
@@ -238,7 +239,7 @@ class PatternDetector {
       lastTrained: new Date().toISOString()
     });
 
-    console.log('[PATTERN_DETECTOR] ML models initialized');
+    logger.debug('[PATTERN_DETECTOR] ML models initialized');
   }
 
   // Create simple classifier
@@ -256,7 +257,7 @@ class PatternDetector {
   }
 
   // Detect patterns in data
-  detectPatterns(data, options = {}) {
+  detectPatterns(data, _options = {}) {
     const startTime = Date.now();
     const detectedPatterns = [];
     
@@ -1356,7 +1357,7 @@ class PatternDetector {
     this.detectionHistory = [];
     
     this.isInitialized = false;
-    console.log('[PATTERN_DETECTOR] Pattern detector destroyed');
+    logger.debug('[PATTERN_DETECTOR] Pattern detector destroyed');
   }
 }
 
@@ -1378,3 +1379,4 @@ module.exports = {
   PatternDetector,
   initializePatternDetector
 };
+

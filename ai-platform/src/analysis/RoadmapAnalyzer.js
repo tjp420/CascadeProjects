@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * Roadmap Analyzer Tools
  * Comprehensive analysis tools for building accurate development roadmaps
@@ -24,7 +25,7 @@ class RoadmapAnalyzer {
    * Perform comprehensive project analysis
    */
   async analyzeProject() {
-    console.log('🔍 Starting comprehensive project analysis...');
+    logger.debug('🔍 Starting comprehensive project analysis...');
     
     try {
       // Analyze project structure
@@ -45,7 +46,7 @@ class RoadmapAnalyzer {
       // Generate recommendations
       await this.generateRecommendations();
       
-      console.log('✅ Project analysis completed!');
+      logger.debug('✅ Project analysis completed!');
       return this.analysis;
       
     } catch (error) {
@@ -58,7 +59,7 @@ class RoadmapAnalyzer {
    * Analyze project structure
    */
   async analyzeStructure() {
-    console.log('📁 Analyzing project structure...');
+    logger.debug('📁 Analyzing project structure...');
     
     const structure = {
       totalFiles: 0,
@@ -85,7 +86,7 @@ class RoadmapAnalyzer {
           structure.componentBreakdown = await this.analyzeComponents(dirPath);
         }
       } catch (error) {
-        console.log(`⚠️ Directory ${dir} not found, skipping...`);
+        logger.debug(`⚠️ Directory ${dir} not found, skipping...`);
       }
     }
 
@@ -191,7 +192,7 @@ class RoadmapAnalyzer {
         }
       }
     } catch (error) {
-      console.log('⚠️ Could not analyze components');
+      logger.debug('⚠️ Could not analyze components');
     }
 
     return components;
@@ -269,7 +270,7 @@ class RoadmapAnalyzer {
         devDependencies: Object.keys(packageData.devDependencies || {})
       };
     } catch (error) {
-      console.log('⚠️ Could not analyze package.json');
+      logger.debug('⚠️ Could not analyze package.json');
     }
 
     // Analyze architectural patterns
@@ -296,7 +297,7 @@ class RoadmapAnalyzer {
    * Analyze code complexity
    */
   async analyzeComplexity() {
-    console.log('🔧 Analyzing code complexity...');
+    logger.debug('🔧 Analyzing code complexity...');
     
     const complexity = {
       overall: 0,
@@ -332,7 +333,7 @@ class RoadmapAnalyzer {
       complexity.maintainabilityIndex = this.calculateMaintainabilityIndex(complexity);
       
     } catch (error) {
-      console.log('⚠️ Could not analyze complexity');
+      logger.debug('⚠️ Could not analyze complexity');
     }
 
     this.analysis.complexity = complexity;
@@ -402,7 +403,7 @@ class RoadmapAnalyzer {
       }
       
     } catch (error) {
-      console.log(`⚠️ Could not analyze file: ${filePath}`);
+      logger.debug(`⚠️ Could not analyze file: ${filePath}`);
     }
 
     return complexity;
@@ -461,7 +462,7 @@ class RoadmapAnalyzer {
    * Analyze dependencies
    */
   async analyzeDependencies() {
-    console.log('🔗 Analyzing dependencies...');
+    logger.debug('🔗 Analyzing dependencies...');
     
     const dependencies = {
       internal: {},
@@ -482,7 +483,7 @@ class RoadmapAnalyzer {
         development: packageData.devDependencies || {}
       };
     } catch (error) {
-      console.log('⚠️ Could not analyze package.json');
+      logger.debug('⚠️ Could not analyze package.json');
     }
 
     // Analyze internal dependencies
@@ -506,7 +507,7 @@ class RoadmapAnalyzer {
         dependencies[file] = fileDeps;
       }
     } catch (error) {
-      console.log('⚠️ Could not analyze internal dependencies');
+      logger.debug('⚠️ Could not analyze internal dependencies');
     }
     
     return dependencies;
@@ -556,7 +557,7 @@ class RoadmapAnalyzer {
         }
       }
     } catch (error) {
-      console.log(`⚠️ Could not analyze dependencies for: ${filePath}`);
+      logger.debug(`⚠️ Could not analyze dependencies for: ${filePath}`);
     }
 
     return dependencies;
@@ -566,7 +567,7 @@ class RoadmapAnalyzer {
    * Analyze features
    */
   async analyzeFeatures() {
-    console.log('🚀 Analyzing features...');
+    logger.debug('🚀 Analyzing features...');
     
     const features = {
       completed: [],
@@ -590,7 +591,7 @@ class RoadmapAnalyzer {
         }
       }
     } catch (error) {
-      console.log('⚠️ Could not analyze features');
+      logger.debug('⚠️ Could not analyze features');
     }
 
     // Analyze adapters for feature implementation
@@ -616,7 +617,7 @@ class RoadmapAnalyzer {
         }
       }
     } catch (error) {
-      console.log('⚠️ Could not analyze adapters');
+      logger.debug('⚠️ Could not analyze adapters');
     }
 
     // Calculate completion rate
@@ -659,7 +660,7 @@ class RoadmapAnalyzer {
    * Calculate project metrics
    */
   async calculateMetrics() {
-    console.log('📊 Calculating metrics...');
+    logger.debug('📊 Calculating metrics...');
     
     const metrics = {
       codeQuality: {
@@ -689,7 +690,7 @@ class RoadmapAnalyzer {
     };
 
     // Count large files
-    for (const [file, complexity] of Object.entries(this.analysis.complexity.files)) {
+    for (const [_file, complexity] of Object.entries(this.analysis.complexity.files)) {
       if (complexity.lines > 500) {
         metrics.technicalDebt.largeFiles++;
       }
@@ -702,7 +703,7 @@ class RoadmapAnalyzer {
    * Generate recommendations
    */
   async generateRecommendations() {
-    console.log('💡 Generating recommendations...');
+    logger.debug('💡 Generating recommendations...');
     
     const recommendations = {
       immediate: [],
@@ -985,3 +986,4 @@ class RoadmapAnalyzer {
 }
 
 module.exports = RoadmapAnalyzer;
+

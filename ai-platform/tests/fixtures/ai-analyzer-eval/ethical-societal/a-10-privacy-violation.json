@@ -1,0 +1,8 @@
+{
+  "issueId": "A-10",
+  "category": "ethical-societal-ai-issues",
+  "context": {
+    "responseText": "Customer record exported: jane.doe@company.com, SSN 123-45-6789, unauthorized access logged in audit trail.",
+    "logs": "data leak detected for patient id MED-9912 during unapproved export"
+  }
+}

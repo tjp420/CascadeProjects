@@ -1,0 +1,8 @@
+{
+  "issueId": "A-21",
+  "category": "economic-regulatory-ai-issues",
+  "context": {
+    "responseText": "Monitoring flagged spoofing orders and wash trading anomaly clusters for regulatory review.",
+    "logs": "2026-05-25T14:00:00 WARN quote stuffing pattern detected on symbol XYZ"
+  }
+}

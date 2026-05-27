@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { readJsonFileCached } = require('./json-file-cache');
 
 const DEFAULT_HISTORY_LIMIT = 180;
 
@@ -14,12 +15,7 @@ function resolveTrustHistoryPath(platformRoot, customPath) {
 }
 
 function readJsonIfExists(filePath) {
-    try {
-        if (!filePath || !fs.existsSync(filePath)) return null;
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    } catch {
-        return null;
-    }
+    return readJsonFileCached(filePath);
 }
 
 function readTrustHistory(historyPath) {

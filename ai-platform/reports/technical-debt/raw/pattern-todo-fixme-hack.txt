@@ -1,0 +1,225 @@
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\ai-analysis-api.js:765: if (content.includes('TODO') || content.includes('FIXME')) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\ai-analysis-api.js:767: type: 'todo-comment',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\ai-analysis-api.js:769: message: 'TODO/FIXME comment found',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\ai-analysis-api.js:770: line: this.findLineNumber(content, 'TODO')
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\ai-analysis-api.js:955: // TODO comments indicate technical debt
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\ai-analysis-api.js:956: const todos = (content.match(/TODO|FIXME|HACK|XXX/gi) || []).length;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\ai-analysis-api.js:957: debt += todos * 5;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\AIAnalysisEngine.js:577: // Check for TODO/FIXME comments
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\AIAnalysisEngine.js:578: if (line.includes('TODO') || line.includes('FIXME')) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\AIAnalysisEngine.js:580: type: 'todo-comment',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\AIAnalysisEngine.js:582: message: 'TODO/FIXME comment found',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\GGUFIssueAnalyzer.js:415: // Check for TODO comments without assignee
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\GGUFIssueAnalyzer.js:416: if (trimmed.includes('// TODO') && !trimmed.includes('@')) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\GGUFIssueAnalyzer.js:418: id: `unassigned_todo_${Date.now()}_${lineNumber}`,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\GGUFIssueAnalyzer.js:419: type: 'Unassigned TODO',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\GGUFIssueAnalyzer.js:422: message: 'TODO comment without assignee',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\GGUFIssueAnalyzer.js:424: column: line.indexOf('// TODO'),
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\GGUFIssueAnalyzer.js:425: suggestedFix: 'Add assignee to TODO comment (e.g., // TODO @username)',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:84: * Backlog detection endpoint - TODO/FIXME items
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1125: todoItems: [],
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1126: fixmeItems: [],
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1127: hackItems: [],
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1134: todo: /\/\/\s*TODO\s*:?\s*(.+)/gi,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1135: fixme: /\/\/\s*FIXME\s*:?\s*(.+)/gi,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1136: hack: /\/\/\s*HACK\s*:?\s*(.+)/gi,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1148: if ((match = patterns.todo./* SECURITY WARNING: Command execution - use subprocess.run with shell=False and validate inputs */
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1150: backlog.todoItems.push({
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1154: type: 'TODO'
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1158: if ((match = patterns.fixme./* SECURITY WARNING: Command execution - use subprocess.run with shell=False and validate inputs */
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1160: backlog.fixmeItems.push({
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1164: type: 'FIXME'
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1168: if ((match = patterns.hack./* SECURITY WARNING: Command execution - use subprocess.run with shell=False and validate inputs */
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1170: backlog.hackItems.push({
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1174: type: 'HACK'
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1219: backlog.totalItems = backlog.todoItems.length + backlog.fixmeItems.length +
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:1220: backlog.hackItems.length + backlog.noteItems.length;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:2280: /(".*":\s*"(PLACEHOLDER|DUMMY|MOCK|FAKE|SAMPLE|TEST|TEMP|TODO|FIXME)")/g,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js:2281: /('.*':\s*'(PLACEHOLDER|DUMMY|MOCK|FAKE|SAMPLE|TEST|TEMP|TODO|FIXME)')/g
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\components\code-quality-improvements.js:261: if (fixes.fixMemoryLeaks) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\context-filter.js:421: // Filter out legitimate TODO/FIXME comments
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\context-filter.js:446: isTodo: lowerContext.includes('todo') || lowerContext.includes('fixme'),
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\context-filter.js:461: const { isTodo, isNote, hasKeywords } = commentContext;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\context-filter.js:463: // TODO/FIXME comments with development keywords are legitimate
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\context-filter.js:464: if (isTodo && hasKeywords) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-data-scanner.js:367: 'todo_mock_related': 'medium', // TODOs about mock data indicate incomplete implementation
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-data-scanner.js:368: 'fixme_mock_related': 'medium', // FIXMEs about mock data are higher priority
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-data-scanner.js:369: 'todo_coming_soon': 'medium', // TODOs about coming soon features
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-data-scanner.js:379: 'todo_infrastructure': 'low' // Infrastructure TODOs are often legitimate planning
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:455: pattern: '\\b(work_in_progress|wip|hack)\\b',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:459: excludePatterns: ['*.backup.*', '.backup.*', 'todo', 'fixme'] // TODO/FIXME are legitimate
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:464: // Enhanced TODO and FIXME Comments
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:465: todoFixmeComments: {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:468: pattern: '//\\s*TODO[:\\s]+(.*(?:mock|placeholder|demo|test|sample|fake|implement|replace|remove|delete|add|create).*)',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:469: confidence: 0.8, // High confidence for mock-related TODOs
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:470: category: 'todo_mock_related',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:471: description: 'TODO comments related to mock data and placeholders'
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:474: pattern: '//\\s*FIXME[:\\s]+(.*(?:mock|placeholder|demo|test|sample|fake|implement|replace).*)',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:475: confidence: 0.85, // Higher confidence for FIXME mock-related
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:476: category: 'fixme_mock_related',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:477: description: 'FIXME comments related to mock data and placeholders'
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:480: pattern: '/\\*\\*\\s*TODO[:\\s]+[\\s\\S]*?(?:mock|placeholder|demo|test|sample|fake)[\\s\\S]*?\\*/',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:482: category: 'todo_mock_related',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:483: description: 'Multi-line TODO comments with mock references'
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:486: pattern: '//\\s*TODO[:\\s]+(.*(?:coming soon|not implemented|feature|functionality).*)',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:487: confidence: 0.9, // Very high confidence for coming soon TODOs
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:488: category: 'todo_coming_soon',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:489: description: 'TODO comments about coming soon features'
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:492: pattern: '//\\s*TODO[:\\s]+(.*(?:api|endpoint|service|integration|database).*)',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:494: category: 'todo_infrastructure',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:495: description: 'TODO comments about infrastructure and APIs'
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:498: pattern: '//\\s*(TODO|FIXME|HACK|XXX|NOTE|BUG|TEMP|TEMPORARY|DEBUG|TBD|WIP|REFACTOR)\\s*[:\\s]+([^^\\n]*)',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:534: pattern: 'alert\\([\'"](.*(?:coming soon|feature|not implemented|placeholder|demo|test|sample|mock|todo|fixme)[^\'"]*)[\'"]\\)',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\modules\mock-patterns.js:570: pattern: '// Mock report generation implementation|// TODO: implement real report generation',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:16: todoComments: 0
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:76: // Categorize TODO comments with priority levels
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:78: content = this.categorizeTodoComments(content, filePath);
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:81: this.fixes.todoComments++;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:148: categorizeTodoComments(content, filePath) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:149: const todoRegex = /(TODO|FIXME|HACK|XXX|NOTE|BUG|WARNING)\b(.*)$/gim;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:155: while ((match = todoRegex./* SECURITY WARNING: Command execution - use subprocess.run with shell=False and validate inputs */
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:162: let categorizedTodo = fullMatch;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:164: if (type === 'TODO') {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:166: categorizedTodo = `${type} [${priority}] - ${description} (Auto-categorized: ${currentDate})`;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:167: } else if (type === 'FIXME') {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:168: categorizedTodo = `${type} [HIGH] - ${description} (Auto-categorized: ${currentDate})`;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:169: } else if (type === 'HACK') {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:170: categorizedTodo = `${type} [MEDIUM] - ${description} (Auto-categorized: ${currentDate})`;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:172: categorizedTodo = `${type} [HIGH] - ${description} (Auto-categorized: ${currentDate})`;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:175: modifiedContent = modifiedContent.replace(fullMatch, categorizedTodo);
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:199: totalFixes: this.fixes.hardcodedPercentages + this.fixes.placeholderText + this.fixes.todoComments,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:202: todoComments: this.fixes.todoComments,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:227: if (this.fixes.todoComments > 0) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:229: action: 'Review categorized TODOs and create actionable tasks',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:230: reason: 'Categorized TODOs should be tracked in project management tools'
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:92: /TODO\s*[:\-]\s*implement/gi,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:93: /FIXME\s*[:\-]\s*/gi,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:116: static findTodoComments(content, filePath) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:119: /TODO\s*[:\-]\s*.+/gi,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:120: /FIXME\s*[:\-]\s*.+/gi,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:121: /HACK\s*[:\-]\s*.+/gi,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:134: type: 'todo',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:167: todoComments: issues.todoComments.length
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:188: [...issues.hardcodedPercentages, ...issues.placeholderText, ...issues.todoComments]
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:203: todoComments: issues.todoComments.length
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:228: if (issues.todoComments.length > 10) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:230: type: 'todo_comments',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:232: message: `Found ${issues.todoComments.length} TODO comments. Consider addressing them.`,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:233: action: 'Review and resolve TODO comments, or move to project management system'
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:258: todoComments: []
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:289: todoComments: PatternDetector.findTodoComments(content, filePath)
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:300: this.issues.todoComments.push(...fileIssues.todoComments);
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:304: fileIssues.todoComments.length;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:325: findTodoComments(content, filePath) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:326: return PatternDetector.findTodoComments(content, filePath);
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:3: * Scans code for quality issues including TODO comments, hardcoded values, and placeholders
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:15: todoComments: []
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:106: const todoRegex = /(TODO|FIXME|HACK|XXX|NOTE|BUG)\b.*/gi;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:108: const matches = line.match(todoRegex);
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:111: this.issues.todoComments.push({
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:134: this.issues.todoComments.length;
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:149: todoComments: {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:150: count: this.issues.todoComments.length,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:151: instances: this.issues.todoComments
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:181: if (this.issues.todoComments.length > 0) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:183: category: 'TODO Comments',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:185: action: 'Review and categorize TODOs, create actionable tasks',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:186: count: this.issues.todoComments.length,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:187: examples: this.issues.todoComments.slice(0, 3).map(i => i.value)
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:204: async categorizeTodos() {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:216: this.issues.todoComments.forEach(todo => {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:217: const value = todo.value.toLowerCase();
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:220: categories.bug.push({ ...todo, priority: 'high' });
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:222: categories.feature.push({ ...todo, priority: 'medium' });
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:224: categories.refactor.push({ ...todo, priority: 'medium' });
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:226: categories.documentation.push({ ...todo, priority: 'low' });
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:228: categories.test.push({ ...todo, priority: 'medium' });
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:230: categories.other.push({ ...todo, priority: 'low' });
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:239: total: this.issues.todoComments.length,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\layout-fixer.js:315: modifiedContent = content + '\n\n/* TODO: Consider splitting this large CSS file into smaller modules */';
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\memory_leak_fixer.js:20: const fixedContent = this.fixMemoryLeaks(content);
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\memory_leak_fixer.js:38: fixMemoryLeaks(content) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\memory_leak_fixer.js:382: if (window.autoFixMemoryLeaks) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:71: return match.includes('TODO') || match.includes('placeholder') || match.includes('implement');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:107: 'TODO Comments': {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:108: pattern: /TODO[:\s]+([^\n]+)|\/\*\*?\s*TODO[:\s]+[\s\S]*?\*\//gi,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:111: if (match.includes('mockPatterns') || match.includes('TODO Comments')) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:120: // Extract TODO content for classification
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:121: const todoContent = match.replace(/TODO[:\s]*/i, '').trim();
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:122: const severity = this.classifyTODOSeverity(todoContent, context);
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:127: // Allow documentation TODOs but with lower priority
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:128: if (todoContent.includes('implementation') || todoContent.includes('code')) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:135: // Be more selective with test file TODOs
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:136: if (todoContent.includes('remove') || todoContent.includes('delete')) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:143: // Only allow critical framework TODOs
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:144: if (!todoContent.includes('security') &&
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:145: !todoContent.includes('breaking') &&
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:146: !todoContent.includes('critical') &&
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:147: !todoContent.includes('deprecation')) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:265: pattern: /\/\/\s*TODO.*mock|\/\*\*.*@mock|mockResponse|mockData|dummyResponse/gi,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:300: pattern: /\/\/\s*(FIXME|HACK|XXX|NOTE|BUG|TEMP|TEMPORARY|DEBUG|TODO|TBD|WIP|REFACTOR)\s*[:\s]+([^\n]*)|\/\*\*?\s*(FIXME|HACK|XXX|NOTE|BUG|TEMP|TEMPORARY|DEBUG|TODO|TBD|WIP|REFACTOR)\s*[:\s]+[\s\S]*?\*\//gi,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:336: // Exclude legitimate TODO/FIXME comments (handled separately)
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:337: if (match.match(/TODO|FIXME|HACK|XXX/i)) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:592: classifyTODOSeverity(todoContent, context) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:593: const content = todoContent.toLowerCase();
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:595: // Critical TODOs - security, breaking changes, production issues
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:637: // Default to medium for unclassified TODOs
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:671: case 'TODO Comments':
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:672: // TODO comments are normal development artifacts, downgrade severity
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:678: default: priority = 'low'; // Default to low for TODOs
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:774: 'TODO Comments': 0.10,
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1437: // Add severity information for TODO comments
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1438: if (category === 'TODO Comments') {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1446: // Classify each TODO for severity distribution
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1448: const todoContent = match.replace(/TODO[:\s]*/i, '').trim();
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1449: const severity = this.classifyTODOSeverity(todoContent, context);
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1515: // Add severity distribution for TODO comments
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1516: if (category === 'TODO Comments') {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1535: // Aggregate severity distribution for TODO comments
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1536: if (category === 'TODO Comments' && data.severityDistribution) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1727: recommendations.push('📈 Review and prioritize high-impact TODO items');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1758: 'TODO Comments': 0.10,            // Lower impact - normal development
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1793: // Special handling for TODO comments - less severe
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1794: if (category === 'TODO Comments') {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\mock_data_scanner.js:1795: baseScore = Math.max(baseScore, 70); // Don't penalize TODOs too harshly
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\quick-scanner-test.js:84: new File(['// TODO: implement this', 'console.log("test");'], 'test.js'),
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\run_quality_scan.js:41: console.log(`TODO Comments: ${report.findings.todoComments.count} instances`);
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\run_quality_scan.js:61: if (report.findings.todoComments.count > 0) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\run_quality_scan.js:62: console.log('\nTODO Comments:');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\run_quality_scan.js:63: report.findings.todoComments.instances.slice(0, 5).forEach(issue => {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\run_quality_scan.js:121: ### TODO Comments: ${report.findings.todoComments.count} instances
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\run_quality_scan.js:122: ${report.findings.todoComments.instances.slice(0, 10).map(issue =>
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\run_quality_scan.js:140: 3. Review and categorize TODO comments
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\team-optimization-system.js:908: hackathons: 'quarterly',
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\ui-level-failsafe-fix.js:116: applyFixToDOM(scanResults);
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\ui-level-failsafe-fix.js:136: function applyFixToDOM(container) {
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\ui-level-failsafe-fix.js:245: applyFixToDOM(existingResults);
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\code-roadmap-generator.js:246: if (/replace|changeme|demo|example|xxx|your_|todo/i.test(normalized)) return false;
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\codebase-analyzer.js:31: { id: 'todo', pattern: /\bTODO\b[:\s]/gi, label: 'TODO marker' },
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\codebase-analyzer.js:32: { id: 'fixme', pattern: /\bFIXME\b[:\s]/gi, label: 'FIXME marker' },
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\codebase-analyzer.js:33: { id: 'hack', pattern: /\bHACK\b[:\s]/gi, label: 'HACK marker' },
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\codebase-analyzer.js:36: { id: 'not-implemented', pattern: /not\s+implemented|throw\s+new\s+Error\s*\(\s*['"]TODO/gi, label: 'Not implemented stub' }
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\codebase-analyzer.js:155: ? 'Resolve or ticket the marker; remove stale TODO/FIXME'
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\codebase-analyzer.js:346: 'tech-debt': 'Technical debt markers (TODO/FIXME/HACK)',
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\trust-verification-payload.js:141: 'Codebase analyzer (separate scan) flags TODO/FIXME, broken JSON, debug artifacts, and ESLint violations.',
+C:\Users\Trevor\CascadeProjects\ai-platform\server\middleware\auth.js:121: // TODO: Implement token blacklist check
+C:\Users\Trevor\CascadeProjects\ai-platform\server\routes\auth.js:564: // TODO: Store MFA secret in database
+C:\Users\Trevor\CascadeProjects\ai-platform\server\routes\auth.js:569: // TODO: Retrieve MFA secret from database
+C:\Users\Trevor\CascadeProjects\ai-platform\server\routes\auth.js:574: // TODO: Store device in database
+C:\Users\Trevor\CascadeProjects\ai-platform\server\routes\auth.js:579: // TODO: Retrieve devices from database
+C:\Users\Trevor\CascadeProjects\ai-platform\server\routes\auth.js:584: // TODO: Update device trust status in database
+C:\Users\Trevor\CascadeProjects\ai-platform\server\routes\auth.js:589: // TODO: Retrieve user from database
+C:\Users\Trevor\CascadeProjects\ai-platform\server\routes\auth.js:594: // TODO: Add token to blacklist
+C:\Users\Trevor\CascadeProjects\ai-platform\server\services\sso-service.js:161: // TODO: Implement database lookup
+C:\Users\Trevor\CascadeProjects\ai-platform\server\services\sso-service.js:187: // TODO: Implement database update
+C:\Users\Trevor\CascadeProjects\ai-platform\server\services\sso-service.js:195: // TODO: Implement group synchronization
+C:\Users\Trevor\CascadeProjects\ai-platform\server\services\sso-service.js:444: // TODO: Store in audit log
+C:\Users\Trevor\CascadeProjects\ai-platform\server\dashboard-server.js:529: { type: 'TODO Comments', severity: 'low', icon: 'fa-tasks', category: 'quality' },
+C:\Users\Trevor\CascadeProjects\ai-platform\server\index.js:197: // Scan for TODO, FIXME, and other development markers
+C:\Users\Trevor\CascadeProjects\ai-platform\server\index.js:215: // Look for TODO, FIXME, etc.
+C:\Users\Trevor\CascadeProjects\ai-platform\server\index.js:216: if (line.match(/\/\/\s*(TODO|FIXME|HACK|XXX|NOTE)/i)) {
+C:\Users\Trevor\CascadeProjects\ai-platform\server\index.js:221: priority: line.includes('TODO') ? 'medium' : line.includes('FIXME') ? 'high' : 'low',
+C:\Users\Trevor\CascadeProjects\ai-platform\server\index.js:608: const needsValidation = content.includes('TODO') || content.includes('FIXME');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\index.js:645: if (content.includes('TODO')) quality -= 10;
+C:\Users\Trevor\CascadeProjects\ai-platform\server\index.js:646: if (content.includes('FIXME')) quality -= 15;
+C:\Users\Trevor\CascadeProjects\ai-platform\server\index.js:815: if (content.includes('TODO') || content.includes('FIXME')) {

@@ -6,10 +6,12 @@ const {
     toAuthUser
 } = require('../../server/services/user-service');
 const { hashPassword } = require('../../server/middleware/auth');
+const { clearJsonFileCache } = require('../../server/lib/json-file-cache');
 
 describe('user service demo authentication', () => {
     afterEach(() => {
         jest.restoreAllMocks();
+        clearJsonFileCache();
     });
 
     test('loadDemoUsers returns seeded accounts', () => {
@@ -36,12 +38,10 @@ describe('user service demo authentication', () => {
     });
 
     test('loadDemoUsers returns empty array when file cannot be read', () => {
-        const realReadFileSync = fs.readFileSync;
-        jest.spyOn(fs, 'readFileSync').mockImplementation((filePath, ...args) => {
-            if (String(filePath).includes('demo-users.json')) {
-                throw new Error('read failed');
-            }
-            return realReadFileSync.call(fs, filePath, ...args);
+        const realExistsSync = fs.existsSync;
+        jest.spyOn(fs, 'existsSync').mockImplementation((filePath) => {
+            if (String(filePath).includes('demo-users.json')) return false;
+            return realExistsSync.call(fs, filePath);
         });
         const users = loadDemoUsers();
         expect(users).toEqual([]);
@@ -49,6 +49,8 @@ describe('user service demo authentication', () => {
 
     test('authenticateWithDemoFile supports passwordHash entries', async () => {
         const passwordHash = await hashPassword('topsecret');
+        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        jest.spyOn(fs, 'statSync').mockReturnValue({ mtimeMs: Date.now(), size: 128 });
         jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify([
             {
                 id: 'u-hash',

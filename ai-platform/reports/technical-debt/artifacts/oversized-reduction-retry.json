@@ -1,0 +1,65 @@
+[
+  {
+    "file": "reports/technical-debt/raw/depcheck.json",
+    "action": "minified_in_place",
+    "before": 189424,
+    "after": 189423,
+    "saved": 1,
+    "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\reports__technical-debt__raw__depcheck.json.premin.json.gz"
+  },
+  {
+    "file": "reports/technical-debt/raw/knip.json",
+    "action": "minified_in_place",
+    "before": 291860,
+    "after": 291859,
+    "saved": 1,
+    "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\reports__technical-debt__raw__knip.json.premin.json.gz"
+  },
+  {
+    "file": "reports/technical-debt/raw/madge-tree.json",
+    "action": "minified_in_place",
+    "before": 39021,
+    "after": 34217,
+    "saved": 4804,
+    "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\reports__technical-debt__raw__madge-tree.json.premin.json.gz"
+  },
+  {
+    "file": "reports/technical-debt/raw/metrics-summary.json",
+    "action": "minified_in_place",
+    "before": 1048,
+    "after": 767,
+    "saved": 281,
+    "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\reports__technical-debt__raw__metrics-summary.json.premin.json.gz"
+  },
+  {
+    "file": "reports/technical-debt/raw/npm-audit.json",
+    "action": "minified_in_place",
+    "before": 386,
+    "after": 230,
+    "saved": 156,
+    "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\reports__technical-debt__raw__npm-audit.json.premin.json.gz"
+  },
+  {
+    "file": "reports/technical-debt/raw/npm-ls-depth0.json",
+    "action": "minified_in_place",
+    "before": 6033,
+    "after": 4531,
+    "saved": 1502,
+    "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\reports__technical-debt__raw__npm-ls-depth0.json.premin.json.gz"
+  },
+  {
+    "file": "reports/technical-debt/raw/npm-outdated.json",
+    "action": "minified_in_place",
+    "before": 2847,
+    "after": 2272,
+    "saved": 575,
+    "archive": "reports\\technical-debt\\archive\\raw-json-gzip\\reports__technical-debt__raw__npm-outdated.json.premin.json.gz"
+  },
+  {
+    "file": "reports/technical-debt/raw/compliance-endpoint-response.json",
+    "action": "unchanged",
+    "before": 9833,
+    "after": 9833,
+    "saved": 0
+  }
+]

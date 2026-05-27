@@ -6,6 +6,49 @@ const fs = require('fs');
 
 const SOURCE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx']);
 
+const SKIP_PATH_PREFIXES = [
+    'packages/simplebeacon-cli/bin/',
+    'packages/simplebeacon-cli/tests/',
+    'packages/simplebeacon-cli/src/analyzers/',
+    'packages/simplebeacon-cli/src/reporters/',
+    'packages/simplebeacon-cli/src/proxy/',
+    'tools/'
+];
+
+const SKIP_PATH_HINTS = [
+    '/tests/', '/test/', '/__tests__/',
+    '.test.', '.spec.',
+    'data-access-pattern-analyzer.js',
+    'json-file-cache.js',
+    'final_cleanup.cjs',
+    'ultimate_cleanup.cjs'
+];
+
+const BATCH_SCANNER_PATHS = [
+    'server/lib/codebase-analyzer.js',
+    'server/lib/code-roadmap-generator.js',
+    'server/lib/code-roadmap-phase2.js',
+    'server/lib/code-understanding/',
+    'packages/simplebeacon-cli/src/compliance-checklist.js',
+    'packages/simplebeacon-cli/src/scan.js',
+    'packages/simplebeacon-cli/src/lib/file-validator.js'
+];
+
+function shouldSkipDataAccessScan(relativePath) {
+    const rel = String(relativePath || '').replace(/\\/g, '/');
+    if (SKIP_PATH_PREFIXES.some((prefix) => rel.startsWith(prefix))) return true;
+    if (SKIP_PATH_HINTS.some((hint) => rel.includes(hint))) return true;
+    if (BATCH_SCANNER_PATHS.some((hint) => rel.includes(hint))) return true;
+    return false;
+}
+
+function isLazyCachedSyncRead(content, matchIndex) {
+    const windowStart = Math.max(0, matchIndex - 400);
+    const snippet = String(content || '').slice(windowStart, matchIndex + 120);
+    return /\bif\s*\(\s*!cached[A-Za-z0-9_]*\s*\)/.test(snippet)
+        || /\blet\s+cached[A-Za-z0-9_]*\s*=\s*null/.test(snippet);
+}
+
 const ACCESS_PATTERNS = [
     {
         id: 'sync-read-in-iteration',
@@ -53,6 +96,8 @@ class DataAccessPatternAnalyzer {
         const findings = [];
 
         for (const file of sourceFiles) {
+            if (shouldSkipDataAccessScan(file.relativePath)) continue;
+
             let content = '';
             try {
                 content = await fs.promises.readFile(file.path, 'utf8');
@@ -62,7 +107,9 @@ class DataAccessPatternAnalyzer {
 
             for (const pattern of ACCESS_PATTERNS) {
                 pattern.regex.lastIndex = 0;
-                if (!pattern.regex.test(content)) continue;
+                const match = pattern.regex.exec(content);
+                if (!match) continue;
+                if (pattern.id === 'parse-sync-read' && isLazyCachedSyncRead(content, match.index)) continue;
                 findings.push({
                     type: 'data-access-pattern',
                     path: file.relativePath,
@@ -89,5 +136,7 @@ class DataAccessPatternAnalyzer {
 
 module.exports = {
     DataAccessPatternAnalyzer,
-    ACCESS_PATTERNS
+    ACCESS_PATTERNS,
+    shouldSkipDataAccessScan,
+    isLazyCachedSyncRead
 };

@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-05-14T14:07:45.669999",
+  "cleanup_type": "build_artifacts",
+  "items_removed": 2,
+  "space_freed": 41584539,
+  "errors": 0,
+  "removed_items": [
+    "C:\\Users\\Trevor\\CascadeProjects\\loop-haven\\OrbitalDefender_3D_Unity\\Build",
+    "C:\\Users\\Trevor\\CascadeProjects\\configs\\temporal_scan_analysis_report.json"
+  ],
+  "errors_list": []
+}

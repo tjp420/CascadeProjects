@@ -1,0 +1,45 @@
+# BP_BuildingGenerator Blueprint Implementation
+
+## Variables (Details Panel)
+```
+Building Count (Integer): 50
+Spacing (Float): 300.0
+Grid Size (Integer): 10
+Random Seed (Integer): 12345
+Layout Type (Enum): Grid/Radial
+bAutoGenerate (Boolean): true
+```
+
+## Construction Script Logic
+1. Clear existing buildings
+2. Loop based on Building Count
+3. Calculate spawn position based on Layout Type
+4. Spawn BP_ProceduralBuilding at calculated position
+5. Apply randomization using Random Seed
+
+## Grid Layout Algorithm
+```
+For i = 0 to Building Count-1:
+  X = (i % Grid Size) * Spacing
+  Y = (i / Grid Size) * Spacing
+  Position = FVector(X, Y, 0)
+```
+
+## Radial Layout Algorithm
+```
+For i = 0 to Building Count-1:
+  Angle = (i / Building Count) * 2 * PI
+  Radius = Spacing * (i % 5 + 1)
+  X = cos(Angle) * Radius
+  Y = sin(Angle) * Radius
+  Position = FVector(X, Y, 0)
+```
+
+## Functions
+- `GenerateBuildings()`: Main spawning logic
+- `ClearBuildings()`: Cleanup existing buildings
+- `CalculatePosition()`: Position calculation based on layout
+
+## Event Graph
+- BeginPlay: Initialize generator
+- Construction Script: Auto-generate if bAutoGenerate is true

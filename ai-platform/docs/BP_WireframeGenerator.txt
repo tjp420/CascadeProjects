@@ -1,0 +1,73 @@
+# BP_WireframeGenerator Blueprint
+
+## Purpose
+Convert 2D images to wireframe meshes in UE5
+
+## Variables
+```
+InputImage (Texture2D): Source image
+LineThickness (Float): 0.1
+Threshold (Float): 0.5
+DetailLevel (Integer): 256
+bAutoGenerate (Boolean): true
+OutputMesh (StaticMesh): Generated wireframe
+```
+
+## Components
+```
+Root Component (Scene Component)
+├── ImageProcessor (Scene Component)
+├── MeshGenerator (Scene Component)
+└── PreviewRenderer (Scene Component)
+```
+
+## Functions
+
+### ProcessImage()
+1. Load InputImage texture
+2. Apply edge detection algorithm
+3. Generate contour data
+4. Create vertices from edges
+
+### GenerateWireframe()
+1. Convert contour data to mesh vertices
+2. Create line segments
+3. Build Static Mesh
+4. Apply wireframe material
+
+### SetWireframeMaterial()
+1. Create unlit material
+2. Set emissive color (white)
+3. Disable depth testing
+4. Apply to generated mesh
+
+## Construction Script
+1. Load input image if specified
+2. Process image for edges
+3. Generate wireframe mesh
+4. Apply material
+5. Update preview
+
+## Event Graph
+- BeginPlay: Initialize components
+- Construction Script: Auto-generate if enabled
+- OnImageChanged: Regenerate wireframe
+
+## Edge Detection Algorithm
+```
+For each pixel in image:
+  Calculate gradient (Sobel operator)
+  If gradient > Threshold:
+    Add to edge points
+Connect edge points to form contours
+Simplify contours using Douglas-Peucker algorithm
+```
+
+## Material Setup
+```
+M_Wireframe:
+  - Unlit
+  - Emissive color: White
+  - Wireframe rendering enabled
+  - No depth testing
+```

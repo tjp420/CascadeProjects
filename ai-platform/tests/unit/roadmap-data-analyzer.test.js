@@ -5,7 +5,7 @@ describe('RoadmapDataService.normalizeRoadmapData', () => {
     test('maps legacy phases and metadata into dashboard shape', () => {
         const service = new RoadmapDataService();
         const normalized = service.normalizeRoadmapData({
-            type: 'gguf-development-roadmap-report',
+            type: 'ai-roadmap-report-model',
             title: 'Development Roadmap Report',
             generatedAt: '2026-05-23T07:10:31.316Z',
             projectOverview: {},

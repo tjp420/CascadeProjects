@@ -324,7 +324,7 @@ class AIRoadmapGenerator {
   /**
    * Generate phase achievements
    */
-  generatePhaseAchievements(phase, projectAnalysis, codeAnalysis) {
+  generatePhaseAchievements(phase, _projectAnalysis, _codeAnalysis) {
     const achievements = {
       1: [
         'Core AI platform architecture established',
@@ -374,21 +374,21 @@ class AIRoadmapGenerator {
   /**
    * Count total features
    */
-  countTotalFeatures(phases) {
+  countTotalFeatures(_phases) {
     return 47; // Based on current project analysis
   }
 
   /**
    * Count completed features
    */
-  countCompletedFeatures(phases) {
+  countCompletedFeatures(_phases) {
     return 31; // Based on current project status
   }
 
   /**
    * Count in-progress features
    */
-  countInProgressFeatures(phases) {
+  countInProgressFeatures(_phases) {
     return 0; // Based on current project status
   }
 
@@ -461,3 +461,4 @@ class AIRoadmapGenerator {
 }
 
 module.exports = AIRoadmapGenerator;
+

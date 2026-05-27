@@ -1,0 +1,76 @@
+{
+  "generatedAt": "2026-05-25T23:14:12.101Z",
+  "thresholdKB": 250,
+  "oversizedCount": 8,
+  "savings": {
+    "totalBytes": 4830519,
+    "totalMB": 4.607,
+    "estimatedRecoverableBytes": 4105941,
+    "estimatedRecoverableMB": 3.916
+  },
+  "actionableOversizedCount": 8,
+  "actionableSavings": {
+    "totalBytes": 4830519,
+    "totalMB": 4.607,
+    "estimatedRecoverableBytes": 4105941,
+    "estimatedRecoverableMB": 3.916
+  },
+  "byDirectory": {
+    "security-reports/fixes": 3,
+    "src/web": 1,
+    "src/server/api": 1,
+    "web/scripts": 1,
+    ".": 1,
+    "web/api": 1
+  },
+  "files": [
+    {
+      "file": "src/web/archive-unused-files.zip",
+      "sizeBytes": 1061389,
+      "sizeKB": 1036.5,
+      "sizeMB": 1.012
+    },
+    {
+      "file": "security-reports/fixes/export-system.js.backup",
+      "sizeBytes": 1037037,
+      "sizeKB": 1012.7,
+      "sizeMB": 0.989
+    },
+    {
+      "file": "src/server/api/dashboard_enhanced.db",
+      "sizeBytes": 724992,
+      "sizeKB": 708,
+      "sizeMB": 0.691
+    },
+    {
+      "file": "web/scripts/dashboard-scripts.js",
+      "sizeBytes": 491045,
+      "sizeKB": 479.5,
+      "sizeMB": 0.468
+    },
+    {
+      "file": "security-reports/fixes/dashboard-scripts.js.backup",
+      "sizeBytes": 482918,
+      "sizeKB": 471.6,
+      "sizeMB": 0.461
+    },
+    {
+      "file": "package-lock.json",
+      "sizeBytes": 445017,
+      "sizeKB": 434.6,
+      "sizeMB": 0.424
+    },
+    {
+      "file": "web/api/mock-backend.js",
+      "sizeBytes": 318278,
+      "sizeKB": 310.8,
+      "sizeMB": 0.304
+    },
+    {
+      "file": "security-reports/fixes/core.py.backup",
+      "sizeBytes": 269843,
+      "sizeKB": 263.5,
+      "sizeMB": 0.257
+    }
+  ]
+}

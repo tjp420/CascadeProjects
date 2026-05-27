@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * Analyzer Dashboard
  * Comprehensive dashboard for roadmap analysis and visualization
@@ -25,7 +26,7 @@ class AnalyzerDashboard {
    * Generate comprehensive dashboard
    */
   async generateDashboard() {
-    console.log('📊 Generating analyzer dashboard...');
+    logger.debug('📊 Generating analyzer dashboard...');
     
     try {
       // Perform analysis
@@ -39,7 +40,7 @@ class AnalyzerDashboard {
       this.dashboard.recommendations = this.generateRecommendationAnalysis(analysis);
       this.dashboard.roadmap = this.analyzer.generateRoadmap();
       
-      console.log('✅ Dashboard generation completed!');
+      logger.debug('✅ Dashboard generation completed!');
       return this.dashboard;
       
     } catch (error) {
@@ -92,30 +93,24 @@ class AnalyzerDashboard {
    */
   calculateProjectHealth(analysis) {
     let score = 0;
-    let factors = 0;
 
     // Feature completion (30%)
     score += (analysis.features.completionRate / 100) * 30;
-    factors++;
 
     // Code quality (25%)
     score += (analysis.complexity.maintainabilityIndex / 100) * 25;
-    factors++;
 
     // Technical debt (20%)
     const debtScore = Math.max(0, 100 - (analysis.metrics.technicalDebt.highComplexity * 10));
     score += (debtScore / 100) * 20;
-    factors++;
 
     // Project structure (15%)
     const structureScore = analysis.structure.totalFiles > 100 ? 100 : 50;
     score += (structureScore / 100) * 15;
-    factors++;
 
     // Dependencies (10%)
     const depScore = analysis.dependencies.external.production ? 100 : 50;
     score += (depScore / 100) * 10;
-    factors++;
 
     return Math.round(score);
   }
@@ -716,11 +711,12 @@ class AnalyzerDashboard {
     const htmlPath = outputPath.replace('.json', '.html');
     await fs.writeFile(htmlPath, html);
     
-    console.log(`✅ Dashboard saved to ${outputPath}`);
-    console.log(`✅ HTML dashboard saved to ${htmlPath}`);
+    logger.debug(`✅ Dashboard saved to ${outputPath}`);
+    logger.debug(`✅ HTML dashboard saved to ${htmlPath}`);
     
     return { jsonPath: outputPath, htmlPath };
   }
 }
 
 module.exports = AnalyzerDashboard;
+

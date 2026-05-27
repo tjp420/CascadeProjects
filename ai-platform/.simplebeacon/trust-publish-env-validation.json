@@ -1,0 +1,20 @@
+{
+  "validatedAt": "2026-05-25T21:40:38.485Z",
+  "strict": false,
+  "requireEndpoint": false,
+  "requireToken": false,
+  "requireHttps": true,
+  "endpointConfigured": false,
+  "tokenConfigured": false,
+  "endpointRedacted": null,
+  "warnings": [
+    "No trust publish endpoint configured; remote publish will be skipped.",
+    "No trust publish token configured; publish will proceed without Authorization header."
+  ],
+  "errors": [],
+  "operatorActions": [
+    "Set SIMPLEBEACON_TRUST_PUBLISH_URL (or TRUST_PUBLISH_ENDPOINT) to enable remote publishing.",
+    "Set SIMPLEBEACON_TRUST_PUBLISH_TOKEN for authenticated publish endpoints."
+  ],
+  "ready": true
+}

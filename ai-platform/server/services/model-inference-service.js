@@ -10,10 +10,11 @@ const { scanMockDataDirectories, _formatBytes } = require('../lib/mock-data-scan
 const { ollamaGenerate, extractJsonObject } = require('./ollama-client');
 const { assertSafeExecutablePath } = require('../lib/path-safety');
 
-const SAMPLE_PATH = path.join('web', 'data', 'gguf-mock-analysis-sample.json');
+const SAMPLE_PATH = path.join('web', 'data', 'mock-analysis-sample.json');
 const FALLBACK_TEMPLATE = {
     mockDataCategories: [],
-    ggufAIInsights: { dataPatterns: [], optimizationRecommendations: [], qualityImprovements: [] },
+    optimizationRecommendations: [],
+    qualityImprovements: [],
     privacyAndSecurity: {}
 };
 
@@ -255,7 +256,7 @@ async function analyzeWithModel(baseDir, modelId, options = {}) {
     const modelInfo = buildModelInfo(model, registry, baseline);
 
     let report = {
-        type: 'gguf-mock-data-analysis-report',
+        type: 'mock-data-analysis-report',
         title: baseline?.title || 'Mock Data Analysis (Live Scan)',
         generatedAt: new Date().toISOString(),
         generatedBy: baseline?.generatedBy || 'mock-data-scanner (repository-audit)',

@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { readJsonFileCached } = require('./json-file-cache');
 
 const DEFAULT_RELATIVE_PATH = path.join('coverage', 'dashboard', 'coverage-summary.json');
 
@@ -43,7 +44,10 @@ function loadJestCoverageSummary(baseDir, options = {}) {
 
     let payload;
     try {
-        payload = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
+        payload = readJsonFileCached(summaryPath);
+        if (!payload) {
+            return { available: false, summaryPath, totals: null, files: [] };
+        }
     } catch (error) {
         return { available: false, summaryPath, error: error.message, totals: null, files: [] };
     }

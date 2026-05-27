@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * Quality Analyzer System
  * 
@@ -25,7 +26,7 @@ class QualityAnalyzer {
     this.isInitialized = false;
     
     this.initializeFactors();
-    console.log('[QUALITY_ANALYZER] Quality analyzer initialized');
+    logger.debug('[QUALITY_ANALYZER] Quality analyzer initialized');
   }
 
   // Initialize quality factors
@@ -90,7 +91,7 @@ class QualityAnalyzer {
       category: 'security'
     });
 
-    console.log(`[QUALITY_ANALYZER] Initialized ${this.factors.size} quality factors`);
+    logger.debug(`[QUALITY_ANALYZER] Initialized ${this.factors.size} quality factors`);
   }
 
   // Add quality factor
@@ -104,19 +105,19 @@ class QualityAnalyzer {
       failureCount: 0,
       lastUsed: null
     });
-    console.log(`[QUALITY_ANALYZER] Added quality factor: ${name}`);
+    logger.debug(`[QUALITY_ANALYZER] Added quality factor: ${name}`);
   }
 
   // Initialize quality analyzer
   async initialize() {
     if (this.isInitialized) {
-      console.log('[QUALITY_ANALYZER] Quality analyzer already initialized');
+      logger.debug('[QUALITY_ANALYZER] Quality analyzer already initialized');
       return;
     }
 
     try {
       this.isInitialized = true;
-      console.log('[QUALITY_ANALYZER] Quality analyzer initialized successfully');
+      logger.debug('[QUALITY_ANALYZER] Quality analyzer initialized successfully');
       
     } catch (error) {
       console.error('[QUALITY_ANALYZER] Failed to initialize quality analyzer:', error.message);
@@ -257,7 +258,7 @@ class QualityAnalyzer {
   }
 
   // Assess consistency factor
-  assessConsistency(data, options = {}) {
+  assessConsistency(data, _options = {}) {
     let score = 100;
     const issues = [];
     
@@ -328,7 +329,7 @@ class QualityAnalyzer {
   }
 
   // Assess validity factor
-  assessValidity(data, options = {}) {
+  assessValidity(data, _options = {}) {
     let score = 100;
     const issues = [];
     
@@ -376,7 +377,7 @@ class QualityAnalyzer {
   }
 
   // Assess accuracy factor
-  assessAccuracy(data, options = {}) {
+  assessAccuracy(data, _options = {}) {
     // This would require external validation or reference data
     // For now, return a default score based on data type
     let score = 85;
@@ -410,7 +411,7 @@ class QualityAnalyzer {
   }
 
   // Assess performance factor
-  assessPerformance(data, options = {}) {
+  assessPerformance(data, _options = {}) {
     let score = 100;
     const issues = [];
     
@@ -460,7 +461,7 @@ class QualityAnalyzer {
   }
 
   // Assess security factor
-  assessSecurity(data, options = {}) {
+  assessSecurity(data, _options = {}) {
     let score = 100;
     const issues = [];
     
@@ -542,7 +543,7 @@ class QualityAnalyzer {
     });
     
     // Add high priority recommendations
-    const criticalFactors = Object.entries(factors).filter(([name, factor]) => factor.score < 60);
+    const criticalFactors = Object.entries(factors).filter(([_name, factor]) => factor.score < 60);
     if (criticalFactors.length > 0) {
       recommendations.push({
         priority: 'critical',
@@ -749,7 +750,7 @@ class QualityAnalyzer {
     this.factors.clear();
     
     this.isInitialized = false;
-    console.log('[QUALITY_ANALYZER] Quality analyzer destroyed');
+    logger.debug('[QUALITY_ANALYZER] Quality analyzer destroyed');
   }
 }
 
@@ -771,3 +772,4 @@ module.exports = {
   QualityAnalyzer,
   initializeQualityAnalyzer
 };
+

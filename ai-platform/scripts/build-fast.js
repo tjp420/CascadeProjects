@@ -18,8 +18,16 @@ const BUILD_OPTIONS = {
     url: 'http://localhost:3000/'
   },
   'express': {
-    name: 'Express Server with APIs',
-    description: 'Full backend with Stripe and AI endpoints',
+    name: 'Simplebeacon Server',
+    description: 'Product server with scan APIs, billing, and dashboard (port 54355)',
+    command: 'node',
+    args: ['simplebeacon-server.js'],
+    port: 54355,
+    url: 'http://localhost:54355/'
+  },
+  'stripe-demo': {
+    name: 'Legacy Stripe Demo Server',
+    description: 'Deprecated demo server on port 3002',
     command: 'node',
     args: ['src/server/index.js'],
     port: 3002,
@@ -32,7 +40,7 @@ const BUILD_OPTIONS = {
     args: ['webpack', 'serve', '--mode', 'development'],
     port: 8080,
     url: 'http://localhost:8080',
-    cwd: 'src/web'
+    cwd: 'web'
   },
   'vite': {
     name: 'Vite Development',

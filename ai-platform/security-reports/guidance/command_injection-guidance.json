@@ -1,0 +1,47 @@
+{
+  "metadata": {
+    "id": "command_injection",
+    "name": "Command Injection",
+    "severity": "critical",
+    "generatedAt": "2026-05-23T08:42:51.416Z"
+  },
+  "description": "Execution of system commands with user input",
+  "detectionPatterns": [
+    "subprocess\\.(call|run|Popen)",
+    "os\\.system\\s*\\(",
+    "exec\\s*\\("
+  ],
+  "examples": {
+    "vulnerable": "# Python - Dangerous\nimport subprocess\nuser_input = getUserInput()\nsubprocess.call(user_input, shell=True)\n\nos.system(user_input)",
+    "secure": "# Python - Safe\nimport subprocess\nuser_input = getUserInput()\nsubprocess.run(['ls', user_input], shell=False)\n\n# Validate input\nif not re.match(r'^[a-zA-Z0-9_]+$', user_input):\n    raise ValueError('Invalid input')"
+  },
+  "solutions": [
+    "Never use shell=True in subprocess calls",
+    "Use list arguments instead of string commands",
+    "Validate and sanitize all user inputs",
+    "Use whitelist-based input validation",
+    "Implement proper error handling"
+  ],
+  "prevention": [
+    "Disable shell execution when possible",
+    "Use principle of least privilege",
+    "Implement input validation frameworks",
+    "Use parameterized APIs",
+    "Regular security audits"
+  ],
+  "testingApproach": "Security penetration testing, command injection test suites, subprocess mocking in unit tests",
+  "tools": [
+    {
+      "name": "Bandit",
+      "description": "Python security linter"
+    },
+    {
+      "name": "Semgrep",
+      "description": "Static analysis for security patterns"
+    },
+    {
+      "name": "OWASP Dependency-Check",
+      "description": "Dependency vulnerability scanner"
+    }
+  ]
+}

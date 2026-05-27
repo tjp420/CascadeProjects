@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — SimpleBeacon</title>
+  <meta name="robots" content="index, follow">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="site">
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">🛡️</span> SimpleBeacon</a>
+        <nav class="topnav"><a href="/">Home</a><a href="/pricing">Pricing</a></nav>
+      </div>
+    </header>
+    <main class="section">
+      <div class="container legal-doc">
+        <h1>Privacy Policy</h1>
+        <p class="text-muted">Last updated: May 26, 2026</p>
+        <h2>What we collect</h2>
+        <ul>
+          <li>Account email and authentication metadata (hosted dashboard)</li>
+          <li>Billing information processed by Stripe (we do not store full card numbers)</li>
+          <li>Waitlist signups and support correspondence</li>
+          <li>Scan reports you upload or generate (stored per your deployment)</li>
+        </ul>
+        <h2>What we do not do by default</h2>
+        <ul>
+          <li>We do not mutate your source code during standard scans</li>
+          <li>We do not sell your repository contents</li>
+          <li>CLI-only usage can run entirely on your machine with no cloud upload</li>
+        </ul>
+        <h2>Retention</h2>
+        <p>Hosted scan history and assessments follow configured retention (default assessment TTL 24h where enabled). You may request deletion of account data at <a href="mailto:privacy@simplebeacon.ai">privacy@simplebeacon.ai</a>.</p>
+        <h2>Cookies</h2>
+        <p>Authentication sessions use HTTP-only cookies or bearer tokens on the dashboard. Landing pages use minimal client-side storage for pricing interval preference.</p>
+        <h2>Contact</h2>
+        <p><a href="mailto:privacy@simplebeacon.ai">privacy@simplebeacon.ai</a></p>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <p>&copy; <span id="year"></span> SimpleBeacon · <a href="/terms">Terms</a> · <a href="/refund">Refunds</a></p>
+      </div>
+    </footer>
+  </div>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

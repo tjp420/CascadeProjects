@@ -1,0 +1,21 @@
+{
+  "successRate": 89.3,
+  "avgResponseTime": 234,
+  "uptime": 99.9,
+  "errorRate": 0.2,
+  "totalRequests": 1245678,
+  "metrics": {
+    "api": {
+      "success": 95.2,
+      "avgTime": 180
+    },
+    "database": {
+      "success": 98.7,
+      "avgTime": 45
+    },
+    "cache": {
+      "success": 99.9,
+      "avgTime": 12
+    }
+  }
+}

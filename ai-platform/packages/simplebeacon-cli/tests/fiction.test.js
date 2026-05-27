@@ -119,7 +119,7 @@ test('real ai-tools-sample overview metrics are not fiction KPIs', () => {
 
 test('detectStaleRoadmapTemplate flags Sprint 3 in-progress at 75%', () => {
     const hits = detectStaleRoadmapTemplate({
-        type: 'gguf-development-roadmap-report',
+        type: 'ai-roadmap-report-model',
         dataSource: 'repository-audit',
         developmentPhases: [{
             phase: 'Sprint 3: Honest Dashboard Data',
@@ -132,7 +132,7 @@ test('detectStaleRoadmapTemplate flags Sprint 3 in-progress at 75%', () => {
 
 test('detectStaleRoadmapTemplate flags 8 features at 62% combo', () => {
     const hits = detectStaleRoadmapTemplate({
-        type: 'gguf-development-roadmap-report',
+        type: 'ai-roadmap-report-model',
         dataSource: 'repository-audit',
         projectOverview: { totalFeatures: REJECTED_SMALL_FEATURE_COUNT, completionRate: REJECTED_COMPLETION_RATE }
     });

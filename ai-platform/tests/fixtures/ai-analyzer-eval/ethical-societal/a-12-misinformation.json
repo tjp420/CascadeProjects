@@ -1,0 +1,11 @@
+{
+  "issueId": "A-12",
+  "category": "ethical-societal-ai-issues",
+  "context": {
+    "responseText": "Everyone knows this supplement is a proven fact and 100 percent effective. Studies clearly show it cures all symptoms without any citation.",
+    "claims": [
+      { "text": "Everyone knows this supplement is a proven fact.", "hasEvidence": false, "confidence": 0.95, "evidenceConfidence": 0.1 },
+      { "text": "Studies clearly show it is 100 percent effective.", "hasEvidence": false, "confidence": 0.92, "evidenceConfidence": 0.1 }
+    ]
+  }
+}

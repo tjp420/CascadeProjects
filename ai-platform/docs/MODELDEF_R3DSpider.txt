@@ -1,0 +1,48 @@
+// =============================================================================
+// R3DSpiderMastermind Model Definitions - Fixed Scale
+// =============================================================================
+
+Model R3DSpiderMastermindmodel1
+{
+    Path "Models/R3DSpider/"
+    Model "R3DSpiderMastermind1.md3"
+    Scale 16.0  // Massive scale - should be very visible now
+    SkinIndex 0
+    FrameIndex "R3DSpiderA" "R3DSpiderA" 0
+}
+
+Model R3DSpiderMastermindmodel2
+{
+    Path "Models/R3DSpider/"
+    Model "R3DSpiderMastermind2.md3"
+    Scale 16.0  // Massive scale - should be very visible now
+    SkinIndex 0
+    FrameIndex "R3DSpiderB" "R3DSpiderB" 0
+}
+
+Model R3DSpiderMastermindmodel3
+{
+    Path "Models/R3DSpider/"
+    Model "R3DSpiderMastermind3.md3"
+    Scale 16.0  // Massive scale - should be very visible now
+    SkinIndex 0
+    FrameIndex "R3DSpiderC" "R3DSpiderC" 0
+}
+
+Model R3DSpiderMastermindmodel4
+{
+    Path "Models/R3DSpider/"
+    Model "R3DSpiderMastermind4.md3"
+    Scale 16.0  // Massive scale - should be very visible now
+    SkinIndex 0
+    FrameIndex "R3DSpiderD" "R3DSpiderD" 0
+}
+
+Model R3DSpiderMastermindmodel5
+{
+    Path "Models/R3DSpider/"
+    Model "R3DSpiderMastermind5.md3"
+    Scale 16.0  // Massive scale - should be very visible now
+    SkinIndex 0
+    FrameIndex "R3DSpiderE" "R3DSpiderE" 0
+}

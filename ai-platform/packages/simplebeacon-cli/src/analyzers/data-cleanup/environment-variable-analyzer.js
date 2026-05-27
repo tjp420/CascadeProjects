@@ -14,6 +14,23 @@ const {
 } = require('./utils/env-profile-utils');
 
 const ENV_REFERENCE_PATTERN = /process\.env\.([A-Z0-9_]+)/g;
+const ENV_GETTER_PATTERN = /\bget\s*\(\s*['"]([A-Z0-9_]+)['"]\s*\)/g;
+const ENV_CREDENTIAL_PATTERN = /resolveCredential\([^,]+,\s*[^,]+,\s*['"]([A-Z0-9_]+)['"]\s*\)/g;
+
+function collectEnvReferences(content, filePath, referencedKeys) {
+    const patterns = [ENV_REFERENCE_PATTERN, ENV_GETTER_PATTERN, ENV_CREDENTIAL_PATTERN];
+    for (const pattern of patterns) {
+        pattern.lastIndex = 0;
+        let match = pattern.exec(content);
+        while (match) {
+            const key = match[1];
+            const refs = referencedKeys.get(key) || new Set();
+            refs.add(filePath);
+            referencedKeys.set(key, refs);
+            match = pattern.exec(content);
+        }
+    }
+}
 
 class EnvironmentVariableAnalyzer {
     async scan(projectRoot, options = {}) {
@@ -67,14 +84,7 @@ class EnvironmentVariableAnalyzer {
             } catch {
                 continue;
             }
-            let match = ENV_REFERENCE_PATTERN.exec(content);
-            while (match) {
-                const key = match[1];
-                const refs = referencedKeys.get(key) || new Set();
-                refs.add(file.relativePath);
-                referencedKeys.set(key, refs);
-                match = ENV_REFERENCE_PATTERN.exec(content);
-            }
+            collectEnvReferences(content, file.relativePath, referencedKeys);
         }
 
         for (const [, values] of envKeys.entries()) {

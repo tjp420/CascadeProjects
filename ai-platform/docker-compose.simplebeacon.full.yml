@@ -1,0 +1,13 @@
+# Full stack overrides — wire Phase 2 Postgres/Redis into the dashboard container.
+services:
+  dashboard:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ENABLE_DATABASE: "true"
+      ENABLE_REDIS: "true"
+      DATABASE_URL: postgresql://cascade_user:secure_password@postgres:5432/cascade_ai_platform
+      REDIS_URL: redis://redis:6379

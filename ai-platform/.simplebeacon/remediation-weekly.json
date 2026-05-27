@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-05-26T06:04:08.002Z",
+  "program": "FULL_REMEDIATION_PROGRAM_2026-05-26",
+  "healthScore": 100,
+  "findingsTotal": 0,
+  "severityCounts": {
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "analyzerCounts": {
+    "debugArtifacts": 0,
+    "placeholderOrFictionalData": 0,
+    "eslintFindings": 0
+  },
+  "codeFilesAnalyzed": 4349,
+  "debugGuard": {
+    "filesWithFindings": 318,
+    "totalFindings": 3236,
+    "serverFilesWithFindings": 0,
+    "serverFindings": 0
+  },
+  "coverage": {
+    "available": true,
+    "linesPct": 14.92,
+    "statementsPct": 13.93
+  },
+  "gates": {
+    "healthTarget": 90,
+    "healthPass": true,
+    "highSeverityTarget": 0,
+    "highSeverityPass": true
+  }
+}

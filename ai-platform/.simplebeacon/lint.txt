@@ -1,0 +1,195 @@
+(node:1334116) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Trevor/CascadeProjects/ai-platform/eslint.config.js?mtime=1779914107962 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\Trevor\CascadeProjects\ai-platform\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+C:\Users\Trevor\CascadeProjects\ai-platform\server\index.js
+  305:20  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\codebase-analyzer.js
+  838:9  warning  Unused eslint-disable directive (no problems were reported from 'no-new')
+
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\gguf-analysis.js
+   55:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  497:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  508:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  525:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  535:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  552:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\server\middleware\audit.js
+  169:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  190:16  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  418:16  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\server\middleware\auth.js
+  104:12  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\server\middleware\upload-security.js
+  258:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\server\routes\upload.js
+  51:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\server\services\cloud-inference-service.js
+  70:14  warning  'err' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\ai\RoadmapGenerator.js
+  104:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u   no-unused-vars
+  293:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u   no-unused-vars
+  327:36  warning  'projectAnalysis' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  327:53  warning  'codeAnalysis' is defined but never used. Allowed unused args must match /^_/u     no-unused-vars
+  377:22  warning  'phases' is defined but never used. Allowed unused args must match /^_/u           no-unused-vars
+  384:26  warning  'phases' is defined but never used. Allowed unused args must match /^_/u           no-unused-vars
+  391:27  warning  'phases' is defined but never used. Allowed unused args must match /^_/u           no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\analysis\AnalysisEngine.js
+   449:24  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+   602:22  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+   708:24  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+   778:18  warning  'data' is defined but never used. Allowed unused args must match /^_/u              no-unused-vars
+   785:26  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+   862:24  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+   980:28  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+  1317:1   warning  'window' is not defined                                                             no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\analysis\AnalyzerDashboard.js
+  119:5  warning  'factors' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\analysis\IssueDetector.js
+   325:20  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u    no-unused-vars
+   391:23  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   438:26  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   480:21  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   519:23  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   560:25  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   572:31  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+   599:25  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   611:31  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+   640:20  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   678:25  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   738:25  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   803:24  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   816:30  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+   855:21  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   867:27  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+   893:23  warning  'issue' is defined but never used. Allowed unused args must match /^_/u             no-unused-vars
+   905:29  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+  1159:1   warning  'window' is not defined                                                             no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\analysis\PatternDetector.js
+   260:24  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+  1376:1   warning  'window' is not defined                                                             no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\analysis\QualityAnalyzer.js
+  261:27  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+  332:24  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+  380:24  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+  414:27  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+  464:24  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u  no-unused-vars
+  546:62  warning  'name' is defined but never used. Allowed unused args must match /^_/u              no-unused-vars
+  769:1   warning  'window' is not defined                                                             no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\analysis\RoadmapAnalyzer.js
+   88:16  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  133:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  157:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  194:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  237:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  272:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  335:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  361:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  405:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  485:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  509:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  559:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  593:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  619:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  652:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  693:17  warning  'file' is assigned a value but never used. Allowed unused vars must match /^_/u   no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\dashboard-stub-api.js
+  7:7  warning  'fsSync' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\optimization-api.js
+  7:7  warning  'fs' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\simplebeacon-api.js
+  510:11  warning  Do not assign to the exception parameter  no-ex-assign
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\trust-api.js
+  161:19  warning  'published' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\GlobalContextManager.js
+  249:26  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u         no-unused-vars
+  615:26  warning  Unnecessary escape character: \/                                                         no-useless-escape
+  813:21  warning  'relativePath' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  828:21  warning  'relativePath' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  860:21  warning  'path' is assigned a value but never used. Allowed unused vars must match /^_/u          no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\core\RoadmapDataAnalyzer.js
+    9:7   warning  'crypto' is assigned a value but never used. Allowed unused vars must match /^_/u    no-unused-vars
+  760:34  warning  'features' is defined but never used. Allowed unused args must match /^_/u           no-unused-vars
+  778:28  warning  'analysis' is defined but never used. Allowed unused args must match /^_/u           no-unused-vars
+  804:15  warning  'baseDate' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  857:31  warning  'analysis' is defined but never used. Allowed unused args must match /^_/u           no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\lib\app-logger.js
+  44:5  warning  'window' is not defined  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\lib\production-logger.js
+  19:40  warning  'window' is not defined  no-undef
+  19:59  warning  'window' is not defined  no-undef
+  20:46  warning  'window' is not defined  no-undef
+  33:40  warning  'window' is not defined  no-undef
+  33:64  warning  'window' is not defined  no-undef
+  34:5   warning  'window' is not defined  no-undef
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\index.js
+    48:7   warning  'users' is assigned a value but never used. Allowed unused vars must match /^_/u        no-unused-vars
+    63:11  warning  'fs' is assigned a value but never used. Allowed unused vars must match /^_/u           no-unused-vars
+    89:11  warning  'fs' is assigned a value but never used. Allowed unused vars must match /^_/u           no-unused-vars
+   116:11  warning  'fs' is assigned a value but never used. Allowed unused vars must match /^_/u           no-unused-vars
+   143:11  warning  'fs' is assigned a value but never used. Allowed unused vars must match /^_/u           no-unused-vars
+   295:11  warning  'fs' is assigned a value but never used. Allowed unused vars must match /^_/u           no-unused-vars
+   296:11  warning  'path' is assigned a value but never used. Allowed unused vars must match /^_/u         no-unused-vars
+   332:34  warning  'reject' is defined but never used. Allowed unused args must match /^_/u                no-unused-vars
+  1193:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  1213:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  1217:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  1230:61  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u      no-unused-vars
+  1292:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  1312:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  1316:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  1363:29  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u      no-unused-vars
+  1449:39  warning  'schema' is assigned a value but never used. Allowed unused args must match /^_/u       no-unused-vars
+  1449:54  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u      no-unused-vars
+  1505:43  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u      no-unused-vars
+  1533:56  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u      no-unused-vars
+  1626:9   warning  'fs' is assigned a value but never used. Allowed unused vars must match /^_/u           no-unused-vars
+  1627:9   warning  'path' is assigned a value but never used. Allowed unused vars must match /^_/u         no-unused-vars
+  1707:9   warning  'totalIssues' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  1708:9   warning  'totalFiles' is assigned a value but never used. Allowed unused vars must match /^_/u   no-unused-vars
+  1729:53  warning  'pattern' is assigned a value but never used. Allowed unused args must match /^_/u      no-unused-vars
+  1771:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  1775:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  1811:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  1815:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  1960:9   warning  'fs' is assigned a value but never used. Allowed unused vars must match /^_/u           no-unused-vars
+  2017:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  2078:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  2082:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  2240:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u        no-unused-vars
+  2407:77  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u      no-unused-vars
+  2479:66  warning  'config' is assigned a value but never used. Allowed unused args must match /^_/u       no-unused-vars
+  2540:56  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u      no-unused-vars
+  2624:55  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u      no-unused-vars
+  2695:47  warning  'options' is assigned a value but never used. Allowed unused args must match /^_/u      no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\security-enhanced.js
+  293:12  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  325:25  warning  'next' is defined but never used. Allowed unused args must match /^_/u            no-unused-vars
+
+Γ£û 137 problems (0 errors, 137 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

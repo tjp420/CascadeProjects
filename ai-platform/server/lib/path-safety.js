@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const logger = require('./app-logger');
+const { readJsonFileCached } = require('./json-file-cache');
 
 const PLATFORM_DIR_NAMES = ['ai-platform'];
 
@@ -66,7 +67,7 @@ function detectMonorepoRoot(platformRoot) {
 
     for (const name of PLATFORM_DIR_NAMES) {
         const sibling = path.join(parent, name);
-        if (fs.existsSync(path.join(sibling, 'gguf-dashboard-server.js'))
+        if (fs.existsSync(path.join(sibling, 'simplebeacon-server.js'))
             || fs.existsSync(path.join(sibling, 'packages', 'simplebeacon-cli'))) {
             return parent;
         }
@@ -84,7 +85,8 @@ function loadConfigAnalyzeRoots(platformRoot) {
     try {
         const configPath = path.join(platformRoot, '.simplebeacon', 'config.json');
         if (!fs.existsSync(configPath)) return [];
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        const config = readJsonFileCached(configPath);
+        if (!config) return [];
         const roots = config.allowedAnalysisRoots || config.analyzeRoots;
         if (!Array.isArray(roots)) return [];
         const platform = path.resolve(platformRoot);

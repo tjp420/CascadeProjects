@@ -1,0 +1,81 @@
+{
+  "deleteFixJs": [
+    "web/scripts/api-endpoint-fix.js",
+    "web/scripts/backup_fix.js",
+    "web/scripts/code_quality_fixer.js",
+    "web/scripts/code_quality_improvements_optimized.js",
+    "web/scripts/code_quality_scanner.js",
+    "web/scripts/code_quality_scanner.original.js",
+    "web/scripts/comprehensive-fix.js",
+    "web/scripts/dashboard-access-fix.js",
+    "web/scripts/dashboard-init-fixed.js",
+    "web/scripts/dashboard-sidebar-button-fix-v2.js",
+    "web/scripts/dashboard-sidebar-button-fix.js",
+    "web/scripts/dashboard_data_fix.js",
+    "web/scripts/dashboard_fix.js",
+    "web/scripts/direct-display-fix.js",
+    "web/scripts/double-scrollbar-fix.js",
+    "web/scripts/emergency-scanner-fix.js",
+    "web/scripts/emergency-security-scanner.js",
+    "web/scripts/final-dashboard-fixes.js",
+    "web/scripts/final-definitive-fix.js",
+    "web/scripts/final-files-with-findings-fix.js",
+    "web/scripts/fix-checklist.js",
+    "web/scripts/fix-component-errors.js",
+    "web/scripts/fix-frontend-scanner.js",
+    "web/scripts/force-remove-large-buttons.js",
+    "web/scripts/force-scanner-fix.js",
+    "web/scripts/force-sidebar-restore.js",
+    "web/scripts/main-content-layout-fix.js",
+    "web/scripts/memory_leak_detector.js",
+    "web/scripts/memory_leak_fix.js",
+    "web/scripts/memory_leak_fixer.js",
+    "web/scripts/modal_fix.js",
+    "web/scripts/navigation-accessibility-fix.js",
+    "web/scripts/navigation-fixer.js",
+    "web/scripts/navigation-height-fix.js",
+    "web/scripts/navigation-scroll-fix.js",
+    "web/scripts/rollup.config.fixed.js",
+    "web/scripts/security-fixes-cors-compatible.js",
+    "web/scripts/security-fixes-simple.js",
+    "web/scripts/security-vulnerability-fixes.js",
+    "web/scripts/security_urgent_fix.js",
+    "web/scripts/sidebar-fix.js",
+    "web/scripts/summary-fix-override.js",
+    "web/scripts/test-scanner-fix.js",
+    "web/scripts/test-scanner-modules.js",
+    "web/scripts/test-scanner-simple.js",
+    "web/scripts/test-scanner.js",
+    "web/scripts/test-technical-debt-fix.js",
+    "web/scripts/ui-level-failsafe-fix.js",
+    "web/scripts/ultimate-files-with-findings-fix.js"
+  ],
+  "keepFixJs": [],
+  "bucketStats": {
+    "temp": {
+      "files": 16,
+      "bytes": 392,
+      "exists": true
+    },
+    "backups": {
+      "files": 0,
+      "bytes": 0,
+      "exists": true
+    },
+    "logs": {
+      "files": 0,
+      "bytes": 0,
+      "exists": true
+    },
+    "coverage-results": {
+      "files": 0,
+      "bytes": 0,
+      "exists": true
+    },
+    "coverage": {
+      "files": 0,
+      "bytes": 0,
+      "exists": false
+    }
+  }
+}

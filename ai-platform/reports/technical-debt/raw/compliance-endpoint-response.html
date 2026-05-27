@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SimpleBeacon DevSecOps Compliance</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { font-family: Inter, Segoe UI, sans-serif; background: #0d1117; color: #e6edf3; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 24px 20px 48px; }
+    h1 { font-size: 1.5rem; margin: 0 0 8px; }
+    h2 { font-size: 1rem; margin: 0 0 8px; }
+    .muted { color: #8b949e; font-size: 0.875rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+    .pill { font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+    .pill.pass { background: #238636; color: #fff; }
+    .pill.warn { background: #9e6a03; color: #fff; }
+    .pill.review { background: #da3633; color: #fff; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 12px; }
+    .metrics div { background: #0d1117; border-radius: 8px; padding: 10px; }
+    .metrics dt { font-size: 0.7rem; color: #8b949e; margin: 0; }
+    .metrics dd { font-size: 1.05rem; font-weight: 600; margin: 4px 0 0; }
+    ul { margin: 8px 0 0; padding-left: 1.2rem; color: #c9d1d9; font-size: 0.875rem; }
+    .links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+    a { color: #58a6ff; }
+    code { font-family: ui-monospace, monospace; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="row">
+      <h1>DevSecOps compliance snapshot</h1>
+      <span class="pill pass">GATE PASS</span>
+    </div>
+    <p class="muted">Verification ID <code>ab18940a726344bc</code> · Generated 2026-05-25 10:08:12 UTC</p>
+
+    <section class="card">
+      <h2>Unified scores</h2>
+      <dl class="metrics">
+        <div><dt>Security quality (monorepo headline)</dt><dd>99%</dd></div>
+        <div><dt>Security issues</dt><dd>0</dd></div>
+        <div><dt>Repository health</dt><dd>100/100</dd></div>
+        <div><dt>Optimization compliance</dt><dd><span class="pill pass">good</span></dd></div>
+        <div><dt>Savings potential</dt><dd>4.7MB</dd></div>
+        <div><dt>Duplicate groups</dt><dd>0</dd></div>
+        <div><dt>Reduction ops</dt><dd>11</dd></div>
+        <div><dt>Merge preview</dt><dd>available</dd></div>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>Platform gate (sample paths)</h2>
+      <p class="muted">Repository inventory: 42,049 files — gate rules checked 545 (mock paths, credentials, server/ leaks).</p>
+      <dl class="metrics">
+        <div><dt>Quality</dt><dd>99%</dd></div>
+        <div><dt>Issues</dt><dd>0</dd></div>
+        <div><dt>Gate</dt><dd>PASS</dd></div>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>Monorepo (full-tree fiction sweep)</h2>
+      <p class="muted">Repository inventory: 43,309 files — gate rules checked 127 (mock paths, credentials, server/ leaks).</p>
+      <dl class="metrics">
+        <div><dt>Quality</dt><dd>99%</dd></div>
+        <div><dt>Issues</dt><dd>0</dd></div>
+        <div><dt>Fiction JSON scanned</dt><dd>192</dd></div>
+        <div><dt>High severity</dt><dd>0</dd></div>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>Scope &amp; disclaimers</h2>
+      <ul><li>Quality score and zero-issue counts apply to configured gate rules and sample paths — not semantic review of every source file.</li><li>Repository file totals are explorer-style inventory counts; gate rules checked is a smaller scoped subset.</li><li>Publish both platform and monorepo snapshots when available — a PASS gate on sample JSON does not imply a clean monorepo fiction scan.</li><li>Repository optimization uses preview + confirmation — no auto-delete.</li></ul>
+    </section>
+
+    <div class="links">
+      <a href="/app#/trust">Trust dashboard</a>
+      <a href="/app#/repository-health">Repository health</a>
+      <a href="/api/trust/verify?format=html">Trust verify</a>
+      <a href="/api/optimization/compliance?format=json">JSON payload</a>
+    </div>
+  </div>
+</body>
+</html>

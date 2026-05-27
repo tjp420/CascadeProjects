@@ -1,0 +1,8 @@
+{
+  "issueId": "A-18",
+  "category": "economic-regulatory-ai-issues",
+  "context": {
+    "metrics": { "energyPerRequest": 0.008, "scanDurationMs": 4200 },
+    "responseText": "Renewable-powered compute region with carbon-aware scheduling enabled."
+  }
+}

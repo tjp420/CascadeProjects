@@ -1,0 +1,126 @@
+{
+  "type": "simplebeacon-launch-readiness-summary",
+  "generatedAt": "2026-05-25T21:40:38.875Z",
+  "passed": 4,
+  "failed": 1,
+  "total": 5,
+  "decision": "NO-GO",
+  "checks": [
+    {
+      "id": "predeploy",
+      "title": "Predeploy sequence",
+      "command": "npm run verify:predeploy",
+      "startedAt": "2026-05-25T21:40:33.626Z",
+      "elapsedMs": 3713,
+      "ok": false,
+      "exitCode": 1,
+      "stdoutTail": [
+        "  Assessment written to C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\assessment.json",
+        "  Gate: PASS",
+        "  Compliance: 8/8 rules pass (score 100)",
+        "  Headline: 4 fiction/KPI issue(s). Gate passes — MEDIUM findings are warnings under current failOn policy.",
+        "",
+        "=== Pre-deploy verification summary ===",
+        "- stripe: FAIL (exit=1)",
+        "- production: FAIL (exit=1)",
+        "- trust: PASS (exit=0)",
+        "",
+        "Decision: NO-GO",
+        "Action: fix failing step(s), then re-run `npm run verify:predeploy`."
+      ],
+      "stderrTail": [
+        "npm warn Unknown env config \"devdir\". This will stop working in the next major version of npm."
+      ]
+    },
+    {
+      "id": "compliance",
+      "title": "Compliance gate",
+      "command": "npm run compliance:check",
+      "startedAt": "2026-05-25T21:40:37.340Z",
+      "elapsedMs": 392,
+      "ok": true,
+      "exitCode": 0,
+      "stdoutTail": [
+        "> cascade-ai-platform@1.0.0 compliance:check",
+        "> node packages/simplebeacon-cli/bin/simplebeacon.js compliance --path . --report .simplebeacon/report.json",
+        "",
+        "8/8 applicable rules pass — safe to enable automated AI deploy gates",
+        "  ✓ GATE-001 Merge gate passes on configured severities — Gate pass — no blocking issues at configured severities",
+        "  ✓ CRED-001 No credential or secret patterns in scanned paths — Scanned 546 path(s) — no credential patterns",
+        "  ✓ LEAK-001 No mock/sample JSON paths referenced from production directories — Scanned 489 production file(s) — no sample-path leaks",
+        "  ✓ DATA-001 Registered page samples match schema specs — 45/45 samples match schema specs",
+        "  ✓ DATA-002 No fiction KPI or baseline drift in anchor samples — Consistency score 98% — no fiction KPI drift",
+        "  ✓ SUPPLY-001 No critical or high npm audit vulnerabilities — npm audit: 0 critical, 0 high (lockfile-heuristic)",
+        "  ✓ SUPPLY-002 Moderate npm vulnerabilities within policy limit — 0 moderate (limit 0)",
+        "  ✓ AUTH-001 Production profile has JWT auth enabled (REQUIRE_AUTH) — REQUIRE_AUTH=true with non-placeholder JWT"
+      ],
+      "stderrTail": []
+    },
+    {
+      "id": "trust-env",
+      "title": "Trust environment validation",
+      "command": "npm run trust:validate-env",
+      "startedAt": "2026-05-25T21:40:37.732Z",
+      "elapsedMs": 385,
+      "ok": true,
+      "exitCode": 0,
+      "stdoutTail": [
+        "> cascade-ai-platform@1.0.0 trust:validate-env",
+        "> node tools/validate-trust-publish-env.js",
+        "",
+        "Trust publish environment validation",
+        "  ready: true",
+        "  endpoint configured: false",
+        "  token configured: false",
+        "  endpoint: n/a"
+      ],
+      "stderrTail": []
+    },
+    {
+      "id": "trust-publish",
+      "title": "Trust publish",
+      "command": "npm run trust:publish",
+      "startedAt": "2026-05-25T21:40:38.117Z",
+      "elapsedMs": 401,
+      "ok": true,
+      "exitCode": 0,
+      "stdoutTail": [
+        "> cascade-ai-platform@1.0.0 trust:publish",
+        "> node tools/publish-trust-verification.js",
+        "",
+        "Remote publish skipped: set TRUST_PUBLISH_ENDPOINT to enable.",
+        "Trust verification published: C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\public\\trust-verification.json",
+        "  verificationId: 7ac7c5839d427d8c",
+        "  platform gate: true (4 issues)",
+        "  monorepo gate: true (0 issues)",
+        "  repo health: 100/100 · 2.9MB savings",
+        "  history snapshot: C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\trust-history.json (5 entries)",
+        "  publish audit: C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\trust-publish-audit.json"
+      ],
+      "stderrTail": []
+    },
+    {
+      "id": "trust-trend",
+      "title": "Trust trend",
+      "command": "npm run trust:trend",
+      "startedAt": "2026-05-25T21:40:38.518Z",
+      "elapsedMs": 357,
+      "ok": true,
+      "exitCode": 0,
+      "stdoutTail": [
+        "> cascade-ai-platform@1.0.0 trust:trend",
+        "> node tools/trust-history-report.js --trend",
+        "",
+        "Trust trend window: 30",
+        "Snapshots: 5",
+        "Pass rate: 100%",
+        "Avg quality: 99.6",
+        "Avg issues: 0.8",
+        "Issue delta: 4",
+        "Quality delta: -2",
+        "Latest: 7ac7c5839d427d8c @ 2026-05-25T21:40:38.489Z"
+      ],
+      "stderrTail": []
+    }
+  ]
+}

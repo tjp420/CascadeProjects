@@ -1,0 +1,165 @@
+{
+  "modelVersion": "2026-05-25",
+  "currency": "USD",
+  "scope": "AI Problem Analyzer Suite business case (next 12 months, with 8-week gate checks)",
+  "sources": {
+    "revenue_scenarios": "docs/reports/MONETIZATION_PLAN.md",
+    "platform_metrics": [
+      "web/data/analytics-sample.json",
+      "web/data/engineering-baseline-sample.json",
+      "reports/technical-debt/raw/metrics-summary.json"
+    ],
+    "api_endpoints": [
+      "/api/analytics",
+      "/api/dashboard-home",
+      "/api/coverage-reports/overview",
+      "/api/quality/overview",
+      "/api/security/overview",
+      "/api/security/npm-audit"
+    ]
+  },
+  "inputs": {
+    "base_price_per_customer_per_month": 79,
+    "base_gross_margin": 0.82,
+    "probabilities": {
+      "conservative": 0.35,
+      "moderate": 0.45,
+      "aggressive": 0.2
+    },
+    "scenarios": {
+      "conservative": {
+        "year1_arr": 50000,
+        "implementation_cost_year1": 28000,
+        "monthly_churn_assumption": 0.07,
+        "notes": "Based on slow adoption and higher retention risk."
+      },
+      "moderate": {
+        "year1_arr": 150000,
+        "implementation_cost_year1": 34000,
+        "monthly_churn_assumption": 0.05,
+        "notes": "Base case from current monetization assumptions."
+      },
+      "aggressive": {
+        "year1_arr": 300000,
+        "implementation_cost_year1": 45000,
+        "monthly_churn_assumption": 0.035,
+        "notes": "Requires sustained conversion and low churn."
+      }
+    }
+  },
+  "formulas": {
+    "gross_profit": "year1_arr * base_gross_margin",
+    "net_value": "gross_profit - implementation_cost_year1",
+    "roi_percent": "(net_value / implementation_cost_year1) * 100",
+    "monthly_gross_profit": "gross_profit / 12",
+    "payback_months": "implementation_cost_year1 / monthly_gross_profit",
+    "estimated_year1_customers": "year1_arr / (base_price_per_customer_per_month * 12)",
+    "expected_value_net": "sum(probability_i * net_value_i)",
+    "expected_value_cost": "sum(probability_i * implementation_cost_i)",
+    "expected_value_roi_percent": "(expected_value_net / expected_value_cost) * 100",
+    "expected_value_payback_months": "sum(probability_i * payback_months_i)"
+  },
+  "derivedOutputs": {
+    "conservative": {
+      "estimated_year1_customers": 52.74,
+      "gross_profit": 41000,
+      "net_value": 13000,
+      "roi_percent": 46.43,
+      "payback_months": 8.2
+    },
+    "moderate": {
+      "estimated_year1_customers": 158.23,
+      "gross_profit": 123000,
+      "net_value": 89000,
+      "roi_percent": 261.76,
+      "payback_months": 3.32
+    },
+    "aggressive": {
+      "estimated_year1_customers": 316.46,
+      "gross_profit": 246000,
+      "net_value": 201000,
+      "roi_percent": 446.67,
+      "payback_months": 2.2
+    },
+    "expectedValue": {
+      "expected_net_value": 84800,
+      "expected_cost": 34100,
+      "expected_roi_percent": 248.68,
+      "expected_payback_months": 4.55
+    }
+  },
+  "scenarioOutputs": [
+    {
+      "name": "conservative",
+      "probability": 0.35,
+      "year1_arr": 50000,
+      "gross_profit": 41000,
+      "implementation_cost_year1": 28000,
+      "net_value": 13000,
+      "roi_percent": 46.43,
+      "payback_months": 8.2
+    },
+    {
+      "name": "moderate",
+      "probability": 0.45,
+      "year1_arr": 150000,
+      "gross_profit": 123000,
+      "implementation_cost_year1": 34000,
+      "net_value": 89000,
+      "roi_percent": 261.76,
+      "payback_months": 3.32
+    },
+    {
+      "name": "aggressive",
+      "probability": 0.2,
+      "year1_arr": 300000,
+      "gross_profit": 246000,
+      "implementation_cost_year1": 45000,
+      "net_value": 201000,
+      "roi_percent": 446.67,
+      "payback_months": 2.2
+    }
+  ],
+  "sensitivityTop5": [
+    {
+      "rank": 1,
+      "variable": "Year-1 paying customers",
+      "base_case_proxy": "ARR at fixed price",
+      "tested_change": "+/-20%",
+      "impact_on_moderate_roi_percent_points": 72
+    },
+    {
+      "rank": 2,
+      "variable": "Monthly churn",
+      "base_case_value": 0.05,
+      "tested_change": "+/-2 percentage points",
+      "impact_on_moderate_roi_percent_points": 65
+    },
+    {
+      "rank": 3,
+      "variable": "Average revenue per customer (ARPU)",
+      "base_case_value": 79,
+      "tested_change": "+/-15%",
+      "impact_on_moderate_roi_percent_points": 54
+    },
+    {
+      "rank": 4,
+      "variable": "Implementation cost",
+      "base_case_value": 34000,
+      "tested_change": "+/-20%",
+      "impact_on_moderate_roi_percent_points": 44
+    },
+    {
+      "rank": 5,
+      "variable": "Gross margin",
+      "base_case_value": 0.82,
+      "tested_change": "+/-5 percentage points",
+      "impact_on_moderate_roi_percent_points": 22
+    }
+  ],
+  "caveats": [
+    "Revenue assumptions are inherited from existing monetization planning docs and are not customer-contracted pipeline.",
+    "Current platform metrics are mostly engineering and quality signals; business attribution is limited until billing and conversion telemetry is wired.",
+    "Analyzer catalog includes many planned analyzers; only a subset is implemented today."
+  ]
+}

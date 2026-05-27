@@ -1,0 +1,44 @@
+{
+  "dataSource": "repository-audit",
+  "rejectedFiction": {
+    "featureCounts": [
+      47,
+      100,
+      156,
+      8,
+      9
+    ],
+    "completionRates": [
+      74.17,
+      87,
+      94.3,
+      66,
+      62
+    ],
+    "mockFileCounts": [
+      1247,
+      999,
+      1000
+    ],
+    "openIssueCounts": [
+      156,
+      999
+    ],
+    "modelNames": [
+      "unbreakable-oracle",
+      "gpt-5-oracle",
+      "demo-oracle"
+    ],
+    "throughputClaims": [
+      "1559",
+      "1,559",
+      "9999"
+    ],
+    "aiConfidenceScores": [
+      98.5,
+      94.3,
+      87
+    ]
+  },
+  "syncedAt": null
+}

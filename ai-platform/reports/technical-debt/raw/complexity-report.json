@@ -1,0 +1,7 @@
+{
+  "status": "error",
+  "source": "complexity-analysis",
+  "error": "Fatal error [getReports]: C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server\\dashboard-server.js: Line 357: Unexpected token =>",
+  "remediatedAt": "2026-05-25T00:00:00.000Z",
+  "note": "Original capture was plain-text CLI error output; wrapped as valid JSON during Phase 1 remediation."
+}

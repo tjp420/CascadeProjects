@@ -1,0 +1,10 @@
+# Copy to ".dev.vars" for local Cloudflare Pages Functions testing.
+# Do not commit real secrets.
+
+# Optional webhook fanout (Zapier/Make/Formspree)
+WAITLIST_WEBHOOK=
+
+# Resend email notifications (recommended)
+RESEND_API_KEY=
+WAITLIST_NOTIFY_TO=trevor_punt@live.com
+WAITLIST_NOTIFY_FROM=SimpleBeacon <noreply@simplebeacon.ai>

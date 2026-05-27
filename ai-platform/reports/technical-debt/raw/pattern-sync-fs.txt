@@ -1,0 +1,85 @@
+C:\Users\Trevor\CascadeProjects\ai-platform\src\ai-system\monitoring\QualityMetrics.js:62: const data = fs.readFileSync(metricsPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\ai-system\monitoring\QualityMetrics.js:707: fs.writeFileSync(metricsPath, JSON.stringify(metricsArray, null, 2));
+C:\Users\Trevor\CascadeProjects\ai-platform\src\ai-system\transparency\DataUsageTracker.js:31: const data = fs.readFileSync(usagePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\ai-system\transparency\DataUsageTracker.js:39: const data = fs.readFileSync(provenancePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\ai-system\transparency\DataUsageTracker.js:63: fs.writeFileSync(usagePath, JSON.stringify(Object.fromEntries(this.usageData), null, 2));
+C:\Users\Trevor\CascadeProjects\ai-platform\src\ai-system\transparency\DataUsageTracker.js:67: fs.writeFileSync(provenancePath, JSON.stringify(Object.fromEntries(this.provenanceData), null, 2));
+C:\Users\Trevor\CascadeProjects\ai-platform\src\api\trust-api.js:51: ? JSON.parse(fs.readFileSync(PUBLIC_TRUST_PATH, 'utf8'))
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\security-monitoring.js:60: const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\security-monitoring.js:71: fs.writeFileSync(dataPath, JSON.stringify(this.securityData, null, 2));
+C:\Users\Trevor\CascadeProjects\ai-platform\src\server\security-monitoring.js:330: fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\scripts\validate-config.js:111: const content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\scripts\validate-config.js:179: const content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\scripts\validate-config.js:188: const content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\scripts\validate-config.js:218: const content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\scripts\validate-config.js:261: const content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\scripts\validate-config.js:301: const content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\scripts\validate-config.js:347: const content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\scripts\validate-config.js:395: const content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\scripts\validate-config.js:446: const content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\scripts\validate-config.js:494: const content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:56: let content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_fixer.js:85: fs.writeFileSync(filePath, content, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.js:49: return fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\code_quality_scanner.original.js:68: const content = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\quick-scanner-test.js:38: const scannerCode = fs.readFileSync(path.join(__dirname, 'mock_data_scanner.js'), 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\run_quality_scan.js:82: fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\run_quality_scan.js:88: fs.writeFileSync(summaryPath, summaryContent);
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\simple-api-server.js:497: const htmlContent = fs.readFileSync(indexPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\simple-api-server.js:510: const jsContent = fs.readFileSync(clientPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\simple-api-server.js:523: const jsContent = fs.readFileSync(enhancementPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\simple-api-server.js:536: const jsContent = fs.readFileSync(roadmapPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\src\web\simple-api-server.js:549: const swContent = fs.readFileSync(swPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\bootstrap\phase2-integration.js:33: const sql = fs.readFileSync(schemaPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\bootstrap\phase2-integration.js:54: fs.readFileSync(path.join(webRoot, 'data', seed.file), 'utf8')
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\assessment-retention.js:14: const raw = fs.readFileSync(path.join(assessmentDir, 'assessment.json'), 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\code-roadmap-generator.js:104: return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\code-roadmap-generator.js:126: const content = fs.readFileSync(target, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\code-roadmap-generator.js:148: content = fs.readFileSync(file.path, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\code-roadmap-generator.js:186: content = fs.readFileSync(file.path, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\code-roadmap-generator.js:219: const content = fs.readFileSync(envPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\code-roadmap-generator.js:343: if (fs.existsSync(ciPath)) ciContent = fs.readFileSync(ciPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\code-roadmap-phase2.js:45: content = fs.readFileSync(file.path, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\code-roadmap-phase2.js:148: const raw = fs.readFileSync(file.path, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\jest-coverage-reader.js:37: payload = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\merge-preview.js:60: fs.writeFileSync(filePath, `${JSON.stringify(preview, null, 2)}\n`, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\repository-health-payload.js:12: return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\repository-health-payload.js:148: fs.writeFileSync(filePath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\lib\trust-verification-payload.js:17: return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\server\middleware\featureFlags.js:86: const data = fs.readFileSync(trustPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\server\middleware\featureFlags.js:116: fs.writeFileSync(trustPath, JSON.stringify(trustData, null, 2));
+C:\Users\Trevor\CascadeProjects\ai-platform\server\middleware\resilience.js:687: fs.writeFileSync(backupPath, backupData.data);
+C:\Users\Trevor\CascadeProjects\ai-platform\server\middleware\resilience.js:764: const backupData = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\server\services\user-service.js:13: return JSON.parse(fs.readFileSync(DEMO_USERS_PATH, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\server\api-server-optimizations.js:85: return fs.readFileSync(filePath, encoding);
+C:\Users\Trevor\CascadeProjects\ai-platform\server\index.js:157: const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\bin\simplebeacon.js:248: fs.writeFileSync(path.resolve(options.output), `${payload}\n`, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\bin\simplebeacon.js:276: report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\bin\simplebeacon.js:309: return JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\bin\simplebeacon.js:312: return JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\bin\simplebeacon.js:338: fs.writeFileSync(outputPath, `${JSON.stringify(assessment, null, 2)}\n`, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\bin\simplebeacon.js:354: fs.writeFileSync(outputPath, `${JSON.stringify(checklist, null, 2)}\n`, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\src\reporters\github-comment.js:84: const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\src\rules\jest-baseline.js:154: fs.writeFileSync(cachePath, `${JSON.stringify({
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\src\baseline-sync.js:39: fs.writeFileSync(config.baselinePath, `${JSON.stringify(baseline, null, 2)}\n`, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\src\compliance-checklist.js:40: const custom = JSON.parse(fs.readFileSync(customPath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\src\compliance-checklist.js:58: return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\src\compliance-checklist.js:99: const text = fs.readFileSync(envPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\src\config.js:108: const raw = fs.readFileSync(filePath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\src\hook-install.js:62: fs.writeFileSync(hookPath, script, { encoding: 'utf8', mode: 0o755 });
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\src\index.js:69: fs.writeFileSync(configPath, `${JSON.stringify(templates.config, null, 2)}\n`, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\src\index.js:76: fs.writeFileSync(baselinePath, `${JSON.stringify(templates.baseline, null, 2)}\n`, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\compliance-checklist.test.js:15: fs.writeFileSync(path.join(simplebeaconDir, 'compliance-checklist.json'), JSON.stringify({
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\config.test.js:45: const config = JSON.parse(fs.readFileSync(result.configPath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\fiction.test.js:108: const payload = JSON.parse(fs.readFileSync(samplePath, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\fiction.test.js:207: fs.writeFileSync(path.join(dataDir, 'anchor-sample.json'), `${JSON.stringify({
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\fiction.test.js:212: fs.writeFileSync(path.join(dataDir, 'other-sample.json'), `${JSON.stringify({
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\fiction.test.js:239: fs.writeFileSync(path.join(docsDir, 'stale.json'), JSON.stringify({
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\fiction.test.js:243: fs.writeFileSync(path.join(dataDir, 'anchor-sample.json'), JSON.stringify({
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\fiction.test.js:267: fs.writeFileSync(path.join(tmp, 'a-sample.json'), '{}');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\fiction.test.js:268: fs.writeFileSync(path.join(tmp, 'b.json'), '{}');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\gate.test.js:49: const report = JSON.parse(fs.readFileSync(outFile, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\gate.test.js:75: const report = JSON.parse(fs.readFileSync(outFile, 'utf8'));
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\hook-install.test.js:24: const contents = fs.readFileSync(result.hookPath, 'utf8');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\repository-inventory.test.js:11: fs.writeFileSync(path.join(root, 'a', 'one.txt'), '1');
+C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli\tests\repository-inventory.test.js:12: fs.writeFileSync(path.join(root, 'a', 'b', 'two.txt'), '2');

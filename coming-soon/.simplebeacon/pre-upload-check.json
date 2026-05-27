@@ -1,0 +1,126 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-05-26T18:11:10.988Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "configPath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\fixtures",
+    "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\__mocks__",
+    "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+    "totalFiles": 27,
+    "totalFolders": 6,
+    "profile": "explorer"
+  },
+  "mockSampleFiles": 0,
+  "totalFiles": 0,
+  "ruleScopedFilesAnalyzed": 0,
+  "repositoryFilesTotal": 27,
+  "repositoryFoldersTotal": 6,
+  "filesAnalyzed": 27,
+  "totalSizeBytes": 0,
+  "totalSizeLabel": "0B",
+  "issueCount": 0,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 0,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 4,
+  "consistencyPassed": 4,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 4,
+  "fictionSampleFilesScanned": 0,
+  "fictionScope": "repository-json",
+  "credentialScanned": 0,
+  "credentialFindings": 0,
+  "productionLeakScanned": 0,
+  "productionLeakFindings": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "mockDataCategories": [],
+  "detectedIssues": [],
+  "rawIssues": [],
+  "sampleFiles": [],
+  "scanScope": {
+    "profile": "standard",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "fiction-kpi-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 0,
+    "pageSpecCatalogSize": 43,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 0,
+    "productionPaths": [
+      "src/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 4,
+    "fictionSampleFilesScanned": 0,
+    "ruleScopedFilesAnalyzed": 0,
+    "repositoryFilesTotal": 27,
+    "repositoryFoldersTotal": 6,
+    "limitations": [
+      "Repository inventory: 27 files — gate rules checked 0 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (4) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
+    ]
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 0
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-05-26T18:11:10.990Z"
+}

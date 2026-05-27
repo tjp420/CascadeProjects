@@ -1,6 +1,6 @@
 {
   "type": "ai-roadmap-report-model",
-  "title": "GGUF Roadmap Report (Measured Baseline)",
+  "title": "AI Roadmap Report (Measured Baseline)",
   "dataSource": "repository-audit",
   "generatedAt": "2026-05-23T20:00:00.000Z",
   "generatedBy": "RepositoryAudit",
@@ -9,8 +9,8 @@
     "type": "Internal",
     "confidence": null,
     "status": "active",
-    "inferenceMode": "filesystem+gguf-path",
-    "notes": "Sprint tracker — not live GGUF inference unless LLAMA_CPP_BIN or Ollama is configured."
+    "inferenceMode": "filesystem",
+    "notes": "Sprint tracker — repository-audit baseline for Simplebeacon platform."
   },
   "projectOverview": {
     "projectName": "Cascade AI Platform",

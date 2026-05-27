@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * Analysis Engine Core System
  * 
@@ -20,7 +21,7 @@ class AnalysisEngine {
     this.enableRealTimeAnalysis = options.enableRealTimeAnalysis !== false;
     
     this.initializeAnalyzers();
-    console.log('[ANALYSIS_ENGINE] Analysis engine initialized');
+    logger.debug('[ANALYSIS_ENGINE] Analysis engine initialized');
   }
 
   // Initialize analyzers
@@ -85,7 +86,7 @@ class AnalysisEngine {
       priority: 'low'
     });
 
-    console.log(`[ANALYSIS_ENGINE] Initialized ${this.analyzers.size} analyzers`);
+    logger.debug(`[ANALYSIS_ENGINE] Initialized ${this.analyzers.size} analyzers`);
   }
 
   // Add analyzer
@@ -100,13 +101,13 @@ class AnalysisEngine {
       failureCount: 0,
       lastUsed: null
     });
-    console.log(`[ANALYSIS_ENGINE] Added analyzer: ${name}`);
+    logger.debug(`[ANALYSIS_ENGINE] Added analyzer: ${name}`);
   }
 
   // Initialize analysis engine
   async initialize() {
     if (this.isInitialized) {
-      console.log('[ANALYSIS_ENGINE] Analysis engine already initialized');
+      logger.debug('[ANALYSIS_ENGINE] Analysis engine already initialized');
       return;
     }
 
@@ -115,7 +116,7 @@ class AnalysisEngine {
       this.startJobProcessing();
       
       this.isInitialized = true;
-      console.log('[ANALYSIS_ENGINE] Analysis engine initialized successfully');
+      logger.debug('[ANALYSIS_ENGINE] Analysis engine initialized successfully');
       
     } catch (error) {
       console.error('[ANALYSIS_ENGINE] Failed to initialize analysis engine:', error.message);
@@ -133,7 +134,7 @@ class AnalysisEngine {
       this.processJobs();
     }, 1000);
 
-    console.log('[ANALYSIS_ENGINE] Job processing started');
+    logger.debug('[ANALYSIS_ENGINE] Job processing started');
   }
 
   // Stop job processing
@@ -143,7 +144,7 @@ class AnalysisEngine {
       this.jobProcessingIntervalId = null;
     }
     
-    console.log('[ANALYSIS_ENGINE] Job processing stopped');
+    logger.debug('[ANALYSIS_ENGINE] Job processing stopped');
   }
 
   // Process analysis jobs
@@ -171,7 +172,7 @@ class AnalysisEngine {
     job.startedAt = new Date().toISOString();
     job.progress = 0;
     
-    console.log(`[ANALYSIS_ENGINE] Starting analysis job: ${jobId}`);
+    logger.debug(`[ANALYSIS_ENGINE] Starting analysis job: ${jobId}`);
 
     try {
       // Process through analysis pipeline
@@ -203,7 +204,7 @@ class AnalysisEngine {
         analyzer.lastUsed = new Date().toISOString();
       }
       
-      console.log(`[ANALYSIS_ENGINE] Analysis job completed: ${jobId}`);
+      logger.debug(`[ANALYSIS_ENGINE] Analysis job completed: ${jobId}`);
       
     } catch (error) {
       job.status = 'failed';
@@ -229,7 +230,7 @@ class AnalysisEngine {
   // Attempt job recovery
   async attemptRecovery(job) {
     if (job.retryCount >= 3) {
-      console.log(`[ANALYSIS_ENGINE] Max retries exceeded for job: ${job.id}`);
+      logger.debug(`[ANALYSIS_ENGINE] Max retries exceeded for job: ${job.id}`);
       return;
     }
 
@@ -237,7 +238,7 @@ class AnalysisEngine {
     job.retryCount++;
     job.progress = 0;
     
-    console.log(`[ANALYSIS_ENGINE] Attempting recovery for job: ${job.id} (attempt ${job.retryCount})`);
+    logger.debug(`[ANALYSIS_ENGINE] Attempting recovery for job: ${job.id} (attempt ${job.retryCount})`);
 
     try {
       // Reset job state for recovery
@@ -252,7 +253,7 @@ class AnalysisEngine {
         const result = await step.execute(job);
         if (result.success) {
           job.status = 'processing';
-          console.log(`[ANALYSIS_ENGINE] Recovery successful for job: ${job.id}`);
+          logger.debug(`[ANALYSIS_ENGINE] Recovery successful for job: ${job.id}`);
         }
       }
     } catch (error) {
@@ -285,7 +286,7 @@ class AnalysisEngine {
     };
 
     this.jobs.set(jobId, job);
-    console.log(`[ANALYSIS_ENGINE] Created analysis job: ${jobId}`);
+    logger.debug(`[ANALYSIS_ENGINE] Created analysis job: ${jobId}`);
     
     return job;
   }
@@ -370,7 +371,7 @@ class AnalysisEngine {
     job.status = 'cancelled';
     job.cancelledAt = new Date().toISOString();
     
-    console.log(`[ANALYSIS_ENGINE] Cancelled analysis job: ${jobId}`);
+    logger.debug(`[ANALYSIS_ENGINE] Cancelled analysis job: ${jobId}`);
     return true;
   }
 
@@ -386,7 +387,7 @@ class AnalysisEngine {
     }
 
     this.jobs.delete(jobId);
-    console.log(`[ANALYSIS_ENGINE] Deleted analysis job: ${jobId}`);
+    logger.debug(`[ANALYSIS_ENGINE] Deleted analysis job: ${jobId}`);
     return true;
   }
 
@@ -445,7 +446,7 @@ class AnalysisEngine {
   }
 
   // Pattern detection methods
-  detectPatterns(data, options = {}) {
+  detectPatterns(data, _options = {}) {
     const patterns = [];
     
     // Detect structure patterns
@@ -598,7 +599,7 @@ class AnalysisEngine {
   }
 
   // Issue detection methods
-  detectIssues(data, options = {}) {
+  detectIssues(data, _options = {}) {
     const issues = [];
     
     // Detect structure issues
@@ -704,7 +705,7 @@ class AnalysisEngine {
   }
 
   // Quality analysis methods
-  analyzeQuality(data, options = {}) {
+  analyzeQuality(data, _options = {}) {
     const qualityFactors = {
       completeness: this.assessCompleteness(data),
       consistency: this.assessConsistency(data),
@@ -774,14 +775,14 @@ class AnalysisEngine {
     return Math.max(0, score);
   }
 
-  assessAccuracy(data) {
+  assessAccuracy(_data) {
     // This would require external validation or reference data
     // For now, return a default score
     return 85;
   }
 
   // Structure analysis methods
-  analyzeStructure(data, options = {}) {
+  analyzeStructure(data, _options = {}) {
     const structure = {
       type: this.getDataType(data),
       size: this.getDataSize(data),
@@ -858,7 +859,7 @@ class AnalysisEngine {
   }
 
   // Content analysis methods
-  analyzeContent(data, options = {}) {
+  analyzeContent(data, _options = {}) {
     const content = {
       types: this.getContentTypes(data),
       patterns: this.getContentPatterns(data),
@@ -976,7 +977,7 @@ class AnalysisEngine {
   }
 
   // Performance analysis methods
-  analyzePerformance(data, options = {}) {
+  analyzePerformance(data, _options = {}) {
     const performance = {
       size: this.getPerformanceSize(data),
       complexity: this.getPerformanceComplexity(data),
@@ -1297,7 +1298,7 @@ class AnalysisEngine {
     this.metrics.clear();
     
     this.isInitialized = false;
-    console.log('[ANALYSIS_ENGINE] Analysis engine destroyed');
+    logger.debug('[ANALYSIS_ENGINE] Analysis engine destroyed');
   }
 }
 
@@ -1319,3 +1320,4 @@ module.exports = {
   AnalysisEngine,
   initializeAnalysisEngine
 };
+

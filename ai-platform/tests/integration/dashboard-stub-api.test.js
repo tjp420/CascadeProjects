@@ -407,12 +407,6 @@ describe('dashboard stub API routes', () => {
             expect(roadmap.success).toBe(true);
             expect(roadmap.data).toHaveProperty('developmentPhases');
 
-            const ggufRoadmap = await getJson(baseUrl, '/api/roadmap/data?type=gguf');
-            expect(ggufRoadmap.success).toBe(true);
-            expect(ggufRoadmap.data.dataSource).toBe('repository-audit');
-            expect(ggufRoadmap.data.projectOverview.totalFeatures).toBe(4);
-            expect(ggufRoadmap.data.projectOverview.completionRate).toBe(100);
-
             const aiRoadmap = await getJson(baseUrl, '/api/roadmap/data?type=ai-powered');
             expect(aiRoadmap.success).toBe(true);
             expect(aiRoadmap.data.type).toBe('ai-roadmap-report-model');
@@ -434,16 +428,16 @@ describe('dashboard stub API routes', () => {
         });
     });
 
-    test('roadmap data endpoint handles ai-powered and default gguf types', async () => {
+    test('roadmap data endpoint serves ai-powered type only', async () => {
         await withStubServer(async (baseUrl) => {
             const aiRoadmap = await getJson(baseUrl, '/api/roadmap/data?type=ai-powered');
             expect(aiRoadmap.success).toBe(true);
             expect(aiRoadmap.type).toBe('ai-powered');
 
-            const ggufRoadmap = await getJson(baseUrl, '/api/roadmap/data?type=unknown-value');
-            expect(ggufRoadmap.success).toBe(true);
-            expect(ggufRoadmap.type).toBe('unknown-value');
-            expect(ggufRoadmap.data).toBeTruthy();
+            const unknownRes = await fetch(`${baseUrl}/api/roadmap/data?type=gguf`);
+            expect(unknownRes.status).toBe(404);
+            const unknownBody = await unknownRes.json();
+            expect(unknownBody.success).toBe(false);
         });
     });
 });

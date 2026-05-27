@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operator booking inbox — SimpleBeacon</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="/styles.css?v=20260526diagnostic">
+  <style>
+    .operator-wrap { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+    .operator-head { margin-bottom: 1rem; }
+    .operator-head h1 { font-size: 1.35rem; margin: 0 0 0.35rem; }
+    .operator-head p { color: var(--text-muted); margin: 0; font-size: 0.9rem; }
+    .operator-toolbar { display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 1rem 0; }
+    .operator-toolbar a, .operator-toolbar button {
+      padding: 0.45rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04); color: var(--text); text-decoration: none; cursor: pointer;
+    }
+    .booking-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .booking-table th, .booking-table td {
+      border-bottom: 1px solid var(--border); padding: 0.55rem 0.45rem; text-align: left; vertical-align: top;
+    }
+    .booking-table th { color: var(--text-muted); font-weight: 600; }
+    .operator-status { margin: 0.75rem 0; font-size: 0.9rem; color: var(--text-muted); }
+    .operator-empty { padding: 1rem; border: 1px dashed var(--border); border-radius: 8px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <main class="operator-wrap">
+    <div class="operator-head">
+      <h1>Operator booking inbox</h1>
+      <p>Live feed from the paywall form — use this to confirm data before enabling payments.</p>
+    </div>
+    <div class="operator-toolbar">
+      <button type="button" id="refreshBookings">Refresh</button>
+      <a href="/">← Back to paywall</a>
+      <a href="/private-dashboard-vault?password=" id="vaultLink" hidden>Vault dashboard</a>
+    </div>
+    <p class="operator-status" id="inboxStatus">Loading…</p>
+    <div id="inboxTableWrap"></div>
+  </main>
+  <script>
+    (function () {
+      var statusEl = document.getElementById('inboxStatus');
+      var wrap = document.getElementById('inboxTableWrap');
+
+      function esc(text) {
+        return String(text || '').replace(/[&<>"']/g, function (ch) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+        });
+      }
+
+      function render(rows) {
+        if (!rows.length) {
+          wrap.innerHTML = '<div class="operator-empty">No bookings yet. Submit the form on the paywall to test.</div>';
+          statusEl.textContent = '0 bookings';
+          return;
+        }
+        statusEl.textContent = rows.length + ' booking(s) — newest first';
+        wrap.innerHTML = '<table class="booking-table"><thead><tr><th>#</th><th>Received</th><th>Email</th><th>Company</th><th>Repository</th><th>Branch</th><th>Handoff</th><th>Source</th><th>Notes</th></tr></thead><tbody>'
+          + rows.map(function (row, index) {
+            return '<tr><td>' + (rows.length - index) + '</td>'
+              + '<td>' + esc(row.receivedAt) + '</td>'
+              + '<td>' + esc(row.contactEmail) + '</td>'
+              + '<td>' + esc(row.company) + '</td>'
+              + '<td>' + esc(row.repository) + '</td>'
+              + '<td>' + esc(row.branch) + '</td>'
+              + '<td>' + esc(row.handoffDate) + '</td>'
+              + '<td>' + esc(row.source) + '</td>'
+              + '<td>' + esc(row.notes) + '</td></tr>';
+          }).join('')
+          + '</tbody></table>';
+      }
+
+      function load() {
+        statusEl.textContent = 'Loading…';
+        fetch('/api/audit-bookings', { headers: { Accept: 'application/json' } })
+          .then(function (res) { return res.json(); })
+          .then(function (body) {
+            if (!body || !body.ok) throw new Error('load failed');
+            render(body.bookings || []);
+          })
+          .catch(function () {
+            statusEl.textContent = 'Could not load bookings — is npm run staging:paywall running?';
+            wrap.innerHTML = '';
+          });
+      }
+
+      document.getElementById('refreshBookings').addEventListener('click', load);
+      load();
+      setInterval(load, 15000);
+    })();
+  </script>
+</body>
+</html>

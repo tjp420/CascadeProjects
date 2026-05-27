@@ -1,0 +1,14 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+
+> cascade-ai-platform@1.0.0 compliance:check
+> node packages/simplebeacon-cli/bin/simplebeacon.js compliance --path . --report .simplebeacon/report.json
+
+8/8 applicable rules pass ΓÇö safe to enable automated AI deploy gates
+  Γ£ô GATE-001 Merge gate passes on configured severities ΓÇö Gate pass ΓÇö no blocking issues at configured severities
+  Γ£ô CRED-001 No credential or secret patterns in scanned paths ΓÇö Scanned 546 path(s) ΓÇö no credential patterns
+  Γ£ô LEAK-001 No mock/sample JSON paths referenced from production directories ΓÇö Scanned 489 production file(s) ΓÇö no sample-path leaks
+  Γ£ô DATA-001 Registered page samples match schema specs ΓÇö 45/45 samples match schema specs
+  Γ£ô DATA-002 No fiction KPI or baseline drift in anchor samples ΓÇö Consistency score 100% ΓÇö no fiction KPI drift
+  Γ£ô SUPPLY-001 No critical or high npm audit vulnerabilities ΓÇö npm audit: 0 critical, 0 high (lockfile-heuristic)
+  Γ£ô SUPPLY-002 Moderate npm vulnerabilities within policy limit ΓÇö 0 moderate (limit 0)
+  Γ£ô AUTH-001 Production profile has JWT auth enabled (REQUIRE_AUTH) ΓÇö REQUIRE_AUTH=true with non-placeholder JWT

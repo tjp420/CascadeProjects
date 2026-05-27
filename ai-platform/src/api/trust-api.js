@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * Public trust verification API — read-only, no auth required.
  */
@@ -16,6 +17,7 @@ const {
     readTrustHistory,
     buildTrustTrend
 } = require('../../server/lib/trust-history-store');
+const { readJsonFileCached } = require('../../server/lib/json-file-cache');
 
 const PROJECT_ROOT = path.join(__dirname, '..', '..');
 const PUBLIC_TRUST_PATH = path.join(PROJECT_ROOT, 'public', 'trust-verification.json');
@@ -34,7 +36,7 @@ function wantsRawSvg(req) {
 
 function readPublishedTrustPayload() {
     if (!fs.existsSync(PUBLIC_TRUST_PATH)) return null;
-    return JSON.parse(fs.readFileSync(PUBLIC_TRUST_PATH, 'utf8'));
+    return readJsonFileCached(PUBLIC_TRUST_PATH);
 }
 
 function buildLiveTrustPayload(platformRoot, monorepoRoot) {
@@ -156,7 +158,7 @@ function setupTrustAPI(app, options = {}) {
     app.get('/api/trust/verify', (req, res) => {
         try {
             const payload = buildLiveTrustPayload(platformRoot, monorepoRoot);
-            const published = readPublishedTrustPayload();
+            const _published = readPublishedTrustPayload();
             res.set('Cache-Control', 'public, max-age=300');
             if (wantsHtmlResponse(req)) {
                 res.set('Content-Type', 'text/html; charset=utf-8');
@@ -236,7 +238,8 @@ function setupTrustAPI(app, options = {}) {
         }
     });
 
-    console.log('✅ Trust verification API at /api/trust/verification (public)');
+    logger.debug('✅ Trust verification API at /api/trust/verification (public)');
 }
 
 module.exports = { setupTrustAPI, PUBLIC_TRUST_PATH };
+

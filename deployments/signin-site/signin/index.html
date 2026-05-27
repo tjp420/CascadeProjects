@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simplebeacon Dashboard</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/simplebeacon-dashboard/css/variables.css">
+  <link rel="stylesheet" href="/simplebeacon-dashboard/css/reset.css">
+  <link rel="stylesheet" href="/simplebeacon-dashboard/css/layout.css">
+  <link rel="stylesheet" href="/simplebeacon-dashboard/css/components.css?v=20260527copyprompt1">
+  <link rel="stylesheet" href="/simplebeacon-dashboard/css/utilities.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <button class="icon-btn mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Open navigation">☰</button>
+      <a href="#/dashboard" class="app-brand">
+        <span class="app-brand-icon">🛡️</span>
+        <span>Simplebeacon</span>
+      </a>
+      <div class="app-header-search">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input type="search" id="global-search" placeholder="Search issues… (Ctrl+K)" aria-label="Search issues">
+      </div>
+      <div class="app-header-actions">
+        <button class="btn btn-ghost btn-sm" id="auth-action" type="button" hidden>Sign in</button>
+        <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme">☀️</button>
+      </div>
+    </header>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
+
+    <div class="app-body">
+      <nav class="app-nav" id="app-nav" aria-label="Main navigation">
+        <span class="nav-label">Community</span>
+        <a href="#/about" class="nav-link" data-view="about">
+          <span class="nav-link-icon">📖</span>
+          About
+        </a>
+        <a href="#/pricing" class="nav-link" data-view="pricing">
+          <span class="nav-link-icon">⚡</span>
+          Install
+        </a>
+        <a href="https://github.com/tjp420/simplebeacon" class="nav-link" target="_blank" rel="noopener noreferrer">
+          <span class="nav-link-icon">🐙</span>
+          GitHub
+        </a>
+        <a href="https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md" class="nav-link" target="_blank" rel="noopener noreferrer">
+          <span class="nav-link-icon">📝</span>
+          Docs
+        </a>
+        <div class="nav-divider"></div>
+        <span class="nav-label">Main</span>
+        <a href="#/dashboard" class="nav-link active" data-view="dashboard">
+          <span class="nav-link-icon">📊</span>
+          Dashboard
+        </a>
+        <a href="#/audit" class="nav-link" data-view="audit">
+          <span class="nav-link-icon">🛡️</span>
+          Compliance Audit
+        </a>
+        <a href="#/assessments" class="nav-link" data-view="assessments">
+          <span class="nav-link-icon">📑</span>
+          Assessments
+        </a>
+        <a href="#/results" class="nav-link" data-view="results">
+          <span class="nav-link-icon">📋</span>
+          Results
+        </a>
+        <a href="#/security" class="nav-link" data-view="security">
+          <span class="nav-link-icon">🔒</span>
+          Security
+        </a>
+        <a href="#/analyze" class="nav-link" data-view="analyze">
+          <span class="nav-link-icon">📂</span>
+          Analyze
+        </a>
+        <a href="#/platform" class="nav-link" data-view="platform">
+          <span class="nav-link-icon">📈</span>
+          Platform
+        </a>
+        <a href="#/quality" class="nav-link" data-view="quality">
+          <span class="nav-link-icon">🛡️</span>
+          Quality
+        </a>
+        <a href="#/trust" class="nav-link" data-view="trust">
+          <span class="nav-link-icon">✅</span>
+          Trust
+        </a>
+        <a href="#/repository-health" class="nav-link" data-view="repository-health">
+          <span class="nav-link-icon">📦</span>
+          Repo health
+        </a>
+        <a href="#/tools" class="nav-link" data-view="tools">
+          <span class="nav-link-icon">🔧</span>
+          Tools
+        </a>
+        <a href="#/help" class="nav-link" data-view="help">
+          <span class="nav-link-icon">❓</span>
+          Help
+        </a>
+        <a href="#/settings" class="nav-link" data-view="settings">
+          <span class="nav-link-icon">⚙️</span>
+          Settings
+        </a>
+        <div class="nav-divider"></div>
+        <span class="nav-label">More</span>
+        <a href="#/features" class="nav-link" data-view="features">
+          <span class="nav-link-icon">🧭</span>
+          All Features
+        </a>
+      </nav>
+
+      <main class="app-main" id="app-main" aria-live="polite"></main>
+    </div>
+  </div>
+
+  <script type="module" src="/simplebeacon-dashboard/js/main.js?v=20260527copyprompt1"></script>
+</body>
+</html>

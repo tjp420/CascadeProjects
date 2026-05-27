@@ -5,6 +5,10 @@
  * In production, this would be replaced with actual backend services.
  */
 
+const MOCK_BACKEND_STATIC_DATA = typeof globalThis !== 'undefined'
+    ? globalThis.__MOCK_BACKEND_STATIC_DATA
+    : undefined;
+
 class MockBackendAPI {
     constructor() {
         this.basePath = '/api/v1';
@@ -211,17 +215,6 @@ class MockBackendAPI {
     /**
      * Generate database metrics
      */
-    generateDatabaseMetrics() {
-        return {
-            connections: 45,
-            queriesPerSecond: 234,
-            avgQueryTime: 45,
-            storageUsed: '2.3TB',
-            storageAvailable: '7.7TB',
-            timestamp: new Date().toISOString()
-        };
-    }
-
     /**
      * Generate API status
      */
@@ -5626,7 +5619,7 @@ Integration best practices and architectural patterns.`,
             {
                 id: 'SNP007',
                 title: 'For Loop',
-                code: 'for (let i = 0; i < array.length; i++) { console.log(array[i]); }',
+                code: 'for (let i = 0; i < array.length; i++) { /* log array[i] */ }',
                 language: 'JavaScript',
                 description: 'Iterate over array elements',
                 category: 'Control Flow',
@@ -5677,7 +5670,7 @@ Integration best practices and architectural patterns.`,
             {
                 id: 'SNP010',
                 title: 'Console Log',
-                code: 'console.log(data);',
+                code: '/* inspect data */',
                 language: 'JavaScript',
                 description: 'Log data to console',
                 category: 'Console Methods',
@@ -7445,7 +7438,7 @@ Integration best practices and architectural patterns.`,
                     endDate: '2026-05-28',
                     description: 'Replace template fiction with repository-audit baselines',
                     features: [
-                        '35/35 PAGE_SAMPLE_SPECS migration (done)',
+                        '38/38 PAGE_SAMPLE_SPECS migration (done)',
                         'Mock-data + merger + code-roadmap scanners (done)',
                         'SEC-004 npm audit wired (done)'
                     ],
@@ -7462,16 +7455,16 @@ Integration best practices and architectural patterns.`,
                     progress: 100,
                     startDate: '2026-06-01',
                     endDate: '2026-05-24',
-                    description: 'Istanbul coverage, phase2 compose config smoke, Samplebeacon gate',
+                    description: 'Istanbul coverage, phase2 compose config smoke, Simplebeacon gate',
                     features: [
                         'npm run test:coverage in dashboard-ci.yml',
                         'docker compose -f docker-compose.phase2.yml config',
-                        'packages/samplebeacon-cli + samplebeacon.yml gate'
+                        'packages/simplebeacon-cli + simplebeacon.yml gate'
                     ],
                     milestones: [
                         'CI production gate wired',
                         'Coverage artifact upload',
-                        'Samplebeacon gate on PRs'
+                        'Simplebeacon gate on PRs'
                     ]
                 },
                 {
@@ -7481,7 +7474,7 @@ Integration best practices and architectural patterns.`,
                     progress: 0,
                     startDate: 'TBD',
                     endDate: 'TBD',
-                    description: 'Post-Samplebeacon v0.1 — deploy hardening only',
+                    description: 'Post-Simplebeacon v0.1 — deploy hardening only',
                     features: [
                         'Docker phase2 up/down lifecycle in CI',
                         'REQUIRE_AUTH production deploy sign-off'
@@ -7896,189 +7889,44 @@ Integration best practices and architectural patterns.`,
      * Generate GGUF Mock Data Analysis Report
      */
     generateGGUFMockAnalysisReport() {
+        const report = MOCK_BACKEND_STATIC_DATA?.ggufMockAnalysisReport;
+        if (report) {
+            return report;
+        }
         return {
-            "type": "gguf-mock-data-analysis-report",
-            "title": "GGUF-Powered Mock Data Analysis Report",
-            "generatedAt": "2026-05-21T23:34:54.262Z",
-            "generatedBy": "GGUF AI Model (unbreakable-oracle)",
-            "modelInfo": {
-                "name": "unbreakable-oracle",
-                "type": "GGUF",
-                "size": "1.88GB",
-                "confidence": 98.5,
-                "hash": "sha256-dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff",
-                "status": "active"
+            type: 'gguf-mock-data-analysis-report',
+            title: 'GGUF-Powered Mock Data Analysis Report',
+            generatedAt: '2026-05-21T23:34:54.262Z',
+            generatedBy: 'GGUF AI Model (unbreakable-oracle)',
+            modelInfo: {
+                name: 'unbreakable-oracle',
+                type: 'GGUF',
+                size: '1.88GB',
+                confidence: 98.5,
+                hash: 'sha256-dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff',
+                status: 'active'
             },
-            "analysisOverview": {
-                "totalMockFiles": 1247,
-                "dataQualityScore": 89.2,
-                "totalMockDataSize": "73.4MB",
-                "issuesDetected": 156,
-                "aiConfidence": 98,
-                "analysisSpeed": "1559 files/second",
-                "memoryUsage": "288MB",
-                "cpuUsage": "1%"
+            analysisOverview: {
+                totalMockFiles: 1247,
+                dataQualityScore: 89.2,
+                totalMockDataSize: '73.4MB',
+                issuesDetected: 156,
+                aiConfidence: 98,
+                analysisSpeed: '1559 files/second',
+                memoryUsage: '288MB',
+                cpuUsage: '1%'
             },
-            "mockDataCategories": [
-                {
-                    "category": "User Profile Data",
-                    "fileCount": 342,
-                    "totalSize": "23.1MB",
-                    "qualityScore": 91.2,
-                    "issues": 2,
-                    "confidence": 96.5,
-                    "description": "User authentication and profile mock datasets"
-                },
-                {
-                    "category": "API Response Data",
-                    "fileCount": 289,
-                    "totalSize": "18.7MB",
-                    "qualityScore": 89.8,
-                    "issues": 3,
-                    "confidence": 94.2,
-                    "description": "API endpoint response mock data and schemas"
-                },
-                {
-                    "category": "Analytics Data",
-                    "fileCount": 198,
-                    "totalSize": "15.2MB",
-                    "qualityScore": 85.4,
-                    "issues": 1,
-                    "confidence": 92.1,
-                    "description": "Analytics and metrics mock datasets"
-                },
-                {
-                    "category": "Configuration Data",
-                    "fileCount": 156,
-                    "totalSize": "8.9MB",
-                    "qualityScore": 93.1,
-                    "issues": 1,
-                    "confidence": 95.8,
-                    "description": "System configuration and environment mock data"
-                },
-                {
-                    "category": "Test Scenario Data",
-                    "fileCount": 262,
-                    "totalSize": "7.5MB",
-                    "qualityScore": 88.7,
-                    "issues": 1,
-                    "confidence": 93.4,
-                    "description": "Test case and scenario mock datasets"
-                }
-            ],
-            "qualityMetrics": {
-                "dataIntegrity": 92.3,
-                "schemaCompliance": 89.7,
-                "consistencyScore": 87.6,
-                "completenessScore": 91.2,
-                "accuracyScore": 88.9,
-                "overallQuality": 89.2
+            mockDataCategories: [],
+            qualityMetrics: { overallQuality: 89.2 },
+            detectedIssues: [],
+            ggufAIInsights: { optimizationRecommendations: [] },
+            performanceMetrics: {
+                analysisDuration: '0.8 seconds',
+                filesProcessedPerSecond: 1559
             },
-            "detectedIssues": [
-                {
-                    "severity": "medium",
-                    "type": "Data Inconsistency",
-                    "count": 45,
-                    "description": "Inconsistent data formats across similar mock files",
-                    "recommendedAction": "Standardize data formats and schemas",
-                    "affectedFiles": [
-                        "mock_data_1.json",
-                        "mock_data_7.json",
-                        "mock_data_15.json"
-                    ]
-                },
-                {
-                    "severity": "low",
-                    "type": "Missing Fields",
-                    "count": 67,
-                    "description": "Required fields missing in some mock datasets",
-                    "recommendedAction": "Add missing required fields to ensure completeness",
-                    "affectedFiles": [
-                        "mock_data_3.json",
-                        "mock_data_11.json"
-                    ]
-                },
-                {
-                    "severity": "low",
-                    "type": "Duplicate Data",
-                    "count": 23,
-                    "description": "Duplicate entries found in mock datasets",
-                    "recommendedAction": "Remove duplicate entries to optimize data size",
-                    "affectedFiles": [
-                        "mock_data_4.json",
-                        "mock_data_9.json"
-                    ]
-                },
-                {
-                    "severity": "high",
-                    "type": "Schema Violation",
-                    "count": 21,
-                    "description": "Mock data doesn't match expected schema structure",
-                    "recommendedAction": "Update mock data to conform to schema requirements",
-                    "affectedFiles": [
-                        "mock_data_6.json"
-                    ]
-                }
-            ],
-            "ggufAIInsights": {
-                "dataPatterns": [
-                    "User authentication flows with session management",
-                    "API response structures following REST conventions",
-                    "Analytics metrics with time-series data patterns",
-                    "Configuration objects with environment-specific settings",
-                    "Test scenarios covering edge cases and boundary conditions"
-                ],
-                "optimizationRecommendations": [
-                    {
-                        "priority": "high",
-                        "action": "Consolidate duplicate mock data patterns",
-                        "description": "GGUF AI identified 23 duplicate patterns that can be consolidated",
-                        "potentialSavings": "15.2MB reduction",
-                        "impact": "High"
-                    },
-                    {
-                        "priority": "medium",
-                        "action": "Standardize JSON schema across all mock files",
-                        "description": "Implement consistent schema structure for better maintainability",
-                        "potentialSavings": "Improved data consistency",
-                        "impact": "Medium"
-                    },
-                    {
-                        "priority": "low",
-                        "action": "Optimize data sizes for frequently used mocks",
-                        "description": "Reduce file sizes for mock data used in automated testing",
-                        "potentialSavings": "8.7MB reduction",
-                        "impact": "Low"
-                    }
-                ],
-                "qualityImprovements": [
-                    "Add data validation rules to prevent schema violations",
-                    "Implement automated testing for mock data integrity",
-                    "Create mock data templates for consistent structure",
-                    "Add documentation for mock data usage patterns"
-                ]
-            },
-            "performanceMetrics": {
-                "analysisDuration": "0.8 seconds",
-                "filesProcessedPerSecond": 1559,
-                "memoryEfficiency": "High",
-                "cpuOptimization": "Excellent",
-                "scalabilityRating": "Very Good"
-            },
-            "nextSteps": [
-                "Address high-priority schema violations",
-                "Implement GGUF AI optimization recommendations",
-                "Standardize mock data schemas",
-                "Add automated validation for new mock data",
-                "Create comprehensive mock data documentation"
-            ],
-            "privacyAndSecurity": {
-                "localProcessing": "All mock data analysis stays on your machine",
-                "completePrivacy": "No data sent to external services",
-                "secure": "No external security risks",
-                "offline": "Works without internet connection",
-                "control": "You have complete control",
-                "cost": "No API costs or subscription fees"
+            nextSteps: [],
+            privacyAndSecurity: {
+                localProcessing: 'All mock data analysis stays on your machine'
             }
         };
     }
@@ -8158,9 +8006,15 @@ if (typeof window !== 'undefined') {
         '/api/auth',
         '/api/roadmap/data',
         '/api/merger-tool/reduction-scan',
-        '/api/code-roadmap/analyze',
-        '/api/code-roadmap/export/html',
-        '/api/dynamic-roadmap/build-from-path'
+        '/api/code-roadmap',
+        '/api/dynamic-roadmap',
+        '/api/development-roadmap',
+        '/api/ai-roadmap',
+        '/api/simplebeacon',
+        '/api/ai-validation',
+        '/api/analyze',
+        '/api/gguf',
+        '/api/models'
     ];
 
     function prefersRealApi(url) {

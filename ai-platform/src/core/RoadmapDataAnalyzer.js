@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * Roadmap Data Analyzer - Analyzes current database and codebase to generate dynamic roadmaps
  * This system replaces static mock data with real project analysis
@@ -5,7 +6,7 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const crypto = require('crypto');
+const _crypto = require('crypto');
 const {
     generateCodeRoadmap,
     resolvePlatformRoot,
@@ -56,7 +57,7 @@ class RoadmapDataAnalyzer {
             return this.analysisCache.get(cacheKey);
         }
 
-        console.log('🔍 Analyzing project structure for dynamic roadmap generation...');
+        logger.debug('🔍 Analyzing project structure for dynamic roadmap generation...');
 
         try {
             const analysis = {
@@ -77,7 +78,7 @@ class RoadmapDataAnalyzer {
             this.analysisCache.set(cacheKey, roadmapData);
             this.lastAnalysisTime = now;
 
-            console.log('✅ Dynamic roadmap analysis completed');
+            logger.debug('✅ Dynamic roadmap analysis completed');
             return roadmapData;
 
         } catch (error) {
@@ -756,7 +757,7 @@ class RoadmapDataAnalyzer {
         return 30; // Default score
     }
 
-    async calculatePhaseProgress(features) {
+    async calculatePhaseProgress(_features) {
         return {
             'Phase 1: Foundation': 100,
             'Phase 2: AI Integration': 100,
@@ -774,7 +775,7 @@ class RoadmapDataAnalyzer {
         };
     }
 
-    calculateTotalFeatures(analysis) {
+    calculateTotalFeatures(_analysis) {
         // Count total potential features based on analysis
         return 47; // Default for now
     }
@@ -800,7 +801,7 @@ class RoadmapDataAnalyzer {
     }
 
     generateDevelopmentPhases(analysis) {
-        const baseDate = new Date();
+        const _baseDate = new Date();
         return [
             {
                 phase: 'Phase 1: Foundation',
@@ -853,7 +854,7 @@ class RoadmapDataAnalyzer {
         ];
     }
 
-    generateFeatureCategories(analysis) {
+    generateFeatureCategories(_analysis) {
         return [
             {
                 category: 'AI Tools',
@@ -974,3 +975,4 @@ class RoadmapDataAnalyzer {
 }
 
 module.exports = RoadmapDataAnalyzer;
+

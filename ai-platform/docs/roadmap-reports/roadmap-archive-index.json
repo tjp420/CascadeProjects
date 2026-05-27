@@ -1,0 +1,23 @@
+{
+  "archiveInfo": {
+    "created": "2026-05-21T23:45:00.000Z",
+    "updated": "2026-05-24T22:50:00.000Z",
+    "description": "Sanitized archive index for roadmap reports. Full historical payloads are retained in per-report files.",
+    "version": "3.4.1",
+    "sanitized": true
+  },
+  "reportsSummary": {
+    "totalReports": 20,
+    "types": {
+      "gguf-development-roadmap-report": 11,
+      "ai-powered-roadmap-report": 6,
+      "roadmap-comparison-report": 2,
+      "release-timeline-report": 1
+    }
+  },
+  "notes": [
+    "This index intentionally omits legacy fictional KPI literals.",
+    "Use individual report JSON files for detailed historical content.",
+    "If detailed metrics are needed for compliance review, regenerate a fresh sanitized index."
+  ]
+}

@@ -125,7 +125,7 @@ function countTestFiles(files) {
 function countApiRoutes(projectRoot) {
     const targets = [
         path.join(projectRoot, 'src/api/dashboard-stub-api.js'),
-        path.join(projectRoot, 'gguf-dashboard-server.js'),
+        path.join(projectRoot, 'simplebeacon-server.js'),
         path.join(projectRoot, 'src/api/build-from-path-route.js')
     ];
     let routes = 0;
@@ -370,7 +370,7 @@ function detectPlatformSignalsAt(projectRoot) {
     }
 
     return {
-        serverEntry: fs.existsSync(path.join(root, 'gguf-dashboard-server.js')),
+        serverEntry: fs.existsSync(path.join(root, 'simplebeacon-server.js')),
         phase2Auth: fs.existsSync(path.join(root, 'server/bootstrap/phase2-integration.js')),
         stubApi: fs.existsSync(path.join(root, 'src/api/dashboard-stub-api.js')),
         mockScanner: fs.existsSync(path.join(root, 'server/lib/mock-data-scanner.js')),

@@ -73,6 +73,27 @@ test('EnvironmentVariableAnalyzer detects missing and unused env keys', async ()
     assert.ok(result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'LEGACY_FLAG'));
 });
 
+test('EnvironmentVariableAnalyzer treats OS-injected env keys as runtime-provided', async () => {
+    const root = makeTempProject({
+        'tools/restore.js': "const home = process.env.USERPROFILE || process.env.HOME;\n"
+    });
+    const inventory = await walkProjectFiles(root);
+    const scanner = new EnvironmentVariableAnalyzer();
+    const result = await scanner.scan(root, { inventory });
+    assert.ok(!result.findings.some((f) => f.type === 'missing-env-key' && f.metadata.key === 'USERPROFILE'));
+});
+
+test('EnvironmentVariableAnalyzer detects get() and resolveCredential env references', async () => {
+    const root = makeTempProject({
+        '.env': 'STRIPE_PUBLISHABLE_KEY=pk_test_x\n',
+        'server/config.js': "function get(k){return process.env[k]} const pk = get('STRIPE_PUBLISHABLE_KEY');\n"
+    });
+    const inventory = await walkProjectFiles(root);
+    const scanner = new EnvironmentVariableAnalyzer();
+    const result = await scanner.scan(root, { inventory });
+    assert.ok(!result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'STRIPE_PUBLISHABLE_KEY'));
+});
+
 test('DependencyHealthAnalyzer ignores node_modules package manifests', async () => {
     const root = makeTempProject({
         'apps/a/package.json': JSON.stringify({
@@ -251,6 +272,18 @@ test('DataLineageAnalyzer skips allowlisted runtime sample paths', async () => {
     const root = makeTempProject({
         'web/data/dashboard-home-sample.json': '{"ok":true}\n',
         'data/mock/report.json': '{"ok":true}\n',
+        'server/index.js': "console.log('no static refs');\n"
+    });
+    const inventory = await walkProjectFiles(root);
+    const scanner = new (require('../src/analyzers/data-cleanup/data-lineage-analyzer').DataLineageAnalyzer)();
+    const result = await scanner.scan(root, { inventory });
+    assert.equal(result.findings.length, 0);
+    assert.equal(result.summary.orphanedDataFiles, 0);
+});
+
+test('DataLineageAnalyzer skips nested tests/fixtures paths (monorepo layout)', async () => {
+    const root = makeTempProject({
+        'ai-platform/tests/fixtures/core/core-flow.json': '{"ok":true}\n',
         'server/index.js': "console.log('no static refs');\n"
     });
     const inventory = await walkProjectFiles(root);

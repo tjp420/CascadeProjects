@@ -19,6 +19,7 @@ const {
     buildFuzzyMergeCandidates,
     DEFAULT_FUZZY_THRESHOLD
 } = require('./fuzzy-content-matcher');
+const { isDistinctCanonicalRoadmapPair } = require('./canonical-roadmap-files');
 
 const DEFAULT_EXTRA_PATHS = ['data/roadmap'];
 const REPO_SKIP_DIRS = new Set(['node_modules', '.git', 'uploads', 'coverage', 'archive', 'dist', 'build']);
@@ -44,11 +45,6 @@ const OVERSIZED_ELIGIBLE_EXTENSIONS = new Set([
 ]);
 const STRUCTURE_SIMILARITY_THRESHOLD = 0.92;
 const MAX_STRUCTURE_PAIRS = 12;
-const DISTINCT_CANONICAL_ROADMAP_FILES = new Set([
-    'data/roadmap/gguf-roadmap-data.json',
-    'data/roadmap/ai-roadmap-report.json'
-]);
-
 function normalizeRelativePath(relativePath) {
     return String(relativePath || '').replace(/\\/g, '/');
 }
@@ -68,12 +64,6 @@ function isKnownSampleAliasPair(fileA, fileB) {
         return true;
     }
     return false;
-}
-
-function isDistinctCanonicalRoadmapPair(fileA, fileB) {
-    const relA = normalizeRelativePath(fileA.relativePath || fileA.path);
-    const relB = normalizeRelativePath(fileB.relativePath || fileB.path);
-    return DISTINCT_CANONICAL_ROADMAP_FILES.has(relA) && DISTINCT_CANONICAL_ROADMAP_FILES.has(relB);
 }
 
 function isDashboardSample(name) {

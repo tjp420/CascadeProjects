@@ -1,0 +1,165 @@
+// =============================================================================
+// R3DR00M MONSTER SYSTEM - MENU DEFINITION
+// Fixed version with proper GZDoom compatibility
+// =============================================================================
+
+// Add to main options menu
+AddOptionMenu "OptionsMenu"
+{
+    Submenu "R3DR00M Monster System", "R3DMonsterMenu"
+}
+
+// Main Menu
+OptionMenu "R3DMonsterMenu"
+{
+    Title "R3DR00M MONSTER SYSTEM"
+    StaticText ""
+    
+    Submenu "Monster Configuration", "R3DMonsterConfig"
+    Submenu "Visual Effects", "R3DVisualEffects"
+    Submenu "Performance Presets", "R3DPerformancePresets"
+    Submenu "Monster Summoning", "R3DMonsterSummoning"
+    StaticText ""
+    Command "Reset All Settings", "netevent r3droom_reset_cvars"
+}
+
+// Monster Configuration
+OptionMenu "R3DMonsterConfig"
+{
+    Title "MONSTER CONFIGURATION"
+    StaticText ""
+    
+    StaticText "Monster Health Settings", "Gold"
+    NumberField "Hellfire Soldier HP", "hellfire_health", 50, 500
+    NumberField "Energy Wraith HP", "wraith_health", 50, 500
+    NumberField "Snake Orb HP", "snakeorb_health", 50, 500
+    NumberField "Soul Host HP", "soulhost_health", 50, 500
+    NumberField "Void Priest HP", "voidpriest_health", 50, 500
+    
+    StaticText ""
+    StaticText "Global Settings", "Cyan"
+    Slider "Monster Health Multiplier", "r3d_monster_health", 0.5, 3.0, 0.1, 1
+    Slider "Monster Speed Multiplier", "r3d_monster_speed", 0.5, 2.0, 0.1, 1
+    Slider "Monster Damage Multiplier", "r3d_monster_damage", 0.5, 3.0, 0.1, 1
+    
+    StaticText ""
+    StaticText "AI Settings", "Green"
+    Option "Global AI Level", "mm_ai_level", "AILevelOptions"
+    Option "Enhanced Pathfinding", "r3d_enhanced_pathfinding", "OnOff"
+    Option "Group Tactics", "r3d_group_tactics", "OnOff"
+}
+
+// Visual Effects
+OptionMenu "R3DVisualEffects"
+{
+    Title "VISUAL EFFECTS"
+    StaticText ""
+    
+    StaticText "VFX Settings", "Gold"
+    Option "VFX Quality Level", "mm_vfx_level", "VFXLevelOptions"
+    Slider "Particle Density", "mm_particle_density", 0.0, 2.0, 0.1, 1
+    Slider "Lighting Intensity", "mm_lighting_intensity", 0.0, 2.0, 0.1, 1
+    Option "Trail Effects", "mm_trail_effects", "TrailOptions"
+    
+    StaticText ""
+    StaticText "Gore System", "Red"
+    Option "Gore Mode", "r3d_gore_mode", "GoreModeOptions"
+    Slider "Gore Amount", "r3d_gore_amount", 0.0, 3.0, 0.25, 2
+    Option "Persistent Gore", "r3d_persistent_gore", "OnOff"
+    
+    StaticText ""
+    StaticText "Performance", "Yellow"
+    Option "Performance Mode", "mm_performance_mode", "OnOff"
+    Option "Distance Culling", "r3d_distance_culling", "OnOff"
+}
+
+// Performance Presets
+OptionMenu "R3DPerformancePresets"
+{
+    Title "PERFORMANCE PRESETS"
+    StaticText ""
+    StaticText "Select a preset to apply optimized settings", "White"
+    StaticText ""
+    
+    Command "Performance Mode (Low-End PCs)", "netevent r3droom_preset_performance"
+    Command "Balanced Mode (Recommended)", "netevent r3droom_preset_balanced"
+    Command "Maximum Visual Quality", "netevent r3droom_preset_maximum"
+    Command "Nightmare Mode (Extreme)", "netevent r3droom_preset_nightmare"
+    
+    StaticText ""
+    StaticText "Spawn Rate Presets", "Cyan"
+    Command "Chaos Spawning", "netevent r3d_preset_spawn_chaos"
+    Command "Balanced Spawning", "netevent r3d_preset_spawn_balanced"
+    Command "Rare Spawning", "netevent r3d_preset_spawn_rare"
+    Command "Disable Auto-Spawning", "netevent r3d_preset_spawn_disabled"
+    
+    StaticText ""
+    Command "Reset to Defaults", "netevent r3droom_reset_cvars"
+}
+
+// Monster Summoning
+OptionMenu "R3DMonsterSummoning"
+{
+    Title "MONSTER SUMMONING"
+    StaticText ""
+    
+    StaticText "Individual Monsters", "Green"
+    Command "Summon Hellfire Soldier", "summon HellfireCorruptedSoldier"
+    Command "Summon Energy Wraith", "summon DimensionalEnergyWraith"
+    Command "Summon Snake Orb", "summon SnakeOrbMonster"
+    Command "Summon Soul Host", "summon SoulHostMonster"
+    Command "Summon Void Priest", "summon VoidPriestMonster"
+    Command "Summon Friendly Orb", "summon FriendlyOrbCompanion"
+    
+    StaticText ""
+    StaticText "Group Spawning", "Cyan"
+    Command "Test Squad (3 mixed)", "netevent r3droom_summon_test_squad"
+    Command "Hellfire Group (5)", "netevent r3droom_summon_hellfire_group"
+    Command "Energy Group (3)", "netevent r3droom_summon_energy_group"
+    
+    StaticText ""
+    StaticText "Spawn Control", "Yellow"
+    Option "Spawn Safety Mode", "r3d_spawn_safety", "OnOff"
+    Command "Kill All Monsters", "kill monsters"
+}
+
+// Option Values
+OptionValue "AILevelOptions"
+{
+    0, "Simple"
+    1, "Normal"
+    2, "Advanced"
+    3, "Nightmare"
+}
+
+OptionValue "VFXLevelOptions"
+{
+    0, "Off"
+    1, "Low"
+    2, "Normal"
+    3, "High"
+    4, "Ultra"
+}
+
+OptionValue "GoreModeOptions"
+{
+    0, "Disabled"
+    1, "Minimal"
+    2, "Standard"
+    3, "Enhanced"
+    4, "Extreme"
+}
+
+OptionValue "TrailOptions"
+{
+    0, "None"
+    1, "Basic"
+    2, "Enhanced"
+    3, "Full"
+}
+
+OptionValue "OnOff"
+{
+    0, "Off"
+    1, "On"
+}

@@ -220,15 +220,16 @@ describe('Local models API', () => {
         await withModelsServer(async (baseUrl, baseDir) => {
             const dataDir = path.join(baseDir, 'web', 'data');
             fs.mkdirSync(dataDir, { recursive: true });
-            fs.writeFileSync(path.join(dataDir, 'gguf-mock-analysis-sample.json'), JSON.stringify({
-                type: 'gguf-mock-data-analysis-report',
+            fs.writeFileSync(path.join(dataDir, 'mock-analysis-sample.json'), JSON.stringify({
+                type: 'mock-data-analysis-report',
                 title: 'Template',
                 modelInfo: { name: 'template' },
                 analysisOverview: {},
                 mockDataCategories: [],
                 detectedIssues: [],
                 qualityMetrics: { overallQuality: 80 },
-                ggufAIInsights: { dataPatterns: [], optimizationRecommendations: [], qualityImprovements: [] },
+                optimizationRecommendations: [],
+                qualityImprovements: [],
                 performanceMetrics: {},
                 nextSteps: [],
                 privacyAndSecurity: {}
@@ -243,7 +244,7 @@ describe('Local models API', () => {
             expect(response.ok).toBe(true);
             const payload = await response.json();
             expect(payload.success).toBe(true);
-            expect(payload.report.type).toBe('gguf-mock-data-analysis-report');
+            expect(payload.report.type).toBe('mock-data-analysis-report');
         });
     });
 

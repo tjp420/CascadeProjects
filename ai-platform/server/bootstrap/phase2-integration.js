@@ -1,13 +1,14 @@
 /**
- * Phase 2 — Data integration bootstrap for gguf-dashboard-server.
+ * Phase 2 — Data integration bootstrap for simplebeacon-server.
  * Wires auth, health checks, optional PostgreSQL, and API auth gate.
  */
 
 const fs = require('fs');
 const path = require('path');
 const logger = require('../lib/app-logger');
+const { readJsonFileCached, readTextFileCached } = require('../lib/json-file-cache');
 const rateLimit = require('express-rate-limit');
-const DatabaseAdapter = require('../../src/core/DatabaseAdapter');
+const DatabaseAdapter = require('../lib/database-adapter');
 const {
     authenticate,
     _optionalAuthenticate,
@@ -69,7 +70,8 @@ async function ensurePhase2Schema(db) {
     for (const file of ['schema-phase2.sql', 'schema-subscription.sql']) {
         const schemaPath = path.join(schemaDir, file);
         if (!fs.existsSync(schemaPath)) continue;
-        const sql = fs.readFileSync(schemaPath, 'utf8');
+        const sql = readTextFileCached(schemaPath);
+        if (!sql) continue;
         await db.query(sql);
     }
 }
@@ -89,9 +91,9 @@ async function seedDashboardSnapshot(db, key, payload, redis = null) {
 async function seedDashboardSnapshotsFromSamples(db, webRoot, redis = null) {
     for (const seed of SNAPSHOT_SEEDS) {
         try {
-            const sample = JSON.parse(
-                fs.readFileSync(path.join(webRoot, 'data', seed.file), 'utf8')
-            );
+            const samplePath = path.join(webRoot, 'data', seed.file);
+            const sample = readJsonFileCached(samplePath);
+            if (!sample) continue;
             const payload = seed.pick(sample);
             if (payload != null) {
                 await seedDashboardSnapshot(db, seed.key, payload);
@@ -211,7 +213,7 @@ async function setupPhase2Integration(app, options = {}) {
     app.get('/api/health', (req, res) => {
         res.json({
             status: 'ok',
-            service: 'gguf-dashboard-server',
+            service: 'simplebeacon-server',
             phase: 2,
             timestamp: new Date().toISOString()
         });

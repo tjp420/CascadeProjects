@@ -10,7 +10,6 @@ import {
   fetchZscriptModReport,
   shouldFetchZscriptReport,
   isLegacyScanReport,
-  buildScanScopeLines,
   buildMonorepoScopeNote,
   renderScanScopePanel,
   isSimplebeaconReport,
@@ -1876,7 +1875,7 @@ export class AnalyzeView {
       return this.buildCompleteScanExport();
     }
 
-    const { kind, projectPath, report, scan, data, brief, fileReduction, dataQuality, profile, policy } = this.lastResult || {};
+    const { kind, projectPath, report, scan, data, _brief, fileReduction, dataQuality, profile, policy } = this.lastResult || {};
     const generatedAt = new Date().toISOString();
     const scanDurationMs = this.scanStartedAt ? Date.now() - this.scanStartedAt : null;
 
@@ -2114,6 +2113,9 @@ export class AnalyzeView {
       logs,
       rawIssues,
       scanIssues: rawIssues,
+      scan,
+      fileReduction,
+      dataQuality,
       codeUnderstanding: scan?.codeUnderstanding,
       zscriptReport: scan?.zscriptReport,
       benchmarks: lr.data?.benchmarks || report?.benchmarks,
@@ -2786,3 +2788,4 @@ export class AnalyzeView {
     }
   }
 }
+

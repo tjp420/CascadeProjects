@@ -4,7 +4,7 @@
  */
 
 const path = require('path');
-const fsSync = require('fs');
+const _fsSync = require('fs');
 const fs = require('fs').promises;
 const { runNpmAudit } = require('../../server/lib/npm-audit-runner');
 const { saveConsolidationReport } = require('../../server/lib/repository-health-payload');
@@ -50,7 +50,6 @@ let codeGenerationSample = null;
 let reportsSample = null;
 let issueResolutionSample = null;
 let aiRoadmapSample = null;
-let ggufRoadmapSample = null;
 
 async function loadPerformanceSample(webRoot) {
     if (performanceSample) return performanceSample;
@@ -413,19 +412,6 @@ async function loadAiRoadmapSample(webRoot) {
         aiRoadmapSample = {};
     }
     return aiRoadmapSample;
-}
-
-async function loadGgufRoadmapSample(webRoot) {
-    if (ggufRoadmapSample) return ggufRoadmapSample;
-    try {
-        const platformRoot = path.join(webRoot, '..');
-        const filePath = resolveSampleFilePath(platformRoot, 'gguf-roadmap-sample.json');
-        const content = await fs.readFile(filePath, 'utf8');
-        ggufRoadmapSample = JSON.parse(content);
-    } catch {
-        ggufRoadmapSample = {};
-    }
-    return ggufRoadmapSample;
 }
 
 async function wrapPageModel(webRoot, loader) {
@@ -1198,9 +1184,15 @@ function setupDashboardStubAPIs(app, webRoot, options = {}) {
 
     app.get('/api/roadmap/data', async (req, res) => {
         try {
-            const type = req.query.type || 'gguf';
-            const loader = type === 'ai-powered' ? loadAiRoadmapSample : loadGgufRoadmapSample;
-            const data = await loader(webRoot);
+            const type = req.query.type || 'ai-powered';
+            if (type !== 'ai-powered') {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Roadmap type not available',
+                    type
+                });
+            }
+            const data = await loadAiRoadmapSample(webRoot);
             res.json({
                 success: true,
                 type,
@@ -1218,3 +1210,4 @@ function setupDashboardStubAPIs(app, webRoot, options = {}) {
 }
 
 module.exports = setupDashboardStubAPIs;
+

@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * POST /api/dynamic-roadmap/build-from-path
  * Register early in Express apps (before static middleware).
@@ -144,12 +145,12 @@ function setupBuildFromPathRoute(app) {
             const normalizedIncludePaths = normalizeStringList(includePaths);
             const normalizedExcludePatterns = normalizeStringList(excludePatterns);
 
-            console.log(`🗺️ Building AI roadmap from: ${resolvedPath}`);
+            logger.debug(`🗺️ Building AI roadmap from: ${resolvedPath}`);
             if (normalizedIncludePaths.length) {
-                console.log(`   Include paths: ${normalizedIncludePaths.join(', ')}`);
+                logger.debug(`   Include paths: ${normalizedIncludePaths.join(', ')}`);
             }
             if (normalizedExcludePatterns.length) {
-                console.log(`   Extra excludes: ${normalizedExcludePatterns.join(', ')}`);
+                logger.debug(`   Extra excludes: ${normalizedExcludePatterns.join(', ')}`);
             }
 
             const contextManager = new GlobalContextManager(resolvedPath);
@@ -205,7 +206,7 @@ function setupBuildFromPathRoute(app) {
                 source: 'dynamic-analysis-from-path'
             });
 
-            console.log('✅ Roadmap built from project path');
+            logger.debug('✅ Roadmap built from project path');
         } catch (error) {
             console.error('❌ Failed to build roadmap from path:', error);
             res.status(500).json({

@@ -57,7 +57,7 @@ describe('path-safety', () => {
     test('resolveDefaultAllowedRoots includes monorepo parent for ai-platform layout', () => {
         const monorepoRoot = path.join(tempDir, 'CascadeProjects');
         fs.mkdirSync(path.join(monorepoRoot, 'ai-platform'), { recursive: true });
-        fs.writeFileSync(path.join(monorepoRoot, 'ai-platform', 'gguf-dashboard-server.js'), '// stub');
+        fs.writeFileSync(path.join(monorepoRoot, 'ai-platform', 'simplebeacon-server.js'), '// stub');
 
         const roots = resolveDefaultAllowedRoots(path.join(monorepoRoot, 'ai-platform'));
         expect(roots).toEqual(expect.arrayContaining([

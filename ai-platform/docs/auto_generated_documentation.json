@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "status": "archived-summary",
+    "generated_at": "2026-05-24T00:00:00.000Z",
+    "reason": "Trimmed for dashboard load footprint and consolidation scan hygiene."
+  },
+  "archive": {
+    "original_path": "docs/auto_generated_documentation.json",
+    "original_size_bytes": 2058650,
+    "notes": [
+      "The previous auto-generated payload exceeded scanner size thresholds.",
+      "Regenerate full documentation from source generator when needed.",
+      "Keep this summary stub in-repo to avoid broken references."
+    ]
+  }
+}

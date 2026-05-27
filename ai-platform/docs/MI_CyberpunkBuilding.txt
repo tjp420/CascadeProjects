@@ -1,0 +1,54 @@
+# MI_CyberpunkBuilding Material Instance
+
+## Base Material: M_CyberpunkBuilding
+
+## Material Parameters
+```
+Parameter Group: Building
+- BaseColor (Vector): RGB(0.1, 0.1, 0.15)
+- Metallic (Scalar): 0.8
+- Roughness (Scalar): 0.3
+
+Parameter Group: Glow
+- GlowColor (Vector): RGB(0.0, 1.0, 1.0)
+- GlowIntensity (Scalar): 2.0
+- GlowScrollSpeed (Scalar): 1.0
+
+Parameter Group: Panels
+- PanelEmissive (Scalar): 5.0
+- PanelCount (Integer): 5
+- PanelPattern (Texture): T_PanelPattern
+
+Parameter Group: Rings
+- RingColor (Vector): RGB(1.0, 0.0, 1.0)
+- RingEmissive (Scalar): 3.0
+- RingProgress (Scalar): 0.0
+```
+
+## Material Graph Structure
+```
+Base Material Node Structure:
+1. Base Color: BaseColor parameter + noise texture
+2. Metallic: Metallic parameter
+3. Roughness: Roughness parameter + edge wear
+4. Emissive: 
+   - Glow panels: PanelEmissive * PanelPattern
+   - Rings: RingEmissive * RingProgress
+   - Animated glow: sin(Time * GlowScrollSpeed) * GlowIntensity
+```
+
+## Material Functions
+- `MF_PanelPattern()`: Generates procedural panel layout
+- `MF_RingEmission()`: Creates animated ring effect
+- `MF_EdgeWear()`: Adds weathering to building edges
+
+## Texture Requirements
+- T_PanelPattern: 256x256 panel mask texture
+- T_Noise: 512x512 noise for variation
+- T_EdgeMask: 256x256 edge wear mask
+
+## Performance Notes
+- Use material ID 1 for glow panels
+- Use material ID 2 for rings
+- Enable "Used with Instanced Static Meshes"
+- Set "Two Sided" for panels

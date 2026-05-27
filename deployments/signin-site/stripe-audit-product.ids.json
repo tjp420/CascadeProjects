@@ -1,0 +1,11 @@
+{
+  "account_id": "acct_1TPbzqAQ0e20kzI8",
+  "livemode": true,
+  "product_id": "prod_UafvyQz1TaS4LB",
+  "product_name": "Pre-Launch Repository Review",
+  "price_id": "price_1TbUZFAQ0e20kzI84rRrpgcC",
+  "amount_usd": 499,
+  "unit_amount_cents": 49900,
+  "payment_link_test": "https://buy.stripe.com/test_aFaaEW2JF8nJdxlch0eEo00",
+  "payment_link_live": "https://buy.stripe.com/aFaaEW2JF8nJdxlch0eEo00"
+}

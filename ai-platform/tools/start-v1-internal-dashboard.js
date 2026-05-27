@@ -17,4 +17,4 @@ process.env.SIMPLEBEACON_INTERNAL_DASHBOARD = process.env.SIMPLEBEACON_INTERNAL_
 const { applyLocalV1InternalDevProfile } = require('../server/lib/secret-config');
 applyLocalV1InternalDevProfile();
 
-require('../gguf-dashboard-server.js');
+require('../simplebeacon-server.js');

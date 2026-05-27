@@ -1,0 +1,217 @@
+{
+  "type": "simplebeacon-assessment-report",
+  "title": "Simplebeacon Free Assessment — Test Target",
+  "generatedAt": "2026-05-26T16:51:37.694Z",
+  "generatedBy": "Simplebeacon",
+  "assessor": "Devin",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-test-repo",
+  "executiveSummary": {
+    "gateResult": "FAIL",
+    "qualityScore": 55,
+    "filesScanned": 1,
+    "criticalIssues": 1,
+    "highIssues": 3,
+    "mediumIssues": 0,
+    "lowIssues": 0,
+    "headline": "1 fiction/KPI issue(s); 2 production-path leak(s); 1 credential pattern(s). Gate would fail — these issues block merge when --gate is enabled.",
+    "complianceScore": 0,
+    "complianceReady": false
+  },
+  "complianceChecklist": {
+    "type": "simplebeacon-compliance-checklist",
+    "version": "1.0.0",
+    "title": "Simplebeacon Corporate Safety Checklist",
+    "description": "Automated guardrails for AI-generated code — maps scan signals to deploy readiness.",
+    "evaluatedAt": "2026-05-26T16:51:37.694Z",
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-test-repo",
+    "summary": {
+      "passed": 0,
+      "failed": 4,
+      "skipped": 4,
+      "total": 8,
+      "score": 0,
+      "readyForAutomation": false,
+      "headline": "4 rule(s) fail — fix before handing operations to AI-generated code"
+    },
+    "rules": [
+      {
+        "id": "GATE-001",
+        "title": "Merge gate passes on configured severities",
+        "category": "Automation",
+        "severity": "critical",
+        "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
+        "status": "fail",
+        "evidence": "Gate fail — 3 blocking issue(s)"
+      },
+      {
+        "id": "CRED-001",
+        "title": "No credential or secret patterns in scanned paths",
+        "category": "Security",
+        "severity": "critical",
+        "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
+        "status": "fail",
+        "evidence": "1 credential pattern(s) detected"
+      },
+      {
+        "id": "LEAK-001",
+        "title": "No mock/sample JSON paths referenced from production directories",
+        "category": "Data integrity",
+        "severity": "high",
+        "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
+        "status": "fail",
+        "evidence": "2 production leak(s) — mock/sample paths in prod code"
+      },
+      {
+        "id": "DATA-001",
+        "title": "Registered page samples match schema specs",
+        "category": "Data integrity",
+        "severity": "high",
+        "remediation": "Fix schema violations listed in the scan report",
+        "status": "skip",
+        "evidence": "No registered page samples in this project"
+      },
+      {
+        "id": "DATA-002",
+        "title": "No fiction KPI or baseline drift in anchor samples",
+        "category": "Data integrity",
+        "severity": "high",
+        "remediation": "Replace fiction metrics with repository-audit baseline values",
+        "status": "fail",
+        "evidence": "Consistency score 67% — fiction or baseline drift detected"
+      },
+      {
+        "id": "SUPPLY-001",
+        "title": "No critical or high npm audit vulnerabilities",
+        "category": "Supply chain",
+        "severity": "critical",
+        "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
+        "status": "skip",
+        "evidence": "No package.json — npm audit not applicable"
+      },
+      {
+        "id": "SUPPLY-002",
+        "title": "Moderate npm vulnerabilities within policy limit",
+        "category": "Supply chain",
+        "severity": "medium",
+        "remediation": "Upgrade dependencies flagged by npm audit (moderate severity)",
+        "status": "skip",
+        "evidence": "No package.json — npm audit not applicable"
+      },
+      {
+        "id": "AUTH-001",
+        "title": "Production profile has JWT auth enabled (REQUIRE_AUTH)",
+        "category": "Access control",
+        "severity": "medium",
+        "remediation": "Set REQUIRE_AUTH=true and real JWT secrets in .env.production on the deploy host",
+        "status": "skip",
+        "evidence": ".env.production not present (local/dev repo)"
+      }
+    ]
+  },
+  "findings": {
+    "credentials": {
+      "scanned": 3,
+      "findings": 1,
+      "severity": "high",
+      "items": [
+        {
+          "file": "src/keys.js",
+          "description": "src/keys.js: possible stripe key in production path",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Immediately remove and rotate this credential; store only via environment/secret manager bindings"
+        }
+      ],
+      "summary": "src/keys.js: src/keys.js: possible stripe key in production path"
+    },
+    "fictionKpis": {
+      "scanned": 3,
+      "findings": 1,
+      "severity": "high",
+      "items": [
+        {
+          "file": "web/data/metrics-sample.json",
+          "description": "web/data/metrics-sample.json: 156 open issues claim",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace with repository-audit baseline sample values"
+        }
+      ],
+      "summary": "web/data/metrics-sample.json: web/data/metrics-sample.json: 156 open issues claim"
+    },
+    "productionLeaks": {
+      "scanned": 2,
+      "findings": 2,
+      "severity": "medium",
+      "items": [
+        {
+          "file": "src/components/DashboardView.tsx",
+          "description": "src/components/DashboardView.tsx:2 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "src/components/DashboardView.tsx",
+          "description": "src/components/DashboardView.tsx:2 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        }
+      ],
+      "summary": "src/components/DashboardView.tsx: src/components/DashboardView.tsx:2 references mock/sample path (sample-json); src/components/DashboardView.tsx: src/components/DashboardView.tsx:2 references mock/sample path (web-data-sample)"
+    },
+    "schemaDrift": {
+      "checked": 0,
+      "passed": 0,
+      "severity": "high",
+      "items": [],
+      "summary": "All registered page samples match schema specs."
+    },
+    "other": {
+      "items": [],
+      "summary": "No other findings."
+    }
+  },
+  "recommendedActions": {
+    "immediate": [
+      "Fix high-severity findings before enabling --gate on main",
+      "Remove hardcoded -sample.json paths from production code",
+      "Replace fiction KPIs with repository-audit baseline values",
+      "Add simplebeacon scan --gate to PR workflow (see docs/GITHUB-ACTION-QUICKSTART.md)"
+    ],
+    "next30Days": [
+      "Sync .simplebeacon/baseline.json after green test runs",
+      "Review production-leak allowlist for intentional seed files",
+      "Run consolidation scan to dedupe identical sample JSON"
+    ]
+  },
+  "complementaryStack": {
+    "keepUsing": [
+      "Snyk or GitHub Advanced Security for CVEs",
+      "SonarQube for code smells"
+    ],
+    "addSimplebeaconFor": [
+      "Mock/fiction drift in sample JSON",
+      "Hardcoded sample paths in production directories"
+    ]
+  },
+  "pilotProposal": {
+    "offer": "Wire simplebeacon gate + 30-day support",
+    "pricePlaceholder": "$2,000–10,000/year depending on team size",
+    "ask": "Will you run simplebeacon scan --gate on every PR for 2 weeks?"
+  },
+  "commandsRun": [
+    "npx simplebeacon scan --format json --output .simplebeacon/report.json --gate",
+    "npx simplebeacon assess --company \"Test Target\" --assessor \"Devin\""
+  ],
+  "sourceReport": {
+    "generatedAt": "2026-05-26T16:51:37.691Z",
+    "scanPaths": [
+      "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-test-repo\\web\\data"
+    ],
+    "duplicateGroups": 0
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-05-26T16:51:37.695Z"
+}

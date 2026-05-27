@@ -11,8 +11,8 @@ describe('model inference service', () => {
         const dataDir = path.join(baseDir, 'web', 'data');
         fs.mkdirSync(dataDir, { recursive: true });
 
-        fs.writeFileSync(path.join(dataDir, 'gguf-mock-analysis-sample.json'), JSON.stringify({
-            type: 'gguf-mock-data-analysis-report',
+        fs.writeFileSync(path.join(dataDir, 'mock-analysis-sample.json'), JSON.stringify({
+            type: 'mock-data-analysis-report',
             title: 'Template',
             dataSource: 'repository-audit',
             generatedBy: 'mock-data-scanner (repository-audit)',
@@ -36,7 +36,8 @@ describe('model inference service', () => {
             }],
             detectedIssues: [],
             qualityMetrics: { overallQuality: 80, measuredFromScan: true },
-            ggufAIInsights: { dataPatterns: [], optimizationRecommendations: [], qualityImprovements: [] },
+            optimizationRecommendations: [],
+            qualityImprovements: [],
             performanceMetrics: {},
             privacyAndSecurity: {}
         }));
@@ -68,7 +69,7 @@ describe('model inference service', () => {
     test('analyzeWithModel returns report for demo provider', async () => {
         const result = await analyzeWithModel(baseDir, 'platform-checklist-demo');
         expect(result.success).toBe(true);
-        expect(result.report.type).toBe('gguf-mock-data-analysis-report');
+        expect(result.report.type).toBe('mock-data-analysis-report');
         expect(result.report.modelInfo.name).toBe('platform-checklist');
         expect(result.report.modelInfo.confidence).toBeNull();
         expect(result.report.generatedBy).not.toContain('unbreakable-oracle');

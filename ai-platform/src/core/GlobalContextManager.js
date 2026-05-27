@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * Global Context Manager - Analyzes directory contents and provides global access
  * Reads all files in a target directory and makes the data available across the entire website
@@ -39,7 +40,7 @@ class GlobalContextManager {
     }
 
     async _initializeOnce(options = {}) {
-        console.log(`🚀 Initializing Global Context Manager for: ${this.targetDir}`);
+        logger.debug(`🚀 Initializing Global Context Manager for: ${this.targetDir}`);
         
         const startTime = Date.now();
         
@@ -64,7 +65,7 @@ class GlobalContextManager {
             this.metadata.scanDuration = Date.now() - startTime;
             this.isInitialized = true;
             
-            console.log(`✅ Global Context initialized: ${this.metadata.totalFiles} files scanned in ${this.metadata.scanDuration}ms`);
+            logger.debug(`✅ Global Context initialized: ${this.metadata.totalFiles} files scanned in ${this.metadata.scanDuration}ms`);
             
         } catch (error) {
             console.error('❌ Failed to initialize Global Context Manager:', error);
@@ -611,7 +612,7 @@ class GlobalContextManager {
             
             const watcher = chokidar.watch(this.targetDir, {
                 ignored: [
-                    /(^|[\/\\])\../,
+                    /(^|[/\\])\../,
                     '**/node_modules/**',
                     '**/.git/**',
                     '**/dist/**',
@@ -638,7 +639,7 @@ class GlobalContextManager {
             });
             
             this.watchers.set(this.targetDir, watcher);
-            console.log('👁️ File watchers enabled for real-time updates');
+            logger.debug('👁️ File watchers enabled for real-time updates');
         } catch (error) {
             console.warn('⚠️ Could not setup file watchers (chokidar not available):', error.message);
         }
@@ -654,10 +655,10 @@ class GlobalContextManager {
         try {
             if (changeType === 'deleted') {
                 this.context.delete(relativePath);
-                if (verbose) console.log(`🗑️ File deleted: ${relativePath}`);
+                if (verbose) logger.debug(`🗑️ File deleted: ${relativePath}`);
             } else {
                 await this.analyzeFile(filePath);
-                if (verbose) console.log(`📝 File ${changeType}: ${relativePath}`);
+                if (verbose) logger.debug(`📝 File ${changeType}: ${relativePath}`);
             }
             
             this.calculateMetadata();
@@ -809,7 +810,7 @@ class GlobalContextManager {
     getFilesByCategory(category) {
         const files = [];
         
-        for (const [relativePath, fileData] of this.context) {
+        for (const [_relativePath, fileData] of this.context) {
             if (fileData.category === category) {
                 files.push(fileData);
             }
@@ -824,7 +825,7 @@ class GlobalContextManager {
     getFilesByType(type) {
         const files = [];
         
-        for (const [relativePath, fileData] of this.context) {
+        for (const [_relativePath, fileData] of this.context) {
             if (fileData.type === type) {
                 files.push(fileData);
             }
@@ -856,12 +857,13 @@ class GlobalContextManager {
      * Close all file watchers
      */
     async close() {
-        for (const [path, watcher] of this.watchers) {
+        for (const [_path, watcher] of this.watchers) {
             await watcher.close();
         }
         this.watchers.clear();
-        console.log('🛑 File watchers closed');
+        logger.debug('🛑 File watchers closed');
     }
 }
 
 module.exports = GlobalContextManager;
+

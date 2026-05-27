@@ -80,7 +80,8 @@ function shouldSkipEnvInconsistency(key, values) {
 function isRuntimeInjectedEnvKey(key) {
     return /^(CI|NODE_ENV|FORCE_COLOR|NO_COLOR|DOTENV_CONFIG_PATH|npm_lifecycle_event|npm_node_execpath)$/i.test(key)
         || /^GITHUB_/i.test(key)
-        || /^npm_config_/i.test(key);
+        || /^npm_config_/i.test(key)
+        || /^(USERPROFILE|HOME|HOMEDRIVE|HOMEPATH|APPDATA|LOCALAPPDATA|TEMP|TMP|PATH|PATHEXT|OS|COMPUTERNAME|USERNAME)$/i.test(key);
 }
 
 function isNonProductionSourcePath(relativePath) {

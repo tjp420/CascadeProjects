@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-05-25T19:27:16.162Z",
+  "source": "quality-maintenance-metrics",
+  "gate": {
+    "pass": true,
+    "blockingCount": 0,
+    "warningCount": 0,
+    "issueCount": 0,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    }
+  },
+  "quality": {
+    "qualityScore": 100,
+    "schemaChecked": 45,
+    "schemaPassed": 45,
+    "schemaCompliance": 100,
+    "consistencyChecked": 193,
+    "consistencyPassed": 193,
+    "consistencyScore": 100
+  },
+  "coverage": {
+    "pageSampleSchemaChecked": 43,
+    "pageSampleSchemaPassed": 43,
+    "combinedSchemaChecked": 63,
+    "combinedSchemaPassed": 62,
+    "extendedTargetsChecked": 18,
+    "extendedTargetsPassRate": 94,
+    "extendedTargetsOk": 17
+  },
+  "fictionGuard": {
+    "filesScanned": 41,
+    "filesWithFindings": 12,
+    "totalFindings": 19
+  },
+  "assessment": {
+    "gateResult": "PASS",
+    "complianceScore": 100,
+    "headline": "Clean scan — no blocking mock/fiction findings in configured paths."
+  },
+  "complianceMonitoring": null
+}

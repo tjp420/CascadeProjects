@@ -1,0 +1,187 @@
+{
+  "generatedAt": "2026-05-25T10:00:11.641Z",
+  "dependency": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "totalDependencies": 962,
+    "outdatedPackages": 13,
+    "outdatedTop": [
+      {
+        "name": "archiver",
+        "current": "6.0.2",
+        "latest": "8.0.0"
+      },
+      {
+        "name": "chokidar",
+        "current": "3.6.0",
+        "latest": "5.0.0"
+      },
+      {
+        "name": "dotenv",
+        "current": "16.6.1",
+        "latest": "17.4.2"
+      },
+      {
+        "name": "eslint",
+        "current": "8.57.1",
+        "latest": "10.4.0"
+      },
+      {
+        "name": "express",
+        "current": "4.22.2",
+        "latest": "5.2.1"
+      },
+      {
+        "name": "helmet",
+        "current": "7.2.0",
+        "latest": "8.2.0"
+      },
+      {
+        "name": "jest",
+        "current": "29.7.0",
+        "latest": "30.4.2"
+      },
+      {
+        "name": "knex",
+        "current": "2.5.1",
+        "latest": "3.2.10"
+      },
+      {
+        "name": "multer",
+        "current": "1.4.5-lts.2",
+        "latest": "2.1.1"
+      },
+      {
+        "name": "passport",
+        "current": "0.6.0",
+        "latest": "0.7.0"
+      },
+      {
+        "name": "redis",
+        "current": "4.7.1",
+        "latest": "5.12.1"
+      },
+      {
+        "name": "webpack-cli",
+        "current": "5.1.4",
+        "latest": "7.0.2"
+      },
+      {
+        "name": "ws",
+        "current": "8.20.1",
+        "latest": "8.21.0"
+      }
+    ],
+    "depcheckUnusedDependencies": [
+      "formidable",
+      "knex"
+    ],
+    "depcheckUnusedDevDependencies": [
+      "simplebeacon",
+      "webpack-cli"
+    ],
+    "depcheckMissingDependencies": [
+      "@eslint/js",
+      "vite",
+      "jsdom",
+      "@rollup/plugin-commonjs",
+      "@rollup/plugin-node-resolve",
+      "@rollup/plugin-terser",
+      "terser-webpack-plugin",
+      "html-webpack-plugin",
+      "webpack-bundle-analyzer",
+      "@jest/globals",
+      "supertest",
+      "chart.js",
+      "body-parser",
+      "compression",
+      "mime-types",
+      "nodemailer",
+      "passport-jwt",
+      "passport-azure-ad",
+      "bcrypt",
+      "react",
+      "react-router-dom",
+      "@mui/material",
+      "socket.io-client",
+      "react-dom",
+      "@mui/icons-material",
+      "unzipper"
+    ]
+  },
+  "codeQuality": {
+    "eslintErrors": 11167,
+    "eslintWarnings": 148,
+    "eslintFilesWithIssues": 448,
+    "duplicatedLines": 86132,
+    "duplicatedPercent": 7.22,
+    "duplicateClones": 2847,
+    "largeJsFilesOver500Lines": 182,
+    "topLargeJsFiles": [
+      "3475\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\dashboard-init.js",
+      "2748\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\dashboard_enhancement.js",
+      "2713\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\server\\index.js",
+      "2486\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\core\\GGUFRoadmapAnalyzer.js",
+      "2388\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\roadmap_builder.js",
+      "1970\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\advanced-security-system.js",
+      "1814\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\reports.js",
+      "1746\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\mock_data_scanner.js",
+      "1664\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\ai-powered-roadmap-dashboard.js",
+      "1629\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\team-optimization-system.js",
+      "1561\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\error-tracking-resolution-system.js",
+      "1556\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\core\\RoadmapBuilder.js",
+      "1543\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\advanced-analytics-panel.js",
+      "1489\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\adapters\\ProjectResourcesDataAdapter.js",
+      "1485\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\activity-recognition-system.js",
+      "1470\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\risk-mitigation-system.js",
+      "1463\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\directory-analyzer-system.js",
+      "1437\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\ai-roadmap-report.js",
+      "1426\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\web\\components\\core\\TeamCollaboration.js",
+      "1360\tC:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src\\validation\\ValidationRules.js"
+    ]
+  },
+  "architecture": {
+    "modules": 535,
+    "circularDependencies": null,
+    "circularCheckNote": "Unable to determine"
+  },
+  "testing": {
+    "coverageSummaryFixturePath": "tests/fixtures/jest-coverage-summary.json",
+    "note": "Full coverage data generated during test run; fixture summary available in repository."
+  },
+  "documentation": {
+    "todoFixmeHackCount": 225
+  },
+  "security": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "performance": {
+    "consoleLogCount": 3552,
+    "syncFsCount": 85
+  },
+  "configuration": {
+    "processEnvRefsCount": 160
+  },
+  "deadCode": {
+    "knip": {
+      "issueFiles": 923,
+      "unusedDependencies": 11,
+      "unusedDevDependencies": 1,
+      "unresolvedImports": 2,
+      "unlistedDependencies": 1
+    }
+  }
+}

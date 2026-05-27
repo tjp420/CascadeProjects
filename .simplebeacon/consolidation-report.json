@@ -1,0 +1,125 @@
+{
+  "type": "file-merger-reduction-report",
+  "reportVersion": 2,
+  "title": "File Merger & Reduction Scan (Measured Baseline)",
+  "dataSource": "repository-audit",
+  "generatedAt": "2026-05-27T20:14:52.270Z",
+  "generatedBy": "file-merger-reduction-scanner",
+  "scanEngine": "file-merger-reduction-scanner",
+  "inferenceMode": "filesystem + fuzzy-match",
+  "advancedAnalysis": {
+    "fuzzyNearDuplicates": {
+      "threshold": 0.85,
+      "pairsFound": 0,
+      "pairs": []
+    },
+    "patternConsolidation": {
+      "groupsFound": 0,
+      "recommendations": []
+    },
+    "semanticHints": {
+      "enabled": false,
+      "mode": "filesystem-only",
+      "hints": [],
+      "note": "Set LLAMA_CPP_BIN for optional semantic review hints on fuzzy pairs"
+    }
+  },
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "platformRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+  "scanPaths": [
+    "ai-platform/web/data",
+    "ai-platform/data/mock",
+    "ai-platform/data-central/ai-tools/mock-data",
+    "ai-platform/data/roadmap"
+  ],
+  "scanScope": {
+    "mode": "repository-consolidation",
+    "description": "Full repository inventory (explorer profile) plus JSON duplicate detection on audit-scoped paths — skips node_modules, .git, coverage, archive for merge logic.",
+    "sampleDataPaths": [
+      "ai-platform/web/data",
+      "ai-platform/data/mock",
+      "ai-platform/data-central/ai-tools/mock-data",
+      "ai-platform/data/roadmap"
+    ],
+    "sampleDataFilesAnalyzed": 42,
+    "jsonFilesAnalyzed": 214,
+    "repositoryFilesAudited": 2735,
+    "repositoryInventoryProfile": "explorer",
+    "repositoryInventoryIncluded": true,
+    "repositoryFilesTotal": 31676,
+    "repositoryFoldersTotal": 3844,
+    "limitations": [
+      "repositoryFilesTotal uses explorer inventory (31,676 files).",
+      "Merge/dedup logic walked 2,735 audit-scoped files and hashed 214 JSON files.",
+      "Structure similarity pairs are limited to configured sample paths.",
+      "node_modules, .git, coverage, archive, dist, and build are excluded from merge walks."
+    ]
+  },
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "totalFiles": 31676,
+    "totalFolders": 3844,
+    "profile": "explorer"
+  },
+  "summary": {
+    "filesAnalyzed": 31676,
+    "sampleDataFilesAnalyzed": 42,
+    "jsonFilesAnalyzed": 214,
+    "repositoryFilesTotal": 31676,
+    "repositoryFilesAudited": 2735,
+    "repositoryFoldersTotal": 3844,
+    "totalSizeBytes": 21558600,
+    "totalSizeLabel": "20.6MB",
+    "mergeCandidates": 0,
+    "reductionOpportunities": 0,
+    "potentialSavingsBytes": 0,
+    "potentialSavingsLabel": "0B",
+    "exactDuplicateGroups": 0,
+    "structureSimilarPairs": 0,
+    "fuzzyNearDuplicatePairs": 0,
+    "patternConsolidationGroups": 0,
+    "oversizedFiles": 0
+  },
+  "mergeCandidates": [],
+  "reductionOpportunities": [],
+  "recommendations": [],
+  "rejectedFiction": {
+    "warning": "Enterprise design claims not implemented in v0.8-beta",
+    "claims": [
+      "15-30% storage savings guarantee",
+      "40-60% faster file processing",
+      "GGUF embedding semantic similarity",
+      "Auto-merge executor with rollback",
+      "1,559 files/s throughput"
+    ]
+  },
+  "implementationPhases": [
+    {
+      "phase": "Phase 1 — Core scanner (done)",
+      "status": "complete",
+      "items": [
+        "Exact duplicate detection",
+        "JSON structure similarity",
+        "Oversized file report"
+      ]
+    },
+    {
+      "phase": "Phase 2 — Advanced analysis",
+      "status": "complete",
+      "items": [
+        "Fuzzy content match (threshold 85%)",
+        "Pattern consolidation recommendations",
+        "Optional GGUF hints when LLAMA_CPP_BIN set"
+      ]
+    },
+    {
+      "phase": "Phase 3 — Safe merge preview",
+      "status": "complete",
+      "items": [
+        "Merge plan preview API",
+        "Confirmation + quarantine (no auto-delete)",
+        "Audit log + rollback"
+      ]
+    }
+  ]
+}

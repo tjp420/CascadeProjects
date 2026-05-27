@@ -1,0 +1,9 @@
+{
+  "file": "reports/technical-debt/raw/jscpd/jscpd-report.json",
+  "archivedFullArtifact": "reports/technical-debt/archive/reports__technical-debt__raw__jscpd__jscpd-report.json.full.1779732807432.gz",
+  "originalBytes": 5413093,
+  "currentBytes": 555,
+  "archivedBytes": 755556,
+  "reductionMode": "json-summary",
+  "generatedAt": "2026-05-25T18:13:27.048Z"
+}

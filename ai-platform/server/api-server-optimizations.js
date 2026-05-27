@@ -130,8 +130,6 @@ const CompressionOptimizer = {
 const StaticFileOptimizer = {
   consolidateStaticRoutes(app) {
     const staticDirs = [
-      { route: '/src/pages', dir: 'src/pages' },
-      { route: '/src/web', dir: 'src/web' },
       { route: '/web', dir: 'web' },
       { route: '/src/components', dir: 'src/components' },
       { route: '/components', dir: 'src/components' },

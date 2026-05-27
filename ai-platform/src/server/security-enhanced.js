@@ -1,3 +1,4 @@
+const logger = require('../lib/production-logger');
 /**
  * Security-Enhanced Server Configuration
  * Phase 1: Security & Compliance Implementation
@@ -321,7 +322,7 @@ app.get("/api/security/test", (req, res) => {
 });
 
 // Error handling with security context
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   securityMonitor.logSecurityEvent({
     type: "server_error",
     severity: "medium",
@@ -352,15 +353,15 @@ app.use((req, res) => {
 
 // Socket.io connection handling
 io.on("connection", (socket) => {
-  console.log(`🔗 Client connected: ${socket.id}`);
+  logger.debug(`🔗 Client connected: ${socket.id}`);
 
   socket.on("join-room", (room) => {
     socket.join(room);
-    console.log(`📁 Client ${socket.id} joined room: ${room}`);
+    logger.debug(`📁 Client ${socket.id} joined room: ${room}`);
   });
 
   socket.on("disconnect", () => {
-    console.log(`🔌 Client disconnected: ${socket.id}`);
+    logger.debug(`🔌 Client disconnected: ${socket.id}`);
   });
 
   // Handle real-time events
@@ -382,15 +383,15 @@ io.on("connection", (socket) => {
 
 // Start server with security context
 server.listen(PORT, () => {
-  console.log(
+  logger.debug(
     `🚀 Security-Enhanced AI Platform Server running on port ${PORT}`,
   );
-  console.log(`📊 Dashboard: http://localhost:${PORT}`);
-  console.log(
+  logger.debug(`📊 Dashboard: http://localhost:${PORT}`);
+  logger.debug(
     `🔒 Security Score: ${securityMonitor.metrics.securityScore}/100`,
   );
-  console.log(`🛡️ Security monitoring active`);
-  console.log(`🔗 Socket.io server active`);
+  logger.debug(`🛡️ Security monitoring active`);
+  logger.debug(`🔗 Socket.io server active`);
 
   // Log server start
   securityMonitor.logSecurityEvent({
@@ -402,3 +403,4 @@ server.listen(PORT, () => {
 });
 
 module.exports = { app, server, io };
+
