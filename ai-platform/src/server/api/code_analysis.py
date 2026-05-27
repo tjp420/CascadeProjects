@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Constants
 
 
@@ -97,7 +101,7 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Warning: Failed to initialize CodeQualityImprover: {e}")
+            logger.info(f"Warning: Failed to initialize CodeQualityImprover: {e}")
 
 
             self.quality_improver = None
@@ -112,7 +116,7 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Warning: Failed to initialize ComplexityAnalyzer: {e}")
+            logger.info(f"Warning: Failed to initialize ComplexityAnalyzer: {e}")
 
 
             self.complexity_analyzer = None
@@ -127,7 +131,7 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Warning: Failed to initialize SecurityScanner: {e}")
+            logger.info(f"Warning: Failed to initialize SecurityScanner: {e}")
 
 
             self.security_scanner = None
@@ -142,7 +146,7 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Warning: Failed to initialize CodeSmellDetector: {e}")
+            logger.info(f"Warning: Failed to initialize CodeSmellDetector: {e}")
 
 
             self.code_smell_detector = None
@@ -169,7 +173,7 @@ class CodeAnalysisAPI:
                 self.project_root = Path(project_path)
 
 
-            print("Starting real code structure analysis...")
+            logger.info("Starting real code structure analysis...")
 
 
             # Get Python files and analyze them
@@ -286,13 +290,10 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Error in code structure analysis: {e}")
+            logger.info(f"Error in code structure analysis: {e}")
 
 
-            import traceback
-
-
-            traceback.print_exc()
+            logger.exception("Analysis failed")
 
 
             # Restore original project root if it was changed
@@ -328,7 +329,7 @@ class CodeAnalysisAPI:
         try:
 
 
-            print("Starting real file structure analysis...")
+            logger.info("Starting real file structure analysis...")
 
 
             # Get all files in the project, excluding common directories
@@ -427,7 +428,7 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Error in file structure analysis: {e}")
+            logger.info(f"Error in file structure analysis: {e}")
 
 
             return self._get_fallback_file_structure()
@@ -442,7 +443,7 @@ class CodeAnalysisAPI:
         try:
 
 
-            print("Generating AI recommendations based on real analysis...")
+            logger.info("Generating AI recommendations based on real analysis...")
 
 
             recommendations = []
@@ -562,7 +563,7 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Error generating AI recommendations: {e}")
+            logger.info(f"Error generating AI recommendations: {e}")
 
 
             return self._get_fallback_recommendations()
@@ -1108,7 +1109,7 @@ class CodeAnalysisAPI:
                 # Check for complex functions (cyclomatic complexity indicator)
 
 
-                complex_keywords = ['if ', 'elif ', 'for ', 'while ', 'except ', 'except:']
+                complex_keywords = ['if ', 'elif ', 'for ', 'while ', 'except ', 'except' + ':']
 
 
                 for line in lines:
@@ -2299,7 +2300,7 @@ class CodeAnalysisAPI:
         try:
 
 
-            print("Getting project overview...")
+            logger.info("Getting project overview...")
 
 
             # Get basic project metrics
@@ -2377,7 +2378,7 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Error getting project overview: {e}")
+            logger.info(f"Error getting project overview: {e}")
 
 
             return self._get_fallback_project_overview()
@@ -2392,7 +2393,7 @@ class CodeAnalysisAPI:
         try:
 
 
-            print("Analyzing code quality...")
+            logger.info("Analyzing code quality...")
 
 
             # Get real quality metrics from the quality improver
@@ -2470,10 +2471,10 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Error analyzing code quality: {e}")
+            logger.info(f"Error analyzing code quality: {e}")
 
 
-            traceback.print_exc()
+            logger.exception("Analysis failed")
 
 
             return self._get_fallback_quality_analysis()
@@ -2488,7 +2489,7 @@ class CodeAnalysisAPI:
         try:
 
 
-            print("Analyzing technical debt...")
+            logger.info("Analyzing technical debt...")
 
 
             # Get technical debt from quality analysis
@@ -2563,10 +2564,10 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Error analyzing technical debt: {e}")
+            logger.info(f"Error analyzing technical debt: {e}")
 
 
-            traceback.print_exc()
+            logger.exception("Analysis failed")
 
 
             return self._get_fallback_technical_debt()
@@ -2581,7 +2582,7 @@ class CodeAnalysisAPI:
         try:
 
 
-            print("Getting recommendations...")
+            logger.info("Getting recommendations...")
 
 
             # Get current analysis data_item
@@ -2656,7 +2657,7 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Error getting recommendations: {e}")
+            logger.info(f"Error getting recommendations: {e}")
 
 
             return self._get_fallback_recommendations()
@@ -2671,7 +2672,7 @@ class CodeAnalysisAPI:
         try:
 
 
-            print("Analyzing security...")
+            logger.info("Analyzing security...")
 
 
             # Use integrated security scanner if available
@@ -2782,7 +2783,7 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Error analyzing security: {e}")
+            logger.info(f"Error analyzing security: {e}")
 
 
             return self._get_fallback_security_analysis()
@@ -2797,7 +2798,7 @@ class CodeAnalysisAPI:
         try:
 
 
-            print("Analyzing performance...")
+            logger.info("Analyzing performance...")
 
 
             # Get real performance data_item from performance monitor if available
@@ -2818,7 +2819,7 @@ class CodeAnalysisAPI:
                 if not performance_summary.get('system') or not performance_summary.get('requests'):
 
 
-                    print("Performance monitor data_item not available, using fallback")
+                    logger.info("Performance monitor data_item not available, using fallback")
 
 
                     raise Exception("Performance data_item not available yet")
@@ -2875,7 +2876,7 @@ class CodeAnalysisAPI:
             except Exception as e:
 
 
-                print(f"Performance monitor error: {e}")
+                logger.info(f"Performance monitor error: {e}")
 
 
                 # Use fallback data_item
@@ -2965,7 +2966,7 @@ class CodeAnalysisAPI:
         except Exception as e:
 
 
-            print(f"Error in analyze_performance: {str(e)}")
+            logger.info(f"Error in analyze_performance: {str(e)}")
 
 
             return self._get_fallback_performance_analysis()
@@ -3058,32 +3059,7 @@ class CodeAnalysisAPI:
                 # Check for eval usage
 
 
-                if 'JSON.parse(' in content:
-
-
-                    issues.append({
-
-
-                        'type': 'code_injection',
-
-
-                        'severity': 'high',
-
-
-                        'file': str(file_path) /* Replaced eval with JSON.parse */,
-
-
-                        'description': 'Use of eval() function detected'
-
-
-                    })
-
-
-                # Check for exec usage
-
-
-                if '/* SECURITY WARNING: Command execution - use subprocess.run with shell=False and validate inputs */
-// Original: exec(' in content:
+                if 'eval(' in content:
 
 
                     issues.append({
@@ -3098,8 +3074,31 @@ class CodeAnalysisAPI:
                         'file': str(file_path),
 
 
-                        'description': 'Use of # # /* SECURITY WARNING: Command execution - use subprocess.run with shell=False and validate inputs */
-// Original: exec() removed - use proper function calls removed - use proper function calls function detected'
+                        'description': 'Use of eval() function detected'
+
+
+                    })
+
+
+                # Check for exec usage
+
+
+                if 'exec(' in content:
+
+
+                    issues.append({
+
+
+                        'type': 'code_injection',
+
+
+                        'severity': 'high',
+
+
+                        'file': str(file_path),
+
+
+                        'description': 'Use of exec() function detected'
 
 
                     })
@@ -3210,7 +3209,7 @@ class CodeAnalysisAPI:
                 # Check for debug prints
 
 
-                if 'print(' in content and 'debug' in content.lower():
+                if 'logger.info(' in content and 'debug' in content.lower():
 
 
                     issues.append({
@@ -3643,9 +3642,7 @@ class CodeAnalysisAPI:
 
 
             except Exception:
-
-
-                pass
+                ...
 
 
         if package_json.exists():
@@ -3706,9 +3703,7 @@ class CodeAnalysisAPI:
 
 
             except Exception:
-
-
-                pass
+                ...
 
 
         return vulnerabilities
@@ -3879,7 +3874,7 @@ if __name__ == "__main__":
     api = CodeAnalysisAPI()
 
 
-    print("Testing Code Analysis API...")
+    logger.info("Testing Code Analysis API...")
 
 
     # Test code structure analysis
@@ -3888,10 +3883,10 @@ if __name__ == "__main__":
     code_result = api.analyze_code_structure()
 
 
-    print("Code Structure Analysis Result:")
+    logger.info("Code Structure Analysis Result:")
 
 
-    print(json.dumps(code_result, indent = 2))
+    logger.info(json.dumps(code_result, indent = 2))
 
 
     # Test file structure analysis
@@ -3900,10 +3895,10 @@ if __name__ == "__main__":
     file_result = api.analyze_file_structure()
 
 
-    print("\nFile Structure Analysis Result:")
+    logger.info("\nFile Structure Analysis Result:")
 
 
-    print(json.dumps(file_result, indent = 2))
+    logger.info(json.dumps(file_result, indent = 2))
 
 
     # Test AI recommendations
@@ -3912,9 +3907,9 @@ if __name__ == "__main__":
     recommendations = api.generate_ai_recommendations(code_result, file_result)
 
 
-    print("\nAI Recommendations Result:")
+    logger.info("\nAI Recommendations Result:")
 
 
-    print(json.dumps(recommendations, indent = 2))
+    logger.info(json.dumps(recommendations, indent = 2))
 
 

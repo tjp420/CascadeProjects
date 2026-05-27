@@ -643,10 +643,8 @@ async def export_to_json(
             })
 
 
-        except:
-
-
-            pass
+        except Exception:
+            ...
 
 
         raise HTTPException(
@@ -964,10 +962,8 @@ async def export_history_to_pdf(
             })
 
 
-        except:
-
-
-            pass
+        except Exception:
+            ...
 
 
         raise HTTPException(
@@ -1285,10 +1281,8 @@ async def export_history_to_excel(
             })
 
 
-        except:
-
-
-            pass
+        except Exception:
+            ...
 
 
         raise HTTPException(

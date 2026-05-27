@@ -597,7 +597,7 @@ describe('codebase analyzer', () => {
         expect(debugFindings.length).toBe(0);
     });
 
-    test('context layer downgrades non-production debug severity', async () => {
+    test('skips CLI script debug output from analysis', async () => {
         await fs.promises.mkdir(path.join(tempDir, 'scripts'), { recursive: true });
         await fs.promises.writeFile(
             path.join(tempDir, 'scripts', 'helper.py'),
@@ -607,15 +607,13 @@ describe('codebase analyzer', () => {
 
         const report = await analyzeCodebase(tempDir, { includeEslint: false, scanProfile: 'universal' });
         const debugFindings = report.findings.filter((f) => f.category === 'debug-artifact');
-        expect(debugFindings.length).toBeGreaterThan(0);
-        expect(debugFindings.every((f) => f.severity === 'low')).toBe(true);
+        expect(debugFindings.length).toBe(0);
     });
 
     test('health score weights production findings more than documentation tier', async () => {
-        await fs.promises.mkdir(path.join(tempDir, 'docs'), { recursive: true });
         for (let i = 0; i < 15; i++) {
             await fs.promises.writeFile(
-                path.join(tempDir, 'docs', `plan-${i}.md`),
+                path.join(tempDir, `plan-${i}.md`),
                 `# Plan ${i}\n\nTODO: document item ${i}\n`,
                 'utf8'
             );
@@ -751,5 +749,84 @@ describe('codebase analyzer', () => {
         const hits = report.findings.filter((f) => f.filePath.includes('audit-remediation-recipes'));
         expect(hits.length).toBe(0);
         expect(report.summary.tierCounts.production).toBe(0);
+    });
+
+    test('does not flag mock_data module names as python production leaks', async () => {
+        await fs.promises.mkdir(path.join(tempDir, 'src', 'server', 'api'), { recursive: true });
+        await fs.promises.writeFile(
+            path.join(tempDir, 'src', 'server', 'api', 'app.py'),
+            [
+                'from routers import mock_data_analysis',
+                'from mock_scanner import perform_security_scan',
+                ''
+            ].join('\n'),
+            'utf8'
+        );
+        await fs.promises.writeFile(
+            path.join(tempDir, 'src', 'server', 'api', 'enhanced_models.py'),
+            'class MockDatasetDB:\n    __tablename__ = "mock_datasets"\n',
+            'utf8'
+        );
+
+        const report = await analyzeCodebase(tempDir, { includeEslint: false, scanProfile: 'universal' });
+        const mockLeaks = report.findings.filter((f) =>
+            /python-(mock|unittest|magic)/.test(f.type || '')
+        );
+        expect(mockLeaks.length).toBe(0);
+    });
+
+    test('flags unittest.mock in production paths', async () => {
+        await fs.promises.mkdir(path.join(tempDir, 'src', 'server', 'api'), { recursive: true });
+        await fs.promises.writeFile(
+            path.join(tempDir, 'src', 'server', 'api', 'bad.py'),
+            'from unittest.mock import patch\n\ndef run():\n    return MagicMock()\n',
+            'utf8'
+        );
+
+        const report = await analyzeCodebase(tempDir, { includeEslint: false, scanProfile: 'universal' });
+        const mockLeaks = report.findings.filter((f) => /python-(unittest|magic|mock-module)/.test(f.type || ''));
+        expect(mockLeaks.length).toBeGreaterThan(0);
+    });
+
+    test('skips Placeholder tokens in Python comments and meta-scanner production modules', async () => {
+        await fs.promises.mkdir(path.join(tempDir, 'src', 'server', 'api'), { recursive: true });
+        await fs.promises.writeFile(
+            path.join(tempDir, 'src', 'server', 'api', 'simple_server.py'),
+            'test_coverage = 75  # Placeholder - could scan for test files\n',
+            'utf8'
+        );
+        await fs.promises.writeFile(
+            path.join(tempDir, 'src', 'server', 'api', 'app.py'),
+            'from routers import mock_data_analysis\n',
+            'utf8'
+        );
+
+        const report = await analyzeCodebase(tempDir, { includeEslint: false, scanProfile: 'universal' });
+        const hits = report.findings.filter((f) =>
+            f.filePath.includes('simple_server.py') || f.filePath.includes('app.py')
+        );
+        expect(hits.length).toBe(0);
+    });
+
+    test('skips docs and scripts trees from placeholder and python-print findings', async () => {
+        await fs.promises.mkdir(path.join(tempDir, 'docs'), { recursive: true });
+        await fs.promises.mkdir(path.join(tempDir, 'scripts'), { recursive: true });
+        await fs.promises.writeFile(
+            path.join(tempDir, 'docs', 'ABOUT_BUTTONS_FIX_SUMMARY.md'),
+            'Placeholder KPI: 98.5% AI accuracy and example.com contact flow\n',
+            'utf8'
+        );
+        await fs.promises.writeFile(
+            path.join(tempDir, 'scripts', 'build_cleanup.py'),
+            'print("Cleaning build outputs")\n',
+            'utf8'
+        );
+
+        const report = await analyzeCodebase(tempDir, { includeEslint: false, scanProfile: 'universal' });
+        const hits = report.findings.filter((f) =>
+            f.filePath.includes('docs/ABOUT_BUTTONS_FIX_SUMMARY.md')
+            || f.filePath.includes('scripts/build_cleanup.py')
+        );
+        expect(hits.length).toBe(0);
     });
 });

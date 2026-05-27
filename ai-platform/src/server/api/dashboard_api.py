@@ -52,9 +52,9 @@ class DashboardConnectionManager:
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
-            except:
-                # Connection might be closed
-                pass
+            except Exception:
+                # Connection may have closed; drop silently from broadcast set
+                logger.debug("Skipping closed dashboard websocket during broadcast")
     
     async def send_metric_update(self, metric_name: str, message: dict):
         """Send update to clients subscribed to specific metric"""
@@ -62,8 +62,8 @@ class DashboardConnectionManager:
             for connection in self.metric_subscribers[metric_name]:
                 try:
                     await connection.send_json(message)
-                except:
-                    pass
+                except Exception:
+                    logger.debug("Skipping closed dashboard websocket for metric %s", metric_name)
     
     def subscribe_to_metric(self, metric_name: str, websocket: WebSocket):
         """Subscribe a client to updates for a specific metric"""
@@ -557,21 +557,21 @@ async def check_backup_health():
             try:
                 config_response = await client.get(f"{backup_api_url}/config")
                 config_ok = config_response.status_code == 200
-            except:
+            except Exception:
                 config_ok = False
             
             # Test list endpoint
             try:
                 list_response = await client.get(f"{backup_api_url}/list")
                 list_ok = list_response.status_code == 200
-            except:
+            except Exception:
                 list_ok = False
             
             # Test stats endpoint
             try:
                 stats_response = await client.get(f"{backup_api_url}/stats")
                 stats_ok = stats_response.status_code == 200
-            except:
+            except Exception:
                 stats_ok = False
         
         # Overall health determination

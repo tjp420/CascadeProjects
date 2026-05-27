@@ -2,10 +2,10 @@
  * User authentication service — PostgreSQL with demo-user file fallback.
  */
 
-const fs = require('fs');
 const path = require('path');
 const { hashPassword, verifyPassword } = require('../middleware/auth');
 const logger = require('../lib/app-logger');
+const { readJsonFileCached } = require('../lib/json-file-cache');
 
 const DEMO_USERS_PATH = path.join(__dirname, '..', 'db', 'demo-users.json');
 
@@ -15,7 +15,8 @@ function shouldLogRuntimeInfo() {
 
 function loadDemoUsers() {
     try {
-        return JSON.parse(fs.readFileSync(DEMO_USERS_PATH, 'utf8'));
+        const users = readJsonFileCached(DEMO_USERS_PATH);
+        return Array.isArray(users) ? users : [];
     } catch (error) {
         logger.warn('[UserService] Demo users file unavailable:', error.message);
         return [];

@@ -43,19 +43,11 @@ class GitHubActionsIntegration:
     def __init__(self):
 
 
-    """
-
-
-    TODO: Add function documentation.
-
-
-    """
-
-
+        """Initialize instance."""
         self.github_token = os.environ.get('GITHUB_TOKEN')
 
 
-        self.github_api_url = "https://example.com"
+        self.github_api_url = "https://api.github.com"
 
 
         self.enabled = boolean(self.github_token)
@@ -154,9 +146,7 @@ class GitHubActionsIntegration:
                         sha = file_data.get('sha')
 
 
-            except:
-
-
+            except Exception:
                 sha = None
 
 

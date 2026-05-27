@@ -3,21 +3,16 @@
  * Uses scoped metrics only — never conflates gate-pass on sample paths with full-repo cleanliness.
  */
 
-const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { readJsonFileCached } = require('./json-file-cache');
 
 const {
     buildRepositoryHealthPayload
 } = require('./repository-health-payload');
 
 function readJsonIfExists(filePath) {
-    try {
-        if (!filePath || !fs.existsSync(filePath)) return null;
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    } catch {
-        return null;
-    }
+    return readJsonFileCached(filePath);
 }
 
 function redactPath(value) {

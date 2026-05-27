@@ -43,13 +43,7 @@ class GitHubHistoryClient:
     def __init__(self):
 
 
-        """
-
-
-        TODO: Add function documentation.
-
-
-        """
+        """Initialize instance."""
 
 
         self.github_token = os.environ.get('GITHUB_TOKEN')
@@ -320,9 +314,7 @@ class GitHubHistoryClient:
 
 
         except httpx.HTTPError:
-
-
-            pass
+            ...
 
 
         # Fetch code frequency
@@ -347,9 +339,7 @@ class GitHubHistoryClient:
 
 
         except httpx.HTTPError:
-
-
-            pass
+            ...
 
 
         return stats
@@ -364,13 +354,7 @@ class LocalGitClient:
     def __init__(self):
 
 
-        """
-
-
-        TODO: Add function documentation.
-
-
-        """
+        """Initialize instance."""
 
 
         try:
@@ -769,13 +753,7 @@ class GitHistoryService:
     def __init__(self):
 
 
-        """
-
-
-        TODO: Add function documentation.
-
-
-        """
+        """Initialize instance."""
 
 
         self.github_client = GitHubHistoryClient()

@@ -377,9 +377,7 @@ class CodeSmellDetector:
 
 
         except Exception:
-
-
-            pass
+            return {key: list(value) for key, value in smells.items()}
 
 
         return smells

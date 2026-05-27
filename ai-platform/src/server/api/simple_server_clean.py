@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 
 """
@@ -79,34 +83,17 @@ class MockAuditLogger:
     def __init__(self):
 
 
-        """
-
-
-        Mock audit logger for testing
-
-
-        TODO: Add function documentation.
-
-
-        """
-
-
-        pass
+        """Mock audit logger for testing."""
+        return
 
 
     def log_event(self, event_type, user, details):
 
 
-        """
+        """Initialize instance."""
 
 
-        TODO: Add function documentation.
-
-
-        """
-
-
-        print(f"[AUDIT] {event_type}: {user} - {details}")
+        logger.info(f"[AUDIT] {event_type}: {user} - {details}")
 
 
 class AuditEventType:
@@ -133,13 +120,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
 
 
-        """
-
-
-        TODO: Add function documentation.
-
-
-        """
+        """Initialize instance."""
 
 
         self.project_root = Path.cwd()
@@ -151,10 +132,8 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
 
 
-        """Override to reduce console noise"""
-
-
-        pass
+        """Override to reduce console noise."""
+        return
 
 
     def _send_json_response(self, status_code, data_item):
@@ -490,7 +469,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
         except Exception as e:
 
 
-            print(f"Error in project overview: {e}")
+            logger.info(f"Error in project overview: {e}")
 
 
             fallback_data = self._get_fallback_project_overview()
@@ -517,7 +496,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
         except Exception as e:
 
 
-            print(f"Error in file structure: {e}")
+            logger.info(f"Error in file structure: {e}")
 
 
             fallback_data = self._get_fallback_file_structure()
@@ -544,7 +523,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
         except Exception as e:
 
 
-            print(f"Error in code structure: {e}")
+            logger.info(f"Error in code structure: {e}")
 
 
             fallback_data = self._get_fallback_code_structure()
@@ -1405,10 +1384,8 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                             lines_of_code += len(f.readlines())
 
 
-                    except:
-
-
-                        pass
+                    except OSError:
+                        continue
 
 
             # Detect languages
@@ -1540,7 +1517,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
         except Exception as e:
 
 
-            print(f"Error getting project overview: {e}")
+            logger.info(f"Error getting project overview: {e}")
 
 
             return self._get_fallback_project_overview()
@@ -1870,58 +1847,58 @@ def run_server():
     httpd = HTTPServer(server_address, SimpleCodeAnalysisHandler)
 
 
-    print("🚀 Simple Code Analysis API Server")
+    logger.info("🚀 Simple Code Analysis API Server")
 
 
-    print("=" * 50)
+    logger.info("=" * 50)
 
 
-    print(f"Server running on http://localhost:8081")
+    logger.info(f"Server running on http://localhost:8081")
 
 
-    print(f"Project directory: {Path.cwd()}")
+    logger.info(f"Project directory: {Path.cwd()}")
 
 
-    print("\nAvailable endpoints:")
+    logger.info("\nAvailable endpoints:")
 
 
-    print("  GET  /api/health")
+    logger.info("  GET  /api/health")
 
 
-    print("  GET  /api/project/overview")
+    logger.info("  GET  /api/project/overview")
 
 
-    print("  GET  /api/file-structure")
+    logger.info("  GET  /api/file-structure")
 
 
-    print("  GET  /api/code-structure")
+    logger.info("  GET  /api/code-structure")
 
 
-    print("  GET  /api/analysis/quality")
+    logger.info("  GET  /api/analysis/quality")
 
 
-    print("  GET  /api/analysis/technical-debt")
+    logger.info("  GET  /api/analysis/technical-debt")
 
 
-    print("  GET  /api/recommendations")
+    logger.info("  GET  /api/recommendations")
 
 
-    print("  POST /api/ai-recommendations (requires API key)")
+    logger.info("  POST /api/ai-recommendations (requires API key)")
 
 
-    print("\nAuthentication:")
+    logger.info("\nAuthentication:")
 
 
-    print("  API Key: dev-key-12345")
+    logger.info("  API Key: dev-key-12345")
 
 
-    print("  Header: X-API-Key: dev-key-12345")
+    logger.info("  Header: X-API-Key: dev-key-12345")
 
 
-    print("\nPress Ctrl+C to stop the server")
+    logger.info("\nPress Ctrl+C to stop the server")
 
 
-    print("=" * 50)
+    logger.info("=" * 50)
 
 
     try:
@@ -1933,7 +1910,7 @@ def run_server():
     except KeyboardInterrupt:
 
 
-        print("\n🛑 Server stopped by user")
+        logger.info("\n🛑 Server stopped by user")
 
 
         httpd.shutdown()

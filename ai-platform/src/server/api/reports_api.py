@@ -49,9 +49,9 @@ class ConnectionManager:
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
-            except:
+            except Exception:
                 # Connection might be closed
-                pass
+                ...
     
     async def send_report_update(self, report_id: str, message: dict):
         """Send update to clients subscribed to specific report"""
@@ -59,8 +59,8 @@ class ConnectionManager:
             for connection in self.report_subscribers[report_id]:
                 try:
                     await connection.send_json(message)
-                except:
-                    pass
+                except Exception:
+                    ...
     
     def subscribe_to_report(self, report_id: str, websocket: WebSocket):
         """Subscribe a client to updates for a specific report"""

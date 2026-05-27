@@ -37,13 +37,7 @@ class HistoryExcelGenerator:
     def __init__(self):
 
 
-        """
-
-
-        TODO: Add function documentation.
-
-
-        """
+        """Initialize instance."""
 
 
         try:
@@ -574,10 +568,8 @@ class HistoryExcelGenerator:
                         max_length = len(str(cell.value))
 
 
-                except:
-
-
-                    pass
+                except Exception:
+                    continue
 
 
             adjusted_width = min(max_length + 2, 50)

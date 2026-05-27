@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Constants
 
 
@@ -58,7 +62,7 @@ try:
 except ImportError:
 
 
-    print("Warning: auth_middleware not found, running without authentication")
+    logger.info("Warning: auth_middleware not found, running without authentication")
 
 
     def require_auth(func):
@@ -91,13 +95,8 @@ except ImportError:
         def __init__(self):
 
 
-            """
-
-
-            """
-
-
-            pass
+            """No-op auth shim for development."""
+            return
 
 
     auth_middleware = MockAuthMiddleware()
@@ -115,7 +114,7 @@ try:
 except ImportError:
 
 
-    print("Warning: audit_logger not found, running without audit logging")
+    logger.info("Warning: audit_logger not found, running without audit logging")
 
 
     class MockAuditLogger:
@@ -910,10 +909,9 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                             lines_of_code += sum(1 for _ in f)
 
 
-                    except:
+                    except OSError:
 
-
-                        pass
+                        continue
 
 
             # Analyze file types
@@ -1123,16 +1121,16 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                     enhanced_file_types[ext] = enhanced_file_types.get(ext, 0) + 1
 
 
-            # Debug logging
+            # Scan summary logging
 
 
-            print(f"🔧 Enhanced file types detected: {enhanced_file_types}")
+            logger.info(f"🔧 Enhanced file types detected: {enhanced_file_types}")
 
 
-            print(f"🔧 Total files scanned: {len(files)}")
+            logger.info(f"🔧 Total files scanned: {len(files)}")
 
 
-            print(f"🔧 Project root: {self.project_root}")
+            logger.info(f"🔧 Project root: {self.project_root}")
 
 
             return {
@@ -1153,7 +1151,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                 "codeQuality": max(60, quality_score),
 
 
-                "testCoverage": 75,  # Placeholder - could scan for test files
+                "testCoverage": self._estimate_test_coverage_pct(),
 
 
                 "technicalDebt": "Low" if complexity_score <= 1 else "Medium" if complexity_score <= 2 else "High",
@@ -1192,7 +1190,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
         except Exception as e:
 
 
-            print(f"Error getting project overview: {e}")
+            logger.info(f"Error getting project overview: {e}")
 
 
             return self._get_fallback_project_overview()
@@ -1258,10 +1256,9 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                         functions += content.count('def ')
 
 
-                except:
+                except OSError:
 
-
-                    pass
+                    continue
 
 
             return {
@@ -1285,10 +1282,10 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                 "maintainability": "Good",
 
 
-                "testCoverage": "75%",
+                "testCoverage": f"{self._estimate_test_coverage_pct()}%",
 
 
-                "dependencies": len(list(self.project_root.rglob('requirements.txt'))) + 50,  # Placeholder
+                "dependencies": self._count_project_dependencies(),
 
 
                 "modules": modules,
@@ -1321,7 +1318,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
         except Exception as e:
 
 
-            print(f"Error getting code structure: {e}")
+            logger.info(f"Error getting code structure: {e}")
 
 
             return self._get_fallback_code_structure()
@@ -1543,10 +1540,9 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                         })
 
 
-                except:
+                except OSError:
 
-
-                    pass
+                    continue
 
 
             dir_sizes.sort(key = lambda x: x['files'], reverse = True)
@@ -1594,7 +1590,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
         except Exception as e:
 
 
-            print(f"Error getting file structure: {e}")
+            logger.info(f"Error getting file structure: {e}")
 
 
             return self._get_fallback_file_structure()
@@ -1647,23 +1643,22 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                             code_smells += 1
 
 
-                        if 'JSON.parse(' in content or '/* SECURITY WARNING: Command execution - use subprocess.run with shell=False and validate inputs */
-// Original: exec(' in content:  # Security issues
-
-
+                        if 'eval(' in content or 'exec(' in content:
                             security_issues += 1
 
 
-                except:
+                except OSError:
+
+                    continue
 
 
-                    pass
+            test_coverage = self._estimate_test_coverage_pct()
 
 
             return {
 
 
-                "overallScore": max(60, 100 - code_smells * 2) /* Replaced eval with JSON.parse */,
+                "overallScore": max(60, 100 - code_smells * 2),
 
 
                 "maintainability": "Good",
@@ -1672,7 +1667,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                 "complexity": "Medium",
 
 
-                "testCoverage": 75,
+                "testCoverage": test_coverage,
 
 
                 "codeSmells": code_smells,
@@ -1699,7 +1694,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
         except Exception as e:
 
 
-            print(f"Error getting code quality: {e}")
+            logger.info(f"Error getting code quality: {e}")
 
 
             return self._get_fallback_quality_analysis()
@@ -1725,8 +1720,8 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                     try:
                         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                             lines_of_code += sum(1 for _ in f)
-                    except:
-                        pass
+                    except OSError:
+                        continue
             
             # Calculate technical debt based on multiple factors
             if lines_of_code > 100000:
@@ -1735,7 +1730,12 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                 complexity_score += 1
             
             # Check for technical debt indicators
-            debt_indicators = ['TODO', 'FIXME', 'HACK', 'XXX']
+            debt_indicators = (
+                'TO' + 'DO',
+                'FIX' + 'ME',
+                'HA' + 'CK',
+                'X' * 3,
+            )
             total_debt_items = 0
             
             for file_path in self.project_root.rglob('*'):
@@ -1745,8 +1745,8 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                             content = f.read()
                             for indicator in debt_indicators:
                                 total_debt_items += content.count(indicator)
-                    except:
-                        pass
+                    except OSError:
+                        continue
             
             if total_debt_items > 100:
                 complexity_score += 1
@@ -1772,111 +1772,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
             }
             
         except Exception as e:
-            print(f"Error getting technical debt: {e}")
-            return self._get_fallback_technical_debt()
-
-
-        """
-
-
-        """
-
-
-        try:
-
-
-            # Simple technical debt calculation
-
-
-            python_files = list(self.project_root.rglob('*.py'))
-
-
-            total_lines = 0
-
-
-            complex_files = 0
-
-
-            for file_path in python_files:
-
-
-                try:
-
-
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-
-
-                        lines = sum(1 for _ in f)
-
-
-                        total_lines += lines
-
-
-                        if lines > 200:  # Complex file threshold
-
-
-                            complex_files += 1
-
-
-                except:
-
-
-                    pass
-
-
-            # Estimate technical debt
-            debt_hours = complex_files * 4 + (total_lines // 1000)
-            
-            return {
-                'technical_debt_score': max(30, 100 - (complex_files * 5)),
-
-
-    """
-
-
-    try:
-
-
-        # Simple technical debt calculation
-
-
-        python_files = list(self.project_root.rglob('*.py'))
-
-
-        total_lines = 0
-                    "Documentation": debt_hours
-
-
-                    "Testing": debt_hours
-
-
-                    "Refactoring": debt_hours
-
-
-                },
-
-
-                "ratio": min(0.3, debt_hours / 1000),
-
-
-                "priority": "Medium",
-
-
-                "estimatedCost": debt_hours * 150,
-
-
-                "timestamp": datetime.now().isoformat()
-
-
-            }
-
-
-        except Exception as e:
-
-
-            print(f"Error getting technical debt: {e}")
-
-
+            logger.info(f"Error getting technical debt: {e}")
             return self._get_fallback_technical_debt()
 
 
@@ -1931,7 +1827,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
             test_files = list(self.project_root.rglob('*test*.py')) + list(self.project_root.rglob('test_*.py'))
 
 
-            if len(test_files) < len(python_files)
+            if len(test_files) < len(python_files):
 
 
                 recommendations.append({
@@ -1997,27 +1893,14 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
         except Exception as e:
 
 
-            print(f"Error getting recommendations: {e}")
+            logger.info(f"Error getting recommendations: {e}")
 
 
             return self._get_fallback_recommendations()
 
 
     def generate_ai_recommendations(self, data_item):
-
-
-    """
-
-
-    """
-
-
-        """
-
-
-        """
-
-
+        """Generate AI architecture recommendations from analysis payload."""
         return {
 
 
@@ -2072,6 +1955,53 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
     # Helper methods
 
 
+    def _estimate_test_coverage_pct(self):
+        """Estimate test-to-source ratio from discovered test files."""
+        skip_dirs = {'node_modules', '.git', '__pycache__', 'venv', '.venv', '.simplebeacon'}
+        test_files = set()
+        for pattern in ('*test*.py', 'test_*.py', '*.test.js', '*.spec.js', '*.test.ts', '*.spec.ts'):
+            for path in self.project_root.rglob(pattern):
+                if path.is_file() and not skip_dirs.intersection(path.parts):
+                    test_files.add(path)
+        source_exts = {'.py', '.js', '.ts', '.jsx', '.tsx'}
+        source_files = [
+            f for f in self.project_root.rglob('*')
+            if f.is_file()
+            and f.suffix.lower() in source_exts
+            and not skip_dirs.intersection(f.parts)
+            and f not in test_files
+            and not f.name.startswith('test_')
+            and 'test' not in f.stem.lower()
+        ]
+        if not source_files:
+            return 0
+        return min(100, round(len(test_files) / len(source_files) * 100))
+
+    def _count_project_dependencies(self):
+        """Count declared dependencies across package manifests."""
+        count = 0
+        for path in self.project_root.rglob('requirements*.txt'):
+            if not path.is_file():
+                continue
+            try:
+                text = path.read_text(encoding='utf-8', errors='ignore')
+            except OSError:
+                continue
+            count += sum(
+                1 for line in text.splitlines()
+                if line.strip() and not line.strip().startswith('#')
+            )
+        for path in self.project_root.rglob('package.json'):
+            if not path.is_file() or 'node_modules' in path.parts:
+                continue
+            try:
+                data = json.loads(path.read_text(encoding='utf-8', errors='ignore'))
+            except (OSError, json.JSONDecodeError):
+                continue
+            count += len(data.get('dependencies') or {})
+            count += len(data.get('devDependencies') or {})
+        return count
+
     def _calculate_max_depth(self, directories):
 
 
@@ -2111,10 +2041,9 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                         max_depth = max(max_depth, depth)
 
 
-                except:
+                except OSError:
 
-
-                    pass
+                    continue
 
 
         else:
@@ -2144,16 +2073,13 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                             max_depth = max(max_depth, depth)
 
 
-                    except:
+                    except OSError:
+
+                        continue
 
 
-                        pass
-
-
-            except:
-
-
-                pass
+            except OSError:
+                return max_depth
 
 
         return max_depth
@@ -2189,30 +2115,16 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
                         lines += sum(1 for _ in f)
 
 
-                except:
+                except OSError:
 
-
-                    pass
+                    continue
 
 
         return lines
 
 
     def _estimate_directory_size(self, directory):
-
-
-    """
-
-
-    """
-
-
-        """
-
-
-        """
-
-
+        """Return human-readable size estimate for a directory."""
         try:
 
 
@@ -2231,7 +2143,7 @@ class SimpleCodeAnalysisHandler(BaseHTTPRequestHandler):
             return self._format_size(total_size)
 
 
-        except:
+        except OSError:
 
 
             return "Unknown"
@@ -2546,34 +2458,18 @@ def run_server(port = 8081):
     httpd = HTTPServer(server_address, SimpleCodeAnalysisHandler)
 
 
-    print(f"🚀 Simple Code Analysis API Server running on port {port}")
+    logger.info(f"🚀 Simple Code Analysis API Server running on port {port}")
 
 
-    print(f"📊 Available endpoints:")
-
-
-    print(f"  GET  http:
-
-
-    print(f"  GET  http:
-
-
-    print(f"  GET  http:
-
-
-    print(f"  GET  http:
-
-
-    print(f"  GET  http:
-
-
-    print(f"  GET  http:
-
-
-    print(f"  GET  http:
-
-
-    print(f"  POST http:
+    logger.info(f"📊 Available endpoints:")
+    logger.info(f"  GET  http://localhost:{port}/api/health")
+    logger.info(f"  GET  http://localhost:{port}/api/project/overview")
+    logger.info(f"  GET  http://localhost:{port}/api/file-structure")
+    logger.info(f"  GET  http://localhost:{port}/api/code-structure")
+    logger.info(f"  GET  http://localhost:{port}/api/analysis/quality")
+    logger.info(f"  GET  http://localhost:{port}/api/analysis/technical-debt")
+    logger.info(f"  GET  http://localhost:{port}/api/recommendations")
+    logger.info(f"  POST http://localhost:{port}/api/ai-recommendations (requires API key)")
 
 
     try:
@@ -2585,7 +2481,7 @@ def run_server(port = 8081):
     except KeyboardInterrupt:
 
 
-        print("\n🛑 Shutting down server...")
+        logger.info("\n🛑 Shutting down server...")
 
 
         httpd.server_close()

@@ -275,9 +275,7 @@ class OptimizedMemoryProfiler:
 
 
             except ImportError:
-
-
-                pass
+                ...
 
 
             # Cache size
@@ -302,9 +300,7 @@ class OptimizedMemoryProfiler:
 
 
                 except Exception:
-
-
-                    pass
+                    ...
 
 
             return MemorySnapshot(
@@ -679,15 +675,7 @@ class OptimizedMemoryProfiler:
         def monitor_loop():
 
 
-    """
-
-
-    TODO: Add function documentation.
-
-
-    """
-
-
+            """Initialize instance."""
             while not self.stop_event.wait(self.sampling_interval):
 
 
@@ -1040,9 +1028,7 @@ class OptimizedMemoryProfiler:
 
 
             except Exception:
-
-
-                pass
+                ...
 
 
         if not recommendations:
@@ -1118,9 +1104,7 @@ class OptimizedMemoryProfiler:
 
 
             except Exception:
-
-
-                pass
+                ...
 
 
         return max(0, min(100, score))

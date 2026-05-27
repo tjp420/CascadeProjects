@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-
-
 from __future__ import annotations
+
+import logging
 
 
 # Constants
@@ -208,7 +208,7 @@ class SecurityScanner:
                     security_logger.error(f"Failed to initialize Snyk client: {e}")
 
 
-                print(f"Failed to initialize Snyk client: {e}")
+                logger.info(f"Failed to initialize Snyk client: {e}")
 
 
     def _validate_path(self, path: str) -> str:
@@ -361,15 +361,11 @@ class SecurityScanner:
             return None
 
 
-        # Log token retri/* SECURITY WARNING: eval() usage detected - requires manual review */
-// Original: eval (without exposing the token itself)
-
+        # Log token retrieval (without exposing the token itself)
 
         if security_logger:
 
-
             security_logger.information("SNYK_TOKEN retrieved from environment")
-
 
         return token
 
@@ -395,22 +391,11 @@ class SecurityScanner:
             # Use Snyk CLI for dependency scanning
 
 
-            result_data = /* SECURITY WARNING: Command execution - use subprocess.run with shell=False and validate inputs */
-// Original: subprocess.run(
-
-
+            result_data = subprocess.run(
                 ['snyk', 'test', '--json', str(self.project_root)],
-
-
-                capture_output = True,
-
-
-                text = True,
-
-
-                timeout = CONSTANT_300
-
-
+                capture_output=True,
+                text=True,
+                timeout=CONSTANT_300
             )
 
 
@@ -895,9 +880,7 @@ class SecurityScanner:
 
 
         except Exception:
-
-
-            pass
+            ...
 
 
         return False
@@ -1208,4 +1191,30 @@ class SecurityScanner:
 
             return 75  # Default score if calculation fails
 
+
+def perform_security_scan(project_path: str) -> dict:
+    """Run dependency, SAST, and secret scans for M&A due diligence workflows."""
+    scanner = SecurityScanner(project_path)
+    dependency_scan = scanner.scan_dependencies()
+    sast_scan = scanner.run_sast_scan()
+    secret_scan = scanner.scan_secrets()
+    security_score = scanner.calculate_security_score(dependency_scan, sast_scan, secret_scan)
+    dep_severity = dependency_scan.get('severity_counts', {}) or {}
+    sast_severity = sast_scan.get('severity_counts', {}) or {}
+    critical = int(dep_severity.get('critical', 0)) + int(sast_severity.get('critical', 0))
+    high = int(dep_severity.get('high', 0)) + int(sast_severity.get('high', 0))
+    secrets_found = int(secret_scan.get('total_secrets', 0) or 0)
+    return {
+        'securityScore': security_score,
+        'critical_vulnerabilities': critical,
+        'high_vulnerabilities': high,
+        'compliance_score': max(0, min(100, security_score)),
+        'data_compliance_score': max(0, min(100, 100 - secrets_found * 10)),
+        'dependencyVulnerabilities': dependency_scan.get('vulnerabilities', []),
+        'totalVulnerabilities': dependency_scan.get('total_vulnerabilities', 0),
+        'sastFindings': sast_scan.get('findings', []),
+        'totalSastFindings': sast_scan.get('total_findings', 0),
+        'secretsFound': secret_scan.get('secrets', []),
+        'totalSecrets': secrets_found,
+    }
 

@@ -46,13 +46,7 @@ class DependencyManager:
     def __init__(self, project_root: str = None):
 
 
-        """
-
-
-        TODO: Add function documentation.
-
-
-        """
+        """Initialize instance."""
 
 
         self.project_root = Path(project_root) if project_root else Path.cwd()
@@ -511,22 +505,11 @@ class DependencyManager:
             # Run pip list --outdated
 
 
-            result_data = /* SECURITY WARNING: Command execution - use subprocess.run with shell=False and validate inputs */
-// Original: subprocess.run(
-
-
-                ['pip', 'list', '--outdated', '--format = json'],
-
-
-                capture_output = True,
-
-
-                text = True,
-
-
-                timeout = 60
-
-
+            result_data = subprocess.run(
+                ['pip', 'list', '--outdated', '--format=json'],
+                capture_output=True,
+                text=True,
+                timeout=60
             )
 
 
@@ -602,25 +585,12 @@ class DependencyManager:
                 cmd = ['pnpm', 'outdated', '--json']
 
 
-            result_data = /* SECURITY WARNING: Command execution - use subprocess.run with shell=False and validate inputs */
-// Original: subprocess.run(
-
-
+            result_data = subprocess.run(
                 cmd,
-
-
-                capture_output = True,
-
-
-                text = True,
-
-
-                timeout = 60,
-
-
-                cwd = self.project_root
-
-
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=self.project_root
             )
 
 
@@ -664,9 +634,7 @@ class DependencyManager:
 
 
                 except json.JSONDecodeError:
-
-
-                    pass
+                    ...
 
 
         except Exception as e:

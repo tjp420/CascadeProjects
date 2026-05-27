@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Constants
 
 
@@ -46,10 +50,7 @@ class HealthChecker:
     def __init__(self):
 
 
-        """
-
-
-        """
+        """Check critical project files exist and are readable."""
 
 
         self.start_time = time.time()
@@ -130,19 +131,21 @@ class HealthChecker:
             if free_space_gb < 1:  # Less than 1GB free
 
 
-                status="warning",
+                status = "warning"
 
 
-    message= f"Low disk space: {free_space_gb:.2f}GB free"
+
+                message = f"Low disk space: {free_space_gb:.2f}GB free"
 
 
             else:
 
 
-                status="healthy",
+                status = "healthy"
 
 
-    message= f"Disk space OK: {free_space_gb:.2f}GB free"
+
+                message = f"Disk space OK: {free_space_gb:.2f}GB free"
 
 
             return {
@@ -187,16 +190,7 @@ class HealthChecker:
     def check_memory_usage(self):
 
 
-    """
-
-
-    """
-
-
-        """
-
-
-        """
+        """Check memory usage thresholds."""
 
 
         try:
@@ -211,28 +205,31 @@ class HealthChecker:
             if memory_usage_percent > CONSTANT_90:
 
 
-                status="critical",
+                status = "critical"
 
 
-    message= f"High memory usage: {memory_usage_percent:.1f}%"
+
+                message = f"High memory usage: {memory_usage_percent:.1f}%"
 
 
             elif memory_usage_percent > 80:
 
 
-                status="warning",
+                status = "warning"
 
 
-    message= f"High memory usage: {memory_usage_percent:.1f}%"
+
+                message = f"High memory usage: {memory_usage_percent:.1f}%"
 
 
             else:
 
 
-                status="healthy",
+                status = "healthy"
 
 
-    message= f"Memory usage OK: {memory_usage_percent:.1f}%"
+
+                message = f"Memory usage OK: {memory_usage_percent:.1f}%"
 
 
             return {
@@ -355,19 +352,21 @@ class HealthChecker:
             if missing_files or inaccessible_files:
 
 
-                status="unhealthy",
+                status = "unhealthy"
 
 
-    message= f"Missing files: {len(missing_files)}, Inaccessible files: {len(inaccessible_files)}"
+
+                message = f"Missing files: {len(missing_files)}, Inaccessible files: {len(inaccessible_files)}"
 
 
             else:
 
 
-                status="healthy",
+                status = "healthy"
 
 
-    message= "All critical files accessible"
+
+                message = "All critical files accessible"
 
 
             return {
@@ -415,16 +414,7 @@ class HealthChecker:
     def check_api_endpoints(self):
 
 
-    """
-
-
-    """
-
-
-        """
-
-
-        """
+        """Check memory usage thresholds."""
 
 
         try:
@@ -454,31 +444,28 @@ class HealthChecker:
             for endpoint in endpoints_to_check:
 
 
-                # Add endpoint health checks here
-
-
-                # This would typically involve making HTTP requests
-
-
-                pass
+                # Endpoint probes are added when HTTP health checks are enabled.
+                continue
 
 
             if failed_endpoints:
 
 
-                status="unhealthy",
+                status = "unhealthy"
 
 
-    message= f"Failed endpoints: {', '.join(failed_endpoints)}"
+
+                message = f"Failed endpoints: {', '.join(failed_endpoints)}"
 
 
             else:
 
 
-                status="healthy",
+                status = "healthy"
 
 
-    message= "All API endpoints accessible"
+
+                message = "All API endpoints accessible"
 
 
             return {
@@ -592,13 +579,13 @@ class HealthChecker:
         uptime_seconds = time.time() - self.start_time
 
 
-        uptime_days = int(uptime_seconds
+        uptime_days = int(uptime_seconds / 86400)
 
 
-        uptime_hours = int((uptime_seconds % 86400)
+        uptime_hours = int((uptime_seconds % 86400) / 3600)
 
 
-        uptime_minutes = int((uptime_seconds % 3600)
+        uptime_minutes = int((uptime_seconds % 3600) / 60)
 
 
         return {
@@ -628,16 +615,7 @@ class HealthChecker:
     def get_overall_health(self):
 
 
-    """
-
-
-    """
-
-
-        """
-
-
-        """
+        """Check memory usage thresholds."""
 
 
         checks = {
@@ -805,22 +783,22 @@ if __name__ == "__main__":
     health_data = health_checker.get_overall_health()
 
 
-    print("Health Check Results:")
+    logger.info("Health Check Results:")
 
 
-    print(f"Overall Status: {health_data['status']}")
+    logger.info(f"Overall Status: {health_data['status']}")
 
 
-    print(f"Uptime: {health_data['uptime']['formatted']}")
+    logger.info(f"Uptime: {health_data['uptime']['formatted']}")
 
 
-    print(f"Healthy Checks: {health_data['summary']['healthy']}/{health_data['summary']['total']}")
+    logger.info(f"Healthy Checks: {health_data['summary']['healthy']}/{health_data['summary']['total']}")
 
 
     if health_data['status'] != 'healthy':
 
 
-        print("\nIssues found:")
+        logger.info("\nIssues found:")
 
 
         for check_name, check_data in health_data['checks'].items():
@@ -829,6 +807,6 @@ if __name__ == "__main__":
             if check_data['status'] != 'healthy':
 
 
-                print(f"  {check_name}: {check_data['message']}")
+                logger.info(f"  {check_name}: {check_data['message']}")
 
 
