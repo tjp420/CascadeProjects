@@ -1,0 +1,13 @@
+{
+  "issueId": "A-46",
+  "category": "everyday-integration-issues",
+  "context": {
+    "errorCases": [
+      { "message": "ERR_TIMEOUT: upstream unavailable", "code": "ERR_TIMEOUT", "actionable": true, "recovered": true, "timeToResolutionMinutes": 12, "nextStep": "retry after 30s" },
+      { "message": "ERR_RATE_LIMIT exceeded", "code": "ERR_RATE_LIMIT", "actionable": true, "recovered": true, "timeToResolutionMinutes": 8, "remediation": "backoff and retry" },
+      { "message": "ERR_VALIDATION failed for field email", "code": "ERR_VALIDATION", "actionable": true, "recovered": true, "timeToResolutionMinutes": 5, "nextStep": "verify input format" }
+    ],
+    "codeText": "try { await call(); } catch (err) { logger.error(err.code, err.message); return retryWithBackoff(err); }",
+    "logs": "2026-05-25T10:00:00 ERROR ERR_AUTH denied hint: verify credentials"
+  }
+}

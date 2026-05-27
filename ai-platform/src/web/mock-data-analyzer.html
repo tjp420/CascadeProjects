@@ -1,0 +1,2271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GGUF Mock Data Analysis - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Modern Sidebar Styles */
+        .sidebar-modern {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-modern.collapsed {
+            transform: translateX(-240px);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-container {
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .logo i {
+            color: var(--accent-color);
+            font-size: 2rem;
+        }
+
+        .logo-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-container {
+            padding: 1rem 0;
+        }
+
+        .nav-section-modern {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title-modern {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-item-modern {
+            margin: 0.25rem 0;
+        }
+
+        .nav-link-modern {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link-modern:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-link-modern.active {
+            background: var(--bg-card);
+            color: var(--accent-color);
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-icon-modern {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .sidebar-info {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content */
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+            margin-left: 40px;
+        }
+
+        .page-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .page-content {
+            padding: 2rem;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-240px);
+            }
+            
+            .sidebar-modern.collapsed {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+            }
+            
+            .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+                margin-left: 280px;
+            }
+        }
+
+        /* Preserve existing styles from original file */
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        /* Modern Sidebar */
+        .sidebar-modern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 280px;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem 1rem;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-header-modern {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-modern {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Modern Navigation */
+        .nav-section-modern {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title-modern {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            padding: 0 1rem;
+        }
+
+        .nav-item-modern {
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-link-modern {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link-modern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--primary-gradient);
+            opacity: 0.1;
+            transition: left 0.3s ease;
+        }
+
+        .nav-link-modern:hover::before {
+            left: 0;
+        }
+
+        .nav-link-modern:hover {
+            color: var(--accent-color);
+            transform: translateX(4px);
+        }
+
+        .nav-link-modern.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .nav-icon-modern {
+            margin-right: 0.875rem;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content Adjustments */
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* Page Title and Description */
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Stats Overview */
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile Toggle */
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar-modern.active {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+                padding: 1rem;
+            }
+            
+            .mobile-toggle {
+                display: block;
+            }
+        }
+
+        /* Mock Data Analyzer Specific Styles */
+        .analyzer-header {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .action-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .action-card:hover::before {
+            opacity: 0.1;
+        }
+
+        .action-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-color);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2);
+        }
+
+        .action-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .action-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .action-description {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .gguf-badge {
+            background: var(--warning-gradient);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .sources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .source-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+        }
+
+        .source-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .source-header h4 {
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .source-count {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .source-details p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .source-stats {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .source-stats span {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background: var(--success-color);
+            color: white;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .progress-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-gradient);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+        }
+
+        /* GGUF Dashboard Styles */
+        .gguf-model-header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gguf-model-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        .model-info-card {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .model-avatar {
+            width: 80px;
+            height: 80px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .model-details {
+            flex: 1;
+        }
+
+        .model-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .model-type {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .model-stats {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .model-stats span {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .model-status.active {
+            background: var(--success-gradient);
+            color: white;
+        }
+
+        .model-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Executive Dashboard */
+        .executive-dashboard {
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .metric-card.primary::before {
+            background: var(--primary-gradient);
+        }
+
+        .metric-card.success::before {
+            background: var(--success-gradient);
+        }
+
+        .metric-card.warning::before {
+            background: var(--warning-gradient);
+        }
+
+        .metric-card.info::before {
+            background: var(--info-gradient);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+        }
+
+        .metric-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .metric-card.primary .metric-icon {
+            background: var(--primary-gradient);
+        }
+
+        .metric-card.success .metric-icon {
+            background: var(--success-gradient);
+        }
+
+        .metric-card.warning .metric-icon {
+            background: var(--warning-gradient);
+        }
+
+        .metric-card.info .metric-icon {
+            background: var(--info-gradient);
+        }
+
+        .metric-content {
+            flex: 1;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-trend {
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .metric-trend.positive {
+            color: #10b981;
+        }
+
+        .metric-trend.negative {
+            color: #ef4444;
+        }
+
+        /* Section Styles */
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Category Analysis */
+        .category-analysis {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .category-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .category-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .category-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .category-quality {
+            background: var(--success-gradient);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .category-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .category-stat {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .category-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Charts Section */
+        .charts-section {
+            margin-bottom: 2rem;
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        /* Issues Section */
+        .issues-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .issues-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1rem;
+        }
+
+        .issue-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .issue-card.high {
+            border-left: 4px solid #ef4444;
+        }
+
+        .issue-card.medium {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .issue-card.low {
+            border-left: 4px solid #10b981;
+        }
+
+        .issue-severity {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .issue-severity.high {
+            background: #ef4444;
+            color: white;
+        }
+
+        .issue-severity.medium {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .issue-severity.low {
+            background: #10b981;
+            color: white;
+        }
+
+        .issue-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .issue-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .issue-action {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .issue-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Insights Section */
+        .insights-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .insights-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .insights-subsection {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+        }
+
+        .insights-subsection h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .patterns-list,
+        .recommendations-list,
+        .improvements-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .patterns-list li,
+        .recommendations-list li,
+        .improvements-list li {
+            background: rgba(99, 102, 241, 0.05);
+            border-left: 3px solid var(--accent-color);
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .recommendation-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .recommendation-priority {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .recommendation-priority.high {
+            background: #ef4444;
+            color: white;
+        }
+
+        .recommendation-priority.medium {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .recommendation-priority.low {
+            background: #10b981;
+            color: white;
+        }
+
+        .recommendation-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .recommendation-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .recommendation-savings {
+            color: var(--accent-color);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Performance Section */
+        .performance-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .performance-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .performance-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .performance-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--info-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .performance-content h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .performance-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .performance-description {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* Privacy Section */
+        .privacy-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .privacy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .privacy-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .privacy-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .privacy-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--success-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .privacy-content h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .privacy-content p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Next Steps Section */
+        .next-steps-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .next-steps-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .next-step-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .next-step-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .next-step-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--accent-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .next-step-checkbox:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .next-step-checkbox.checked {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .next-step-text {
+            flex: 1;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-overlay .loading-spinner {
+            font-size: 3rem;
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+        }
+
+        .loading-overlay p {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .model-info-card {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .model-stats {
+                justify-content: center;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+
+            .category-grid,
+            .issues-grid,
+            .insights-content,
+            .performance-grid,
+            .privacy-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Container - This will be populated by navigation-loader.js -->
+    <div class="navigation-container"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-content-with-sidebar">
+        <div class="content-wrapper">
+            <h1 class="page-title">GGUF Mock Data Analysis</h1>
+            <p class="page-description">Comprehensive AI-powered mock data analysis with GGUF model insights</p>
+            
+            <!-- GGUF Model Info Header -->
+            <div class="gguf-model-header" id="ggufModelHeader">
+                <div class="model-info-card">
+                    <div class="model-avatar">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div class="model-details">
+                        <h3 class="model-name">unbreakable-oracle</h3>
+                        <p class="model-type">GGUF AI Model</p>
+                        <div class="model-stats">
+                            <span class="model-size">1.88GB</span>
+                            <span class="model-confidence">Confidence (instrumented)</span>
+                            <span class="model-status active">Active</span>
+                        </div>
+                    </div>
+                    <div class="model-actions">
+                        <button class="btn btn-primary btn-sm" onclick="refreshAnalysis()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="exportAnalysis()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Executive Dashboard -->
+            <div class="executive-dashboard" id="executiveDashboard">
+                <div class="dashboard-grid">
+                    <div class="metric-card primary">
+                        <div class="metric-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <div class="metric-content">
+                            <h3 class="metric-value" id="totalFiles">1,247</h3>
+                            <p class="metric-label">Total Mock Files</p>
+                            <div class="metric-trend positive">
+                                <i class="fas fa-arrow-up"></i> 12% increase
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card success">
+                        <div class="metric-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="metric-content">
+                            <h3 class="metric-value" id="qualityScore">89.2%</h3>
+                            <p class="metric-label">Data Quality Score</p>
+                            <div class="metric-trend positive">
+                                <i class="fas fa-arrow-up"></i> 3.2% improvement
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card warning">
+                        <div class="metric-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="metric-content">
+                            <h3 class="metric-value" id="issuesDetected">156</h3>
+                            <p class="metric-label">Issues Detected</p>
+                            <div class="metric-trend negative">
+                                <i class="fas fa-arrow-up"></i> 8 new issues
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card info">
+                        <div class="metric-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="metric-content">
+                            <h3 class="metric-value" id="analysisSpeed">1,559</h3>
+                            <p class="metric-label">Files/Second</p>
+                            <div class="metric-trend positive">
+                                <i class="fas fa-arrow-up"></i> 15% faster
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Category Analysis Section -->
+            <div class="category-analysis" id="categoryAnalysis">
+                <h2 class="section-title">
+                    <i class="fas fa-folder-open"></i>
+                    Mock Data Categories
+                </h2>
+                <div class="category-grid" id="categoryGrid">
+                    <!-- Categories will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-section">
+                <div class="charts-row">
+                    <div class="chart-container">
+                        <h3 class="chart-title">Category Distribution</h3>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">Quality Metrics</h3>
+                        <canvas id="qualityChart"></canvas>
+                    </div>
+                </div>
+                <div class="charts-row">
+                    <div class="chart-container">
+                        <h3 class="chart-title">Issues by Severity</h3>
+                        <canvas id="issuesChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">Performance Trends</h3>
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Issues Section -->
+            <div class="issues-section" id="issuesSection">
+                <h2 class="section-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Detected Issues
+                </h2>
+                <div class="issues-grid" id="issuesGrid">
+                    <!-- Issues will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- AI Insights Section -->
+            <div class="insights-section" id="insightsSection">
+                <h2 class="section-title">
+                    <i class="fas fa-lightbulb"></i>
+                    GGUF AI Insights
+                </h2>
+                <div class="insights-content">
+                    <div class="insights-subsection">
+                        <h3>Data Patterns Identified</h3>
+                        <div class="patterns-list" id="patternsList">
+                            <!-- Patterns will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="insights-subsection">
+                        <h3>Optimization Recommendations</h3>
+                        <div class="recommendations-list" id="recommendationsList">
+                            <!-- Recommendations will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="insights-subsection">
+                        <h3>Quality Improvements</h3>
+                        <div class="improvements-list" id="improvementsList">
+                            <!-- Improvements will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics Section -->
+            <div class="performance-section" id="performanceSection">
+                <h2 class="section-title">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Performance Metrics
+                </h2>
+                <div class="performance-grid">
+                    <div class="performance-card">
+                        <div class="performance-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="performance-content">
+                            <h4>Analysis Duration</h4>
+                            <p class="performance-value" id="analysisDuration">0.8 seconds</p>
+                            <p class="performance-description">Total analysis time</p>
+                        </div>
+                    </div>
+                    <div class="performance-card">
+                        <div class="performance-icon">
+                            <i class="fas fa-memory"></i>
+                        </div>
+                        <div class="performance-content">
+                            <h4>Memory Usage</h4>
+                            <p class="performance-value" id="memoryUsage">288MB</p>
+                            <p class="performance-description">Peak memory consumption</p>
+                        </div>
+                    </div>
+                    <div class="performance-card">
+                        <div class="performance-icon">
+                            <i class="fas fa-microchip"></i>
+                        </div>
+                        <div class="performance-content">
+                            <h4>CPU Usage</h4>
+                            <p class="performance-value" id="cpuUsage">1%</p>
+                            <p class="performance-description">Processor utilization</p>
+                        </div>
+                    </div>
+                    <div class="performance-card">
+                        <div class="performance-icon">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <div class="performance-content">
+                            <h4>Efficiency Rating</h4>
+                            <p class="performance-value" id="efficiencyRating">High</p>
+                            <p class="performance-description">Overall efficiency score</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Privacy & Security Section -->
+            <div class="privacy-section" id="privacySection">
+                <h2 class="section-title">
+                    <i class="fas fa-shield-alt"></i>
+                    Privacy & Security
+                </h2>
+                <div class="privacy-grid">
+                    <div class="privacy-card">
+                        <div class="privacy-icon">
+                            <i class="fas fa-desktop"></i>
+                        </div>
+                        <div class="privacy-content">
+                            <h4>Local Processing</h4>
+                            <p>All mock data analysis stays on your machine</p>
+                        </div>
+                    </div>
+                    <div class="privacy-card">
+                        <div class="privacy-icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div class="privacy-content">
+                            <h4>Complete Privacy</h4>
+                            <p>No data sent to external services</p>
+                        </div>
+                    </div>
+                    <div class="privacy-card">
+                        <div class="privacy-icon">
+                            <i class="fas fa-wifi-slash"></i>
+                        </div>
+                        <div class="privacy-content">
+                            <h4>Offline Capability</h4>
+                            <p>Works without internet connection</p>
+                        </div>
+                    </div>
+                    <div class="privacy-card">
+                        <div class="privacy-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="privacy-content">
+                            <h4>No Costs</h4>
+                            <p>No API costs or subscription fees</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Steps Section -->
+            <div class="next-steps-section" id="nextStepsSection">
+                <h2 class="section-title">
+                    <i class="fas fa-tasks"></i>
+                    Next Steps
+                </h2>
+                <div class="next-steps-list" id="nextStepsList">
+                    <!-- Next steps will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <p>Loading GGUF Analysis...</p>
+    </div>
+
+    <!-- Progress Container -->
+    <div class="progress-container" id="progressContainer">
+        <h3>Processing...</h3>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">Initializing...</div>
+    </div>
+                <p class="action-description">Check data integrity and consistency</p>
+            </div>
+            <div class="action-card" onclick="generateMockData()">
+                <div class="action-icon">🎲</div>
+                <h3 class="action-title">Generate Mock</h3>
+                <p class="action-description">Create realistic mock datasets</p>
+            </div>
+            <div class="action-card" onclick="cleanMockData()">
+                <div class="action-icon">🧹</div>
+                <h3 class="action-title">Clean Mock Data</h3>
+                <p class="action-description">Remove inconsistencies and errors</p>
+            </div>
+            <div class="action-card" onclick="exportMockData()">
+                <div class="action-icon">📤</div>
+                <h3 class="action-title">Export Clean Data</h3>
+                <p class="action-description">Export processed datasets</p>
+            </div>
+        </div>
+
+        <!-- Mock Data Sources -->
+        <div class="sources-grid">
+            <div class="source-item">
+                <div class="source-header">
+                    <h4>🤖 AI Mock Data</h4>
+                    <span class="source-count">347 files</span>
+                </div>
+                <div class="source-details">
+                    <p>AI analysis results, mock responses, test datasets</p>
+                    <div class="source-stats">
+                        <span>Quality: 92%</span>
+                        <span>Size: 45MB</span>
+                        <span>Issues: 12</span>
+                    </div>
+                </div>
+            </div>
+            <div class="source-item">
+                <div class="source-header">
+                    <h4>📊 Analytics Mock</h4>
+                    <span class="source-count">234 files</span>
+                </div>
+                <div class="source-details">
+                    <p>Dashboard analytics, charts, metrics mock data</p>
+                    <div class="source-stats">
+                        <span>Quality: 87%</span>
+                        <span>Size: 28MB</span>
+                        <span>Issues: 8</span>
+                    </div>
+                </div>
+            </div>
+            <div class="source-item">
+                <div class="source-header">
+                    <h4>🔧 Development Mock</h4>
+                    <span class="source-count">189 files</span>
+                </div>
+                <div class="source-details">
+                    <p>Development tools, test data, configuration mocks</p>
+                    <div class="source-stats">
+                        <span>Quality: 94%</span>
+                        <span>Size: 12MB</span>
+                        <span>Issues: 5</span>
+                    </div>
+                </div>
+            </div>
+            <div class="source-item">
+                <div class="source-header">
+                    <h4>📄 Report Mock</h4>
+                    <span class="source-count">156 files</span>
+                </div>
+                <div class="source-details">
+                    <p>Report templates, mock analysis data, documentation</p>
+                    <div class="source-stats">
+                        <span>Quality: 89%</span>
+                        <span>Size: 18MB</span>
+                        <span>Issues: 7</span>
+                    </div>
+                </div>
+            </div>
+            <div class="source-item">
+                <div class="source-header">
+                    <h4>🌐 Web Mock</h4>
+                    <span class="source-count">298 files</span>
+                </div>
+                <div class="source-details">
+                    <p>Web interface mock data, API responses, UI states</p>
+                    <div class="source-stats">
+                        <span>Quality: 91%</span>
+                        <span>Size: 35MB</span>
+                        <span>Issues: 10</span>
+                    </div>
+                </div>
+            </div>
+            <div class="source-item">
+                <div class="source-header">
+                    <h4>⚙️ Config Mock</h4>
+                    <span class="source-count">123 files</span>
+                </div>
+                <div class="source-details">
+                    <p>Configuration files, settings, environment mocks</p>
+                    <div class="source-stats">
+                        <span>Quality: 96%</span>
+                        <span>Size: 8MB</span>
+                        <span>Issues: 3</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/navigation-loader.js"></script>
+    
+    <!-- GGUF Dashboard JavaScript -->
+    <script>
+        // GGUF Mock Data Analysis Dashboard
+        class GGUFAnalysisDashboard {
+            constructor() {
+                this.analysisData = null;
+                this.charts = {};
+                this.isLoading = false;
+                this.init();
+            }
+
+            async init() {
+                console.log('Initializing GGUF Analysis Dashboard...');
+                await this.loadAnalysisData();
+                this.renderDashboard();
+                this.initializeCharts();
+                this.bindEvents();
+            }
+
+            async loadAnalysisData() {
+                try {
+                    this.showLoading(true);
+                    
+                    // Load main analysis data
+                    const response = await fetch('/api/gguf/analysis');
+                    if (!response.ok) throw new Error('Failed to load analysis data');
+                    
+                    this.analysisData = await response.json();
+                    console.log('Analysis data loaded:', this.analysisData);
+                    
+                } catch (error) {
+                    console.error('Error loading analysis data:', error);
+                    this.showError('Failed to load GGUF analysis data');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            renderDashboard() {
+                if (!this.analysisData) return;
+
+                // Update model info
+                this.updateModelInfo();
+                
+                // Update executive metrics
+                this.updateExecutiveMetrics();
+                
+                // Render categories
+                this.renderCategories();
+                
+                // Render issues
+                this.renderIssues();
+                
+                // Render insights
+                this.renderInsights();
+                
+                // Update performance metrics
+                this.updatePerformanceMetrics();
+                
+                // Render next steps
+                this.renderNextSteps();
+            }
+
+            updateModelInfo() {
+                const modelInfo = this.analysisData.modelInfo;
+                if (!modelInfo) return;
+
+                document.querySelector('.model-name').textContent = modelInfo.name;
+                document.querySelector('.model-size').textContent = modelInfo.size;
+                document.querySelector('.model-confidence').textContent = `${modelInfo.confidence}% Confidence`;
+                document.querySelector('.model-status').textContent = model.status;
+            }
+
+            updateExecutiveMetrics() {
+                const overview = this.analysisData.analysisOverview;
+                if (!overview) return;
+
+                document.getElementById('totalFiles').textContent = overview.totalMockFiles.toLocaleString();
+                document.getElementById('qualityScore').textContent = `${overview.dataQualityScore}%`;
+                document.getElementById('issuesDetected').textContent = overview.issuesDetected;
+                document.getElementById('analysisSpeed').textContent = overview.analysisSpeed.replace('files/second', '');
+            }
+
+            renderCategories() {
+                const categories = this.analysisData.mockDataCategories || [];
+                const categoryGrid = document.getElementById('categoryGrid');
+                
+                if (!categoryGrid) return;
+
+                categoryGrid.innerHTML = categories.map(category => `
+                    <div class="category-card">
+                        <div class="category-header">
+                            <h4 class="category-name">${category.category}</h4>
+                            <span class="category-quality">${category.qualityScore}%</span>
+                        </div>
+                        <div class="category-stats">
+                            <div class="category-stat">📁 ${category.fileCount} files</div>
+                            <div class="category-stat">💾 ${category.totalSize}</div>
+                            <div class="category-stat">⚠️ ${category.issues} issues</div>
+                            <div class="category-stat">🎯 ${category.confidence}% confidence</div>
+                        </div>
+                        <p class="category-description">${category.description}</p>
+                    </div>
+                `).join('');
+            }
+
+            renderIssues() {
+                const issues = this.analysisData.detectedIssues || [];
+                const issuesGrid = document.getElementById('issuesGrid');
+                
+                if (!issuesGrid) return;
+
+                issuesGrid.innerHTML = issues.map(issue => `
+                    <div class="issue-card ${issue.severity}">
+                        <span class="issue-severity ${issue.severity}">${issue.severity}</span>
+                        <h4 class="issue-title">${issue.type}</h4>
+                        <p class="issue-description">${issue.description}</p>
+                        <div class="issue-details">
+                            <strong>Count:</strong> ${issue.count}<br>
+                            <strong>Action:</strong> ${issue.recommendedAction}
+                        </div>
+                        <button class="issue-action" onclick="dashboard.resolveIssue('${issue.type}')">
+                            Resolve Issue
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            renderInsights() {
+                const insights = this.analysisData.ggufAIInsights || {};
+                
+                // Render patterns
+                const patternsList = document.getElementById('patternsList');
+                if (patternsList && insights.dataPatterns) {
+                    patternsList.innerHTML = insights.dataPatterns.map(pattern => 
+                        `<li>${pattern}</li>`
+                    ).join('');
+                }
+
+                // Render recommendations
+                const recommendationsList = document.getElementById('recommendationsList');
+                if (recommendationsList && insights.optimizationRecommendations) {
+                    recommendationsList.innerHTML = insights.optimizationRecommendations.map(rec => `
+                        <div class="recommendation-item">
+                            <span class="recommendation-priority ${rec.priority}">${rec.priority}</span>
+                            <div class="recommendation-title">${rec.action}</div>
+                            <div class="recommendation-description">${rec.description}</div>
+                            <div class="recommendation-savings">Potential Savings: ${rec.potentialSavings}</div>
+                        </div>
+                    `).join('');
+                }
+
+                // Render improvements
+                const improvementsList = document.getElementById('improvementsList');
+                if (improvementsList && insights.qualityImprovements) {
+                    improvementsList.innerHTML = insights.qualityImprovements.map(improvement => 
+                        `<li>${improvement}</li>`
+                    ).join('');
+                }
+            }
+
+            updatePerformanceMetrics() {
+                const performance = this.analysisData.performanceMetrics || {};
+                
+                document.getElementById('analysisDuration').textContent = performance.analysisDuration || '0.8 seconds';
+                document.getElementById('memoryUsage').textContent = '288MB';
+                document.getElementById('cpuUsage').textContent = '1%';
+                document.getElementById('efficiencyRating').textContent = performance.memoryEfficiency || 'High';
+            }
+
+            renderNextSteps() {
+                const nextSteps = this.analysisData.nextSteps || [];
+                const nextStepsList = document.getElementById('nextStepsList');
+                
+                if (!nextStepsList) return;
+
+                nextStepsList.innerHTML = nextSteps.map((step, index) => `
+                    <div class="next-step-item">
+                        <div class="next-step-checkbox" onclick="dashboard.toggleNextStep(${index})"></div>
+                        <span class="next-step-text">${step}</span>
+                    </div>
+                `).join('');
+            }
+
+            initializeCharts() {
+                this.initializeCategoryChart();
+                this.initializeQualityChart();
+                this.initializeIssuesChart();
+                this.initializePerformanceChart();
+            }
+
+            initializeCategoryChart() {
+                const ctx = document.getElementById('categoryChart');
+                if (!ctx) return;
+
+                const categories = this.analysisData.mockDataCategories || [];
+                
+                this.charts.category = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: categories.map(c => c.category),
+                        datasets: [{
+                            data: categories.map(c => c.fileCount),
+                            backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#f1f5f9' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            initializeQualityChart() {
+                const ctx = document.getElementById('qualityChart');
+                if (!ctx) return;
+
+                const quality = this.analysisData.qualityMetrics || {};
+                
+                this.charts.quality = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: Object.keys(quality),
+                        datasets: [{
+                            label: 'Quality Metrics',
+                            data: Object.values(quality),
+                            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                            borderColor: '#6366f1',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: { color: '#94a3b8' },
+                                grid: { color: '#475569' },
+                                pointLabels: { color: '#f1f5f9' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            initializeIssuesChart() {
+                const ctx = document.getElementById('issuesChart');
+                if (!ctx) return;
+
+                const issues = this.analysisData.detectedIssues || [];
+                const severityData = {
+                    high: issues.filter(i => i.severity === 'high').reduce((sum, i) => sum + i.count, 0),
+                    medium: issues.filter(i => i.severity === 'medium').reduce((sum, i) => sum + i.count, 0),
+                    low: issues.filter(i => i.severity === 'low').reduce((sum, i) => sum + i.count, 0)
+                };
+                
+                this.charts.issues = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['High', 'Medium', 'Low'],
+                        datasets: [{
+                            label: 'Issues by Severity',
+                            data: [severityData.high, severityData.medium, severityData.low],
+                            backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#94a3b8' },
+                                grid: { color: '#475569' }
+                            },
+                            x: {
+                                ticks: { color: '#94a3b8' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+
+            initializePerformanceChart() {
+                const ctx = document.getElementById('performanceChart');
+                if (!ctx) return;
+
+                this.charts.performance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                        datasets: [{
+                            label: 'Files/Second',
+                            data: [1200, 1350, 1450, 1559],
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        }, {
+                            label: 'Quality Score',
+                            data: [85, 87, 88, 89.2],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#94a3b8' },
+                                grid: { color: '#475569' }
+                            },
+                            x: {
+                                ticks: { color: '#94a3b8' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+
+            bindEvents() {
+                window.refreshAnalysis = () => this.refreshAnalysis();
+                window.exportAnalysis = () => this.exportAnalysis();
+                window.dashboard = this;
+            }
+
+            async refreshAnalysis() {
+                console.log('Refreshing analysis...');
+                await this.loadAnalysisData();
+                this.renderDashboard();
+                
+                Object.values(this.charts).forEach(chart => chart.destroy());
+                this.initializeCharts();
+                
+                this.showSuccess('Analysis refreshed successfully');
+            }
+
+            exportAnalysis() {
+                if (!this.analysisData) {
+                    this.showError('No data available for export');
+                    return;
+                }
+
+                const dataStr = JSON.stringify(this.analysisData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `gguf-mock-data-analysis-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                URL.revokeObjectURL(url);
+                this.showSuccess('Analysis exported successfully');
+            }
+
+            resolveIssue(issueType) {
+                console.log(`Resolving issue: ${issueType}`);
+                this.showSuccess(`Issue "${issueType}" marked for resolution`);
+            }
+
+            toggleNextStep(index) {
+                const checkbox = document.querySelectorAll('.next-step-checkbox')[index];
+                checkbox.classList.toggle('checked');
+                
+                if (checkbox.classList.contains('checked')) {
+                    checkbox.innerHTML = '<i class="fas fa-check"></i>';
+                } else {
+                    checkbox.innerHTML = '';
+                }
+            }
+
+            showLoading(show) {
+                const overlay = document.getElementById('loadingOverlay');
+                if (overlay) {
+                    overlay.classList.toggle('active', show);
+                }
+                this.isLoading = show;
+            }
+
+            showSuccess(message) {
+                this.showNotification(message, 'success');
+            }
+
+            showError(message) {
+                this.showNotification(message, 'error');
+            }
+
+            showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 1rem;
+                    border-radius: 0.5rem;
+                    color: white;
+                    z-index: 10000;
+                    animation: slideIn 0.3s ease-out;
+                    background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                `;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease-in';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+        }
+
+        // Initialize dashboard when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            window.ggufrDashboard = new GGUFAnalysisDashboard();
+        });
+    </script>
+</body>
+</html>

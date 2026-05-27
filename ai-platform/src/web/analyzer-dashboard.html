@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layout Analyzer Dashboard - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Modern Sidebar Styles */
+        .sidebar-modern {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-modern.collapsed {
+            transform: translateX(-240px);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-container {
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .logo i {
+            color: var(--accent-color);
+            font-size: 2rem;
+        }
+
+        .logo-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-container {
+            padding: 1rem 0;
+        }
+
+        .nav-section-modern {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title-modern {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-item-modern {
+            margin: 0.25rem 0;
+        }
+
+        .nav-link-modern {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link-modern:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-link-modern.active {
+            background: var(--bg-card);
+            color: var(--accent-color);
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-icon-modern {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .sidebar-info {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content */
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+            margin-left: 40px;
+        }
+
+        .page-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .page-content {
+            padding: 2rem;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-240px);
+            }
+            
+            .sidebar-modern.collapsed {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+            }
+            
+            .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+                margin-left: 280px;
+            }
+        }
+
+        /* Preserve existing styles from original file */
+        
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1f3a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .dashboard-header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .summary-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .summary-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .chart-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 1rem 0;
+        }
+
+        .file-analysis-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .file-card {
+            background: rgba(99, 102, 241, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .file-card:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .file-stats {
+            display: flex;
+            gap: 2rem;
+            margin-top: 0.5rem;
+        }
+
+        .file-stat {
+            text-align: center;
+        }
+
+        .file-stat-value {
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .file-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .trend-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .trend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .trend-item:last-child {
+            border-bottom: none;
+        }
+
+        .trend-label {
+            font-weight: 500;
+        }
+
+        .trend-value {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .trend-up {
+            color: var(--success-color);
+        }
+
+        .trend-down {
+            color: var(--danger-color);
+        }
+
+        .export-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .btn-export {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+
+        .btn-export:hover {
+            background: var(--secondary-color);
+            transform: translateY(-1px);
+        }
+
+        .btn-export.secondary {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-export.secondary:hover {
+            background: var(--border-color);
+        }
+
+        .progress-ring {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1rem;
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .health-score-large {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .health-score-excellent {
+            color: var(--success-color);
+        }
+
+        .health-score-good {
+            color: var(--warning-color);
+        }
+
+        .health-score-poor {
+            color: var(--danger-color);
+        }
+
+        .priority-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .priority-item {
+            background: rgba(99, 102, 241, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .priority-rank {
+            background: var(--primary-color);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        .priority-content {
+            flex-grow: 1;
+            margin: 0 1rem;
+        }
+
+        .priority-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .priority-meta {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .priority-score {
+            background: rgba(99, 102, 241, 0.1);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+    
+    </style>
+</head>
+<body>
+    <!-- Navigation Container - This will be populated by navigation-loader.js -->
+
+    <!-- Main Content Area -->
+    
+        </div>
+
+        <div class="container">
+            <!-- Executive Summary -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-icon" style="color: var(--success-color);">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div class="summary-value health-score-excellent" id="overallHealthScore">92</div>
+                    <div class="summary-label">Overall Health Score</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon" style="color: var(--primary-color);">
+                        <i class="fas fa-file-code"></i>
+                    </div>
+                    <div class="summary-value" id="totalFilesAnalyzed">47</div>
+                    <div class="summary-label">Files Analyzed</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon" style="color: var(--warning-color);">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="summary-value" id="totalIssuesFound">23</div>
+                    <div class="summary-label">Issues Found</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon" style="color: var(--success-color);">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <div class="summary-value" id="fixableIssuesCount">18</div>
+                    <div class="summary-label">Fixable Issues</div>
+                </div>
+            </div>
+
+            <!-- Issue Distribution Chart -->
+            <div class="chart-section">
+                <h3 class="mb-4">Issue Distribution by Category</h3>
+                <div class="chart-container">
+                    <canvas id="issueDistributionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Severity Breakdown -->
+            <div class="chart-section">
+                <h3 class="mb-4">Issue Severity Breakdown</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="severityChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="fixabilityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File-by-File Analysis -->
+            <div class="file-analysis-section">
+                <h3 class="mb-4">File-by-File Analysis</h3>
+                <div id="fileAnalysisList"></div>
+            </div>
+
+            <!-- Priority Queue -->
+            <div class="chart-section">
+                <h3 class="mb-4">Priority Fix Queue</h3>
+                <ul class="priority-list" id="priorityQueue"></ul>
+            </div>
+
+            <!-- Health Trends -->
+            <div class="trend-section">
+                <h3 class="mb-4">Health Trends Over Time</h3>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+                <div class="mt-4">
+                    <div class="trend-item">
+                        <span class="trend-label">Health Score Change</span>
+                        <span class="trend-value trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            +12% from last analysis
+                        </span>
+                    </div>
+                    <div class="trend-item">
+                        <span class="trend-label">Issues Resolved</span>
+                        <span class="trend-value trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            +8 issues fixed
+                        </span>
+                    </div>
+                    <div class="trend-item">
+                        <span class="trend-label">New Issues Detected</span>
+                        <span class="trend-value trend-down">
+                            <i class="fas fa-arrow-down"></i>
+                            -3 new issues
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Options -->
+            <div class="export-section">
+                <h3 class="mb-4">Export Analysis Report</h3>
+                <p class="text-muted mb-4">Download comprehensive reports in various formats for documentation and sharing</p>
+                <div>
+                    <button class="btn-export" onclick="exportReport('pdf')">
+                        <i class="fas fa-file-pdf me-2"></i>
+                        Export PDF Report
+                    </button>
+                    <button class="btn-export" onclick="exportReport('json')">
+                        <i class="fas fa-file-code me-2"></i>
+                        Export JSON Data
+                    </button>
+                    <button class="btn-export secondary" onclick="exportReport('csv')">
+                        <i class="fas fa-file-csv me-2"></i>
+                        Export CSV Summary
+                    </button>
+                    <button class="btn-export secondary" onclick="shareReport()">
+                        <i class="fas fa-share-alt me-2"></i>
+                        Share Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dashboard data and initialization
+        class AnalyzerDashboard {
+            constructor() {
+                this.analysisData = this.generateMockData();
+                this.initializeCharts();
+                this.populateFileAnalysis();
+                this.populatePriorityQueue();
+            }
+
+            generateMockData() {
+                return {
+                    summary: {
+                        healthScore: 92,
+                        totalFiles: 47,
+                        issuesFound: 23,
+                        fixableIssues: 18,
+                        criticalIssues: 2,
+                        highIssues: 5,
+                        mediumIssues: 8,
+                        lowIssues: 8
+                    },
+                    categories: {
+                        html: 8,
+                        css: 6,
+                        responsive: 4,
+                        accessibility: 3,
+                        performance: 2
+                    },
+                    files: [
+                        { name: 'src/web/dashboard.html', issues: 5, health: 85, fixable: 4 },
+                        { name: 'src/web/dashboard-new.html', issues: 3, health: 91, fixable: 2 },
+                        { name: 'assets/dashboard.css', issues: 7, health: 78, fixable: 6 },
+                        { name: 'assets/components.css', issues: 4, health: 88, fixable: 3 },
+                        { name: 'web/css/gguf-enhancements.css', issues: 2, health: 94, fixable: 2 },
+                        { name: 'src/web/ai_dashboard.html', issues: 1, health: 97, fixable: 1 },
+                        { name: 'src/billing/pricing.html', issues: 1, health: 96, fixable: 0 }
+                    ],
+                    priorityIssues: [
+                        { rank: 1, title: 'Missing DOCTYPE in dashboard.html', file: 'src/web/dashboard.html', severity: 'critical', score: 95 },
+                        { rank: 2, title: 'High CSS specificity conflicts', file: 'assets/dashboard.css', severity: 'high', score: 88 },
+                        { rank: 3, title: 'Images missing alt attributes', file: 'src/web/dashboard-new.html', severity: 'high', score: 82 },
+                        { rank: 4, title: 'Viewport meta tag missing', file: 'src/billing/pricing.html', severity: 'medium', score: 75 },
+                        { rank: 5, title: 'Unused CSS rules detected', file: 'assets/components.css', severity: 'medium', score: 68 }
+                    ],
+                    trends: [
+                        { date: '2026-05-15', score: 78, issues: 45 },
+                        { date: '2026-05-18', score: 82, issues: 38 },
+                        { date: '2026-05-21', score: 88, issues: 31 },
+                        { date: '2026-05-22', score: 92, issues: 23 }
+                    ]
+                };
+            }
+
+            initializeCharts() {
+                // Issue Distribution Chart
+                const issueCtx = document.getElementById('issueDistributionChart').getContext('2d');
+                new Chart(issueCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['HTML Issues', 'CSS Conflicts', 'Responsive', 'Accessibility', 'Performance'],
+                        datasets: [{
+                            data: [
+                                this.analysisData.categories.html,
+                                this.analysisData.categories.css,
+                                this.analysisData.categories.responsive,
+                                this.analysisData.categories.accessibility,
+                                this.analysisData.categories.performance
+                            ],
+                            backgroundColor: [
+                                '#ef4444',
+                                '#f59e0b',
+                                '#3b82f6',
+                                '#10b981',
+                                '#8b5cf6'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#e2e8f0' }
+                            }
+                        }
+                    }
+                });
+
+                // Severity Chart
+                const severityCtx = document.getElementById('severityChart').getContext('2d');
+                new Chart(severityCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Critical', 'High', 'Medium', 'Low'],
+                        datasets: [{
+                            label: 'Issues by Severity',
+                            data: [
+                                this.analysisData.summary.criticalIssues,
+                                this.analysisData.summary.highIssues,
+                                this.analysisData.summary.mediumIssues,
+                                this.analysisData.summary.lowIssues
+                            ],
+                            backgroundColor: [
+                                '#ef4444',
+                                '#f59e0b',
+                                '#3b82f6',
+                                '#10b981'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#e2e8f0' },
+                                grid: { color: '#334155' }
+                            },
+                            x: {
+                                ticks: { color: '#e2e8f0' },
+                                grid: { color: '#334155' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+
+                // Fixability Chart
+                const fixabilityCtx = document.getElementById('fixabilityChart').getContext('2d');
+                new Chart(fixabilityCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Fixable', 'Manual Fix Required'],
+                        datasets: [{
+                            data: [
+                                this.analysisData.summary.fixableIssues,
+                                this.analysisData.summary.issuesFound - this.analysisData.summary.fixableIssues
+                            ],
+                            backgroundColor: ['#10b981', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#e2e8f0' }
+                            }
+                        }
+                    }
+                });
+
+                // Trend Chart
+                const trendCtx = document.getElementById('trendChart').getContext('2d');
+                new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: this.analysisData.trends.map(t => new Date(t.date).toLocaleDateString()),
+                        datasets: [{
+                            label: 'Health Score',
+                            data: this.analysisData.trends.map(t => t.score),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Issues Found',
+                            data: this.analysisData.trends.map(t => t.issues),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                position: 'left',
+                                ticks: { color: '#e2e8f0' },
+                                grid: { color: '#334155' },
+                                title: {
+                                    display: true,
+                                    text: 'Health Score',
+                                    color: '#e2e8f0'
+                                }
+                            },
+                            y1: {
+                                beginAtZero: true,
+                                position: 'right',
+                                ticks: { color: '#e2e8f0' },
+                                grid: { display: false },
+                                title: {
+                                    display: true,
+                                    text: 'Issues Count',
+                                    color: '#e2e8f0'
+                                }
+                            },
+                            x: {
+                                ticks: { color: '#e2e8f0' },
+                                grid: { color: '#334155' }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#e2e8f0' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            populateFileAnalysis() {
+                const container = document.getElementById('fileAnalysisList');
+                container.innerHTML = '';
+
+                this.analysisData.files.forEach(file => {
+                    const fileCard = document.createElement('div');
+                    fileCard.className = 'file-card';
+                    
+                    const healthClass = file.health >= 90 ? 'health-score-excellent' : 
+                                       file.health >= 75 ? 'health-score-good' : 'health-score-poor';
+                    
+                    fileCard.innerHTML = `
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-stats">
+                            <div class="file-stat">
+                                <div class="file-stat-value">${file.issues}</div>
+                                <div class="file-stat-label">Issues</div>
+                            </div>
+                            <div class="file-stat">
+                                <div class="file-stat-value ${healthClass}">${file.health}%</div>
+                                <div class="file-stat-label">Health</div>
+                            </div>
+                            <div class="file-stat">
+                                <div class="file-stat-value">${file.fixable}</div>
+                                <div class="file-stat-label">Fixable</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(fileCard);
+                });
+            }
+
+            populatePriorityQueue() {
+                const container = document.getElementById('priorityQueue');
+                container.innerHTML = '';
+
+                this.analysisData.priorityIssues.forEach(issue => {
+                    const priorityItem = document.createElement('li');
+                    priorityItem.className = 'priority-item';
+                    
+                    const severityClass = issue.severity === 'critical' ? 'text-danger' :
+                                         issue.severity === 'high' ? 'text-warning' : 'text-info';
+                    
+                    priorityItem.innerHTML = `
+                        <div class="priority-rank">${issue.rank}</div>
+                        <div class="priority-content">
+                            <div class="priority-title">${issue.title}</div>
+                            <div class="priority-meta">
+                                <span class="${severityClass}">${issue.severity.toUpperCase()}</span> • 
+                                ${issue.file}
+                            </div>
+                        </div>
+                        <div class="priority-score">${issue.score}</div>
+                    `;
+                    
+                    container.appendChild(priorityItem);
+                });
+            }
+
+            updateSummaryCards() {
+                document.getElementById('overallHealthScore').textContent = this.analysisData.summary.healthScore;
+                document.getElementById('totalFilesAnalyzed').textContent = this.analysisData.summary.totalFiles;
+                document.getElementById('totalIssuesFound').textContent = this.analysisData.summary.issuesFound;
+                document.getElementById('fixableIssuesCount').textContent = this.analysisData.summary.fixableIssues;
+
+                // Update health score color
+                const healthElement = document.getElementById('overallHealthScore');
+                healthElement.className = 'summary-value health-score-large';
+                if (this.analysisData.summary.healthScore >= 90) {
+                    healthElement.classList.add('health-score-excellent');
+                } else if (this.analysisData.summary.healthScore >= 75) {
+                    healthElement.classList.add('health-score-good');
+                } else {
+                    healthElement.classList.add('health-score-poor');
+                }
+            }
+        }
+
+        // Export functions
+        function exportReport(format) {
+            const timestamp = new Date().toISOString().split('T')[0];
+            
+            switch (format) {
+                case 'pdf':
+                    console.log('📄 Exporting PDF report...');
+                    alert('PDF report would be generated here with full analysis details');
+                    break;
+                case 'json':
+                    const jsonData = JSON.stringify(dashboard.analysisData, null, 2);
+                    downloadFile(jsonData, `layout-analysis-${timestamp}.json`, 'application/json');
+                    break;
+                case 'csv':
+                    const csvData = generateCSV(dashboard.analysisData);
+                    downloadFile(csvData, `layout-analysis-${timestamp}.csv`, 'text/csv');
+                    break;
+            }
+        }
+
+        function generateCSV(data) {
+            const headers = ['File', 'Issues', 'Health Score', 'Fixable'];
+            const rows = data.files.map(file => 
+                [file.name, file.issues, file.health, file.fixable].join(',')
+            );
+            
+            return [headers.join(','), ...rows].join('\n');
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function shareReport() {
+            console.log('🔗 Sharing report...');
+            alert('Share functionality would generate a shareable link or send report via email');
+        }
+
+        // Initialize dashboard
+        let dashboard;
+        document.addEventListener('DOMContentLoaded', () => {
+            dashboard = new AnalyzerDashboard();
+            dashboard.updateSummaryCards();
+        });
+    </script>
+
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/navigation-loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+        // Dashboard data and initialization
+        class AnalyzerDashboard {
+            constructor() {
+                this.analysisData = this.generateMockData();
+                this.initializeCharts();
+                this.populateFileAnalysis();
+                this.populatePriorityQueue();
+            }
+
+            generateMockData() {
+                return {
+                    summary: {
+                        healthScore: 92,
+                        totalFiles: 47,
+                        issuesFound: 23,
+                        fixableIssues: 18,
+                        criticalIssues: 2,
+                        highIssues: 5,
+                        mediumIssues: 8,
+                        lowIssues: 8
+                    },
+                    categories: {
+                        html: 8,
+                        css: 6,
+                        responsive: 4,
+                        accessibility: 3,
+                        performance: 2
+                    },
+                    files: [
+                        { name: 'src/web/dashboard.html', issues: 5, health: 85, fixable: 4 },
+                        { name: 'src/web/dashboard-new.html', issues: 3, health: 91, fixable: 2 },
+                        { name: 'assets/dashboard.css', issues: 7, health: 78, fixable: 6 },
+                        { name: 'assets/components.css', issues: 4, health: 88, fixable: 3 },
+                        { name: 'web/css/gguf-enhancements.css', issues: 2, health: 94, fixable: 2 },
+                        { name: 'src/web/ai_dashboard.html', issues: 1, health: 97, fixable: 1 },
+                        { name: 'src/billing/pricing.html', issues: 1, health: 96, fixable: 0 }
+                    ],
+                    priorityIssues: [
+                        { rank: 1, title: 'Missing DOCTYPE in dashboard.html', file: 'src/web/dashboard.html', severity: 'critical', score: 95 },
+                        { rank: 2, title: 'High CSS specificity conflicts', file: 'assets/dashboard.css', severity: 'high', score: 88 },
+                        { rank: 3, title: 'Images missing alt attributes', file: 'src/web/dashboard-new.html', severity: 'high', score: 82 },
+                        { rank: 4, title: 'Viewport meta tag missing', file: 'src/billing/pricing.html', severity: 'medium', score: 75 },
+                        { rank: 5, title: 'Unused CSS rules detected', file: 'assets/components.css', severity: 'medium', score: 68 }
+                    ],
+                    trends: [
+                        { date: '2026-05-15', score: 78, issues: 45 },
+                        { date: '2026-05-18', score: 82, issues: 38 },
+                        { date: '2026-05-21', score: 88, issues: 31 },
+                        { date: '2026-05-22', score: 92, issues: 23 }
+                    ]
+                };
+            }
+
+            initializeCharts() {
+                // Issue Distribution Chart
+                const issueCtx = document.getElementById('issueDistributionChart').getContext('2d');
+                new Chart(issueCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['HTML Issues', 'CSS Conflicts', 'Responsive', 'Accessibility', 'Performance'],
+                        datasets: [{
+                            data: [
+                                this.analysisData.categories.html,
+                                this.analysisData.categories.css,
+                                this.analysisData.categories.responsive,
+                                this.analysisData.categories.accessibility,
+                                this.analysisData.categories.performance
+                            ],
+                            backgroundColor: [
+                                '#ef4444',
+                                '#f59e0b',
+                                '#3b82f6',
+                                '#10b981',
+                                '#8b5cf6'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#e2e8f0' }
+                            }
+                        }
+                    }
+                });
+
+                // Severity Chart
+                const severityCtx = document.getElementById('severityChart').getContext('2d');
+                new Chart(severityCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Critical', 'High', 'Medium', 'Low'],
+                        datasets: [{
+                            label: 'Issues by Severity',
+                            data: [
+                                this.analysisData.summary.criticalIssues,
+                                this.analysisData.summary.highIssues,
+                                this.analysisData.summary.mediumIssues,
+                                this.analysisData.summary.lowIssues
+                            ],
+                            backgroundColor: [
+                                '#ef4444',
+                                '#f59e0b',
+                                '#3b82f6',
+                                '#10b981'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#e2e8f0' },
+                                grid: { color: '#334155' }
+                            },
+                            x: {
+                                ticks: { color: '#e2e8f0' },
+                                grid: { color: '#334155' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+
+                // Fixability Chart
+                const fixabilityCtx = document.getElementById('fixabilityChart').getContext('2d');
+                new Chart(fixabilityCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Fixable', 'Manual Fix Required'],
+                        datasets: [{
+                            data: [
+                                this.analysisData.summary.fixableIssues,
+                                this.analysisData.summary.issuesFound - this.analysisData.summary.fixableIssues
+                            ],
+                            backgroundColor: ['#10b981', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#e2e8f0' }
+                            }
+                        }
+                    }
+                });
+
+                // Trend Chart
+                const trendCtx = document.getElementById('trendChart').getContext('2d');
+                new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: this.analysisData.trends.map(t => new Date(t.date).toLocaleDateString()),
+                        datasets: [{
+                            label: 'Health Score',
+                            data: this.analysisData.trends.map(t => t.score),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Issues Found',
+                            data: this.analysisData.trends.map(t => t.issues),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                position: 'left',
+                                ticks: { color: '#e2e8f0' },
+                                grid: { color: '#334155' },
+                                title: {
+                                    display: true,
+                                    text: 'Health Score',
+                                    color: '#e2e8f0'
+                                }
+                            },
+                            y1: {
+                                beginAtZero: true,
+                                position: 'right',
+                                ticks: { color: '#e2e8f0' },
+                                grid: { display: false },
+                                title: {
+                                    display: true,
+                                    text: 'Issues Count',
+                                    color: '#e2e8f0'
+                                }
+                            },
+                            x: {
+                                ticks: { color: '#e2e8f0' },
+                                grid: { color: '#334155' }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#e2e8f0' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            populateFileAnalysis() {
+                const container = document.getElementById('fileAnalysisList');
+                container.innerHTML = '';
+
+                this.analysisData.files.forEach(file => {
+                    const fileCard = document.createElement('div');
+                    fileCard.className = 'file-card';
+                    
+                    const healthClass = file.health >= 90 ? 'health-score-excellent' : 
+                                       file.health >= 75 ? 'health-score-good' : 'health-score-poor';
+                    
+                    fileCard.innerHTML = `
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-stats">
+                            <div class="file-stat">
+                                <div class="file-stat-value">${file.issues}</div>
+                                <div class="file-stat-label">Issues</div>
+                            </div>
+                            <div class="file-stat">
+                                <div class="file-stat-value ${healthClass}">${file.health}%</div>
+                                <div class="file-stat-label">Health</div>
+                            </div>
+                            <div class="file-stat">
+                                <div class="file-stat-value">${file.fixable}</div>
+                                <div class="file-stat-label">Fixable</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(fileCard);
+                });
+            }
+
+            populatePriorityQueue() {
+                const container = document.getElementById('priorityQueue');
+                container.innerHTML = '';
+
+                this.analysisData.priorityIssues.forEach(issue => {
+                    const priorityItem = document.createElement('li');
+                    priorityItem.className = 'priority-item';
+                    
+                    const severityClass = issue.severity === 'critical' ? 'text-danger' :
+                                         issue.severity === 'high' ? 'text-warning' : 'text-info';
+                    
+                    priorityItem.innerHTML = `
+                        <div class="priority-rank">${issue.rank}</div>
+                        <div class="priority-content">
+                            <div class="priority-title">${issue.title}</div>
+                            <div class="priority-meta">
+                                <span class="${severityClass}">${issue.severity.toUpperCase()}</span> • 
+                                ${issue.file}
+                            </div>
+                        </div>
+                        <div class="priority-score">${issue.score}</div>
+                    `;
+                    
+                    container.appendChild(priorityItem);
+                });
+            }
+
+            updateSummaryCards() {
+                document.getElementById('overallHealthScore').textContent = this.analysisData.summary.healthScore;
+                document.getElementById('totalFilesAnalyzed').textContent = this.analysisData.summary.totalFiles;
+                document.getElementById('totalIssuesFound').textContent = this.analysisData.summary.issuesFound;
+                document.getElementById('fixableIssuesCount').textContent = this.analysisData.summary.fixableIssues;
+
+                // Update health score color
+                const healthElement = document.getElementById('overallHealthScore');
+                healthElement.className = 'summary-value health-score-large';
+                if (this.analysisData.summary.healthScore >= 90) {
+                    healthElement.classList.add('health-score-excellent');
+                } else if (this.analysisData.summary.healthScore >= 75) {
+                    healthElement.classList.add('health-score-good');
+                } else {
+                    healthElement.classList.add('health-score-poor');
+                }
+            }
+        }
+
+        // Export functions
+        function exportReport(format) {
+            const timestamp = new Date().toISOString().split('T')[0];
+            
+            switch (format) {
+                case 'pdf':
+                    console.log('📄 Exporting PDF report...');
+                    alert('PDF report would be generated here with full analysis details');
+                    break;
+                case 'json':
+                    const jsonData = JSON.stringify(dashboard.analysisData, null, 2);
+                    downloadFile(jsonData, `layout-analysis-${timestamp}.json`, 'application/json');
+                    break;
+                case 'csv':
+                    const csvData = generateCSV(dashboard.analysisData);
+                    downloadFile(csvData, `layout-analysis-${timestamp}.csv`, 'text/csv');
+                    break;
+            }
+        }
+
+        function generateCSV(data) {
+            const headers = ['File', 'Issues', 'Health Score', 'Fixable'];
+            const rows = data.files.map(file => 
+                [file.name, file.issues, file.health, file.fixable].join(',')
+            );
+            
+            return [headers.join(','), ...rows].join('\n');
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function shareReport() {
+            console.log('🔗 Sharing report...');
+            alert('Share functionality would generate a shareable link or send report via email');
+        }
+
+        // Initialize dashboard
+        let dashboard;
+        document.addEventListener('DOMContentLoaded', () => {
+            dashboard = new AnalyzerDashboard();
+            dashboard.updateSummaryCards();
+        });
+    </script>
+</body>
+</html>

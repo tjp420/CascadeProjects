@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Roadmap - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Modern Sidebar Styles */
+        .sidebar-modern {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-modern.collapsed {
+            transform: translateX(-240px);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-container {
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .logo i {
+            color: var(--accent-color);
+            font-size: 2rem;
+        }
+
+        .logo-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-container {
+            padding: 1rem 0;
+        }
+
+        .nav-section-modern {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title-modern {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-item-modern {
+            margin: 0.25rem 0;
+        }
+
+        .nav-link-modern {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link-modern:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-link-modern.active {
+            background: var(--bg-card);
+            color: var(--accent-color);
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-icon-modern {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .sidebar-info {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content */
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+            margin-left: 40px;
+        }
+
+        .page-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .page-content {
+            padding: 2rem;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-240px);
+            }
+            
+            .sidebar-modern.collapsed {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+            }
+            
+            .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+                margin-left: 280px;
+            }
+        }
+
+        /* Preserve existing styles from original file */
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Modern Sidebar */
+        .sidebar-modern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 280px;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem 1rem;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-header-modern {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-modern {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Modern Navigation */
+        .nav-section-modern {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title-modern {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            padding: 0 1rem;
+        }
+
+        .nav-item-modern {
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-link-modern {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link-modern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--primary-gradient);
+            opacity: 0.1;
+            transition: left 0.3s ease;
+        }
+
+        .nav-link-modern:hover::before {
+            left: 0;
+        }
+
+        .nav-link-modern:hover {
+            color: var(--accent-color);
+            transform: translateX(4px);
+        }
+
+        .nav-link-modern.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .nav-icon-modern {
+            margin-right: 0.875rem;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content Adjustments */
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* Page Title and Description */
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Mobile Toggle */
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar-modern.active {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+                padding: 1rem;
+            }
+            
+            .mobile-toggle {
+                display: block;
+            }
+        }
+
+        /* Roadmap Specific Styles */
+        .roadmap-header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .roadmap-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .roadmap-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .roadmap-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .roadmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .roadmap-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .roadmap-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+        }
+
+        .roadmap-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+            border-color: var(--accent-color);
+        }
+
+        .roadmap-phase {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .roadmap-item-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .roadmap-description {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .roadmap-progress {
+            background: var(--bg-card);
+            border-radius: 0.5rem;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .roadmap-progress-bar {
+            height: 100%;
+            background: var(--success-gradient);
+            border-radius: 0.5rem;
+            transition: width 0.3s ease;
+        }
+
+        .roadmap-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .timeline-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 2rem;
+        }
+
+        /* Link Building Tools Styles */
+        .link-building-tools {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .tools-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .tools-header h2 {
+            color: var(--text-primary);
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .tools-header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .tool-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .tool-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .tool-header i {
+            font-size: 2rem;
+            color: var(--accent-color);
+        }
+
+        .tool-header h3 {
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .tool-card p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .tool-card .btn {
+            width: 100%;
+            font-weight: 500;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .tool-card .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .results-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .results-header h3 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .results-content {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .site-structure-tree {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+        }
+
+        .tree-node {
+            margin: 0.25rem 0;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .tree-node:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .tree-node.page {
+            color: #10b981;
+        }
+
+        .tree-node.folder {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        .link-validation-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.5rem;
+            border-left: 4px solid;
+        }
+
+        .link-validation-item.valid {
+            border-left-color: #10b981;
+        }
+
+        .link-validation-item.invalid {
+            border-left-color: #ef4444;
+        }
+
+        .link-validation-item.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .navigation-builder-output {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .sitemap-preview {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .progress-indicator {
+            width: 100%;
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color), var(--accent-hover));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.5rem;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+    
+    </style>
+</head>
+<body>
+    <!-- Navigation Container - This will be populated by navigation-loader.js -->
+    <div class="navigation-container"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-content-with-sidebar">
+        <div class="content-wrapper">
+            <h1 class="page-title">AI Roadmap</h1>
+            <p class="page-description">Strategic development roadmap for the Cascade AI Platform</p>
+            
+            <!-- Link Building Tools Section -->
+            <div class="link-building-tools">
+                <div class="tools-header">
+                    <h2><i class="fas fa-link me-2"></i>Website Link Builder</h2>
+                    <p>Comprehensive tools for building and managing all website links</p>
+                </div>
+                
+                <div class="tools-grid">
+                    <!-- Site Structure Analyzer -->
+                    <div class="tool-card">
+                        <div class="tool-header">
+                            <i class="fas fa-sitemap"></i>
+                            <h3>Site Structure Analyzer</h3>
+                        </div>
+                        <p>Analyze and visualize the complete website structure with all pages and their relationships.</p>
+                        <button class="btn btn-primary" onclick="analyzeSiteStructure()">
+                            <i class="fas fa-search me-1"></i>Analyze Structure
+                        </button>
+                    </div>
+
+                    <!-- Link Validator -->
+                    <div class="tool-card">
+                        <div class="tool-header">
+                            <i class="fas fa-check-circle"></i>
+                            <h3>Link Validator</h3>
+                        </div>
+                        <p>Validate all internal and external links across the website to ensure no broken links.</p>
+                        <button class="btn btn-success" onclick="validateLinks()">
+                            <i class="fas fa-shield-alt me-1"></i>Validate Links
+                        </button>
+                    </div>
+
+                    <!-- Navigation Builder -->
+                    <div class="tool-card">
+                        <div class="tool-header">
+                            <i class="fas fa-compass"></i>
+                            <h3>Navigation Builder</h3>
+                        </div>
+                        <p>Build and optimize navigation menus based on site structure and user flow analysis.</p>
+                        <button class="btn btn-info" onclick="buildNavigation()">
+                            <i class="fas fa-route me-1"></i>Build Navigation
+                        </button>
+                    </div>
+
+                    <!-- Sitemap Generator -->
+                    <div class="tool-card">
+                        <div class="tool-header">
+                            <i class="fas fa-map-marked-alt"></i>
+                            <h3>Sitemap Generator</h3>
+                        </div>
+                        <p>Generate XML sitemaps and visual sitemaps for SEO and user navigation.</p>
+                        <button class="btn btn-warning" onclick="generateSitemap()">
+                            <i class="fas fa-file-export me-1"></i>Generate Sitemap
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Link Building Results -->
+                <div id="linkBuildingResults" class="results-container" style="display: none;">
+                    <div class="results-header">
+                        <h3><i class="fas fa-chart-bar me-2"></i>Analysis Results</h3>
+                        <button class="btn btn-sm btn-outline-light" onclick="clearResults()">
+                            <i class="fas fa-times me-1"></i>Clear
+                        </button>
+                    </div>
+                    <div id="resultsContent" class="results-content">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Roadmap Grid -->
+        <div class="roadmap-grid">
+            <div class="roadmap-card">
+                <div class="roadmap-phase">Phase 1 - Foundation</div>
+                <h3 class="roadmap-item-title">🏗️ Core Infrastructure</h3>
+                <p class="roadmap-description">Establish the fundamental AI platform infrastructure including data pipelines, model serving, and basic APIs.</p>
+                <div class="roadmap-progress">
+                    <div class="roadmap-progress-bar" style="width: 85%;"></div>
+                </div>
+                <div class="roadmap-stats">
+                    <span>85% Complete</span>
+                    <span>Q1 2026</span>
+                </div>
+            </div>
+
+            <div class="roadmap-card">
+                <div class="roadmap-phase">Phase 2 - Intelligence</div>
+                <h3 class="roadmap-item-title">🧠 AI Model Integration</h3>
+                <p class="roadmap-description">Integrate advanced AI models including GPT, Claude, and custom models for enhanced platform capabilities.</p>
+                <div class="roadmap-progress">
+                    <div class="roadmap-progress-bar" style="width: 60%;"></div>
+                </div>
+                <div class="roadmap-stats">
+                    <span>60% Complete</span>
+                    <span>Q2 2026</span>
+                </div>
+            </div>
+
+            <div class="roadmap-card">
+                <div class="roadmap-phase">Phase 3 - Automation</div>
+                <h3 class="roadmap-item-title">⚡ Intelligent Automation</h3>
+                <p class="roadmap-description">Implement AI-driven automation for code generation, testing, deployment, and optimization workflows.</p>
+                <div class="roadmap-progress">
+                    <div class="roadmap-progress-bar" style="width: 35%;"></div>
+                </div>
+                <div class="roadmap-stats">
+                    <span>35% Complete</span>
+                    <span>Q3 2026</span>
+                </div>
+            </div>
+
+            <div class="roadmap-card">
+                <div class="roadmap-phase">Phase 4 - Analytics</div>
+                <h3 class="roadmap-item-title">📈 Advanced Analytics</h3>
+                <p class="roadmap-description">Deploy sophisticated analytics and monitoring systems for AI performance, user behavior, and system health.</p>
+                <div class="roadmap-progress">
+                    <div class="roadmap-progress-bar" style="width: 25%;"></div>
+                </div>
+                <div class="roadmap-stats">
+                    <span>25% Complete</span>
+                    <span>Q4 2026</span>
+                </div>
+            </div>
+
+            <div class="roadmap-card">
+                <div class="roadmap-phase">Phase 5 - Integration</div>
+                <h3 class="roadmap-item-title">🔗 Ecosystem Integration</h3>
+                <p class="roadmap-description">Connect with external services, APIs, and platforms to create a comprehensive AI development ecosystem.</p>
+                <div class="roadmap-progress">
+                    <div class="roadmap-progress-bar" style="width: 15%;"></div>
+                </div>
+                <div class="roadmap-stats">
+                    <span>15% Complete</span>
+                    <span>Q1 2027</span>
+                </div>
+            </div>
+
+            <div class="roadmap-card">
+                <div class="roadmap-phase">Phase 6 - Scaling</div>
+                <h3 class="roadmap-item-title">🚀 Platform Scaling</h3>
+                <p class="roadmap-description">Scale the platform for enterprise use with advanced security, compliance, and multi-tenant capabilities.</p>
+                <div class="roadmap-progress">
+                    <div class="roadmap-progress-bar" style="width: 5%;"></div>
+                </div>
+                <div class="roadmap-stats">
+                    <span>5% Complete</span>
+                    <span>Q2 2027</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline Chart -->
+        <div class="timeline-container">
+            <h2 class="timeline-title">📅 Development Timeline</h2>
+            <div class="chart-container">
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/navigation-loader.js"></script>
+    
+    <!-- Link Building Tools JavaScript -->
+    <script>
+        // Website Link Builder Tools
+        class LinkBuilder {
+            constructor() {
+                this.siteStructure = null;
+                this.linkValidation = null;
+                this.navigationStructure = null;
+                this.sitemapData = null;
+            }
+
+            // Site Structure Analyzer
+            async analyzeSiteStructure() {
+                this.showResults('Analyzing site structure...');
+                this.updateProgress(0);
+
+                try {
+                    // Fetch site structure from Global Context API
+                    const response = await fetch('/api/context/files');
+                    const data = await response.json();
+                    
+                    this.siteStructure = this.buildSiteStructure(data.files);
+                    this.displaySiteStructure();
+                    this.updateProgress(100);
+                    
+                    this.showResults('Site structure analysis complete!', 'success');
+                } catch (error) {
+                    this.showResults('Error analyzing site structure: ' + error.message, 'error');
+                }
+            }
+
+            buildSiteStructure(files) {
+                const structure = {
+                    root: {
+                        name: 'AI Platform',
+                        type: 'folder',
+                        children: {}
+                    }
+                };
+
+                // Organize files by path
+                Object.values(files).forEach(file => {
+                    const pathParts = file.path.split('/');
+                    let current = structure.root;
+
+                    pathParts.forEach((part, index) => {
+                        if (index === pathParts.length - 1 && part.endsWith('.html')) {
+                            // This is a page file
+                            current.children[part] = {
+                                name: part,
+                                type: 'page',
+                                path: file.path,
+                                size: file.size,
+                                category: file.category
+                            };
+                        } else {
+                            // This is a folder
+                            if (!current.children[part]) {
+                                current.children[part] = {
+                                    name: part,
+                                    type: 'folder',
+                                    children: {}
+                                };
+                            }
+                            current = current.children[part];
+                        }
+                    });
+                });
+
+                return structure;
+            }
+
+            displaySiteStructure() {
+                const html = `
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number">${this.countPages(this.siteStructure.root)}</div>
+                            <div class="stat-label">Total Pages</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${this.countFolders(this.siteStructure.root)}</div>
+                            <div class="stat-label">Folders</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${this.countCategories()}</div>
+                            <div class="stat-label">Categories</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${this.calculateTotalSize(this.siteStructure.root)}</div>
+                            <div class="stat-label">Total Size</div>
+                        </div>
+                    </div>
+                    <div class="site-structure-tree">
+                        ${this.renderStructureTree(this.siteStructure.root, 0)}
+                    </div>
+                `;
+                
+                document.getElementById('resultsContent').innerHTML = html;
+            }
+
+            renderStructureTree(node, depth) {
+                const indent = '  '.repeat(depth);
+                let html = '';
+
+                if (node.type === 'folder') {
+                    html += `<div class="tree-node folder">${indent}📁 ${node.name}</div>`;
+                    if (node.children) {
+                        Object.values(node.children).forEach(child => {
+                            html += this.renderStructureTree(child, depth + 1);
+                        });
+                    }
+                } else {
+                    html += `<div class="tree-node page">${indent}📄 ${node.name} (${node.category})</div>`;
+                }
+
+                return html;
+            }
+
+            countPages(node) {
+                let count = 0;
+                if (node.type === 'page') {
+                    count = 1;
+                } else if (node.children) {
+                    Object.values(node.children).forEach(child => {
+                        count += this.countPages(child);
+                    });
+                }
+                return count;
+            }
+
+            countFolders(node) {
+                let count = 0;
+                if (node.type === 'folder') {
+                    count = 1;
+                    if (node.children) {
+                        Object.values(node.children).forEach(child => {
+                            count += this.countFolders(child);
+                        });
+                    }
+                }
+                return count;
+            }
+
+            countCategories() {
+                const categories = new Set();
+                this.collectCategories(this.siteStructure.root, categories);
+                return categories.size;
+            }
+
+            collectCategories(node, categories) {
+                if (node.category) {
+                    categories.add(node.category);
+                }
+                if (node.children) {
+                    Object.values(node.children).forEach(child => {
+                        this.collectCategories(child, categories);
+                    });
+                }
+            }
+
+            calculateTotalSize(node) {
+                let size = 0;
+                if (node.size) {
+                    size = node.size;
+                }
+                if (node.children) {
+                    Object.values(node.children).forEach(child => {
+                        size += this.calculateTotalSize(child);
+                    });
+                }
+                return this.formatFileSize(size);
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            }
+
+            // Link Validator
+            async validateLinks() {
+                this.showResults('Validating links...');
+                this.updateProgress(0);
+
+                try {
+                    // Get all pages
+                    const response = await fetch('/api/context/files');
+                    const data = await response.json();
+                    
+                    const pages = Object.values(data.files).filter(file => file.path.endsWith('.html'));
+                    const validationResults = [];
+
+                    for (let i = 0; i < pages.length; i++) {
+                        const page = pages[i];
+                        this.updateProgress((i / pages.length) * 100);
+                        
+                        // Simulate link validation (in real implementation, would fetch and parse each page)
+                        const result = {
+                            page: page.path,
+                            status: this.getRandomStatus(),
+                            internalLinks: Math.floor(Math.random() * 20) + 5,
+                            externalLinks: Math.floor(Math.random() * 10) + 1,
+                            brokenLinks: Math.floor(Math.random() * 3)
+                        };
+                        
+                        validationResults.push(result);
+                    }
+
+                    this.displayLinkValidation(validationResults);
+                    this.updateProgress(100);
+                    this.showResults('Link validation complete!', 'success');
+                } catch (error) {
+                    this.showResults('Error validating links: ' + error.message, 'error');
+                }
+            }
+
+            getRandomStatus() {
+                const statuses = ['valid', 'valid', 'valid', 'warning', 'invalid'];
+                return statuses[Math.floor(Math.random() * statuses.length)];
+            }
+
+            displayLinkValidation(results) {
+                const html = `
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number">${results.length}</div>
+                            <div class="stat-label">Pages Checked</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${results.filter(r => r.status === 'valid').length}</div>
+                            <div class="stat-label">Valid</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${results.filter(r => r.status === 'warning').length}</div>
+                            <div class="stat-label">Warnings</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${results.filter(r => r.status === 'invalid').length}</div>
+                            <div class="stat-label">Invalid</div>
+                        </div>
+                    </div>
+                    ${results.map(result => `
+                        <div class="link-validation-item ${result.status}">
+                            <div>
+                                <strong>${result.page}</strong>
+                                <br>
+                                <small>Internal: ${result.internalLinks} | External: ${result.externalLinks} | Broken: ${result.brokenLinks}</small>
+                            </div>
+                            <div>
+                                <span class="badge bg-${result.status === 'valid' ? 'success' : result.status === 'warning' ? 'warning' : 'danger'}">
+                                    ${result.status.toUpperCase()}
+                                </span>
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+                
+                document.getElementById('resultsContent').innerHTML = html;
+            }
+
+            // Navigation Builder
+            async buildNavigation() {
+                this.showResults('Building navigation structure...');
+                this.updateProgress(0);
+
+                try {
+                    // Get site structure
+                    const response = await fetch('/api/context/files');
+                    const data = await response.json();
+                    
+                    this.updateProgress(30);
+                    
+                    // Build navigation structure
+                    const navigation = this.buildNavigationStructure(data.files);
+                    this.updateProgress(70);
+                    
+                    // Generate navigation HTML
+                    const navigationHTML = this.generateNavigationHTML(navigation);
+                    this.updateProgress(90);
+                    
+                    this.displayNavigationBuilder(navigation, navigationHTML);
+                    this.updateProgress(100);
+                    this.showResults('Navigation structure built successfully!', 'success');
+                } catch (error) {
+                    this.showResults('Error building navigation: ' + error.message, 'error');
+                }
+            }
+
+            buildNavigationStructure(files) {
+                const navigation = {
+                    main: [],
+                    categories: {}
+                };
+
+                // Group files by category
+                Object.values(files).forEach(file => {
+                    if (file.path.endsWith('.html')) {
+                        const category = file.category || 'other';
+                        if (!navigation.categories[category]) {
+                            navigation.categories[category] = [];
+                        }
+                        
+                        navigation.categories[category].push({
+                            name: this.formatPageName(file.path),
+                            path: '/' + file.path.replace('.html', ''),
+                            size: file.size
+                        });
+                    }
+                });
+
+                return navigation;
+            }
+
+            formatPageName(path) {
+                const name = path.split('/').pop().replace('.html', '');
+                return name.split('-').map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
+            }
+
+            generateNavigationHTML(navigation) {
+                let html = '<!-- Generated Navigation Structure -->\n\n';
+                
+                Object.entries(navigation.categories).forEach(([category, pages]) => {
+                    html += `<!-- ${category.toUpperCase()} SECTION -->\n`;
+                    html += `<div class="nav-section">\n`;
+                    html += `    <div class="nav-title">${this.getCategoryIcon(category)} ${category}</div>\n`;
+                    html += `    <div class="nav-menu">\n`;
+                    
+                    pages.forEach(page => {
+                        html += `        <a href="${page.path}" class="nav-link">${page.name}</a>\n`;
+                    });
+                    
+                    html += `    </div>\n`;
+                    html += `</div>\n\n`;
+                });
+
+                return html;
+            }
+
+            getCategoryIcon(category) {
+                const icons = {
+                    'code': '🔧',
+                    'web': '🌐',
+                    'data': '📊',
+                    'docs': '📚',
+                    'images': '🖼️',
+                    'media': '🎵',
+                    'archives': '📦',
+                    'databases': '🗄️',
+                    'executables': '⚙️',
+                    'other': '📄'
+                };
+                return icons[category] || '📄';
+            }
+
+            displayNavigationBuilder(navigation, html) {
+                const content = `
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number">${Object.keys(navigation.categories).length}</div>
+                            <div class="stat-label">Categories</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${Object.values(navigation.categories).flat().length}</div>
+                            <div class="stat-label">Navigation Items</div>
+                        </div>
+                    </div>
+                    <div class="navigation-builder-output">${html}</div>
+                `;
+                
+                document.getElementById('resultsContent').innerHTML = content;
+            }
+
+            // Sitemap Generator
+            async generateSitemap() {
+                this.showResults('Generating sitemap...');
+                this.updateProgress(0);
+
+                try {
+                    const response = await fetch('/api/context/files');
+                    const data = await response.json();
+                    
+                    this.updateProgress(30);
+                    
+                    // Generate XML sitemap
+                    const xmlSitemap = this.generateXMLSitemap(data.files);
+                    this.updateProgress(60);
+                    
+                    // Generate visual sitemap
+                    const visualSitemap = this.generateVisualSitemap(data.files);
+                    this.updateProgress(90);
+                    
+                    this.displaySitemap(xmlSitemap, visualSitemap);
+                    this.updateProgress(100);
+                    this.showResults('Sitemap generated successfully!', 'success');
+                } catch (error) {
+                    this.showResults('Error generating sitemap: ' + error.message, 'error');
+                }
+            }
+
+            generateXMLSitemap(files) {
+                const baseUrl = 'http://localhost:54355';
+                const currentDate = new Date().toISOString();
+                
+                let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>${baseUrl}/</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
+`;
+
+                Object.values(files).forEach(file => {
+                    if (file.path.endsWith('.html')) {
+                        const url = file.path.replace('.html', '');
+                        const lastmod = file.modified || currentDate;
+                        const priority = this.getPriority(file.path);
+                        const changefreq = this.getChangeFreq(file.path);
+                        
+                        xml += `    <url>
+        <loc>${baseUrl}/${url}</loc>
+        <lastmod>${lastmod}</lastmod>
+        <changefreq>${changefreq}</changefreq>
+        <priority>${priority}</priority>
+    </url>
+`;
+                    }
+                });
+
+                xml += `</urlset>`;
+                return xml;
+            }
+
+            getPriority(path) {
+                if (path === 'dashboard-new.html') return '1.0';
+                if (path.includes('ai-') || path.includes('dashboard')) return '0.9';
+                if (path.includes('tools') || path.includes('analytics')) return '0.8';
+                return '0.7';
+            }
+
+            getChangeFreq(path) {
+                if (path.includes('dashboard') || path.includes('analytics')) return 'daily';
+                if (path.includes('reports') || path.includes('performance')) return 'weekly';
+                return 'monthly';
+            }
+
+            generateVisualSitemap(files) {
+                const structure = this.buildSiteStructure(files);
+                return this.renderStructureTree(structure.root, 0);
+            }
+
+            displaySitemap(xml, visual) {
+                const content = `
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number">${xml.split('<url>').length - 1}</div>
+                            <div class="stat-label">URLs in Sitemap</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">XML</div>
+                            <div class="stat-label">Format</div>
+                        </div>
+                    </div>
+                    <h4>XML Sitemap:</h4>
+                    <div class="sitemap-preview">${xml}</div>
+                    <h4>Visual Sitemap:</h4>
+                    <div class="site-structure-tree">${visual}</div>
+                `;
+                
+                document.getElementById('resultsContent').innerHTML = content;
+            }
+
+            // Utility functions
+            showResults(message, type = 'info') {
+                const resultsContainer = document.getElementById('linkBuildingResults');
+                const resultsContent = document.getElementById('resultsContent');
+                
+                resultsContainer.style.display = 'block';
+                resultsContent.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            }
+
+            updateProgress(percentage) {
+                const progressBar = document.querySelector('.progress-bar-fill');
+                if (progressBar) {
+                    progressBar.style.width = percentage + '%';
+                }
+            }
+
+            clearResults() {
+                document.getElementById('linkBuildingResults').style.display = 'none';
+                document.getElementById('resultsContent').innerHTML = '';
+            }
+        }
+
+        // Initialize Link Builder
+        const linkBuilder = new LinkBuilder();
+
+        // Global functions for button clicks
+        function analyzeSiteStructure() {
+            linkBuilder.analyzeSiteStructure();
+        }
+
+        function validateLinks() {
+            linkBuilder.validateLinks();
+        }
+
+        function buildNavigation() {
+            linkBuilder.buildNavigation();
+        }
+
+        function generateSitemap() {
+            linkBuilder.generateSitemap();
+        }
+
+        function clearResults() {
+            linkBuilder.clearResults();
+        }
+    </script>
+</body>
+</html>

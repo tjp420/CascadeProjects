@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Management - AI Coding Intelligence Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="/web/favicon.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .subscription-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .status-active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-cancelled {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-trial {
+            background: #FF9800;
+            color: white;
+        }
+
+        .plan-details {
+            margin-bottom: 20px;
+        }
+
+        .plan-details h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .plan-details p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .usage-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .metric {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .billing-history {
+            margin-top: 20px;
+        }
+
+        .billing-history h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .billing-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .billing-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .billing-amount {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .billing-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .billing-status.paid {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .billing-status.pending {
+            background: #FF9800;
+            color: white;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/web/index.html" class="back-link">← Back to Dashboard</a>
+        
+        <div class="header">
+            <h1>Subscription Management</h1>
+            <p>Manage your subscription and billing</p>
+        </div>
+
+        <div id="content">
+            <div class="loading">Loading subscription information...</div>
+        </div>
+    </div>
+
+    <script src="web/stripe-integration.js"></script>
+    <script>
+        // Simple user management for demo
+        let currentUser = null;
+        const storedUser = localStorage.getItem('dashboard_user');
+        if (storedUser) {
+            currentUser = JSON.parse(storedUser);
+        }
+
+        async function loadSubscriptionData() {
+            const contentDiv = document.getElementById('content');
+            
+            try {
+                if (!currentUser) {
+                    contentDiv.innerHTML = `
+                        <div class="card">
+                            <h2>No Subscription Found</h2>
+                            <p style="margin: 20px 0;">You don't have an active subscription. Sign up for a plan to get started!</p>
+                            <a href="/web/pricing.html" class="btn btn-primary">View Plans</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Get subscription status
+                const response = await fetch(`http://localhost:3002/api/subscription-status?email=${currentUser.email}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load subscription data');
+                }
+
+                const subscription = await response.json();
+                displaySubscriptionData(subscription);
+                
+            } catch (error) {
+                console.error('Error loading subscription:', error);
+                contentDiv.innerHTML = `
+                    <div class="error">
+                        Failed to load subscription information. Please try again later.
+                    </div>
+                    <div class="card">
+                        <button class="btn btn-primary" onclick="loadSubscriptionData()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        function displaySubscriptionData(subscription) {
+            const contentDiv = document.getElementById('content');
+            
+            if (subscription.status === 'none' || subscription.status === 'canceled') {
+                contentDiv.innerHTML = `
+                    <div class="card">
+                        <h2>No Active Subscription</h2>
+                        <p style="margin: 20px 0;">You don't have an active subscription. Sign up for a plan to get started!</p>
+                        <a href="/web/pricing.html" class="btn btn-primary">View Plans</a>
+                    </div>
+                `;
+                return;
+            }
+
+            const statusClass = subscription.status === 'active' ? 'status-active' : 
+                              subscription.status === 'trialing' ? 'status-trial' : 'status-cancelled';
+            
+            const statusText = subscription.status === 'active' ? 'Active' :
+                             subscription.status === 'trialing' ? 'Trial' : 
+                             subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1);
+
+            const planDetails = getPlanDetails(subscription.tier);
+            
+            contentDiv.innerHTML = `
+                <div class="card">
+                    <div class="subscription-status">
+                        <div>
+                            <h3>${planDetails.name} Plan</h3>
+                            <p style="color: #666; margin-top: 5px;">$${planDetails.price}/month</p>
+                        </div>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+
+                    <div class="plan-details">
+                        <h3>Plan Features</h3>
+                        <ul style="list-style: none; padding: 0;">
+                            ${planDetails.features.map(feature => `
+                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                                    ✓ ${feature}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+
+                    <div class="usage-metrics">
+                        <div class="metric">
+                            <div class="metric-value">${planDetails.scans}</div>
+                            <div class="metric-label">Scans/Month</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${subscription.status === 'active' ? 'Active' : 'N/A'}</div>
+                            <div class="metric-label">Status</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${formatDate(subscription.currentPeriodEnd)}</div>
+                            <div class="metric-label">Next Billing</div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="upgradeSubscription()">Upgrade Plan</button>
+                        <button class="btn btn-secondary" onclick="openBillingPortal()">Manage Billing</button>
+                        ${!subscription.cancelAtPeriodEnd ? 
+                            `<button class="btn btn-danger" onclick="cancelSubscription()">Cancel Subscription</button>` :
+                            `<button class="btn btn-secondary" disabled>Cancellation Scheduled</button>`
+                        }
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="billing-history">
+                        <h3>Billing History</h3>
+                        ${generateMockBillingHistory(subscription.tier)}
+                    </div>
+                </div>
+
+                ${subscription.demo ? `
+                    <div class="card" style="background: #fff3cd; border: 1px solid #ffc107;">
+                        <h3 style="color: #856404;">Demo Mode</h3>
+                        <p style="color: #856404; margin-top: 10px;">
+                            This is a demo subscription. In production, you would see real billing data and be able to manage your subscription through Stripe.
+                        </p>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function getPlanDetails(tier) {
+            const plans = {
+                basic: {
+                    name: 'Basic',
+                    price: 29,
+                    scans: '100',
+                    features: [
+                        '100 scans/month',
+                        'Basic code analysis',
+                        'Email support',
+                        'Standard reports'
+                    ]
+                },
+                pro: {
+                    name: 'Pro',
+                    price: 79,
+                    scans: 'Unlimited',
+                    features: [
+                        'Unlimited scans',
+                        'Advanced AI analysis',
+                        'Priority support',
+                        'API access',
+                        'Advanced reports'
+                    ]
+                },
+                enterprise: {
+                    name: 'Enterprise',
+                    price: 199,
+                    scans: 'Unlimited',
+                    features: [
+                        'Everything in Pro',
+                        'Dedicated support',
+                        'SLA guarantees',
+                        'Custom development'
+                    ]
+                }
+            };
+            
+            return plans[tier] || plans.basic;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function generateMockBillingHistory(tier) {
+            const plans = {
+                basic: 29,
+                pro: 79,
+                enterprise: 199
+            };
+            
+            const price = plans[tier] || 29;
+            
+            return `
+                <div class="billing-item">
+                    <div>
+                        <div style="font-weight: bold;">${getPlanDetails(tier).name} Plan - Monthly</div>
+                        <div class="billing-date">${formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="billing-amount">$${price}.00</div>
+                        <span class="billing-status paid">Paid</span>
+                    </div>
+                </div>
+                <div class="billing-item">
+                    <div>
+                        <div style="font-weight: bold;">${getPlanDetails(tier).name} Plan - Monthly</div>
+                        <div class="billing-date">${formatDate(new Date(Date.now() - 60 * 24 * 60 * 60 * 1000))}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="billing-amount">$${price}.00</div>
+                        <span class="billing-status paid">Paid</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function cancelSubscription() {
+            if (!confirm('Are you sure you want to cancel your subscription? You will continue to have access until the end of your current billing period.')) {
+                return;
+            }
+
+            try {
+                // In demo mode, just show a success message
+                alert('Demo mode: Subscription cancellation scheduled. In production, this would process through Stripe.');
+                loadSubscriptionData();
+            } catch (error) {
+                console.error('Cancellation error:', error);
+                alert('Failed to cancel subscription. Please try again.');
+            }
+        }
+
+        async function upgradeSubscription() {
+            // Redirect to pricing page for upgrade
+            window.location.href = '/web/pricing.html';
+        }
+
+        async function openBillingPortal() {
+            // In demo mode, show a message
+            alert('Demo mode: In production, this would open the Stripe billing portal where you can update payment methods, view invoices, and manage your subscription.');
+        }
+
+        // Load subscription data on page load
+        loadSubscriptionData();
+    </script>
+</body>
+</html>

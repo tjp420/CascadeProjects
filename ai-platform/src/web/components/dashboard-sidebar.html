@@ -1,0 +1,109 @@
+<!-- Dashboard Sidebar Component -->
+<aside class="dashboard-sidebar">
+    <div class="sidebar-content">
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Quick Actions</h3>
+            <div class="action-buttons">
+                <button class="btn btn-block btn-success" id="run-analysis-btn">
+                    <i class="fas fa-play"></i>
+                    Run Analysis
+                </button>
+                <button class="btn btn-block btn-info" id="generate-report-btn">
+                    <i class="fas fa-file-download"></i>
+                    Generate Report
+                </button>
+                <button class="btn btn-block btn-warning" id="export-data-btn">
+                    <i class="fas fa-export"></i>
+                    Export Data
+                </button>
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Project Overview</h3>
+            <div class="overview-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Files</span>
+                    <span class="stat-value" id="total-files">150</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Lines of Code</span>
+                    <span class="stat-value" id="total-loc">15,678</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Last Analysis</span>
+                    <span class="stat-value" id="last-analysis">Just now</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Quality Metrics</h3>
+            <div class="quality-metrics">
+                <div class="metric-item">
+                    <div class="metric-header">
+                        <span class="metric-label">Code Quality</span>
+                        <span class="metric-value" id="code-quality-score">82%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 82%"></div>
+                    </div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-header">
+                        <span class="metric-label">Test Coverage</span>
+                        <span class="metric-value" id="test-coverage-score">65%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill warning" style="width: 65%"></div>
+                    </div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-header">
+                        <span class="metric-label">Security Score</span>
+                        <span class="metric-value" id="security-score">85%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill good" style="width: 85%"></div>
+                    </div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-header">
+                        <span class="metric-label">Performance</span>
+                        <span class="metric-value" id="performance-score">65%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill warning" style="width: 65%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Recent Activity</h3>
+            <div class="activity-feed" id="activity-feed">
+                <div class="activity-item">
+                    <i class="fas fa-info-circle activity-icon info"></i>
+                    <div class="activity-content">
+                        <p class="activity-text">Analysis completed</p>
+                        <span class="activity-time">2 minutes ago</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <i class="fas fa-bug activity-icon warning"></i>
+                    <div class="activity-content">
+                        <p class="activity-text">3 security issues found</p>
+                        <span class="activity-time">5 minutes ago</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <i class="fas fa-code activity-icon success"></i>
+                    <div class="activity-content">
+                        <p class="activity-text">Code quality improved</p>
+                        <span class="activity-time">1 hour ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>

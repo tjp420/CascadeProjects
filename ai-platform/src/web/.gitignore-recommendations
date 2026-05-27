@@ -1,0 +1,97 @@
+# Recommended additions to .gitignore for excluded files
+
+# Build artifacts (safe to exclude)
+dist/
+build/
+out/
+*.tgz
+*.tar.gz
+
+# Coverage reports (safe to exclude)
+coverage/
+*.lcov
+.nyc_output/
+
+# Logs (safe to exclude)
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache (safe to exclude)
+.cache/
+.parcel-cache/
+.turbo/
+.next/
+.vite/
+
+# Runtime data (safe to exclude)
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories (keep node_modules for development)
+# node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

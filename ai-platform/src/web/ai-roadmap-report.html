@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Roadmap Report - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --bg-hover: #475569;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #06b6d4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header Styles */
+        .main-header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+        }
+
+        .header-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        /* Executive Summary Cards */
+        .executive-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .executive-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-color: var(--accent-color);
+        }
+
+        .executive-card .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .executive-card .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .executive-card .card-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .executive-card .card-change {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .change-positive {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success-color);
+        }
+
+        .change-negative {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger-color);
+        }
+
+        /* Metric Cards */
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .metric-card .metric-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .metric-card .metric-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .metric-card .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-card .metric-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .chart-options {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-option-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chart-option-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-color);
+        }
+
+        .chart-option-btn.active {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        /* Recommendation Cards */
+        .recommendation-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .recommendation-card:hover {
+            transform: translateX(5px);
+            border-color: var(--accent-color);
+        }
+
+        .recommendation-priority {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .priority-high {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger-color);
+        }
+
+        .priority-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning-color);
+        }
+
+        .priority-low {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success-color);
+        }
+
+        .recommendation-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .recommendation-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .recommendation-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .recommendation-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Risk Assessment Grid */
+        .risk-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .risk-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .risk-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .risk-score {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .risk-level {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .risk-level.low {
+            color: var(--success-color);
+        }
+
+        .risk-level.medium {
+            color: var(--warning-color);
+        }
+
+        .risk-level.high {
+            color: var(--danger-color);
+        }
+
+        .risk-factors {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Loading State */
+        .loading-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .action-btn.secondary {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .action-btn.secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .risk-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .action-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Header -->
+    <header class="main-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="header-title">
+                        <i class="fas fa-chart-line me-2"></i>
+                        AI-Powered Roadmap Report
+                    </h1>
+                    <p class="header-subtitle">Comprehensive project insights and executive analysis</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="action-buttons justify-content-md-end">
+                        <button class="action-btn" onclick="generateReport()">
+                            <i class="fas fa-sync-alt"></i>
+                            Generate Report
+                        </button>
+                        <button class="action-btn secondary" onclick="exportReport('json')">
+                            <i class="fas fa-download"></i>
+                            Export JSON
+                        </button>
+                        <button class="action-btn secondary" onclick="exportEnhancedReport('json')">
+                            <i class="fas fa-file-export"></i>
+                            Enhanced Export
+                        </button>
+                        <button class="action-btn secondary outline-primary" id="autoRefreshBtn" onclick="toggleAutoRefresh()">
+                            <i class="fas fa-sync me-2"></i>
+                            Auto Refresh
+                        </button>
+                        <button class="action-btn secondary" onclick="refreshData()">
+                            <i class="fas fa-refresh"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4">
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-spinner">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Report Content -->
+        <div id="reportContent" style="display: none;">
+            <!-- Executive Summary Section -->
+            <section class="mb-4">
+                <h2 class="mb-3">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Executive Summary
+                </h2>
+                <div class="row g-3" id="executiveSummary">
+                    <!-- Executive cards will be populated here -->
+                </div>
+            </section>
+
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" onclick="switchTab('comparative')">
+                    <i class="fas fa-balance-scale me-2"></i>
+                    Comparative Analysis
+                </button>
+                <button class="tab-btn" onclick="switchTab('predictive')">
+                    <i class="fas fa-crystal-ball me-2"></i>
+                    Predictive Analytics
+                </button>
+                <button class="tab-btn" onclick="switchTab('risk')">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Risk Assessment
+                </button>
+                <button class="tab-btn" onclick="switchTab('recommendations')">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    Recommendations
+                </button>
+                <button class="tab-btn" onclick="switchTab('performance')">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    Performance Metrics
+                </button>
+                <button class="tab-btn" onclick="switchTab('business-impact')">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Business Impact
+                </button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div id="comparative" class="tab-content active">
+                <section>
+                    <h3 class="mb-3">
+                        <i class="fas fa-balance-scale me-2"></i>
+                        Comparative Analysis
+                    </h3>
+                    
+                    <!-- Model Comparison -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Model Comparison</h4>
+                            <div class="chart-options">
+                                <button class="chart-option-btn active" onclick="updateComparisonChart('confidence')">Confidence</button>
+                                <button class="chart-option-btn" onclick="updateComparisonChart('size')">Size</button>
+                            </div>
+                        </div>
+                        <canvas id="modelComparisonChart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- Phase Comparison -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Development Phase Comparison</h4>
+                        </div>
+                        <canvas id="phaseComparisonChart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- Feature Category Comparison -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Feature Category Analysis</h4>
+                        </div>
+                        <canvas id="categoryComparisonChart" width="400" height="200"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <div id="predictive" class="tab-content">
+                <section>
+                    <h3 class="mb-3">
+                        <i class="fas fa-crystal-ball me-2"></i>
+                        Predictive Analytics
+                    </h3>
+                    
+                    <!-- Completion Forecast -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <h5 class="metric-title">Completion Forecast</h5>
+                                    <i class="fas fa-calendar-check text-success"></i>
+                                </div>
+                                <div class="metric-value" id="completionRate">-</div>
+                                <p class="metric-description">Estimated completion date and confidence</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <h5 class="metric-title">Resource Forecast</h5>
+                                    <i class="fas fa-users text-info"></i>
+                                </div>
+                                <div class="metric-value" id="resourceForecast">-</div>
+                                <p class="metric-description">Team size and resource utilization</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Forecast Charts -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Completion Timeline Forecast</h4>
+                        </div>
+                        <canvas id="completionForecastChart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- Risk Forecast -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Risk Evolution Projection</h4>
+                        </div>
+                        <canvas id="riskForecastChart" width="400" height="200"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <div id="risk" class="tab-content">
+                <section>
+                    <h3 class="mb-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Risk Assessment
+                    </h3>
+                    
+                    <!-- Risk Grid -->
+                    <div class="risk-grid" id="riskGrid">
+                        <!-- Risk cards will be populated here -->
+                    </div>
+
+                    <!-- Risk Matrix -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Risk Matrix</h4>
+                        </div>
+                        <canvas id="riskMatrixChart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- Mitigation Strategies -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Mitigation Strategies</h4>
+                        </div>
+                        <div id="mitigationStrategies">
+                            <!-- Strategies will be populated here -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div id="recommendations" class="tab-content">
+                <section>
+                    <h3 class="mb-3">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Strategic Recommendations
+                    </h3>
+                    
+                    <!-- High Priority Recommendations -->
+                    <div class="mb-4">
+                        <h4 class="text-danger mb-3">High Priority</h4>
+                        <div id="highPriorityRecommendations">
+                            <!-- High priority recommendations will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Medium Priority Recommendations -->
+                    <div class="mb-4">
+                        <h4 class="text-warning mb-3">Medium Priority</h4>
+                        <div id="mediumPriorityRecommendations">
+                            <!-- Medium priority recommendations will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Low Priority Recommendations -->
+                    <div class="mb-4">
+                        <h4 class="text-success mb-3">Low Priority</h4>
+                        <div id="lowPriorityRecommendations">
+                            <!-- Low priority recommendations will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Strategic Initiatives -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Strategic Initiatives</h4>
+                        </div>
+                        <div id="strategicInitiatives">
+                            <!-- Strategic initiatives will be populated here -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div id="performance" class="tab-content">
+                <section>
+                    <h3 class="mb-3">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        Performance Metrics
+                    </h3>
+                    
+                    <!-- Development Metrics -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <h5 class="metric-title">Development Velocity</h5>
+                                    <i class="fas fa-rocket text-primary"></i>
+                                </div>
+                                <div class="metric-value" id="developmentVelocity">-</div>
+                                <p class="metric-description">Story points per sprint</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <h5 class="metric-title">Code Quality</h5>
+                                    <i class="fas fa-code text-success"></i>
+                                </div>
+                                <div class="metric-value" id="codeQuality">-</div>
+                                <p class="metric-description">Quality score and coverage</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <h5 class="metric-title">Team Productivity</h5>
+                                    <i class="fas fa-users text-info"></i>
+                                </div>
+                                <div class="metric-value" id="teamProductivity">-</div>
+                                <p class="metric-description">Productivity metrics</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Charts -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Performance Trends</h4>
+                        </div>
+                        <canvas id="performanceTrendsChart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- Technical Metrics -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Technical Performance</h4>
+                        </div>
+                        <canvas id="technicalPerformanceChart" width="400" height="200"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <div id="business-impact" class="tab-content">
+                <section>
+                    <h3 class="mb-3">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Business Impact Analysis
+                    </h3>
+                    
+                    <!-- Market Impact -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <h5 class="metric-title">Market Readiness</h5>
+                                    <i class="fas fa-market text-success"></i>
+                                </div>
+                                <div class="metric-value" id="marketReadiness">-</div>
+                                <p class="metric-description">Market readiness score</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <h5 class="metric-title">Competitive Position</h5>
+                                    <i class="fas fa-trophy text-warning"></i>
+                                </div>
+                                <div class="metric-value" id="competitivePosition">-</div>
+                                <p class="metric-description">Market position strength</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Impact -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Financial Projections</h4>
+                        </div>
+                        <canvas id="financialProjectionsChart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- ROI Analysis -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">ROI Analysis</h4>
+                        </div>
+                        <canvas id="roiAnalysisChart" width="400" height="200"></canvas>
+                    </div>
+
+                    <!-- Stakeholder Impact -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h4 class="chart-title">Stakeholder Impact</h4>
+                        </div>
+                        <canvas id="stakeholderImpactChart" width="400" height="200"></canvas>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="ai-roadmap-report.js"></script>
+</body>
+</html>

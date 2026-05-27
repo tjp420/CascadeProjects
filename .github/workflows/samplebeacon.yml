@@ -112,7 +112,7 @@ jobs:
             if (env.warnings?.length) {
               console.log(`- Warnings: ${env.warnings.join(' | ')}`);
             }
-            NODE
+          NODE
           else
             echo "- Env validation artifact missing" >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -123,7 +123,7 @@ jobs:
             if (audit.remote?.reason) console.log(`- Publish reason: ${audit.remote.reason}`);
             if (audit.remote?.message) console.log(`- Publish error: ${audit.remote.message}`);
             console.log(`- Verification ID: ${audit.verificationId || 'n/a'}`);
-            NODE
+          NODE
           else
             echo "- Publish audit artifact missing" >> "$GITHUB_STEP_SUMMARY"
           fi

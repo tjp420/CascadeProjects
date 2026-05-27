@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏢 AI - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Modern Sidebar Styles */
+        .sidebar-modern {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-modern.collapsed {
+            transform: translateX(-240px);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-container {
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .logo i {
+            color: var(--accent-color);
+            font-size: 2rem;
+        }
+
+        .logo-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-container {
+            padding: 1rem 0;
+        }
+
+        .nav-section-modern {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title-modern {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-item-modern {
+            margin: 0.25rem 0;
+        }
+
+        .nav-link-modern {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link-modern:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-link-modern.active {
+            background: var(--bg-card);
+            color: var(--accent-color);
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-icon-modern {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .sidebar-info {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content */
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+            margin-left: 40px;
+        }
+
+        .page-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .page-content {
+            padding: 2rem;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-240px);
+            }
+            
+            .sidebar-modern.collapsed {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+            }
+            
+            .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+                margin-left: 280px;
+            }
+        }
+
+        /* Preserve existing styles from original file */
+        
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #7c3aed;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            --dark-bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1f3a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .main-header {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-gradient);
+        }
+
+        .header-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .ai-badge {
+            display: inline-block;
+            background: var(--accent-gradient);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        /* Container */
+        .container-fluid {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .stat-change {
+            color: var(--success-color);
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        /* Actions Grid */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .action-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .action-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+            transition: transform 0.3s ease;
+        }
+
+        .action-card:hover .action-icon {
+            transform: scale(1.1);
+        }
+
+        .ai-powered-card {
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        .ai-powered-card .action-icon {
+            color: white;
+        }
+
+        /* Charts Section */
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* AI Insights Section */
+        .insights-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .insight-item {
+            background: rgba(99, 102, 241, 0.1);
+            border-left: 4px solid var(--primary-color);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+        }
+
+        .insight-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .insight-content {
+            color: var(--text-secondary);
+        }
+
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background: var(--success-color);
+            color: white;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container-fluid {
+                padding: 1rem;
+            }
+            
+            .stats-grid,
+            .actions-grid,
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-title {
+                font-size: 2rem;
+            }
+        }
+    
+    </style>
+</head>
+<body>
+    <!-- Navigation Container - This will be populated by navigation-loader.js -->
+
+    <!-- Main Content Area -->
+    
+        <p class="mt-3">Analyzing project...</p>
+    </div>
+
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="main-header">
+            <div class="ai-badge">
+                <i class="fas fa-brain"></i> AI-Powered Analysis
+            </div>
+            <h1 class="header-title">🏢 M&A Due Diligence Platform</h1>
+            <p class="header-subtitle">Advanced AI-Driven Risk Assessment & Analytics</p>
+            <p class="text-muted">
+                <i class="fas fa-shield-alt"></i> Enterprise-grade security • 
+                <i class="fas fa-chart-line"></i> Real-time insights • 
+                <i class="fas fa-robot"></i> Automated reporting
+            </p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-folder"></i>
+                </div>
+                <div class="stat-value" id="totalFiles">1,247</div>
+                <div class="stat-label">Total Files</div>
+                <div class="stat-change">+15% from last scan</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-code"></i>
+                </div>
+                <div class="stat-value" id="linesOfCode">287.4K</div>
+                <div class="stat-label">Lines of Code</div>
+                <div class="stat-change">+22% from last scan</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-value" id="codeQuality">91.2%</div>
+                <div class="stat-label">Code Quality</div>
+                <div class="stat-change">+5.6% improvement</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="stat-value" id="securityScore">94.8%</div>
+                <div class="stat-label">Security Score</div>
+                <div class="stat-change">No critical issues</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-bug"></i>
+                </div>
+                <div class="stat-value" id="issuesFound">12</div>
+                <div class="stat-label">Issues Found</div>
+                <div class="stat-change">-8 from last scan</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <div class="stat-value" id="performance">96.5%</div>
+                <div class="stat-label">Performance</div>
+                <div class="stat-change">Optimal</div>
+            </div>
+        </div>
+
+        <!-- Actions Grid -->
+        <div class="actions-grid">
+            <div class="action-card" onclick="runAIAnalysis()">
+                <div class="action-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h5>AI Analysis</h5>
+                <p>Deep codebase analysis with AI insights</p>
+            </div>
+
+            <div class="action-card" onclick="generateReport()">
+                <div class="action-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h5>Generate Report</h5>
+                <p>Comprehensive M&A due diligence report</p>
+            </div>
+
+            <div class="action-card" onclick="securityAudit()">
+                <div class="action-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h5>Security Audit</h5>
+                <p>Advanced vulnerability assessment</p>
+            </div>
+
+            <div class="action-card" onclick="riskAssessment()">
+                <div class="action-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h5>Risk Assessment</h5>
+                <p>AI-powered risk analysis</p>
+            </div>
+
+            <div class="action-card ai-powered-card" onclick="aiRecommendations()">
+                <div class="action-icon">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <h5>AI Recommendations</h5>
+                <p>Strategic improvement suggestions</p>
+            </div>
+
+            <div class="action-card" onclick="exportData()">
+                <div class="action-icon">
+                    <i class="fas fa-download"></i>
+                </div>
+                <h5>Export Data</h5>
+                <p>Download analysis results</p>
+            </div>
+        </div>
+
+        <!-- AI Insights Section -->
+        <div class="insights-section">
+            <h3 class="mb-4">
+                <i class="fas fa-brain"></i> AI-Powered Insights
+            </h3>
+            <div class="insight-item">
+                <div class="insight-title">🎯 Strategic Risk Assessment</div>
+                <div class="insight-content">
+                    Based on AI analysis, your codebase shows moderate technical debt but strong architectural patterns. 
+                    The primary risks are concentrated in legacy authentication systems and third-party dependencies.
+                </div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-title">📊 Performance Optimization</div>
+                <div class="insight-content">
+                    AI analysis identifies 3 key performance bottlenecks in database query optimization and API response times. 
+                    Implementing the suggested optimizations could improve performance by 35-40%.
+                </div>
+            </div>
+            <div class="insight-item">
+                <div class="insight-title">🔒 Security Posture</div>
+                <div class="insight-content">
+                    Your security score of 94.8% is above industry average. AI recommends implementing 
+                    enhanced logging and monitoring for the remaining medium-risk vulnerabilities.
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">📈 Code Quality Trends</h3>
+                    <select class="form-select form-select-sm">
+                        <option>Last 30 days</option>
+                        <option>Last 90 days</option>
+                        <option>Last 6 months</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <canvas id="qualityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">🔍 Security Issues Distribution</h3>
+                    <button class="btn btn-sm btn-outline-light">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="securityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">⚡ Performance Metrics</h3>
+                    <button class="btn btn-sm btn-outline-light">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">📋 Technology Stack Analysis</h3>
+                    <button class="btn btn-sm btn-outline-light">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="techStackChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize charts when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            animateStats();
+            setTimeout(() => {
+                showNotification('🎉 AI Platform loaded successfully!', 'success');
+            }, 1000);
+        });
+
+        // Initialize all charts
+        function initializeCharts() {
+            // Quality Chart
+            const qualityCtx = document.getElementById('qualityChart').getContext('2d');
+            new Chart(qualityCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Code Quality',
+                        data: [85.6, 87.2, 89.1, 91.2],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 80,
+                            max: 100,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+
+            // Security Chart
+            const securityCtx = document.getElementById('securityChart').getContext('2d');
+            new Chart(securityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low Risk', 'Medium Risk', 'High Risk', 'Critical'],
+                    datasets: [{
+                        data: [65, 25, 8, 2],
+                        backgroundColor: [
+                            '#10b981',
+                            '#f59e0b',
+                            '#ef4444',
+                            '#dc2626'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#e2e8f0' }
+                        }
+                    }
+                }
+            });
+
+            // Performance Chart
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(performanceCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Speed', 'Reliability', 'Security', 'Scalability', 'Maintainability'],
+                    datasets: [{
+                        label: 'Current',
+                        data: [88, 92, 95, 87, 91],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.2)'
+                    }, {
+                        label: 'Target',
+                        data: [95, 95, 98, 95, 95],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' },
+                            pointLabels: { color: '#e2e8f0' }
+                        }
+                    }
+                }
+            });
+
+            // Tech Stack Chart
+            const techStackCtx = document.getElementById('techStackChart').getContext('2d');
+            new Chart(techStackCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['JavaScript', 'Python', 'Java', 'TypeScript', 'SQL'],
+                    datasets: [{
+                        label: 'Usage %',
+                        data: [35, 28, 15, 12, 10],
+                        backgroundColor: [
+                            '#f59e0b',
+                            '#3b82f6',
+                            '#ef4444',
+                            '#06b6d4',
+                            '#10b981'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Animate statistics
+        function animateStats() {
+            const stats = [
+                { id: 'totalFiles', value: 1247 },
+                { id: 'linesOfCode', value: 287.4 },
+                { id: 'codeQuality', value: 91.2 },
+                { id: 'securityScore', value: 94.8 },
+                { id: 'issuesFound', value: 12 },
+                { id: 'performance', value: 96.5 }
+            ];
+
+            stats.forEach(stat => {
+                const element = document.getElementById(stat.id);
+                if (element) {
+                    animateValue(element, 0, stat.value, 2000, stat.id === 'linesOfCode');
+                }
+            });
+        }
+
+        // Animate value counting
+        function animateValue(element, start, end, duration, isDecimal = false) {
+            const startTime = Date.now();
+            const updateValue = () => {
+                const currentTime = Date.now();
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const currentValue = start + (end - start) * progress;
+                
+                if (isDecimal) {
+                    element.textContent = currentValue.toFixed(1) + 'K';
+                } else if (element.id === 'codeQuality' || element.id === 'securityScore' || element.id === 'performance') {
+                    element.textContent = currentValue.toFixed(1) + '%';
+                } else {
+                    element.textContent = Math.floor(currentValue).toLocaleString();
+                }
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateValue);
+                }
+            };
+            
+            requestAnimationFrame(updateValue);
+        }
+
+        // Action handlers
+        function runAIAnalysis() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('🤖 AI Analysis completed - 3 key insights generated', 'success');
+                updateInsights();
+            }, 2000);
+        }
+
+        function generateReport() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('📄 Comprehensive M&A report generated successfully', 'success');
+            }, 1500);
+        }
+
+        function securityAudit() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('🔒 Security audit completed - No critical vulnerabilities found', 'success');
+            }, 2500);
+        }
+
+        function riskAssessment() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('⚠️ Risk assessment complete - Medium risk level identified', 'warning');
+            }, 2000);
+        }
+
+        function aiRecommendations() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('💡 AI generated 5 strategic recommendations', 'info');
+            }, 3000);
+        }
+
+        function exportData() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('📊 Data exported successfully - Download started', 'success');
+            }, 1000);
+        }
+
+        function updateInsights() {
+            const insights = [
+                {
+                    title: '🎯 Enhanced Strategic Analysis',
+                    content: 'AI analysis reveals strong architectural patterns with moderate technical debt. Focus on modernizing authentication systems and optimizing third-party dependencies.'
+                },
+                {
+                    title: '📈 Performance Optimization',
+                    content: 'AI identifies 3 key bottlenecks in database queries and API responses. Implementing suggested optimizations could improve performance by 35-40%.'
+                },
+                {
+                    title: '🔒 Enhanced Security Posture',
+                    content: 'Security score of 94.8% exceeds industry average. AI recommends enhanced logging and monitoring for remaining medium-risk vulnerabilities.'
+                }
+            ];
+
+            const insightsContainer = document.querySelector('.insights-section');
+            const insightItems = insightsContainer.querySelectorAll('.insight-item');
+            
+            insightItems.forEach((item, index) => {
+                if (insights[index]) {
+                    item.querySelector('.insight-title').textContent = insights[index].title;
+                    item.querySelector('.insight-content').textContent = insights[index].content;
+                }
+            });
+        }
+
+        // Loading spinner functions
+        function showLoadingSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+        }
+
+        function hideLoadingSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.background = type === 'success' ? 'var(--success-color)' : 
+                                         type === 'warning' ? 'var(--warning-color)' : 
+                                         type === 'error' ? 'var(--danger-color)' : 'var(--info-color)';
+            notification.innerHTML = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        // Auto-refresh data every 30 seconds
+        setInterval(() => {
+            // Simulate data updates
+            const randomChange = () => Math.random() > 0.5 ? 1 : -1;
+            const issuesElement = document.getElementById('issuesFound');
+            if (issuesElement) {
+                const currentValue = parseInt(issuesElement.textContent);
+                const newValue = Math.max(0, currentValue + randomChange);
+                issuesElement.textContent = newValue;
+            }
+        }, 30000);
+
+        console.log('🚀 AI-Powered M&A Due Diligence Platform initialized successfully');
+    </script>
+
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/navigation-loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+        // Initialize charts when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            animateStats();
+            setTimeout(() => {
+                showNotification('🎉 AI Platform loaded successfully!', 'success');
+            }, 1000);
+        });
+
+        // Initialize all charts
+        function initializeCharts() {
+            // Quality Chart
+            const qualityCtx = document.getElementById('qualityChart').getContext('2d');
+            new Chart(qualityCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Code Quality',
+                        data: [85.6, 87.2, 89.1, 91.2],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 80,
+                            max: 100,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+
+            // Security Chart
+            const securityCtx = document.getElementById('securityChart').getContext('2d');
+            new Chart(securityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low Risk', 'Medium Risk', 'High Risk', 'Critical'],
+                    datasets: [{
+                        data: [65, 25, 8, 2],
+                        backgroundColor: [
+                            '#10b981',
+                            '#f59e0b',
+                            '#ef4444',
+                            '#dc2626'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#e2e8f0' }
+                        }
+                    }
+                }
+            });
+
+            // Performance Chart
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(performanceCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Speed', 'Reliability', 'Security', 'Scalability', 'Maintainability'],
+                    datasets: [{
+                        label: 'Current',
+                        data: [88, 92, 95, 87, 91],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.2)'
+                    }, {
+                        label: 'Target',
+                        data: [95, 95, 98, 95, 95],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' },
+                            pointLabels: { color: '#e2e8f0' }
+                        }
+                    }
+                }
+            });
+
+            // Tech Stack Chart
+            const techStackCtx = document.getElementById('techStackChart').getContext('2d');
+            new Chart(techStackCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['JavaScript', 'Python', 'Java', 'TypeScript', 'SQL'],
+                    datasets: [{
+                        label: 'Usage %',
+                        data: [35, 28, 15, 12, 10],
+                        backgroundColor: [
+                            '#f59e0b',
+                            '#3b82f6',
+                            '#ef4444',
+                            '#06b6d4',
+                            '#10b981'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Animate statistics
+        function animateStats() {
+            const stats = [
+                { id: 'totalFiles', value: 1247 },
+                { id: 'linesOfCode', value: 287.4 },
+                { id: 'codeQuality', value: 91.2 },
+                { id: 'securityScore', value: 94.8 },
+                { id: 'issuesFound', value: 12 },
+                { id: 'performance', value: 96.5 }
+            ];
+
+            stats.forEach(stat => {
+                const element = document.getElementById(stat.id);
+                if (element) {
+                    animateValue(element, 0, stat.value, 2000, stat.id === 'linesOfCode');
+                }
+            });
+        }
+
+        // Animate value counting
+        function animateValue(element, start, end, duration, isDecimal = false) {
+            const startTime = Date.now();
+            const updateValue = () => {
+                const currentTime = Date.now();
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const currentValue = start + (end - start) * progress;
+                
+                if (isDecimal) {
+                    element.textContent = currentValue.toFixed(1) + 'K';
+                } else if (element.id === 'codeQuality' || element.id === 'securityScore' || element.id === 'performance') {
+                    element.textContent = currentValue.toFixed(1) + '%';
+                } else {
+                    element.textContent = Math.floor(currentValue).toLocaleString();
+                }
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateValue);
+                }
+            };
+            
+            requestAnimationFrame(updateValue);
+        }
+
+        // Action handlers
+        function runAIAnalysis() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('🤖 AI Analysis completed - 3 key insights generated', 'success');
+                updateInsights();
+            }, 2000);
+        }
+
+        function generateReport() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('📄 Comprehensive M&A report generated successfully', 'success');
+            }, 1500);
+        }
+
+        function securityAudit() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('🔒 Security audit completed - No critical vulnerabilities found', 'success');
+            }, 2500);
+        }
+
+        function riskAssessment() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('⚠️ Risk assessment complete - Medium risk level identified', 'warning');
+            }, 2000);
+        }
+
+        function aiRecommendations() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('💡 AI generated 5 strategic recommendations', 'info');
+            }, 3000);
+        }
+
+        function exportData() {
+            showLoadingSpinner();
+            setTimeout(() => {
+                hideLoadingSpinner();
+                showNotification('📊 Data exported successfully - Download started', 'success');
+            }, 1000);
+        }
+
+        function updateInsights() {
+            const insights = [
+                {
+                    title: '🎯 Enhanced Strategic Analysis',
+                    content: 'AI analysis reveals strong architectural patterns with moderate technical debt. Focus on modernizing authentication systems and optimizing third-party dependencies.'
+                },
+                {
+                    title: '📈 Performance Optimization',
+                    content: 'AI identifies 3 key bottlenecks in database queries and API responses. Implementing suggested optimizations could improve performance by 35-40%.'
+                },
+                {
+                    title: '🔒 Enhanced Security Posture',
+                    content: 'Security score of 94.8% exceeds industry average. AI recommends enhanced logging and monitoring for remaining medium-risk vulnerabilities.'
+                }
+            ];
+
+            const insightsContainer = document.querySelector('.insights-section');
+            const insightItems = insightsContainer.querySelectorAll('.insight-item');
+            
+            insightItems.forEach((item, index) => {
+                if (insights[index]) {
+                    item.querySelector('.insight-title').textContent = insights[index].title;
+                    item.querySelector('.insight-content').textContent = insights[index].content;
+                }
+            });
+        }
+
+        // Loading spinner functions
+        function showLoadingSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+        }
+
+        function hideLoadingSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.background = type === 'success' ? 'var(--success-color)' : 
+                                         type === 'warning' ? 'var(--warning-color)' : 
+                                         type === 'error' ? 'var(--danger-color)' : 'var(--info-color)';
+            notification.innerHTML = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        // Auto-refresh data every 30 seconds
+        setInterval(() => {
+            // Simulate data updates
+            const randomChange = () => Math.random() > 0.5 ? 1 : -1;
+            const issuesElement = document.getElementById('issuesFound');
+            if (issuesElement) {
+                const currentValue = parseInt(issuesElement.textContent);
+                const newValue = Math.max(0, currentValue + randomChange);
+                issuesElement.textContent = newValue;
+            }
+        }, 30000);
+
+        console.log('🚀 AI-Powered M&A Due Diligence Platform initialized successfully');
+    </script>
+</body>
+</html>

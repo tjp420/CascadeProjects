@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏢 M&A Due Diligence Platform - Authentication</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px;
+        }
+
+        .auth-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .auth-header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .auth-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .auth-body {
+            padding: 30px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .auth-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input.error {
+            border-color: #e74c3c;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .demo-credentials {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 12px;
+        }
+
+        .demo-credentials h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .demo-credentials p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <h1>🚀 AI Coding Dashboard</h1>
+            <p>Intelligent Code Analysis & Team Collaboration</p>
+        </div>
+        
+        <div class="auth-body">
+            <div class="success-message" id="success-message">
+                Registration successful! Please log in.
+            </div>
+
+            <div class="auth-tabs">
+                <div class="auth-tab active" onclick="switchTab('login')">Login</div>
+                <div class="auth-tab" onclick="switchTab('register')">Register</div>
+            </div>
+
+            <!-- Login Form -->
+            <form class="auth-form active" id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required value="demo@ai-dashboard.com" placeholder="demo@ai-dashboard.com">
+                    <div class="error-message" id="login-email-error">Please enter a valid email</div>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required value="demo123" placeholder="demo123">
+                    <div class="error-message" id="login-password-error">Password is required</div>
+                </div>
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="remember-me" checked>
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="forgot-password">Forgot password?</a>
+                </div>
+                <div style="margin-bottom: 15px; font-size: 0.85rem; color: #666; text-align: center;">
+                    <em>Demo credentials have been auto-filled</em>
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+
+            <!-- Register Form -->
+            <form class="auth-form" id="register-form">
+                <div class="form-group">
+                    <label for="register-name">Full Name</label>
+                    <input type="text" id="register-name" name="name" required placeholder="Enter your full name">
+                    <div class="error-message" id="register-name-error">Name is required</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" name="email" required placeholder="Enter your email">
+                    <div class="error-message" id="register-email-error">Please enter a valid email</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" name="password" required placeholder="Create a password">
+                    <div class="error-message" id="register-password-error">Password must be at least 6 characters</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="register-role">Role</label>
+                    <select id="register-role" name="role">
+                        <option value="developer">Developer</option>
+                        <option value="manager">Team Manager</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="register-company">Company (Optional)</label>
+                    <input type="text" id="register-company" name="company" placeholder="Your company name">
+                </div>
+
+                <button type="submit" class="btn">Register</button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                Processing...
+            </div>
+        </div>
+    </div>
+
+    <script src="auth_manager.js"></script>
+    <script>
+        // Tab switching
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.auth-tab');
+            const forms = document.querySelectorAll('.auth-form');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            forms.forEach(f => f.classList.remove('active'));
+            
+            if (tab === 'login') {
+                tabs[0].classList.add('active');
+                forms[0].classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+                forms[1].classList.add('active');
+            }
+        }
+
+        // Form validation
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        function showError(inputId, errorId) {
+            document.getElementById(inputId).classList.add('error');
+            document.getElementById(errorId).style.display = 'block';
+        }
+
+        function hideError(inputId, errorId) {
+            document.getElementById(inputId).classList.remove('error');
+            document.getElementById(errorId).style.display = 'none';
+        }
+
+        // Enhanced form handlers
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            // Reset errors
+            hideError('login-email', 'login-email-error');
+            hideError('login-password', 'login-password-error');
+            
+            let isValid = true;
+            
+            if (!validateEmail(email)) {
+                showError('login-email', 'login-email-error');
+                isValid = false;
+            }
+            
+            if (!password) {
+                showError('login-password', 'login-password-error');
+                isValid = false;
+            }
+            
+            if (!isValid) return;
+            
+            // Show loading
+            document.getElementById('loading').classList.add('active');
+            
+            try {
+                const result = await authManager.login(email, password);
+                
+                console.log('Login result:', result);
+                
+                if (result.success) {
+                    console.log('Login successful, redirecting to dashboard...');
+                    // Force hard redirect with cache-busting to avoid caching issues
+                    window.location.replace('/dashboard.html?t=' + Date.now());
+                } else {
+                    console.error('Login failed:', result.error);
+                    showError('login-email', 'login-email-error');
+                    document.getElementById('login-email-error').textContent = result.error || 'Login failed';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('login-email', 'login-email-error');
+                document.getElementById('login-email-error').textContent = 'An error occurred';
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+            }
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const userData = Object.fromEntries(formData);
+            
+            // Reset errors
+            hideError('register-name', 'register-name-error');
+            hideError('register-email', 'register-email-error');
+            hideError('register-password', 'register-password-error');
+            
+            let isValid = true;
+            
+            if (!userData.name || userData.name.length < 2) {
+                showError('register-name', 'register-name-error');
+                isValid = false;
+            }
+            
+            if (!validateEmail(userData.email)) {
+                showError('register-email', 'register-email-error');
+                isValid = false;
+            }
+            
+            if (!userData.password || userData.password.length < 6) {
+                showError('register-password', 'register-password-error');
+                isValid = false;
+            }
+            
+            if (!isValid) return;
+            
+            // Show loading
+            document.getElementById('loading').classList.add('active');
+            
+            try {
+                const result = await authManager.register(userData);
+                
+                if (result.success) {
+                    document.getElementById('success-message').classList.add('active');
+                    switchTab('login');
+                    
+                    // Clear form
+                    e.target.reset();
+                } else {
+                    showError('register-email', 'register-email-error');
+                    document.getElementById('register-email-error').textContent = result.error || 'Registration failed';
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showError('register-email', 'register-email-error');
+                document.getElementById('register-email-error').textContent = 'An error occurred';
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+            }
+        });
+
+        // Clear errors on input
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', () => {
+                input.classList.remove('error');
+                const errorMsg = input.parentElement.querySelector('.error-message');
+                if (errorMsg) {
+                    errorMsg.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

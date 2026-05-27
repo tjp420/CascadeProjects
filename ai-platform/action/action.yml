@@ -1,0 +1,104 @@
+name: Simplebeacon
+description: Detect mock data, fiction KPIs, credential and production-path leaks
+
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  path:
+    description: Repository root to scan
+    required: false
+    default: .
+  config:
+    description: Path to simplebeacon config
+    required: false
+    default: .simplebeacon/config.json
+  fail-on:
+    description: Comma-separated severities that fail the check
+    required: false
+    default: high
+  with-jest:
+    description: Run npm test and compare to baseline (slow)
+    required: false
+    default: 'false'
+  post-comment:
+    description: Post PR comment from report (requires GITHUB_TOKEN on pull_request)
+    required: false
+    default: 'true'
+  node-version:
+    description: Node.js version for npx simplebeacon
+    required: false
+    default: '20'
+  package:
+    description: npm package to run (use file: path for monorepo dev)
+    required: false
+    default: 'simplebeacon'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Verify simplebeacon config
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: |
+        if [ ! -f "${{ inputs.config }}" ]; then
+          echo "::error::Missing ${{ inputs.config }} — run 'npx simplebeacon init' and commit .simplebeacon/"
+          exit 1
+        fi
+
+    - name: Run Simplebeacon gate
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: |
+        ARGS="scan --config ${{ inputs.config }} --format json --output .simplebeacon/report.json --gate --fail-on ${{ inputs.fail-on }} --verbose"
+        if [ "${{ inputs.with-jest }}" = "true" ]; then
+          ARGS="$ARGS --with-jest"
+        fi
+        if [ -f "packages/simplebeacon-cli/bin/simplebeacon.js" ]; then
+          node packages/simplebeacon-cli/bin/simplebeacon.js $ARGS
+        else
+          npx --yes "${{ inputs.package }}" $ARGS
+        fi
+
+    - name: Write job summary
+      if: always()
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: |
+        REPORT=".simplebeacon/report.json"
+        if [ -f "$REPORT" ]; then
+          if [ -f "packages/simplebeacon-cli/bin/simplebeacon.js" ]; then
+            node packages/simplebeacon-cli/bin/simplebeacon.js comment --report "$REPORT" --print-only >> "$GITHUB_STEP_SUMMARY"
+          else
+            npx --yes "${{ inputs.package }}" comment --report "$REPORT" --print-only >> "$GITHUB_STEP_SUMMARY"
+          fi
+        fi
+
+    - name: Upload simplebeacon report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: simplebeacon-report
+        path: ${{ inputs.path }}/.simplebeacon/report.json
+        if-no-files-found: ignore
+
+    - name: Post PR comment
+      if: github.event_name == 'pull_request' && inputs.post-comment == 'true'
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_EVENT_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        if [ -f packages/simplebeacon-cli/bin/simplebeacon.js ]; then
+          node packages/simplebeacon-cli/bin/simplebeacon.js comment --report .simplebeacon/report.json
+        else
+          npx --yes "${{ inputs.package }}" comment --report .simplebeacon/report.json
+        fi

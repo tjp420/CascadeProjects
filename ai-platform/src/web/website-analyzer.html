@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Website Analyzer - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-color: #1f2937;
+            --light-color: #f3f4f6;
+            --border-color: #e5e7eb;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .main-container {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .analyzer-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .analyzer-controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .analysis-results {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .btn-analyze {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+            color: white;
+        }
+
+        .progress-container {
+            display: none;
+            margin: 2rem 0;
+        }
+
+        .progress-bar-analyze {
+            height: 8px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--dark-color);
+            opacity: 0.7;
+        }
+
+        .score-indicator {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .score-excellent { background: var(--success-color); color: white; }
+        .score-good { background: #10b981; color: white; }
+        .score-fair { background: var(--warning-color); color: white; }
+        .score-poor { background: var(--danger-color); color: white; }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .recommendation-item {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+        }
+
+        .recommendation-high { border-left-color: var(--danger-color); }
+        .recommendation-medium { border-left-color: var(--warning-color); }
+        .recommendation-low { border-left-color: var(--primary-color); }
+
+        .blueprint-section {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .blueprint-code {
+            background: rgba(0, 0, 0, 0.8);
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 2rem;
+            display: none;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-completed { background: var(--success-color); color: white; }
+        .status-in-progress { background: var(--warning-color); color: white; }
+        .status-planned { background: var(--primary-color); color: white; }
+    </style>
+</head>
+<body>
+    <!-- Navigation Container - This will be populated by navigation-loader.js -->
+    <div class="navigation-container"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-content-with-sidebar">
+        <div class="content-wrapper">
+            <!-- Header -->
+            <div class="analyzer-header">
+                <h1><i class="fas fa-search me-2"></i>AI Website Analyzer</h1>
+                <p class="text-muted">Comprehensive AI-powered analysis of your entire website structure, performance, and quality metrics</p>
+            </div>
+
+            <!-- Controls -->
+            <div class="analyzer-controls">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h3><i class="fas fa-cogs me-2"></i>Analysis Options</h3>
+                        <p class="text-muted">Configure your website analysis parameters</p>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="analyzeStructure" checked>
+                                    <label class="form-check-label" for="analyzeStructure">
+                                        <i class="fas fa-sitemap me-1"></i>Website Structure
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="analyzePerformance" checked>
+                                    <label class="form-check-label" for="analyzePerformance">
+                                        <i class="fas fa-tachometer-alt me-1"></i>Performance Metrics
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="analyzeSEO" checked>
+                                    <label class="form-check-label" for="analyzeSEO">
+                                        <i class="fas fa-search me-1"></i>SEO Analysis
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="analyzeSecurity" checked>
+                                    <label class="form-check-label" for="analyzeSecurity">
+                                        <i class="fas fa-shield-alt me-1"></i>Security Analysis
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="analyzeAccessibility" checked>
+                                    <label class="form-check-label" for="analyzeAccessibility">
+                                        <i class="fas fa-universal-access me-1"></i>Accessibility
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="generateBlueprint" checked>
+                                    <label class="form-check-label" for="generateBlueprint">
+                                        <i class="fas fa-blueprint me-1"></i>Generate Blueprint
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <button class="btn btn-analyze btn-lg w-100" onclick="startAnalysis()">
+                            <i class="fas fa-play me-2"></i>Start Analysis
+                        </button>
+                        <small class="text-muted d-block mt-2">Comprehensive analysis may take 30-60 seconds</small>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress-container">
+                    <h5><i class="fas fa-spinner fa-spin me-2"></i>Analyzing Website...</h5>
+                    <div class="progress">
+                        <div class="progress-bar-analyze progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div id="progressStatus" class="mt-2 text-muted">Initializing analysis...</div>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div class="loading-spinner">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Performing comprehensive website analysis...</p>
+            </div>
+
+            <!-- Analysis Results -->
+            <div id="analysisResults" class="analysis-results">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2><i class="fas fa-chart-line me-2"></i>Analysis Results</h2>
+                    <div>
+                        <span id="analysisTime" class="badge bg-primary"></span>
+                        <span id="analysisScore" class="score-indicator ms-2"></span>
+                    </div>
+                </div>
+
+                <!-- Executive Summary -->
+                <div id="executiveSummary" class="mb-4">
+                    <!-- Will be populated dynamically -->
+                </div>
+
+                <!-- Website Structure Analysis -->
+                <div class="mb-4">
+                    <h3 class="section-title"><i class="fas fa-sitemap"></i>Website Structure</h3>
+                    <div id="structureAnalysis" class="data-grid">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Quality Metrics -->
+                <div class="mb-4">
+                    <h3 class="section-title"><i class="fas fa-chart-bar"></i>Quality Metrics</h3>
+                    <div id="qualityMetrics" class="data-grid">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="mb-4">
+                    <h3 class="section-title"><i class="fas fa-lightbulb"></i>AI Recommendations</h3>
+                    <div id="recommendations">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Website Blueprint -->
+                <div class="mb-4">
+                    <h3 class="section-title"><i class="fas fa-blueprint"></i>Website Blueprint</h3>
+                    <div id="websiteBlueprint">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Implementation Plan -->
+                <div class="mb-4">
+                    <h3 class="section-title"><i class="fas fa-tasks"></i>Implementation Plan</h3>
+                    <div id="implementationPlan">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Export Options -->
+                <div class="text-center mt-4">
+                    <button class="btn btn-primary me-2" onclick="exportReport('json')">
+                        <i class="fas fa-download me-1"></i>Export JSON
+                    </button>
+                    <button class="btn btn-success me-2" onclick="exportReport('pdf')">
+                        <i class="fas fa-file-pdf me-1"></i>Export PDF
+                    </button>
+                    <button class="btn btn-info" onclick="shareReport()">
+                        <i class="fas fa-share me-1"></i>Share Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        class WebsiteAnalyzerUI {
+            constructor() {
+                this.currentAnalysis = null;
+                this.analysisProgress = 0;
+            }
+
+            async startAnalysis() {
+                const options = this.getAnalysisOptions();
+                
+                // Show progress
+                document.querySelector('.progress-container').style.display = 'block';
+                document.querySelector('.loading-spinner').style.display = 'block';
+                document.getElementById('analysisResults').style.display = 'none';
+                
+                try {
+                    // Start progress simulation
+                    this.simulateProgress();
+                    
+                    // Call analysis API
+                    const response = await fetch('/api/website/analyze');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.currentAnalysis = data.report;
+                        this.displayResults(data.report);
+                    } else {
+                        throw new Error(data.message || 'Analysis failed');
+                    }
+                } catch (error) {
+                    console.error('Analysis error:', error);
+                    this.showError(error.message);
+                } finally {
+                    // Hide progress
+                    document.querySelector('.progress-container').style.display = 'none';
+                    document.querySelector('.loading-spinner').style.display = 'none';
+                }
+            }
+
+            getAnalysisOptions() {
+                return {
+                    structure: document.getElementById('analyzeStructure').checked,
+                    performance: document.getElementById('analyzePerformance').checked,
+                    seo: document.getElementById('analyzeSEO').checked,
+                    security: document.getElementById('analyzeSecurity').checked,
+                    accessibility: document.getElementById('analyzeAccessibility').checked,
+                    blueprint: document.getElementById('generateBlueprint').checked
+                };
+            }
+
+            simulateProgress() {
+                const progressBar = document.querySelector('.progress-bar-analyze');
+                const statusText = document.getElementById('progressStatus');
+                const steps = [
+                    'Initializing analysis engine...',
+                    'Loading website structure...',
+                    'Analyzing pages and components...',
+                    'Evaluating performance metrics...',
+                    'Checking SEO optimization...',
+                    'Scanning security vulnerabilities...',
+                    'Assessing accessibility compliance...',
+                    'Generating recommendations...',
+                    'Creating website blueprint...',
+                    'Finalizing report...'
+                ];
+                
+                let currentStep = 0;
+                const interval = setInterval(() => {
+                    if (currentStep < steps.length) {
+                        this.analysisProgress = ((currentStep + 1) / steps.length) * 100;
+                        progressBar.style.width = this.analysisProgress + '%';
+                        statusText.textContent = steps[currentStep];
+                        currentStep++;
+                    } else {
+                        clearInterval(interval);
+                    }
+                }, 2000);
+            }
+
+            displayResults(report) {
+                document.getElementById('analysisResults').style.display = 'block';
+                document.getElementById('analysisTime').textContent = `Completed in ${Math.round(report.analysisDuration / 1000)}s`;
+                
+                // Set overall score
+                const scoreElement = document.getElementById('analysisScore');
+                scoreElement.textContent = `Score: ${report.executiveSummary.readinessScore}`;
+                scoreElement.className = `score-indicator score-${this.getScoreClass(report.executiveSummary.readinessScore)}`;
+                
+                // Display executive summary
+                this.displayExecutiveSummary(report.executiveSummary);
+                
+                // Display structure analysis
+                this.displayStructureAnalysis(report.websiteStructure);
+                
+                // Display quality metrics
+                this.displayQualityMetrics(report.qualityMetrics);
+                
+                // Display recommendations
+                this.displayRecommendations(report.recommendations);
+                
+                // Display website blueprint
+                this.displayWebsiteBlueprint(report.websiteBlueprint);
+                
+                // Display implementation plan
+                this.displayImplementationPlan(report.implementationPlan);
+            }
+
+            getScoreClass(score) {
+                if (score >= 90) return 'excellent';
+                if (score >= 80) return 'good';
+                if (score >= 70) return 'fair';
+                return 'poor';
+            }
+
+            displayExecutiveSummary(summary) {
+                const html = `
+                    <div class="data-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">${summary.totalFiles.toLocaleString()}</div>
+                            <div class="metric-label">Total Files</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${summary.pagesCount}</div>
+                            <div class="metric-label">Pages</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${summary.componentsCount}</div>
+                            <div class="metric-label">Components</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${summary.routesCount}</div>
+                            <div class="metric-label">Routes</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${summary.apisCount}</div>
+                            <div class="metric-label">APIs</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${summary.overallHealth}</div>
+                            <div class="metric-label">Overall Health</div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('executiveSummary').innerHTML = html;
+            }
+
+            displayStructureAnalysis(structure) {
+                const html = `
+                    <div class="metric-card">
+                        <h5>File Distribution</h5>
+                        <p><strong>Total Files:</strong> ${structure.totalFiles.toLocaleString()}</p>
+                        <p><strong>Total Size:</strong> ${this.formatFileSize(structure.totalSize)}</p>
+                        <p><strong>Categories:</strong> ${Object.keys(structure.categories || {}).length}</p>
+                    </div>
+                    <div class="metric-card">
+                        <h5>File Types</h5>
+                        ${Object.entries(structure.fileTypes || {}).slice(0, 5).map(([type, count]) => 
+                            `<p><strong>${type}:</strong> ${count}</p>`
+                        ).join('')}
+                    </div>
+                `;
+                
+                document.getElementById('structureAnalysis').innerHTML = html;
+            }
+
+            displayQualityMetrics(metrics) {
+                const html = `
+                    <div class="metric-card">
+                        <h5><i class="fas fa-tachometer-alt me-2"></i>Performance</h5>
+                        <div class="metric-value">${metrics.performance.optimizationScore}%</div>
+                        <div class="metric-label">Optimization Score</div>
+                        <p><strong>Load Time:</strong> ${metrics.performance.loadTimeEstimate}s</p>
+                        <p><strong>Total Size:</strong> ${this.formatFileSize(metrics.performance.totalSize)}</p>
+                    </div>
+                    <div class="metric-card">
+                        <h5><i class="fas fa-search me-2"></i>SEO</h5>
+                        <div class="metric-value">${metrics.seo.score}%</div>
+                        <div class="metric-label">SEO Score</div>
+                        <p><strong>Title Tags:</strong> ${metrics.seo.titleTags}</p>
+                        <p><strong>Meta Descriptions:</strong> ${metrics.seo.metaDescriptions}</p>
+                    </div>
+                    <div class="metric-card">
+                        <h5><i class="fas fa-shield-alt me-2"></i>Security</h5>
+                        <div class="metric-value">${metrics.security.score}%</div>
+                        <div class="metric-label">Security Score</div>
+                        <p><strong>HTTPS:</strong> ${metrics.security.httpsEnabled ? 'Enabled' : 'Disabled'}</p>
+                        <p><strong>CSRF Protection:</strong> ${metrics.security.csrfProtection ? 'Enabled' : 'Disabled'}</p>
+                    </div>
+                    <div class="metric-card">
+                        <h5><i class="fas fa-universal-access me-2"></i>Accessibility</h5>
+                        <div class="metric-value">${metrics.accessibility.score}%</div>
+                        <div class="metric-label">Accessibility Score</div>
+                        <p><strong>ARIA Labels:</strong> ${metrics.accessibility.ariaLabels}</p>
+                        <p><strong>Alt Text:</strong> ${metrics.accessibility.altText}</p>
+                    </div>
+                    <div class="metric-card">
+                        <h5><i class="fas fa-user me-2"></i>User Experience</h5>
+                        <div class="metric-value">${metrics.userExperience.score}%</div>
+                        <div class="metric-label">UX Score</div>
+                        <p><strong>Responsive Design:</strong> ${metrics.userExperience.responsiveDesign}</p>
+                        <p><strong>Loading Speed:</strong> ${metrics.userExperience.loadingSpeed}</p>
+                    </div>
+                    <div class="metric-card">
+                        <h5><i class="fas fa-tools me-2"></i>Technical Debt</h5>
+                        <div class="metric-value">${metrics.technicalDebt.score}%</div>
+                        <div class="metric-label">Debt Score</div>
+                        <p><strong>Complexity:</strong> ${metrics.technicalDebt.codeComplexity}</p>
+                        <p><strong>Large Files:</strong> ${metrics.technicalDebt.largeFiles}</p>
+                    </div>
+                `;
+                
+                document.getElementById('qualityMetrics').innerHTML = html;
+            }
+
+            displayRecommendations(recommendations) {
+                const html = recommendations.map(rec => `
+                    <div class="recommendation-item recommendation-${rec.priority}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6>${rec.title}</h6>
+                                <p class="mb-1">${rec.description}</p>
+                                <small><strong>Impact:</strong> ${rec.impact} | <strong>Category:</strong> ${rec.category}</small>
+                            </div>
+                            <span class="badge bg-${rec.priority === 'high' ? 'danger' : rec.priority === 'medium' ? 'warning' : 'primary'}">
+                                ${rec.priority}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('recommendations').innerHTML = html || '<p>No recommendations available.</p>';
+            }
+
+            displayWebsiteBlueprint(blueprint) {
+                const html = `
+                    <div class="blueprint-section">
+                        <h5><i class="fas fa-cogs me-2"></i>Architecture</h5>
+                        <p><strong>Type:</strong> ${blueprint.architecture.type}</p>
+                        <p><strong>Framework:</strong> ${blueprint.architecture.framework}</p>
+                        <p><strong>Pattern:</strong> ${blueprint.architecture.pattern}</p>
+                    </div>
+                    <div class="blueprint-section">
+                        <h5><i class="fas fa-code me-2"></i>Technologies</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6>Frontend</h6>
+                                <ul>${blueprint.technologies.frontend.frameworks.map(f => `<li>${f}</li>`).join('')}</ul>
+                                <ul>${blueprint.technologies.frontend.languages.map(l => `<li>${l}</li>`).join('')}</ul>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>Backend</h6>
+                                <p><strong>Runtime:</strong> ${blueprint.technologies.backend.runtime}</p>
+                                <p><strong>Framework:</strong> ${blueprint.technologies.backend.framework}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>Deployment</h6>
+                                <p><strong>Server:</strong> ${blueprint.technologies.deployment.server}</p>
+                                <p><strong>Port:</strong> ${blueprint.technologies.deployment.port}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('websiteBlueprint').innerHTML = html;
+            }
+
+            displayImplementationPlan(plan) {
+                const html = `
+                    <div class="blueprint-section">
+                        <h5><i class="fas fa-info-circle me-2"></i>Overview</h5>
+                        <p><strong>Developers:</strong> ${plan.resources.developers}</p>
+                        <p><strong>Timeline:</strong> ${plan.resources.timeline}</p>
+                        <p><strong>Budget:</strong> ${plan.resources.budget}</p>
+                    </div>
+                    ${plan.phases.map((phase, index) => `
+                        <div class="blueprint-section">
+                            <h5><i class="fas fa-play-circle me-2"></i>${phase.phase}</h5>
+                            <p><strong>Duration:</strong> ${phase.duration}</p>
+                            <p><strong>Tasks:</strong></p>
+                            <ul>${phase.tasks.map(task => `<li>${task}</li>`).join('')}</ul>
+                            <p><strong>Deliverables:</strong></p>
+                            <ul>${phase.deliverables.map(deliverable => `<li>${deliverable}</li>`).join('')}</ul>
+                        </div>
+                    `).join('')}
+                `;
+                
+                document.getElementById('implementationPlan').innerHTML = html;
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            }
+
+            exportReport(format) {
+                if (!this.currentAnalysis) {
+                    alert('No analysis data available to export');
+                    return;
+                }
+
+                if (format === 'json') {
+                    const dataStr = JSON.stringify(this.currentAnalysis, null, 2);
+                    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                    
+                    const exportFileDefaultName = `website-analysis-${new Date().toISOString().split('T')[0]}.json`;
+                    
+                    const linkElement = document.createElement('a');
+                    linkElement.setAttribute('href', dataUri);
+                    linkElement.setAttribute('download', exportFileDefaultName);
+                    linkElement.click();
+                } else if (format === 'pdf') {
+                    alert('PDF export coming soon! For now, use JSON export.');
+                }
+            }
+
+            shareReport() {
+                if (!this.currentAnalysis) {
+                    alert('No analysis data available to share');
+                    return;
+                }
+
+                // Create shareable URL
+                const shareData = {
+                    title: this.currentAnalysis.title,
+                    score: this.currentAnalysis.executiveSummary.readinessScore,
+                    health: this.currentAnalysis.executiveSummary.overallHealth,
+                    timestamp: this.currentAnalysis.generatedAt
+                };
+
+                const shareText = `Website Analysis Report:\nScore: ${shareData.score}/100\nHealth: ${shareData.health}\nAnalyzed: ${new Date(shareData.timestamp).toLocaleString()}`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Website Analysis Report',
+                        text: shareText
+                    });
+                } else {
+                    // Fallback - copy to clipboard
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        alert('Report details copied to clipboard!');
+                    });
+                }
+            }
+
+            showError(message) {
+                document.getElementById('analysisResults').style.display = 'block';
+                document.getElementById('analysisResults').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        <h4><i class="fas fa-exclamation-triangle me-2"></i>Analysis Failed</h4>
+                        <p>${message}</p>
+                        <button class="btn btn-outline-danger" onclick="location.reload()">Try Again</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize the analyzer UI
+        const analyzerUI = new WebsiteAnalyzerUI();
+
+        // Global function for button click
+        function startAnalysis() {
+            analyzerUI.startAnalysis();
+        }
+
+        function exportReport(format) {
+            analyzerUI.exportReport(format);
+        }
+
+        function shareReport() {
+            analyzerUI.shareReport();
+        }
+    </script>
+</body>
+</html>

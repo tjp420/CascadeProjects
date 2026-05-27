@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sidebar Size Fix Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .sidebar.collapsed {
+            width: 60px;
+        }
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .sidebar.collapsed .sidebar-header {
+            justify-content: center;
+        }
+        .sidebar-title {
+            margin-left: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .sidebar.collapsed .sidebar-title {
+            display: none;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .nav-icon {
+            width: 20px;
+            text-align: center;
+            margin-right: 15px;
+        }
+        .nav-text {
+            flex: 1;
+        }
+        .sidebar.collapsed .nav-text {
+            display: none;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            background: white;
+            margin-left: 250px;
+            transition: all 0.3s ease;
+            overflow-y: auto;
+        }
+        .main-content.expanded {
+            margin-left: 60px;
+        }
+        .toggle-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-indicator {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+        .size-display {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-bars nav-icon"></i>
+                <span class="sidebar-title">Navigation</span>
+            </div>
+            
+            <nav>
+                <div class="nav-item" onclick="window.navigateTo('dashboard', this)">
+                    <i class="fas fa-home nav-icon"></i>
+                    <span class="nav-text">Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="window.navigateTo('analytics', this)">
+                    <i class="fas fa-chart-line nav-icon"></i>
+                    <span class="nav-text">Analytics</span>
+                </div>
+                <div class="nav-item" onclick="window.navigateTo('reports', this)">
+                    <i class="fas fa-file-alt nav-icon"></i>
+                    <span class="nav-text">Reports</span>
+                </div>
+                <div class="nav-item" onclick="window.navigateTo('settings', this)">
+                    <i class="fas fa-cog nav-icon"></i>
+                    <span class="nav-text">Settings</span>
+                </div>
+            </nav>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content" id="mainContent">
+            <!-- Toggle Button -->
+            <button class="toggle-btn" onclick="window.toggleSidebar()">
+                <i class="fas fa-bars"></i>
+                <span>Toggle Sidebar</span>
+            </button>
+            
+            <!-- Status Indicator -->
+            <div class="status-indicator" id="statusIndicator">
+                Ready
+            </div>
+            
+            <!-- Test Content -->
+            <h1>🔧 Sidebar Size Fix Test</h1>
+            <p class="lead">Test the sidebar toggle functionality and size restoration</p>
+            
+            <div class="test-section">
+                <h3>🧪 Sidebar Controls</h3>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="window.toggleSidebar()">
+                        <i class="fas fa-bars"></i> Toggle Sidebar
+                    </button>
+                    <button class="btn btn-success" onclick="window.forceSidebarRestore()">
+                        <i class="fas fa-undo"></i> Force Restore
+                    </button>
+                    <button class="btn btn-warning" onclick="testSizeIssues()">
+                        <i class="fas fa-bug"></i> Test Size Issues
+                    </button>
+                    <button class="btn btn-info" onclick="showCurrentSizes()">
+                        <i class="fas fa-ruler"></i> Show Sizes
+                    </button>
+                </div>
+                
+                <div class="size-display" id="sizeDisplay">
+                    Click "Show Sizes" to see current measurements
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h3>📏 Expected Behavior</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>✅ Expanded State:</h6>
+                        <ul>
+                            <li>Sidebar width: 250px</li>
+                            <li>Main content margin-left: 250px</li>
+                            <li>All text and icons visible</li>
+                            <li>Smooth transitions</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>✅ Collapsed State:</h6>
+                        <ul>
+                            <li>Sidebar width: 60px</li>
+                            <li>Main content margin-left: 60px</li>
+                            <li>Only icons visible</li>
+                            <li>Text hidden</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h3>🔧 Size Fix Features:</h3>
+                <ul>
+                    <li><strong>Auto-detection:</strong> Detects when sidebar loses size</li>
+                    <li><strong>Force restore:</strong> Manually restore proper sizes</li>
+                    <li><strong>Resize observer:</strong> Maintains minimum sizes</li>
+                    <li><strong>Layout recalculation:</strong> Forces container updates</li>
+                    <li><strong>State persistence:</strong> Saves preference in localStorage</li>
+                    <li><strong>Event notifications:</strong> Triggers resize events</li>
+                </ul>
+            </div>
+            
+            <div class="test-section">
+                <h3>⌨️ Keyboard Shortcuts</h3>
+                <p><kbd>Ctrl + B</kbd> - Toggle sidebar</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load sidebar fix -->
+    <script src="sidebar-fix.js"></script>
+    <script>
+        // Test functions
+        function testSizeIssues() {
+            console.log('🐛 Testing for size issues...');
+            
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            
+            // Simulate size issue
+            sidebar.style.width = '0px';
+            mainContent.style.marginLeft = '0px';
+            
+            setTimeout(() => {
+                console.log('🔧 Fixing simulated size issue...');
+                window.forceSidebarRestore();
+            }, 1000);
+        }
+        
+        function showCurrentSizes() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            
+            const sidebarWidth = window.getComputedStyle(sidebar).width;
+            const mainMargin = window.getComputedStyle(mainContent).marginLeft;
+            const mainWidth = window.getComputedStyle(mainContent).width;
+            
+            const sizeInfo = `
+                Sidebar Width: ${sidebarWidth}
+                Main Content Margin: ${mainMargin}
+                Main Content Width: ${mainWidth}
+                Sidebar Classes: ${sidebar.className}
+                Main Content Classes: ${mainContent.className}
+                Window Width: ${window.innerWidth}px
+                Window Height: ${window.innerHeight}px
+            `;
+            
+            document.getElementById('sizeDisplay').textContent = sizeInfo;
+            
+            console.log('📏 Current sizes:', sizeInfo);
+        }
+        
+        // Auto-update size display
+        setInterval(() => {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const sidebar = document.getElementById('sidebar');
+            
+            if (sidebar && statusIndicator) {
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                statusIndicator.textContent = isCollapsed ? 'Collapsed' : 'Expanded';
+                statusIndicator.style.background = isCollapsed ? '#ffc107' : '#28a745';
+                statusIndicator.style.color = isCollapsed ? '#333' : 'white';
+            }
+        }, 1000);
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 Sidebar test page loaded');
+            
+            setTimeout(() => {
+                console.log('✅ Sidebar fix ready for testing');
+                showCurrentSizes();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Overlay: Cloudflare Tunnel in front of the dashboard container
+# Usage: docker compose -f docker-compose.simplebeacon.yml -f docker/cloudflared/docker-compose.cloudflared.yml up -d
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./docker/cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      - ./docker/cloudflared/credentials.json:/etc/cloudflared/credentials.json:ro
+    depends_on:
+      - dashboard
+    restart: unless-stopped

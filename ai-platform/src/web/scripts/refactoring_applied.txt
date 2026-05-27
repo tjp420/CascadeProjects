@@ -1,0 +1,79 @@
+================================================================================
+REFACTORING ANALYSIS REPORT
+================================================================================
+Target Directory: ..
+Analysis Date: 2026-05-16 00:56:48
+
+OVERVIEW
+----------------------------------------
+Python Files Found: 29
+Files Analyzed: 29
+
+REFACTORING OPPORTUNITIES SUMMARY
+----------------------------------------
+Complex Functions: 10
+Large Classes: 4
+High Parameter Counts: 2
+Complex Conditionals: 1
+Coupling Issues: 10
+
+MOST COMPLEX FUNCTIONS
+----------------------------------------
+  generate_health_report (line 172): Complexity 16
+  create_security_report (line 397): Complexity 16
+  _detect_issues (line 169): Complexity 15
+  generate_report (line 327): Complexity 13
+  _assess_technical_debt (line 300): Complexity 12
+
+LARGEST CLASSES
+----------------------------------------
+  CodeAnalysisAPI (line 21): 27 methods
+  CodeAnalyzer (line 208): 17 methods
+  CodeAnalyzer (line 49): 17 methods
+  PythonCodeQualityImprover (line 27): 16 methods
+
+REFACTORING RECOMMENDATIONS
+----------------------------------------
+1. [HIGH] Extract Complex Functions
+   Found 10 complex functions that need extraction
+   Impact: Improved maintainability and testability
+
+2. [HIGH] Break Down Large Classes
+   Found 4 classes that violate single responsibility
+   Impact: Improved maintainability and reduced coupling
+
+3. [MEDIUM] Implement Dependency Injection
+   Found 10 coupling issues
+   Impact: Reduced coupling and improved testability
+
+REFACTORING SUGGESTIONS APPLIED
+----------------------------------------
+✓ Refactored: ..\api\code_analysis.py
+✓ Refactored: ..\api\server.py
+✓ Refactored: ..\microservices\analysis_service.py
+✓ Refactored: ..\microservices\api_gateway.py
+✓ Refactored: ..\microservices\code_quality_improver.py
+✓ Refactored: ..\microservices\file_optimizer.py
+✓ Refactored: ..\microservices\github_service.py
+✓ Refactored: ..\microservices\security_middleware.py
+✓ Refactored: ..\microservices\start_services.py
+✓ Refactored: ..\microservices\user_service.py
+✓ Refactored: ..\scripts\dashboard_health_check.py
+✓ Refactored: ..\scripts\dashboard_quick_fix.py
+✓ Refactored: ..\scripts\dashboard_targeted_fix.py
+✓ Refactored: ..\scripts\database_optimizer.py
+✓ Refactored: ..\scripts\data_compressor.py
+✓ Refactored: ..\scripts\directory_optimizer.py
+✓ Refactored: ..\scripts\filename_sanitizer.py
+✓ Refactored: ..\scripts\file_security_validator.py
+✓ Refactored: ..\scripts\python_quality_improver.py
+✓ Refactored: ..\scripts\refactoring_engine.py
+✓ Refactored: ..\scripts\run_optimization.py
+✓ Refactored: ..\scripts\storage_planning.py
+✓ Refactored: ..\tests\test_filename_sanitizer.py
+✓ Refactored: ..\tests\test_file_optimizer.py
+✓ Refactored: ..\tests\test_integration.py
+✓ Refactored: ..\tests\test_security.py
+✓ Refactored: ..\tests\__init__.py
+✓ Refactored: ..\node_modules\flatted\python\flatted.py
+✓ Refactored: ..\microservices\tests\test_user_service.py

@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Assistant - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .assistant-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .control-panel {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-label {
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control, .form-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: var(--bg-secondary);
+            border-color: var(--accent-color);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .progress-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-gradient);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-color);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .chart-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        .debug-item {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .debug-item:hover {
+            border-color: var(--accent-color);
+            transform: translateX(4px);
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .severity-critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .severity-high {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .severity-medium {
+            background: rgba(99, 102, 241, 0.2);
+            color: #6366f1;
+        }
+
+        .severity-low {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-detected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .status-analyzing {
+            background: rgba(99, 102, 241, 0.2);
+            color: #6366f1;
+        }
+
+        .status-resolved {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status-pending {
+            background: rgba(107, 114, 128, 0.2);
+            color: #6b7280;
+        }
+
+        .code-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .stack-trace {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .recommendation-card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .confidence-score {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .confidence-high {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .confidence-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .confidence-low {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="assistant-container">
+        <!-- Header -->
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-bug me-3"></i>
+                Debug Assistant
+            </h1>
+            <p class="page-subtitle">AI-guided debugging with root cause analysis</p>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h3 class="mb-4">
+                <i class="fas fa-cogs me-2"></i>
+                Debug Configuration
+            </h3>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Application/Project Path</label>
+                    <input type="text" class="form-control" id="appPath" 
+                           placeholder="/path/to/project" value="./src">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Debug Mode</label>
+                    <select class="form-select" id="debugMode">
+                        <option value="comprehensive" selected>Comprehensive Analysis</option>
+                        <option value="runtime">Runtime Debugging</option>
+                        <option value="static">Static Analysis</option>
+                        <option value="performance">Performance Debugging</option>
+                        <option value="memory">Memory Analysis</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Debug Target</label>
+                    <select class="form-select" id="debugTarget">
+                        <option value="all" selected>All Issues</option>
+                        <option value="errors">Errors Only</option>
+                        <option value="warnings">Warnings Only</option>
+                        <option value="performance">Performance Issues</option>
+                        <option value="memory">Memory Leaks</option>
+                        <option value="logic">Logic Errors</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Analysis Depth</label>
+                    <select class="form-select" id="analysisDepth">
+                        <option value="surface">Surface Level</option>
+                        <option value="standard" selected>Standard Analysis</option>
+                        <option value="deep">Deep Analysis</option>
+                        <option value="comprehensive">Comprehensive Deep Dive</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="enableStackTrace" checked>
+                        <label class="form-check-label" for="enableStackTrace">
+                            Enable stack trace analysis
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="detectPatterns" checked>
+                        <label class="form-check-label" for="detectPatterns">
+                            Detect common error patterns
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="generateFixes" checked>
+                        <label class="form-check-label" for="generateFixes">
+                            Generate fix suggestions
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="realTimeMonitoring">
+                        <label class="form-check-label" for="realTimeMonitoring">
+                            Enable real-time monitoring
+                        </label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" onclick="startDebugging()">
+                        <i class="fas fa-search me-2"></i>
+                        Start Debug Analysis
+                    </button>
+                    <button class="btn btn-secondary ms-2" onclick="stopDebugging()">
+                        <i class="fas fa-stop me-2"></i>
+                        Stop
+                    </button>
+                    <button class="btn btn-secondary ms-2" onclick="resetAnalysis()">
+                        <i class="fas fa-redo me-2"></i>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="progress-section" id="progressSection">
+            <h3 class="mb-3">
+                <i class="fas fa-spinner fa-spin me-2"></i>
+                Analyzing Code for Debug Issues
+            </h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="text-center">
+                <span id="progressText">Initializing debug analyzer...</span>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="resultsSection">
+            <!-- Metrics Dashboard -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalIssues">0</div>
+                        <div class="metric-label">Total Issues Found</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="criticalIssues">0</div>
+                        <div class="metric-label">Critical Issues</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="debugConfidence">0%</div>
+                        <div class="metric-label">Debug Confidence</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="fixRate">0%</div>
+                        <div class="metric-label">Auto-Fix Rate</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Issue Severity Distribution</h4>
+                        <canvas id="severityChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Issue Type Analysis</h4>
+                        <canvas id="issueTypeChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Debug Success Rate</h4>
+                        <canvas id="successRateChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Error Pattern Detection</h4>
+                        <canvas id="patternChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Debug Issues -->
+            <div class="chart-container">
+                <h4>
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Detected Debug Issues
+                </h4>
+                <div id="debugIssues">
+                    <!-- Debug issues will be populated here -->
+                </div>
+            </div>
+
+            <!-- Stack Traces -->
+            <div class="chart-container">
+                <h4>
+                    <i class="fas fa-layer-group me-2"></i>
+                    Stack Trace Analysis
+                </h4>
+                <div id="stackTraces">
+                    <!-- Stack traces will be populated here -->
+                </div>
+            </div>
+
+            <!-- Debug Recommendations -->
+            <div class="chart-container">
+                <h4>
+                    <i class="fas fa-lightbulb me-2"></i>
+                    AI Debug Recommendations
+                </h4>
+                <div id="debugRecommendations">
+                    <!-- Recommendations will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        let debugData = null;
+        let charts = {};
+        let debugInterval = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Debug Assistant initialized');
+        });
+
+        function startDebugging() {
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            // Show progress, hide results
+            progressSection.classList.add('active');
+            resultsSection.classList.remove('active');
+            
+            // Simulate debug analysis
+            simulateDebugAnalysis();
+        }
+
+        function stopDebugging() {
+            if (debugInterval) {
+                clearInterval(debugInterval);
+                debugInterval = null;
+                showNotification('Debug analysis stopped', 'info');
+            }
+        }
+
+        function simulateDebugAnalysis() {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            let progress = 0;
+            
+            const steps = [
+                'Scanning project structure...',
+                'Analyzing code patterns...',
+                'Detecting syntax errors...',
+                'Identifying runtime issues...',
+                'Analyzing memory usage...',
+                'Detecting logic errors...',
+                'Stack trace analysis...',
+                'Pattern recognition...',
+                'Generating fix suggestions...',
+                'Analysis complete!'
+            ];
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 12;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        showResults();
+                    }, 1000);
+                }
+                
+                progressFill.style.width = progress + '%';
+                const stepIndex = Math.floor((progress / 100) * steps.length);
+                progressText.textContent = steps[Math.min(stepIndex, steps.length - 1)];
+            }, 400);
+        }
+
+        function showResults() {
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            progressSection.classList.remove('active');
+            resultsSection.classList.add('active');
+            
+            // Generate mock debug data
+            debugData = generateDebugData();
+            
+            // Update metrics
+            updateMetrics();
+            
+            // Create charts
+            createCharts();
+            
+            // Display debug issues
+            displayDebugIssues();
+            
+            // Display stack traces
+            displayStackTraces();
+            
+            // Display recommendations
+            displayRecommendations();
+        }
+
+        function generateDebugData() {
+            return {
+                totalIssues: Math.floor(Math.random() * 30) + 20,
+                criticalIssues: Math.floor(Math.random() * 8) + 3,
+                debugConfidence: Math.floor(Math.random() * 20) + 75,
+                fixRate: Math.floor(Math.random() * 25) + 65,
+                severityDistribution: {
+                    'Critical': Math.floor(Math.random() * 5) + 2,
+                    'High': Math.floor(Math.random() * 8) + 5,
+                    'Medium': Math.floor(Math.random() * 10) + 8,
+                    'Low': Math.floor(Math.random() * 15) + 10
+                },
+                issueTypes: {
+                    'Syntax Errors': Math.floor(Math.random() * 5) + 2,
+                    'Runtime Errors': Math.floor(Math.random() * 8) + 4,
+                    'Logic Errors': Math.floor(Math.random() * 6) + 3,
+                    'Memory Issues': Math.floor(Math.random() * 4) + 2,
+                    'Performance Issues': Math.floor(Math.random() * 7) + 3,
+                    'Type Errors': Math.floor(Math.random() * 4) + 2,
+                    'Null Reference': Math.floor(Math.random() * 6) + 3
+                },
+                successRate: generateTimeSeriesData(10, 70, 95),
+                patternDetection: {
+                    'Null Checks': Math.floor(Math.random() * 8) + 5,
+                    'Type Validations': Math.floor(Math.random() * 6) + 4,
+                    'Error Handling': Math.floor(Math.random() * 4) + 3,
+                    'Resource Management': Math.floor(Math.random() * 3) + 2,
+                    'Async Patterns': Math.floor(Math.random() * 5) + 3
+                },
+                debugIssues: generateDebugIssues(),
+                stackTraces: generateStackTraces(),
+                recommendations: generateRecommendations()
+            };
+        }
+
+        function generateTimeSeriesData(points, min, max) {
+            const data = [];
+            for (let i = 0; i < points; i++) {
+                data.push(Math.floor(Math.random() * (max - min)) + min);
+            }
+            return data;
+        }
+
+        function generateDebugIssues() {
+            const issues = [
+                {
+                    id: 'issue_1',
+                    type: 'Runtime Error',
+                    severity: 'critical',
+                    description: 'TypeError: Cannot read property \'undefined\' of undefined',
+                    file: 'src/components/UserInterface.js',
+                    line: 145,
+                    column: 23,
+                    stackTrace: 'at UserInterface.render (UserInterface.js:145:23)',
+                    confidence: 95,
+                    autoFix: true,
+                    fixSuggestion: 'Add null check before accessing nested properties'
+                },
+                {
+                    id: 'issue_2',
+                    type: 'Logic Error',
+                    severity: 'high',
+                    description: 'Logic error in conditional statement causing unexpected behavior',
+                    file: 'src/services/DataProcessor.js',
+                    line: 78,
+                    column: 15,
+                    stackTrace: 'at DataProcessor.processData (DataProcessor.js:78:15)',
+                    confidence: 88,
+                    autoFix: false,
+                    fixSuggestion: 'Review conditional logic and add proper validation'
+                },
+                {
+                    id: 'issue_3',
+                    type: 'Memory Issue',
+                    severity: 'medium',
+                    description: 'Potential memory leak detected in event listener',
+                    file: 'src/utils/EventManager.js',
+                    line: 23,
+                    column: 8,
+                    stackTrace: 'at EventManager.addEventListener (EventManager.js:23:8)',
+                    confidence: 75,
+                    autoFix: true,
+                    fixSuggestion: 'Remove event listener when component unmounts'
+                },
+                {
+                    id: 'issue_4',
+                    type: 'Performance Issue',
+                    'severity: 'medium',
+                    description: 'Inefficient loop causing performance degradation',
+                    file: 'src/api/APIService.js',
+                    line: 156,
+                    column: 12,
+                    stackTrace: 'at APIService.fetchData (APIService.js:156:12)',
+                    confidence: 82,
+                    autoFix: false,
+                    fixSuggestion: 'Optimize loop and implement caching'
+                },
+                {
+                    id: 'issue_5',
+                    type: 'Syntax Error',
+                    severity: 'low',
+                    description: 'Missing semicolon at end of statement',
+                    file: 'src/components/DataTable.js',
+                    line: 89,
+                    column: 56,
+                    stackTrace: 'at DataTable.render (DataTable.js:89:56)',
+                    confidence: 98,
+                    autoFix: true,
+                    fixSuggestion: 'Add missing semicolon'
+                }
+            ];
+            
+            return issues;
+        }
+
+        function generateStackTraces() {
+            const traces = [
+                {
+                    issueId: 'issue_1',
+                    function: 'UserInterface.render',
+                    file: 'src/components/UserInterface.js',
+                    line: 145,
+                    code: `
+                        render() {
+                            const user = this.state.user;
+                            const profile = user.profile;
+                            return <div>{profile.name}</div>;
+                        }
+                    `
+                },
+                {
+                    issueId: 'issue_2',
+                    function: 'DataProcessor.processData',
+                    file: 'src/services/DataProcessor.js',
+                    line: 78,
+                    code: `
+                        processData(data) {
+                            if (data.isValid) {
+                                return this.transform(data);
+                            }
+                            return null;
+                        }
+                    `
+                },
+                {
+                    issueId: 'issue_3',
+                    function: 'EventManager.addEventListener',
+                    file: 'src/utils/EventManager.js',
+                    line: 23,
+                    code: `
+                        addEventListener(type, callback) {
+                            this.listeners.push({type, callback});
+                            return this.element.addEventListener(type, callback);
+                        }
+                    `
+                },
+                {
+                    issueId: 'issue_4',
+                    function: 'APIService.fetchData',
+                    file: 'src/api/APIService.js',
+                    line: 156,
+                    code: `
+                        async fetchData() {
+                            for (let i = 0; i < this.data.length; i++) {
+                                await this.processItem(this.data[i]);
+                            }
+                            return results;
+                        }
+                    `
+                },
+                {
+                    issueId: 'issue_5',
+                    function: 'DataTable.render',
+                    file: 'src/components/DataTable.js',
+                    line: 89,
+                    code: `
+                        render() {
+                            const html = this.generateHTML();
+                            this.container.innerHTML = html;
+                        }
+                    `
+                }
+            ];
+            
+            return traces;
+        }
+
+        function generateRecommendations() {
+            const recommendations = [
+                {
+                    type: 'Add Null Checks',
+                    description: 'Implement proper null/undefined checks before accessing object properties',
+                    priority: 'high',
+                    impact: 'Prevents runtime crashes',
+                    confidence: 95,
+                    action: 'Add defensive programming practices'
+                },
+                {
+                    type: 'Improve Error Handling',
+                    description: 'Enhance error handling with try-catch blocks and proper error messages',
+                    priority: 'medium',
+                    impact: 'Better error recovery',
+                    confidence: 88,
+                    action: 'Implement comprehensive error handling'
+                },
+                {
+                    type: 'Memory Management',
+                    description: 'Fix memory leaks by properly cleaning up resources',
+                    priority: 'medium',
+                    impact: 'Improved application stability',
+                    confidence: 75,
+                    action: 'Implement proper cleanup in lifecycle methods'
+                },
+                {
+                    type: 'Code Optimization',
+                    description: 'Optimize performance bottlenecks and inefficient algorithms',
+                    priority: 'low',
+                    impact: 'Better performance',
+                    confidence: 82,
+                    action: 'Review and optimize critical code paths'
+                },
+                {
+                    type: 'Type Safety',
+                    description: 'Add TypeScript or JSDoc for better type checking',
+                    priority: 'low',
+                    impact: 'Reduced runtime errors',
+                    confidence: 90,
+                    action: 'Enhance type checking and documentation'
+                }
+            ];
+            
+            return recommendations;
+        }
+
+        function updateMetrics() {
+            document.getElementById('totalIssues').textContent = debugData.totalIssues;
+            document.getElementById('criticalIssues').textContent = debugData.criticalIssues;
+            document.getElementById('debugConfidence').textContent = debugData.debugConfidence + '%';
+            document.getElementById('fixRate').textContent = debugData.fixRate + '%';
+        }
+
+        function createCharts() {
+            createSeverityChart();
+            createIssueTypeChart();
+            createSuccessRateChart();
+            createPatternChart();
+        }
+
+        function createSeverityChart() {
+            const ctx = document.getElementById('severityChart').getContext('2d');
+            
+            charts.severity = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(debugData.severityDistribution),
+                    datasets: [{
+                        label: 'Issue Count',
+                        data: Object.values(debugData.severityDistribution),
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(99, 102, 241, 0.8)',
+                            'rgba(16, 185, 129, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(99, 102, 241, 1)',
+                            'rgba(16, 185, 129, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: '#475569'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createIssueTypeChart() {
+            const ctx = document.getElementById('issueTypeChart').getContext('2d');
+            
+            charts.issueType = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(debugData.issueTypes),
+                    datasets: [{
+                        data: Object.values(debugData.issueTypes),
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(99, 102, 241, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(236, 72, 153, 0.8)',
+                            'rgba(6, 182, 212, 0.8)',
+                            'rgba(107, 114, 128, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(99, 102, 241, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(236, 72, 153, 1)',
+                            'rgba(6, 182, 212, 1)',
+                            'rgba(107, 114, 128, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createSuccessRateChart() {
+            const ctx = document.getElementById('successRateChart').getContext('2d');
+            
+            charts.successRate = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 10}, (_, i) => `Session ${i + 1}`),
+                    datasets: [{
+                        label: 'Success Rate %',
+                        data: debugData.successRate,
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 60,
+                            max: 100,
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: '#475569'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createPatternChart() {
+            const ctx = document.getElementById('patternChart').getContext('2d');
+            
+            charts.pattern = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(debugData.patternDetection),
+                    datasets: [{
+                        label: 'Pattern Detected Count',
+                        data: Object.values(debugData.patternDetection),
+                        backgroundColor: [
+                            'rgba(99, 102, 241, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(236, 72, 153, 0.8)',
+                            'rgba(6, 182, 212, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(99, 102, 241, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(236, 72, 153, 1)',
+                            'rgba(6, 182, 212, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: '#475569'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayDebugIssues() {
+            const debugIssues = document.getElementById('debugIssues');
+            
+            debugIssues.innerHTML = debugData.debugIssues.map(issue => `
+                <div class="debug-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <div class="mb-1">
+                                <span class="severity-badge severity-${issue.severity}">${issue.severity.toUpperCase()}</span>
+                                <span class="status-badge status-${issue.autoFix ? 'resolved' : 'pending'}">${issue.autoFix ? 'AUTO-FIXED' : 'PENDING'}</span>
+                            </div>
+                            <h5 class="mb-1">${issue.type}</h5>
+                            <p class="text-secondary mb-1">${issue.description}</p>
+                            <small class="text-secondary">
+                                <i class="fas fa-file-code me-1"></i>${issue.file}:${issue.line}:${issue.column}
+                            </small>
+                        </div>
+                        <div>
+                            <span class="confidence-score confidence-${issue.confidence >= 90 ? 'high' : issue.confidence >= 80 ? 'medium' : 'low'}">${issue.confidence}% confidence</span>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-secondary">
+                            <i class="fas fa-layer-group me-1"></i>Stack trace: ${issue.stackTrace}
+                        </small>
+                    </div>
+                    <div class="mt-2">
+                        <p class="mb-0"><strong>AI Suggestion:</strong> ${issue.fixSuggestion}</p>
+                    </div>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-primary" onclick="applyFix('${issue.id}')">
+                            <i class="fas fa-wrench me-1"></i>Apply Fix
+                        </button>
+                        <button class="btn btn-sm btn-secondary ms-2" onclick="viewDetails('${issue.id}')">
+                            <i class="fas fa-info-circle me-1"></i>Details
+                        </button>
+                        <button class="btn btn-sm btn-secondary ms-2" onclick="ignoreIssue('${issue.id}')">
+                            <i class="fas fa-times me-1"></i>Ignore
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayStackTraces() {
+            const stackTraces = document.getElementById('stackTraces');
+            
+            stackTraces.innerHTML = debugData.stackTraces.map(trace => `
+                <div class="debug-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h5 class="mb-1">${trace.function}</h5>
+                            <p class="text-secondary mb-1">${trace.file}:${trace.line}</p>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary">${trace.issueId}</span>
+                        </div>
+                    </div>
+                    <div class="code-block">${trace.code}</div>
+                </div>
+            `).join('');
+        }
+
+        function displayRecommendations() {
+            const debugRecommendations = document.getElementById('debugRecommendations');
+            
+            debugRecommendations.innerHTML = debugData.recommendations.map(rec => `
+                <div class="recommendation-card">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h5 class="mb-1">${rec.type}</h5>
+                            <p class="text-secondary mb-1">${rec.description}</p>
+                            <div class="mb-2">
+                                <small class="text-secondary">
+                                    <i class="fas fa-chart-line me-1"></i>Impact: ${rec.impact}
+                                </small>
+                            </div>
+                            <p class="mb-0"><strong>Action:</strong> ${rec.action}</p>
+                        </div>
+                        <div>
+                            <span class="confidence-score confidence-${rec.confidence >= 90 ? 'high' : rec.confidence >= 80 ? 'medium' : 'low'}">${rec.confidence}% confidence</span>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-primary" onclick="applyRecommendation('${rec.type}')">
+                            <i class="fas fa-check me-1"></i>Apply
+                        </button>
+                        <button class="btn btn-sm btn-secondary ms-2" onclick="analyzeRecommendation('${rec.type}')">
+                            <i class="fas fa-search me-1"></i>Analyze
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function applyFix(issueId) {
+            const issue = debugData.debugIssues.find(i => i.id === issueId);
+            if (issue) {
+                issue.status = 'resolved';
+                displayDebugIssues();
+                showNotification(`Applied fix for ${issue.type}`, 'success');
+            }
+        }
+
+        function viewDetails(issueId) {
+            const issue = debugData.debugIssues.find(i => i.id === issueId);
+            if (issue) {
+                showNotification(`Detailed analysis for ${issue.type}`, 'info');
+            }
+        }
+
+        function ignoreIssue(issueId) {
+            const issue = debugData.debugIssues.find(i => i.id === issueId);
+            if (issue) {
+                issue.status = 'ignored';
+                displayDebugIssues();
+                showNotification(`Ignored: ${issue.type}`, 'warning');
+            }
+        }
+
+        function applyRecommendation(type) {
+            showNotification(`Applying recommendation: ${type}...`, 'info');
+        }
+
+        function analyzeRecommendation(type) {
+            showNotification(`Analyzing recommendation: ${type}...`, 'info');
+        }
+
+        function resetAnalysis() {
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            progressSection.classList.remove('active');
+            resultsSection.classList.remove('active');
+            
+            // Reset form
+            document.getElementById('appPath').value = './src';
+            document.getElementById('debugMode').value = 'comprehensive';
+            document.getElementById('debugTarget').value = 'all';
+            document.getElementById('analysisDepth').value = 'standard';
+            
+            // Stop any ongoing debugging
+            stopDebugging();
+            
+            // Destroy charts
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+            notification.style.zIndex = '9999';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

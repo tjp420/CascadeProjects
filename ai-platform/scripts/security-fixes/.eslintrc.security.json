@@ -1,0 +1,16 @@
+{
+  "extends": [
+    "eslint:recommended"
+  ],
+  "rules": {
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "warn",
+    "no-script-url": "error"
+  },
+  "globals": {
+    "console": "readonly",
+    "window": "readonly",
+    "document": "readonly"
+  }
+}

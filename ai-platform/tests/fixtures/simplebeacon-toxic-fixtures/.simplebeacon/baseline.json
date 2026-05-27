@@ -1,0 +1,14 @@
+{
+  "dataSource": "repository-audit",
+  "jestTestsPassing": null,
+  "jestTestsLabel": null,
+  "rejectedFiction": {
+    "completionRates": [62, 66, 74.17],
+    "featureCounts": [47, 8, 9],
+    "aiConfidenceScores": [98.5, 94.3],
+    "openIssueCounts": [156],
+    "mockFileCounts": [1247],
+    "modelNames": ["unbreakable-oracle", "demo-oracle"],
+    "throughputClaims": ["1559", "1,559"]
+  }
+}

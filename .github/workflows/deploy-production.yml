@@ -95,7 +95,7 @@ jobs:
             const gate = report.gate || {};
             const line = `- simplebeacon gate: **${gate.pass ? 'PASS' : 'FAIL'}** (blocking=${gate.blockingCount ?? 'n/a'})`;
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${line}\n`);
-            NODE
+          NODE
           fi
           if [ -f .simplebeacon/report.json ]; then
             node packages/simplebeacon-cli/bin/simplebeacon.js comment \
@@ -118,7 +118,7 @@ jobs:
             const audit = JSON.parse(fs.readFileSync('.simplebeacon/npm-audit.json', 'utf8'));
             const vulns = audit.metadata?.vulnerabilities || {};
             console.log(`critical=${vulns.critical || 0}, high=${vulns.high || 0}, moderate=${vulns.moderate || 0}, low=${vulns.low || 0}`);
-            NODE
+          NODE
           fi
 
       - name: Upload compliance artifacts

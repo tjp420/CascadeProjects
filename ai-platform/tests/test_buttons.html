@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Button Test - AI Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .test-button { margin: 10px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .test-button:hover { background: #0056b3; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Button Functionality Test</h1>
+    
+    <div class="test-section">
+        <h2>🔍 DIR Analysis Buttons Test</h2>
+        <button class="test-button" onclick="testAnalyzeCurrent()">Test Analyze Current</button>
+        <button class="test-button" onclick="testDownloadReport()">Test Download Report</button>
+        <div id="status" class="status info">Click buttons to test functionality</div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Global Functions Check</h2>
+        <button class="test-button" onclick="checkGlobalFunctions()">Check Global Functions</button>
+        <div id="global-status" class="status info">Click to check global function availability</div>
+    </div>
+
+    <script>
+        function testAnalyzeCurrent() {
+            console.log('🔍 Testing analyzeCurrentDirectory function...');
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                if (typeof window.analyzeCurrentDirectory === 'function') {
+                    console.log('✅ analyzeCurrentDirectory function found globally');
+                    window.analyzeCurrentDirectory().then(result => {
+                        console.log('✅ analyzeCurrentDirectory executed successfully:', result);
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = '✅ Analyze Current Working! Results: ' + JSON.stringify(result).substring(0, 100) + '...';
+                    }).catch(error => {
+                        console.error('❌ analyzeCurrentDirectory failed:', error);
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ Analyze Current Failed: ' + error.message;
+                    });
+                } else {
+                    console.log('❌ analyzeCurrentDirectory function not found');
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ Function not available';
+                }
+            } catch (error) {
+                console.error('❌ Error testing analyzeCurrentDirectory:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Test Error: ' + error.message;
+            }
+        }
+
+        function testDownloadReport() {
+            console.log('📄 Testing downloadReport function...');
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                if (typeof window.downloadReport === 'function') {
+                    console.log('✅ downloadReport function found globally');
+                    // Test with sample dataset
+                    const testData = { totalFiles: 7780, codeQuality: 60 };
+                    const testAnalysis = { complexity: 'Medium', organization: 'Good' };
+                    window.downloadReport(testData, testAnalysis).then(() => {
+                        console.log('✅ downloadReport executed successfully');
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = '✅ Download Report Working!';
+                    }).catch(error => {
+                        console.error('❌ downloadReport failed:', error);
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ Download Report Failed: ' + error.message;
+                    });
+                } else {
+                    console.log('❌ downloadReport function not found');
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ Function not available';
+                }
+            } catch (error) {
+                console.error('❌ Error testing downloadReport:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Test Error: ' + error.message;
+            }
+        }
+
+        function checkGlobalFunctions() {
+            console.log('🔍 Checking global functions...');
+            const globalStatus = document.getElementById('global-status');
+            
+            const functions = [
+                'window.dashboard',
+                'window.dashboard.ai',
+                'window.analyzeCurrentDirectory',
+                'window.downloadReport',
+                'window.dashboard.ai.analyzeCurrentDirectory',
+                'window.dashboard.ai.downloadReport'
+            ];
+            
+            const results = functions.map(func => {
+                const exists = eval(`typeof ${func} !== 'undefined'`);
+                console.log(`${exists ? '✅' : '❌'} ${func}: ${exists ? 'Available' : 'Not Available'}`);
+                return { name: func, exists: exists };
+            });
+            
+            const available = results.filter(r => r.exists).length;
+            const total = results.length;
+            
+            globalStatus.className = available === total ? 'status success' : 'status error';
+            globalStatus.textContent = `Global Functions: ${available}/${total} Available`;
+            
+            console.log(`📊 Global Functions Status: ${available}/${total}`);
+            
+            // Check for dashboard structure
+            if (window.dashboard && window.dashboard.ai) {
+                console.log('✅ Dashboard structure found');
+                globalStatus.textContent += ' | Dashboard Structure: ✅';
+            } else {
+                console.log('❌ Dashboard structure not found');
+                globalStatus.textContent += ' | Dashboard Structure: ❌';
+            }
+        }
+
+        // Auto-check on load
+        window.addEventListener('load', () => {
+            console.log('🚀 Page loaded, auto-checking functions...');
+            setTimeout(checkGlobalFunctions, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified AI-Powered Roadmap Analyzer - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-color: #1f2937;
+            --light-color: #f3f4f6;
+            --border-color: #e5e7eb;
+            --gguf-color: #10b981;
+            --ai-color: #f59e0b;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .main-container {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .roadmap-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .data-source-toggle {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .toggle-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .toggle-btn.active {
+            background: var(--secondary-color);
+        }
+
+        .toggle-btn.gguf-active {
+            background: var(--gguf-color);
+        }
+
+        .toggle-btn.ai-active {
+            background: var(--ai-color);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.2s ease;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .metric-card.gguf-card {
+            border-left-color: var(--gguf-color);
+        }
+
+        .metric-card.ai-card {
+            border-left-color: var(--ai-color);
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--dark-color);
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        .section-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .data-source-indicator {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+
+        .gguf-indicator {
+            background: var(--gguf-color);
+            color: white;
+        }
+
+        .ai-indicator {
+            background: var(--ai-color);
+            color: white;
+        }
+
+        .comparative-section {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .comparison-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 6px;
+        }
+
+        .comparison-label {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .comparison-value {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .gguf-value {
+            color: var(--gguf-color);
+            font-weight: 600;
+        }
+
+        .ai-value {
+            color: var(--ai-color);
+            font-weight: 600;
+        }
+
+        .phase-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+            transition: transform 0.2s ease;
+        }
+
+        .phase-card:hover {
+            transform: translateX(5px);
+        }
+
+        .phase-completed { border-left-color: var(--success-color); }
+        .phase-in-progress { border-left-color: var(--warning-color); }
+        .phase-planned { border-left-color: var(--primary-color); }
+
+        .progress-ring {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem;
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .release-timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .release-timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: var(--border-color);
+        }
+
+        .release-item {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+
+        .release-item::before {
+            content: '';
+            position: absolute;
+            left: -2.25rem;
+            top: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            border: 2px solid white;
+        }
+
+        .btn-analyze {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+            color: white;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 2rem;
+            display: none;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-excellent { background: var(--success-color); }
+        .status-good { background: #10b981; }
+        .status-fair { background: var(--warning-color); }
+        .status-poor { background: var(--danger-color); }
+
+        .recommendation-item {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+            transition: transform 0.2s ease;
+        }
+
+        .recommendation-item:hover {
+            transform: translateX(5px);
+        }
+
+        .recommendation-high { border-left-color: var(--danger-color); }
+        .recommendation-medium { border-left-color: var(--warning-color); }
+        .recommendation-low { border-left-color: var(--primary-color); }
+
+        .feature-tag {
+            display: inline-block;
+            background: var(--light-color);
+            color: var(--dark-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin: 0.25rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Container -->
+    <div class="navigation-container"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-content-with-sidebar">
+        <div class="content-wrapper">
+            <!-- Header -->
+            <div class="roadmap-header">
+                <h1><i class="fas fa-brain me-2"></i>Unified AI-Powered Roadmap Analyzer</h1>
+                <p class="text-muted">Advanced AI analysis with dual data sources and comprehensive insights</p>
+                <div class="mt-3">
+                    <span class="badge bg-primary me-2"><i class="fas fa-cube me-1"></i>GGUF Model: unbreakable-oracle</span>
+                    <span class="badge bg-warning me-2"><i class="fas fa-microchip me-1"></i>AI Analysis Engine: v2.1</span>
+                    <span class="badge bg-info me-2"><i class="fas fa-chart-line me-1"></i>Unified Analysis</span>
+                </div>
+                <button class="btn btn-analyze btn-lg mt-3" onclick="startUnifiedAnalysis()">
+                    <i class="fas fa-play me-2"></i>Start Unified Analysis
+                </button>
+            </div>
+
+            <!-- Data Source Toggle -->
+            <div class="data-source-toggle">
+                <h5><i class="fas fa-toggle-on me-2"></i>Data Source Selection</h5>
+                <p class="text-muted">Choose between GGUF and AI-Powered data sources</p>
+                <div class="mt-3">
+                    <button class="toggle-btn gguf-btn" onclick="toggleDataSource('gguf')">
+                        <i class="fas fa-cube me-1"></i>GGUF Model
+                    </button>
+                    <button class="toggle-btn ai-btn active" onclick="toggleDataSource('ai')">
+                        <i class="fas fa-microchip me-1"></i>AI Engine
+                    </button>
+                    <button class="toggle-btn unified-btn" onclick="toggleDataSource('unified')">
+                        <i class="fas fa-layer-group me-1"></i>Unified Analysis
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div class="loading-spinner">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Performing comprehensive unified analysis...</p>
+            </div>
+
+            <!-- Analysis Results -->
+            <div id="analysisResults" style="display: none;">
+                <!-- Executive Summary Metrics -->
+                <div class="metrics-grid">
+                    <div class="metric-card gguf-card">
+                        <div class="metric-value" id="completionRate">-</div>
+                        <div class="metric-label">Completion Rate</div>
+                        <div class="status-indicator status-good"></div>
+                    </div>
+                    <div class="metric-card ai-card">
+                        <div class="metric-value" id="projectHealth">-</div>
+                        <div class="metric-label">Project Health</div>
+                        <div class="status-indicator status-excellent"></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="riskScore">-</div>
+                        <div class="metric-label">Risk Score</div>
+                        <div class="status-indicator status-fair"></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="recommendationsCount">-</div>
+                        <div class="metric-label">Recommendations</div>
+                        <div class="status-indicator status-good"></div>
+                    </div>
+                </div>
+
+                <!-- Comparative Analysis -->
+                <div class="section-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-balance-scale me-2"></i>Comparative Analysis
+                        <span id="dataSourceIndicator" class="data-source-indicator ai-indicator">AI-Powered</span>
+                    </h3>
+                    <div id="comparativeAnalysis">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Development Phases -->
+                <div class="section-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-tasks me-2"></i>Development Phases
+                        <span id="phasesIndicator" class="data-source-indicator ai-indicator">AI-Powered</span>
+                    </h3>
+                    <div id="developmentPhases">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Release Timeline -->
+                <div class="section-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-calendar-alt me-2"></i>Release Timeline
+                        <span id="timelineIndicator" class="data-source-indicator ai-indicator">AI-Powered</span>
+                    </h3>
+                    <div id="releaseTimeline">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- AI Recommendations -->
+                <div class="section-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-lightbulb me-2"></i>AI Recommendations
+                        <span id="recommendationsIndicator" class="data-source-indicator ai-indicator">AI-Powered</span>
+                    </h3>
+                    <div id="recommendations">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Project Metrics -->
+                <div class="section-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-chart-bar me-2"></i>Project Metrics
+                        <span id="metricsIndicator" class="data-source-indicator ai-indicator">AI-Powered</span>
+                    </h3>
+                    <div id="projectMetrics">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Export Options -->
+                <div class="text-center mt-4">
+                    <button class="btn btn-primary me-2" onclick="exportReport('json')">
+                        <i class="fas fa-download me-1"></i>Export JSON
+                    </button>
+                    <button class="btn btn-success me-2" onclick="exportReport('pdf')">
+                        <i class="fas fa-file-pdf me-1"></i>Export PDF
+                    </button>
+                    <button class="btn btn-info" onclick="shareReport()">
+                        <i class="fas fa-share me-1"></i>Share Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        class UnifiedRoadmapUI {
+            constructor() {
+                this.currentAnalysis = null;
+                this.currentDataSource = 'ai';
+                this.analysisCache = {};
+            }
+
+            async startUnifiedAnalysis() {
+                // Show loading spinner
+                document.querySelector('.loading-spinner').style.display = 'block';
+                document.getElementById('analysisResults').style.display = 'none';
+                
+                try {
+                    // Call unified analysis API
+                    const response = await fetch('/api/gguf/roadmap/analyze');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.currentAnalysis = data.report;
+                        this.displayResults(data.report);
+                    } else {
+                        throw new Error(data.message || 'Analysis failed');
+                    }
+                } catch (error) {
+                    console.error('Analysis error:', error);
+                    this.showError(error.message);
+                } finally {
+                    // Hide loading spinner
+                    document.querySelector('.loading-spinner').style.display = 'none';
+                }
+            }
+
+            displayResults(report) {
+                document.getElementById('analysisResults').style.display = 'block';
+                
+                // Update data source indicator
+                this.updateDataSourceIndicator(report.dataSource);
+                
+                // Update executive summary metrics
+                this.updateExecutiveSummary(report.executiveSummary);
+                
+                // Display comparative analysis
+                this.displayComparativeAnalysis(report.comparativeAnalysis);
+                
+                // Display development phases
+                this.displayDevelopmentPhases(report.originalRoadmap.developmentPhases || report.originalRoadmap.developmentPhases);
+                
+                // Display release timeline
+                this.displayReleaseTimeline(report.releaseTimeline);
+                
+                // Display recommendations
+                this.displayRecommendations(report.recommendations);
+                
+                // Display project metrics
+                this.displayProjectMetrics(report.projectMetrics);
+            }
+
+            updateDataSourceIndicator(dataSource) {
+                const indicators = document.querySelectorAll('.data-source-indicator');
+                indicators.forEach(indicator => {
+                    indicator.className = 'data-source-indicator';
+                    if (dataSource === 'gguf') {
+                        indicator.classList.add('gguf-indicator');
+                        indicator.textContent = 'GGUF Model';
+                    } else if (dataSource === 'ai-powered') {
+                        indicator.classList.add('ai-indicator');
+                        indicator.textContent = 'AI Engine';
+                    } else {
+                        indicator.classList.add('ai-indicator');
+                        indicator.textContent = 'Unified';
+                    }
+                });
+            }
+
+            updateExecutiveSummary(summary) {
+                document.getElementById('completionRate').textContent = summary.completionRate;
+                document.getElementById('projectHealth').textContent = summary.projectHealth;
+                document.getElementById('riskScore').textContent = summary.overallRiskScore + '%';
+                document.getElementById('recommendationsCount').textContent = summary.recommendationsCount;
+            }
+
+            displayComparativeAnalysis(comparative) {
+                if (!comparative || Object.keys(comparative).length === 0) {
+                    document.getElementById('comparativeAnalysis').innerHTML = '<p class="text-muted">Comparative analysis not available for single data source.</p>';
+                    return;
+                }
+
+                const html = Object.entries(comparative).map(([key, value]) => `
+                    <div class="comparative-section">
+                        <h6 class="comparison-label">${this.formatComparisonKey(key)}</h6>
+                        <div class="comparison-item">
+                            <span class="comparison-label">GGUF:</span>
+                            <span class="comparison-value gguf-value">${value.gguf}</span>
+                        </div>
+                        <div class="comparison-item">
+                            <span class="comparison-label">AI:</span>
+                            <span class="comparison-value ai-value">${value.ai}</span>
+                        </div>
+                        <div class="comparison-item">
+                            <span class="comparison-label">Difference:</span>
+                            <span class="comparison-value">${value.difference}</span>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('comparativeAnalysis').innerHTML = html;
+            }
+
+            formatComparisonKey(key) {
+                return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            }
+
+            displayDevelopmentPhases(phases) {
+                const html = phases.map(phase => `
+                    <div class="phase-card phase-${phase.status?.toLowerCase().replace(' ', '-') || 'planned'}">
+                        <div class="row align-items-center">
+                            <div class="col-md-2">
+                                <svg class="progress-ring" viewBox="0 0 36 36">
+                                    <path class="progress-ring-circle"
+                                        stroke="#e5e7eb"
+                                        stroke-width="3"
+                                        fill="transparent"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    />
+                                    <path class="progress-ring-circle"
+                                        stroke="${phase.status === 'completed' ? '#10b981' : phase.status === 'in-progress' ? '#f59e0b' : '#6366f1'}"
+                                        stroke-width="3"
+                                        stroke-dasharray="${phase.progress || phase.metrics?.completion?.replace('%', '') || 0}, 100"
+                                        fill="transparent"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    />
+                                </svg>
+                            </div>
+                            <div class="col-md-8">
+                                <h5>${phase.phase || phase.title}</h5>
+                                <p class="text-muted">${phase.description}</p>
+                                <div class="mt-2">
+                                    ${(phase.deliverables || phase.features || []).map(item => 
+                                        `<span class="feature-tag">${item}</span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <span class="badge bg-${phase.status === 'completed' ? 'success' : phase.status === 'in-progress' ? 'warning' : 'primary'}">
+                                    ${phase.status}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('developmentPhases').innerHTML = html;
+            }
+
+            displayReleaseTimeline(timeline) {
+                if (!timeline || timeline.length === 0) {
+                    document.getElementById('releaseTimeline').innerHTML = '<p class="text-muted">Release timeline not available for this data source.</p>';
+                    return;
+                }
+
+                const html = `
+                    <div class="release-timeline">
+                        ${timeline.map(release => `
+                            <div class="release-item">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">${release.title}</h6>
+                                        <p class="card-text">${release.description}</p>
+                                        <p class="text-muted"><strong>Date:</strong> ${new Date(release.date).toLocaleDateString()}</p>
+                                        <p class="text-muted"><strong>Status:</strong> 
+                                            <span class="badge bg-${release.status === 'completed' ? 'success' : 'primary'}">${release.status}</span>
+                                        </p>
+                                        <div class="mt-2">
+                                            ${release.features?.map(feature => 
+                                                `<span class="feature-tag">${feature}</span>`
+                                            ).join('')}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                document.getElementById('releaseTimeline').innerHTML = html;
+            }
+
+            displayRecommendations(recommendations) {
+                const html = recommendations.slice(0, 5).map(rec => `
+                    <div class="recommendation-item recommendation-${rec.priority}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6>${rec.title}</h6>
+                                <p class="mb-1">${rec.description}</p>
+                                <small><strong>Impact:</strong> ${rec.impact} | <strong>Effort:</strong> ${rec.effort}</small>
+                            </div>
+                            <span class="badge bg-${rec.priority === 'high' ? 'danger' : rec.priority === 'medium' ? 'warning' : 'primary'}">
+                                ${rec.priority}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('recommendations').innerHTML = html || '<p>No recommendations available.</p>';
+            }
+
+            displayProjectMetrics(metrics) {
+                if (!metrics) {
+                    document.getElementById('projectMetrics').innerHTML = '<p class="text-muted">Project metrics not available for this data source.</p>';
+                    return;
+                }
+
+                const html = `
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="metric-card">
+                                <h6>Overall Health</h6>
+                                <p><strong>${metrics.overallHealth}</strong></p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-card">
+                                <h6>Team Productivity</h6>
+                                <p><strong>${metrics.teamProductivity}</strong></p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-card">
+                                <h6>Code Quality</h6>
+                                <p><strong>${metrics.codeQuality}</strong></p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-card">
+                                <h6>Test Coverage</h6>
+                                <p><strong>${metrics.testCoverage}</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="metric-card">
+                                <h6>Security</h6>
+                                <p><strong>${metrics.security}</strong></p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="metric-card">
+                                <h6>Performance</h6>
+                                <p><strong>${metrics.performance}</strong></p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="metric-card">
+                                <h6>Scalability</h6>
+                                <p><strong>${metrics.scalability}</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('projectMetrics').innerHTML = html;
+            }
+
+            toggleDataSource(source) {
+                this.currentDataSource = source;
+                
+                // Update button states
+                document.querySelectorAll('.toggle-btn').forEach(btn => {
+                    btn.classList.remove('active', 'gguf-active', 'ai-active');
+                });
+                
+                if (source === 'gguf') {
+                    document.querySelector('.gguf-btn').classList.add('gguf-active');
+                } else if (source === 'ai') {
+                    document.querySelector('.ai-btn').classList.add('ai-active');
+                } else {
+                    document.querySelector('.unified-btn').classList.add('active');
+                }
+                
+                // Restart analysis with new data source
+                this.startUnifiedAnalysis();
+            }
+
+            exportReport(format) {
+                if (!this.currentAnalysis) {
+                    alert('No analysis data available to export');
+                    return;
+                }
+
+                if (format === 'json') {
+                    const dataStr = JSON.stringify(this.currentAnalysis, null, 2);
+                    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                    
+                    const exportFileDefaultName = `unified-roadmap-analysis-${new Date().toISOString().split('T')[0]}.json`;
+                    
+                    const linkElement = document.createElement('a');
+                    linkElement.setAttribute('href', dataUri);
+                    linkElement.setAttribute('download', exportFileDefaultName);
+                    linkElement.click();
+                } else if (format === 'pdf') {
+                    alert('PDF export coming soon! For now, use JSON export.');
+                }
+            }
+
+            shareReport() {
+                if (!this.currentAnalysis) {
+                    alert('No analysis data available to share');
+                    return;
+                }
+
+                const shareData = {
+                    title: this.currentAnalysis.title,
+                    dataSource: this.currentAnalysis.dataSource,
+                    completionRate: this.currentAnalysis.executiveSummary.completionRate,
+                    projectHealth: this.currentAnalysis.executiveSummary.projectHealth,
+                    timestamp: this.currentAnalysis.generatedAt
+                };
+
+                const shareText = `Unified Roadmap Analysis:\nSource: ${shareData.dataSource}\nCompletion: ${shareData.completionRate}\nHealth: ${shareData.projectHealth}\nAnalyzed: ${new Date(shareData.timestamp).toLocaleString()}`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Unified Roadmap Analysis Report',
+                        text: shareText
+                    });
+                } else {
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        alert('Report details copied to clipboard!');
+                    });
+                }
+            }
+
+            showError(message) {
+                document.getElementById('analysisResults').style.display = 'block';
+                document.getElementById('analysisResults').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        <h4><i class="fas fa-exclamation-triangle me-2"></i>Analysis Failed</h4>
+                        <p>${message}</p>
+                        <button class="btn btn-outline-danger" onclick="location.reload()">Try Again</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize the Unified Roadmap UI
+        const unifiedRoadmapUI = new UnifiedRoadmapUI();
+
+        // Global functions for button clicks
+        function startUnifiedAnalysis() {
+            unifiedRoadmapUI.startUnifiedAnalysis();
+        }
+
+        function toggleDataSource(source) {
+            unifiedRoadmapUI.toggleDataSource(source);
+        }
+
+        function exportReport(format) {
+            unifiedRoadmapUI.exportReport(format);
+        }
+
+        function shareReport() {
+            unifiedRoadmapUI.shareReport();
+        }
+    </script>
+</body>
+</html>

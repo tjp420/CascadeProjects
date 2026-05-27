@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Connection Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>🔗 WebSocket Connection Test</h1>
+        <p class="lead">Test the WebSocket connection to fix the Roadmap WebSocket errors</p>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5>WebSocket Connection</h5>
+                    </div>
+                    <div class="card-body">
+                        <button id="connectBtn" class="btn btn-success">Connect WebSocket</button>
+                        <button id="disconnectBtn" class="btn btn-danger ms-2">Disconnect</button>
+                        <button id="pingBtn" class="btn btn-info ms-2">Send Ping</button>
+                        <button id="statusBtn" class="btn btn-secondary ms-2">Get Status</button>
+                        
+                        <div class="mt-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="autoReconnect">
+                                <label class="form-check-label" for="autoReconnect">
+                                    Auto-reconnect on disconnect
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5>Connection Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="connectionStatus" class="alert alert-secondary">
+                            <strong>Status:</strong> Disconnected<br>
+                            <strong>Server:</strong> ws://localhost:8765<br>
+                            <strong>Last Update:</strong> Never
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5>WebSocket Messages</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="messageLog" style="height: 400px; overflow-y: auto; background: #f8f9fa; padding: 10px; font-family: monospace; font-size: 12px;">
+                            <div class="text-muted">No messages yet...</div>
+                        </div>
+                        <button id="clearLogBtn" class="btn btn-sm btn-outline-secondary mt-2">Clear Log</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-warning text-dark">
+                <h5>🔧 Expected Behavior</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>✅ Successful Connection:</h6>
+                        <ul>
+                            <li>Green status shows "Connected"</li>
+                            <li>Welcome message received</li>
+                            <li>No console errors</li>
+                            <li>Roadmap WebSocket errors stop</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>📡 Messages:</h6>
+                        <ul>
+                            <li>Ping → Pong response</li>
+                            <li>Status → Server info</li>
+                            <li>Heartbeat every 30s</li>
+                            <li>Subscribe → Confirmation</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>🚨 Troubleshooting:</h6>
+                        <ul>
+                            <li>Check server is running on port 8765</li>
+                            <li>Look for firewall blocks</li>
+                            <li>Verify browser WebSocket support</li>
+                            <li>Check console for errors</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let websocket = null;
+        let reconnectInterval = null;
+        const messageLog = document.getElementById('messageLog');
+        const connectionStatus = document.getElementById('connectionStatus');
+        
+        function logMessage(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = {
+                'info': 'text-primary',
+                'success': 'text-success', 
+                'error': 'text-danger',
+                'warning': 'text-warning',
+                'received': 'text-info',
+                'sent': 'text-secondary'
+            }[type] || 'text-primary';
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = color;
+            logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            
+            messageLog.appendChild(logEntry);
+            messageLog.scrollTop = messageLog.scrollHeight;
+        }
+        
+        function updateConnectionStatus(connected, message = '') {
+            if (connected) {
+                connectionStatus.className = 'alert alert-success';
+                connectionStatus.innerHTML = `
+                    <strong>Status:</strong> ✅ Connected<br>
+                    <strong>Server:</strong> ws://localhost:8765<br>
+                    <strong>Last Update:</strong> ${new Date().toLocaleTimeString()}<br>
+                    <strong>Message:</strong> ${message}
+                `;
+            } else {
+                connectionStatus.className = 'alert alert-danger';
+                connectionStatus.innerHTML = `
+                    <strong>Status:</strong> ❌ Disconnected<br>
+                    <strong>Server:</strong> ws://localhost:8765<br>
+                    <strong>Last Update:</strong> ${new Date().toLocaleTimeString()}<br>
+                    <strong>Message:</strong> ${message}
+                `;
+            }
+        }
+        
+        function connectWebSocket() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                logMessage('WebSocket already connected', 'warning');
+                return;
+            }
+            
+            logMessage('Connecting to WebSocket server...', 'info');
+            
+            try {
+                websocket = new WebSocket('ws://localhost:8765');
+                
+                websocket.onopen = function(event) {
+                    logMessage('✅ WebSocket connected successfully!', 'success');
+                    updateConnectionStatus(true, 'Connection established');
+                    
+                    // Subscribe to updates
+                    websocket.send(JSON.stringify({
+                        type: 'subscribe',
+                        subscription: 'roadmap'
+                    }));
+                    logMessage('Sent subscription request', 'sent');
+                };
+                
+                websocket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        logMessage(`📨 Received: ${JSON.stringify(data)}`, 'received');
+                        
+                        // Update status based on message type
+                        if (data.type === 'welcome') {
+                            updateConnectionStatus(true, data.message);
+                        } else if (data.type === 'heartbeat') {
+                            logMessage(`💓 Heartbeat: ${data.connected_clients} clients connected`, 'info');
+                        }
+                    } catch (e) {
+                        logMessage(`📨 Raw message: ${event.data}`, 'received');
+                    }
+                };
+                
+                websocket.onclose = function(event) {
+                    logMessage(`❌ WebSocket disconnected (code: ${event.code})`, 'error');
+                    updateConnectionStatus(false, `Connection closed (code: ${event.code})`);
+                    
+                    // Auto-reconnect if enabled
+                    if (document.getElementById('autoReconnect').checked) {
+                        logMessage('🔄 Attempting to reconnect in 5 seconds...', 'warning');
+                        setTimeout(connectWebSocket, 5000);
+                    }
+                };
+                
+                websocket.onerror = function(error) {
+                    logMessage(`❌ WebSocket error: ${error}`, 'error');
+                    updateConnectionStatus(false, 'Connection error');
+                };
+                
+            } catch (error) {
+                logMessage(`❌ Failed to create WebSocket: ${error}`, 'error');
+                updateConnectionStatus(false, `Failed to connect: ${error}`);
+            }
+        }
+        
+        function disconnectWebSocket() {
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+                logMessage('🔌 WebSocket disconnected by user', 'warning');
+                updateConnectionStatus(false, 'Disconnected by user');
+            }
+        }
+        
+        function sendPing() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                const ping = { type: 'ping', timestamp: Date.now() };
+                websocket.send(JSON.stringify(ping));
+                logMessage(`📤 Sent ping: ${JSON.stringify(ping)}`, 'sent');
+            } else {
+                logMessage('❌ Cannot send ping - WebSocket not connected', 'error');
+            }
+        }
+        
+        function getStatus() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                const status = { type: 'status' };
+                websocket.send(JSON.stringify(status));
+                logMessage(`📤 Sent status request`, 'sent');
+            } else {
+                logMessage('❌ Cannot get status - WebSocket not connected', 'error');
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('connectBtn').addEventListener('click', connectWebSocket);
+        document.getElementById('disconnectBtn').addEventListener('click', disconnectWebSocket);
+        document.getElementById('pingBtn').addEventListener('click', sendPing);
+        document.getElementById('statusBtn').addEventListener('click', getStatus);
+        document.getElementById('clearLogBtn').addEventListener('click', () => {
+            messageLog.innerHTML = '<div class="text-muted">Log cleared...</div>';
+        });
+        
+        // Auto-connect on page load
+        window.addEventListener('load', () => {
+            logMessage('🚀 WebSocket test page loaded', 'info');
+            setTimeout(connectWebSocket, 1000); // Connect after 1 second
+        });
+    </script>
+</body>
+</html>

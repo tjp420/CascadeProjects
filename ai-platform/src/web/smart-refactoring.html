@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Refactoring Engine - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .refactoring-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .control-panel {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-label {
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control, .form-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: var(--bg-secondary);
+            border-color: var(--accent-color);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .progress-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-gradient);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-color);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .chart-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        .refactoring-item {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .refactoring-priority {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .priority-high {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .priority-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .priority-low {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: rgba(107, 114, 128, 0.2);
+            color: #6b7280;
+        }
+
+        .status-recommended {
+            background: rgba(99, 102, 241, 0.2);
+            color: #6366f1;
+        }
+
+        .status-applied {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+    </style>
+</head>
+<body>
+    <div class="refactoring-container">
+        <!-- Header -->
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-tools me-3"></i>
+                Smart Refactoring Engine
+            </h1>
+            <p class="page-subtitle">AI-driven automated code refactoring with impact analysis</p>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h3 class="mb-4">
+                <i class="fas fa-cogs me-2"></i>
+                Refactoring Configuration
+            </h3>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Project Path</label>
+                    <input type="text" class="form-control" id="projectPath" 
+                           placeholder="/path/to/your/project" value="./src">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Refactoring Type</label>
+                    <select class="form-select" id="refactoringType">
+                        <option value="comprehensive">Comprehensive Analysis</option>
+                        <option value="performance">Performance Optimization</option>
+                        <option value="readability">Code Readability</option>
+                        <option value="security">Security Enhancement</option>
+                        <option value="maintainability">Maintainability Improvement</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Target Languages</label>
+                    <select class="form-select" id="targetLanguages" multiple>
+                        <option value="javascript" selected>JavaScript</option>
+                        <option value="typescript" selected>TypeScript</option>
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="csharp">C#</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Aggressiveness Level</label>
+                    <select class="form-select" id="aggressiveness">
+                        <option value="conservative">Conservative</option>
+                        <option value="moderate" selected>Moderate</option>
+                        <option value="aggressive">Aggressive</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="autoApply" checked>
+                        <label class="form-check-label" for="autoApply">
+                            Auto-apply safe refactoring suggestions
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="backupCode" checked>
+                        <label class="form-check-label" for="backupCode">
+                            Create backup before refactoring
+                        </label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" onclick="startRefactoring()">
+                        <i class="fas fa-play me-2"></i>
+                        Start Refactoring Analysis
+                    </button>
+                    <button class="btn btn-secondary ms-2" onclick="resetAnalysis()">
+                        <i class="fas fa-redo me-2"></i>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="progress-section" id="progressSection">
+            <h3 class="mb-3">
+                <i class="fas fa-spinner fa-spin me-2"></i>
+                Analyzing Code for Refactoring Opportunities
+            </h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="text-center">
+                <span id="progressText">Initializing analysis...</span>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="resultsSection">
+            <!-- Metrics Dashboard -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalRefactorings">0</div>
+                        <div class="metric-label">Total Refactorings</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="impactScore">0%</div>
+                        <div class="metric-label">Impact Score</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="complexityReduction">0%</div>
+                        <div class="metric-label">Complexity Reduction</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="maintainabilityScore">0</div>
+                        <div class="metric-label">Maintainability Score</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Refactoring Types Distribution</h4>
+                        <canvas id="refactoringTypesChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Complexity Analysis</h4>
+                        <canvas id="complexityChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Refactoring Recommendations -->
+            <div class="chart-container">
+                <h4>
+                    <i class="fas fa-lightbulb me-2"></i>
+                    AI Refactoring Recommendations
+                </h4>
+                <div id="refactoringList">
+                    <!-- Refactoring items will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        let refactoringData = null;
+        let charts = {};
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Smart Refactoring Engine initialized');
+        });
+
+        function startRefactoring() {
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            // Show progress, hide results
+            progressSection.classList.add('active');
+            resultsSection.classList.remove('active');
+            
+            // Simulate refactoring analysis
+            simulateRefactoringAnalysis();
+        }
+
+        function simulateRefactoringAnalysis() {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            let progress = 0;
+            
+            const steps = [
+                'Scanning project structure...',
+                'Analyzing code complexity...',
+                'Identifying refactoring opportunities...',
+                'Evaluating impact of changes...',
+                'Generating refactoring recommendations...',
+                'Validating refactoring safety...',
+                'Creating backup files...',
+                'Analysis complete!'
+            ];
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        showResults();
+                    }, 1000);
+                }
+                
+                progressFill.style.width = progress + '%';
+                const stepIndex = Math.floor((progress / 100) * steps.length);
+                progressText.textContent = steps[Math.min(stepIndex, steps.length - 1)];
+            }, 500);
+        }
+
+        function showResults() {
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            progressSection.classList.remove('active');
+            resultsSection.classList.add('active');
+            
+            // Generate mock refactoring data
+            refactoringData = generateRefactoringData();
+            
+            // Update metrics
+            updateMetrics();
+            
+            // Create charts
+            createCharts();
+            
+            // Display refactoring recommendations
+            displayRefactoringRecommendations();
+        }
+
+        function generateRefactoringData() {
+            return {
+                totalRefactorings: Math.floor(Math.random() * 20) + 15,
+                impactScore: Math.floor(Math.random() * 20) + 75,
+                complexityReduction: Math.floor(Math.random() * 15) + 20,
+                maintainabilityScore: Math.floor(Math.random() * 20) + 75,
+                refactoringTypes: {
+                    'Extract Method': Math.floor(Math.random() * 5) + 3,
+                    'Rename Variable': Math.floor(Math.random() * 8) + 5,
+                    'Remove Duplication': Math.floor(Math.random() * 4) + 2,
+                    'Simplify Conditionals': Math.floor(Math.random() * 3) + 2,
+                    'Extract Class': Math.floor(Math.random() * 2) + 1,
+                    'Inline Method': Math.floor(Math.random() * 3) + 1
+                },
+                complexityMetrics: {
+                    'Before': Math.floor(Math.random() * 20) + 60,
+                    'After': Math.floor(Math.random() * 15) + 40
+                },
+                recommendations: generateRecommendations()
+            };
+        }
+
+        function generateRecommendations() {
+            const recommendations = [];
+            const priorities = ['high', 'medium', 'low'];
+            const statuses = ['recommended', 'pending'];
+            
+            const refactoringTypes = [
+                {
+                    type: 'Extract Method',
+                    description: 'Extract complex method into smaller, focused functions',
+                    impact: 'High',
+                    effort: 'Medium',
+                    file: 'src/components/UserInterface.js'
+                },
+                {
+                    type: 'Rename Variable',
+                    description: 'Rename unclear variable names for better readability',
+                    impact: 'Medium',
+                    effort: 'Low',
+                    file: 'src/utils/dataProcessor.js'
+                },
+                {
+                    type: 'Remove Duplication',
+                    description: 'Eliminate duplicate code blocks by creating shared functions',
+                    impact: 'High',
+                    effort: 'Medium',
+                    file: 'src/services/apiService.js'
+                },
+                {
+                    type: 'Simplify Conditionals',
+                    description: 'Simplify complex conditional statements for better maintainability',
+                    impact: 'Medium',
+                    effort: 'Low',
+                    file: 'src/components/DataTable.js'
+                },
+                {
+                    type: 'Extract Class',
+                    description: 'Extract large class into smaller, focused classes',
+                    impact: 'High',
+                    effort: 'High',
+                    file: 'src/models/DataModel.js'
+                }
+            ];
+            
+            refactoringTypes.forEach((refactoring, index) => {
+                recommendations.push({
+                    id: `ref_${index + 1}`,
+                    ...refactoring,
+                    priority: priorities[Math.floor(Math.random() * priorities.length)],
+                    status: statuses[Math.floor(Math.random() * statuses.length)],
+                    estimatedTime: Math.floor(Math.random() * 30) + 5
+                });
+            });
+            
+            return recommendations;
+        }
+
+        function updateMetrics() {
+            document.getElementById('totalRefactorings').textContent = refactoringData.totalRefactorings;
+            document.getElementById('impactScore').textContent = refactoringData.impactScore + '%';
+            document.getElementById('complexityReduction').textContent = refactoringData.complexityReduction + '%';
+            document.getElementById('maintainabilityScore').textContent = refactoringData.maintainabilityScore;
+        }
+
+        function createCharts() {
+            createRefactoringTypesChart();
+            createComplexityChart();
+        }
+
+        function createRefactoringTypesChart() {
+            const ctx = document.getElementById('refactoringTypesChart').getContext('2d');
+            
+            charts.refactoringTypes = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(refactoringData.refactoringTypes),
+                    datasets: [{
+                        data: Object.values(refactoringData.refactoringTypes),
+                        backgroundColor: [
+                            'rgba(99, 102, 241, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(236, 72, 153, 0.8)',
+                            'rgba(6, 182, 212, 0.8)',
+                            'rgba(239, 68, 68, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(99, 102, 241, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(236, 72, 153, 1)',
+                            'rgba(6, 182, 212, 1)',
+                            'rgba(239, 68, 68, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createComplexityChart() {
+            const ctx = document.getElementById('complexityChart').getContext('2d');
+            
+            charts.complexity = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Before Refactoring', 'After Refactoring'],
+                    datasets: [{
+                        label: 'Complexity Score',
+                        data: [refactoringData.complexityMetrics.Before, refactoringData.complexityMetrics.After],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(16, 185, 129, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(16, 185, 129, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: '#475569'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayRefactoringRecommendations() {
+            const refactoringList = document.getElementById('refactoringList');
+            
+            refactoringList.innerHTML = refactoringData.recommendations.map(rec => `
+                <div class="refactoring-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="refactoring-priority priority-${rec.priority}">${rec.priority.toUpperCase()} PRIORITY</span>
+                            <h5 class="mt-2 mb-1">${rec.type}</h5>
+                            <p class="text-secondary mb-1">${rec.description}</p>
+                            <small class="text-secondary">
+                                <i class="fas fa-file me-1"></i>${rec.file}
+                                <span class="ms-3"><i class="fas fa-clock me-1"></i>${rec.estimatedTime} min</span>
+                            </small>
+                        </div>
+                        <div>
+                            <span class="status-badge status-${rec.status}">${rec.status.toUpperCase()}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-2">
+                        <small class="text-secondary">
+                            <i class="fas fa-chart-line me-1"></i>Impact: ${rec.impact}
+                        </small>
+                        <small class="text-secondary">
+                            <i class="fas fa-tools me-1"></i>Effort: ${rec.effort}
+                        </small>
+                    </div>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-primary" onclick="applyRefactoring('${rec.id}')">
+                            <i class="fas fa-check me-1"></i>Apply
+                        </button>
+                        <button class="btn btn-sm btn-secondary ms-2" onclick="previewRefactoring('${rec.id}')">
+                            <i class="fas fa-eye me-1"></i>Preview
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function applyRefactoring(refactoringId) {
+            const refactoring = refactoringData.recommendations.find(rec => rec.id === refactoringId);
+            if (refactoring) {
+                refactoring.status = 'applied';
+                displayRefactoringRecommendations();
+                showNotification('Refactoring applied successfully!', 'success');
+            }
+        }
+
+        function previewRefactoring(refactoringId) {
+            const refactoring = refactoringData.recommendations.find(rec => rec.id === refactoringId);
+            if (refactoring) {
+                showNotification(`Preview: ${refactoring.type} - ${refactoring.description}`, 'info');
+            }
+        }
+
+        function resetAnalysis() {
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            progressSection.classList.remove('active');
+            resultsSection.classList.remove('active');
+            
+            // Reset form
+            document.getElementById('projectPath').value = './src';
+            document.getElementById('refactoringType').value = 'comprehensive';
+            document.getElementById('aggressiveness').value = 'moderate';
+            
+            // Destroy charts
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+        }
+
+        function showNotification(message, type) {
+            // Create a simple notification (you can enhance this)
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+            notification.style.zIndex = '9999';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

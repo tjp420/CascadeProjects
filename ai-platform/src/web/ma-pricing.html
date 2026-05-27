@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏢 M&A Due Diligence Platform - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Modern Sidebar Styles */
+        .sidebar-modern {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-modern.collapsed {
+            transform: translateX(-240px);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-container {
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .logo i {
+            color: var(--accent-color);
+            font-size: 2rem;
+        }
+
+        .logo-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-container {
+            padding: 1rem 0;
+        }
+
+        .nav-section-modern {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title-modern {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-item-modern {
+            margin: 0.25rem 0;
+        }
+
+        .nav-link-modern {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link-modern:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-link-modern.active {
+            background: var(--bg-card);
+            color: var(--accent-color);
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-icon-modern {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .sidebar-info {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content */
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+            margin-left: 40px;
+        }
+
+        .page-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .page-content {
+            padding: 2rem;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-240px);
+            }
+            
+            .sidebar-modern.collapsed {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+            }
+            
+            .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+                margin-left: 280px;
+            }
+        }
+
+        /* Preserve existing styles from original file */
+        
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --accent-color: #dc2626;
+            --success-color: #16a34a;
+            --dark-bg: #1f2937;
+            --light-bg: #f8fafc;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .hero-section {
+            background: var(--dark-bg);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .pricing-section {
+            padding: 80px 0;
+            background: white;
+        }
+
+        .pricing-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            height: 100%;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .pricing-card.featured {
+            border: 2px solid var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        .pricing-card.featured::before {
+            content: "MOST POPULAR";
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .price {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 20px 0;
+        }
+
+        .price-currency {
+            font-size: 1.5rem;
+            vertical-align: super;
+        }
+
+        .price-unit {
+            font-size: 1rem;
+            color: #6b7280;
+            font-weight: 400;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 30px 0;
+        }
+
+        .feature-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list i {
+            color: var(--success-color);
+            margin-right: 12px;
+            width: 16px;
+        }
+
+        .cta-button {
+            width: 100%;
+            padding: 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .cta-button.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .cta-button.primary:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .cta-button.secondary {
+            background: white;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .cta-button.secondary:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .roi-calculator {
+            background: var(--light-bg);
+            padding: 60px 0;
+        }
+
+        .calculator-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .roi-result {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .roi-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+
+        .testimonial-section {
+            padding: 80px 0;
+            background: var(--dark-bg);
+            color: white;
+        }
+
+        .testimonial-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .faq-section {
+            padding: 80px 0;
+            background: white;
+        }
+
+        .faq-item {
+            margin-bottom: 20px;
+        }
+
+        .faq-question {
+            background: var(--light-bg);
+            border: none;
+            padding: 20px;
+            width: 100%;
+            text-align: left;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .faq-question:hover {
+            background: #e5e7eb;
+        }
+
+        .faq-answer {
+            padding: 20px;
+            background: white;
+            border-left: 4px solid var(--primary-color);
+            margin-top: -10px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .contact-section {
+            background: var(--dark-bg);
+            color: white;
+            padding: 60px 0;
+            text-align: center;
+        }
+
+        .enterprise-badge {
+            background: var(--accent-color);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+    
+    </style>
+</head>
+<body>
+    <!-- Navigation Container - This will be populated by navigation-loader.js -->
+
+    <!-- Main Content Area -->
+    
+                            <div class="text-muted">Payment Probability</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="display-4 fw-bold">$10K-50K</div>
+                            <div class="text-muted">Per Assessment</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="display-4 fw-bold">24hrs</div>
+                            <div class="text-muted">Assessment Time</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing-section">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-4 fw-bold">Choose Your Due Diligence Plan</h2>
+                <p class="lead text-muted">Enterprise pricing designed for M&A professionals, investment firms, and corporate development teams</p>
+            </div>
+
+            <div class="row g-4">
+                <!-- Standard Assessment -->
+                <div class="col-lg-4">
+                    <div class="pricing-card">
+                        <h3 class="h4 mb-3">Standard Assessment</h3>
+                        <div class="price">
+                            <span class="price-currency">$</span>10,000
+                            <span class="price-unit">per codebase</span>
+                        </div>
+                        <p class="text-muted">Perfect for single acquisitions and initial screening</p>
+                        
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Comprehensive codebase analysis</li>
+                            <li><i class="fas fa-check"></i> Financial impact calculation</li>
+                            <li><i class="fas fa-check"></i> Risk assessment report</li>
+                            <li><i class="fas fa-check"></i> Industry benchmarking</li>
+                            <li><i class="fas fa-check"></i> PDF & Excel export</li>
+                            <li><i class="fas fa-check"></i> 24-hour turnaround</li>
+                            <li><i class="fas fa-check"></i> Email support</li>
+                        </ul>
+                        
+                        <a href="#contact" class="cta-button primary">Get Started</a>
+                    </div>
+                </div>
+
+                <!-- Enterprise Assessment -->
+                <div class="col-lg-4">
+                    <div class="pricing-card featured">
+                        <h3 class="h4 mb-3">Enterprise Assessment</h3>
+                        <div class="price">
+                            <span class="price-currency">$</span>25,000
+                            <span class="price-unit">per codebase</span>
+                        </div>
+                        <p class="text-muted">Complete due diligence with expert support</p>
+                        
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Everything in Standard</li>
+                            <li><i class="fas fa-check"></i> On-site support option</li>
+                            <li><i class="fas fa-check"></i> Custom integration planning</li>
+                            <li><i class="fas fa-check"></i> Executive presentation</li>
+                            <li><i class="fas fa-check"></i> Priority processing</li>
+                            <li><i class="fas fa-check"></i> 12-hour turnaround available</li>
+                            <li><i class="fas fa-check"></i> Phone & email support</li>
+                            <li><i class="fas fa-check"></i> Post-acquisition follow-up</li>
+                        </ul>
+                        
+                        <a href="#contact" class="cta-button primary">Most Popular Choice</a>
+                    </div>
+                </div>
+
+                <!-- Annual Subscription -->
+                <div class="col-lg-4">
+                    <div class="pricing-card">
+                        <h3 class="h4 mb-3">
+                            Annual Subscription
+                            <span class="enterprise-badge">ENTERPRISE</span>
+                        </h3>
+                        <div class="price">
+                            <span class="price-currency">$</span>150,000
+                            <span class="price-unit">per year</span>
+                        </div>
+                        <p class="text-muted">Unlimited assessments for active M&A teams</p>
+                        
+                        <ul class="feature-list">
+                            <li><i class="fas fa-check"></i> Unlimited codebase assessments</li>
+                            <li><i class="fas fa-check"></i> Dedicated account manager</li>
+                            <li><i class="fas fa-check"></i> Custom reporting templates</li>
+                            <li><i class="fas fa-check"></i> API access for integration</li>
+                            <li><i class="fas fa-check"></i> White-label options</li>
+                            <li><i class="fas fa-check"></i> 6-hour turnaround guarantee</li>
+                            <li><i class="fas fa-check"></i> 24/7 priority support</li>
+                            <li><i class="fas fa-check"></i> Quarterly strategy sessions</li>
+                            <li><i class="fas fa-check"></i> Team training & onboarding</li>
+                        </ul>
+                        
+                        <a href="#contact" class="cta-button secondary">Contact Sales</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ROI Calculator -->
+    <section class="roi-calculator">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-4 fw-bold">Calculate Your ROI</h2>
+                <p class="lead text-muted">See how much you can save compared to traditional due diligence</p>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="calculator-card">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Annual Deal Volume</label>
+                                    <input type="number" class="form-control" id="dealVolume" value="5" min="1">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Average Deal Size ($M)</label>
+                                    <input type="number" class="form-control" id="dealSize" value="50" min="1">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Current Due Diligence Cost per Deal</label>
+                                    <input type="number" class="form-control" id="currentCost" value="50000" min="1000">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Plan Type</label>
+                                    <select class="form-control" id="planType">
+                                        <option value="standard">Standard Assessment ($10K)</option>
+                                        <option value="enterprise" selected>Enterprise Assessment ($25K)</option>
+                                        <option value="annual">Annual Subscription ($150K)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button class="btn btn-primary btn-lg" onclick="calculateROI()">
+                                <i class="fas fa-calculator"></i> Calculate ROI
+                            </button>
+                        </div>
+
+                        <div id="roiResult" class="roi-result" style="display: none;">
+                            <h4>Your Annual Savings</h4>
+                            <div class="roi-value" id="annualSavings">$0</div>
+                            <p class="mb-2">ROI: <span id="roiPercentage">0%</span></p>
+                            <p class="mb-0">Payback Period: <span id="paybackPeriod">0 months</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonial-section">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-4 fw-bold">Trusted by M&A Professionals</h2>
+                <p class="lead">See what industry leaders say about our platform</p>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="testimonial-card">
+                        <div class="mb-3">
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                        </div>
+                        <p class="mb-3">"This platform saved us $75K on our last acquisition and identified critical risks we would have missed. Essential for any tech M&A team."</p>
+                        <div>
+                            <strong>John Chen</strong><br>
+                            <small>Partner, TechVentures Capital</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="testimonial-card">
+                        <div class="mb-3">
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                        </div>
+                        <p class="mb-3">"The financial impact calculations alone justified the cost. We now have data-driven insights for every acquisition decision."</p>
+                        <div>
+                            <strong>Sarah Martinez</strong><br>
+                            <small>VP Corporate Development, Fortune 500</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="testimonial-card">
+                        <div class="mb-3">
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                        </div>
+                        <p class="mb-3">"24-hour turnaround is a game-changer for deal timelines. We can now assess targets that would have been impossible before."</p>
+                        <div>
+                            <strong>Michael Roberts</strong><br>
+                            <small>Managing Director, M&A Advisory</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-4 fw-bold">Frequently Asked Questions</h2>
+                <p class="lead text-muted">Everything you need to know about our M&A due diligence platform</p>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFAQ(this)">
+                            How accurate are the financial impact calculations?
+                        </button>
+                        <div class="faq-answer" style="display: none;">
+                            Our calculations are based on industry-standard cost models and validated against hundreds of real M&A transactions. We use team size, salary data, and technical debt metrics to provide estimates within 15% of actual costs.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFAQ(this)">
+                            What programming languages and technologies do you support?
+                        </button>
+                        <div class="faq-answer" style="display: none;">
+                            We support all major programming languages including Python, JavaScript, Java, C#, Ruby, PHP, Go, Rust, and more. Our analysis is language-agnostic and focuses on code quality patterns, security vulnerabilities, and architectural complexity.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFAQ(this)">
+                            How do you handle confidential code and data?
+                        </button>
+                        <div class="faq-answer" style="display: none;">
+                            All analysis is performed in a secure, isolated environment. We sign NDAs for enterprise clients and can provide on-premise deployment options. Code is never stored or shared, and all data is encrypted in transit and at rest.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFAQ(this)">
+                            Can you integrate with our existing due diligence process?
+                        </button>
+                        <div class="faq-answer" style="display: none;">
+                            Yes! Enterprise plans include API access and custom integrations. We can work with your team to integrate our reports into your existing workflow systems and due diligence checklists.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFAQ(this)">
+                            What if we need help interpreting the results?
+                        </button>
+                        <div class="faq-answer" style="display: none;">
+                            Enterprise and Annual plans include expert consultation. Our team of M&A technologists can help you understand the implications of findings and develop mitigation strategies for your specific situation.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact-section" id="contact">
+        <div class="container">
+            <div class="text-center">
+                <h2 class="display-4 fw-bold mb-4">Ready to Transform Your M&A Due Diligence?</h2>
+                <p class="lead mb-4">Join leading firms using data-driven insights for better acquisition decisions</p>
+                
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <div class="d-flex gap-3 justify-content-center">
+                            <a href="mailto:sales@ma-diligence.com" class="cta-button primary">
+                                <i class="fas fa-envelope"></i> Contact Sales
+                            </a>
+                            
+                        </div>
+                        
+                        <div class="mt-4">
+                            <p class="mb-2">
+                                <i class="fas fa-phone"></i> 
+                                <strong>Sales:</strong> 1-800-MA-DILIGENCE
+                            </p>
+                            <p class="mb-0">
+                                <i class="fas fa-clock"></i> 
+                                <strong>Response Time:</strong> Under 2 hours during business hours
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function calculateROI() {
+            const dealVolume = parseInt(document.getElementById('dealVolume').value);
+            const dealSize = parseInt(document.getElementById('dealSize').value);
+            const currentCost = parseInt(document.getElementById('currentCost').value);
+            const planType = document.getElementById('planType').value;
+            
+            let platformCost;
+            switch(planType) {
+                case 'standard':
+                    platformCost = 10000 * dealVolume;
+                    break;
+                case 'enterprise':
+                    platformCost = 25000 * dealVolume;
+                    break;
+                case 'annual':
+                    platformCost = 150000;
+                    break;
+            }
+            
+            const currentTotalCost = currentCost * dealVolume;
+            const annualSavings = currentTotalCost - platformCost;
+            const roi = ((annualSavings / platformCost) * 100).toFixed(0);
+            const paybackMonths = Math.ceil((platformCost / (annualSavings / 12)));
+            
+            document.getElementById('annualSavings').textContent = '$' + annualSavings.toLocaleString();
+            document.getElementById('roiPercentage').textContent = roi + '%';
+            document.getElementById('paybackPeriod').textContent = paybackMonths + ' months';
+            
+            document.getElementById('roiResult').style.display = 'block';
+        }
+
+        function toggleFAQ(button) {
+            const answer = button.nextElementSibling;
+            const isHidden = answer.style.display === 'none';
+            
+            // Close all other FAQs
+            document.querySelectorAll('.faq-answer').forEach(a => {
+                a.style.display = 'none';
+            });
+            
+            // Toggle current FAQ
+            answer.style.display = isHidden ? 'block' : 'none';
+        }
+
+        function scheduleDemo() {
+            // Implementation for scheduling demo
+            alert('Demo scheduling feature coming soon! Please email sales@ma-diligence.com to schedule a personalized demo.');
+        }
+
+        // Auto-calculate ROI when inputs change
+        document.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('change', () => {
+                if (document.getElementById('roiResult').style.display !== 'none') {
+                    calculateROI();
+                }
+            });
+        });
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/navigation-loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+        function calculateROI() {
+            const dealVolume = parseInt(document.getElementById('dealVolume').value);
+            const dealSize = parseInt(document.getElementById('dealSize').value);
+            const currentCost = parseInt(document.getElementById('currentCost').value);
+            const planType = document.getElementById('planType').value;
+            
+            let platformCost;
+            switch(planType) {
+                case 'standard':
+                    platformCost = 10000 * dealVolume;
+                    break;
+                case 'enterprise':
+                    platformCost = 25000 * dealVolume;
+                    break;
+                case 'annual':
+                    platformCost = 150000;
+                    break;
+            }
+            
+            const currentTotalCost = currentCost * dealVolume;
+            const annualSavings = currentTotalCost - platformCost;
+            const roi = ((annualSavings / platformCost) * 100).toFixed(0);
+            const paybackMonths = Math.ceil((platformCost / (annualSavings / 12)));
+            
+            document.getElementById('annualSavings').textContent = '$' + annualSavings.toLocaleString();
+            document.getElementById('roiPercentage').textContent = roi + '%';
+            document.getElementById('paybackPeriod').textContent = paybackMonths + ' months';
+            
+            document.getElementById('roiResult').style.display = 'block';
+        }
+
+        function toggleFAQ(button) {
+            const answer = button.nextElementSibling;
+            const isHidden = answer.style.display === 'none';
+            
+            // Close all other FAQs
+            document.querySelectorAll('.faq-answer').forEach(a => {
+                a.style.display = 'none';
+            });
+            
+            // Toggle current FAQ
+            answer.style.display = isHidden ? 'block' : 'none';
+        }
+
+        function scheduleDemo() {
+            // Implementation for scheduling demo
+            alert('Demo scheduling feature coming soon! Please email sales@ma-diligence.com to schedule a personalized demo.');
+        }
+
+        // Auto-calculate ROI when inputs change
+        document.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('change', () => {
+                if (document.getElementById('roiResult').style.display !== 'none') {
+                    calculateROI();
+                }
+            });
+        });
+    </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,625 @@
+<!-- M&A Industry Benchmark Tab -->
+<div class="tab-content" id="benchmark-content">
+    <div class="tab-header">
+        <h2><i class="fas fa-balance-scale"></i> Industry Benchmark Analysis</h2>
+        <p>Compare target company metrics against industry standards and peer companies</p>
+    </div>
+
+    <!-- Benchmark Controls -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-bar"></i> Benchmark Parameters</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="benchmark-industry">Industry</label>
+                        <select id="benchmark-industry" class="form-control">
+                            <option value="tech">Technology</option>
+                            <option value="fintech">FinTech</option>
+                            <option value="healthcare">Healthcare</option>
+                            <option value="ecommerce">E-commerce</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="target-company-benchmark">Target Company</label>
+                        <input type="text" id="target-company-benchmark" class="form-control" placeholder="Company Name" value="Target Company">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="estimated-deal-size">Estimated Deal Size ($)</label>
+                        <input type="number" id="estimated-deal-size" class="form-control" placeholder="5000000" value="5000000" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="base-valuation">Base Valuation ($)</label>
+                        <input type="number" id="base-valuation" class="form-control" placeholder="10000000" value="10000000" min="0">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="benchmark-scope">Analysis Scope</label>
+                        <select id="benchmark-scope" class="form-control">
+                            <option value="comprehensive">Comprehensive (All Metrics)</option>
+                            <option value="financial">Financial Only</option>
+                            <option value="technical">Technical Only</option>
+                            <option value="market">Market Only</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="peer-comparison">Peer Comparison</label>
+                        <select id="peer-comparison" class="form-control">
+                            <option value="all">All Peers</option>
+                            <option value="similar-size">Similar Deal Size</option>
+                            <option value="similar-complexity">Similar Complexity</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <button class="btn btn-primary btn-lg" id="perform-benchmark-btn">
+                    <i class="fas fa-chart-line"></i> Generate Benchmark Analysis
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benchmark Results -->
+    <div id="benchmark-results" style="display: none;">
+        <!-- Executive Summary -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h3><i class="fas fa-trophy"></i> Benchmark Executive Summary</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h4>Industry Percentile</h4>
+                            <div class="metric-value" id="industry-percentile">-</div>
+                            <div class="metric-label">Overall Ranking</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h4>Valuation Impact</h4>
+                            <div class="metric-value" id="valuation-impact">-</div>
+                            <div class="metric-label">Adjustment %</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h4>Market Position</h4>
+                            <div class="metric-value" id="market-position">-</div>
+                            <div class="metric-label">Competitive Standing</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <h4>Deal Confidence</h4>
+                            <div class="metric-value" id="deal-confidence">-</div>
+                            <div class="metric-label">Risk Level</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Percentile Rankings -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="fas fa-ranking-star"></i> Industry Percentile Rankings</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="percentile-chart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Ranking Insights</h4>
+                        <div id="ranking-insights">
+                            <!-- Ranking insights will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Peer Comparison -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="fas fa-users"></i> Peer Company Comparison</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="peer-comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Technical Debt Ratio</th>
+                                <th>Complexity Score</th>
+                                <th>Deal Size</th>
+                                <th>Comparison</th>
+                            </tr>
+                        </thead>
+                        <tbody id="peer-comparison-body">
+                            <!-- Peer comparison data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Benchmark Insights -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="fas fa-lightbulb"></i> Key Benchmark Insights</h3>
+            </div>
+            <div class="card-body">
+                <div id="benchmark-insights">
+                    <!-- Benchmark insights will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Valuation Analysis -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="fas fa-dollar-sign"></i> Valuation Impact Analysis</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4>Valuation Breakdown</h4>
+                        <div class="financial-item">
+                            <span class="label">Base Valuation</span>
+                            <span class="value" id="base-valuation-display">-</span>
+                        </div>
+                        <div class="financial-item">
+                            <span class="label">Technical Debt Discount</span>
+                            <span class="value text-danger" id="td-discount">-</span>
+                        </div>
+                        <div class="financial-item">
+                            <span class="label">Complexity Penalty</span>
+                            <span class="value text-danger" id="complexity-penalty">-</span>
+                        </div>
+                        <div class="financial-item">
+                            <span class="label">Security Bonus</span>
+                            <span class="value text-success" id="security-bonus">-</span>
+                        </div>
+                        <div class="financial-item">
+                            <span class="label">Adjusted Valuation</span>
+                            <span class="value font-weight-bold" id="adjusted-valuation">-</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Market Multiples</h4>
+                        <div class="financial-item">
+                            <span class="label">Revenue Multiple</span>
+                            <span class="value" id="revenue-multiple">-</span>
+                        </div>
+                        <div class="financial-item">
+                            <span class="label">EBITDA Multiple</span>
+                            <span class="value" id="ebitda-multiple">-</span>
+                        </div>
+                        <div class="financial-item">
+                            <span class="label">Industry Average</span>
+                            <span class="value" id="industry-average">-</span>
+                        </div>
+                        <div class="financial-item">
+                            <span class="label">Deal Premium/Discount</span>
+                            <span class="value" id="deal-premium">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center">
+            <button class="btn btn-success btn-lg mr-2" id="export-benchmark-pdf-btn">
+                <i class="fas fa-file-pdf"></i> Export Benchmark Report
+            </button>
+            <button class="btn btn-info btn-lg mr-2" id="schedule-benchmark-followup">
+                <i class="fas fa-calendar"></i> Schedule Follow-up
+            </button>
+            <button class="btn btn-warning btn-lg" id="request-custom-analysis">
+                <i class="fas fa-chart-pie"></i> Request Custom Analysis
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="benchmark-loading" style="display: none;">
+        <div class="text-center py-5">
+            <div class="spinner-border text-info" role="status">
+                <span class="sr-only">Analyzing benchmarks...</span>
+            </div>
+            <h4 class="mt-3">Analyzing Industry Benchmarks...</h4>
+            <p>Comparing against industry standards and peer companies</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.metric-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #17a2b8;
+    margin: 10px 0;
+}
+
+.metric-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.financial-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.financial-item .label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.financial-item .value {
+    font-weight: bold;
+    color: #17a2b8;
+}
+
+.benchmark-insight {
+    background: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.benchmark-insight.positive {
+    background: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.benchmark-insight.warning {
+    background: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+.benchmark-insight.negative {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.peer-comparison-row {
+    transition: background-color 0.3s ease;
+}
+
+.peer-comparison-row:hover {
+    background-color: #f8f9fa;
+}
+
+.comparison-badge {
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.comparison-better {
+    background: #d4edda;
+    color: #155724;
+}
+
+.comparison-worse {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.comparison-similar {
+    background: #fff3cd;
+    color: #856404;
+}
+</style>
+
+<script>
+let percentileChart = null;
+let benchmarkChart = null;
+
+async function performBenchmarkAnalysis() {
+    const loading = document.getElementById('benchmark-loading');
+    const results = document.getElementById('benchmark-results');
+    
+    // Show loading
+    loading.style.display = 'block';
+    results.style.display = 'none';
+    
+    try {
+        // Get input values
+        const benchmarkData = {
+            industry: document.getElementById('benchmark-industry').value,
+            target_company: document.getElementById('target-company-benchmark').value,
+            estimated_deal_size: parseFloat(document.getElementById('estimated-deal-size').value) || 5000000,
+            base_valuation: parseFloat(document.getElementById('base-valuation').value) || 10000000,
+            scope: document.getElementById('benchmark-scope').value,
+            peer_comparison: document.getElementById('peer-comparison').value
+        };
+        
+        // Get current analysis data
+        const codeAnalysis = await getCurrentCodeAnalysis();
+        
+        // Prepare target metrics for benchmarking
+        const targetMetrics = {
+            technical_debt_ratio: codeAnalysis.analysis_metadata.complex_functions / Math.max(codeAnalysis.analysis_metadata.total_functions, 1),
+            complexity_score: codeAnalysis.complexity_metrics.avg_complexity,
+            security_score: 75, // Mock security score
+            estimated_deal_size: benchmarkData.estimated_deal_size,
+            base_valuation: benchmarkData.base_valuation
+        };
+        
+        // Call benchmark API
+        const response = await fetch('http://localhost:5000/api/ma/benchmark', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                industry: benchmarkData.industry,
+                target_metrics: targetMetrics
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to perform benchmark analysis');
+        }
+        
+        const data = await response.json();
+        
+        // Display results
+        displayBenchmarkResults(data, benchmarkData);
+        
+        // Hide loading, show results
+        loading.style.display = 'none';
+        results.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error performing benchmark analysis:', error);
+        loading.style.display = 'none';
+        showError('Failed to perform benchmark analysis: ' + error.message);
+    }
+}
+
+function displayBenchmarkResults(data, benchmarkData) {
+    const benchmark = data.benchmark_analysis;
+    
+    // Update executive summary
+    const avgPercentile = (
+        benchmark.percentile_rankings.technical_debt_percentile +
+        benchmark.percentile_rankings.complexity_percentile +
+        benchmark.percentile_rankings.deal_size_percentile
+    ) / 3;
+    
+    document.getElementById('industry-percentile').textContent = `${avgPercentile.toFixed(1)}%`;
+    document.getElementById('valuation-impact').textContent = `${(benchmark.valuation_adjustment.total_adjustment * 100).toFixed(1)}%`;
+    document.getElementById('market-position').textContent = getMarketPosition(avgPercentile);
+    document.getElementById('deal-confidence').textContent = getDealConfidence(avgPercentile);
+    
+    // Create percentile chart
+    createPercentileChart(benchmark.percentile_rankings);
+    
+    // Update peer comparison table
+    updatePeerComparisonTable(benchmark.industry_data.peer_companies, benchmarkData);
+    
+    // Display benchmark insights
+    displayBenchmarkInsights(benchmark.insights);
+    
+    // Update valuation analysis
+    updateValuationAnalysis(benchmark.valuation_adjustment, benchmark.industry_data.market_multiples);
+}
+
+function createPercentileChart(rankings) {
+    const ctx = document.getElementById('percentile-chart').getContext('2d');
+    
+    if (percentileChart) {
+        percentileChart.destroy();
+    }
+    
+    percentileChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['Technical Debt', 'Complexity', 'Deal Size'],
+            datasets: [{
+                label: 'Target Company',
+                data: [
+                    rankings.technical_debt_percentile,
+                    rankings.complexity_percentile,
+                    rankings.deal_size_percentile
+                ],
+                backgroundColor: 'rgba(23, 162, 184, 0.2)',
+                borderColor: 'rgba(23, 162, 184, 1)',
+                borderWidth: 2
+            }, {
+                label: 'Industry Average',
+                data: [50, 50, 50],
+                backgroundColor: 'rgba(108, 117, 125, 0.2)',
+                borderColor: 'rgba(108, 117, 125, 1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+    
+    // Update ranking insights
+    const insights = document.getElementById('ranking-insights');
+    insights.innerHTML = `
+        <div class="benchmark-insight">
+            <strong>Technical Debt:</strong> Target ranks ${rankings.technical_debt_percentile.toFixed(1)}th percentile
+            ${rankings.technical_debt_percentile > 70 ? ' - Better than most peers' : rankings.technical_debt_percentile < 30 ? ' - Below industry average' : ' - Within normal range'}
+        </div>
+        <div class="benchmark-insight">
+            <strong>Complexity:</strong> Target ranks ${rankings.complexity_percentile.toFixed(1)}th percentile
+            ${rankings.complexity_percentile > 70 ? ' - Higher complexity than peers' : rankings.complexity_percentile < 30 ? ' - Lower complexity than peers' : ' - Average complexity'}
+        </div>
+        <div class="benchmark-insight">
+            <strong>Deal Size:</strong> Target ranks ${rankings.deal_size_percentile.toFixed(1)}th percentile
+            ${rankings.deal_size_percentile > 70 ? ' - Larger than typical deals' : rankings.deal_size_percentile < 30 ? ' - Smaller than typical deals' : ' - Typical deal size'}
+        </div>
+    `;
+}
+
+function updatePeerComparisonTable(peers, benchmarkData) {
+    const tbody = document.getElementById('peer-comparison-body');
+    tbody.innerHTML = '';
+    
+    peers.forEach(peer => {
+        const row = document.createElement('tr');
+        row.className = 'peer-comparison-row';
+        
+        // Calculate comparison
+        const comparison = calculatePeerComparison(peer, benchmarkData);
+        
+        row.innerHTML = `
+            <td><strong>${peer.name}</strong></td>
+            <td>${(peer.technical_debt_ratio * 100).toFixed(1)}%</td>
+            <td>${peer.complexity_score.toFixed(1)}</td>
+            <td>$${peer.deal_size.toLocaleString()}</td>
+            <td><span class="comparison-badge ${comparison.class}">${comparison.text}</span></td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+function calculatePeerComparison(peer, benchmarkData) {
+    // Simple comparison logic based on deal size
+    const dealDiff = (benchmarkData.estimated_deal_size - peer.deal_size) / peer.deal_size;
+    
+    if (Math.abs(dealDiff) < 0.1) {
+        return { class: 'comparison-similar', text: 'Similar' };
+    } else if (dealDiff > 0) {
+        return { class: 'comparison-better', text: 'Larger' };
+    } else {
+        return { class: 'comparison-worse', text: 'Smaller' };
+    }
+}
+
+function displayBenchmarkInsights(insights) {
+    const container = document.getElementById('benchmark-insights');
+    container.innerHTML = '';
+    
+    insights.forEach(insight => {
+        const div = document.createElement('div');
+        div.className = `benchmark-insight ${insight.type}`;
+        div.innerHTML = `
+            <h5>${insight.title}</h5>
+            <p>${insight.description}</p>
+            <small><strong>Impact:</strong> ${insight.impact}</small>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function updateValuationAnalysis(adjustment, marketMultiples) {
+    document.getElementById('base-valuation-display').textContent = formatCurrency(adjustment.base_valuation);
+    document.getElementById('td-discount').textContent = `${(adjustment.technical_debt_discount * 100).toFixed(1)}%`;
+    document.getElementById('complexity-penalty').textContent = `${(adjustment.complexity_penalty * 100).toFixed(1)}%`;
+    document.getElementById('security-bonus').textContent = `${(adjustment.security_bonus * 100).toFixed(1)}%`;
+    document.getElementById('adjusted-valuation').textContent = formatCurrency(adjustment.adjusted_valuation);
+    
+    document.getElementById('revenue-multiple').textContent = marketMultiples.revenue_multiple.toFixed(1) + 'x';
+    document.getElementById('ebitda-multiple').textContent = marketMultiples.ebitda_multiple.toFixed(1) + 'x';
+    document.getElementById('industry-average').textContent = formatCurrency(adjustment.base_valuation / marketMultiples.revenue_multiple);
+    
+    const premium = ((adjustment.adjusted_valuation - adjustment.base_valuation) / adjustment.base_valuation) * 100;
+    document.getElementById('deal-premium').textContent = `${premium > 0 ? '+' : ''}${premium.toFixed(1)}%`;
+}
+
+function getMarketPosition(percentile) {
+    if (percentile >= 80) return 'Top Quartile';
+    if (percentile >= 60) return 'Above Average';
+    if (percentile >= 40) return 'Average';
+    if (percentile >= 20) return 'Below Average';
+    return 'Bottom Quartile';
+}
+
+function getDealConfidence(percentile) {
+    if (percentile >= 70) return 'HIGH';
+    if (percentile >= 50) return 'MODERATE';
+    if (percentile >= 30) return 'LOW';
+    return 'VERY LOW';
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
+function showError(message) {
+    // Create error alert
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 end-0 m-3';
+    alert.style.zIndex = '9999';
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alert);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, 5000);
+}
+
+// Helper function to get current code analysis (mock for now)
+async function getCurrentCodeAnalysis() {
+    // Mock data - would come from actual analysis
+    return {
+        analysis_metadata: {
+            total_functions: 150,
+            complex_functions: 25,
+            files_analyzed: 85
+        },
+        complexity_metrics: {
+            avg_complexity: 6.5,
+            max_complexity: 15,
+            total_complexity: 975
+        }
+    };
+}
+
+// Set up event listeners when component loads
+document.addEventListener('DOMContentLoaded', function() {
+    const benchmarkBtn = document.getElementById('perform-benchmark-btn');
+    if (benchmarkBtn) {
+        benchmarkBtn.addEventListener('click', performBenchmarkAnalysis);
+    }
+});
+</script>

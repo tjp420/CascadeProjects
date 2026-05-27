@@ -1,0 +1,545 @@
+<!-- Export Settings Tab -->
+<div class="export-settings-container">
+  <div class="settings-card">
+    <div class="settings-header">
+      <h3>⚙️ Export Settings</h3>
+      <p>Configure default export formats, compression, file size limits, and other preferences</p>
+    </div>
+
+    <!-- Format Settings -->
+    <div class="settings-section">
+      <h4>Format Settings</h4>
+      <div class="form-group">
+        <label for="default-format">Default Export Format</label>
+        <select id="default-format" class="form-select">
+          <option value="json">JSON</option>
+          <option value="csv">CSV</option>
+          <option value="xml">XML</option>
+          <option value="txt">TXT</option>
+          <option value="xlsx">XLSX</option>
+          <option value="pdf">PDF</option>
+          <option value="html">HTML</option>
+          <option value="md">Markdown</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="filename-pattern">Filename Pattern</label>
+        <input type="text" id="filename-pattern" class="form-input" placeholder="{export_type}_{timestamp}.{format}" />
+        <small class="form-help">Available placeholders: {export_type}, {timestamp}, {format}</small>
+      </div>
+      <div class="form-group checkbox">
+        <input type="checkbox" id="include-timestamp" />
+        <label for="include-timestamp">Include timestamp in filename</label>
+      </div>
+    </div>
+
+    <!-- Compression Settings -->
+    <div class="settings-section">
+      <h4>Compression Settings</h4>
+      <div class="form-group">
+        <label for="compression-level">Compression Level</label>
+        <select id="compression-level" class="form-select">
+          <option value="none">None</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="maximum">Maximum</option>
+        </select>
+      </div>
+      <div class="form-group checkbox">
+        <input type="checkbox" id="compress-exports" />
+        <label for="compress-exports">Compress export files</label>
+      </div>
+    </div>
+
+    <!-- File Size Settings -->
+    <div class="settings-section">
+      <h4>File Size Limits</h4>
+      <div class="form-group">
+        <label for="max-file-size">Maximum File Size (MB)</label>
+        <input type="number" id="max-file-size" class="form-input" min="1" max="10240" value="100" />
+      </div>
+    </div>
+
+    <!-- Data Settings -->
+    <div class="settings-section">
+      <h4>Data Settings</h4>
+      <div class="form-group checkbox">
+        <input type="checkbox" id="include-metadata" />
+        <label for="include-metadata">Include export metadata</label>
+      </div>
+      <div class="form-group checkbox">
+        <input type="checkbox" id="include-empty-sections" />
+        <label for="include-empty-sections">Include empty sections</label>
+      </div>
+      <div class="form-group">
+        <label for="csv-delimiter">CSV Delimiter</label>
+        <input type="text" id="csv-delimiter" class="form-input" maxlength="1" value="," />
+      </div>
+    </div>
+
+    <!-- Storage Settings -->
+    <div class="settings-section">
+      <h4>Storage Settings</h4>
+      <div class="form-group checkbox">
+        <input type="checkbox" id="auto-upload" />
+        <label for="auto-upload">Automatically upload to storage</label>
+      </div>
+      <div class="form-group">
+        <label for="retention-days">Retention Period (days)</label>
+        <input type="number" id="retention-days" class="form-input" min="1" max="365" value="30" />
+      </div>
+    </div>
+
+    <!-- Notification Settings -->
+    <div class="settings-section">
+      <h4>Notification Settings</h4>
+      <div class="form-group checkbox">
+        <input type="checkbox" id="notify-completion" />
+        <label for="notify-completion">Notify on export completion</label>
+      </div>
+      <div class="form-group checkbox">
+        <input type="checkbox" id="notify-failure" />
+        <label for="notify-failure">Notify on export failure</label>
+      </div>
+      <div class="form-group">
+        <label for="notification-email">Notification Email</label>
+        <input type="email" id="notification-email" class="form-input" placeholder="user@example.com" />
+      </div>
+    </div>
+
+    <!-- Advanced Settings -->
+    <div class="settings-section">
+      <h4>Advanced Settings</h4>
+      <div class="form-group">
+        <label for="image-quality">Image Quality (1-100)</label>
+        <input type="range" id="image-quality" class="form-range" min="1" max="100" value="90" />
+        <span id="image-quality-value">90</span>
+      </div>
+      <div class="form-group">
+        <label for="batch-size">Batch Size</label>
+        <input type="number" id="batch-size" class="form-input" min="1" max="10000" value="100" />
+      </div>
+      <div class="form-group checkbox">
+        <input type="checkbox" id="parallel-processing" />
+        <label for="parallel-processing">Enable parallel processing</label>
+      </div>
+      <div class="form-group">
+        <label for="max-concurrent">Max Concurrent Exports</label>
+        <input type="number" id="max-concurrent" class="form-input" min="1" max="10" value="3" />
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="settings-actions">
+      <button class="btn-primary" id="save-settings-btn">💾 Save Settings</button>
+      <button class="btn-secondary" id="reset-settings-btn">🔄 Reset to Defaults</button>
+      <button class="btn-secondary" id="validate-settings-btn">✅ Validate Settings</button>
+    </div>
+
+    <!-- Validation Results -->
+    <div class="validation-results" id="validation-results" style="display: none">
+      <h4>Validation Results</h4>
+      <div class="validation-content" id="validation-content"></div>
+    </div>
+  </div>
+
+  <!-- Settings Summary -->
+  <div class="settings-summary-card" id="settings-summary-card">
+    <h4>Current Settings Summary</h4>
+    <div class="summary-content" id="summary-content">
+      <p>Loading...</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .export-settings-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .settings-card,
+  .settings-summary-card {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .settings-header h3 {
+    margin: 0 0 10px 0;
+    color: var(--text-color, #333);
+  }
+
+  .settings-header p {
+    margin: 0;
+    color: var(--text-muted, #6c757d);
+  }
+
+  .settings-section {
+    margin-bottom: 25px;
+    padding-bottom: 25px;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+  }
+
+  .settings-section:last-child {
+    border-bottom: none;
+  }
+
+  .settings-section h4 {
+    margin: 0 0 15px 0;
+    color: var(--text-color, #333);
+    font-size: 16px;
+  }
+
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-color, #333);
+    font-weight: 500;
+  }
+
+  .form-select,
+  .form-input {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .form-help {
+    display: block;
+    margin-top: 5px;
+    color: var(--text-muted, #6c757d);
+    font-size: 12px;
+  }
+
+  .form-group.checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .form-group.checkbox input {
+    width: auto;
+  }
+
+  .form-range {
+    width: calc(100% - 50px);
+    margin-right: 10px;
+  }
+
+  .settings-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--primary-color, #007bff);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-hover, #0056b3);
+  }
+
+  .btn-secondary {
+    background: var(--secondary-color, #6c757d);
+    color: white;
+  }
+
+  .btn-secondary:hover {
+    background: var(--secondary-hover, #545b62);
+  }
+
+  .validation-results {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--status-bg, #f8f9fa);
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #e0e0e0);
+  }
+
+  .validation-results h4 {
+    margin: 0 0 10px 0;
+  }
+
+  .validation-content .valid {
+    color: var(--success-color, #28a745);
+  }
+
+  .validation-content .invalid {
+    color: var(--danger-color, #dc3545);
+  }
+
+  .validation-content .warning {
+    color: var(--warning-color, #ffc107);
+  }
+
+  .summary-content {
+    padding: 15px;
+    background: var(--status-bg, #f8f9fa);
+    border-radius: 4px;
+  }
+
+  .summary-content p {
+    margin: 5px 0;
+  }
+
+  .summary-content strong {
+    color: var(--text-color, #333);
+  }
+</style>
+
+<script>
+  // Export Settings Manager
+  class ExportSettingsManager {
+    constructor() {
+      this.apiBaseUrl = '/api/export';
+      this.currentSettings = null;
+      this.init();
+    }
+
+    async init() {
+      this.bindEvents();
+      await this.loadSettings();
+      await this.loadSummary();
+    }
+
+    bindEvents() {
+      document.getElementById('save-settings-btn').addEventListener('click', () => this.saveSettings());
+      document.getElementById('reset-settings-btn').addEventListener('click', () => this.resetSettings());
+      document.getElementById('validate-settings-btn').addEventListener('click', () => this.validateSettings());
+      document.getElementById('image-quality').addEventListener('input', (e) => {
+        document.getElementById('image-quality-value').textContent = e.target.value;
+      });
+    }
+
+    async loadSettings() {
+      try {
+        const response = await fetch(`${this.apiBaseUrl}/settings`, {
+          headers: {
+            Authorization: `Bearer ${this.getAuthToken()}`,
+          },
+        });
+        const data = await response.json();
+        this.currentSettings = data.settings;
+        this.populateForm(data.settings);
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    }
+
+    populateForm(settings) {
+      document.getElementById('default-format').value = settings.default_format || 'xlsx';
+      document.getElementById('filename-pattern').value =
+        settings.filename_pattern || '{export_type}_{timestamp}.{format}';
+      document.getElementById('include-timestamp').checked = settings.include_timestamp !== false;
+      document.getElementById('compression-level').value = settings.compression_level || 'medium';
+      document.getElementById('compress-exports').checked = settings.compress_exports !== false;
+      document.getElementById('max-file-size').value = (settings.max_file_size / (1024 * 1024)).toFixed(0) || 100;
+      document.getElementById('include-metadata').checked = settings.include_metadata !== false;
+      document.getElementById('include-empty-sections').checked = settings.include_empty_sections || false;
+      document.getElementById('csv-delimiter').value = settings.csv_delimiter || ',';
+      document.getElementById('auto-upload').checked = settings.auto_upload_to_storage !== false;
+      document.getElementById('retention-days').value = settings.retention_days || 30;
+      document.getElementById('notify-completion').checked = settings.notify_on_completion !== false;
+      document.getElementById('notify-failure').checked = settings.notify_on_failure !== false;
+      document.getElementById('notification-email').value = settings.notification_email || '';
+      document.getElementById('image-quality').value = settings.image_quality || 90;
+      document.getElementById('image-quality-value').textContent = settings.image_quality || 90;
+      document.getElementById('batch-size').value = settings.batch_size || 100;
+      document.getElementById('parallel-processing').checked = settings.parallel_processing !== false;
+      document.getElementById('max-concurrent').value = settings.max_concurrent_exports || 3;
+    }
+
+    async saveSettings() {
+      const settings = this.getFormSettings();
+
+      try {
+        const response = await fetch(`${this.apiBaseUrl}/settings`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${this.getAuthToken()}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(settings),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to save settings: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        this.currentSettings = data.settings;
+        await this.loadSummary();
+        alert('Settings saved successfully!');
+      } catch (error) {
+        console.error('Error saving settings:', error);
+        alert(`Failed to save settings: ${error.message}`);
+      }
+    }
+
+    async resetSettings() {
+      if (!confirm('Are you sure you want to reset all settings to defaults?')) return;
+
+      try {
+        const response = await fetch(`${this.apiBaseUrl}/settings/reset`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.getAuthToken()}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to reset settings: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        this.currentSettings = data.settings;
+        this.populateForm(data.settings);
+        await this.loadSummary();
+        alert('Settings reset to defaults!');
+      } catch (error) {
+        console.error('Error resetting settings:', error);
+        alert(`Failed to reset settings: ${error.message}`);
+      }
+    }
+
+    async validateSettings() {
+      const settings = this.getFormSettings();
+
+      try {
+        const response = await fetch(`${this.apiBaseUrl}/settings/validate`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.getAuthToken()}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(settings),
+        });
+
+        const result = await response.json();
+        this.showValidationResults(result);
+      } catch (error) {
+        console.error('Error validating settings:', error);
+        alert(`Failed to validate settings: ${error.message}`);
+      }
+    }
+
+    showValidationResults(result) {
+      const container = document.getElementById('validation-results');
+      const content = document.getElementById('validation-content');
+
+      container.style.display = 'block';
+
+      if (result.valid) {
+        content.innerHTML = '<p class="valid">✓ Settings are valid</p>';
+        if (result.warnings.length > 0) {
+          const warningList = document.createElement('ul');
+          result.warnings.forEach((w) => {
+            const li = document.createElement('li');
+            li.textContent = w;
+            warningList.appendChild(li);
+          });
+          const warningTitle = document.createElement('p');
+          warningTitle.className = 'warning';
+          warningTitle.textContent = 'Warnings:';
+          content.appendChild(warningTitle);
+          content.appendChild(warningList);
+        }
+      } else {
+        content.innerHTML = '<p class="invalid">✗ Settings have validation errors:</p>';
+        const issueList = document.createElement('ul');
+        result.issues.forEach((i) => {
+          const li = document.createElement('li');
+          li.textContent = i;
+          issueList.appendChild(li);
+        });
+        content.appendChild(issueList);
+      }
+    }
+
+    async loadSummary() {
+      try {
+        const response = await fetch(`${this.apiBaseUrl}/settings/summary`, {
+          headers: {
+            Authorization: `Bearer ${this.getAuthToken()}`,
+          },
+        });
+        const summary = await response.json();
+        this.displaySummary(summary);
+      } catch (error) {
+        console.error('Error loading summary:', error);
+      }
+    }
+
+    displaySummary(summary) {
+      const container = document.getElementById('summary-content');
+      container.innerHTML = `
+            <p><strong>Default Format:</strong> ${summary.default_format}</p>
+            <p><strong>Compression:</strong> ${summary.compression}</p>
+            <p><strong>Max File Size:</strong> ${summary.max_file_size}</p>
+            <p><strong>Auto Upload:</strong> ${summary.auto_upload ? 'Yes' : 'No'}</p>
+            <p><strong>Notifications:</strong> ${summary.notifications.completion ? 'Completion' : ''} ${summary.notifications.failure ? 'Failure' : ''}</p>
+            <p><strong>Retention:</strong> ${summary.retention}</p>
+            <p><strong>Parallel Processing:</strong> ${summary.parallel_processing ? 'Yes' : 'No'}</p>
+            <p><strong>Max Concurrent:</strong> ${summary.max_concurrent}</p>
+        `;
+    }
+
+    getFormSettings() {
+      return {
+        default_format: document.getElementById('default-format').value,
+        filename_pattern: document.getElementById('filename-pattern').value,
+        include_timestamp: document.getElementById('include-timestamp').checked,
+        compression_level: document.getElementById('compression-level').value,
+        compress_exports: document.getElementById('compress-exports').checked,
+        max_file_size: parseInt(document.getElementById('max-file-size').value) * 1024 * 1024,
+        include_metadata: document.getElementById('include-metadata').checked,
+        include_empty_sections: document.getElementById('include-empty-sections').checked,
+        csv_delimiter: document.getElementById('csv-delimiter').value,
+        auto_upload_to_storage: document.getElementById('auto-upload').checked,
+        retention_days: parseInt(document.getElementById('retention-days').value),
+        notify_on_completion: document.getElementById('notify-completion').checked,
+        notify_on_failure: document.getElementById('notify-failure').checked,
+        notification_email: document.getElementById('notification-email').value || null,
+        image_quality: parseInt(document.getElementById('image-quality').value),
+        batch_size: parseInt(document.getElementById('batch-size').value),
+        parallel_processing: document.getElementById('parallel-processing').checked,
+        max_concurrent_exports: parseInt(document.getElementById('max-concurrent').value),
+      };
+    }
+
+    getAuthToken() {
+      return localStorage.getItem('authToken') || '';
+    }
+  }
+
+  // Initialize export settings manager when DOM is ready
+  let exportSettingsManager;
+  document.addEventListener('DOMContentLoaded', () => {
+    exportSettingsManager = new ExportSettingsManager();
+  });
+</script>

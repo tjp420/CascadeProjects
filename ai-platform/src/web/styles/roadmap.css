@@ -1,0 +1,759 @@
+/**
+ * Development Roadmap Styles
+ * Styles for the comprehensive roadmap interface
+ */
+
+.roadmap-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.roadmap-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.roadmap-actions button {
+    min-width: 180px;
+}
+
+.roadmap-section {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.roadmap-section h3 {
+    color: #495057;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #007bff;
+}
+
+/* Overview Grid */
+.overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.overview-card {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+}
+
+.overview-icon {
+    font-size: 2rem;
+    margin-bottom: 15px;
+}
+
+.overview-card h4 {
+    color: #495057;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.progress-bar {
+    background: #e9ecef;
+    height: 8px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-fill {
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.overview-card p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.timeline-info {
+    text-align: left;
+}
+
+.timeline-date {
+    font-size: 0.85rem;
+    margin-bottom: 5px;
+    color: #495057;
+}
+
+.team-info {
+    text-align: left;
+}
+
+.team-member {
+    margin-bottom: 8px;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.member-role {
+    font-size: 0.8rem;
+    color: #6c757d;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.member-name {
+    font-size: 0.9rem;
+    color: #495057;
+    font-weight: 500;
+}
+
+/* Phases Timeline */
+.phases-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.phase-item {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    position: relative;
+}
+
+.phase-item.completed {
+    border-left: 4px solid #28a745;
+}
+
+.phase-item.current {
+    border-left: 4px solid #ffc107;
+}
+
+.phase-item.upcoming {
+    border-left: 4px solid #6c757d;
+}
+
+.phase-marker {
+    font-size: 1.5rem;
+    min-width: 40px;
+    text-align: center;
+}
+
+.phase-content {
+    flex: 1;
+}
+
+.phase-content h4 {
+    color: #495057;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.phase-content p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.phase-tasks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.task {
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.task.completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.task.in-progress {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.task.pending {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.phase-stats {
+    display: flex;
+    gap: 15px;
+    font-size: 0.85rem;
+}
+
+.stat {
+    background: white;
+    padding: 4px 8px;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    font-weight: 500;
+}
+
+/* Feature Timeline */
+.feature-timeline {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.feature-month {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.feature-month h4 {
+    color: #495057;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.feature-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.feature-date {
+    font-size: 0.8rem;
+    color: #6c757d;
+    white-space: nowrap;
+}
+
+.feature-name {
+    font-size: 0.9rem;
+    color: #495057;
+    font-weight: 500;
+}
+
+.feature-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.feature-status.completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.feature-status.in-progress {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.feature-status.planned {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+/* Milestones Grid */
+.milestones-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.milestone-item {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+}
+
+.milestone-item.completed {
+    border-top: 4px solid #28a745;
+}
+
+.milestone-item.upcoming {
+    border-top: 4px solid #ffc107;
+}
+
+.milestone-icon {
+    font-size: 2rem;
+    margin-bottom: 15px;
+}
+
+.milestone-item h4 {
+    color: #495057;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.milestone-item p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.milestone-date {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 10px;
+}
+
+.milestone-status {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 10px;
+}
+
+.milestone-status.achieved {
+    background: #d4edda;
+    color: #155724;
+}
+
+.milestone-status.target {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* Risk Assessment */
+.risks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.risk-item {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+}
+
+.risk-item.high {
+    border-left: 4px solid #dc3545;
+}
+
+.risk-item.medium {
+    border-left: 4px solid #ffc107;
+}
+
+.risk-item.low {
+    border-left: 4px solid #28a745;
+}
+
+.risk-level {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.risk-level.high {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.risk-level.medium {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.risk-level.low {
+    background: #d4edda;
+    color: #155724;
+}
+
+.risk-item h4 {
+    color: #495057;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    padding-right: 60px;
+}
+
+.risk-item p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.risk-mitigation {
+    background: white;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    font-size: 0.85rem;
+}
+
+.risk-mitigation strong {
+    color: #495057;
+}
+
+/* Resources Grid */
+.resources-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.resource-item {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.resource-item h4 {
+    color: #495057;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.resource-item ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.resource-item li {
+    padding: 5px 0;
+    color: #495057;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.resource-item li:last-child {
+    border-bottom: none;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .roadmap-section {
+        background: #343a40;
+        border-color: #495057;
+    }
+    
+    .roadmap-section h3 {
+        color: #f8f9fa;
+        border-bottom-color: #007bff;
+    }
+    
+    .overview-card,
+    .phase-item,
+    .feature-month,
+    .milestone-item,
+    .risk-item,
+    .resource-item {
+        background: #495057;
+        border-color: #6c757d;
+    }
+    
+    .overview-card h4,
+    .phase-content h4,
+    .feature-month h4,
+    .milestone-item h4,
+    .risk-item h4,
+    .resource-item h4 {
+        color: #f8f9fa;
+    }
+    
+    .overview-card p,
+    .phase-content p,
+    .milestone-item p,
+    .risk-item p {
+        color: #adb5bd;
+    }
+    
+    .timeline-date,
+    .feature-date,
+    .milestone-date {
+        color: #adb5bd;
+    }
+    
+    .progress-bar {
+        background: #495057;
+    }
+    
+    .progress-text {
+        color: #f8f9fa;
+    }
+    
+    .team-member {
+        background: #343a40;
+        border-color: #6c757d;
+    }
+    
+    .member-role {
+        color: #adb5bd;
+    }
+    
+    .member-name {
+        color: #f8f9fa;
+    }
+    
+    .feature-item {
+        background: #343a40;
+        border-color: #6c757d;
+    }
+    
+    .risk-mitigation {
+        background: #343a40;
+        border-color: #6c757d;
+    }
+    
+    .resource-item li {
+        color: #f8f9fa;
+        border-color: #6c757d;
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .roadmap-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .roadmap-actions {
+        flex-direction: column;
+    }
+    
+    .overview-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .phases-timeline {
+        gap: 15px;
+    }
+    
+    .phase-item {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .phase-marker {
+        align-self: center;
+    }
+    
+    .feature-timeline {
+        grid-template-columns: 1fr;
+    }
+    
+    .milestones-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .risks-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .resources-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .phase-tasks {
+        grid-template-columns: 1fr;
+    }
+    
+    .phase-stats {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .feature-item {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 5px;
+    }
+    
+    .risk-item h4 {
+        padding-right: 0;
+        text-align: center;
+    }
+}
+
+/* Animation for progress bars */
+.progress-fill {
+    animation: progressAnimation 2s ease-in-out;
+}
+
+@keyframes progressAnimation {
+    0% { width: 0%; }
+    100% { width: var(--progress-width, 50%); }
+}
+
+/* Hover effects */
+.milestone-item:hover,
+.risk-item:hover,
+.resource-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+}
+
+.phase-item:hover {
+    transform: translateX(5px);
+    transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+    transform: scale(1.02);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+/* Button animations */
+.roadmap-actions button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.roadmap-actions button:active {
+    transform: translateY(0);
+}
+
+/* Status indicators */
+.status-indicator {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.status-completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-in-progress {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-upcoming {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid #007bff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Scrollbar styling */
+.roadmap-section::-webkit-scrollbar {
+    width: 8px;
+}
+
+.roadmap-section::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.roadmap-section::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.roadmap-section::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Print styles */
+@media print {
+    .roadmap-actions {
+        display: none;
+    }
+    
+    .roadmap-section {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    
+    .phase-item,
+    .feature-item,
+    .milestone-item,
+    .risk-item,
+    .resource-item {
+        break-inside: avoid;
+    }
+}

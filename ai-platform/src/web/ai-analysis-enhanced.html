@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Analysis Enhanced - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Modern Sidebar Styles */
+        .sidebar-modern {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-modern.collapsed {
+            transform: translateX(-240px);
+        }
+
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+            margin-left: 40px;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-description {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Analysis Types Grid */
+        .analysis-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .analysis-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analysis-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--primary-gradient);
+        }
+
+        .analysis-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-color);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2);
+        }
+
+        .analysis-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .analysis-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .analysis-description {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .analysis-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: var(--success-gradient);
+            color: white;
+        }
+
+        /* Analysis Results Section */
+        .analysis-results {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .analysis-results.active {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .results-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .results-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            border-color: var(--accent-color);
+        }
+
+        /* Charts Container */
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Progress Bar */
+        .progress-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .progress-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-item {
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            border-radius: 4px;
+            transition: width 1s ease-in-out;
+        }
+
+        /* Recommendations */
+        .recommendations-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+        }
+
+        .recommendations-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .recommendation-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .recommendation-item:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .recommendation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .recommendation-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .recommendation-priority {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-high {
+            background: #ef4444;
+            color: white;
+        }
+
+        .priority-medium {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .priority-low {
+            background: #10b981;
+            color: white;
+        }
+
+        .recommendation-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Loading Animation */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-240px);
+            }
+            
+            .sidebar-modern.active {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+            }
+            
+            .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+                margin-left: 280px;
+            }
+
+            .analysis-types {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Container -->
+    <div class="navigation-container"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-content-with-sidebar">
+        <div class="content-wrapper">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">🧠 AI Analysis Enhanced</h1>
+                <p class="page-description">Advanced AI-powered code analysis with comprehensive insights and recommendations</p>
+            </div>
+
+            <!-- Analysis Types -->
+            <div class="analysis-types">
+                <div class="analysis-card" onclick="runAnalysis('code-quality')">
+                    <div class="analysis-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3 class="analysis-title">Code Quality Analysis</h3>
+                    <p class="analysis-description">Comprehensive code quality assessment with best practices and standards compliance</p>
+                    <span class="analysis-status">Available</span>
+                </div>
+
+                <div class="analysis-card" onclick="runAnalysis('security')">
+                    <div class="analysis-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="analysis-title">Security Analysis</h3>
+                    <p class="analysis-description">Security vulnerability detection and remediation recommendations</p>
+                    <span class="analysis-status">Available</span>
+                </div>
+
+                <div class="analysis-card" onclick="runAnalysis('performance')">
+                    <div class="analysis-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    <h3 class="analysis-title">Performance Analysis</h3>
+                    <p class="analysis-description">Performance bottleneck identification and optimization opportunities</p>
+                    <span class="analysis-status">Available</span>
+                </div>
+
+                <div class="analysis-card" onclick="runAnalysis('architecture')">
+                    <div class="analysis-icon">
+                        <i class="fas fa-sitemap"></i>
+                    </div>
+                    <h3 class="analysis-title">Architecture Analysis</h3>
+                    <p class="analysis-description">System architecture assessment and design pattern recommendations</p>
+                    <span class="analysis-status">Available</span>
+                </div>
+
+                <div class="analysis-card" onclick="runAnalysis('data-flow')">
+                    <div class="analysis-icon">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <h3 class="analysis-title">Data Flow Analysis</h3>
+                    <p class="analysis-description">Data pipeline analysis and flow optimization recommendations</p>
+                    <span class="analysis-status">Available</span>
+                </div>
+
+                <div class="analysis-card" onclick="runAnalysis('ux-ui')">
+                    <div class="analysis-icon">
+                        <i class="fas fa-paint-brush"></i>
+                    </div>
+                    <h3 class="analysis-title">UX/UI Analysis</h3>
+                    <p class="analysis-description">User experience and interface analysis with accessibility compliance</p>
+                    <span class="analysis-status">Available</span>
+                </div>
+            </div>
+
+            <!-- Analysis Results -->
+            <div class="analysis-results" id="analysisResults">
+                <div class="results-header">
+                    <h2 class="results-title" id="resultsTitle">Analysis Results</h2>
+                    <div class="results-actions">
+                        <button class="btn btn-primary" onclick="exportResults()">
+                            <i class="fas fa-download"></i> Export Results
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearResults()">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Metrics Grid -->
+                <div class="metrics-grid" id="metricsGrid">
+                    <!-- Metrics will be populated here -->
+                </div>
+
+                <!-- Charts Container -->
+                <div class="charts-container" id="chartsContainer">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Quality Score Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="qualityChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Issue Categories</h3>
+                        <div class="chart-container">
+                            <canvas id="issuesChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Performance Metrics</h3>
+                        <div class="chart-container">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Security Assessment</h3>
+                        <div class="chart-container">
+                            <canvas id="securityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Section -->
+                <div class="progress-section" id="progressSection">
+                    <h3 class="progress-title">Analysis Progress</h3>
+                    <div id="progressItems">
+                        <!-- Progress items will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Recommendations Section -->
+                <div class="recommendations-section" id="recommendationsSection">
+                    <h3 class="recommendations-title">AI Recommendations</h3>
+                    <div id="recommendationsList">
+                        <!-- Recommendations will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/navigation-loader.js"></script>
+    <script>
+        // Enhanced AI Analysis JavaScript
+        let currentAnalysis = null;
+        let analysisCharts = {};
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+        });
+
+        function runAnalysis(type) {
+            currentAnalysis = type;
+            showLoading();
+            
+            // Simulate analysis with progress
+            setTimeout(() => {
+                hideLoading();
+                displayAnalysisResults(type);
+            }, 2000);
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        function displayAnalysisResults(type) {
+            const resultsContainer = document.getElementById('analysisResults');
+            const resultsTitle = document.getElementById('resultsTitle');
+            
+            resultsContainer.classList.add('active');
+            
+            // Update title based on analysis type
+            const titles = {
+                'code-quality': 'Code Quality Analysis Results',
+                'security': 'Security Analysis Results',
+                'performance': 'Performance Analysis Results',
+                'architecture': 'Architecture Analysis Results',
+                'data-flow': 'Data Flow Analysis Results',
+                'ux-ui': 'UX/UI Analysis Results'
+            };
+            
+            resultsTitle.textContent = titles[type] || 'Analysis Results';
+            
+            // Generate mock data based on analysis type
+            generateAnalysisData(type);
+            
+            // Update metrics
+            updateMetrics(type);
+            
+            // Update charts
+            updateCharts(type);
+            
+            // Update progress
+            updateProgress(type);
+            
+            // Update recommendations
+            updateRecommendations(type);
+        }
+
+        function generateAnalysisData(type) {
+            // Generate different data based on analysis type
+            const dataTemplates = {
+                'code-quality': {
+                    metrics: {
+                        overall: 85,
+                        maintainability: 88,
+                        readability: 82,
+                        complexity: 79,
+                        documentation: 75
+                    },
+                    issues: {
+                        critical: 2,
+                        major: 8,
+                        minor: 15,
+                        info: 23
+                    },
+                    recommendations: [
+                        { title: 'Refactor complex functions', priority: 'high', description: 'Break down functions with cyclomatic complexity > 10' },
+                        { title: 'Add comprehensive documentation', priority: 'medium', description: 'Improve code documentation for better maintainability' },
+                        { title: 'Standardize naming conventions', priority: 'medium', description: 'Ensure consistent naming across the codebase' },
+                        { title: 'Add unit tests', priority: 'low', description: 'Increase test coverage for critical components' }
+                    ]
+                },
+                'security': {
+                    metrics: {
+                        overall: 92,
+                        vulnerability: 95,
+                        authentication: 88,
+                        encryption: 90,
+                        compliance: 85
+                    },
+                    issues: {
+                        critical: 1,
+                        major: 3,
+                        minor: 7,
+                        info: 12
+                    },
+                    recommendations: [
+                        { title: 'Fix SQL injection vulnerability', priority: 'high', description: 'Use parameterized queries to prevent SQL injection' },
+                        { title: 'Implement input validation', priority: 'high', description: 'Add proper input sanitization for all user inputs' },
+                        { title: 'Update dependencies', priority: 'medium', description: 'Update outdated packages to latest secure versions' },
+                        { title: 'Add CSRF protection', priority: 'medium', description: 'Implement CSRF tokens for state-changing operations' }
+                    ]
+                },
+                'performance': {
+                    metrics: {
+                        overall: 78,
+                        speed: 75,
+                        memory: 82,
+                        efficiency: 76,
+                        scalability: 80
+                    },
+                    issues: {
+                        critical: 3,
+                        major: 12,
+                        minor: 18,
+                        info: 25
+                    },
+                    recommendations: [
+                        { title: 'Optimize database queries', priority: 'high', description: 'Add indexes and optimize slow queries' },
+                        { title: 'Implement caching', priority: 'medium', description: 'Add Redis caching for frequently accessed data' },
+                        { title: 'Compress assets', priority: 'medium', description: 'Enable gzip compression for static assets' },
+                        { title: 'Lazy load components', priority: 'low', description: 'Implement lazy loading for non-critical components' }
+                    ]
+                }
+            };
+            
+            // Use data template or generate default
+            currentAnalysisData = dataTemplates[type] || generateDefaultData();
+        }
+
+        function generateDefaultData() {
+            return {
+                metrics: {
+                    overall: Math.floor(Math.random() * 20) + 80,
+                    quality: Math.floor(Math.random() * 20) + 75,
+                    performance: Math.floor(Math.random() * 20) + 70,
+                    security: Math.floor(Math.random() * 20) + 85,
+                    maintainability: Math.floor(Math.random() * 20) + 80
+                },
+                issues: {
+                    critical: Math.floor(Math.random() * 5),
+                    major: Math.floor(Math.random() * 10) + 5,
+                    minor: Math.floor(Math.random() * 20) + 10,
+                    info: Math.floor(Math.random() * 30) + 15
+                },
+                recommendations: [
+                    { title: 'Improve code structure', priority: 'medium', description: 'Refactor code for better organization' },
+                    { title: 'Add error handling', priority: 'high', description: 'Implement comprehensive error handling' },
+                    { title: 'Optimize performance', priority: 'medium', description: 'Identify and fix performance bottlenecks' },
+                    { title: 'Update documentation', priority: 'low', description: 'Keep documentation up to date' }
+                ]
+            };
+        }
+
+        function updateMetrics(type) {
+            const metricsGrid = document.getElementById('metricsGrid');
+            const data = currentAnalysisData.metrics;
+            
+            metricsGrid.innerHTML = Object.entries(data).map(([key, value]) => `
+                <div class="metric-card">
+                    <div class="metric-value">${value}%</div>
+                    <div class="metric-label">${key.charAt(0).toUpperCase() + key.slice(1).replace('-', ' ')}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateCharts(type) {
+            updateQualityChart();
+            updateIssuesChart();
+            updatePerformanceChart();
+            updateSecurityChart();
+        }
+
+        function updateQualityChart() {
+            const ctx = document.getElementById('qualityChart').getContext('2d');
+            
+            if (analysisCharts.quality) {
+                analysisCharts.quality.destroy();
+            }
+            
+            analysisCharts.quality = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Maintainability', 'Readability', 'Complexity', 'Documentation', 'Testing'],
+                    datasets: [{
+                        label: 'Quality Score',
+                        data: [88, 82, 79, 75, 85],
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateIssuesChart() {
+            const ctx = document.getElementById('issuesChart').getContext('2d');
+            
+            if (analysisCharts.issues) {
+                analysisCharts.issues.destroy();
+            }
+            
+            const issues = currentAnalysisData.issues;
+            
+            analysisCharts.issues = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Critical', 'Major', 'Minor', 'Info'],
+                    datasets: [{
+                        data: [issues.critical, issues.major, issues.minor, issues.info],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(107, 114, 128, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function updatePerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            if (analysisCharts.performance) {
+                analysisCharts.performance.destroy();
+            }
+            
+            analysisCharts.performance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Load Time', 'Memory Usage', 'CPU Usage', 'Network', 'Database'],
+                    datasets: [{
+                        label: 'Performance Score',
+                        data: [75, 82, 76, 80, 78],
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateSecurityChart() {
+            const ctx = document.getElementById('securityChart').getContext('2d');
+            
+            if (analysisCharts.security) {
+                analysisCharts.security.destroy();
+            }
+            
+            analysisCharts.security = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Security Score',
+                        data: [85, 87, 90, 88, 92, 95],
+                        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                        borderColor: 'rgba(139, 92, 246, 1)',
+                        borderWidth: 2,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 70,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateProgress(type) {
+            const progressItems = document.getElementById('progressItems');
+            
+            const progressData = [
+                { label: 'Code Scanning', value: 100 },
+                { label: 'Pattern Analysis', value: 95 },
+                { label: 'Dependency Check', value: 88 },
+                { label: 'Security Scan', value: 92 },
+                { label: 'Performance Test', value: 78 },
+                { label: 'Documentation Review', value: 85 }
+            ];
+            
+            progressItems.innerHTML = progressData.map(item => `
+                <div class="progress-item">
+                    <div class="progress-label">
+                        <span>${item.label}</span>
+                        <span>${item.value}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${item.value}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateRecommendations(type) {
+            const recommendationsList = document.getElementById('recommendationsList');
+            const recommendations = currentAnalysisData.recommendations;
+            
+            recommendationsList.innerHTML = recommendations.map(rec => `
+                <div class="recommendation-item">
+                    <div class="recommendation-header">
+                        <div class="recommendation-title">${rec.title}</div>
+                        <span class="recommendation-priority priority-${rec.priority}">${rec.priority}</span>
+                    </div>
+                    <div class="recommendation-description">${rec.description}</div>
+                </div>
+            `).join('');
+        }
+
+        function initializeCharts() {
+            // Initialize empty charts
+            updateQualityChart();
+            updateIssuesChart();
+            updatePerformanceChart();
+            updateSecurityChart();
+        }
+
+        function exportResults() {
+            const data = {
+                analysisType: currentAnalysis,
+                timestamp: new Date().toISOString(),
+                metrics: currentAnalysisData.metrics,
+                issues: currentAnalysisData.issues,
+                recommendations: currentAnalysisData.recommendations
+            };
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `ai-analysis-${currentAnalysis}-${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+
+        function clearResults() {
+            document.getElementById('analysisResults').classList.remove('active');
+            currentAnalysis = null;
+        }
+    </script>
+</body>
+</html>

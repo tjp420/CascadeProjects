@@ -1,0 +1,10 @@
+{
+  "issueId": "A-03",
+  "category": "technical-ai-issues",
+  "context": {
+    "responseText": "Decision trace shows step-by-step reasoning because feature importance attributed to token A.",
+    "traces": [
+      { "decision": "approve", "reason": "low risk", "step": 1, "feature": "score", "confidence": 0.9, "input": "case-1" }
+    ]
+  }
+}

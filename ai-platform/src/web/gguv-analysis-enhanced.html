@@ -1,0 +1,2546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GGUF Analysis System - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Modern Sidebar Styles */
+        .sidebar-modern {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-modern.collapsed {
+            transform: translateX(-240px);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-container {
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .logo i {
+            color: var(--accent-color);
+            font-size: 2rem;
+        }
+
+        .logo-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-container {
+            padding: 1rem 0;
+        }
+
+        .nav-section-modern {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title-modern {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-item-modern {
+            margin: 0.25rem 0;
+        }
+
+        .nav-link-modern {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link-modern:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-link-modern.active {
+            background: var(--bg-card);
+            color: var(--accent-color);
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-icon-modern {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .sidebar-info {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content */
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+            margin-left: 40px;
+        }
+
+        .page-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .page-content {
+            padding: 2rem;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-240px);
+            }
+            
+            .sidebar-modern.collapsed {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+            }
+            
+            .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+                margin-left: 280px;
+            }
+        }
+
+        /* Preserve existing styles from original file */
+        
+        :root {
+            --color-primary: #6366f1;
+            --color-secondary: #8b5cf6;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-gguv: #6366f1;
+            --color-gguv-dark: #4f46e5;
+            --color-gguv-light: #8b5cf6;
+            --color-dark: #1e293b;
+            --color-darker: #0f172a;
+            --color-light: #f8fafc;
+            --color-text: #e2e8f0;
+            --color-text-muted: #94a3b8;
+            --border-radius: 0.75rem;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--color-darker) 0%, var(--color-dark) 100%);
+            color: var(--color-text);
+            min-height: 100vh;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        /* Enhanced Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 320px;
+            height: 100vh;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(148, 163, 184, 0.1);
+            z-index: 1000;
+            transition: var(--transition);
+            overflow-y: auto;
+            padding: 2rem 0;
+        }
+
+        .sidebar-header {
+            padding: 0 1.5rem 2rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-gguv);
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-subtitle {
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Enhanced Navigation Sections */
+        .nav-section {
+            padding: 1.5rem 0;
+        }
+
+        .nav-section.gguv-analysis-section {
+            border-left: 3px solid var(--color-gguv);
+            background: rgba(99, 102, 241, 0.05);
+            margin: 0 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+
+        .nav-section-title {
+            padding: 0 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-section-title.gguv-analysis-title {
+            color: var(--color-gguv);
+            font-weight: 700;
+        }
+
+        .nav-section-title.gguv-analysis-title::before {
+            content: '🧠';
+            font-size: 1rem;
+        }
+
+        .nav-item {
+            margin: 0.25rem 0;
+        }
+
+        /* Enhanced Navigation Links */
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1.5rem;
+            color: var(--color-text);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+            position: relative;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .nav-link:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--color-gguv);
+            border-left-color: var(--color-gguv);
+        }
+
+        .nav-link.active {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--color-gguv);
+            border-left-color: var(--color-gguv);
+        }
+
+        .nav-link.gguv-analysis-active {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+            border-left-color: var(--color-gguv);
+            color: var(--color-gguv);
+        }
+
+        .nav-icon {
+            width: 20px;
+            margin-right: 0.875rem;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .nav-link:hover .nav-icon {
+            transform: scale(1.1);
+        }
+
+        .nav-label {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        /* Dynamic GGUF Analysis Badges */
+        .nav-badge {
+            margin-left: auto;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .nav-badge.badge-analyzing {
+            background: linear-gradient(135deg, var(--color-gguv), var(--color-gguv-light));
+            color: white;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+            animation: pulse-analyzing 1.5s infinite;
+        }
+
+        .nav-badge.badge-analyzing::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .nav-badge.badge-loaded {
+            background: linear-gradient(135deg, var(--color-success), #059669);
+            color: white;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+
+        .nav-badge.badge-idle {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+
+        .nav-badge.badge-error {
+            background: linear-gradient(135deg, var(--color-danger), #dc2626);
+            color: white;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes pulse-analyzing {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 320px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* GGUF Analysis Dashboard */
+        .dashboard-header {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--color-gguv), var(--color-gguv-light), var(--color-success));
+            animation: shimmer 3s infinite;
+        }
+
+        .dashboard-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--color-gguv), var(--color-gguv-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-header .lead {
+            color: var(--color-text);
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-header .muted {
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            text-align: center;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--color-gguv);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-gguv);
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-label {
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Model Manager */
+        .model-manager {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .model-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-load-model, .btn-refresh-models {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            color: var(--color-text);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+        }
+
+        .btn-load-model:hover {
+            background: var(--color-gguv);
+            border-color: var(--color-gguv);
+            color: white;
+        }
+
+        .btn-refresh-models:hover {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: white;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .model-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            transition: var(--transition);
+        }
+
+        .model-card:hover {
+            border-color: var(--color-gguv);
+            transform: translateY(-2px);
+        }
+
+        .model-card.model-loaded {
+            border-left: 4px solid var(--color-success);
+        }
+
+        .model-name {
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 0.5rem;
+        }
+
+        .model-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: var(--color-gguv);
+            color: white;
+        }
+
+        .model-status.badge-loaded {
+            background: var(--color-success);
+        }
+
+        .model-description {
+            color: var(--color-text-muted);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .model-specs {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .model-performance {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .performance-metric {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+        }
+
+        .metric-label {
+            color: var(--color-text-muted);
+        }
+
+        .metric-value {
+            color: var(--color-gguv);
+            font-weight: 600;
+        }
+
+        .model-card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-select-model, .btn-analyze-model {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            color: var(--color-text);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+        }
+
+        .btn-select-model:hover {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: white;
+        }
+
+        .btn-analyze-model:hover {
+            background: var(--color-gguv);
+            border-color: var(--color-gguv);
+            color: white;
+        }
+
+        /* Analysis Engine */
+        .analysis-engine {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .analysis-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .analysis-type {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: var(--color-text);
+        }
+
+        .btn-start-analysis {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.5rem;
+            background: var(--color-gguv);
+            color: white;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+        }
+
+        .btn-start-analysis:hover {
+            background: var(--color-gguv-dark);
+        }
+
+        .analysis-progress {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .progress-title {
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .progress-percentage {
+            color: var(--color-gguv);
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 9999px;
+            height: 8px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--color-gguv), var(--color-gguv-light));
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-steps {
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+        }
+
+        .current-step {
+            color: var(--color-gguv);
+            font-weight: 600;
+        }
+
+        .analysis-results {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+        }
+
+        .results-placeholder {
+            text-align: center;
+            color: var(--color-text-muted);
+            padding: 2rem;
+        }
+
+        .analysis-results-content h4 {
+            color: var(--color-text);
+            margin-bottom: 1rem;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .result-section {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .result-section h5 {
+            color: var(--color-gguv);
+            margin-bottom: 0.75rem;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .result-key {
+            color: var(--color-text-muted);
+        }
+
+        .result-value {
+            color: var(--color-text);
+            font-weight: 600;
+        }
+
+        .analysis-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-export-results, .btn-share-results {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            color: var(--color-text);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+        }
+
+        .btn-export-results:hover {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: white;
+        }
+
+        .btn-share-results:hover {
+            background: var(--color-gguv);
+            border-color: var(--color-gguv);
+            color: white;
+        }
+
+        /* Performance Monitor */
+        .performance-monitor {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .performance-chart {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-muted);
+        }
+
+        /* Action Buttons */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .action-btn {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--color-text);
+            text-decoration: none;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--color-gguv);
+            color: var(--color-gguv);
+        }
+
+        .action-btn i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 9999;
+            background: var(--color-success);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: var(--transition);
+            max-width: 400px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: var(--color-danger);
+        }
+
+        .notification.warning {
+            background: var(--color-warning);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .model-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Accessibility */
+        .nav-link:focus {
+            outline: 2px solid var(--color-gguv);
+            outline-offset: 2px;
+        }
+
+        .nav-link[aria-current="page"] {
+            background: rgba(99, 102, 241, 0.15);
+        }
+    
+    </style>
+</head>
+<body>
+    <!-- Navigation Container - This will be populated by navigation-loader.js -->
+
+    <!-- Main Content Area -->
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="models-loaded">2</div>
+                <div class="stat-label">Models Loaded</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="analysis-progress">0%</div>
+                <div class="stat-label">Analysis Progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="model-accuracy">94.2%</div>
+                <div class="stat-label">Model Accuracy</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="inference-speed">156.8</div>
+                <div class="stat-label">Inference Speed (tok/s)</div>
+            </div>
+        </div>
+
+        <!-- Model Manager -->
+        <div class="model-manager">
+            <div class="model-header">
+                <h3>GGUF Models</h3>
+                <div class="model-actions">
+                    <button class="btn-load-model" onclick="loadCustomModel()">
+                        <i class="fas fa-upload"></i> Load Custom
+                    </button>
+                    <button class="btn-refresh-models" onclick="refreshModels()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="model-grid" id="model-grid">
+                <!-- Models will be loaded here -->
+            </div>
+            <div class="model-details" id="model-details"></div>
+        </div>
+
+        <!-- Analysis Engine -->
+        <div class="analysis-engine">
+            <div class="analysis-header">
+                <h3>GGUF Analysis Engine</h3>
+                <div class="analysis-controls">
+                    <select class="analysis-type" id="analysis-type">
+                        <option value="comprehensive">Comprehensive Analysis</option>
+                        <option value="performance">Performance Analysis</option>
+                        <option value="accuracy">Accuracy Analysis</option>
+                        <option value="efficiency">Efficiency Analysis</option>
+                        <option value="comparison">Model Comparison</option>
+                    </select>
+                    <button class="btn-start-analysis" onclick="startAnalysis()">
+                        <i class="fas fa-play"></i> Start Analysis
+                    </button>
+                </div>
+            </div>
+            <div class="analysis-progress" id="analysis-progress" style="display: none;">
+                <div class="progress-header">
+                    <span class="progress-title">Analysis in Progress...</span>
+                    <span class="progress-percentage" id="progress-percentage">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-steps" id="progress-steps"></div>
+            </div>
+            <div class="analysis-results" id="analysis-results">
+                <div class="results-placeholder">
+                    <p>Select a model and start analysis to see results</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Monitor -->
+        <div class="performance-monitor">
+            <h3>Performance Monitor</h3>
+            <div class="performance-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="cpu-usage">67.3%</div>
+                    <div class="stat-label">CPU Usage</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="memory-usage">2.1GB</div>
+                    <div class="stat-label">Memory Usage</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="gpu-usage">45.2%</div>
+                    <div class="stat-label">GPU Usage</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="throughput">156.8</div>
+                    <div class="stat-label">Throughput</div>
+                </div>
+            </div>
+            <div class="performance-chart">
+                <div class="chart-placeholder">
+                    <i class="fas fa-chart-line fa-3x"></i>
+                    <p>Performance charts will be displayed here</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-grid">
+            <button class="action-btn" onclick="simulateModelLoading()">
+                <i class="fas fa-cube"></i>
+                Load Model
+            </button>
+            <button class="action-btn" onclick="simulateComprehensiveAnalysis()">
+                <i class="fas fa-chart-line"></i>
+                Comprehensive Analysis
+            </button>
+            <button class="action-btn" onclick="simulatePerformanceTest()">
+                <i class="fas fa-tachometer-alt"></i>
+                Performance Test
+            </button>
+            <button class="action-btn" onclick="refreshData()">
+                <i class="fas fa-sync"></i>
+                Refresh Data
+            </button>
+        </div>
+    </main>
+
+    <!-- Notification Container -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Enhanced JavaScript -->
+    <script>
+        // GGUF Analysis Controller
+        class GGUFAnalysisController {
+            constructor() {
+                this.activeSection = 'gguv-analysis';
+                this.modelStatus = {
+                    loaded: false,
+                    modelName: null,
+                    analysisProgress: 0,
+                    performance: {
+                        accuracy: 94.2,
+                        speed: 156.8,
+                        efficiency: 91.3,
+                        memoryUsage: 2.1
+                    },
+                    lastAnalysis: null
+                };
+                this.models = [];
+                this.loadedModel = null;
+                this.activeAnalysis = null;
+                this.analysisHistory = [];
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.startRealTimeUpdates();
+                this.loadInitialData();
+                console.log('🧠 GGUF Analysis Controller initialized');
+            }
+
+            setupEventListeners() {
+                // Handle keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.clearNotifications();
+                    }
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+                        e.preventDefault();
+                        this.focusGGUFAnalysis();
+                    }
+                });
+            }
+
+            startRealTimeUpdates() {
+                // Update badge every 5 seconds during analysis
+                setInterval(() => {
+                    this.updateModelStatus();
+                }, 5000);
+                
+                // Update performance metrics every 3 seconds
+                setInterval(() => {
+                    this.updatePerformanceMetrics();
+                }, 3000);
+            }
+
+            async loadInitialData() {
+                try {
+                    // Simulate API call
+                    await this.delay(1000);
+                    this.loadModels();
+                    this.updateStats();
+                    console.log('📊 Initial data loaded');
+                } catch (error) {
+                    console.error('Failed to load initial data:', error);
+                    this.showNotification('Error loading GGUF analysis data', 'error');
+                }
+            }
+
+            loadModels() {
+                this.models = [
+                    {
+                        id: 'unbreakable-oracle',
+                        name: 'Unbreakable Oracle',
+                        description: 'Advanced reasoning model with exceptional accuracy and performance',
+                        size: '1.88GB',
+                        parameters: '7B',
+                        quantization: 'Q4_K_M',
+                        contextLength: '4096',
+                        architecture: 'Transformer',
+                        trainingData: 'Mixed web data',
+                        accuracy: 94.2,
+                        speed: 156.8,
+                        loaded: false
+                    },
+                    {
+                        id: 'code-master',
+                        name: 'Code Master',
+                        description: 'Specialized model for code generation, analysis, and optimization',
+                        size: '2.34GB',
+                        parameters: '13B',
+                        quantization: 'Q5_K_M',
+                        contextLength: '8192',
+                        architecture: 'Transformer',
+                        trainingData: 'Code repositories',
+                        accuracy: 91.7,
+                        speed: 134.2,
+                        loaded: false
+                    },
+                    {
+                        id: 'reasoning-pro',
+                        name: 'Reasoning Pro',
+                        description: 'Enhanced reasoning capabilities for complex problem solving',
+                        size: '3.12GB',
+                        parameters: '34B',
+                        quantization: 'Q4_K_M',
+                        contextLength: '12288',
+                        architecture: 'Transformer',
+                        trainingData: 'Scientific literature',
+                        accuracy: 96.8,
+                        speed: 89.4,
+                        loaded: false
+                    }
+                ];
+                
+                this.renderModels();
+            }
+
+            renderModels() {
+                const grid = document.getElementById('model-grid');
+                grid.innerHTML = this.models.map(model => this.renderModel(model)).join('');
+            }
+
+            renderModel(model) {
+                return `
+                    <div class="model-card ${model.loaded ? 'model-loaded' : ''}" data-model-id="${model.id}">
+                        <div class="model-header">
+                            <h4 class="model-name">${model.name}</h4>
+                            <span class="model-status ${model.loaded ? 'badge-loaded' : ''}">
+                                ${model.loaded ? 'Loaded' : 'Available'}
+                            </span>
+                        </div>
+                        <div class="model-description">${model.description}</div>
+                        <div class="model-specs">
+                            <span class="model-size">${model.size}</span>
+                            <span class="model-parameters">${model.parameters}</span>
+                            <span class="model-quantization">${model.quantization}</span>
+                        </div>
+                        <div class="model-performance">
+                            <div class="performance-metric">
+                                <span class="metric-label">Accuracy:</span>
+                                <span class="metric-value">${model.accuracy}%</span>
+                            </div>
+                            <div class="performance-metric">
+                                <span class="metric-label">Speed:</span>
+                                <span class="metric-value">${model.speed} tok/s</span>
+                            </div>
+                        </div>
+                        <div class="model-card-actions">
+                            <button class="btn-select-model" onclick="selectModel('${model.id}')">
+                                <i class="fas fa-play"></i> Select
+                            </button>
+                            <button class="btn-analyze-model" onclick="analyzeModel('${model.id}')">
+                                <i class="fas fa-chart-line"></i> Analyze
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            updateStats() {
+                document.getElementById('models-loaded').textContent = this.models.filter(m => m.loaded).length;
+                document.getElementById('analysis-progress').textContent = Math.round(this.modelStatus.analysisProgress) + '%';
+                document.getElementById('model-accuracy').textContent = this.modelStatus.performance.accuracy + '%';
+                document.getElementById('inference-speed').textContent = this.modelStatus.performance.speed;
+            }
+
+            updateModelStatus() {
+                // Simulate real-time updates
+                if (this.activeAnalysis) {
+                    const variation = Math.random() * 5; // 0-5% progress
+                    this.modelStatus.analysisProgress = Math.min(100, this.modelStatus.analysisProgress + variation);
+                    
+                    // Update badge
+                    this.updateBadge();
+                }
+            }
+
+            updateBadge() {
+                const badge = document.getElementById('gguv-status-badge');
+                if (badge) {
+                    if (this.activeAnalysis && this.modelStatus.analysisProgress > 0) {
+                        badge.textContent = `${Math.round(this.modelStatus.analysisProgress)}%`;
+                        badge.className = 'nav-badge badge-analyzing';
+                        badge.setAttribute('title', `Analysis in progress • ${Math.round(this.modelStatus.analysisProgress)}% complete`);
+                    } else if (this.loadedModel) {
+                        badge.textContent = 'GGUF';
+                        badge.className = 'nav-badge badge-loaded';
+                        badge.setAttribute('title', `${this.loadedModel.name} • Ready`);
+                    } else {
+                        badge.textContent = 'GGUF';
+                        badge.className = 'nav-badge badge-idle';
+                        badge.setAttribute('title', 'No model loaded');
+                    }
+                }
+            }
+
+            updatePerformanceMetrics() {
+                // Simulate performance metric updates
+                const cpuUsage = 60 + Math.random() * 20;
+                const memoryUsage = 1.8 + Math.random() * 0.6;
+                const gpuUsage = 40 + Math.random() * 15;
+                const throughput = 140 + Math.random() * 30;
+                
+                document.getElementById('cpu-usage').textContent = cpuUsage.toFixed(1) + '%';
+                document.getElementById('memory-usage').textContent = memoryUsage.toFixed(1) + 'GB';
+                document.getElementById('gpu-usage').textContent = gpuUsage.toFixed(1) + '%';
+                document.getElementById('throughput').textContent = throughput.toFixed(1);
+            }
+
+            async selectModel(modelId) {
+                try {
+                    const model = this.models.find(m => m.id === modelId);
+                    if (!model) {
+                        throw new Error(`Model ${modelId} not found`);
+                    }
+                    
+                    // Update loaded status
+                    this.models.forEach(m => m.loaded = false);
+                    model.loaded = true;
+                    this.loadedModel = model;
+                    this.modelStatus.loaded = true;
+                    this.modelStatus.modelName = model.name;
+                    
+                    this.renderModels();
+                    this.renderModelDetails(model);
+                    this.updateBadge();
+                    this.updateStats();
+                    
+                    this.showNotification(`Model "${model.name}" loaded successfully`, 'success');
+                } catch (error) {
+                    console.error('Failed to select model:', error);
+                    this.showNotification('Failed to select model', 'error');
+                }
+            }
+
+            renderModelDetails(model) {
+                const details = document.getElementById('model-details');
+                if (!details) return;
+                
+                details.innerHTML = `
+                    <div class="model-details-content">
+                        <h4>Model Details: ${model.name}</h4>
+                        <div class="detail-grid">
+                            <div class="result-section">
+                                <h5>Model Information</h5>
+                                <div class="result-item">
+                                    <span class="result-key">File Size:</span>
+                                    <span class="result-value">${model.size}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Parameters:</span>
+                                    <span class="result-value">${model.parameters}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Quantization:</span>
+                                    <span class="result-value">${model.quantization}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Context Length:</span>
+                                    <span class="result-value">${model.contextLength}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Architecture:</span>
+                                    <span class="result-value">${model.architecture}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Training Data:</span>
+                                    <span class="result-value">${model.trainingData}</span>
+                                </div>
+                            </div>
+                            <div class="result-section">
+                                <h5>Performance Metrics</h5>
+                                <div class="result-item">
+                                    <span class="result-key">Accuracy:</span>
+                                    <span class="result-value">${model.accuracy}%</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Speed:</span>
+                                    <span class="result-value">${model.speed} tok/s</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Memory Usage:</span>
+                                    <span class="result-value">${(model.parameters === '7B' ? '2.1' : model.parameters === '13B' ? '3.4' : '5.2')}GB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            async startAnalysis(type = 'comprehensive') {
+                if (!this.loadedModel) {
+                    this.showNotification('Please select a model first', 'warning');
+                    return;
+                }
+                
+                const analysisId = this.generateId();
+                const analysis = {
+                    id: analysisId,
+                    modelId: this.loadedModel.id,
+                    modelName: this.loadedModel.name,
+                    type: type,
+                    status: 'in-progress',
+                    startTime: Date.now(),
+                    endTime: null,
+                    progress: 0,
+                    currentStep: null,
+                    results: null,
+                    error: null
+                };
+                
+                this.activeAnalysis = analysis;
+                this.analysisHistory.push(analysis);
+                this.showProgress(analysis);
+                
+                try {
+                    await this.executeAnalysis(analysis);
+                } catch (error) {
+                    this.handleAnalysisError(analysis, error);
+                }
+            }
+
+            async executeAnalysis(analysis) {
+                const steps = this.getAnalysisSteps(analysis.type);
+                
+                for (let i = 0; i < steps.length; i++) {
+                    const step = steps[i];
+                    analysis.currentStep = step.name;
+                    analysis.progress = ((i + 1) / steps.length) * 100;
+                    
+                    this.updateProgress(analysis);
+                    await this.delay(step.duration);
+                }
+                
+                // Complete analysis
+                analysis.status = 'completed';
+                analysis.endTime = Date.now();
+                analysis.results = this.generateAnalysisResults(analysis);
+                
+                this.showResults(analysis);
+                this.activeAnalysis = null;
+                this.modelStatus.analysisProgress = 0;
+                this.updateBadge();
+            }
+
+            getAnalysisSteps(type) {
+                const stepSets = {
+                    comprehensive: [
+                        { name: 'Loading model structure', duration: 1000 },
+                        { name: 'Analyzing parameters', duration: 2000 },
+                        { name: 'Evaluating performance', duration: 3000 },
+                        { name: 'Testing accuracy', duration: 2500 },
+                        { name: 'Measuring efficiency', duration: 2000 },
+                        { name: 'Generating insights', duration: 1500 }
+                    ],
+                    performance: [
+                        { name: 'Loading model', duration: 1000 },
+                        { name: 'Running benchmarks', duration: 4000 },
+                        { name: 'Measuring throughput', duration: 3000 },
+                        { name: 'Analyzing memory usage', duration: 2000 },
+                        { name: 'Generating report', duration: 1000 }
+                    ],
+                    accuracy: [
+                        { name: 'Loading test data', duration: 1500 },
+                        { name: 'Running inference tests', duration: 4000 },
+                        { name: 'Calculating metrics', duration: 2500 },
+                        { name: 'Comparing results', duration: 2000 },
+                        { name: 'Generating report', duration: 1000 }
+                    ],
+                    efficiency: [
+                        { name: 'Analyzing resource usage', duration: 2000 },
+                        { name: 'Measuring power consumption', duration: 3000 },
+                        { name: 'Evaluating memory efficiency', duration: 2500 },
+                        { name: 'Testing scalability', duration: 3000 },
+                        { name: 'Generating report', duration: 1500 }
+                    ],
+                    comparison: [
+                        { name: 'Loading comparison models', duration: 2000 },
+                        { name: 'Running comparative tests', duration: 5000 },
+                        { name: 'Analyzing differences', duration: 3000 },
+                        { name: 'Generating comparison report', duration: 2000 }
+                    ]
+                };
+                
+                return stepSets[type] || stepSets.comprehensive;
+            }
+
+            generateAnalysisResults(analysis) {
+                const model = this.loadedModel;
+                
+                switch (analysis.type) {
+                    case 'comprehensive':
+                        return {
+                            summary: {
+                                overallScore: 94.2,
+                                recommendations: 5,
+                                insights: 8
+                            },
+                            performance: {
+                                accuracy: model.accuracy,
+                                speed: model.speed,
+                                efficiency: 91.3,
+                                memoryUsage: 2.1
+                            },
+                            insights: [
+                                'Model demonstrates exceptional reasoning capabilities',
+                                'Memory efficiency is optimal for production deployment',
+                                'Quantization maintains high accuracy levels',
+                                'Inference speed exceeds production requirements'
+                            ],
+                            recommendations: [
+                                'Deploy for production workloads',
+                                'Monitor performance during peak loads',
+                                'Consider fine-tuning for specific domains',
+                                'Implement regular performance audits'
+                            ]
+                        };
+                    case 'performance':
+                        return {
+                            benchmarks: {
+                                throughput: model.speed,
+                                latency: 23.4,
+                                memoryUsage: 2.1,
+                                cpuUtilization: 67.3
+                            },
+                            comparisons: {
+                                vsBaseline: '+23%',
+                                vsPrevious: '+12%',
+                                industryAverage: '+18%'
+                            }
+                        };
+                    case 'accuracy':
+                        return {
+                            metrics: {
+                                overallAccuracy: model.accuracy,
+                                reasoningAccuracy: 92.8,
+                                factualAccuracy: 95.6,
+                                coherenceScore: 91.3
+                            },
+                            testResults: {
+                                passedTests: 847,
+                                failedTests: 23,
+                                totalTests: 870
+                            }
+                        };
+                    default:
+                        return { message: 'Analysis completed successfully' };
+                }
+            }
+
+            showProgress(analysis) {
+                const progressContainer = document.getElementById('analysis-progress');
+                const resultsContainer = document.getElementById('analysis-results');
+                
+                progressContainer.style.display = 'block';
+                resultsContainer.style.display = 'none';
+                
+                this.updateProgress(analysis);
+            }
+
+            updateProgress(analysis) {
+                const percentage = document.getElementById('progress-percentage');
+                const fill = document.getElementById('progress-fill');
+                const steps = document.getElementById('progress-steps');
+                
+                if (percentage) percentage.textContent = `${Math.round(analysis.progress)}%`;
+                if (fill) fill.style.width = `${analysis.progress}%`;
+                
+                if (steps && analysis.currentStep) {
+                    steps.innerHTML = `<div class="current-step">${analysis.currentStep}</div>`;
+                }
+                
+                // Update global progress
+                this.modelStatus.analysisProgress = analysis.progress;
+                this.updateStats();
+            }
+
+            showResults(analysis) {
+                const progressContainer = document.getElementById('analysis-progress');
+                const resultsContainer = document.getElementById('analysis-results');
+                
+                progressContainer.style.display = 'none';
+                resultsContainer.style.display = 'block';
+                
+                resultsContainer.innerHTML = this.renderResults(analysis.results);
+                
+                this.showNotification(`Analysis completed for ${analysis.modelName}`, 'success');
+            }
+
+            renderResults(results) {
+                return `
+                    <div class="analysis-results-content">
+                        <h4>Analysis Results</h4>
+                        <div class="results-grid">
+                            ${Object.entries(results).map(([key, value]) => this.renderResultSection(key, value)).join('')}
+                        </div>
+                        <div class="analysis-actions">
+                            <button class="btn-export-results" onclick="exportResults()">
+                                <i class="fas fa-download"></i> Export Results
+                            </button>
+                            <button class="btn-share-results" onclick="shareResults()">
+                                <i class="fas fa-share"></i> Share
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderResultSection(key, value) {
+                return `
+                    <div class="result-section">
+                        <h5>${this.formatSectionTitle(key)}</h5>
+                        <div class="result-content">
+                            ${this.formatResultValue(value)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            formatSectionTitle(key) {
+                return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            }
+
+            formatResultValue(value) {
+                if (typeof value === 'object' && value !== null) {
+                    if (Array.isArray(value)) {
+                        return `<ul>${value.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                    } else {
+                        return Object.entries(value).map(([k, v]) => 
+                            `<div class="result-item">
+                                <span class="result-key">${k}:</span>
+                                <span class="result-value">${v}</span>
+                            </div>`
+                        ).join('');
+                    }
+                }
+                return `<div class="result-value">${value}</div>`;
+            }
+
+            handleAnalysisError(analysis, error) {
+                analysis.status = 'failed';
+                analysis.error = error.message;
+                analysis.endTime = Date.now();
+                this.activeAnalysis = null;
+                this.modelStatus.analysisProgress = 0;
+                this.updateBadge();
+                
+                this.showNotification(`Analysis failed: ${error.message}`, 'error');
+            }
+
+            async simulateModelLoading() {
+                const model = this.models[0];
+                await this.selectModel(model.id);
+            }
+
+            async simulateComprehensiveAnalysis() {
+                if (!this.loadedModel) {
+                    await this.simulateModelLoading();
+                }
+                await this.startAnalysis('comprehensive');
+            }
+
+            async simulatePerformanceTest() {
+                if (!this.loadedModel) {
+                    await this.simulateModelLoading();
+                }
+                await this.startAnalysis('performance');
+            }
+
+            refreshData() {
+                this.showNotification('Refreshing GGUF analysis data...', 'info');
+                this.loadModels();
+                this.updateStats();
+                this.showNotification('Data refreshed successfully!', 'success');
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 100);
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+
+            clearNotifications() {
+                const notifications = document.querySelectorAll('.notification.show');
+                notifications.forEach(n => n.classList.remove('show'));
+            }
+
+            focusGGUFAnalysis() {
+                const navElement = document.getElementById('gguv-analysis-nav');
+                navElement.focus();
+                navElement.click();
+            }
+
+            generateId() {
+                return `ANALYSIS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize controller
+        const gguvController = new GGUFAnalysisController();
+
+        // Global functions for onclick handlers
+        async function handleNavigation(sectionId, element) {
+            await gguvController.handleNavigation(sectionId, element);
+        }
+
+        async function handleGGUFAnalysisNavigation(sectionId, element) {
+            await gguvController.handleGGUFAnalysisNavigation(sectionId, element);
+        }
+
+        // Model action handlers
+        async function selectModel(modelId) {
+            await gguvController.selectModel(modelId);
+        }
+
+        async function analyzeModel(modelId) {
+            await gguvController.selectModel(modelId);
+            await gguvController.startAnalysis('comprehensive');
+        }
+
+        // Analysis action handlers
+        async function startAnalysis() {
+            const analysisType = document.getElementById('analysis-type').value;
+            await gguvController.startAnalysis(analysisType);
+        }
+
+        // Demo functions
+        async function loadCustomModel() {
+            gguvController.showNotification('Custom model loading feature coming soon!', 'info');
+        }
+
+        function refreshModels() {
+            gguvController.refreshData();
+        }
+
+        async function simulateModelLoading() {
+            await gguvController.simulateModelLoading();
+        }
+
+        async function simulateComprehensiveAnalysis() {
+            await gguvController.simulateComprehensiveAnalysis();
+        }
+
+        async function simulatePerformanceTest() {
+            await gguvController.simulatePerformanceTest();
+        }
+
+        function refreshData() {
+            gguvController.refreshData();
+        }
+
+        function exportResults() {
+            gguvController.showNotification('Export results feature coming soon!', 'info');
+        }
+
+        function shareResults() {
+            gguvController.showNotification('Share results feature coming soon!', 'info');
+        }
+
+        // Welcome message
+        setTimeout(() => {
+            gguvController.showNotification('Welcome to GGUF Analysis System! 🧠', 'success');
+        }, 1000);
+    </script>
+
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/navigation-loader.js"></script>
+    <script>
+        // GGUF Analysis Controller
+        class GGUFAnalysisController {
+            constructor() {
+                this.activeSection = 'gguv-analysis';
+                this.modelStatus = {
+                    loaded: false,
+                    modelName: null,
+                    analysisProgress: 0,
+                    performance: {
+                        accuracy: 94.2,
+                        speed: 156.8,
+                        efficiency: 91.3,
+                        memoryUsage: 2.1
+                    },
+                    lastAnalysis: null
+                };
+                this.models = [];
+                this.loadedModel = null;
+                this.activeAnalysis = null;
+                this.analysisHistory = [];
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.startRealTimeUpdates();
+                this.loadInitialData();
+                console.log('🧠 GGUF Analysis Controller initialized');
+            }
+
+            setupEventListeners() {
+                // Handle keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.clearNotifications();
+                    }
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+                        e.preventDefault();
+                        this.focusGGUFAnalysis();
+                    }
+                });
+            }
+
+            startRealTimeUpdates() {
+                // Update badge every 5 seconds during analysis
+                setInterval(() => {
+                    this.updateModelStatus();
+                }, 5000);
+                
+                // Update performance metrics every 3 seconds
+                setInterval(() => {
+                    this.updatePerformanceMetrics();
+                }, 3000);
+            }
+
+            async loadInitialData() {
+                try {
+                    // Simulate API call
+                    await this.delay(1000);
+                    this.loadModels();
+                    this.updateStats();
+                    console.log('📊 Initial data loaded');
+                } catch (error) {
+                    console.error('Failed to load initial data:', error);
+                    this.showNotification('Error loading GGUF analysis data', 'error');
+                }
+            }
+
+            loadModels() {
+                this.models = [
+                    {
+                        id: 'unbreakable-oracle',
+                        name: 'Unbreakable Oracle',
+                        description: 'Advanced reasoning model with exceptional accuracy and performance',
+                        size: '1.88GB',
+                        parameters: '7B',
+                        quantization: 'Q4_K_M',
+                        contextLength: '4096',
+                        architecture: 'Transformer',
+                        trainingData: 'Mixed web data',
+                        accuracy: 94.2,
+                        speed: 156.8,
+                        loaded: false
+                    },
+                    {
+                        id: 'code-master',
+                        name: 'Code Master',
+                        description: 'Specialized model for code generation, analysis, and optimization',
+                        size: '2.34GB',
+                        parameters: '13B',
+                        quantization: 'Q5_K_M',
+                        contextLength: '8192',
+                        architecture: 'Transformer',
+                        trainingData: 'Code repositories',
+                        accuracy: 91.7,
+                        speed: 134.2,
+                        loaded: false
+                    },
+                    {
+                        id: 'reasoning-pro',
+                        name: 'Reasoning Pro',
+                        description: 'Enhanced reasoning capabilities for complex problem solving',
+                        size: '3.12GB',
+                        parameters: '34B',
+                        quantization: 'Q4_K_M',
+                        contextLength: '12288',
+                        architecture: 'Transformer',
+                        trainingData: 'Scientific literature',
+                        accuracy: 96.8,
+                        speed: 89.4,
+                        loaded: false
+                    }
+                ];
+                
+                this.renderModels();
+            }
+
+            renderModels() {
+                const grid = document.getElementById('model-grid');
+                grid.innerHTML = this.models.map(model => this.renderModel(model)).join('');
+            }
+
+            renderModel(model) {
+                return `
+                    <div class="model-card ${model.loaded ? 'model-loaded' : ''}" data-model-id="${model.id}">
+                        <div class="model-header">
+                            <h4 class="model-name">${model.name}</h4>
+                            <span class="model-status ${model.loaded ? 'badge-loaded' : ''}">
+                                ${model.loaded ? 'Loaded' : 'Available'}
+                            </span>
+                        </div>
+                        <div class="model-description">${model.description}</div>
+                        <div class="model-specs">
+                            <span class="model-size">${model.size}</span>
+                            <span class="model-parameters">${model.parameters}</span>
+                            <span class="model-quantization">${model.quantization}</span>
+                        </div>
+                        <div class="model-performance">
+                            <div class="performance-metric">
+                                <span class="metric-label">Accuracy:</span>
+                                <span class="metric-value">${model.accuracy}%</span>
+                            </div>
+                            <div class="performance-metric">
+                                <span class="metric-label">Speed:</span>
+                                <span class="metric-value">${model.speed} tok/s</span>
+                            </div>
+                        </div>
+                        <div class="model-card-actions">
+                            <button class="btn-select-model" onclick="selectModel('${model.id}')">
+                                <i class="fas fa-play"></i> Select
+                            </button>
+                            <button class="btn-analyze-model" onclick="analyzeModel('${model.id}')">
+                                <i class="fas fa-chart-line"></i> Analyze
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            updateStats() {
+                document.getElementById('models-loaded').textContent = this.models.filter(m => m.loaded).length;
+                document.getElementById('analysis-progress').textContent = Math.round(this.modelStatus.analysisProgress) + '%';
+                document.getElementById('model-accuracy').textContent = this.modelStatus.performance.accuracy + '%';
+                document.getElementById('inference-speed').textContent = this.modelStatus.performance.speed;
+            }
+
+            updateModelStatus() {
+                // Simulate real-time updates
+                if (this.activeAnalysis) {
+                    const variation = Math.random() * 5; // 0-5% progress
+                    this.modelStatus.analysisProgress = Math.min(100, this.modelStatus.analysisProgress + variation);
+                    
+                    // Update badge
+                    this.updateBadge();
+                }
+            }
+
+            updateBadge() {
+                const badge = document.getElementById('gguv-status-badge');
+                if (badge) {
+                    if (this.activeAnalysis && this.modelStatus.analysisProgress > 0) {
+                        badge.textContent = `${Math.round(this.modelStatus.analysisProgress)}%`;
+                        badge.className = 'nav-badge badge-analyzing';
+                        badge.setAttribute('title', `Analysis in progress • ${Math.round(this.modelStatus.analysisProgress)}% complete`);
+                    } else if (this.loadedModel) {
+                        badge.textContent = 'GGUF';
+                        badge.className = 'nav-badge badge-loaded';
+                        badge.setAttribute('title', `${this.loadedModel.name} • Ready`);
+                    } else {
+                        badge.textContent = 'GGUF';
+                        badge.className = 'nav-badge badge-idle';
+                        badge.setAttribute('title', 'No model loaded');
+                    }
+                }
+            }
+
+            updatePerformanceMetrics() {
+                // Simulate performance metric updates
+                const cpuUsage = 60 + Math.random() * 20;
+                const memoryUsage = 1.8 + Math.random() * 0.6;
+                const gpuUsage = 40 + Math.random() * 15;
+                const throughput = 140 + Math.random() * 30;
+                
+                document.getElementById('cpu-usage').textContent = cpuUsage.toFixed(1) + '%';
+                document.getElementById('memory-usage').textContent = memoryUsage.toFixed(1) + 'GB';
+                document.getElementById('gpu-usage').textContent = gpuUsage.toFixed(1) + '%';
+                document.getElementById('throughput').textContent = throughput.toFixed(1);
+            }
+
+            async selectModel(modelId) {
+                try {
+                    const model = this.models.find(m => m.id === modelId);
+                    if (!model) {
+                        throw new Error(`Model ${modelId} not found`);
+                    }
+                    
+                    // Update loaded status
+                    this.models.forEach(m => m.loaded = false);
+                    model.loaded = true;
+                    this.loadedModel = model;
+                    this.modelStatus.loaded = true;
+                    this.modelStatus.modelName = model.name;
+                    
+                    this.renderModels();
+                    this.renderModelDetails(model);
+                    this.updateBadge();
+                    this.updateStats();
+                    
+                    this.showNotification(`Model "${model.name}" loaded successfully`, 'success');
+                } catch (error) {
+                    console.error('Failed to select model:', error);
+                    this.showNotification('Failed to select model', 'error');
+                }
+            }
+
+            renderModelDetails(model) {
+                const details = document.getElementById('model-details');
+                if (!details) return;
+                
+                details.innerHTML = `
+                    <div class="model-details-content">
+                        <h4>Model Details: ${model.name}</h4>
+                        <div class="detail-grid">
+                            <div class="result-section">
+                                <h5>Model Information</h5>
+                                <div class="result-item">
+                                    <span class="result-key">File Size:</span>
+                                    <span class="result-value">${model.size}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Parameters:</span>
+                                    <span class="result-value">${model.parameters}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Quantization:</span>
+                                    <span class="result-value">${model.quantization}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Context Length:</span>
+                                    <span class="result-value">${model.contextLength}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Architecture:</span>
+                                    <span class="result-value">${model.architecture}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Training Data:</span>
+                                    <span class="result-value">${model.trainingData}</span>
+                                </div>
+                            </div>
+                            <div class="result-section">
+                                <h5>Performance Metrics</h5>
+                                <div class="result-item">
+                                    <span class="result-key">Accuracy:</span>
+                                    <span class="result-value">${model.accuracy}%</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Speed:</span>
+                                    <span class="result-value">${model.speed} tok/s</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-key">Memory Usage:</span>
+                                    <span class="result-value">${(model.parameters === '7B' ? '2.1' : model.parameters === '13B' ? '3.4' : '5.2')}GB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            async startAnalysis(type = 'comprehensive') {
+                if (!this.loadedModel) {
+                    this.showNotification('Please select a model first', 'warning');
+                    return;
+                }
+                
+                const analysisId = this.generateId();
+                const analysis = {
+                    id: analysisId,
+                    modelId: this.loadedModel.id,
+                    modelName: this.loadedModel.name,
+                    type: type,
+                    status: 'in-progress',
+                    startTime: Date.now(),
+                    endTime: null,
+                    progress: 0,
+                    currentStep: null,
+                    results: null,
+                    error: null
+                };
+                
+                this.activeAnalysis = analysis;
+                this.analysisHistory.push(analysis);
+                this.showProgress(analysis);
+                
+                try {
+                    await this.executeAnalysis(analysis);
+                } catch (error) {
+                    this.handleAnalysisError(analysis, error);
+                }
+            }
+
+            async executeAnalysis(analysis) {
+                const steps = this.getAnalysisSteps(analysis.type);
+                
+                for (let i = 0; i < steps.length; i++) {
+                    const step = steps[i];
+                    analysis.currentStep = step.name;
+                    analysis.progress = ((i + 1) / steps.length) * 100;
+                    
+                    this.updateProgress(analysis);
+                    await this.delay(step.duration);
+                }
+                
+                // Complete analysis
+                analysis.status = 'completed';
+                analysis.endTime = Date.now();
+                analysis.results = this.generateAnalysisResults(analysis);
+                
+                this.showResults(analysis);
+                this.activeAnalysis = null;
+                this.modelStatus.analysisProgress = 0;
+                this.updateBadge();
+            }
+
+            getAnalysisSteps(type) {
+                const stepSets = {
+                    comprehensive: [
+                        { name: 'Loading model structure', duration: 1000 },
+                        { name: 'Analyzing parameters', duration: 2000 },
+                        { name: 'Evaluating performance', duration: 3000 },
+                        { name: 'Testing accuracy', duration: 2500 },
+                        { name: 'Measuring efficiency', duration: 2000 },
+                        { name: 'Generating insights', duration: 1500 }
+                    ],
+                    performance: [
+                        { name: 'Loading model', duration: 1000 },
+                        { name: 'Running benchmarks', duration: 4000 },
+                        { name: 'Measuring throughput', duration: 3000 },
+                        { name: 'Analyzing memory usage', duration: 2000 },
+                        { name: 'Generating report', duration: 1000 }
+                    ],
+                    accuracy: [
+                        { name: 'Loading test data', duration: 1500 },
+                        { name: 'Running inference tests', duration: 4000 },
+                        { name: 'Calculating metrics', duration: 2500 },
+                        { name: 'Comparing results', duration: 2000 },
+                        { name: 'Generating report', duration: 1000 }
+                    ],
+                    efficiency: [
+                        { name: 'Analyzing resource usage', duration: 2000 },
+                        { name: 'Measuring power consumption', duration: 3000 },
+                        { name: 'Evaluating memory efficiency', duration: 2500 },
+                        { name: 'Testing scalability', duration: 3000 },
+                        { name: 'Generating report', duration: 1500 }
+                    ],
+                    comparison: [
+                        { name: 'Loading comparison models', duration: 2000 },
+                        { name: 'Running comparative tests', duration: 5000 },
+                        { name: 'Analyzing differences', duration: 3000 },
+                        { name: 'Generating comparison report', duration: 2000 }
+                    ]
+                };
+                
+                return stepSets[type] || stepSets.comprehensive;
+            }
+
+            generateAnalysisResults(analysis) {
+                const model = this.loadedModel;
+                
+                switch (analysis.type) {
+                    case 'comprehensive':
+                        return {
+                            summary: {
+                                overallScore: 94.2,
+                                recommendations: 5,
+                                insights: 8
+                            },
+                            performance: {
+                                accuracy: model.accuracy,
+                                speed: model.speed,
+                                efficiency: 91.3,
+                                memoryUsage: 2.1
+                            },
+                            insights: [
+                                'Model demonstrates exceptional reasoning capabilities',
+                                'Memory efficiency is optimal for production deployment',
+                                'Quantization maintains high accuracy levels',
+                                'Inference speed exceeds production requirements'
+                            ],
+                            recommendations: [
+                                'Deploy for production workloads',
+                                'Monitor performance during peak loads',
+                                'Consider fine-tuning for specific domains',
+                                'Implement regular performance audits'
+                            ]
+                        };
+                    case 'performance':
+                        return {
+                            benchmarks: {
+                                throughput: model.speed,
+                                latency: 23.4,
+                                memoryUsage: 2.1,
+                                cpuUtilization: 67.3
+                            },
+                            comparisons: {
+                                vsBaseline: '+23%',
+                                vsPrevious: '+12%',
+                                industryAverage: '+18%'
+                            }
+                        };
+                    case 'accuracy':
+                        return {
+                            metrics: {
+                                overallAccuracy: model.accuracy,
+                                reasoningAccuracy: 92.8,
+                                factualAccuracy: 95.6,
+                                coherenceScore: 91.3
+                            },
+                            testResults: {
+                                passedTests: 847,
+                                failedTests: 23,
+                                totalTests: 870
+                            }
+                        };
+                    default:
+                        return { message: 'Analysis completed successfully' };
+                }
+            }
+
+            showProgress(analysis) {
+                const progressContainer = document.getElementById('analysis-progress');
+                const resultsContainer = document.getElementById('analysis-results');
+                
+                progressContainer.style.display = 'block';
+                resultsContainer.style.display = 'none';
+                
+                this.updateProgress(analysis);
+            }
+
+            updateProgress(analysis) {
+                const percentage = document.getElementById('progress-percentage');
+                const fill = document.getElementById('progress-fill');
+                const steps = document.getElementById('progress-steps');
+                
+                if (percentage) percentage.textContent = `${Math.round(analysis.progress)}%`;
+                if (fill) fill.style.width = `${analysis.progress}%`;
+                
+                if (steps && analysis.currentStep) {
+                    steps.innerHTML = `<div class="current-step">${analysis.currentStep}</div>`;
+                }
+                
+                // Update global progress
+                this.modelStatus.analysisProgress = analysis.progress;
+                this.updateStats();
+            }
+
+            showResults(analysis) {
+                const progressContainer = document.getElementById('analysis-progress');
+                const resultsContainer = document.getElementById('analysis-results');
+                
+                progressContainer.style.display = 'none';
+                resultsContainer.style.display = 'block';
+                
+                resultsContainer.innerHTML = this.renderResults(analysis.results);
+                
+                this.showNotification(`Analysis completed for ${analysis.modelName}`, 'success');
+            }
+
+            renderResults(results) {
+                return `
+                    <div class="analysis-results-content">
+                        <h4>Analysis Results</h4>
+                        <div class="results-grid">
+                            ${Object.entries(results).map(([key, value]) => this.renderResultSection(key, value)).join('')}
+                        </div>
+                        <div class="analysis-actions">
+                            <button class="btn-export-results" onclick="exportResults()">
+                                <i class="fas fa-download"></i> Export Results
+                            </button>
+                            <button class="btn-share-results" onclick="shareResults()">
+                                <i class="fas fa-share"></i> Share
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderResultSection(key, value) {
+                return `
+                    <div class="result-section">
+                        <h5>${this.formatSectionTitle(key)}</h5>
+                        <div class="result-content">
+                            ${this.formatResultValue(value)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            formatSectionTitle(key) {
+                return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            }
+
+            formatResultValue(value) {
+                if (typeof value === 'object' && value !== null) {
+                    if (Array.isArray(value)) {
+                        return `<ul>${value.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                    } else {
+                        return Object.entries(value).map(([k, v]) => 
+                            `<div class="result-item">
+                                <span class="result-key">${k}:</span>
+                                <span class="result-value">${v}</span>
+                            </div>`
+                        ).join('');
+                    }
+                }
+                return `<div class="result-value">${value}</div>`;
+            }
+
+            handleAnalysisError(analysis, error) {
+                analysis.status = 'failed';
+                analysis.error = error.message;
+                analysis.endTime = Date.now();
+                this.activeAnalysis = null;
+                this.modelStatus.analysisProgress = 0;
+                this.updateBadge();
+                
+                this.showNotification(`Analysis failed: ${error.message}`, 'error');
+            }
+
+            async simulateModelLoading() {
+                const model = this.models[0];
+                await this.selectModel(model.id);
+            }
+
+            async simulateComprehensiveAnalysis() {
+                if (!this.loadedModel) {
+                    await this.simulateModelLoading();
+                }
+                await this.startAnalysis('comprehensive');
+            }
+
+            async simulatePerformanceTest() {
+                if (!this.loadedModel) {
+                    await this.simulateModelLoading();
+                }
+                await this.startAnalysis('performance');
+            }
+
+            refreshData() {
+                this.showNotification('Refreshing GGUF analysis data...', 'info');
+                this.loadModels();
+                this.updateStats();
+                this.showNotification('Data refreshed successfully!', 'success');
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 100);
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+
+            clearNotifications() {
+                const notifications = document.querySelectorAll('.notification.show');
+                notifications.forEach(n => n.classList.remove('show'));
+            }
+
+            focusGGUFAnalysis() {
+                const navElement = document.getElementById('gguv-analysis-nav');
+                navElement.focus();
+                navElement.click();
+            }
+
+            generateId() {
+                return `ANALYSIS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize controller
+        const gguvController = new GGUFAnalysisController();
+
+        // Global functions for onclick handlers
+        async function handleNavigation(sectionId, element) {
+            await gguvController.handleNavigation(sectionId, element);
+        }
+
+        async function handleGGUFAnalysisNavigation(sectionId, element) {
+            await gguvController.handleGGUFAnalysisNavigation(sectionId, element);
+        }
+
+        // Model action handlers
+        async function selectModel(modelId) {
+            await gguvController.selectModel(modelId);
+        }
+
+        async function analyzeModel(modelId) {
+            await gguvController.selectModel(modelId);
+            await gguvController.startAnalysis('comprehensive');
+        }
+
+        // Analysis action handlers
+        async function startAnalysis() {
+            const analysisType = document.getElementById('analysis-type').value;
+            await gguvController.startAnalysis(analysisType);
+        }
+
+        // Demo functions
+        async function loadCustomModel() {
+            gguvController.showNotification('Custom model loading feature coming soon!', 'info');
+        }
+
+        function refreshModels() {
+            gguvController.refreshData();
+        }
+
+        async function simulateModelLoading() {
+            await gguvController.simulateModelLoading();
+        }
+
+        async function simulateComprehensiveAnalysis() {
+            await gguvController.simulateComprehensiveAnalysis();
+        }
+
+        async function simulatePerformanceTest() {
+            await gguvController.simulatePerformanceTest();
+        }
+
+        function refreshData() {
+            gguvController.refreshData();
+        }
+
+        function exportResults() {
+            gguvController.showNotification('Export results feature coming soon!', 'info');
+        }
+
+        function shareResults() {
+            gguvController.showNotification('Share results feature coming soon!', 'info');
+        }
+
+        // Welcome message
+        setTimeout(() => {
+            gguvController.showNotification('Welcome to GGUF Analysis System! 🧠', 'success');
+        }, 1000);
+    </script>
+</body>
+</html>

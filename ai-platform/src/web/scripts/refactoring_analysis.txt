@@ -1,0 +1,47 @@
+================================================================================
+REFACTORING ANALYSIS REPORT
+================================================================================
+Target Directory: ..
+Analysis Date: 2026-05-16 00:56:45
+
+OVERVIEW
+----------------------------------------
+Python Files Found: 29
+Files Analyzed: 29
+
+REFACTORING OPPORTUNITIES SUMMARY
+----------------------------------------
+Complex Functions: 10
+Large Classes: 4
+High Parameter Counts: 2
+Complex Conditionals: 1
+Coupling Issues: 10
+
+MOST COMPLEX FUNCTIONS
+----------------------------------------
+  generate_health_report (line 172): Complexity 16
+  create_security_report (line 397): Complexity 16
+  _detect_issues (line 169): Complexity 15
+  generate_report (line 327): Complexity 13
+  _assess_technical_debt (line 300): Complexity 12
+
+LARGEST CLASSES
+----------------------------------------
+  CodeAnalysisAPI (line 21): 27 methods
+  CodeAnalyzer (line 208): 17 methods
+  CodeAnalyzer (line 49): 17 methods
+  PythonCodeQualityImprover (line 27): 16 methods
+
+REFACTORING RECOMMENDATIONS
+----------------------------------------
+1. [HIGH] Extract Complex Functions
+   Found 10 complex functions that need extraction
+   Impact: Improved maintainability and testability
+
+2. [HIGH] Break Down Large Classes
+   Found 4 classes that violate single responsibility
+   Impact: Improved maintainability and reduced coupling
+
+3. [MEDIUM] Implement Dependency Injection
+   Found 10 coupling issues
+   Impact: Reduced coupling and improved testability

@@ -1,0 +1,15 @@
+{
+  "version": "phase-1-mvp",
+  "fixtures": [
+    { "file": "technical-ai-issues/a-01-hallucination.json", "issueId": "A-01" },
+    { "file": "technical-ai-issues/a-02-bias-detection.json", "issueId": "A-02" },
+    { "file": "technical-ai-issues/a-03-interpretability.json", "issueId": "A-03" },
+    { "file": "technical-ai-issues/a-04-data-quality.json", "issueId": "A-04" },
+    { "file": "technical-ai-issues/a-05-scalability.json", "issueId": "A-05" },
+    { "file": "technical-ai-issues/a-06-generalization.json", "issueId": "A-06" },
+    { "file": "everyday-reliability/a-23-response-consistency.json", "issueId": "A-23" },
+    { "file": "everyday-reliability/a-48-output-reliability.json", "issueId": "A-48" },
+    { "file": "everyday-trust-safety/a-39-security-risk.json", "issueId": "A-39" },
+    { "file": "everyday-integration/a-46-error-handling.json", "issueId": "A-46" }
+  ]
+}

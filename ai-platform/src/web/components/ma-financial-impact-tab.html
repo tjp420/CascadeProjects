@@ -1,0 +1,320 @@
+<!-- M&A Financial Impact Analysis Tab -->
+<div class="tab-content" id="financial-impact-content">
+    <div class="tab-header">
+        <h2><i class="fas fa-dollar-sign"></i> Financial Impact Analysis</h2>
+        <p>Calculate the financial implications of technical debt and code quality for M&A decisions</p>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="financial-alerts"></div>
+
+    <!-- Input Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-calculator"></i> Assessment Parameters</h3>
+        </div>
+        <div class="card-body">
+            <form id="financial-impact-form">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="company-name" class="form-label">Company Name</label>
+                            <input type="text" id="company-name" name="company-name" class="form-control" placeholder="Target Company" value="Target Company">
+                        </div>
+                        <div class="mb-3">
+                            <label for="team-size" class="form-label">Team Size</label>
+                            <input type="number" id="team-size" name="team-size" class="form-control" placeholder="10" value="10" min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label for="average-salary" class="form-label">Average Salary ($)</label>
+                            <input type="number" id="average-salary" name="average-salary" class="form-control" placeholder="120000" value="120000" min="30000">
+                        </div>
+                        <div class="mb-3">
+                            <label for="industry" class="form-label">Industry</label>
+                            <select id="industry" name="industry" class="form-control">
+                                <option value="tech">Technology</option>
+                            </select>
+                            <small class="form-text text-muted" id="industry-multiplier">Industry Multiplier: 1.0</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="debt-score" class="form-label">Technical Debt Score (0-100)</label>
+                            <input type="number" id="debt-score" name="debt-score" class="form-control" placeholder="50" value="50" min="0" max="100">
+                            <div class="form-text">Higher scores indicate more technical debt</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="complexity-score" class="form-label">Complexity Score (0-100)</label>
+                            <input type="number" id="complexity-score" name="complexity-score" class="form-control" placeholder="50" value="50" min="0" max="100">
+                            <div class="form-text">Higher scores indicate more complexity</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="security-score" class="form-label">Security Score (0-100)</label>
+                            <input type="number" id="security-score" name="security-score" class="form-control" placeholder="70" value="70" min="0" max="100">
+                            <div class="form-text">Higher scores indicate better security</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="test-coverage" class="form-label">Test Coverage (%)</label>
+                            <input type="number" id="test-coverage" name="test-coverage" class="form-control" placeholder="50" value="50" min="0" max="100">
+                        </div>
+                        <div class="mb-3">
+                            <label for="documentation-score" class="form-label">Documentation Score (0-100)</label>
+                            <input type="number" id="documentation-score" name="documentation-score" class="form-control" placeholder="50" value="50" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-calculator"></i> Calculate Financial Impact
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Section (Initially Hidden) -->
+    <div id="financial-results" style="display: none;">
+        <!-- Cost Breakdown -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="fas fa-chart-pie"></i> Cost Breakdown</h3>
+            </div>
+            <div class="card-body" id="cost-breakdown">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="fas fa-file-alt"></i> Executive Summary</h3>
+            </div>
+            <div class="card-body" id="executive-summary">
+                <!-- Executive summary will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load Financial Impact Calculator Script -->
+<script src="dashboard_components/ma-financial-impact-calculator.js"></script>
+        data: {
+            labels: ['Remediation', 'Annual Maintenance (3 years)', 'Integration'],
+            datasets: [{
+                data: [
+                    impact.remediation_cost,
+                    impact.annual_maintenance_cost * 3,
+                    impact.integration_cost
+                ],
+                backgroundColor: ['#007bff', '#28a745', '#ffc107'],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + formatCurrency(context.raw);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function displayRiskFactors(riskFactors) {
+    const container = document.getElementById('risk-factors-list');
+    container.innerHTML = '';
+    
+    riskFactors.forEach(risk => {
+        const riskElement = document.createElement('div');
+        riskElement.className = 'risk-factor';
+        
+        // Add high-risk or critical-risk class if needed
+        if (risk.toLowerCase().includes('critical') || risk.toLowerCase().includes('severe')) {
+            riskElement.className += ' critical-risk';
+        } else if (risk.toLowerCase().includes('high') || risk.toLowerCase().includes('significant')) {
+            riskElement.className += ' high-risk';
+        }
+        
+        riskElement.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span>${risk}</span>
+            </div>
+        `;
+        
+        container.appendChild(riskElement);
+    });
+}
+
+async function loadIndustryBenchmarks() {
+    try {
+        const industry = document.getElementById('industry').value;
+        const companySize = document.getElementById('company-size').value;
+        
+        const response = await fetch(`/api/ma/industry-benchmark?industry=${industry}&company_size=${companySize}`, {
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load benchmarks');
+        }
+        
+        const data = await response.json();
+        displayBenchmarks(data);
+        
+    } catch (error) {
+        console.error('Error loading benchmarks:', error);
+    }
+}
+
+function displayBenchmarks(data) {
+    const benchmarks = data.benchmarks;
+    const insights = data.comparative_notes;
+    
+    // Update benchmark insights
+    const insightsContainer = document.getElementById('benchmark-insights');
+    insightsContainer.innerHTML = insights.map(insight => 
+        `<p class="small text-muted">${insight}</p>`
+    ).join('');
+    
+    // Create benchmark comparison chart
+    createBenchmarkChart(benchmarks);
+}
+
+function createBenchmarkChart(benchmarks) {
+    const ctx = document.getElementById('benchmark-chart').getContext('2d');
+    
+    if (benchmarkChart) {
+        benchmarkChart.destroy();
+    }
+    
+    benchmarkChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Technical Debt Score', 'Security Score', 'Remediation Cost (K)'],
+            datasets: [
+                {
+                    label: 'Industry Average',
+                    data: [
+                        benchmarks.avg_technical_debt_score,
+                        benchmarks.avg_security_score,
+                        benchmarks.avg_remediation_cost / 1000
+                    ],
+                    backgroundColor: '#6c757d'
+                },
+                {
+                    label: 'This Company',
+                    data: [
+                        75, // Would come from actual analysis
+                        80, // Would come from actual analysis
+                        120 // Would come from actual analysis
+                    ],
+                    backgroundColor: '#007bff'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
+async function exportFinancialReport(format) {
+    try {
+        const response = await fetch('/api/ma/executive-report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify({
+                company_name: document.getElementById('company-name').value,
+                executive_summary: {},
+                financial_impact: {},
+                risk_assessment: {}
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to generate report');
+        }
+        
+        // Trigger download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ma-due-diligence-report.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        showSuccess('Report exported successfully!');
+        
+    } catch (error) {
+        console.error('Error exporting report:', error);
+        showError('Failed to export report: ' + error.message);
+    }
+}
+
+function scheduleFollowUp() {
+    // Implementation for scheduling follow-up
+    alert('Follow-up scheduling feature coming soon!');
+}
+
+async function getCurrentCodeAnalysis() {
+    // This would normally get the current code analysis data
+    // For now, return mock data
+    return {
+        technicalDebtScore: 70,
+        codeQuality: 75,
+        securityScore: 80,
+        scalabilityScore: 70,
+        documentationScore: 65,
+        linesOfCode: 100000,
+        complexityScore: 60
+    };
+}
+
+function getAuthToken() {
+    // Get authentication token from localStorage or cookies
+    return localStorage.getItem('auth_token') || '';
+}
+
+function showError(message) {
+    // Show error notification
+    console.error(message);
+    // Implementation would show a toast or notification
+}
+
+function showSuccess(message) {
+    // Show success notification
+    console.log(message);
+    // Implementation would show a toast or notification
+}
+</script>

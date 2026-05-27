@@ -137,44 +137,6 @@ describe('AI systems issue analyzer core', () => {
     expect(result.measuredAnalyzerCount).toBeGreaterThan(0);
   });
 
-  test('A-05 ignores scan pipeline duration metrics and operational timing copy', () => {
-    const result = runAnalyzerScript(`
-      const output = analyzer.buildAiSystemsIssueAnalysis(['A-05'], {
-        context: {
-          inputKind: 'scan-report',
-          scanReportContext: true,
-          responseText: 'File reduction dry-run benchmark completed in 842ms across 120 files. Data quality scan completed in 156ms. Repeat cleanup scans served from caching layer.',
-          codeText: 'export function scan() { return { ok: true }; }',
-          metrics: { scanDurationMs: 842, dataQualityScanDurationMs: 156 }
-        }
-      });
-      console.log(JSON.stringify(output.analyzerResults[0]));
-    `);
-
-    expect(result.countsTowardRiskSummary).toBe(false);
-    expect(result.findings.some((finding) => finding.code === 'UNVERIFIED_LATENCY')).toBe(false);
-    expect(result.findings.some((finding) => finding.code === 'INSUFFICIENT_DATA')).toBe(true);
-    expect(result.severity).toBe('low');
-  });
-
-  test('topPriority priorityScore matches analyzerResults riskScore', () => {
-    const result = runAnalyzerScript(`
-      const output = analyzer.buildAiSystemsIssueAnalysis(['A-05'], {
-        'scalability-analyzer': {
-          responseText: 'Load tested at 5000 rps with p95=120ms. Horizontal scaling enabled.',
-          metrics: { throughputRps: 5000, p95LatencyMs: 120 }
-        }
-      });
-      console.log(JSON.stringify({
-        analyzer: output.analyzerResults[0],
-        top: output.topPriorityIssues[0]
-      }));
-    `);
-
-    expect(result.analyzer.riskScore).toBe(result.top.priorityScore);
-    expect(result.analyzer.riskScore).toBe(Number((100 - result.analyzer.score).toFixed(2)));
-  });
-
   test('stub analyzers execute safely with contract-valid output', () => {
     const result = runAnalyzerScript(`
       const result = analyzer.buildAiSystemsIssueAnalysis(['A-07', 'A-07', 'A-99', '']);

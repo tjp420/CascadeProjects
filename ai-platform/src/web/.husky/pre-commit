@@ -1,0 +1,14 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Run ESLint on staged files
+npx eslint --fix
+npx prettier --write
+
+# Check if there are any linting errors
+if [ $? -ne 0 ]; then
+  echo "❌ Pre-commit hook failed. Please fix linting errors before committing."
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"

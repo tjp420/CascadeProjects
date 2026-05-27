@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merger Tool - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Modern Sidebar Styles */
+        .sidebar-modern {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-modern.collapsed {
+            transform: translateX(-240px);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-container {
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .logo i {
+            color: var(--accent-color);
+            font-size: 2rem;
+        }
+
+        .logo-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-container {
+            padding: 1rem 0;
+        }
+
+        .nav-section-modern {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title-modern {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-item-modern {
+            margin: 0.25rem 0;
+        }
+
+        .nav-link-modern {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link-modern:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-link-modern.active {
+            background: var(--bg-card);
+            color: var(--accent-color);
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-icon-modern {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .sidebar-info {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content */
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+            margin-left: 40px;
+        }
+
+        .page-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .page-content {
+            padding: 2rem;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-240px);
+            }
+            
+            .sidebar-modern.collapsed {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+            }
+            
+            .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+                margin-left: 280px;
+            }
+        }
+
+        /* Preserve existing styles from original file */
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Modern Sidebar */
+        .sidebar-modern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 280px;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem 1rem;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-header-modern {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-modern {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Modern Navigation */
+        .nav-section-modern {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title-modern {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            padding: 0 1rem;
+        }
+
+        .nav-item-modern {
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-link-modern {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link-modern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--primary-gradient);
+            opacity: 0.1;
+            transition: left 0.3s ease;
+        }
+
+        .nav-link-modern:hover::before {
+            left: 0;
+        }
+
+        .nav-link-modern:hover {
+            color: var(--accent-color);
+            transform: translateX(4px);
+        }
+
+        .nav-link-modern.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .nav-icon-modern {
+            margin-right: 0.875rem;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content Adjustments */
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* Page Title and Description */
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Merger Tools Grid */
+        .merger-tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile Toggle */
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar-modern.active {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+                padding: 1rem;
+            }
+            
+            .mobile-toggle {
+                display: block;
+            }
+        }
+
+        /* Merger Tool Specific Styles */
+        .merger-header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .merger-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .merger-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .merger-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .merger-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .merger-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .merger-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+        }
+
+        .merger-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+            border-color: var(--accent-color);
+        }
+
+        .merger-type {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .merger-item-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .merger-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .merger-button {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .merger-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .merge-workspace {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .workspace-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .workspace-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .source-panel, .target-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .panel-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .panel-button {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .panel-button:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background: var(--bg-primary);
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .file-item:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .file-name {
+            flex: 1;
+            font-size: 0.875rem;
+        }
+
+        .file-size {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .file-remove {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .conflicts-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .conflicts-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .conflict-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .conflict-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .conflict-type {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .conflict-file {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .conflict-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .conflict-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .conflict-button {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            flex: 1;
+        }
+
+        .conflict-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .conflict-resolve {
+            background: var(--success-gradient);
+        }
+
+        .conflict-keep {
+            background: var(--info-gradient);
+        }
+
+        .conflict-skip {
+            background: var(--warning-gradient);
+        }
+
+        .merge-preview {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .preview-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .preview-content {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            color: #e2e8f0;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .merge-actions {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .actions-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .action-button {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .status-high {
+            background: #ef4444;
+        }
+
+        .status-medium {
+            background: #f59e0b;
+        }
+
+        .status-low {
+            background: #10b981;
+        }
+    
+    </style>
+</head>
+<body>
+    <!-- Navigation Container - This will be populated by navigation-loader.js -->
+    <div class="navigation-container"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-content-with-sidebar">
+        <div class="content-wrapper">
+            <h1 class="page-title">Merger Tool</h1>
+            <p class="page-description">Advanced project merging tools with AI-powered conflict resolution</p>
+            
+            <!-- Merger Tools Grid -->
+            <div class="merger-tools-grid">
+                <div class="merger-card">
+                    <div class="merger-type">AI-Powered</div>
+                    <h3 class="merger-item-title">🤖 AI-Powered Merge</h3>
+                <p class="merger-description">AI-assisted project merging with automatic conflict detection and resolution suggestions for complex codebases.</p>
+                <button class="merger-button" onclick="startAIMerge()">
+                    <i class="fas fa-brain"></i> Start AI Merge
+                </button>
+            </div>
+
+            <div class="merger-card">
+                <div class="merger-type">Manual</div>
+                <h3 class="merger-item-title">🔧 Manual Merge</h3>
+                <p class="merger-description">Manual project merging with step-by-step conflict resolution and visual diff comparison tools.</p>
+                <button class="merger-button" onclick="startManualMerge()">
+                    <i class="fas fa-tools"></i> Start Manual Merge
+                </button>
+            </div>
+
+            <div class="merger-card">
+                <div class="merger-type">Automated</div>
+                <h3 class="merger-item-title">⚡ Automated Merge</h3>
+                <p class="merger-description">Automated merging with predefined rules and policies for consistent code integration.</p>
+                <button class="merger-button" onclick="startAutomatedMerge()">
+                    <i class="fas fa-robot"></i> Start Automated Merge
+                </button>
+            </div>
+
+            <div class="merger-card">
+                <div class="merger-type">Git Integration</div>
+                <h3 class="merger-item-title">📦 Git Integration</h3>
+                <p class="merger-description">Seamless Git integration with branch management and pull request workflows.</p>
+                <button class="merger-button" onclick="startGitMerge()">
+                    <i class="fas fa-code-branch"></i> Start Git Merge
+                </button>
+            </div>
+
+            <div class="merger-card">
+                <div class="merger-type">Backup</div>
+                <h3 class="merger-item-title">💾 Backup & Restore</h3>
+                <p class="merger-description">Automatic backup creation before merging with rollback capabilities for safe operations.</p>
+                <button class="merger-button" onclick="createBackup()">
+                    <i class="fas fa-save"></i> Create Backup
+                </button>
+            </div>
+
+            <div class="merger-card">
+                <div class="merger-type">History</div>
+                <h3 class="merger-item-title">📜 Merge History</h3>
+                <p class="merger-description">Complete merge history with detailed logs and rollback options for audit trails.</p>
+                <button class="merger-button" onclick="viewHistory()">
+                    <i class="fas fa-history"></i> View History
+                </button>
+            </div>
+        </div>
+
+        <!-- Merge Workspace -->
+        <div class="merge-workspace">
+            <h2 class="workspace-title">🔧 Merge Workspace</h2>
+            <div class="workspace-content">
+                <div class="source-panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">📁 Source Project</h3>
+                        <div class="panel-actions">
+                            <button class="panel-button" onclick="browseSource()">
+                                <i class="fas fa-folder-open"></i> Browse
+                            </button>
+                            <button class="panel-button" onclick="clearSource()">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    <div class="file-list" id="sourceFiles">
+                        <div class="file-item">
+                            <span class="file-name">src/components/Header.jsx</span>
+                            <span class="file-size">2.3KB</span>
+                            <button class="file-remove" onclick="removeSourceFile('src/components/Header.jsx')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="file-item">
+                            <span class="file-name">src/utils/api.js</span>
+                            <span class="file-size">1.8KB</span>
+                            <button class="file-remove" onclick="removeSourceFile('src/utils/api.js')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="file-item">
+                            <span class="file-name">src/styles/main.css</span>
+                            <span class="file-size">4.5KB</span>
+                            <button class="file-remove" onclick="removeSourceFile('src/styles/main.css')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="target-panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">🎯 Target Project</h3>
+                        <div class="panel-actions">
+                            <button class="panel-button" onclick="browseTarget()">
+                                <i class="fas fa-folder-open"></i> Browse
+                            </button>
+                            <button class="panel-button" onclick="clearTarget()">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    <div class="file-list" id="targetFiles">
+                        <div class="file-item">
+                            <span class="file-name">src/components/Footer.jsx</span>
+                            <span class="file-size">1.9KB</span>
+                            <button class="file-remove" onclick="removeTargetFile('src/components/Footer.jsx')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="file-item">
+                            <span class="file-name">src/utils/helpers.js</span>
+                            <span class="file-size">1.2KB</span>
+                            <button class="file-remove" onclick="removeTargetFile('src/utils/helpers.js')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="file-item">
+                            <span class="file-name">src/styles/theme.css</span>
+                            <span class="file-size">3.8KB</span>
+                            <button class="file-remove" onclick="removeTargetFile('src/styles/theme.css')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conflicts Panel -->
+        <div class="conflicts-panel">
+            <h2 class="conflicts-title">⚠️ Detected Conflicts</h2>
+            <div id="conflictsList">
+                <div class="conflict-item">
+                    <div class="conflict-header">
+                        <span class="conflict-type status-high">High</span>
+                        <div>
+                            <div class="conflict-file">src/components/Header.jsx</div>
+                            <div class="conflict-description">Line 23: Function signature conflict between source and target</div>
+                        </div>
+                    </div>
+                    <div class="conflict-actions">
+                        <button class="conflict-button conflict-resolve" onclick="resolveConflict('src/components/Header.jsx', 'resolve')">
+                            <i class="fas fa-check"></i> Resolve
+                        </button>
+                        <button class="conflict-button conflict-keep" onclick="resolveConflict('src/components/Header.jsx', 'keep')">
+                            <i class="fas fa-save"></i> Keep Source
+                        </button>
+                        <button class="conflict-button conflict-skip" onclick="resolveConflict('src/components/Header.jsx', 'skip')">
+                            <i class="fas fa-forward"></i> Use Target
+                        </button>
+                    </div>
+                </div>
+                <div class="conflict-item">
+                    <div class="conflict-header">
+                        <span class="conflict-type status-medium">Medium</span>
+                        <div>
+                            <div class="conflict-file">src/utils/api.js</div>
+                            <div class="conflict-description">Line 45: Import statement conflict</div>
+                        </div>
+                    </div>
+                    <div class="conflict-actions">
+                        <button class="conflict-button conflict-resolve" onclick="resolveConflict('src/utils/api.js', 'resolve')">
+                            <i class="fas fa-check"></i> Resolve
+                        </button>
+                        <button class="conflict-button conflict-keep" onclick="resolveConflict('src/utils/api.js', 'keep')">
+                            <i class="fas fa-save"></i> Keep Source
+                        </button>
+                        <button class="conflict-button conflict-skip" onclick="resolveConflict('src/utils/api.js', 'skip')">
+                            <i class="fas fa-forward"></i> Use Target
+                        </button>
+                    </div>
+                </div>
+                <div class="conflict-item">
+                    <div class="conflict-header">
+                        <span class="conflict-type status-low">Low</span>
+                        <div>
+                            <div class="conflict-file">src/styles/main.css</div>
+                            <div class="conflict-description">Line 12: CSS selector conflict</div>
+                        </div>
+                    </div>
+                    <div class="conflict-actions">
+                        <button class="conflict-button conflict-resolve" onclick="resolveConflict('src/styles/main.css', 'resolve')">
+                            <i class="fas fa-check"></i> Resolve
+                        </button>
+                        <button class="conflict-button conflict-keep" onclick="resolveConflict('src/styles/main.css', 'keep')">
+                            <i class="fas fa-save"></i> Keep Source
+                        </button>
+                        <button class="conflict-button conflict-skip" onclick="resolveConflict('src/styles/main.css', 'skip')">
+                            <i class="fas fa-forward"></i> Use Target
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Merge Preview -->
+        <div class="merge-preview">
+            <h2 class="preview-title">👀️ Merge Preview</h2>
+            <div class="preview-content" id="previewContent">
+                // Merged project preview will appear here
+                // This shows the combined result of source and target files
+                // with conflict resolutions applied
+            </div>
+        </div>
+
+        <!-- Merge Actions -->
+        <div class="merge-actions">
+            <h2 class="actions-title">🚀 Merge Actions</h2>
+            <div class="action-buttons">
+                <button class="action-button" onclick="startMergeProcess()">
+                    <i class="fas fa-play"></i> Start Merge
+                </button>
+                <button class="action-button" onclick="pauseMergeProcess()">
+                    <i class="fas fa-pause"></i> Pause
+                </button>
+                <button class="action-button" onclick="cancelMerge()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="action-button" onclick="completeMerge()">
+                    <i class="fas fa-check"></i> Complete
+                </button>
+                <button class="action-button" onclick="rollbackMerge()">
+                    <i class="fas fa-undo"></i> Rollback
+                </button>
+                <button class="action-button" onclick="exportMergeReport()">
+                    <i class="fas fa-download"></i> Export Report
+                </button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/navigation-loader.js"></script>
+</body>
+</html>

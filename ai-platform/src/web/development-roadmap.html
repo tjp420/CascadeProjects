@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗺️ Development Roadmap - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-color: #1f2937;
+            --light-color: #f3f4f6;
+            --border-color: #e5e7eb;
+            --roadmap-color: #06b6d4;
+            --development-color: #3b82f6;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--dark-color);
+        }
+
+        .main-container {
+            padding: 1.5rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .roadmap-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .roadmap-header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .roadmap-header p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .header-badges {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .badge-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+
+        .badge-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .badge-warning {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .badge-info {
+            background: var(--roadmap-color);
+            color: white;
+        }
+
+        .btn-analyze {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0 8px 16px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            color: white;
+            box-shadow: 0 12px 24px rgba(99, 102, 241, 0.4);
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 2rem;
+            display: none;
+        }
+
+        .results-container {
+            display: none;
+        }
+
+        /* Additional improvements */
+        .progress-overview {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 8px;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .progress-stat {
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .progress-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: block;
+        }
+
+        .progress-stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.completed {
+            background: var(--success-color);
+        }
+
+        .status-dot.in-progress {
+            background: var(--warning-color);
+        }
+
+        .status-dot.pending {
+            background: var(--info-color);
+        }
+
+        .enhanced-features {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .enhanced-badge {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .enhanced-badge i {
+            font-size: 0.875rem;
+        }
+
+        .executive-summary {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-left: 4px solid var(--primary-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .metric-card.roadmap {
+            border-left-color: var(--roadmap-color);
+        }
+
+        .metric-card.development {
+            border-left-color: var(--development-color);
+        }
+
+        .metric-card.quality {
+            border-left-color: var(--success-color);
+        }
+
+        .metric-card.timeline {
+            border-left-color: var(--warning-color);
+        }
+
+        .metric-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        .metric-label {
+            color: var(--dark-color);
+            font-size: 0.875rem;
+            opacity: 0.75;
+            font-weight: 500;
+        }
+
+        .section-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .phase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .phase-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 4px solid;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .phase-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .phase-card.completed {
+            border-left-color: var(--success-color);
+        }
+
+        .phase-card.in-progress {
+            border-left-color: var(--warning-color);
+        }
+
+        .phase-card.planned {
+            border-left-color: var(--info-color);
+        }
+
+        .phase-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .phase-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .status-completed {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .status-in-progress {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .status-planned {
+            background: var(--info-color);
+            color: white;
+        }
+
+        .phase-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .phase-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-badge {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--dark-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .phase-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-color);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .timeline-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-container {
+            position: relative;
+            max-height: 450px;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: rgba(249, 250, 250, 0.1);
+            border-radius: 12px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 2rem;
+            margin-bottom: 1.5rem;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 0;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            border: 2px solid white;
+        }
+
+        .timeline-date {
+            font-size: 0.875rem;
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        .recommendations-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .recommendation-item {
+            background: rgba(255, 253, 253, 0.9);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .recommendation-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .recommendation-high {
+            border-left-color: var(--danger-color);
+        }
+
+        .recommendation-medium {
+            border-left-color: var(--warning-color);
+        }
+
+        .recommendation-low {
+            border-left-color: var(--success-color);
+        }
+
+        .recommendation-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .recommendation-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 0;
+            line-height: 1.4;
+        }
+
+        .export-options {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .btn-export {
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-info {
+            background: var(--info-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Container -->
+    <div class="navigation-container"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-content-with-sidebar">
+        <div class="content-wrapper">
+            <!-- Header -->
+            <div class="roadmap-header">
+                <h1><i class="fas fa-roadmap me-2"></i>🗺️ Development Roadmap</h1>
+                <p class="text-muted">Project development timeline and milestones with real-time analysis and insights</p>
+                <div class="header-badges">
+                    <span class="badge badge-primary"><i class="fas fa-rocket me-1"></i>Real Analysis</span>
+                    <span class="badge badge-success"><i class="fas fa-check-circle me-1"></i>31 Completed</span>
+                    <span class="badge badge-warning"><i class="fas fa-clock me-1"></i>16 In Progress</span>
+                    <span class="badge badge-info"><i class="fas fa-chart-line me-1"></i>66% Complete</span>
+                </div>
+                <button class="btn btn-analyze btn-lg" onclick="analyzeRoadmap()">
+                    <i class="fas fa-play me-2"></i>Analyze Roadmap
+                </button>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div class="loading-spinner">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Performing comprehensive roadmap analysis...</p>
+            </div>
+
+            <!-- Analysis Results -->
+            <div id="analysisResults" style="display: none;">
+                <!-- Executive Summary -->
+                <div class="executive-summary">
+                    <h3><i class="fas fa-chart-line me-2"></i>Executive Summary</h3>
+                    
+                    <!-- Progress Overview -->
+                    <div class="progress-overview">
+                        <div class="progress-stat">
+                            <div class="progress-stat-value" id="totalFeatures">47</div>
+                            <div class="progress-stat-label">Total Features</div>
+                        </div>
+                        <div class="progress-stat">
+                            <div class="progress-stat-value" id="completedFeatures">31</div>
+                            <div class="progress-stat-label">Completed</div>
+                        </div>
+                        <div class="progress-stat">
+                            <div class="progress-stat-value" id="completionRate">66.0%</div>
+                            <div class="progress-stat-label">Completion Rate</div>
+                        </div>
+                        <div class="progress-stat">
+                            <div class="progress-stat-value" id="projectHealth">Excellent</div>
+                            <div class="progress-stat-label">Project Health</div>
+                        </div>
+                        <div class="progress-stat">
+                            <div class="progress-stat-value" id="developmentVelocity">High</div>
+                            <div class="progress-stat-label">Development Velocity</div>
+                        </div>
+                    </div>
+
+                    <!-- Status Indicators -->
+                    <div class="status-indicators">
+                        <div class="status-indicator">
+                            <span class="status-dot completed"></span>
+                            <span>Completed (31)</span>
+                        </div>
+                        <div class="status-indicator">
+                            <span class="status-dot in-progress"></span>
+                            <span>In Progress (16)</span>
+                        </div>
+                        <div class="status-indicator">
+                            <span class="status-dot pending"></span>
+                            <span>Pending (0)</span>
+                        </div>
+                    </div>
+
+                    <!-- Enhanced Features -->
+                    <div class="enhanced-features">
+                        <span class="enhanced-badge"><i class="fas fa-robot me-1"></i>AI Enhanced</span>
+                        <span class="enhanced-badge"><i class="fas fa-search me-1"></i>Real-time Analysis</span>
+                        <span class="enhanced-badge"><i class="fas fa-chart-line me-1"></i>Progress Tracking</span>
+                        <span class="enhanced-badge"><i class="fas fa-brain me-1"></i>GGUF AI</span>
+                    </div>
+
+                    <!-- Metrics Grid -->
+                    <div class="metrics-grid">
+                        <div class="metric-card roadmap">
+                            <div class="metric-value">47</div>
+                            <div class="metric-label">Total Features</div>
+                        </div>
+                        <div class="metric-card development">
+                            <div class="metric-value">31</div>
+                            <div class="metric-label">Completed Features</div>
+                        </div>
+                        <div class="metric-card quality">
+                            <div class="metric-value">66.0%</div>
+                            <div class="metric-label">Completion Rate</div>
+                        </div>
+                        <div class="metric-card timeline">
+                            <div class="metric-value">Excellent</div>
+                            <div class="metric-label">Project Health</div>
+                        </div>
+                        <div class="metric-card velocity">
+                            <div class="metric-value">High</div>
+                            <div class="metric-label">Development Velocity</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Development Phases -->
+                <div class="section-card">
+                    <h3><i class="fas fa-tasks me-2"></i>Development Phases</h3>
+                    <div class="phase-grid">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="timeline-section">
+                    <h3><i class="fas fa-calendar-alt me-2"></i>Development Timeline</h3>
+                    <div class="timeline-container">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="recommendations-section">
+                    <h3><i class="fas fa-lightbulb me-2"></i>Recommendations</h3>
+                    <div id="recommendations">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Export Options -->
+                <div class="export-options">
+                    <button class="btn btn-primary btn-export" onclick="exportReport('json')">
+                        <i class="fas fa-download me-1"></i>Export JSON
+                    </button>
+                    <button class="btn btn-success btn-export" onclick="exportReport('pdf')">
+                        <i class="fas fa-file-pdf me-1"></i>Export PDF
+                    </button>
+                    <button class="btn btn-info btn-export" onclick="shareReport()">
+                        <i class="fas fa-share me-1"></i>Share Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        class DevelopmentRoadmapUI {
+            constructor() {
+                this.currentAnalysis = null;
+                this.analysisCache = {};
+                this.charts = {};
+            }
+
+            async analyzeRoadmap() {
+                // Show loading spinner
+                document.querySelector('.loading-spinner').style.display = 'block';
+                document.getElementById('analysisResults').style.display = 'none';
+                
+                try {
+                    // Call development roadmap analysis API
+                    const response = await fetch('/api/development-roadmap/analyze');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.currentAnalysis = data.report;
+                        this.displayResults(data.report);
+                    } else {
+                        throw new Error(data.message || 'Analysis failed');
+                    }
+                } catch (error) {
+                    console.error('Analysis error:', error);
+                    this.showError(error.message);
+                } finally {
+                    // Hide loading spinner
+                    document.querySelector('.loading-spinner').style.display = 'none';
+                }
+            }
+
+            displayResults(analysis) {
+                document.getElementById('analysisResults').style.display = 'block';
+                
+                // Update executive summary metrics
+                this.updateExecutiveSummary(analysis);
+                
+                // Display development phases
+                this.displayDevelopmentPhases(analysis.developmentPhases);
+                
+                // Display timeline
+                this.displayTimeline(analysis.timeline);
+                
+                // Display recommendations
+                this.displayRecommendations(analysis.recommendations);
+                
+                // Initialize charts
+                this.initializeCharts(analysis);
+            }
+
+            updateExecutiveSummary(analysis) {
+                const summary = analysis.executiveSummary;
+                
+                document.getElementById('totalFeatures').textContent = summary.totalFeatures || 0;
+                document.getElementById('completedFeatures').textContent = summary.completedFeatures || 0;
+                document.getElementById('completionRate').textContent = summary.completionRate || '0%';
+                document.getElementById('projectHealth').textContent = summary.projectHealth || 'Unknown';
+                document.getElementById('developmentVelocity').textContent = summary.developmentVelocity || 'Unknown';
+            }
+
+            displayDevelopmentPhases(phases) {
+                const phasesHtml = phases.map(phase => `
+                    <div class="phase-card ${phase.status}">
+                        <div class="phase-status status-${phase.status}">
+                            ${phase.status.toUpperCase()}
+                        </div>
+                        <div class="phase-title">${phase.title}</div>
+                        <div class="phase-description">${phase.description}</div>
+                        <div class="phase-features">
+                            ${phase.features.map(feature => `<span class="feature-badge">${feature}</span>`).join('')}
+                        </div>
+                        <div class="phase-metrics">
+                            <div class="metric-item">
+                                <span class="metric-label">Progress:</span>
+                                <div class="metric-value">${phase.progress || 0}%</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">Duration:</span>
+                                <div class="metric-value">${phase.duration || 'Unknown'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.querySelector('.phase-grid').innerHTML = phasesHtml;
+            }
+
+            displayTimeline(timeline) {
+                const timelineHtml = timeline.map(item => `
+                    <div class="timeline-item">
+                        <div class="timeline-date">${item.date || 'TBD'}</div>
+                        <div class="timeline-title">${item.title || 'Timeline Item'}</div>
+                        <div class="timeline-description">${item.description || 'No description available'}</div>
+                    </div>
+                `).join('');
+                
+                document.querySelector('.timeline-container').innerHTML = timelineHtml;
+            }
+
+            displayRecommendations(recommendations) {
+                const recommendationsHtml = recommendations.slice(0, 10).map(rec => `
+                    <div class="recommendation-item recommendation-${rec.priority}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6>${rec.title}</h6>
+                                <p class="mb-1">${rec.description}</p>
+                                <small><strong>Priority:</strong> ${rec.priority} | <strong>Impact:</strong> ${rec.impact}</small>
+                            </div>
+                            <span class="badge bg-${rec.priority === 'high' ? 'danger' : rec.priority === 'medium' ? 'warning' : 'primary'}">
+                                ${rec.priority}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('recommendations').innerHTML = recommendationsHtml || '<p>No recommendations available.</p>';
+            }
+
+            initializeCharts(analysis) {
+                // Initialize Charts.js charts if data available
+                if (analysis.timeline && analysis.timeline.length > 0) {
+                    this.initializeTimelineChart(analysis.timeline);
+                }
+                
+                if (analysis.metrics && analysis.metrics.phaseMetrics) {
+                    this.initializeMetricsChart(analysis.metrics.phaseMetrics);
+                }
+            }
+
+            initializeTimelineChart(timeline) {
+                const ctx = document.getElementById('timelineChart');
+                if (ctx) {
+                    const labels = timeline.map(item => item.date || 'TBD');
+                    const progress = timeline.map(item => item.progress || 0);
+                    
+                    this.charts.timeline = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Progress',
+                                data: progress,
+                                borderColor: '#6366f1',
+                                fill: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    });
+                }
+            }
+
+            initializeMetricsChart(metrics) {
+                const ctx = document.getElementById('metricsChart');
+                if (ctx) {
+                    const labels = Object.keys(metrics);
+                    const values = Object.values(metrics);
+                    
+                    this.charts.metrics = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Metrics Score',
+                                data: values,
+                                backgroundColor: [
+                                    'rgba(99, 102, 241, 0.8)',
+                                    'rgba(139, 92, 246, 0.8)',
+                                    'rgba(34, 197, 94, 0.8)',
+                                    'rgba(245, 158, 11, 0.8)'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    });
+                }
+            }
+
+            switchTab(tabName) {
+                // Hide all tabs
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                // Remove active class from all buttons
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Show selected tab
+                const tabElement = document.getElementById(tabName + '-tab');
+                if (tabElement) {
+                    tabElement.classList.add('active');
+                }
+                
+                // Add active class to clicked button
+                event.target.classList.add('active');
+            }
+
+            exportReport(format) {
+                if (!this.currentAnalysis) {
+                    alert('No analysis data available to export');
+                    return;
+                }
+
+                if (format === 'json') {
+                    const dataStr = JSON.stringify(this.currentAnalysis, null, 2);
+                    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                    
+                    const exportFileDefaultName = `development-roadmap-analysis-${new Date().toISOString().split('T')[0]}.json`;
+                    
+                    const linkElement = document.createElement('a');
+                    linkElement.setAttribute('href', dataUri);
+                    linkElement.setAttribute('download', exportFileDefaultName);
+                    linkElement.click();
+                } else if (format === 'pdf') {
+                    alert('PDF export coming soon! For now, use JSON export.');
+                }
+            }
+
+            shareReport() {
+                if (!this.currentAnalysis) {
+                    alert('No analysis data available to share');
+                    return;
+                }
+
+                const shareData = {
+                    title: this.currentAnalysis.title,
+                    totalFeatures: this.currentAnalysis.executiveSummary?.totalFeatures || 0,
+                    completedFeatures: this.currentAnalysis.executiveSummary?.completedFeatures || 0,
+                    completionRate: this.currentAnalysis.executiveSummary?.completionRate || '0%',
+                    projectHealth: this.currentAnalysis.executiveSummary?.projectHealth || 'Unknown',
+                    timestamp: this.currentAnalysis.generatedAt
+                };
+
+                const shareText = `Development Roadmap Analysis:\nTotal Features: ${shareData.totalFeatures}\nCompleted Features: ${shareData.completedFeatures}\nCompletion Rate: ${shareData.completionRate}\nProject Health: ${shareData.projectHealth}\nAnalyzed: ${new Date(shareData.timestamp).toLocaleString()}`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Development Roadmap Analysis Report',
+                        text: shareText
+                    });
+                } else {
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        alert('Report details copied to clipboard!');
+                    });
+                }
+            }
+
+            showError(message) {
+                document.getElementById('analysisResults').style.display = 'block';
+                document.getElementById('analysisResults').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        <h4><i class="fas fa-exclamation-triangle me-2"></i>Analysis Failed</h4>
+                        <p>${message}</p>
+                        <button class="btn btn-outline-danger" onclick="location.reload()">Try Again</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize the Development Roadmap UI
+        const developmentRoadmapUI = new DevelopmentRoadmapUI();
+
+        // Global functions for button clicks
+        function analyzeRoadmap() {
+            developmentRoadmapUI.analyzeRoadmap();
+        }
+
+        function switchTab(tabName) {
+            developmentRoadmapUI.switchTab(tabName);
+        }
+
+        function exportReport(format) {
+            developmentRoadmapUI.exportReport(format);
+        }
+
+        function shareReport() {
+            developmentRoadmapUI.shareReport();
+        }
+    </script>
+</body>
+</html>

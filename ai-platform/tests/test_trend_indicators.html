@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trend Indicator Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #d4edda;
+            color: #155724;
+        }
+        .fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .stat-change {
+            font-size: 0.85rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 8px;
+        }
+        .stat-change.positive {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+        .stat-change.negative {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+        .stat-change.neutral {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Trend Indicator Test</h1>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        // Test the trend indicator logic
+        function testTrendIndicator() {
+            const results = [];
+            
+            // Test positive change
+            const positiveChange = 12;
+            const positiveArrow = positiveChange > 0 ? '↑' : positiveChange < 0 ? '↓' : '→';
+            const positiveColor = positiveChange > 0 ? 'positive' : positiveChange < 0 ? 'negative' : 'neutral';
+            
+            if (positiveArrow === '↑' && positiveColor === 'positive') {
+                results.push({ pass: true, message: 'Positive change test passed: 12% → ↑ positive' });
+            } else {
+                results.push({ pass: false, message: 'Positive change test failed: Expected ↑ positive, got ' + positiveArrow + ' ' + positiveColor });
+            }
+
+            // Test negative change
+            const negativeChange = -2;
+            const negativeArrow = negativeChange > 0 ? '↑' : negativeChange < 0 ? '↓' : '→';
+            const negativeColor = negativeChange > 0 ? 'positive' : negativeChange < 0 ? 'negative' : 'neutral';
+            
+            if (negativeArrow === '↓' && negativeColor === 'negative') {
+                results.push({ pass: true, message: 'Negative change test passed: -2% → ↓ negative' });
+            } else {
+                results.push({ pass: false, message: 'Negative change test failed: Expected ↓ negative, got ' + negativeArrow + ' ' + negativeColor });
+            }
+
+            // Test neutral change
+            const neutralChange = 0;
+            const neutralArrow = neutralChange > 0 ? '↑' : neutralChange < 0 ? '↓' : '→';
+            const neutralColor = neutralChange > 0 ? 'positive' : neutralChange < 0 ? 'negative' : 'neutral';
+            
+            if (neutralArrow === '→' && neutralColor === 'neutral') {
+                results.push({ pass: true, message: 'Neutral change test passed: 0% → → neutral' });
+            } else {
+                results.push({ pass: false, message: 'Neutral change test failed: Expected → neutral, got ' + neutralArrow + ' ' + neutralColor });
+            }
+
+            // Test various positive changes
+            [5, 8, 15, 100].forEach(change => {
+                const arrow = change > 0 ? '↑' : change < 0 ? '↓' : '→';
+                const color = change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral';
+                if (arrow === '↑' && color === 'positive') {
+                    results.push({ pass: true, message: `Positive change ${change}% test passed` });
+                } else {
+                    results.push({ pass: false, message: `Positive change ${change}% test failed` });
+                }
+            });
+
+            // Test various negative changes
+            [-5, -15, -3].forEach(change => {
+                const arrow = change > 0 ? '↑' : change < 0 ? '↓' : '→';
+                const color = change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral';
+                if (arrow === '↓' && color === 'negative') {
+                    results.push({ pass: true, message: `Negative change ${change}% test passed` });
+                } else {
+                    results.push({ pass: false, message: `Negative change ${change}% test failed` });
+                }
+            });
+
+            // Display results
+            const resultsContainer = document.getElementById('test-results');
+            let passCount = 0;
+            let failCount = 0;
+
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = `test-result ${result.pass ? 'pass' : 'fail'}`;
+                div.textContent = result.message;
+                resultsContainer.appendChild(div);
+                
+                if (result.pass) passCount++;
+                else failCount++;
+            });
+
+            // Summary
+            const summary = document.createElement('div');
+            summary.innerHTML = `<h3>Test Summary: ${passCount} passed, ${failCount} failed</h3>`;
+            resultsContainer.insertBefore(summary, resultsContainer.firstChild);
+        }
+
+        // Run tests
+        testTrendIndicator();
+    </script>
+</body>
+</html>

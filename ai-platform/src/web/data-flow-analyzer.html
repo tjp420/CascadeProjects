@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Flow Analyzer - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .analyzer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .control-panel {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-label {
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control, .form-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: var(--bg-secondary);
+            border-color: var(--accent-color);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .progress-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-gradient);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-color);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .chart-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        .flow-item {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .flow-arrow {
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent-color);
+            font-size: 1.5rem;
+        }
+
+        .quality-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .quality-excellent {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .quality-good {
+            background: rgba(99, 102, 241, 0.2);
+            color: #6366f1;
+        }
+
+        .quality-fair {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .quality-poor {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .pipeline-stage {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .stage-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="analyzer-container">
+        <!-- Header -->
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-project-diagram me-3"></i>
+                Data Flow Analyzer
+            </h1>
+            <p class="page-subtitle">Data pipeline analysis with optimization recommendations</p>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h3 class="mb-4">
+                <i class="fas fa-cogs me-2"></i>
+                Analysis Configuration
+            </h3>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Data Source Path</label>
+                    <input type="text" class="form-control" id="dataSourcePath" 
+                           placeholder="/path/to/data" value="./src/data">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Analysis Scope</label>
+                    <select class="form-select" id="analysisScope">
+                        <option value="full" selected>Full Pipeline Analysis</option>
+                        <option value="input">Input Data Flow</option>
+                        <option value="processing">Data Processing</option>
+                        <option value="output">Output Data Flow</option>
+                        <option value="storage">Data Storage</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Data Types</label>
+                    <select class="form-select" id="dataTypes" multiple>
+                        <option value="json" selected>JSON</option>
+                        <option value="csv" selected>CSV</option>
+                        <option value="xml">XML</option>
+                        <option value="database" selected>Database</option>
+                        <option value="api" selected>API Streams</option>
+                        <option value="file">File System</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Analysis Depth</label>
+                    <select class="form-select" id="analysisDepth">
+                        <option value="basic">Basic Flow Analysis</option>
+                        <option value="detailed" selected>Detailed Analysis</option>
+                        <option value="comprehensive">Comprehensive Deep Dive</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="trackTransformations" checked>
+                        <label class="form-check-label" for="trackTransformations">
+                            Track data transformations
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="detectBottlenecks" checked>
+                        <label class="form-check-label" for="detectBottlenecks">
+                            Detect flow bottlenecks
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="validateData" checked>
+                        <label class="form-check-label" for="validateData">
+                            Validate data quality
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="generateFlowDiagram" checked>
+                        <label class="form-check-label" for="generateFlowDiagram">
+                            Generate flow diagram
+                        </label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" onclick="startAnalysis()">
+                        <i class="fas fa-play me-2"></i>
+                        Start Data Flow Analysis
+                    </button>
+                    <button class="btn btn-secondary ms-2" onclick="resetAnalysis()">
+                        <i class="fas fa-redo me-2"></i>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="progress-section" id="progressSection">
+            <h3 class="mb-3">
+                <i class="fas fa-spinner fa-spin me-2"></i>
+                Analyzing Data Flow Patterns
+            </h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="text-center">
+                <span id="progressText">Initializing data flow analyzer...</span>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="resultsSection">
+            <!-- Metrics Dashboard -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalDataFlows">0</div>
+                        <div class="metric-label">Total Data Flows</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="dataQualityScore">0%</div>
+                        <div class="metric-label">Data Quality Score</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="throughputRate">0/s</div>
+                        <div class="metric-label">Throughput Rate</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="efficiencyScore">0%</div>
+                        <div class="metric-label">Efficiency Score</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Data Flow Distribution</h4>
+                        <canvas id="flowDistributionChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Throughput Analysis</h4>
+                        <canvas id="throughputChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Data Quality Metrics</h4>
+                        <canvas id="qualityMetricsChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h4>Bottleneck Analysis</h4>
+                        <canvas id="bottleneckChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Pipeline Stages -->
+            <div class="chart-container">
+                <h4>
+                    <i class="fas fa-sitemap me-2"></i>
+                    Data Pipeline Stages
+                </h4>
+                <div id="pipelineStages">
+                    <!-- Pipeline stages will be populated here -->
+                </div>
+            </div>
+
+            <!-- Data Flow Issues -->
+            <div class="chart-container">
+                <h4>
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Data Flow Issues & Recommendations
+                </h4>
+                <div id="flowIssues">
+                    <!-- Flow issues will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        let flowData = null;
+        let charts = {};
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Data Flow Analyzer initialized');
+        });
+
+        function startAnalysis() {
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            // Show progress, hide results
+            progressSection.classList.add('active');
+            resultsSection.classList.remove('active');
+            
+            // Simulate data flow analysis
+            simulateDataFlowAnalysis();
+        }
+
+        function simulateDataFlowAnalysis() {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            let progress = 0;
+            
+            const steps = [
+                'Scanning data sources...',
+                'Mapping data flows...',
+                'Analyzing transformations...',
+                'Detecting bottlenecks...',
+                'Validating data quality...',
+                'Measuring throughput...',
+                'Calculating efficiency metrics...',
+                'Generating optimization recommendations...',
+                'Analysis complete!'
+            ];
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 12;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        showResults();
+                    }, 1000);
+                }
+                
+                progressFill.style.width = progress + '%';
+                const stepIndex = Math.floor((progress / 100) * steps.length);
+                progressText.textContent = steps[Math.min(stepIndex, steps.length - 1)];
+            }, 400);
+        }
+
+        function showResults() {
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            progressSection.classList.remove('active');
+            resultsSection.classList.add('active');
+            
+            // Generate mock flow data
+            flowData = generateFlowData();
+            
+            // Update metrics
+            updateMetrics();
+            
+            // Create charts
+            createCharts();
+            
+            // Display pipeline stages
+            displayPipelineStages();
+            
+            // Display flow issues
+            displayFlowIssues();
+        }
+
+        function generateFlowData() {
+            return {
+                totalDataFlows: Math.floor(Math.random() * 20) + 15,
+                dataQualityScore: Math.floor(Math.random() * 20) + 75,
+                throughputRate: Math.floor(Math.random() * 500) + 1000,
+                efficiencyScore: Math.floor(Math.random() * 25) + 70,
+                flowDistribution: {
+                    'Input Streams': Math.floor(Math.random() * 8) + 5,
+                    'Processing': Math.floor(Math.random() * 10) + 8,
+                    'Transformation': Math.floor(Math.random() * 6) + 4,
+                    'Validation': Math.floor(Math.random() * 4) + 3,
+                    'Storage': Math.floor(Math.random() * 5) + 4,
+                    'Output': Math.floor(Math.random() * 6) + 5
+                },
+                throughputData: generateTimeSeriesData(20, 800, 1500),
+                qualityMetrics: {
+                    'Completeness': Math.floor(Math.random() * 15) + 80,
+                    'Accuracy': Math.floor(Math.random() * 20) + 75,
+                    'Consistency': Math.floor(Math.random() * 25) + 70,
+                    'Timeliness': Math.floor(Math.random() * 20) + 65,
+                    'Validity': Math.floor(Math.random() * 15) + 85
+                },
+                bottlenecks: {
+                    'High': Math.floor(Math.random() * 3) + 1,
+                    'Medium': Math.floor(Math.random() * 5) + 2,
+                    'Low': Math.floor(Math.random() * 8) + 3
+                },
+                pipelineStages: generatePipelineStages(),
+                flowIssues: generateFlowIssues()
+            };
+        }
+
+        function generateTimeSeriesData(points, min, max) {
+            const data = [];
+            for (let i = 0; i < points; i++) {
+                data.push(Math.floor(Math.random() * (max - min)) + min);
+            }
+            return data;
+        }
+
+        function generatePipelineStages() {
+            const stages = [
+                {
+                    name: 'Data Ingestion',
+                    description: 'Collect and import data from various sources',
+                    status: 'optimal',
+                    throughput: Math.floor(Math.random() * 500) + 1000,
+                    latency: Math.floor(Math.random() * 50) + 10,
+                    errors: Math.floor(Math.random() * 3)
+                },
+                {
+                    name: 'Data Validation',
+                    description: 'Validate data format and quality',
+                    status: 'warning',
+                    throughput: Math.floor(Math.random() * 400) + 800,
+                    latency: Math.floor(Math.random() * 30) + 20,
+                    errors: Math.floor(Math.random() * 5) + 2
+                },
+                {
+                    name: 'Data Transformation',
+                    description: 'Transform and enrich data',
+                    status: 'optimal',
+                    throughput: Math.floor(Math.random() * 300) + 600,
+                    latency: Math.floor(Math.random() * 40) + 15,
+                    errors: Math.floor(Math.random() * 2)
+                },
+                {
+                    name: 'Data Processing',
+                    description: 'Process and analyze data',
+                    status: 'optimal',
+                    throughput: Math.floor(Math.random() * 400) + 700,
+                    latency: Math.floor(Math.random() * 60) + 25,
+                    errors: Math.floor(Math.random() * 3)
+                },
+                {
+                    name: 'Data Storage',
+                    description: 'Store processed data',
+                    status: 'critical',
+                    throughput: Math.floor(Math.random() * 200) + 400,
+                    latency: Math.floor(Math.random() * 80) + 40,
+                    errors: Math.floor(Math.random() * 8) + 5
+                }
+            ];
+            
+            return stages;
+        }
+
+        function generateFlowIssues() {
+            const issues = [
+                {
+                    type: 'Data Bottleneck',
+                    description: 'Storage stage experiencing high latency and throughput issues',
+                    severity: 'high',
+                    impact: 'Reduced overall pipeline performance',
+                    location: 'Data Storage Stage',
+                    recommendation: 'Implement caching and optimize storage queries'
+                },
+                {
+                    type: 'Quality Degradation',
+                    description: 'Data quality drops during validation phase',
+                    severity: 'medium',
+                    impact: 'Increased error rates downstream',
+                    location: 'Data Validation Stage',
+                    recommendation: 'Enhance validation rules and add quality checks'
+                },
+                {
+                    type: 'Inefficient Processing',
+                    description: 'Processing stage not utilizing available resources efficiently',
+                    severity: 'medium',
+                    impact: 'Higher operational costs',
+                    location: 'Data Processing Stage',
+                    recommendation: 'Optimize algorithms and implement parallel processing'
+                },
+                {
+                    type: 'Memory Leaks',
+                    description: 'Memory usage increasing over time in transformation stage',
+                    severity: 'low',
+                    impact: 'Potential system instability',
+                    location: 'Data Transformation Stage',
+                    recommendation: 'Implement proper memory management and cleanup'
+                }
+            ];
+            
+            return issues;
+        }
+
+        function updateMetrics() {
+            document.getElementById('totalDataFlows').textContent = flowData.totalDataFlows;
+            document.getElementById('dataQualityScore').textContent = flowData.dataQualityScore + '%';
+            document.getElementById('throughputRate').textContent = flowData.throughputRate + '/s';
+            document.getElementById('efficiencyScore').textContent = flowData.efficiencyScore + '%';
+        }
+
+        function createCharts() {
+            createFlowDistributionChart();
+            createThroughputChart();
+            createQualityMetricsChart();
+            createBottleneckChart();
+        }
+
+        function createFlowDistributionChart() {
+            const ctx = document.getElementById('flowDistributionChart').getContext('2d');
+            
+            charts.flowDistribution = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(flowData.flowDistribution),
+                    datasets: [{
+                        data: Object.values(flowData.flowDistribution),
+                        backgroundColor: [
+                            'rgba(99, 102, 241, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(236, 72, 153, 0.8)',
+                            'rgba(6, 182, 212, 0.8)',
+                            'rgba(239, 68, 68, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(99, 102, 241, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(236, 72, 153, 1)',
+                            'rgba(6, 182, 212, 1)',
+                            'rgba(239, 68, 68, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createThroughputChart() {
+            const ctx = document.getElementById('throughputChart').getContext('2d');
+            
+            charts.throughput = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 20}, (_, i) => `${i}s`),
+                    datasets: [{
+                        label: 'Throughput (records/sec)',
+                        data: flowData.throughputData,
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: '#475569'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createQualityMetricsChart() {
+            const ctx = document.getElementById('qualityMetricsChart').getContext('2d');
+            
+            charts.qualityMetrics = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: Object.keys(flowData.qualityMetrics),
+                    datasets: [{
+                        label: 'Quality Score',
+                        data: Object.values(flowData.qualityMetrics),
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(99, 102, 241, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: '#475569'
+                            },
+                            pointLabels: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createBottleneckChart() {
+            const ctx = document.getElementById('bottleneckChart').getContext('2d');
+            
+            charts.bottleneck = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(flowData.bottlenecks),
+                    datasets: [{
+                        label: 'Bottleneck Count',
+                        data: Object.values(flowData.bottlenecks),
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(16, 185, 129, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(16, 185, 129, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: '#475569'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayPipelineStages() {
+            const pipelineStages = document.getElementById('pipelineStages');
+            
+            pipelineStages.innerHTML = flowData.pipelineStages.map((stage, index) => `
+                <div class="pipeline-stage">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="stage-number">${index + 1}</div>
+                        <div class="ms-3">
+                            <h5 class="mb-1">${stage.name}</h5>
+                            <p class="text-secondary mb-1">${stage.description}</p>
+                        </div>
+                        <div class="ms-auto">
+                            <span class="quality-badge quality-${stage.status === 'optimal' ? 'excellent' : stage.status === 'warning' ? 'fair' : 'poor'}">${stage.status.toUpperCase()}</span>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <small class="text-secondary">
+                                <i class="fas fa-tachometer-alt me-1"></i>Throughput: ${stage.throughput}/s
+                            </small>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-secondary">
+                                <i class="fas fa-clock me-1"></i>Latency: ${stage.latency}ms
+                            </small>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-secondary">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Errors: ${stage.errors}
+                            </small>
+                        </div>
+                    </div>
+                    ${index < flowData.pipelineStages.length - 1 ? '<div class="flow-arrow"><i class="fas fa-arrow-down"></i></div>' : ''}
+                </div>
+            `).join('');
+        }
+
+        function displayFlowIssues() {
+            const flowIssues = document.getElementById('flowIssues');
+            
+            flowIssues.innerHTML = flowData.flowIssues.map(issue => `
+                <div class="flow-item">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h5 class="mb-1">${issue.type}</h5>
+                            <p class="text-secondary mb-1">${issue.description}</p>
+                            <small class="text-secondary">
+                                <i class="fas fa-map-marker-alt me-1"></i>${issue.location}
+                            </small>
+                        </div>
+                        <div>
+                            <span class="badge bg-${issue.severity === 'high' ? 'danger' : issue.severity === 'medium' ? 'warning' : 'info'}">${issue.severity.toUpperCase()}</span>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-secondary">
+                            <i class="fas fa-exclamation-triangle me-1"></i>Impact: ${issue.impact}
+                        </small>
+                    </div>
+                    <div class="mt-2">
+                        <p class="mb-0"><strong>Recommendation:</strong> ${issue.recommendation}</p>
+                    </div>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-primary" onclick="fixIssue('${issue.type}')">
+                            <i class="fas fa-wrench me-1"></i>Fix Issue
+                        </button>
+                        <button class="btn btn-sm btn-secondary ms-2" onclick="analyzeIssue('${issue.type}')">
+                            <i class="fas fa-search me-1"></i>Analyze
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function fixIssue(type) {
+            showNotification(`Initiating fix for ${type}...`, 'info');
+        }
+
+        function analyzeIssue(type) {
+            showNotification(`Deep analysis for ${type}...`, 'info');
+        }
+
+        function resetAnalysis() {
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            progressSection.classList.remove('active');
+            resultsSection.classList.remove('active');
+            
+            // Reset form
+            document.getElementById('dataSourcePath').value = './src/data';
+            document.getElementById('analysisScope').value = 'full';
+            document.getElementById('analysisDepth').value = 'detailed';
+            
+            // Destroy charts
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+            notification.style.zIndex = '9999';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

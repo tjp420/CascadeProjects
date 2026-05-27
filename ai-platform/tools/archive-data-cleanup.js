@@ -16,7 +16,6 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const ARCHIVE_ROOT = path.join(ROOT, 'docs', 'archive');
 const DEPENDENCY_DOCS = path.join(ARCHIVE_ROOT, 'dependency-docs');
 const ROADMAP_LEGACY = path.join(ARCHIVE_ROOT, 'roadmap-legacy');
-const ROADMAP_COMPLETION_DOCS = path.join(ROOT, 'archive', 'roadmap');
 const ROADMAP_REPORT_SNAPSHOTS = path.join(ARCHIVE_ROOT, 'roadmap-report-snapshots');
 const NUMBERED_DOCS = path.join(ARCHIVE_ROOT, 'numbered-docs');
 const SESSION_DOCS = path.join(ARCHIVE_ROOT, 'session-docs');
@@ -92,21 +91,6 @@ function archiveRoadmapLegacy(manifest) {
     }
 }
 
-/** One-time completion announcements superseded by data/roadmap/*.json baselines. */
-function archiveRoadmapCompletionDocs(manifest) {
-    const roots = [ROOT, path.join(ROOT, 'docs'), path.join(ROOT, 'docs', 'reports'), path.join(ROOT, 'src', 'ai-system')];
-    const pattern = /ROADMAP.*COMPLETE|.*ROADMAP.*_COMPLETE/i;
-    for (const dir of roots) {
-        if (!fs.existsSync(dir)) continue;
-        for (const name of fs.readdirSync(dir)) {
-            if (!pattern.test(name) || !name.endsWith('.md')) continue;
-            const from = path.join(dir, name);
-            if (!fs.statSync(from).isFile()) continue;
-            moveFile(from, ROADMAP_COMPLETION_DOCS, manifest, 'roadmap-completion-doc');
-        }
-    }
-}
-
 function archiveRoadmapReportSnapshots(manifest) {
     if (!fs.existsSync(ROADMAP_REPORTS_DIR)) return;
     for (const name of fs.readdirSync(ROADMAP_REPORTS_DIR)) {
@@ -132,7 +116,6 @@ function inventoryArchivedFiles() {
     const archiveDirs = [
         { dir: DEPENDENCY_DOCS, label: 'vendored-dependency-doc' },
         { dir: ROADMAP_LEGACY, label: 'roadmap-legacy-data' },
-        { dir: ROADMAP_COMPLETION_DOCS, label: 'roadmap-completion-doc' },
         { dir: ROADMAP_REPORT_SNAPSHOTS, label: 'roadmap-report-snapshot' },
         { dir: NUMBERED_DOCS, label: 'numbered-doc' },
         { dir: SESSION_DOCS, label: 'session-doc' },
@@ -207,7 +190,6 @@ function main() {
     const manifest = [];
     archiveVendoredDocs(manifest);
     archiveRoadmapLegacy(manifest);
-    archiveRoadmapCompletionDocs(manifest);
     archiveRoadmapReportSnapshots(manifest);
     archivePatternDocs(manifest);
     const manifestPath = writeManifest(manifest);

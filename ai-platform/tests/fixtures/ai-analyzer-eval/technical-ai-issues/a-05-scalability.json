@@ -1,0 +1,8 @@
+{
+  "issueId": "A-05",
+  "category": "technical-ai-issues",
+  "context": {
+    "responseText": "Load tested at 5000 rps with p95=120ms. Horizontal scaling enabled.",
+    "metrics": { "throughputRps": 5000, "p95LatencyMs": 120 }
+  }
+}

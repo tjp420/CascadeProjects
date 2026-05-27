@@ -1,0 +1,2170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issue Resolution System - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Modern Sidebar Styles */
+        .sidebar-modern {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-modern.collapsed {
+            transform: translateX(-240px);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-container {
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .logo i {
+            color: var(--accent-color);
+            font-size: 2rem;
+        }
+
+        .logo-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-container {
+            padding: 1rem 0;
+        }
+
+        .nav-section-modern {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title-modern {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-item-modern {
+            margin: 0.25rem 0;
+        }
+
+        .nav-link-modern {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link-modern:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-link-modern.active {
+            background: var(--bg-card);
+            color: var(--accent-color);
+            border-left-color: var(--accent-color);
+        }
+
+        .nav-icon-modern {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .sidebar-info {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content */
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+            margin-left: 40px;
+        }
+
+        .page-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .page-content {
+            padding: 2rem;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-240px);
+            }
+            
+            .sidebar-modern.collapsed {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+            }
+            
+            .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+                margin-left: 280px;
+            }
+        }
+
+        /* Preserve existing styles from original file */
+        
+        :root {
+            --color-primary: #6366f1;
+            --color-secondary: #8b5cf6;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-critical: #dc2626;
+            --color-high: #d97706;
+            --color-medium: #4f46e5;
+            --color-low: #059669;
+            --color-dark: #1e293b;
+            --color-darker: #0f172a;
+            --color-light: #f8fafc;
+            --color-text: #e2e8f0;
+            --color-text-muted: #94a3b8;
+            --border-radius: 0.75rem;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--color-darker) 0%, var(--color-dark) 100%);
+            color: var(--color-text);
+            min-height: 100vh;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        /* Enhanced Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 320px;
+            height: 100vh;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(148, 163, 184, 0.1);
+            z-index: 1000;
+            transition: var(--transition);
+            overflow-y: auto;
+            padding: 2rem 0;
+        }
+
+        .sidebar-header {
+            padding: 0 1.5rem 2rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-subtitle {
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Enhanced Navigation Sections */
+        .nav-section {
+            padding: 1.5rem 0;
+        }
+
+        .nav-section.issue-resolution-section {
+            border-left: 3px solid var(--color-warning);
+            background: rgba(245, 158, 11, 0.05);
+            margin: 0 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+
+        .nav-section-title {
+            padding: 0 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-section-title.issue-resolution-title {
+            color: var(--color-warning);
+            font-weight: 700;
+        }
+
+        .nav-section-title.issue-resolution-title::before {
+            content: '🔧';
+            font-size: 1rem;
+        }
+
+        .nav-item {
+            margin: 0.25rem 0;
+        }
+
+        /* Enhanced Navigation Links */
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1.5rem;
+            color: var(--color-text);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+            position: relative;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .nav-link:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--color-primary);
+            border-left-color: var(--color-primary);
+        }
+
+        .nav-link.active {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--color-primary);
+            border-left-color: var(--color-primary);
+        }
+
+        .nav-link.issue-resolution-active {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1));
+            border-left-color: var(--color-warning);
+            color: var(--color-warning);
+        }
+
+        .nav-icon {
+            width: 20px;
+            margin-right: 0.875rem;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .nav-link:hover .nav-icon {
+            transform: scale(1.1);
+        }
+
+        .nav-label {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        /* Dynamic Issue Badges */
+        .nav-badge {
+            margin-left: auto;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .nav-badge.badge-critical {
+            background: linear-gradient(135deg, var(--color-danger), var(--color-critical));
+            color: white;
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+            animation: pulse-critical 2s infinite;
+        }
+
+        .nav-badge.badge-high {
+            background: linear-gradient(135deg, var(--color-warning), var(--color-high));
+            color: white;
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+            animation: pulse-high 3s infinite;
+        }
+
+        .nav-badge.badge-medium {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-medium));
+            color: white;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+        }
+
+        .nav-badge.badge-low {
+            background: linear-gradient(135deg, var(--color-success), var(--color-low));
+            color: white;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+
+        .nav-badge.badge-error {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes pulse-critical {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes pulse-high {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 320px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* Issue Resolution Dashboard */
+        .dashboard-header {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--color-warning), var(--color-primary), var(--color-success));
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .dashboard-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--color-warning), var(--color-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-header .lead {
+            color: var(--color-text);
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-header .muted {
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            text-align: center;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1));
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--color-warning);
+            box-shadow: 0 20px 40px rgba(245, 158, 11, 0.2);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-warning);
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-label {
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Issue List */
+        .issue-list {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .issue-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .issue-filters {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .filter-severity, .filter-status {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: var(--color-text);
+        }
+
+        .filter-search {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: var(--color-text);
+        }
+
+        .issue-sorting {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .sort-by, .sort-order {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: var(--color-text);
+        }
+
+        .issue-list-content {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .issue-item {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+        }
+
+        .issue-item:hover {
+            border-color: var(--color-warning);
+            transform: translateY(-2px);
+        }
+
+        .issue-item.issue-critical {
+            border-left: 4px solid var(--color-danger);
+        }
+
+        .issue-item.issue-high {
+            border-left: 4px solid var(--color-warning);
+        }
+
+        .issue-item.issue-medium {
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .issue-item.issue-low {
+            border-left: 4px solid var(--color-success);
+        }
+
+        .issue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .issue-title {
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 0.25rem;
+        }
+
+        .issue-badges {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .issue-severity, .issue-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .issue-severity.badge-critical {
+            background: var(--color-danger);
+            color: white;
+        }
+
+        .issue-severity.badge-high {
+            background: var(--color-warning);
+            color: white;
+        }
+
+        .issue-severity.badge-medium {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .issue-severity.badge-low {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .issue-status.badge-open {
+            background: var(--color-text-muted);
+            color: white;
+        }
+
+        .issue-status.badge-in-progress {
+            background: var(--color-warning);
+            color: white;
+        }
+
+        .issue-status.badge-resolved {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .issue-status.badge-closed {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .issue-description {
+            color: var(--color-text-muted);
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .issue-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+        }
+
+        .issue-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .btn-resolve, .btn-details {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            color: var(--color-text);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+        }
+
+        .btn-resolve:hover {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: white;
+        }
+
+        .btn-details:hover {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            color: white;
+        }
+
+        /* Progress Tracking */
+        .progress-overview {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .progress-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .progress-item {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+        }
+
+        .progress-item.in-progress {
+            border-left: 4px solid var(--color-warning);
+        }
+
+        .progress-item.completed {
+            border-left: 4px solid var(--color-success);
+        }
+
+        .progress-item.failed {
+            border-left: 4px solid var(--color-danger);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-issue {
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .progress-status {
+            font-size: 0.875rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+        }
+
+        .progress-status.in-progress {
+            background: var(--color-warning);
+            color: white;
+        }
+
+        .progress-status.completed {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .progress-status.failed {
+            background: var(--color-danger);
+            color: white;
+        }
+
+        .progress-bar {
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 9999px;
+            height: 8px;
+            overflow: hidden;
+            margin: 0.75rem 0;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--color-warning), var(--color-primary));
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+        }
+
+        .step-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .step-icon.completed {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .step-icon.active {
+            background: var(--color-warning);
+            color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        .step-icon.pending {
+            background: var(--color-text-muted);
+            color: white;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Action Buttons */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .action-btn {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--color-text);
+            text-decoration: none;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--color-warning);
+            color: var(--color-warning);
+        }
+
+        .action-btn i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 9999;
+            background: var(--color-success);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: var(--transition);
+            max-width: 400px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: var(--color-danger);
+        }
+
+        .notification.warning {
+            background: var(--color-warning);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Accessibility */
+        .nav-link:focus {
+            outline: 2px solid var(--color-warning);
+            outline-offset: 2px;
+        }
+
+        .nav-link[aria-current="page"] {
+            background: rgba(245, 158, 11, 0.15);
+        }
+    
+    </style>
+</head>
+<body>
+    <!-- Navigation Container - This will be populated by navigation-loader.js -->
+
+    <!-- Main Content Area -->
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-issues">156</div>
+                <div class="stat-label">Total Issues</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="critical-issues">12</div>
+                <div class="stat-label">Critical</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="in-progress">8</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="success-rate">87.5%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+        </div>
+
+        <!-- Issue List -->
+        <div class="issue-list">
+            <div class="issue-list-header">
+                <div class="issue-filters">
+                    <select class="filter-severity" multiple id="severity-filter">
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                    <select class="filter-status" multiple id="status-filter">
+                        <option value="open">Open</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                    <input type="text" class="filter-search" id="search-filter" placeholder="Search issues...">
+                </div>
+                <div class="issue-sorting">
+                    <select class="sort-by" id="sort-filter">
+                        <option value="severity">Severity</option>
+                        <option value="created">Created</option>
+                        <option value="updated">Updated</option>
+                    </select>
+                    <button class="sort-order" id="sort-order">
+                        <i class="fas fa-sort-amount-down"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="issue-list-content" id="issue-list-content">
+                <!-- Issues will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Progress Tracking -->
+        <div class="progress-overview">
+            <h3>Resolution Progress</h3>
+            <div class="progress-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="active-resolutions">0</div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="completed-resolutions">134</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="success-rate">87.5%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avg-resolution-time">2.3s</div>
+                    <div class="stat-label">Avg Resolution Time</div>
+                </div>
+            </div>
+            <div class="progress-list" id="progress-list">
+                <!-- Progress items will be added here -->
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-grid">
+            <button class="action-btn" onclick="simulateBatchResolution()">
+                <i class="fas fa-play"></i>
+                Batch Resolution
+            </button>
+            <button class="action-btn" onclick="simulateAutoResolution()">
+                <i class="fas fa-robot"></i>
+                Auto Resolution
+            </button>
+            <simulated_error>
+                <button class="action-btn" onclick="simulateError()">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Test Error
+                </button>
+            </simulated_error>
+            <button class="action-btn" onclick="refreshData()">
+                <i class="fas fa-sync"></i>
+                Refresh Data
+            </button>
+        </div>
+    </main>
+
+    <!-- Notification Container -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Enhanced JavaScript -->
+    <script>
+        // Issue Resolution Controller
+        class IssueResolutionController {
+            constructor() {
+            this.activeSection = 'issue-resolution';
+            this.issueCount = 156;
+            this.severityBreakdown = {
+                critical: 12,
+                high: 45,
+                medium: 67,
+                low: 32
+            };
+            this.activeResolutions = new Map();
+            this.completedResolutions = new Map();
+            this.progressStats = {
+                active: 0,
+                completed: 134,
+                successRate: 87.5,
+                avgResolutionTime: 2.3
+            };
+            this.issues = [];
+            this.init();
+        }
+
+            init() {
+                this.setupEventListeners();
+                this.startRealTimeUpdates();
+                this.loadInitialData();
+                console.log('🔧 Issue Resolution Controller initialized');
+            }
+
+            setupEventListeners() {
+                // Handle keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.clearNotifications();
+                    }
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+                        e.preventDefault();
+                        this.focusIssueResolution();
+                    }
+                });
+            }
+
+            startRealTimeUpdates() {
+                // Update badge every 30 seconds
+                setInterval(() => {
+                    this.updateIssueCount();
+                }, 30000);
+                
+                // Update progress every 5 seconds
+                setInterval(() => {
+                    this.updateProgressStats();
+                }, 5000);
+            }
+
+            async loadInitialData() {
+                try {
+                    // Simulate API call
+                    await this.delay(1000);
+                    this.loadMockIssues();
+                    this.updateStats();
+                    console.log('📊 Initial data loaded');
+                } catch (error) {
+                    console.error('Failed to load initial data:', error);
+                    this.showNotification('Error loading issue data', 'error');
+                }
+            }
+
+            loadMockIssues() {
+                this.issues = [
+                    {
+                        id: 'ISS-001',
+                        title: 'Memory leak in data processing module',
+                        description: 'Memory usage increases continuously during data processing operations, causing performance degradation.',
+                        severity: 'critical',
+                        status: 'open',
+                        createdAt: '2026-05-22T10:30:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'memory',
+                        location: 'src/data/processing.js',
+                        affectedComponents: ['DataProcessor', 'CacheManager'],
+                        estimatedFixTime: '2 hours'
+                    },
+                    {
+                        id: 'ISS-002',
+                        title: 'Code formatting inconsistencies in generated files',
+                        description: 'Code formatting rules not consistently applied in auto-generated code files.',
+                        severity: 'high',
+                        status: 'in-progress',
+                        createdAt: '2026-05-22T09:15:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'formatting',
+                        location: 'src/codegen/templates/',
+                        affectedComponents: ['CodeGenerator', 'TemplateEngine'],
+                        estimatedFixTime: '30 minutes'
+                    },
+                    {
+                        id: 'ISS-003',
+                        title: 'Missing error handling in API endpoints',
+                        description: 'Several API endpoints lack proper error handling, causing unhandled exceptions.',
+                        severity: 'high',
+                        status: 'open',
+                        createdAt: '2026-05-22T08:45:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'api',
+                        location: 'src/api/',
+                        affectedComponents: ['APIDashboard', 'DatabaseService'],
+                        estimatedFixTime: '1 hour'
+                    },
+                    {
+                        id: 'ISS-004',
+                        title: 'Performance bottlenecks in data queries',
+                        description: 'Database queries are slow and inefficient, affecting overall system performance.',
+                        severity: 'medium',
+                        status: 'open',
+                        createdAt: '2026-05-22T07:30:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'database',
+                        location: 'src/database/',
+                        affectedComponents: ['QueryEngine', 'ConnectionPool'],
+                        estimatedFixTime: '45 minutes'
+                    },
+                    {
+                        id: 'ISS-005',
+                        title: 'UI responsiveness issues on mobile devices',
+                        description: 'Mobile interface has poor touch responsiveness and layout issues.',
+                        severity: 'medium',
+                        status: 'resolved',
+                        createdAt: '2026-05-22T06:15:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'ui',
+                        location: 'src/ui/',
+                        affectedComponents: ['MobileUI', 'ResponsiveLayout'],
+                        estimatedFixTime: '15 minutes'
+                    },
+                    {
+                        id: 'ISS-006',
+                        title: 'Console warnings in development mode',
+                        description: 'Various console warnings appear during development that need to be addressed.',
+                        severity: 'low',
+                        status: 'open',
+                        createdAt: '2026-05-22T05:00:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'development',
+                        location: 'src/',
+                        affectedComponents: ['DevelopmentTools', 'Logger'],
+                        estimatedFixTime: '5 minutes'
+                    }
+                ];
+                
+                this.renderIssues();
+            }
+
+            renderIssues() {
+                const content = document.getElementById('issue-list-content');
+                content.innerHTML = this.issues.map(issue => this.renderIssue(issue)).join('');
+            }
+
+            renderIssue(issue) {
+                return `
+                    <div class="issue-item issue-${issue.severity}" data-issue-id="${issue.id}">
+                        <div class="issue-header">
+                            <h4 class="issue-title">${issue.title}</h4>
+                            <div class="issue-badges">
+                                <span class="issue-severity badge-${issue.severity}">${issue.severity}</span>
+                                <span class="issue-status badge-${issue.status}">${issue.status}</span>
+                            </div>
+                        </div>
+                        <div class="issue-description">${issue.description}</div>
+                <div class="issue-meta">
+                            <span class="issue-created">Created: ${this.formatDate(issue.createdAt)}</span>
+                            <span class="issue-updated">Updated: ${this.formatDate(issue.updatedAt)}</span>
+                            <span class="issue-type">${issue.type}</span>
+                        </div>
+                        <div class="issue-actions">
+                            <button class="btn-resolve" onclick="resolveIssue('${issue.id}')">
+                                <i class="fas fa-check"></i> Resolve
+                            </button>
+                            <button class="btn-details" onclick="showIssueDetails('${issue.id}')">
+                                <i class="fas fa-info-circle"></i> Details
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            updateStats() {
+                document.getElementById('total-issues').textContent = this.issueCount;
+                document.getElementById('critical-issues').textContent = this.severityBreakdown.critical;
+                document.getElementById('in-progress').textContent = this.issues.filter(i => i.status === 'in-progress').length;
+                document.getElementById('success-rate').textContent = this.progressStats.successRate + '%';
+                document.getElementById('avg-resolution-time').textContent = this.progressStats.avgResolutionTime + 's';
+            }
+
+            updateIssueCount() {
+                // Simulate real-time updates
+                const variation = Math.floor(Math.random() * 5) - 2; // -2 to +2
+                this.issueCount = Math.max(150, this.issueCount + variation);
+                
+                // Update severity breakdown
+                this.severityBreakdown = {
+                    critical: Math.max(10, this.severityBreakdown.critical + variation),
+                    high: Math.max(40, this.severityBreakdown.high + variation),
+                    medium: Math.max(60, this.severityBreakdown.medium + variation),
+                    low: Math.max(25, this.severityBreakdown.low + variation)
+                };
+                
+                this.updateStats();
+                this.updateBadge();
+            }
+
+            updateBadge() {
+                const badge = document.getElementById('issue-count-badge');
+                if (badge) {
+                    badge.textContent = this.issueCount;
+                    
+                    // Update color based on highest severity
+                    const severity = this.getHighestSeverity();
+                    badge.className = `nav-badge badge-${severity}`;
+                    
+                    // Update tooltip
+                    const breakdown = Object.entries(this.severityBreakdown)
+                        .filter(([_, count]) => count > 0)
+                        .map(([severity, count]) => `${severity}: ${count}`)
+                        .join(', ');
+                    
+                    badge.setAttribute('title', `Issues: ${this.issueCount} (${breakdown})`);
+                    badge.setAttribute('aria-label', `${this.issueCount} issues. ${breakdown}`);
+                }
+            }
+
+            getHighestSeverity() {
+                if (this.severityBreakdown.critical > 0) return 'critical';
+                if (this.severityBreakdown.high > 0) return 'high';
+                if (this.severityBreakdown.medium > 0) return 'medium';
+                return 'low';
+            }
+
+            updateProgressStats() {
+                const total = this.activeResolutions.size + this.completedResolutions.size;
+                const completed = this.completedResolutions.size;
+                const successRate = total > 0 ? (completed / total) * 100 : 0;
+                const avgTime = completed > 0 ? 
+                    Array.from(this.completedResolutions.values())
+                    .reduce((sum, r) => sum + (r.resolutionTime || 0), 0) / completed : 0;
+                
+                this.progressStats = {
+                    active: this.activeResolutions.size,
+                    completed: completed,
+                    successRate: successRate,
+                    avgResolutionTime: avgTime
+                };
+                
+                this.updateStats();
+            }
+
+            async resolveIssue(issueId) {
+                const issue = this.issues.find(i => i.id === issueId);
+                if (!issue) {
+                    throw new Error(`Issue ${issueId} not found`);
+                }
+                
+                // Add to active resolutions
+                const resolution = {
+                    issueId,
+                    startTime: Date.now(),
+                    status: 'in-progress',
+                    steps: this.generateResolutionSteps(issue),
+                    currentStep: 0,
+                    result: null
+                };
+                
+                this.activeResolutions.set(issueId, resolution);
+                this.updateProgressStats();
+                this.renderProgressItem(resolution);
+                
+                try {
+                    // Simulate resolution process
+                    await this.simulateResolution(issueId, issue);
+                    
+                    // Complete resolution
+                    this.completeResolution(issueId, { success: true });
+                    
+                } catch (error) {
+                    // Handle resolution failure
+                    this.completeResolution(issueId, { success: false, error: error.message });
+                }
+            }
+
+            generateResolutionSteps(issueId) {
+                return [
+                    { id: 'analyze', name: 'Analyzing issue', duration: 1000 },
+                    { id: 'strategy', name: 'Finding resolution strategy', duration: 500 },
+                    { id: 'execute', name: 'Applying fixes', duration: 2000 },
+                    { id: 'validate', name: 'Validating resolution', duration: 1000 },
+                    { id: 'complete', name: 'Resolution complete', duration: 500 }
+                ];
+            }
+
+            async simulateResolution(issueId, issue) {
+                // Simulate resolution based on issue type
+                const duration = this.getEstimatedDuration(issue);
+                await this.delay(duration);
+                
+                return {
+                    success: true,
+                    resolution: `Fixed ${issue.type} issue in ${issue.location}`,
+                    time: duration / 1000
+                };
+            }
+
+            getEstimatedDuration(issue) {
+                const baseDurations = {
+                    'memory': 7200000, // 2 hours
+                    'formatting': 1800000, // 30 minutes
+                    'api': 3600000, // 1 hour
+                    'database': 2700000, // 45 minutes
+                    'ui': 900000, // 15 minutes
+                    'development': 300000 // 5 minutes
+                };
+                
+                return baseDurations[issue.type] || 300000; // Default 5 minutes
+            }
+
+            completeResolution(issueId, result) {
+                const resolution = this.activeResolutions.get(issueId);
+                if (!resolution) return;
+                
+                resolution.status = result.success ? 'completed' : 'failed';
+                resolution.endTime = Date.now();
+                resolution.result = result;
+                
+                // Move to completed
+                this.completedResolutions.set(issueId, resolution);
+                this.activeResolutions.delete(issueId);
+                
+                this.updateProgressStats();
+                this.updateProgressItem(resolution);
+                
+                // Update issue status
+                const issue = this.issues.find(i => i.id === issueId);
+                if (issue) {
+                    issue.status = result.success ? 'resolved' : 'failed';
+                    this.renderIssues();
+                }
+                
+                // Show notification
+                const message = result.success ? 
+                    `Issue ${issueId} resolved successfully in ${resolution.result.time}s` :
+                    `Failed to resolve issue ${issueId}: ${result.error}`;
+                
+                this.showNotification(message, result.success ? 'success' : 'error');
+            }
+
+            updateProgressItem(resolution) {
+                const progressList = document.getElementById('progress-list');
+                const existingItem = progressList.querySelector(`[data-issue-id="${resolution.issueId}"]`);
+                
+                if (existingItem) {
+                    existingItem.className = `progress-item ${resolution.status}`;
+                    existingItem.classList.add('fade-in');
+                    
+                    // Update progress bar
+                    const progressFill = existingItem.querySelector('.progress-fill');
+                    const progress = (resolution.currentStep / resolution.steps.length) * 100;
+                    progressFill.style.width = `${progress}%`;
+                    
+                    // Update steps
+                    const steps = existingItem.querySelectorAll('.progress-step');
+                    steps.forEach((step, index) => {
+                        step.className = `step-icon ${index < resolution.currentStep ? 'active' : index <= resolution.currentStep ? 'completed' : 'pending'}`;
+                    });
+                    
+                    // Update status
+                    const statusElement = existingItem.querySelector('.progress-status');
+                    statusElement.textContent = resolution.status.charAt(0).toUpperCase() + resolution.status.slice(1);
+                }
+            }
+
+            async simulateBatchResolution() {
+                const openIssues = this.issues.filter(i => i.status === 'open');
+                const batch = openIssues.slice(0, 3); // Process 3 at a time
+                
+                this.showNotification(`Starting batch resolution for ${batch.length} issues`, 'info');
+                
+                const results = await Promise.allSettled(
+                    batch.map(issue => this.resolveIssue(issue.id))
+                );
+                
+                const successCount = results.filter(r => r.value.success).length;
+                this.showNotification(
+                    `Batch resolution completed: ${successCount}/${batch.length} issues resolved`,
+                    successCount === batch.length ? 'success' : 'warning'
+                );
+            }
+
+            async simulateAutoResolution() {
+                this.showNotification('Starting auto-resolution for all open issues...', 'info');
+                
+                const openIssues = this.issues.filter(i => i.status === 'open');
+                
+                // Process issues one by one
+                for (const issue of openIssues) {
+                    try {
+                        await this.resolveIssue(issue.id);
+                        await this.delay(1000); // 1 second between resolutions
+                    } catch (error) {
+                        console.error(`Failed to resolve issue ${issue.id}:`, error);
+                    }
+                }
+                
+                this.showNotification('Auto-resolution completed!', 'success');
+            }
+
+            simulateError() {
+                // Simulate error in resolution
+                const issueId = 'ISS-001';
+                const resolution = this.activeResolutions.get(issueId);
+                
+                if (resolution) {
+                    this.completeResolution(issueId, { success: false, error: 'Network connection failed' });
+                }
+            }
+
+            refreshData() {
+                this.showNotification('Refreshing issue data...', 'info');
+                this.loadMockIssues();
+                this.updateStats();
+                this.renderIssues();
+                this.showNotification('Data refreshed successfully!', 'success');
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 100);
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+
+            clearNotifications() {
+                const notifications = document.querySelectorAll('.notification.show');
+                notifications.forEach(n => n.classList.remove('show'));
+            }
+
+            focusIssueResolution() {
+                const navElement = document.getElementById('issue-resolution-nav');
+                navElement.focus();
+                navElement.click();
+            }
+
+            formatDate(dateString) {
+                return new Date(dateString).toLocaleString();
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize controller
+        const issueController = new IssueResolutionController();
+
+        // Global functions for onclick handlers
+        async function handleNavigation(sectionId, element) {
+            await issueController.handleNavigation(sectionId, element);
+        }
+
+        async function handleIssueResolutionNavigation(sectionId, element) {
+            await issueController.handleIssueResolutionNavigation(sectionId, element);
+        }
+
+        // Issue action handlers
+        async function resolveIssue(issueId) {
+            await issueController.resolveIssue(issueId);
+        }
+
+        function showIssueDetails(issueId) {
+            const issue = issueController.issues.find(i => i.id === issueId);
+            if (issue) {
+                issueController.showNotification(`Issue Details: ${issue.title}`, 'info');
+            }
+        }
+
+        // Demo functions
+        async function simulateBatchResolution() {
+            await issueController.simulateBatchResolution();
+        }
+
+        async function simulateAutoResolution() {
+            await issueController.simulateAutoResolution();
+        }
+
+        function simulateError() {
+            await issueController.simulateError();
+        }
+
+        function refreshData() {
+            issueController.refreshData();
+        }
+
+        // Welcome message
+        setTimeout(() => {
+            issueController.showNotification('Welcome to Issue Resolution System! 🔧', 'success');
+        }, 1000);
+    </script>
+
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/navigation-loader.js"></script>
+    <script>
+        // Issue Resolution Controller
+        class IssueResolutionController {
+            constructor() {
+            this.activeSection = 'issue-resolution';
+            this.issueCount = 156;
+            this.severityBreakdown = {
+                critical: 12,
+                high: 45,
+                medium: 67,
+                low: 32
+            };
+            this.activeResolutions = new Map();
+            this.completedResolutions = new Map();
+            this.progressStats = {
+                active: 0,
+                completed: 134,
+                successRate: 87.5,
+                avgResolutionTime: 2.3
+            };
+            this.issues = [];
+            this.init();
+        }
+
+            init() {
+                this.setupEventListeners();
+                this.startRealTimeUpdates();
+                this.loadInitialData();
+                console.log('🔧 Issue Resolution Controller initialized');
+            }
+
+            setupEventListeners() {
+                // Handle keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.clearNotifications();
+                    }
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+                        e.preventDefault();
+                        this.focusIssueResolution();
+                    }
+                });
+            }
+
+            startRealTimeUpdates() {
+                // Update badge every 30 seconds
+                setInterval(() => {
+                    this.updateIssueCount();
+                }, 30000);
+                
+                // Update progress every 5 seconds
+                setInterval(() => {
+                    this.updateProgressStats();
+                }, 5000);
+            }
+
+            async loadInitialData() {
+                try {
+                    // Simulate API call
+                    await this.delay(1000);
+                    this.loadMockIssues();
+                    this.updateStats();
+                    console.log('📊 Initial data loaded');
+                } catch (error) {
+                    console.error('Failed to load initial data:', error);
+                    this.showNotification('Error loading issue data', 'error');
+                }
+            }
+
+            loadMockIssues() {
+                this.issues = [
+                    {
+                        id: 'ISS-001',
+                        title: 'Memory leak in data processing module',
+                        description: 'Memory usage increases continuously during data processing operations, causing performance degradation.',
+                        severity: 'critical',
+                        status: 'open',
+                        createdAt: '2026-05-22T10:30:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'memory',
+                        location: 'src/data/processing.js',
+                        affectedComponents: ['DataProcessor', 'CacheManager'],
+                        estimatedFixTime: '2 hours'
+                    },
+                    {
+                        id: 'ISS-002',
+                        title: 'Code formatting inconsistencies in generated files',
+                        description: 'Code formatting rules not consistently applied in auto-generated code files.',
+                        severity: 'high',
+                        status: 'in-progress',
+                        createdAt: '2026-05-22T09:15:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'formatting',
+                        location: 'src/codegen/templates/',
+                        affectedComponents: ['CodeGenerator', 'TemplateEngine'],
+                        estimatedFixTime: '30 minutes'
+                    },
+                    {
+                        id: 'ISS-003',
+                        title: 'Missing error handling in API endpoints',
+                        description: 'Several API endpoints lack proper error handling, causing unhandled exceptions.',
+                        severity: 'high',
+                        status: 'open',
+                        createdAt: '2026-05-22T08:45:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'api',
+                        location: 'src/api/',
+                        affectedComponents: ['APIDashboard', 'DatabaseService'],
+                        estimatedFixTime: '1 hour'
+                    },
+                    {
+                        id: 'ISS-004',
+                        title: 'Performance bottlenecks in data queries',
+                        description: 'Database queries are slow and inefficient, affecting overall system performance.',
+                        severity: 'medium',
+                        status: 'open',
+                        createdAt: '2026-05-22T07:30:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'database',
+                        location: 'src/database/',
+                        affectedComponents: ['QueryEngine', 'ConnectionPool'],
+                        estimatedFixTime: '45 minutes'
+                    },
+                    {
+                        id: 'ISS-005',
+                        title: 'UI responsiveness issues on mobile devices',
+                        description: 'Mobile interface has poor touch responsiveness and layout issues.',
+                        severity: 'medium',
+                        status: 'resolved',
+                        createdAt: '2026-05-22T06:15:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'ui',
+                        location: 'src/ui/',
+                        affectedComponents: ['MobileUI', 'ResponsiveLayout'],
+                        estimatedFixTime: '15 minutes'
+                    },
+                    {
+                        id: 'ISS-006',
+                        title: 'Console warnings in development mode',
+                        description: 'Various console warnings appear during development that need to be addressed.',
+                        severity: 'low',
+                        status: 'open',
+                        createdAt: '2026-05-22T05:00:00Z',
+                        updatedAt: '2026-05-22T10:30:00Z',
+                        type: 'development',
+                        location: 'src/',
+                        affectedComponents: ['DevelopmentTools', 'Logger'],
+                        estimatedFixTime: '5 minutes'
+                    }
+                ];
+                
+                this.renderIssues();
+            }
+
+            renderIssues() {
+                const content = document.getElementById('issue-list-content');
+                content.innerHTML = this.issues.map(issue => this.renderIssue(issue)).join('');
+            }
+
+            renderIssue(issue) {
+                return `
+                    <div class="issue-item issue-${issue.severity}" data-issue-id="${issue.id}">
+                        <div class="issue-header">
+                            <h4 class="issue-title">${issue.title}</h4>
+                            <div class="issue-badges">
+                                <span class="issue-severity badge-${issue.severity}">${issue.severity}</span>
+                                <span class="issue-status badge-${issue.status}">${issue.status}</span>
+                            </div>
+                        </div>
+                        <div class="issue-description">${issue.description}</div>
+                <div class="issue-meta">
+                            <span class="issue-created">Created: ${this.formatDate(issue.createdAt)}</span>
+                            <span class="issue-updated">Updated: ${this.formatDate(issue.updatedAt)}</span>
+                            <span class="issue-type">${issue.type}</span>
+                        </div>
+                        <div class="issue-actions">
+                            <button class="btn-resolve" onclick="resolveIssue('${issue.id}')">
+                                <i class="fas fa-check"></i> Resolve
+                            </button>
+                            <button class="btn-details" onclick="showIssueDetails('${issue.id}')">
+                                <i class="fas fa-info-circle"></i> Details
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            updateStats() {
+                document.getElementById('total-issues').textContent = this.issueCount;
+                document.getElementById('critical-issues').textContent = this.severityBreakdown.critical;
+                document.getElementById('in-progress').textContent = this.issues.filter(i => i.status === 'in-progress').length;
+                document.getElementById('success-rate').textContent = this.progressStats.successRate + '%';
+                document.getElementById('avg-resolution-time').textContent = this.progressStats.avgResolutionTime + 's';
+            }
+
+            updateIssueCount() {
+                // Simulate real-time updates
+                const variation = Math.floor(Math.random() * 5) - 2; // -2 to +2
+                this.issueCount = Math.max(150, this.issueCount + variation);
+                
+                // Update severity breakdown
+                this.severityBreakdown = {
+                    critical: Math.max(10, this.severityBreakdown.critical + variation),
+                    high: Math.max(40, this.severityBreakdown.high + variation),
+                    medium: Math.max(60, this.severityBreakdown.medium + variation),
+                    low: Math.max(25, this.severityBreakdown.low + variation)
+                };
+                
+                this.updateStats();
+                this.updateBadge();
+            }
+
+            updateBadge() {
+                const badge = document.getElementById('issue-count-badge');
+                if (badge) {
+                    badge.textContent = this.issueCount;
+                    
+                    // Update color based on highest severity
+                    const severity = this.getHighestSeverity();
+                    badge.className = `nav-badge badge-${severity}`;
+                    
+                    // Update tooltip
+                    const breakdown = Object.entries(this.severityBreakdown)
+                        .filter(([_, count]) => count > 0)
+                        .map(([severity, count]) => `${severity}: ${count}`)
+                        .join(', ');
+                    
+                    badge.setAttribute('title', `Issues: ${this.issueCount} (${breakdown})`);
+                    badge.setAttribute('aria-label', `${this.issueCount} issues. ${breakdown}`);
+                }
+            }
+
+            getHighestSeverity() {
+                if (this.severityBreakdown.critical > 0) return 'critical';
+                if (this.severityBreakdown.high > 0) return 'high';
+                if (this.severityBreakdown.medium > 0) return 'medium';
+                return 'low';
+            }
+
+            updateProgressStats() {
+                const total = this.activeResolutions.size + this.completedResolutions.size;
+                const completed = this.completedResolutions.size;
+                const successRate = total > 0 ? (completed / total) * 100 : 0;
+                const avgTime = completed > 0 ? 
+                    Array.from(this.completedResolutions.values())
+                    .reduce((sum, r) => sum + (r.resolutionTime || 0), 0) / completed : 0;
+                
+                this.progressStats = {
+                    active: this.activeResolutions.size,
+                    completed: completed,
+                    successRate: successRate,
+                    avgResolutionTime: avgTime
+                };
+                
+                this.updateStats();
+            }
+
+            async resolveIssue(issueId) {
+                const issue = this.issues.find(i => i.id === issueId);
+                if (!issue) {
+                    throw new Error(`Issue ${issueId} not found`);
+                }
+                
+                // Add to active resolutions
+                const resolution = {
+                    issueId,
+                    startTime: Date.now(),
+                    status: 'in-progress',
+                    steps: this.generateResolutionSteps(issue),
+                    currentStep: 0,
+                    result: null
+                };
+                
+                this.activeResolutions.set(issueId, resolution);
+                this.updateProgressStats();
+                this.renderProgressItem(resolution);
+                
+                try {
+                    // Simulate resolution process
+                    await this.simulateResolution(issueId, issue);
+                    
+                    // Complete resolution
+                    this.completeResolution(issueId, { success: true });
+                    
+                } catch (error) {
+                    // Handle resolution failure
+                    this.completeResolution(issueId, { success: false, error: error.message });
+                }
+            }
+
+            generateResolutionSteps(issueId) {
+                return [
+                    { id: 'analyze', name: 'Analyzing issue', duration: 1000 },
+                    { id: 'strategy', name: 'Finding resolution strategy', duration: 500 },
+                    { id: 'execute', name: 'Applying fixes', duration: 2000 },
+                    { id: 'validate', name: 'Validating resolution', duration: 1000 },
+                    { id: 'complete', name: 'Resolution complete', duration: 500 }
+                ];
+            }
+
+            async simulateResolution(issueId, issue) {
+                // Simulate resolution based on issue type
+                const duration = this.getEstimatedDuration(issue);
+                await this.delay(duration);
+                
+                return {
+                    success: true,
+                    resolution: `Fixed ${issue.type} issue in ${issue.location}`,
+                    time: duration / 1000
+                };
+            }
+
+            getEstimatedDuration(issue) {
+                const baseDurations = {
+                    'memory': 7200000, // 2 hours
+                    'formatting': 1800000, // 30 minutes
+                    'api': 3600000, // 1 hour
+                    'database': 2700000, // 45 minutes
+                    'ui': 900000, // 15 minutes
+                    'development': 300000 // 5 minutes
+                };
+                
+                return baseDurations[issue.type] || 300000; // Default 5 minutes
+            }
+
+            completeResolution(issueId, result) {
+                const resolution = this.activeResolutions.get(issueId);
+                if (!resolution) return;
+                
+                resolution.status = result.success ? 'completed' : 'failed';
+                resolution.endTime = Date.now();
+                resolution.result = result;
+                
+                // Move to completed
+                this.completedResolutions.set(issueId, resolution);
+                this.activeResolutions.delete(issueId);
+                
+                this.updateProgressStats();
+                this.updateProgressItem(resolution);
+                
+                // Update issue status
+                const issue = this.issues.find(i => i.id === issueId);
+                if (issue) {
+                    issue.status = result.success ? 'resolved' : 'failed';
+                    this.renderIssues();
+                }
+                
+                // Show notification
+                const message = result.success ? 
+                    `Issue ${issueId} resolved successfully in ${resolution.result.time}s` :
+                    `Failed to resolve issue ${issueId}: ${result.error}`;
+                
+                this.showNotification(message, result.success ? 'success' : 'error');
+            }
+
+            updateProgressItem(resolution) {
+                const progressList = document.getElementById('progress-list');
+                const existingItem = progressList.querySelector(`[data-issue-id="${resolution.issueId}"]`);
+                
+                if (existingItem) {
+                    existingItem.className = `progress-item ${resolution.status}`;
+                    existingItem.classList.add('fade-in');
+                    
+                    // Update progress bar
+                    const progressFill = existingItem.querySelector('.progress-fill');
+                    const progress = (resolution.currentStep / resolution.steps.length) * 100;
+                    progressFill.style.width = `${progress}%`;
+                    
+                    // Update steps
+                    const steps = existingItem.querySelectorAll('.progress-step');
+                    steps.forEach((step, index) => {
+                        step.className = `step-icon ${index < resolution.currentStep ? 'active' : index <= resolution.currentStep ? 'completed' : 'pending'}`;
+                    });
+                    
+                    // Update status
+                    const statusElement = existingItem.querySelector('.progress-status');
+                    statusElement.textContent = resolution.status.charAt(0).toUpperCase() + resolution.status.slice(1);
+                }
+            }
+
+            async simulateBatchResolution() {
+                const openIssues = this.issues.filter(i => i.status === 'open');
+                const batch = openIssues.slice(0, 3); // Process 3 at a time
+                
+                this.showNotification(`Starting batch resolution for ${batch.length} issues`, 'info');
+                
+                const results = await Promise.allSettled(
+                    batch.map(issue => this.resolveIssue(issue.id))
+                );
+                
+                const successCount = results.filter(r => r.value.success).length;
+                this.showNotification(
+                    `Batch resolution completed: ${successCount}/${batch.length} issues resolved`,
+                    successCount === batch.length ? 'success' : 'warning'
+                );
+            }
+
+            async simulateAutoResolution() {
+                this.showNotification('Starting auto-resolution for all open issues...', 'info');
+                
+                const openIssues = this.issues.filter(i => i.status === 'open');
+                
+                // Process issues one by one
+                for (const issue of openIssues) {
+                    try {
+                        await this.resolveIssue(issue.id);
+                        await this.delay(1000); // 1 second between resolutions
+                    } catch (error) {
+                        console.error(`Failed to resolve issue ${issue.id}:`, error);
+                    }
+                }
+                
+                this.showNotification('Auto-resolution completed!', 'success');
+            }
+
+            simulateError() {
+                // Simulate error in resolution
+                const issueId = 'ISS-001';
+                const resolution = this.activeResolutions.get(issueId);
+                
+                if (resolution) {
+                    this.completeResolution(issueId, { success: false, error: 'Network connection failed' });
+                }
+            }
+
+            refreshData() {
+                this.showNotification('Refreshing issue data...', 'info');
+                this.loadMockIssues();
+                this.updateStats();
+                this.renderIssues();
+                this.showNotification('Data refreshed successfully!', 'success');
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 100);
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+
+            clearNotifications() {
+                const notifications = document.querySelectorAll('.notification.show');
+                notifications.forEach(n => n.classList.remove('show'));
+            }
+
+            focusIssueResolution() {
+                const navElement = document.getElementById('issue-resolution-nav');
+                navElement.focus();
+                navElement.click();
+            }
+
+            formatDate(dateString) {
+                return new Date(dateString).toLocaleString();
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize controller
+        const issueController = new IssueResolutionController();
+
+        // Global functions for onclick handlers
+        async function handleNavigation(sectionId, element) {
+            await issueController.handleNavigation(sectionId, element);
+        }
+
+        async function handleIssueResolutionNavigation(sectionId, element) {
+            await issueController.handleIssueResolutionNavigation(sectionId, element);
+        }
+
+        // Issue action handlers
+        async function resolveIssue(issueId) {
+            await issueController.resolveIssue(issueId);
+        }
+
+        function showIssueDetails(issueId) {
+            const issue = issueController.issues.find(i => i.id === issueId);
+            if (issue) {
+                issueController.showNotification(`Issue Details: ${issue.title}`, 'info');
+            }
+        }
+
+        // Demo functions
+        async function simulateBatchResolution() {
+            await issueController.simulateBatchResolution();
+        }
+
+        async function simulateAutoResolution() {
+            await issueController.simulateAutoResolution();
+        }
+
+        function simulateError() {
+            await issueController.simulateError();
+        }
+
+        function refreshData() {
+            issueController.refreshData();
+        }
+
+        // Welcome message
+        setTimeout(() => {
+            issueController.showNotification('Welcome to Issue Resolution System! 🔧', 'success');
+        }, 1000);
+    </script>
+</body>
+</html>

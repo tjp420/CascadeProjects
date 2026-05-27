@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Analyzer - Drag & Drop Address Bar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-bg: #1f2937;
+            --darker-bg: #111827;
+            --card-bg: #374151;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --border-color: #4b5563;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker-bg) 0%, var(--dark-bg) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* Address Bar Styles */
+        .address-bar-container {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .address-bar-container:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.2);
+        }
+
+        .address-input-wrapper {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .address-input {
+            width: 100%;
+            padding: 1.25rem 3.5rem 1.25rem 1.5rem;
+            background: var(--darker-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .address-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .address-input.drag-over {
+            border-color: var(--success-color);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .address-icon {
+            position: absolute;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+
+        .analyze-button {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .analyze-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .analyze-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Drag and Drop Styles */
+        .drop-zone {
+            border: 3px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            background: var(--darker-bg);
+            transition: all 0.3s ease;
+            margin: 2rem 0;
+        }
+
+        .drop-zone.drag-over {
+            border-color: var(--success-color);
+            background: rgba(16, 185, 129, 0.1);
+            transform: scale(1.02);
+        }
+
+        .drop-zone-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        /* Analysis Options */
+        .analysis-options {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .option-checkbox {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .option-checkbox:hover {
+            color: var(--primary-color);
+        }
+
+        .option-checkbox input[type="checkbox"] {
+            margin-right: 0.75rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            cursor: pointer;
+        }
+
+        /* Progress Styles */
+        .progress-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            display: none;
+        }
+
+        .progress-bar-animated {
+            height: 8px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            margin-top: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Results Styles */
+        .results-container {
+            display: none;
+        }
+
+        .result-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .score-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .score-excellent { background: var(--success-color); color: white; }
+        .score-good { background: #3b82f6; color: white; }
+        .score-fair { background: var(--warning-color); color: white; }
+        .score-poor { background: var(--danger-color); color: white; }
+
+        /* History Styles */
+        .history-item {
+            background: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-item:hover {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .history-url {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .address-bar-container {
+                padding: 1.5rem;
+                margin: 1rem 0;
+            }
+
+            .analyze-button {
+                padding: 0.875rem 2rem;
+                font-size: 0.9rem;
+            }
+
+            .drop-zone {
+                padding: 2rem 1rem;
+            }
+
+            .drop-zone-icon {
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Tabs */
+        .nav-tabs .nav-link {
+            color: var(--text-secondary);
+            border-color: var(--border-color);
+            background: var(--darker-bg);
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--text-primary);
+            background: var(--card-bg);
+            border-color: var(--primary-color);
+        }
+
+        .tab-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0 0 12px 12px;
+            padding: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <!-- Header -->
+                <header class="text-center mb-5">
+                    <h1 class="display-4 mb-3">
+                        <i class="fas fa-globe-americas me-3"></i>
+                        URL Analyzer
+                    </h1>
+                    <p class="lead text-muted">
+                        Comprehensive website analysis with drag-and-drop address bar
+                    </p>
+                </header>
+
+                <!-- Address Bar Section -->
+                <div class="address-bar-container fade-in">
+                    <h2 class="h4 mb-4">
+                        <i class="fas fa-search me-2"></i>
+                        Enter URL to Analyze
+                    </h2>
+                    
+                    <div class="address-input-wrapper">
+                        <input 
+                            type="text" 
+                            id="urlInput" 
+                            class="address-input" 
+                            placeholder="Enter website URL (e.g., example.com or https://example.com)"
+                            autocomplete="off"
+                        >
+                        <i class="fas fa-globe address-icon"></i>
+                    </div>
+
+                    <button id="analyzeBtn" class="analyze-button">
+                        <i class="fas fa-play me-2"></i>
+                        Analyze Website
+                    </button>
+                </div>
+
+                <!-- Drag and Drop Zone -->
+                <div class="drop-zone" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt drop-zone-icon"></i>
+                    <h3 class="h5 mb-3">Drag & Drop URL Here</h3>
+                    <p class="text-muted mb-3">
+                        Drag a URL from your browser's address bar and drop it here
+                    </p>
+                    <small class="text-muted">
+                        Or paste a URL directly in the address bar above
+                    </small>
+                </div>
+
+                <!-- Analysis Options -->
+                <div class="analysis-options">
+                    <h3 class="h5 mb-3">
+                        <i class="fas fa-cog me-2"></i>
+                        Analysis Options
+                    </h3>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="option-checkbox">
+                                <input type="checkbox" id="includeStructure" checked>
+                                <span>Structure Analysis</span>
+                            </label>
+                            <label class="option-checkbox">
+                                <input type="checkbox" id="includePerformance" checked>
+                                <span>Performance Analysis</span>
+                            </label>
+                            <label class="option-checkbox">
+                                <input type="checkbox" id="includeSEO" checked>
+                                <span>SEO Analysis</span>
+                            </label>
+                            <label class="option-checkbox">
+                                <input type="checkbox" id="includeSecurity" checked>
+                                <span>Security Analysis</span>
+                            </label>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="option-checkbox">
+                                <input type="checkbox" id="includeAccessibility" checked>
+                                <span>Accessibility Analysis</span>
+                            </label>
+                            <label class="option-checkbox">
+                                <input type="checkbox" id="includeContent" checked>
+                                <span>Content Analysis</span>
+                            </label>
+                            <label class="option-checkbox">
+                                <input type="checkbox" id="includeTechnology" checked>
+                                <span>Technology Detection</span>
+                            </label>
+                            <label class="option-checkbox">
+                                <input type="checkbox" id="includeLinks" checked>
+                                <span>Links Analysis</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Container -->
+                <div class="progress-container" id="progressContainer">
+                    <h3 class="h5 mb-3">
+                        <i class="fas fa-spinner fa-spin me-2"></i>
+                        Analyzing Website
+                    </h3>
+                    <div class="progress-bar-animated" id="progressBar" style="width: 0%"></div>
+                    <div class="progress-text" id="progressText">Initializing analysis...</div>
+                </div>
+
+                <!-- Results Container -->
+                <div class="results-container" id="resultsContainer">
+                    <!-- Results will be dynamically inserted here -->
+                </div>
+
+                <!-- History Section -->
+                <div class="mt-5">
+                    <h3 class="h4 mb-3">
+                        <i class="fas fa-history me-2"></i>
+                        Analysis History
+                    </h3>
+                    <div id="historyContainer">
+                        <p class="text-muted">No analysis history yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class URLAnalyzerUI {
+            constructor() {
+                this.analyzer = null;
+                this.currentAnalysis = null;
+                this.history = [];
+                this.initializeEventListeners();
+                this.loadHistory();
+            }
+
+            initializeEventListeners() {
+                // Address bar input
+                const urlInput = document.getElementById('urlInput');
+                urlInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.startAnalysis();
+                    }
+                });
+
+                // Analyze button
+                document.getElementById('analyzeBtn').addEventListener('click', () => {
+                    this.startAnalysis();
+                });
+
+                // Drag and drop events
+                const dropZone = document.getElementById('dropZone');
+                const addressInput = document.getElementById('urlInput');
+
+                // Prevent default drag behaviors
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, preventDefaults, false);
+                    addressInput.addEventListener(eventName, preventDefaults, false);
+                    document.body.addEventListener(eventName, preventDefaults, false);
+                });
+
+                // Highlight drop zone when item is dragged over it
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, highlight, false);
+                    addressInput.addEventListener(eventName, highlight, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, unhighlight, false);
+                    addressInput.addEventListener(eventName, unhighlight, false);
+                });
+
+                // Handle dropped items
+                dropZone.addEventListener('drop', handleDrop, false);
+                addressInput.addEventListener('drop', handleDrop, false);
+
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                function highlight(e) {
+                    dropZone.classList.add('drag-over');
+                    addressInput.classList.add('drag-over');
+                }
+
+                function unhighlight(e) {
+                    dropZone.classList.remove('drag-over');
+                    addressInput.classList.remove('drag-over');
+                }
+
+                function handleDrop(e) {
+                    const dt = e.dataTransfer;
+                    const text = dt.getData('text') || dt.getData('text/plain');
+                    
+                    if (text) {
+                        // Extract URL from text
+                        const url = this.extractURL(text);
+                        if (url) {
+                            document.getElementById('urlInput').value = url;
+                            this.startAnalysis();
+                        } else {
+                            this.showNotification('No valid URL found in dropped content', 'warning');
+                        }
+                    }
+                }.bind(this);
+
+                // Paste event for address bar
+                addressInput.addEventListener('paste', (e) => {
+                    setTimeout(() => {
+                        const value = e.target.value;
+                        if (value && this.isValidURL(value)) {
+                            this.startAnalysis();
+                        }
+                    }, 100);
+                });
+            }
+
+            extractURL(text) {
+                // Try to extract URL from text
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                const matches = text.match(urlRegex);
+                
+                if (matches && matches.length > 0) {
+                    return matches[0];
+                }
+                
+                // Try to extract domain without protocol
+                const domainRegex = /([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}/g;
+                const domainMatches = text.match(domainRegex);
+                
+                if (domainMatches && domainMatches.length > 0) {
+                    return 'https://' + domainMatches[0];
+                }
+                
+                return null;
+            }
+
+            isValidURL(url) {
+                try {
+                    new URL(url);
+                    return true;
+                } catch {
+                    return false;
+                }
+            }
+
+            async startAnalysis() {
+                const urlInput = document.getElementById('urlInput');
+                const url = urlInput.value.trim();
+                
+                if (!url) {
+                    this.showNotification('Please enter a URL to analyze', 'warning');
+                    return;
+                }
+
+                // Validate URL
+                let validURL;
+                try {
+                    validURL = this.validateURL(url);
+                } catch (error) {
+                    this.showNotification(error.message, 'danger');
+                    return;
+                }
+
+                // Get analysis options
+                const options = this.getAnalysisOptions();
+
+                // Show progress
+                this.showProgress();
+
+                try {
+                    // Create analyzer instance
+                    if (!this.analyzer) {
+                        this.analyzer = new URLAnalyzer();
+                    }
+
+                    // Start analysis
+                    this.currentAnalysis = await this.analyzer.analyzeURL(validURL, options);
+                    
+                    // Show results
+                    this.showResults(this.currentAnalysis);
+                    
+                    // Add to history
+                    this.addToHistory(this.currentAnalysis);
+                    
+                    // Show success notification
+                    this.showNotification('Analysis completed successfully!', 'success');
+
+                } catch (error) {
+                    console.error('Analysis failed:', error);
+                    this.showNotification(`Analysis failed: ${error.message}`, 'danger');
+                    this.hideProgress();
+                }
+            }
+
+            validateURL(url) {
+                if (!url || typeof url !== 'string') {
+                    throw new Error('Invalid URL: URL must be a string');
+                }
+
+                // Add scheme if missing
+                if (!url.match(/^https?:\/\//) && !url.match(/^ftp:\/\//) && !url.match(/^file:\/\//)) {
+                    url = 'https://' + url;
+                }
+
+                try {
+                    const parsedURL = new URL(url);
+                    return parsedURL.toString();
+                } catch (error) {
+                    throw new Error(`Invalid URL format: ${error.message}`);
+                }
+            }
+
+            getAnalysisOptions() {
+                return {
+                    includeStructure: document.getElementById('includeStructure').checked,
+                    includePerformance: document.getElementById('includePerformance').checked,
+                    includeSEO: document.getElementById('includeSEO').checked,
+                    includeSecurity: document.getElementById('includeSecurity').checked,
+                    includeAccessibility: document.getElementById('includeAccessibility').checked,
+                    includeContent: document.getElementById('includeContent').checked,
+                    includeTechnology: document.getElementById('includeTechnology').checked,
+                    includeLinks: document.getElementById('includeLinks').checked,
+                    depth: 3,
+                    timeout: 30000
+                };
+            }
+
+            showProgress() {
+                const progressContainer = document.getElementById('progressContainer');
+                const progressBar = document.getElementById('progressBar');
+                const progressText = document.getElementById('progressText');
+                
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '0%';
+                progressText.textContent = 'Initializing analysis...';
+
+                // Simulate progress updates
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress > 90) progress = 90;
+                    
+                    progressBar.style.width = progress + '%';
+                    
+                    if (progress < 30) {
+                        progressText.textContent = 'Fetching website content...';
+                    } else if (progress < 60) {
+                        progressText.textContent = 'Analyzing structure and content...';
+                    } else if (progress < 90) {
+                        progressText.textContent = 'Generating insights and recommendations...';
+                    }
+                }, 500);
+
+                // Store interval ID to clear it later
+                this.progressInterval = interval;
+            }
+
+            hideProgress() {
+                const progressContainer = document.getElementById('progressContainer');
+                progressContainer.style.display = 'none';
+                
+                if (this.progressInterval) {
+                    clearInterval(this.progressInterval);
+                }
+            }
+
+            showResults(analysis) {
+                this.hideProgress();
+
+                const resultsContainer = document.getElementById('resultsContainer');
+                resultsContainer.innerHTML = this.generateResultsHTML(analysis);
+                resultsContainer.style.display = 'block';
+                resultsContainer.classList.add('fade-in');
+
+                // Initialize tabs if present
+                const tabElements = resultsContainer.querySelectorAll('[data-bs-toggle="tab"]');
+                tabElements.forEach(tab => {
+                    new bootstrap.Tab(tab);
+                });
+            }
+
+            generateResultsHTML(analysis) {
+                const score = analysis.score || 0;
+                const scoreClass = this.getScoreClass(score);
+
+                let html = `
+                    <div class="result-card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 class="h5 mb-0">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Analysis Results
+                            </h3>
+                            <span class="score-badge ${scoreClass}">
+                                Score: ${score}/100
+                            </span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>URL:</strong> 
+                            <code class="text-info">${analysis.url}</code>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Duration:</strong> ${analysis.duration}ms
+                        </div>
+                    </div>
+                `;
+
+                // Add tabs for different analysis sections
+                if (analysis.results && Object.keys(analysis.results).length > 0) {
+                    html += `
+                        <ul class="nav nav-tabs" id="analysisTabs" role="tablist">
+                    `;
+
+                    const tabNames = {
+                        structure: 'Structure',
+                        performance: 'Performance',
+                        seo: 'SEO',
+                        security: 'Security',
+                        accessibility: 'Accessibility',
+                        content: 'Content',
+                        technology: 'Technology',
+                        links: 'Links'
+                    };
+
+                    let firstTab = true;
+                    for (const [key, name] of Object.entries(tabNames)) {
+                        if (analysis.results[key]) {
+                            html += `
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link ${firstTab ? 'active' : ''}" 
+                                            id="${key}-tab" 
+                                            data-bs-toggle="tab" 
+                                            data-bs-target="#${key}-pane" 
+                                            type="button" 
+                                            role="tab">
+                                        <i class="fas fa-${this.getTabIcon(key)} me-2"></i>
+                                        ${name}
+                                    </button>
+                                </li>
+                            `;
+                            firstTab = false;
+                        }
+                    }
+
+                    html += `
+                        </ul>
+                        <div class="tab-content" id="analysisTabContent">
+                    `;
+
+                    firstTab = true;
+                    for (const [key, result] of Object.entries(analysis.results)) {
+                        html += `
+                            <div class="tab-pane fade ${firstTab ? 'show active' : ''}" 
+                                 id="${key}-pane" 
+                                 role="tabpanel">
+                                ${this.generateTabContent(key, result)}
+                            </div>
+                        `;
+                        firstTab = false;
+                    }
+
+                    html += `
+                        </div>
+                    `;
+                }
+
+                // Add summary and recommendations
+                if (analysis.summary) {
+                    html += `
+                        <div class="result-card">
+                            <h4 class="h5 mb-3">
+                                <i class="fas fa-lightbulb me-2"></i>
+                                Summary
+                            </h4>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h6>Key Findings</h6>
+                                    <ul class="list-unstyled">
+                                        ${analysis.summary.keyFindings?.map(finding => `<li>• ${finding}</li>`).join('') || '<li>No key findings</li>'}
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Strengths</h6>
+                                    <ul class="list-unstyled">
+                                        ${analysis.summary.strengths?.map(strength => `<li class="text-success">• ${strength}</li>`).join('') || '<li>No strengths identified</li>'}
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Areas for Improvement</h6>
+                                    <ul class="list-unstyled">
+                                        ${analysis.summary.weaknesses?.map(weakness => `<li class="text-warning">• ${weakness}</li>`).join('') || '<li>No weaknesses identified</li>'}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (analysis.recommendations && analysis.recommendations.length > 0) {
+                    html += `
+                        <div class="result-card">
+                            <h4 class="h5 mb-3">
+                                <i class="fas fa-tasks me-2"></i>
+                                Recommendations
+                            </h4>
+                            <div class="list-group">
+                                ${analysis.recommendations.map(rec => `
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1">${rec.title}</h6>
+                                                <p class="mb-1 text-muted">${rec.description}</p>
+                                                <small class="text-muted">Category: ${rec.category}</small>
+                                            </div>
+                                            <span class="badge bg-${rec.priority === 'high' ? 'danger' : rec.priority === 'medium' ? 'warning' : 'info'}">
+                                                ${rec.priority}
+                                            </span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return html;
+            }
+
+            generateTabContent(key, result) {
+                switch (key) {
+                    case 'structure':
+                        return this.generateStructureContent(result);
+                    case 'performance':
+                        return this.generatePerformanceContent(result);
+                    case 'seo':
+                        return this.generateSEOContent(result);
+                    case 'security':
+                        return this.generateSecurityContent(result);
+                    case 'accessibility':
+                        return this.generateAccessibilityContent(result);
+                    case 'content':
+                        return this.generateContentContent(result);
+                    case 'technology':
+                        return this.generateTechnologyContent(result);
+                    case 'links':
+                        return this.generateLinksContent(result);
+                    default:
+                        return `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+                }
+            }
+
+            generateStructureContent(result) {
+                return `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Overview</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Total Elements:</strong> ${result.overview?.totalElements || 0}</li>
+                                <li><strong>Has Title:</strong> ${result.overview?.hasTitle ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Meta Tags:</strong> ${result.overview?.metaTagsCount || 0}</li>
+                                <li><strong>Images:</strong> ${result.overview?.imageCount || 0}</li>
+                                <li><strong>Links:</strong> ${result.overview?.linkCount || 0}</li>
+                                <li><strong>Forms:</strong> ${result.overview?.formCount || 0}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Heading Structure</h6>
+                            <ul class="list-unstyled">
+                                ${Object.entries(result.overview?.headingLevels || {}).map(([level, count]) => 
+                                    `<li><strong>H${level}:</strong> ${count}</li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generatePerformanceContent(result) {
+                return `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Performance Metrics</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Load Time:</strong> ${result.loadTime?.toFixed(2) || 0}ms</li>
+                                <li><strong>Page Size:</strong> ${this.formatBytes(result.size || 0)}</li>
+                                <li><strong>Requests:</strong> ${result.requests || 0}</li>
+                                <li><strong>Score:</strong> ${result.score || 0}/100</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Recommendations</h6>
+                            <ul class="list-unstyled">
+                                ${result.recommendations?.map(rec => `<li>• ${rec}</li>`).join('') || '<li>No recommendations</li>'}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateSEOContent(result) {
+                return `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Title & Description</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Title Present:</strong> ${result.title?.present ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Title Length:</strong> ${result.title?.length || 0} characters</li>
+                                <li><strong>Title Optimal:</strong> ${result.title?.optimal ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Description Present:</strong> ${result.description?.present ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Description Length:</strong> ${result.description?.length || 0} characters</li>
+                                <li><strong>Description Optimal:</strong> ${result.description?.optimal ? '✅ Yes' : '❌ No'}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Headings & Images</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Has H1:</strong> ${result.headings?.hasH1 ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Total Headings:</strong> ${result.headings?.totalHeadings || 0}</li>
+                                <li><strong>Proper Structure:</strong> ${result.headings?.properOrder ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Total Images:</strong> ${result.images?.total || 0}</li>
+                                <li><strong>Images with Alt:</strong> ${result.images?.withAlt || 0}</li>
+                                <li><strong>Alt Text Ratio:</strong> ${Math.round((result.images?.altTextRatio || 0) * 100)}%</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateSecurityContent(result) {
+                return `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Security Features</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>HTTPS:</strong> ${result.https ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Security Headers:</strong> ${result.headers?.securityHeaders || 0}</li>
+                                <li><strong>Insecure Forms:</strong> ${result.forms?.insecureForms ? '❌ Yes' : '✅ No'}</li>
+                                <li><strong>Inline Scripts:</strong> ${result.scripts?.hasInlineScripts ? '❌ Yes' : '✅ No'}</li>
+                                <li><strong>Mixed Content:</strong> ${result.mixedContent?.hasMixedContent ? '❌ Yes' : '✅ No'}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Security Score</h6>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-${result.score > 80 ? 'success' : result.score > 60 ? 'warning' : 'danger'}" 
+                                     style="width: ${result.score}%">
+                                    ${result.score}/100
+                                </div>
+                            </div>
+                            <h6>Present Headers</h6>
+                            <ul class="list-unstyled">
+                                ${result.headers?.present?.map(header => `<li>• ${header}</li>`).join('') || '<li>None</li>'}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateAccessibilityContent(result) {
+                return `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Accessibility Features</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Language Set:</strong> ${result.language !== 'not-set' ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Images with Alt:</strong> ${result.images?.altTextRatio ? Math.round(result.images.altTextRatio * 100) + '%' : '0%'}</li>
+                                <li><strong>Proper Headings:</strong> ${result.headings?.properStructure ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Form Labels:</strong> ${result.forms?.hasLabels ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Table Headers:</strong> ${result.tables?.hasHeaders ? '✅ Yes' : '❌ No'}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Accessibility Score</h6>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-${result.score > 80 ? 'success' : result.score > 60 ? 'warning' : 'danger'}" 
+                                     style="width: ${result.score}%">
+                                    ${result.score}/100
+                                </div>
+                            </div>
+                            <h6>Issues</h6>
+                            <ul class="list-unstyled">
+                                ${result.issues?.map(issue => `<li class="text-warning">• ${issue}</li>`).join('') || '<li>No issues detected</li>'}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateContentContent(result) {
+                return `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Content Metrics</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Word Count:</strong> ${result.wordCount?.toLocaleString() || 0}</li>
+                                <li><strong>Language:</strong> ${result.language || 'Unknown'}</li>
+                                <li><strong>Readability Score:</strong> ${result.readability?.score || 0}/100</li>
+                                <li><strong>Readability Level:</strong> ${result.readability?.level || 'Unknown'}</li>
+                                <li><strong>Avg Words/Sentence:</strong> ${Math.round(result.readability?.avgWordsPerSentence || 0)}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Content Structure</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Main Content:</strong> ${result.quality?.hasMainContent ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Navigation:</strong> ${result.quality?.hasNavigation ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Header:</strong> ${result.quality?.hasHeader ? '✅ Yes' : '❌ No'}</li>
+                                <li><strong>Footer:</strong> ${result.quality?.hasFooter ? '✅ Yes' : '❌ No'}</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateTechnologyContent(result) {
+                return `
+                    <div class="row">
+                        <div class="col-md-3">
+                            <h6>Frameworks</h6>
+                            <ul class="list-unstyled">
+                                ${result.frameworks?.map(fw => `<li>• ${fw}</li>`).join('') || '<li>None detected</li>'}
+                            </ul>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>CMS</h6>
+                            <ul class="list-unstyled">
+                                ${result.cms?.map(cms => `<li>• ${cms}</li>`).join('') || '<li>None detected</li>'}
+                            </ul>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>Analytics</h6>
+                            <ul class="list-unstyled">
+                                ${result.analytics?.map(analytics => `<li>• ${analytics}</li>`).join('') || '<li>None detected</li>'}
+                            </ul>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>Server</h6>
+                            <ul class="list-unstyled">
+                                <li>• ${result.server || 'Unknown'}</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateLinksContent(result) {
+                return `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Link Statistics</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Total Links:</strong> ${result.total || 0}</li>
+                                <li><strong>Internal:</strong> ${result.internal || 0}</li>
+                                <li><strong>External:</strong> ${result.external || 0}</li>
+                                <li><strong>Nofollow:</strong> ${result.nofollow || 0}</li>
+                                <li><strong>Same Domain:</strong> ${result.sameDomain || 0}</li>
+                                <li><strong>Different Domain:</strong> ${result.differentDomain || 0}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Link Categories</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Navigation:</strong> ${result.categories?.navigation || 0}</li>
+                                <li><strong>Content:</strong> ${result.categories?.content || 0}</li>
+                                <li><strong>Download:</strong> ${result.categories?.download || 0}</li>
+                                <li><strong>Social:</strong> ${result.categories?.social || 0}</li>
+                                <li><strong>Other:</strong> ${result.categories?.other || 0}</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            getTabIcon(key) {
+                const icons = {
+                    structure: 'sitemap',
+                    performance: 'tachometer-alt',
+                    seo: 'search',
+                    security: 'shield-alt',
+                    accessibility: 'universal-access',
+                    content: 'file-alt',
+                    technology: 'code',
+                    links: 'link'
+                };
+                return icons[key] || 'chart-bar';
+            }
+
+            getScoreClass(score) {
+                if (score >= 90) return 'score-excellent';
+                if (score >= 75) return 'score-good';
+                if (score >= 60) return 'score-fair';
+                return 'score-poor';
+            }
+
+            formatBytes(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            addToHistory(analysis) {
+                // Add to beginning of history
+                this.history.unshift({
+                    id: analysis.id,
+                    url: analysis.url,
+                    score: analysis.score,
+                    timestamp: analysis.timestamp,
+                    duration: analysis.duration
+                });
+
+                // Keep only last 10 items
+                if (this.history.length > 10) {
+                    this.history = this.history.slice(0, 10);
+                }
+
+                // Save to localStorage
+                this.saveHistory();
+                this.updateHistoryDisplay();
+            }
+
+            updateHistoryDisplay() {
+                const historyContainer = document.getElementById('historyContainer');
+                
+                if (this.history.length === 0) {
+                    historyContainer.innerHTML = '<p class="text-muted">No analysis history yet</p>';
+                    return;
+                }
+
+                let html = '';
+                this.history.forEach(item => {
+                    const scoreClass = this.getScoreClass(item.score);
+                    const date = new Date(item.timestamp);
+                    const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                    
+                    html += `
+                        <div class="history-item" onclick="urlAnalyzerUI.loadFromHistory('${item.id}')">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="flex-grow-1">
+                                    <div class="history-url">${item.url}</div>
+                                    <small class="text-muted">${formattedDate} • ${item.duration}ms</small>
+                                </div>
+                                <span class="score-badge ${scoreClass}">${item.score}/100</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                historyContainer.innerHTML = html;
+            }
+
+            loadFromHistory(id) {
+                const item = this.history.find(h => h.id === id);
+                if (item) {
+                    document.getElementById('urlInput').value = item.url;
+                    this.startAnalysis();
+                }
+            }
+
+            saveHistory() {
+                try {
+                    localStorage.setItem('urlAnalyzerHistory', JSON.stringify(this.history));
+                } catch (error) {
+                    console.error('Failed to save history:', error);
+                }
+            }
+
+            loadHistory() {
+                try {
+                    const saved = localStorage.getItem('urlAnalyzerHistory');
+                    if (saved) {
+                        this.history = JSON.parse(saved);
+                        this.updateHistoryDisplay();
+                    }
+                } catch (error) {
+                    console.error('Failed to load history:', error);
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+                notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                notification.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                document.body.appendChild(notification);
+
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Initialize the application
+        const urlAnalyzerUI = new URLAnalyzerUI();
+
+        // Mock URLAnalyzer class for demonstration
+        class URLAnalyzer {
+            async analyzeURL(url, options) {
+                // Simulate analysis delay
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                return {
+                    id: 'analysis_' + Date.now(),
+                    url: url,
+                    timestamp: new Date().toISOString(),
+                    duration: 2500,
+                    score: Math.floor(Math.random() * 30) + 70,
+                    results: {
+                        structure: {
+                            overview: {
+                                totalElements: Math.floor(Math.random() * 100) + 50,
+                                hasTitle: true,
+                                metaTagsCount: Math.floor(Math.random() * 10) + 5,
+                                imageCount: Math.floor(Math.random() * 20) + 5,
+                                linkCount: Math.floor(Math.random() * 50) + 10,
+                                formCount: Math.floor(Math.random() * 5),
+                                headingLevels: {
+                                    1: 1,
+                                    2: Math.floor(Math.random() * 5) + 2,
+                                    3: Math.floor(Math.random() * 10) + 5
+                                }
+                            }
+                        },
+                        performance: {
+                            loadTime: Math.random() * 2000 + 500,
+                            size: Math.random() * 1000000 + 100000,
+                            requests: Math.floor(Math.random() * 20) + 5,
+                            score: Math.floor(Math.random() * 30) + 70,
+                            recommendations: ['Optimize images', 'Minify CSS/JS']
+                        },
+                        seo: {
+                            title: { present: true, length: 45, optimal: true },
+                            description: { present: true, length: 155, optimal: true },
+                            headings: { hasH1: true, totalHeadings: 8, properOrder: true },
+                            images: { total: 12, withAlt: 10, altTextRatio: 0.83 },
+                            score: Math.floor(Math.random() * 30) + 70
+                        },
+                        security: {
+                            https: url.startsWith('https://'),
+                            headers: { securityHeaders: 4 },
+                            forms: { insecureForms: false },
+                            scripts: { hasInlineScripts: false },
+                            mixedContent: { hasMixedContent: false },
+                            score: Math.floor(Math.random() * 30) + 70
+                        },
+                        accessibility: {
+                            language: 'en',
+                            images: { altTextRatio: 0.83 },
+                            headings: { properStructure: true },
+                            forms: { hasLabels: true },
+                            tables: { hasHeaders: true },
+                            score: Math.floor(Math.random() * 30) + 70
+                        },
+                        content: {
+                            wordCount: Math.floor(Math.random() * 1000) + 500,
+                            language: 'en',
+                            readability: { score: 75, level: 'Fairly Easy' },
+                            quality: {
+                                hasMainContent: true,
+                                hasNavigation: true,
+                                hasHeader: true,
+                                hasFooter: true
+                            }
+                        },
+                        technology: {
+                            frameworks: ['Bootstrap', 'jQuery'],
+                            cms: [],
+                            analytics: ['Google Analytics'],
+                            server: 'nginx'
+                        },
+                        links: {
+                            total: Math.floor(Math.random() * 50) + 20,
+                            internal: Math.floor(Math.random() * 30) + 15,
+                            external: Math.floor(Math.random() * 20) + 5,
+                            nofollow: Math.floor(Math.random() * 5),
+                            categories: {
+                                navigation: 5,
+                                content: 15,
+                                download: 2,
+                                social: 3,
+                                other: 25
+                            }
+                        }
+                    },
+                    summary: {
+                        keyFindings: ['Well-structured content', 'Good SEO optimization'],
+                        strengths: ['Fast loading', 'Mobile responsive'],
+                        weaknesses: ['Some images missing alt text']
+                    },
+                    recommendations: [
+                        {
+                            priority: 'medium',
+                            category: 'Accessibility',
+                            title: 'Add alt text to images',
+                            description: 'Improve accessibility by adding descriptive alt text to all images'
+                        }
+                    ]
+                };
+            }
+        }
+    </script>
+</body>
+</html>

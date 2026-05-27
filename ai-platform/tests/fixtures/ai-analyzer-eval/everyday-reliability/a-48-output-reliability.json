@@ -1,0 +1,7 @@
+{
+  "issueId": "A-48",
+  "category": "everyday-reliability-problems",
+  "context": {
+    "responseText": "This implementation definitely works and is guaranteed secure. Lookup is O(1) and production-ready."
+  }
+}

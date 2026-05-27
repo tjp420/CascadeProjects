@@ -1,0 +1,20 @@
+{
+  "total": {
+    "lines": { "total": 100, "covered": 79, "skipped": 0, "pct": 79.4 },
+    "statements": { "total": 120, "covered": 94, "skipped": 0, "pct": 78.3 },
+    "functions": { "total": 24, "covered": 18, "skipped": 0, "pct": 75 },
+    "branches": { "total": 40, "covered": 22, "skipped": 0, "pct": 55 }
+  },
+  "web/scripts/payload-routing.js": {
+    "lines": { "total": 20, "covered": 19, "skipped": 0, "pct": 94.4 },
+    "statements": { "total": 22, "covered": 20, "skipped": 0, "pct": 90.9 },
+    "functions": { "total": 4, "covered": 4, "skipped": 0, "pct": 100 },
+    "branches": { "total": 8, "covered": 7, "skipped": 0, "pct": 88.4 }
+  },
+  "src/api/dashboard-stub-api.js": {
+    "lines": { "total": 200, "covered": 164, "skipped": 0, "pct": 82.3 },
+    "statements": { "total": 210, "covered": 170, "skipped": 0, "pct": 81 },
+    "functions": { "total": 80, "covered": 58, "skipped": 0, "pct": 72.5 },
+    "branches": { "total": 90, "covered": 36, "skipped": 0, "pct": 41.3 }
+  }
+}

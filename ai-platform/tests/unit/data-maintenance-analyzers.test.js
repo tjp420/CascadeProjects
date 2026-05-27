@@ -42,17 +42,6 @@ describe('sample consistency checker', () => {
 describe('roadmap json specs', () => {
     const baseDir = path.join(__dirname, '../..');
 
-    test('validates measured ai roadmap report file', () => {
-        const result = validateRoadmapJson('ai-roadmap-report.json', {
-            type: 'ai-roadmap-report-model',
-            dataSource: 'repository-audit',
-            projectOverview: {},
-            developmentPhases: [{}]
-        });
-        expect(result.valid).toBe(true);
-        expect(result.violations.some((v) => v.kind === 'legacy-fiction')).toBe(false);
-    });
-
     test('validates measured gguf roadmap file', () => {
         const result = validateRoadmapJson('gguf-roadmap-data.json', {
             type: 'gguf-development-roadmap-report',

@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Generator Enhanced - Cascade AI Platform</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #475569;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Modern Sidebar Styles */
+        .sidebar-modern {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-modern.collapsed {
+            transform: translateX(-240px);
+        }
+
+        .main-content-with-sidebar {
+            margin-left: 280px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+            margin-left: 40px;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-description {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Generator Layout */
+        .generator-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            height: fit-content;
+        }
+
+        .control-section {
+            margin-bottom: 2rem;
+        }
+
+        .control-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .form-select, .form-control, .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-select:focus, .form-control:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .template-btn {
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .template-btn:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .template-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Code Editor */
+        .code-editor-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+
+        .editor-header {
+            background: var(--bg-secondary);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .editor-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .editor-btn:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .code-editor {
+            height: 600px;
+        }
+
+        .CodeMirror {
+            height: 100%;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        /* Output Panel */
+        .output-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .output-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .output-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-height: 100px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        /* Loading Animation */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Status Indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: var(--success-gradient);
+            color: white;
+        }
+
+        .status-error {
+            background: var(--secondary-gradient);
+            color: white;
+        }
+
+        .status-info {
+            background: var(--info-gradient);
+            color: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .generator-container {
+                grid-template-columns: 1fr;
+            }
+
+            .control-panel {
+                order: 2;
+            }
+
+            .code-editor-panel {
+                order: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar-modern {
+                transform: translateX(-240px);
+            }
+            
+            .sidebar-modern.active {
+                transform: translateX(0);
+            }
+            
+            .main-content-with-sidebar {
+                margin-left: 0;
+            }
+            
+            .sidebar-modern.collapsed ~ .main-content-with-sidebar {
+                margin-left: 280px;
+            }
+
+            .template-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .code-editor {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Container -->
+    <div class="navigation-container"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-content-with-sidebar">
+        <div class="content-wrapper">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">🚀 AI Code Generator Enhanced</h1>
+                <p class="page-description">Advanced AI-powered code generation with multiple languages and intelligent templates</p>
+            </div>
+
+            <!-- Generator Container -->
+            <div class="generator-container">
+                <!-- Control Panel -->
+                <div class="control-panel">
+                    <!-- Language Selection -->
+                    <div class="control-section">
+                        <h3 class="control-title">
+                            <i class="fas fa-code"></i> Language
+                        </h3>
+                        <div class="form-group">
+                            <label class="form-label">Programming Language</label>
+                            <select class="form-select" id="languageSelect">
+                                <option value="javascript">JavaScript</option>
+                                <option value="python">Python</option>
+                                <option value="java">Java</option>
+                                <option value="cpp">C++</option>
+                                <option value="csharp">C#</option>
+                                <option value="php">PHP</option>
+                                <option value="ruby">Ruby</option>
+                                <option value="go">Go</option>
+                                <option value="rust">Rust</option>
+                                <option value="typescript">TypeScript</option>
+                                <option value="swift">Swift</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Template Selection -->
+                    <div class="control-section">
+                        <h3 class="control-title">
+                            <i class="fas fa-file-code"></i> Template
+                        </h3>
+                        <div class="form-group">
+                            <label class="form-label">Code Template</label>
+                            <div class="template-grid">
+                                <button class="template-btn active" data-template="function">Function</button>
+                                <button class="template-btn" data-template="class">Class</button>
+                                <button class="template-btn" data-template="component">Component</button>
+                                <button class="template-btn" data-template="api">API</button>
+                                <button class="template-btn" data-template="test">Test</button>
+                                <button class="template-btn" data-template="config">Config</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="control-section">
+                        <h3 class="control-title">
+                            <i class="fas fa-edit"></i> Description
+                        </h3>
+                        <div class="form-group">
+                            <label class="form-label">What do you want to generate?</label>
+                            <textarea class="form-textarea" id="descriptionInput" placeholder="Describe the code you want to generate..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Options -->
+                    <div class="control-section">
+                        <h3 class="control-title">
+                            <i class="fas fa-cog"></i> Options
+                        </h3>
+                        <div class="form-group">
+                            <label class="form-label">Style</label>
+                            <select class="form-select" id="styleSelect">
+                                <option value="modern">Modern</option>
+                                <option value="classic">Classic</option>
+                                <option value="minimal">Minimal</option>
+                                <option value="verbose">Verbose</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Framework</label>
+                            <select class="form-select" id="frameworkSelect">
+                                <option value="none">None</option>
+                                <option value="react">React</option>
+                                <option value="vue">Vue</option>
+                                <option value="angular">Angular</option>
+                                <option value="express">Express</option>
+                                <option value="django">Django</option>
+                                <option value="flask">Flask</option>
+                                <option value="spring">Spring</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button class="generate-btn" id="generateBtn" onclick="generateCode()">
+                        <i class="fas fa-magic"></i> Generate Code
+                    </button>
+                </div>
+
+                <!-- Code Editor Panel -->
+                <div class="code-editor-panel">
+                    <div class="editor-header">
+                        <h3 class="editor-title">Generated Code</h3>
+                        <div class="editor-actions">
+                            <button class="editor-btn" onclick="copyCode()">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                            <button class="editor-btn" onclick="downloadCode()">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                            <button class="editor-btn" onclick="clearEditor()">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    <div class="code-editor" id="codeEditor"></div>
+                </div>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="output-panel">
+                <div class="output-header">
+                    <h3 class="output-title">Generation Output</h3>
+                    <div class="status-indicator status-info" id="statusIndicator">
+                        <i class="fas fa-info-circle"></i> Ready
+                    </div>
+                </div>
+                <div class="output-content" id="outputContent">
+                    Generated code will appear here. Start by selecting a language, template, and describing what you want to generate.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div>Generating code...</div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/js/navigation-loader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/java/java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/php/php.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/ruby/ruby.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/go/go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/rust/rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+    <script>
+        // Enhanced AI Code Generator JavaScript
+        let codeEditor = null;
+        let currentLanguage = 'javascript';
+        let currentTemplate = 'function';
+
+        // Initialize CodeMirror
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCodeEditor();
+            setupEventListeners();
+        });
+
+        function initializeCodeEditor() {
+            codeEditor = CodeMirror(document.getElementById('codeEditor'), {
+                value: '// Generated code will appear here\n// Select a language and template to get started',
+                mode: 'javascript',
+                theme: 'monokai',
+                lineNumbers: true,
+                lineWrapping: true,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                indentUnit: 2,
+                tabSize: 2,
+                indentWithTabs: false
+            });
+        }
+
+        function setupEventListeners() {
+            // Language selection
+            document.getElementById('languageSelect').addEventListener('change', function(e) {
+                currentLanguage = e.target.value;
+                updateEditorMode();
+            });
+
+            // Template selection
+            document.querySelectorAll('.template-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentTemplate = this.dataset.template;
+                });
+            });
+
+            // Auto-resize editor
+            const resizeObserver = new ResizeObserver(() => {
+                if (codeEditor) {
+                    codeEditor.refresh();
+                }
+            });
+            resizeObserver.observe(document.getElementById('codeEditor'));
+        }
+
+        function updateEditorMode() {
+            const modeMap = {
+                'javascript': 'javascript',
+                'python': 'python',
+                'java': 'java',
+                'cpp': 'text/x-c++src',
+                'csharp': 'text/x-csharp',
+                'php': 'php',
+                'ruby': 'ruby',
+                'go': 'go',
+                'rust': 'rust',
+                'typescript': 'javascript',
+                'swift': 'text/x-swift'
+            };
+
+            if (codeEditor && modeMap[currentLanguage]) {
+                codeEditor.setOption('mode', modeMap[currentLanguage]);
+            }
+        }
+
+        async function generateCode() {
+            const description = document.getElementById('descriptionInput').value.trim();
+            const style = document.getElementById('styleSelect').value;
+            const framework = document.getElementById('frameworkSelect').value;
+
+            if (!description) {
+                updateStatus('Please enter a description', 'error');
+                return;
+            }
+
+            // Show loading
+            showLoading();
+            updateStatus('Generating code...', 'info');
+
+            try {
+                // Simulate AI code generation
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                const generatedCode = await generateCodeContent(description, currentLanguage, currentTemplate, style, framework);
+                
+                // Update editor
+                codeEditor.setValue(generatedCode);
+                
+                // Update output
+                updateOutput(`Successfully generated ${currentTemplate} in ${currentLanguage}`, 'success');
+                updateStatus('Code generated successfully', 'success');
+                
+            } catch (error) {
+                updateOutput(`Error: ${error.message}`, 'error');
+                updateStatus('Generation failed', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function generateCodeContent(description, language, template, style, framework) {
+            // Simulate AI code generation with different templates
+            const templates = {
+                'function': generateFunction(description, language, style, framework),
+                'class': generateClass(description, language, style, framework),
+                'component': generateComponent(description, language, style, framework),
+                'api': generateAPI(description, language, style, framework),
+                'test': generateTest(description, language, style, framework),
+                'config': generateConfig(description, language, style, framework)
+            };
+
+            return templates[template] || generateFunction(description, language, style, framework);
+        }
+
+        function generateFunction(description, language, style, framework) {
+            const codeTemplates = {
+                'javascript': `/**
+ * ${description}
+ * Generated by AI Code Generator
+ */
+function ${functionName(description)}() {
+    // TODO: Implement function logic
+    console.log('Function called: ${description}');
+    
+    // Return value or result
+    return {
+        success: true,
+        message: 'Function executed successfully'
+    };
+}
+
+// Export the function
+module.exports = ${functionName(description)};`,
+                
+                'python': `"""
+${description}
+Generated by AI Code Generator
+"""
+def ${functionName(description)}():
+    """
+    ${description}
+    """
+    # TODO: Implement function logic
+    print(f"Function called: {${functionName(description).__name__}}")
+    
+    # Return value or result
+    return {
+        'success': True,
+        'message': 'Function executed successfully'
+    }
+
+if __name__ == '__main__':
+    ${functionName(description)}()`,
+                
+                'java': `/**
+ * ${description}
+ * Generated by AI Code Generator
+ */
+public class ${functionName(description)} {
+    
+    /**
+     * ${description}
+     */
+    public Map<String, Object> execute() {
+        // TODO: Implement method logic
+        System.out.println("Method called: ${description}");
+        
+        // Return value or result
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("message", "Method executed successfully");
+        
+        return result;
+    }
+    
+    public static void main(String[] args) {
+        ${functionName(description)} instance = new ${functionName(description)}();
+        instance.execute();
+    }
+}`,
+                
+                'cpp': `/**
+ * ${description}
+ * Generated by AI Code Generator
+ */
+#include <iostream>
+#include <map>
+#include <string>
+
+std::map<std::string, std::string> ${functionName(description)}() {
+    // TODO: Implement function logic
+    std::cout << "Function called: ${description}" << std::endl;
+    
+    // Return value or result
+    std::map<std::string, std::string> result;
+    result["success"] = "true";
+    result["message"] = "Function executed successfully";
+    
+    return result;
+}
+
+int main() {
+    auto result = ${functionName(description)}();
+    std::cout << "Function executed successfully" << std::endl;
+    return 0;
+}`
+            };
+
+            return codeTemplates[language] || codeTemplates['javascript'];
+        }
+
+        function generateClass(description, language, style, framework) {
+            const className = classNameFromDescription(description);
+            
+            const codeTemplates = {
+                'javascript': `/**
+ * ${description}
+ * Generated by AI Code Generator
+ */
+class ${className} {
+    constructor(options = {}) {
+        this.options = options;
+        this.initialized = false;
+        this.init();
+    }
+    
+    /**
+     * Initialize the ${className}
+     */
+    init() {
+        // TODO: Add initialization logic
+        console.log('${className} initialized');
+        this.initialized = true;
+    }
+    
+    /**
+     * ${description}
+     */
+    execute() {
+        if (!this.initialized) {
+            throw new Error('${className} not initialized');
+        }
+        
+        // TODO: Implement main logic
+        return {
+            success: true,
+            message: '${className} executed successfully'
+        };
+    }
+    
+    /**
+     * Reset the ${className}
+     */
+    reset() {
+        this.initialized = false;
+        this.init();
+    }
+}
+
+// Export the class
+module.exports = ${className};`,
+                
+                'python': `"""
+${description}
+Generated by AI Code Generator
+"""
+class ${className}:
+    """
+    ${description}
+    """
+    
+    def __init__(self, **options):
+        self.options = options
+        self.initialized = False
+        self.init()
+    
+    def init(self):
+        """Initialize the ${className}"""
+        # TODO: Add initialization logic
+        print(f"{${className}} initialized")
+        self.initialized = True
+    
+    def execute(self):
+        """${description}"""
+        if not self.initialized:
+            raise RuntimeError(f"{${className}} not initialized")
+        
+        # TODO: Implement main logic
+        return {
+            'success': True,
+            'message': f'{${className}} executed successfully'
+        }
+    
+    def reset(self):
+        """Reset the ${className}"""
+        self.initialized = False
+        self.init()`
+            };
+
+            return codeTemplates[language] || codeTemplates['javascript'];
+        }
+
+        function generateComponent(description, language, style, framework) {
+            const componentName = componentNameFromDescription(description);
+            
+            const codeTemplates = {
+                'javascript': `/**
+ * ${description}
+ * Generated by AI Code Generator
+ */
+class ${componentName} extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.render();
+    }
+    
+    connectedCallback() {
+        this.addEventListener('click', this.handleClick.bind(this));
+    }
+    
+    disconnectedCallback() {
+        this.removeEventListener('click', this.handleClick.bind(this));
+    }
+    
+    render() {
+        this.shadowRoot.innerHTML = \`
+            <style>
+                :host {
+                    display: block;
+                    padding: 1rem;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                }
+                .container {
+                    text-align: center;
+                }
+            </style>
+            <div class="container">
+                <h3>${componentName}</h3>
+                <p>${description}</p>
+                <button>Click Me</button>
+            </div>
+        \`;
+    }
+    
+    handleClick(event) {
+        console.log('${componentName} clicked!');
+        this.dispatchEvent(new CustomEvent('componentClick', {
+            detail: { component: '${componentName}' }
+        }));
+    }
+}
+
+// Register the custom element
+customElements.define('${componentName.toLowerCase()}', ${componentName});`,
+                
+                'react': `import React from 'react';
+import PropTypes from 'prop-types';
+
+/**
+ * ${description}
+ * Generated by AI Code Generator
+ */
+const ${componentName} = ({ title, description, onClick }) => {
+    const handleClick = () => {
+        console.log('${componentName} clicked!');
+        onClick && onClick();
+    };
+    
+    return (
+        <div className="${componentName.toLowerCase()}" style={{
+            padding: '1rem',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            textAlign: 'center'
+        }}>
+            <h3>{title || '${componentName}'}</h3>
+            <p>{description || '${description}'}</p>
+            <button onClick={handleClick}>Click Me</button>
+        </div>
+    );
+};
+
+${componentName}.propTypes = {
+    title: PropTypes.string,
+    description: PropTypes.string,
+    onClick: PropTypes.func
+};
+
+${componentName}.defaultProps = {
+    title: '${componentName}',
+    description: '${description}',
+    onClick: null
+};
+
+export default ${componentName};`
+            };
+
+            if (framework === 'react' && language === 'javascript') {
+                return codeTemplates['react'];
+            }
+            
+            return codeTemplates['javascript'];
+        }
+
+        function generateAPI(description, language, style, framework) {
+            const apiName = apiNameFromDescription(description);
+            
+            const codeTemplates = {
+                'javascript': `/**
+ * ${description}
+ * Generated by AI Code Generator
+ */
+const express = require('express');
+const router = express.Router();
+
+/**
+ * GET /${apiName}
+ * ${description}
+ */
+router.get('/${apiName}', async (req, res) => {
+    try {
+        // TODO: Implement API logic
+        const result = {
+            success: true,
+            message: '${apiName} API executed successfully',
+            data: []
+        };
+        
+        res.json(result);
+    } catch (error) {
+        console.error('Error in ${apiName} API:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /${apiName}
+ * Create new resource
+ */
+router.post('/${apiName}', async (req, res) => {
+    try {
+        const { data } = req.body;
+        
+        // TODO: Implement creation logic
+        const result = {
+            success: true,
+            message: 'Resource created successfully',
+            data: data
+        };
+        
+        res.status(201).json(result);
+    } catch (error) {
+        console.error('Error creating resource:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+});
+
+module.exports = router;`,
+                
+                'python': `"""
+${description}
+Generated by AI Code Generator
+"""
+from flask import Blueprint, request, jsonify
+
+${apiName} = Blueprint('${apiName}', __name__)
+
+@${apiName}.route('/${apiName}', methods=['GET'])
+def get_${apiName}():
+    """${description}"""
+    try:
+        # TODO: Implement API logic
+        result = {
+            'success': True,
+            'message': '${apiName} API executed successfully',
+            'data': []
+        }
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error in ${apiName} API: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error',
+            'error': str(e)
+        }), 500
+
+@${apiName}.route('/${apiName}', methods=['POST'])
+def create_${apiName}():
+    """Create new resource"""
+    try:
+        data = request.get_json()
+        
+        # TODO: Implement creation logic
+        result = {
+            'success': True,
+            'message': 'Resource created successfully',
+            'data': data
+        }
+        return jsonify(result), 201
+    except Exception as e:
+        print(f"Error creating resource: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error',
+            'error': str(e)
+        }), 500`
+            };
+
+            return codeTemplates[language] || codeTemplates['javascript'];
+        }
+
+        function generateTest(description, language, style, framework) {
+            const testName = testNameFromDescription(description);
+            
+            const codeTemplates = {
+                'javascript': `/**
+ * ${description}
+ * Generated by AI Code Generator
+ */
+const { expect, test, describe } = require('@jest/globals');
+
+describe('${testName}', () => {
+    test('should execute successfully', () => {
+        // TODO: Implement test logic
+        const result = {
+            success: true,
+            message: 'Test executed successfully'
+        };
+        
+        expect(result.success).toBe(true);
+        expect(result.message).toBe('Test executed successfully');
+    });
+    
+    test('should handle errors gracefully', () => {
+        // TODO: Implement error handling test
+        const result = {
+            success: false,
+            message: 'Test error handling'
+        };
+        
+        expect(result.success).toBe(false);
+        expect(result.message).toBe('Test error handling');
+    });
+    
+    test('should validate input parameters', () => {
+        // TODO: Implement validation test
+        const validInput = { param: 'value' };
+        const result = validateInput(validInput);
+        
+        expect(result).toBe(true);
+    });
+});
+
+function validateInput(input) {
+    // TODO: Implement validation logic
+    return input && typeof input === 'object';
+}`,
+                
+                'python': `"""
+${description}
+Generated by AI Code Generator
+"""
+import unittest
+from unittest.mock import patch, MagicMock
+
+class Test${testName}(unittest.TestCase):
+    """${description}"""
+    
+    def setUp(self):
+        """Set up test fixtures"""
+        pass
+    
+    def test_execute_successfully(self):
+        """Test that the function executes successfully"""
+        # TODO: Implement test logic
+        result = {
+            'success': True,
+            'message': 'Test executed successfully'
+        }
+        
+        self.assertTrue(result['success'])
+        self.assertEqual(result['message'], 'Test executed successfully')
+    
+    def test_handle_errors_gracefully(self):
+        """Test that errors are handled gracefully"""
+        # TODO: Implement error handling test
+        with self.assertRaises(Exception):
+            raise Exception('Test error handling')
+    
+    def test_validate_input_parameters(self):
+        """Test input parameter validation"""
+        # TODO: Implement validation test
+        valid_input = {'param': 'value'}
+        result = self.validate_input(valid_input)
+        
+        self.assertTrue(result)
+    
+    def validate_input(self, input_data):
+        """Validate input parameters"""
+        # TODO: Implement validation logic
+        return input_data is not None and isinstance(input_data, dict)
+
+if __name__ == '__main__':
+    unittest.main()`
+            };
+
+            return codeTemplates[language] || codeTemplates['javascript'];
+        }
+
+        function generateConfig(description, language, style, framework) {
+            const configName = configNameFromDescription(description);
+            
+            const codeTemplates = {
+                'javascript': `/**
+ * ${description}
+ * Generated by AI Code Generator
+ */
+module.exports = {
+    // Application configuration
+    app: {
+        name: '${configName}',
+        version: '1.0.0',
+        environment: process.env.NODE_ENV || 'development',
+        port: process.env.PORT || 3000
+    },
+    
+    // Database configuration
+    database: {
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 5432,
+        name: process.env.DB_NAME || 'app_db',
+        username: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD || 'password',
+        ssl: process.env.NODE_ENV === 'production'
+    },
+    
+    // JWT configuration
+    jwt: {
+        secret: process.env.JWT_SECRET || 'your-secret-key',
+        expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+    },
+    
+    // CORS configuration
+    cors: {
+        origin: process.env.CORS_ORIGIN || ['http://localhost:3000'],
+        credentials: true
+    },
+    
+    // Logging configuration
+    logging: {
+        level: process.env.LOG_LEVEL || 'info',
+        format: 'combined'
+    }
+};`,
+                
+                'python': `"""
+${description}
+Generated by AI Code Generator
+"""
+import os
+from typing import Dict, Any
+
+class ${configName}:
+    """Application configuration"""
+    
+    # Application settings
+    APP_NAME = '${configName}'
+    VERSION = '1.0.0'
+    ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+    DEBUG = ENVIRONMENT == 'development'
+    PORT = int(os.getenv('PORT', 8000))
+    
+    # Database settings
+    DATABASE = {
+        'host': os.getenv('DB_HOST', 'localhost'),
+        'port': int(os.getenv('DB_PORT', 5432)),
+        'name': os.getenv('DB_NAME', 'app_db'),
+        'user': os.getenv('DB_USER', 'postgres'),
+        'password': os.getenv('DB_PASSWORD', 'password'),
+        'ssl': ENVIRONMENT == 'production'
+    }
+    
+    # JWT settings
+    JWT = {
+        'secret': os.getenv('JWT_SECRET', 'your-secret-key'),
+        'algorithm': 'HS256',
+        'expires_in': int(os.getenv('JWT_EXPIRES_IN', 24 * 60 * 60))  # 24 hours
+    }
+    
+    # CORS settings
+    CORS = {
+        'origins': os.getenv('CORS_ORIGINS', ['http://localhost:3000']).split(','),
+        'credentials': True
+    }
+    
+    # Logging settings
+    LOGGING = {
+        'level': os.getenv('LOG_LEVEL', 'INFO'),
+        'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    }
+
+# Create configuration instance
+config = ${configName}()`
+            };
+
+            return codeTemplates[language] || codeTemplates['javascript'];
+        }
+
+        function functionName(description) {
+            const words = description.toLowerCase().split(' ');
+            const filtered = words.filter(word => word.length > 2);
+            return filtered.length > 0 ? filtered[0] + 'Function' : 'generatedFunction';
+        }
+
+        function classNameFromDescription(description) {
+            const words = description.toLowerCase().split(' ');
+            const filtered = words.filter(word => word.length > 2);
+            return filtered.length > 0 ? filtered[0].charAt(0).toUpperCase() + filtered[0].slice(1) + 'Class' : 'GeneratedClass';
+        }
+
+        function componentNameFromDescription(description) {
+            const words = description.toLowerCase().split(' ');
+            const filtered = words.filter(word => word.length > 2);
+            return filtered.length > 0 ? filtered[0].charAt(0).toUpperCase() + filtered[0].slice(1) + 'Component' : 'GeneratedComponent';
+        }
+
+        function apiNameFromDescription(description) {
+            const words = description.toLowerCase().split(' ');
+            const filtered = words.filter(word => word.length > 2);
+            return filtered.length > 0 ? filtered[0] + 'API' : 'generatedAPI';
+        }
+
+        function testNameFromDescription(description) {
+            const words = description.toLowerCase().split(' ');
+            const filtered = words.filter(word => word.length > 2);
+            return filtered.length > 0 ? filtered[0].charAt(0).toUpperCase() + filtered[0].slice(1) + 'Test' : 'GeneratedTest';
+        }
+
+        function configNameFromDescription(description) {
+            const words = description.toLowerCase().split(' ');
+            const filtered = words.filter(word => word.length > 2);
+            return filtered.length > 0 ? filtered[0].charAt(0).toUpperCase() + filtered[0].slice(1) + 'Config' : 'GeneratedConfig';
+        }
+
+        function copyCode() {
+            if (codeEditor) {
+                const code = codeEditor.getValue();
+                navigator.clipboard.writeText(code).then(() => {
+                    updateStatus('Code copied to clipboard', 'success');
+                }).catch(err => {
+                    updateStatus('Failed to copy code', 'error');
+                });
+            }
+        }
+
+        function downloadCode() {
+            if (codeEditor) {
+                const code = codeEditor.getValue();
+                const language = document.getElementById('languageSelect').value;
+                const template = document.getElementById('descriptionInput').value.split(' ')[0] || 'generated';
+                
+                const extensions = {
+                    'javascript': 'js',
+                    'python': 'py',
+                    'java': 'java',
+                    'cpp': 'cpp',
+                    'csharp': 'cs',
+                    'php': 'php',
+                    'ruby': 'rb',
+                    'go': 'go',
+                    'rust': 'rs',
+                    'typescript': 'ts',
+                    'swift': 'swift'
+                };
+                
+                const extension = extensions[language] || 'txt';
+                const filename = `${template.toLowerCase()}_${new Date().toISOString().split('T')[0]}.${extension}`;
+                
+                const blob = new Blob([code], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                updateStatus('Code downloaded successfully', 'success');
+            }
+        }
+
+        function clearEditor() {
+            if (codeEditor) {
+                codeEditor.setValue('// Generated code will appear here\n// Select a language and template to get started');
+                updateOutput('Editor cleared', 'info');
+                updateStatus('Ready', 'info');
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        function updateStatus(message, type) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.className = `status-indicator status-${type}`;
+            indicator.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                ${message}
+            `;
+        }
+
+        function updateOutput(message, type) {
+            const outputContent = document.getElementById('outputContent');
+            outputContent.textContent = message;
+            outputContent.style.color = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : 'var(--text-primary)';
+        }
+    </script>
+</body>
+</html>

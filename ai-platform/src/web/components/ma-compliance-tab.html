@@ -1,0 +1,460 @@
+<!-- M&A Compliance Check Tab -->
+<div class="tab-content" id="compliance-content">
+    <div class="tab-header">
+        <h2><i class="fas fa-shield-alt"></i> Compliance Check</h2>
+        <p>Assess regulatory compliance and certification readiness for M&A decisions</p>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="compliance-alerts"></div>
+
+    <!-- Assessment Controls -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-clipboard-check"></i> Assessment Parameters</h3>
+        </div>
+        <div class="card-body">
+            <form id="compliance-form">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="compliance-framework" class="form-label">Compliance Framework</label>
+                            <select id="compliance-framework" name="compliance-framework" class="form-control">
+                                <option value="soc2">SOC 2 Type II</option>
+                                <option value="hipaa">HIPAA</option>
+                                <option value="iso27001">ISO 27001</option>
+                                <option value="pci">PCI DSS</option>
+                                <option value="gdpr">GDPR</option>
+                                <option value="all">All Frameworks</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="industry-regulation" class="form-label">Industry Regulation</label>
+                            <select id="industry-regulation" name="industry-regulation" class="form-control">
+                                <option value="healthcare">Healthcare</option>
+                                <option value="finance">Financial Services</option>
+                                <option value="ecommerce">E-commerce</option>
+                                <option value="technology">Technology</option>
+                                <option value="general">General</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="data-sensitivity" class="form-label">Data Sensitivity Level</label>
+                            <select id="data-sensitivity" name="data-sensitivity" class="form-control">
+                                <option value="low">Low (Public Data)</option>
+                                <option value="medium">Medium (Internal Data)</option>
+                                <option value="high">High (PII/PHI)</option>
+                                <option value="critical">Critical (Financial/Health)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="audit-history" class="form-label">Audit History</label>
+                            <select id="audit-history" name="audit-history" class="form-control">
+                                <option value="none">No Previous Audits</option>
+                                <option value="internal">Internal Audits Only</option>
+                                <option value="external">External Audits</option>
+                                <option value="certified">Currently Certified</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="target-company" class="form-label">Target Company</label>
+                            <input type="text" id="target-company" name="target-company" class="form-control" placeholder="Target Company" value="Target Company">
+                        </div>
+                        <div class="mb-3">
+                            <label>&nbsp;</label><br>
+                            <button type="submit" class="btn btn-warning btn-block">
+                                <i class="fas fa-search"></i> Perform Compliance Check
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Compliance Results -->
+    <div id="compliance-results" style="display: none;">
+        <!-- Overall Compliance Score -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-white">
+                <h3><i class="fas fa-tachometer-alt"></i> Overall Compliance Assessment</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="compliance-score-card">
+                            <h4>Compliance Score</h4>
+                            <div class="compliance-score" id="compliance-score">-</div>
+                            <div class="compliance-level" id="compliance-level">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="compliance-score-card">
+                            <h4>Risk Level</h4>
+                            <div class="risk-score" id="compliance-risk-score">-</div>
+                            <div class="risk-label">Compliance Risk</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="compliance-score-card">
+                            <h4>Remediation Cost</h4>
+                            <div class="cost-score" id="remediation-cost">-</div>
+                            <div class="cost-label">Estimated Cost</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="compliance-score-card">
+                            <h4>Timeline</h4>
+                            <div class="timeline-score" id="compliance-timeline">-</div>
+                            <div class="timeline-label">Time to Comply</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Framework-Specific Results -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="fas fa-list"></i> Framework-Specific Compliance</h3>
+            </div>
+            <div class="card-body">
+                <div id="framework-results">
+                    <!-- Framework results will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Critical Issues -->
+        <div class="card mb-4" id="critical-issues-card" style="display: none;">
+            <div class="card-header bg-danger text-white">
+                <h3><i class="fas fa-exclamation-triangle"></i> Critical Compliance Issues</h3>
+            </div>
+            <div class="card-body">
+                <div id="critical-issues-list">
+                    <!-- Critical issues will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Compliance Recommendations -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="fas fa-lightbulb"></i> Compliance Recommendations</h3>
+            </div>
+            <div class="card-body">
+                <div id="compliance-recommendations">
+                    <!-- Recommendations will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center">
+            <button class="btn btn-warning btn-lg mr-2" id="export-compliance-btn" onclick="exportComplianceReport('pdf')">
+                <i class="fas fa-file-pdf"></i> Export Compliance Report
+            </button>
+            <button class="btn btn-info btn-lg mr-2" onclick="generateCompliancePlan()">
+                <i class="fas fa-clipboard-check"></i> Compliance Action Plan
+            </button>
+            <button class="btn btn-success btn-lg" onclick="scheduleComplianceReview()">
+                <i class="fas fa-calendar"></i> Schedule Expert Review
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="compliance-loading" style="display: none;">
+        <div class="text-center py-5">
+            <div class="spinner-border text-warning" role="status">
+                <span class="sr-only">Assessing compliance...</span>
+            </div>
+            <h4 class="mt-3">Performing Compliance Assessment...</h4>
+            <p>Analyzing regulatory requirements and compliance gaps</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.compliance-score-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    height: 100%;
+}
+
+.compliance-score {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.compliance-score.excellent {
+    color: #28a745;
+}
+
+.compliance-score.good {
+    color: #17a2b8;
+}
+
+.compliance-score.fair {
+    color: #ffc107;
+}
+
+.compliance-score.poor {
+    color: #dc3545;
+}
+
+.compliance-level {
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.framework-item {
+    background: #f8f9fa;
+    border-left: 4px solid #ffc107;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 0 5px 5px 0;
+}
+
+.framework-item.compliant {
+    border-left-color: #28a745;
+    background: #d4edda;
+}
+
+.framework-item.non-compliant {
+    border-left-color: #dc3545;
+    background: #f8d7da;
+}
+
+.framework-item.partial {
+    border-left-color: #ffc107;
+    background: #fff3cd;
+}
+
+.compliance-issue {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.compliance-issue.critical {
+    border-left: 4px solid #dc3545;
+    background: #f8d7da;
+}
+
+.compliance-issue.high {
+    border-left: 4px solid #fd7e14;
+    background: #fff3cd;
+}
+
+.recommendation-item {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.recommendation-item h5 {
+    color: #0c5460;
+    margin-bottom: 10px;
+}
+</style>
+
+<script>
+function performComplianceCheck() {
+    console.log('🔒 Performing compliance check...');
+    
+    // Show loading state
+    const resultsDiv = document.getElementById('compliance-results');
+    const loadingDiv = document.getElementById('compliance-loading');
+    
+    if (loadingDiv) loadingDiv.style.display = 'block';
+    if (resultsDiv) resultsDiv.style.display = 'none';
+    
+    // Get form data
+    const formData = {
+        framework: document.getElementById('compliance-framework')?.value || 'soc2',
+        industry: document.getElementById('industry-regulation')?.value || 'technology',
+        sensitivity: document.getElementById('data-sensitivity')?.value || 'medium',
+        audit_history: document.getElementById('audit-history')?.value || 'none',
+        company: document.getElementById('target-company')?.value || 'Target Company'
+    };
+    
+    // Call API (mock for now)
+    setTimeout(() => {
+        displayComplianceResults({
+            compliance_score: 65,
+            compliance_level: 'FAIR',
+            risk_level: 'MEDIUM',
+            remediation_cost: 85000,
+            timeline: '6-9 months',
+            frameworks: {
+                'SOC 2': { status: 'partial', score: 72, issues: 3 },
+                'ISO 27001': { status: 'non-compliant', score: 45, issues: 8 },
+                'GDPR': { status: 'compliant', score: 85, issues: 1 },
+                'HIPAA': { status: 'compliant', score: 90, issues: 0 }
+            },
+            critical_issues: [
+                'Missing incident response plan',
+                'Inadequate access control documentation',
+                'No regular penetration testing'
+            ],
+            recommendations: [
+                'Implement incident response plan within 30 days',
+                'Conduct access control review and documentation',
+                'Schedule quarterly penetration testing',
+                'Establish compliance monitoring program'
+            ]
+        });
+        
+        if (loadingDiv) loadingDiv.style.display = 'none';
+        if (resultsDiv) resultsDiv.style.display = 'block';
+    }, 2000);
+}
+
+function displayComplianceResults(data) {
+    // Update overall compliance score
+    const score = document.getElementById('compliance-score');
+    if (score) {
+        score.textContent = data.compliance_score + '/100';
+        score.className = 'compliance-score ' + getComplianceClass(data.compliance_score);
+    }
+    
+    const level = document.getElementById('compliance-level');
+    if (level) level.textContent = data.compliance_level;
+    
+    const riskScore = document.getElementById('compliance-risk-score');
+    if (riskScore) riskScore.textContent = data.risk_level;
+    
+    const cost = document.getElementById('remediation-cost');
+    if (cost) cost.textContent = '$' + data.remediation_cost.toLocaleString();
+    
+    const timeline = document.getElementById('compliance-timeline');
+    if (timeline) timeline.textContent = data.timeline;
+    
+    // Display framework results
+    displayFrameworkResults(data.frameworks);
+    
+    // Display critical issues
+    displayCriticalIssues(data.critical_issues);
+    
+    // Display recommendations
+    displayRecommendations(data.recommendations);
+    
+    console.log('✅ Compliance results displayed');
+}
+
+function displayFrameworkResults(frameworks) {
+    const container = document.getElementById('framework-results');
+    container.innerHTML = '';
+    
+    Object.entries(frameworks).forEach(([framework, data]) => {
+        const frameworkDiv = document.createElement('div');
+        frameworkDiv.className = 'framework-item ' + data.status;
+        
+        let statusIcon = '';
+        if (data.status === 'compliant') statusIcon = '✅';
+        else if (data.status === 'partial') statusIcon = '⚠️';
+        else statusIcon = '❌';
+        
+        frameworkDiv.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5>${statusIcon} ${framework}</h5>
+                    <div class="d-flex align-items-center mt-2">
+                        <span class="badge bg-${getStatusColor(data.status)} me-2">${data.status.toUpperCase()}</span>
+                        <span class="me-2">Score: ${data.score}/100</span>
+                        <span>${data.issues} issues</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(frameworkDiv);
+    });
+}
+
+function displayCriticalIssues(issues) {
+    const container = document.getElementById('critical-issues-list');
+    const card = document.getElementById('critical-issues-card');
+    
+    if (issues.length === 0) {
+        card.style.display = 'none';
+        return;
+    }
+    
+    card.style.display = 'block';
+    container.innerHTML = '';
+    
+    issues.forEach(issue => {
+        const issueDiv = document.createElement('div');
+        issueDiv.className = 'compliance-issue critical';
+        issueDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span>${issue}</span>
+            </div>
+        `;
+        container.appendChild(issueDiv);
+    });
+}
+
+function displayRecommendations(recommendations) {
+    const container = document.getElementById('compliance-recommendations');
+    container.innerHTML = '';
+    
+    recommendations.forEach((recommendation, index) => {
+        const recDiv = document.createElement('div');
+        recDiv.className = 'recommendation-item';
+        recDiv.innerHTML = `
+            <h5>Recommendation ${index + 1}</h5>
+            <p class="mb-0">${recommendation}</p>
+        `;
+        container.appendChild(recDiv);
+    });
+}
+
+function getComplianceClass(score) {
+    if (score >= 90) return 'excellent';
+    if (score >= 75) return 'good';
+    if (score >= 60) return 'fair';
+    return 'poor';
+}
+
+function getStatusColor(status) {
+    switch(status) {
+        case 'compliant': return 'success';
+        case 'partial': return 'warning';
+        case 'non-compliant': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function exportComplianceReport(format) {
+    console.log(`📄 Exporting compliance report as ${format}...`);
+    alert(`Compliance report export (${format}) - This will be connected to the real export API`);
+}
+
+function generateCompliancePlan() {
+    alert('Compliance action plan feature coming soon!');
+}
+
+function scheduleComplianceReview() {
+    alert('Compliance expert review scheduling feature coming soon!');
+}
+</script>
+
+<!-- Load Compliance Assessment Calculator Script -->
+<script src="dashboard_components/ma-compliance-calculator.js"></script>
