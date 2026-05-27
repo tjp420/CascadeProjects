@@ -1,0 +1,227 @@
+{
+  "profile": "standard",
+  "allowedAnalysisRoots": [
+    ".",
+    "..",
+    "E:/Ai"
+  ],
+  "scanPaths": [
+    "web/data",
+    "data/mock",
+    "data-central/ai-tools/mock-data"
+  ],
+  "sourceCodeScanPaths": [
+    "server",
+    "src/api",
+    "src/server",
+    "packages/simplebeacon-cli/src"
+  ],
+  "productionPaths": [
+    "server/",
+    "src/",
+    "app/",
+    "lib/"
+  ],
+  "sampleDir": "web/data",
+  "consistencyAnchorSamples": [
+    "engineering-baseline-sample.json",
+    "implementation-plan-sample.json",
+    "master-roadmap-sample.json",
+    "release-timeline-sample.json",
+    "dashboard-home-sample.json",
+    "gguf-mock-analysis-sample.json"
+  ],
+  "ignore": [
+    "node_modules/**",
+    "coverage/**",
+    "coverage-*/**",
+    "test-results/**",
+    ".nyc_output/**",
+    "**/*.min.js",
+    "**/*.bundle.js",
+    "**/*.lock",
+    "**/*.log",
+    "**/*.md",
+    "infra/**/*.md",
+    "infra/**/tmp/**",
+    "infra/**/cache/**",
+    "infra/**/.terraform/**",
+    "deployments/**/node_modules/**",
+    "deployments/**/dist/**",
+    "deployments/**/build/**",
+    "deployments/**/.cache/**",
+    "deployments/**/coverage/**",
+    ".github/workflows/deploy-production.yml",
+    ".github/workflows/dashboard-ci.yml",
+    ".github/workflows/ci.yml",
+    ".github/workflows/ci-cd-pipeline.yml",
+    ".github/workflows/*release*.yml",
+    "docker/**/*.md",
+    "docker/**/tmp/**",
+    "docker/**/.cache/**",
+    ".simplebeacon/hooks/**",
+    ".simplebeacon/*assessment*.json",
+    ".simplebeacon/*audit*.json",
+    ".simplebeacon/*monitoring*.json",
+    ".simplebeacon/*report*.json",
+    ".simplebeacon/history.json",
+    ".simplebeacon/tranche-lib-scan.json",
+    ".simplebeacon/user-ai-keys.json",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "tests/**",
+    "docs/**",
+    "docs/archive/**",
+    ".simplebeacon/**",
+    ".simplebeacon/archive/**",
+    ".simplebeacon/archive/jest-results/**",
+    ".simplebeacon/archive/quality-checks/**",
+    ".simplebeacon/archive/coverage-reports/**",
+    ".simplebeacon/archive/large-source-files/**",
+    "reports/**",
+    "data-central/**",
+    "tests/fixtures/**",
+    "comprehensive-analysis-results.json",
+    "gguf_mock_data_optimization_docs.json",
+    "mock_data_validation_report.json",
+    "src/ai-system/ai_development_report.json",
+    "data/simplebeacon-demo/**",
+    "data/codegen/code-generation-sample.json",
+    "complete-server.js",
+    "comprehensive-batch-test.js",
+    "debug-batch.js",
+    "development-roadmap/run-analysis-fixed.js",
+    "development-roadmap/run-analysis.js",
+    "development-roadmap/RoadmapAnalyzer.js",
+    "assessments/**",
+    "docs/**",
+    "archive/**",
+    "**/cascade-project-roadmap.json",
+    "data/roadmap/archive/cascade-project-roadmap.json",
+    "src/web/config/**/*.bak.json",
+    "src/web/config/**/*.example.json"
+  ],
+  "rules": {
+    "credentials": {
+      "enabled": true,
+      "scanProduction": true,
+      "productionPaths": [
+        "server/",
+        "src/"
+      ]
+    },
+    "json-schema": {
+      "enabled": true
+    },
+    "sample-consistency": {
+      "enabled": true
+    },
+    "roadmap": {
+      "enabled": true
+    },
+    "production-leak": {
+      "enabled": true,
+      "severity": "high",
+      "productionPaths": [
+        "server/",
+        "src/",
+        "app/",
+        "lib/"
+      ],
+      "allowlistFiles": [
+        "server/lib/snapshot-seeds.js",
+        "server/lib/snapshot-resolver.js",
+        "server/lib/sample-path-resolver.js",
+        "server/lib/codebase-analyzer.js",
+        "server/lib/file-merger-reduction-scanner.js",
+        "server/lib/fuzzy-content-matcher.js",
+        "server/lib/code-roadmap-generator.js",
+        "server/services/model-inference-service.js",
+        "server/lib/strategic-insights-engine.js",
+        "server/lib/fixtures/sample-audit-report-data.js",
+        "server/services/cloud-inference-service.js",
+        "src/api/dashboard-stub-api.js",
+        "src/api/simplebeacon-api.js",
+        "src/api/export-api.js",
+        "src/web/export-mock-data.js",
+        "src/server/index.js",
+        "src/web/scripts/continue-remediation.js",
+        "src/web/scripts/quick-remediation.js",
+        "src/web/utils/mock-data-templates.js"
+      ]
+    },
+    "jest-baseline": {
+      "enabled": false,
+      "runTests": false,
+      "testCommand": "npm test -- --no-coverage --passWithNoTests"
+    },
+    "fiction-kpi-patterns": {
+      "enabled": true,
+      "severity": "medium",
+      "sourcePaths": [
+        "server",
+        "src/api",
+        "src/server",
+        "packages/simplebeacon-cli/src"
+      ]
+    }
+  },
+  "dataCleanup": {
+    "data-lineage": {
+      "allowlist": [
+        "web/data/**",
+        "**/*-sample.json",
+        "data/mock/**",
+        "data-central/**",
+        "data/roadmap/**",
+        "docker-compose*.yml",
+        "tests/fixtures/**",
+        "reports/archive/**"
+      ]
+    }
+  },
+  "gate": {
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ]
+  },
+  "fileSizeThresholds": {
+    "default": 256000,
+    "json": 512000,
+    "js": 256000,
+    "mjs": 256000,
+    "cjs": 256000,
+    "ts": 256000,
+    "txt": 256000,
+    "html": 256000,
+    "css": 256000,
+    "md": 256000
+  },
+  "archivePaths": {
+    "root": ".simplebeacon/archive",
+    "jestResults": ".simplebeacon/archive/jest-results",
+    "qualityChecks": ".simplebeacon/archive/quality-checks",
+    "coverageReports": ".simplebeacon/archive/coverage-reports",
+    "largeSourceFiles": ".simplebeacon/archive/large-source-files"
+  },
+  "fuzzyMatch": {
+    "threshold": 0.85,
+    "methods": [
+      "token-jaccard",
+      "line-hash-jaccard"
+    ],
+    "maxPairs": 16
+  },
+  "mergeWorkflow": {
+    "autoMergeEnabled": false,
+    "executionMode": "quarantine-not-delete",
+    "confirmationPhrase": "QUARANTINE_DUPLICATES",
+    "previewTtlHours": 1,
+    "gracePeriodHours": 24,
+    "auditLog": ".simplebeacon/merge-audit.jsonl"
+  }
+}
