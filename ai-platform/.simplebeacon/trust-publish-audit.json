@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-27T23:59:32.516Z",
-  "verificationId": "7d000da0494d5c3f",
+  "generatedAt": "2026-05-28T00:03:31.745Z",
+  "verificationId": "ef44458fa9cef42c",
   "mode": {
     "strict": false,
     "endpointRequired": false,
@@ -19,8 +19,8 @@
     "qualityScore": 100,
     "issueCount": 0,
     "schemaCompliance": 100,
-    "lastScan": "2026-05-27T23:58:32.038Z",
-    "repositoryFilesTotal": 19414,
-    "ruleScopedFilesAnalyzed": 193
+    "lastScan": "2026-05-28T00:03:31.646Z",
+    "repositoryFilesTotal": 26013,
+    "ruleScopedFilesAnalyzed": 191
   }
 }
