@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-05-28T00:02:30.320Z",
+  "source": "jest-quality-evidence",
+  "strict": false,
+  "hasJestResult": true,
+  "success": true,
+  "numTotalTests": 805,
+  "numPassedTests": 805,
+  "numFailedTests": 0,
+  "numTotalTestSuites": 61,
+  "numPassedTestSuites": 61,
+  "numFailedTestSuites": 0
+}
