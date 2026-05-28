@@ -85,7 +85,7 @@
         "startDate": "2026-05-15T00:00:00.000Z",
         "endDate": "2026-05-28T00:00:00.000Z",
         "description": "42/42 repository-audit samples + live analyze on scan pages",
-        "features": ["42/42 sample migration (done)", "SEC-004 npm audit wired (done)", "Live analyze on GGUF pages (done)"],
+        "features": ["42/42 sample migration (done)", "SEC-004 npm audit wired (done)", "Live analyze on Mock scanner pages (done)"],
         "duration": "2 weeks",
         "teamSize": 1
       },
@@ -128,7 +128,7 @@
     ],
     "recommendations": {
       "immediate": ["Publish simplebeacon v0.1", "Simplebeacon PR comment bot"],
-      "shortTerm": ["Docker phase2 up/down in CI (deferred deploy profile)", "GGUF inference optional"],
+      "shortTerm": ["Docker phase2 up/down in CI (deferred deploy profile)", "Mock scanner inference optional"],
       "longTerm": ["REQUIRE_AUTH production deploy sign-off", "Enterprise scope definition (post v1.0-internal sign-off)"]
     },
     "projectStructure": {

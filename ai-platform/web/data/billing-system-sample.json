@@ -31,7 +31,7 @@
       "activeCustomers": 1,
       "revenue": 0,
       "growth": "active",
-      "features": ["Solo maintainer", "Demo JWT auth", "Filesystem GGUF scan"],
+      "features": ["Solo maintainer", "Demo JWT auth", "Filesystem Mock scanner scan"],
       "color": "success"
     },
     {

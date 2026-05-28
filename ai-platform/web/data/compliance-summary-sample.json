@@ -1,0 +1,57 @@
+{
+  "type": "compliance-summary-report",
+  "title": "Compliance Summary (Measured Baseline)",
+  "generatedAt": "2026-05-28T12:00:00.000Z",
+  "generatedBy": "simplebeacon compliance",
+  "dataSource": "repository-audit",
+  "overview": {
+    "rulesPassed": 8,
+    "rulesTotal": 8,
+    "complianceScore": 100,
+    "gatePass": true
+  },
+  "rules": [
+    {
+      "id": "GATE-001",
+      "title": "Merge gate passes on configured severities",
+      "status": "pass"
+    },
+    {
+      "id": "CRED-001",
+      "title": "No credential patterns in scanned paths",
+      "status": "pass"
+    },
+    {
+      "id": "LEAK-001",
+      "title": "No mock paths referenced from production directories",
+      "status": "pass"
+    },
+    {
+      "id": "DATA-001",
+      "title": "Page samples match schema specs",
+      "status": "pass",
+      "detail": "48/48"
+    },
+    {
+      "id": "DATA-002",
+      "title": "No fiction KPI drift in anchor samples",
+      "status": "pass"
+    },
+    {
+      "id": "SUPPLY-001",
+      "title": "No critical or high npm audit vulnerabilities",
+      "status": "pass"
+    },
+    {
+      "id": "SUPPLY-002",
+      "title": "Moderate npm vulnerabilities within policy",
+      "status": "pass"
+    },
+    {
+      "id": "AUTH-001",
+      "title": "Production profile JWT auth when REQUIRE_AUTH",
+      "status": "pass"
+    }
+  ],
+  "notes": "Re-run npm run compliance:check for live rule results."
+}

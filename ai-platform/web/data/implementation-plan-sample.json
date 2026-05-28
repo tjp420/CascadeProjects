@@ -68,8 +68,8 @@
       "completedItems": [
         "tools/sync-audit-baseline-samples.js",
         "tools/verify-roadmap-alignment.js",
-        "Stale guards on roadmap + GGUF analysis pages",
-        "Canonical gguf-mock-analysis in web/data only (data/mock pointer stub)",
+        "Stale guards on roadmap + Mock scanner analysis pages",
+        "Canonical mock-analysis in web/data only (data/mock pointer stub)",
         "Archived data/roadmap/archive/cascade-project-roadmap.json (~4.8MB legacy)"
       ],
       "remainingItems": [
@@ -172,7 +172,7 @@
     "engineeringFocus": [
       { "area": "Sample + KPI sync", "effort": "ongoing", "status": "active" },
       { "area": "Path scan regression checks", "effort": "after merges", "status": "active" },
-      { "area": "Optional GGUF semantic hints", "effort": "backlog", "status": "planned" }
+      { "area": "Optional Mock scanner semantic hints", "effort": "backlog", "status": "planned" }
     ],
     "rejectedStaffingFiction": [
       "Project Manager 100%",
@@ -181,10 +181,10 @@
     ]
   },
   "riskManagement": [
-    { "risk": "Stale dashboard cache", "impact": "Medium", "probability": "Medium", "mitigation": "Clear lastImplementationPlanModel / lastGgufAnalysisReport", "status": "mitigated" },
+    { "risk": "Stale dashboard cache", "impact": "Medium", "probability": "Medium", "mitigation": "Clear lastImplementationPlanModel / lastMockAnalysisReport", "status": "mitigated" },
     { "risk": "Sample drift after test additions", "impact": "Low", "probability": "Medium", "mitigation": "Run npm test; sync via tools/sync-audit-baseline-samples.js", "status": "monitored" },
     { "risk": "Legacy fiction plans pasted into chat", "impact": "Medium", "probability": "Medium", "mitigation": "Use implementation-plan-sample.json or path scan — not legacy 502/33/stale-completion templates", "status": "mitigated" },
-    { "risk": "GGUF inference not required for honest dashboard", "impact": "Low", "probability": "Low", "mitigation": "filesystem+gguf-path is acceptable baseline", "status": "accepted" }
+    { "risk": "Mock scanner inference not required for honest dashboard", "impact": "Low", "probability": "Low", "mitigation": "filesystem-scan is acceptable baseline", "status": "accepted" }
   ],
   "milestones": [
     { "milestone": "CI Green on PR", "date": "2026-05-23", "deliverable": "dashboard-ci.yml phase2-smoke + test:coverage", "successCriteria": "805 tests pass", "status": "complete" },
@@ -196,14 +196,14 @@
   "immediateActions": [
     { "action": "Copy .env.v1-internal.example and set JWT secrets", "priority": "high", "timeline": "Before shared deploy", "owner": "Maintainer", "status": "pending", "details": "See docs/v1-internal-runbook.md" },
     { "action": "Run npm run verify:v1-internal", "priority": "high", "timeline": "Before deploy", "owner": "Maintainer", "status": "pending", "details": "REQUIRE_AUTH gate integration tests" },
-    { "action": "Deduplicate gguf mock analysis JSON pair", "priority": "low", "timeline": "Done", "owner": "Maintainer", "status": "complete", "details": "Server reads web/data/gguf-mock-analysis-sample.json; data/mock holds pointer stub" },
+    { "action": "Deduplicate mock analysis JSON pair", "priority": "low", "timeline": "Done", "owner": "Maintainer", "status": "complete", "details": "Server reads web/data/mock-analysis-sample.json; legacy data/mock pointer removed" },
     { "action": "Optional: set LLAMA_CPP_BIN", "priority": "low", "timeline": "Phase 3", "owner": "Maintainer", "status": "pending", "details": "Semantic hints — not required for honest UI" }
   ],
   "dashboardIntegration": {
     "relatedSections": [
       { "section": "Development Roadmap", "shortcut": "roadmap", "relevance": "POST build-from-path live scan" },
       { "section": "AI Roadmap", "shortcut": "ai-roadmap", "relevance": "4-sprint measured narrative" },
-      { "section": "GGUF Analysis", "shortcut": "gguf-analysis", "relevance": "mock-data-scanner live analyze" },
+      { "section": "Mock data analysis", "shortcut": "analyze", "relevance": "mock-data-scanner live analyze" },
       { "section": "Release Timeline", "shortcut": "release-timeline", "relevance": "v0.8-beta engineering milestones" }
     ]
   },
@@ -218,7 +218,7 @@
     "phase2SmokeInCi": true,
     "istanbulInCi": true,
     "activeModel": "llama3.2-3b-q4_k_m",
-    "inferenceMode": "ollama+gguf-path"
+    "inferenceMode": "ollama+local-model"
   },
   "rejectedFiction": {
     "warning": "Enterprise implementation plans pasted from templates are not measured baselines",

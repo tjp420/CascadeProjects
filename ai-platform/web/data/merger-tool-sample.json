@@ -26,8 +26,8 @@
       "name": "Root Server Delegate",
       "type": "Project Merge",
       "status": "completed",
-      "source": "gguf-dashboard-server.js (root)",
-      "target": "ai-platform/gguf-dashboard-server.js",
+      "source": "simplebeacon-server.js (root)",
+      "target": "ai-platform/simplebeacon-server.js",
       "conflicts": 0,
       "files": 2,
       "progress": 100,
@@ -157,7 +157,7 @@
     "type": "file-merger-reduction-report",
     "dataSource": "repository-audit",
     "scanEngine": "file-merger-reduction-scanner",
-    "inferenceMode": "filesystem — not GGUF semantic embeddings",
+    "inferenceMode": "filesystem — not Mock scanner semantic embeddings",
     "summary": {
       "filesAnalyzed": 44,
       "totalSizeLabel": "4.9MB",
@@ -174,8 +174,8 @@
         "mergeType": "exact-duplicate",
         "similarity": 1,
         "files": [
-          { "path": "web/data/gguf-mock-analysis-sample.json" },
-          { "path": "data/mock/gguf-mock-analysis-report.json" }
+          { "path": "web/data/mock-analysis-sample.json" },
+          { "path": "data/mock/mock-analysis-report.json" }
         ],
         "savingsLabel": "4.5KB",
         "recommendation": "Keep web/data sample; remove data/mock duplicate after review",
@@ -187,7 +187,7 @@
         "mergeType": "structure-based",
         "similarity": 0.95,
         "files": [
-          { "path": "web/data/gguf-roadmap-sample.json" },
+          { "path": "web/data/master-roadmap-sample.json" },
           { "path": "data/roadmap/ai-roadmap-report.json" }
         ],
         "savingsLabel": "12KB",
@@ -209,8 +209,8 @@
         "type": "duplicate-removal",
         "method": "deduplicate",
         "files": [
-          { "path": "web/data/gguf-mock-analysis-sample.json" },
-          { "path": "data/mock/gguf-mock-analysis-report.json" }
+          { "path": "web/data/mock-analysis-sample.json" },
+          { "path": "data/mock/mock-analysis-report.json" }
         ],
         "savingsLabel": "4.5KB",
         "description": "2 files share identical JSON content"
@@ -218,7 +218,7 @@
     ],
     "rejectedFiction": {
       "warning": "Enterprise merger design claims not implemented in v0.8-beta",
-      "claims": ["15-30% guaranteed savings", "GGUF embedding similarity", "Auto-merge executor", "1,559 files/s throughput"]
+      "claims": ["15-30% guaranteed savings", "Mock scanner embedding similarity", "Auto-merge executor", "1,559 files/s throughput"]
     }
   },
   "deprecatedNarrative": {

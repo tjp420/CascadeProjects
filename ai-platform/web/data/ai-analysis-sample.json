@@ -64,7 +64,7 @@
     },
     {
       "priority": "low",
-      "title": "Optional GGUF inference",
+      "title": "Optional Mock scanner inference",
       "description": "Set LLAMA_CPP_BIN for semantic hints — not required for simplebeacon gate"
     },
     {

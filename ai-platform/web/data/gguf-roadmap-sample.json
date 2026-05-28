@@ -1,0 +1,86 @@
+{
+  "type": "ai-roadmap-report-model",
+  "title": "Development Roadmap (Measured Baseline)",
+  "dataSource": "repository-audit",
+  "generatedAt": "2026-05-28T12:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "modelInfo": {
+    "name": "platform-checklist",
+    "type": "Internal",
+    "confidence": null,
+    "status": "active",
+    "inferenceMode": "filesystem",
+    "notes": "Static fallback for roadmap-data-service — replaces legacy GGUF fiction sample."
+  },
+  "deprecatedNarrative": {
+    "rejected": [
+      "1559 files/second throughput",
+      "98.5% GGUF confidence",
+      "1247 mock files / 73.4MB fiction"
+    ]
+  },
+  "projectOverview": {
+    "projectName": "Cascade AI Platform",
+    "projectType": "Internal Dashboard",
+    "totalFeatures": 4,
+    "completedFeatures": 4,
+    "inProgressFeatures": 0,
+    "plannedFeatures": 0,
+    "completionRate": 100,
+    "overallProgress": "Complete",
+    "projectHealth": "Good",
+    "developmentVelocity": "Measured",
+    "teamProductivity": "Solo maintainer",
+    "aiConfidence": null
+  },
+  "developmentPhases": [
+    {
+      "phase": "Sprint 1: Server & Auth",
+      "title": "Server & Auth",
+      "status": "completed",
+      "progress": 100,
+      "date": "2026-05-07",
+      "description": "Canonical server entry and optional JWT auth",
+      "features": ["Root server delegate", "Phase 2 JWT auth"],
+      "milestones": ["Single server entry", "Auth routes live"]
+    },
+    {
+      "phase": "Sprint 2: Stub APIs & Tests",
+      "title": "Stub APIs & Tests",
+      "status": "completed",
+      "progress": 100,
+      "date": "2026-05-14",
+      "description": "Tier-1 dashboard stub routes and Jest coverage",
+      "features": ["Tier-1 stub API routes", "805/805 Jest tests"],
+      "milestones": ["dashboard-stub-api.js", "Integration tests green"]
+    },
+    {
+      "phase": "Sprint 3: Honest Dashboard Data",
+      "title": "Honest Dashboard Data",
+      "status": "completed",
+      "progress": 100,
+      "date": "2026-05-28",
+      "description": "Repository-audit baselines for all page samples",
+      "features": ["PAGE_SAMPLE_SPECS", "Mock-data scanner", "Consolidation scan"],
+      "milestones": ["48+ web/data samples", "optimization:scan clean"]
+    },
+    {
+      "phase": "Sprint 4: Production CI Profile",
+      "title": "Production CI Profile",
+      "status": "completed",
+      "progress": 100,
+      "date": "2026-05-24",
+      "description": "Coverage, compose smoke, Simplebeacon gate on PRs",
+      "features": ["test:coverage in CI", "simplebeacon.yml gate"],
+      "milestones": ["CI production gate wired"]
+    }
+  ],
+  "predictions": [],
+  "risks": [],
+  "actionPlan": [],
+  "performanceMetrics": [],
+  "recommendations": {
+    "priority": "low",
+    "items": ["Prefer /data/cascade-roadmap-sample.json or /api/roadmap for live data"]
+  }
+}

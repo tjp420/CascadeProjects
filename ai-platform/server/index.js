@@ -165,14 +165,14 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
     timestamp: new Date().toISOString(),
-    platform: 'Cascade AI Platform',
+    platform: 'Simplebeacon',
     version: '1.0.0'
   });
 });
 
 app.get('/api/status', (req, res) => {
   res.json({
-    platform: 'Cascade AI Platform',
+    platform: 'Simplebeacon',
     status: 'operational',
     features: {
       ai_system: 'ready',
@@ -909,7 +909,7 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
     timestamp: new Date().toISOString(),
-    platform: 'Cascade AI Platform',
+    platform: 'Simplebeacon',
     version: '1.0.0',
     security: {
       rateLimiting: 'enabled',
@@ -921,7 +921,7 @@ app.get('/api/health', (req, res) => {
 
 app.get('/api/status', authenticate, (req, res) => {
   res.json({
-    platform: 'Cascade AI Platform',
+    platform: 'Simplebeacon',
     status: 'operational',
     user: {
       id: req.user.id,
@@ -1007,7 +1007,7 @@ app.use('*', (req, res) => {
 
 // Start server with enhanced logging
 app.listen(PORT, () => {
-  logger.info(`Cascade AI Platform Server running on port ${PORT}`);
+  logger.info(`Simplebeacon server running on port ${PORT}`);
   logger.info(`Dashboard: http://localhost:${PORT}`);
   logger.info(`API Health: http://localhost:${PORT}/api/health`);
   logger.info(`Status: http://localhost:${PORT}/api/status`);

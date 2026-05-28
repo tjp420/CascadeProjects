@@ -125,7 +125,7 @@
       "id": "QA002",
       "severity": "info",
       "type": "Duplicates",
-      "message": "Roadmap duplicate cleared — gguf-roadmap-sample.json vs gguf-development-roadmap-report.json (reportPurpose field)",
+      "message": "Roadmap duplicate cleared — master-roadmap-sample.json vs development-roadmap-report.json (reportPurpose field)",
       "status": "resolved",
       "time": "2026-05-24"
     },

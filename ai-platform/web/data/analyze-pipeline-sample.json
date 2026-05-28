@@ -1,0 +1,55 @@
+{
+  "type": "analyze-pipeline-report",
+  "title": "Analyze Pipeline (Measured Baseline)",
+  "generatedAt": "2026-05-28T12:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "overview": {
+    "stepsCompleted": 3,
+    "stepsTotal": 3,
+    "fictionSampleFilesScanned": 48,
+    "fictionJsonFilesScanned": 72,
+    "issuesFound": 0
+  },
+  "steps": [
+    {
+      "id": "simplebeacon",
+      "label": "Simplebeacon scan",
+      "status": "complete",
+      "summary": "Gate PASS — 0 blocking issues on configured severities",
+      "metrics": {
+        "qualityScore": 100,
+        "schemaCompliance": 100,
+        "mockSampleFiles": 48
+      }
+    },
+    {
+      "id": "mock-data",
+      "label": "Mock data scanner",
+      "status": "complete",
+      "summary": "48 sample JSON files — 0 schema violations",
+      "metrics": {
+        "totalFiles": 48,
+        "invalidJson": 0,
+        "schemaPassRate": 100
+      }
+    },
+    {
+      "id": "consolidation",
+      "label": "Consolidation scan",
+      "status": "complete",
+      "summary": "0 duplicate groups — 0B potential savings",
+      "metrics": {
+        "mergeCandidates": 0,
+        "exactDuplicateGroups": 0
+      }
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "low",
+      "action": "refresh-trust",
+      "description": "Run npm run trust:refresh after consolidation or sample changes"
+    }
+  ]
+}

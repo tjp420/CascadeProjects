@@ -132,7 +132,7 @@
     ],
     "longTerm": [
       {
-        "title": "GGUF inference path",
+        "title": "Mock scanner inference path",
         "target": "Configure LLAMA_CPP_BIN for live analyze output beyond filesystem scan",
         "timeline": "4–8 weeks",
         "impact": "Medium — optional model-backed insights"

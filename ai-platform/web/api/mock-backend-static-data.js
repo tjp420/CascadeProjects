@@ -5,26 +5,26 @@
  */
 (function attachMockBackendStaticData(root) {
     const staticData = {
-        ggufMockAnalysisReport: {
-            type: 'gguf-mock-data-analysis-report',
-            title: 'GGUF-Powered Mock Data Analysis Report',
+        mockMockAnalysisReport: {
+            type: 'mock-mock-data-analysis-report',
+            title: 'Simplebeacon-Powered Mock Data Analysis Report',
             generatedAt: '2026-05-21T23:34:54.262Z',
-            generatedBy: 'GGUF AI Model (unbreakable-oracle)',
+            generatedBy: 'Simplebeacon (repository-audit)',
             modelInfo: {
-                name: 'unbreakable-oracle',
-                type: 'GGUF',
+                name: 'platform-checklist',
+                type: 'Simplebeacon',
                 size: '1.88GB',
                 confidence: null,
                 hash: 'sha256-dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff',
                 status: 'active'
             },
             analysisOverview: {
-                totalMockFiles: 1247,
+                totalMockFiles: 48,
                 dataQualityScore: 89.2,
                 totalMockDataSize: '73.4MB',
                 issuesDetected: null,
                 aiConfidence: null,
-                analysisSpeed: '1559 files/second',
+                analysisSpeed: null,
                 memoryUsage: '288MB',
                 cpuUsage: '1%'
             },
@@ -127,7 +127,7 @@
                     affectedFiles: ['mock_data_6.json']
                 }
             ],
-            ggufAIInsights: {
+            mockAIInsights: {
                 dataPatterns: [
                     'User authentication flows with session management',
                     'API response structures following REST conventions',
@@ -139,7 +139,7 @@
                     {
                         priority: 'high',
                         action: 'Consolidate duplicate mock data patterns',
-                        description: 'GGUF AI identified 23 duplicate patterns that can be consolidated',
+                        description: 'Simplebeacon AI identified 23 duplicate patterns that can be consolidated',
                         potentialSavings: '15.2MB reduction',
                         impact: 'High'
                     },
@@ -167,7 +167,7 @@
             },
             performanceMetrics: {
                 analysisDuration: '0.8 seconds',
-                filesProcessedPerSecond: 1559,
+                filesProcessedPerSecond: null,
                 memoryEfficiency: 'High',
                 cpuOptimization: 'Excellent',
                 scalabilityRating: 'Very Good'
@@ -179,7 +179,7 @@
             },
             nextSteps: [
                 'Address high-priority schema violations',
-                'Implement GGUF AI optimization recommendations',
+                'Implement Simplebeacon AI optimization recommendations',
                 'Standardize mock data schemas',
                 'Add automated validation for new mock data',
                 'Create comprehensive mock data documentation'

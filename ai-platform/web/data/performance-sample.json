@@ -16,7 +16,7 @@
     "previousThroughput": "1,559 req/s",
     "previousUptime": "99.97%",
     "previousMemory": "288 MB / 512 MB",
-    "notes": "GGUF AI Platform telemetry fiction removed in favor of repo audit metrics."
+    "notes": "Mock scanner AI Platform telemetry fiction removed in favor of repo audit metrics."
   },
   "overview": {
     "cpuCurrent": 18,
@@ -79,7 +79,7 @@
       "recommendation": "Add phase2 up/down smoke when Production Deploy profile starts"
     },
     {
-      "title": "Optional GGUF inference",
+      "title": "Optional Mock scanner inference",
       "severity": "low",
       "impact": "Analyze uses filesystem scan unless LLAMA_CPP_BIN/Ollama configured",
       "recommendation": "Configure local inference only when needed — not required for v1.0"
@@ -99,7 +99,7 @@
     {
       "title": "Roadmap duplicate deduplicated",
       "status": "applied",
-      "gain": "gguf-roadmap-sample.json and gguf-development-roadmap-report.json deduplicated via reportPurpose"
+      "gain": "master-roadmap-sample.json and development-roadmap-report.json deduplicated via reportPurpose"
     },
     {
       "title": "Istanbul coverage in CI",
@@ -147,7 +147,7 @@
     {
       "severity": "info",
       "title": "Duplicate roadmap cleared",
-      "message": "gguf-roadmap-sample.json and gguf-development-roadmap-report.json deduplicated — 0 open duplicate groups",
+      "message": "master-roadmap-sample.json and development-roadmap-report.json deduplicated — 0 open duplicate groups",
       "time": "2026-05-24",
       "resolved": true
     },

@@ -139,12 +139,12 @@ class MockBackendAPI {
             '/coverage/recommendations': this.generateCoverageRecommendations(),
             '/ai-roadmap/report': this.generateAIRoadmapReport(),
             '/ai-roadmap/summary': this.generateAIRoadmapSummary(),
-            '/gguf/issues': this.generateGGUFIssues(),
-            '/gguf/resolution-history': this.generateResolutionHistory(),
-            '/gguf/automation-rules': this.generateAutomationRules(),
-            '/gguf/processing-queue': this.generateProcessingQueue(),
-            '/gguf/mock-analysis-report': this.generateGGUFMockAnalysisReport(),
-            '/gguf/mock-analysis-summary': this.generateGGUFMockAnalysisSummary(),
+            '/mock-scanner/issues': this.generateMockIssues(),
+            '/mock-scanner/resolution-history': this.generateResolutionHistory(),
+            '/mock-scanner/automation-rules': this.generateAutomationRules(),
+            '/mock-scanner/processing-queue': this.generateProcessingQueue(),
+            '/mock-scanner/mock-analysis-report': this.generateMockMockAnalysisReport(),
+            '/mock-scanner/mock-analysis-summary': this.generateMockMockAnalysisSummary(),
             '/roadmap/data': this.generateRoadmapData(),
             '/performance/realtime': this.generateRealtimePerformance(),
             '/performance/historical': this.generateHistoricalPerformance(),
@@ -7025,9 +7025,9 @@ Integration best practices and architectural patterns.`,
                     title: "Foundation",
                     status: "completed",
                     date: "2026-05-21",
-                    description: "Core infrastructure and architecture established with GGUF AI integration",
+                    description: "Core infrastructure and architecture established with Simplebeacon AI integration",
                     deliverables: [
-                        "GGUF AI Service Integration",
+                        "Simplebeacon AI Service Integration",
                         "Dashboard Interface",
                         "Local AI Processing",
                         "Privacy Controls"
@@ -7043,7 +7043,7 @@ Integration best practices and architectural patterns.`,
                     title: "Development",
                     status: "in-progress",
                     date: "2026-07-15",
-                    description: "Feature development with GGUF AI assistance and optimization",
+                    description: "Feature development with Simplebeacon AI assistance and optimization",
                     deliverables: [
                         "Advanced AI Features",
                         "Performance Optimization",
@@ -7061,7 +7061,7 @@ Integration best practices and architectural patterns.`,
                     title: "Testing & QA",
                     status: "planned",
                     date: "2026-09-30",
-                    description: "Comprehensive testing with GGUF AI test generation",
+                    description: "Comprehensive testing with Simplebeacon AI test generation",
                     deliverables: [
                         "Automated Testing Suite",
                         "Performance Testing",
@@ -7079,7 +7079,7 @@ Integration best practices and architectural patterns.`,
                     title: "Deployment",
                     status: "planned",
                     date: "2026-12-15",
-                    description: "Production deployment with GGUF AI monitoring",
+                    description: "Production deployment with Simplebeacon AI monitoring",
                     deliverables: [
                         "Production Deployment",
                         "Monitoring Systems",
@@ -7096,12 +7096,12 @@ Integration best practices and architectural patterns.`,
             releaseTimeline: [
                 {
                     version: "v1.0.0",
-                    title: "GGUF AI Platform Release",
+                    title: "Simplebeacon AI Platform Release",
                     date: "2026-05-21",
                     status: "completed",
-                    description: "Initial release with GGUF AI integration and local AI capabilities",
+                    description: "Initial release with Simplebeacon AI integration and local AI capabilities",
                     features: [
-                        "GGUF Model Integration",
+                        "Simplebeacon Model Integration",
                         "Local AI Processing",
                         "Dashboard Interface",
                         "Privacy Controls"
@@ -7117,7 +7117,7 @@ Integration best practices and architectural patterns.`,
                     title: "Enhanced AI Features",
                     date: "2026-07-15",
                     status: "planned",
-                    description: "Enhanced GGUF AI capabilities and expanded feature set",
+                    description: "Enhanced Simplebeacon AI capabilities and expanded feature set",
                     features: [
                         "Advanced AI Analytics",
                         "Improved User Interface",
@@ -7153,7 +7153,7 @@ Integration best practices and architectural patterns.`,
                     title: "Production Scale",
                     date: "2026-12-15",
                     status: "planned",
-                    description: "Production-scale deployment with GGUF AI orchestration",
+                    description: "Production-scale deployment with Simplebeacon AI orchestration",
                     features: [
                         "Enterprise Features",
                         "Scalability Improvements",
@@ -7170,31 +7170,31 @@ Integration best practices and architectural patterns.`,
             aiRecommendations: [
                 {
                     priority: "high",
-                    action: "Continue using GGUF AI for all development phases",
-                    description: "GGUF AI provides excellent insights for planning and optimization",
+                    action: "Continue using Simplebeacon AI for all development phases",
+                    description: "Simplebeacon AI provides excellent insights for planning and optimization",
                     impact: "High",
                     effort: "Low",
                     timeline: "Immediate"
                 },
                 {
                     priority: "medium",
-                    action: "Expand GGUF model capabilities",
-                    description: "Consider upgrading to larger GGUF models for enhanced capabilities",
+                    action: "Expand Simplebeacon model capabilities",
+                    description: "Consider upgrading to larger Simplebeacon models for enhanced capabilities",
                     impact: "Medium",
                     effort: "Medium",
                     timeline: "Next Phase"
                 },
                 {
                     priority: "medium",
-                    action: "Integrate GGUF AI with CI/CD pipeline",
-                    description: "Add GGUF AI to continuous integration and deployment",
+                    action: "Integrate Simplebeacon AI with CI/CD pipeline",
+                    description: "Add Simplebeacon AI to continuous integration and deployment",
                     impact: "High",
                     effort: "Medium",
                     timeline: "Next Phase"
                 },
                 {
                     priority: "low",
-                    action: "Monitor GGUF AI performance and usage",
+                    action: "Monitor Simplebeacon AI performance and usage",
                     description: "Track AI performance metrics and usage patterns",
                     impact: "Low",
                     effort: "Low",
@@ -7229,7 +7229,7 @@ Integration best practices and architectural patterns.`,
                 "Complete Development Phase (v1.1.0)",
                 "Implement Testing & QA procedures",
                 "Prepare for Production deployment",
-                "Monitor and optimize GGUF AI performance",
+                "Monitor and optimize Simplebeacon AI performance",
                 "Gather user feedback and iterate"
             ],
             privacyAndSecurity: {
@@ -7260,16 +7260,16 @@ Integration best practices and architectural patterns.`,
     }
 
     /**
-     * Generate GGUF Issues
+     * Generate Simplebeacon Issues
      */
-    generateGGUFIssues() {
+    generateMockIssues() {
         return [
             {
-                id: 'gguf_001',
+                id: 'mock_001',
                 type: 'Schema Violation',
                 severity: 'high',
                 description: 'Invalid tensor shape in model layer',
-                file: 'model.gguf',
+                file: 'model.mock',
                 line: 234,
                 status: 'open',
                 createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
@@ -7278,11 +7278,11 @@ Integration best practices and architectural patterns.`,
                 automatedFix: true
             },
             {
-                id: 'gguf_002',
+                id: 'mock_002',
                 type: 'Missing Metadata',
                 severity: 'medium',
                 description: 'Missing model version information',
-                file: 'model.gguf',
+                file: 'model.mock',
                 line: 1,
                 status: 'in_progress',
                 createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
@@ -7291,11 +7291,11 @@ Integration best practices and architectural patterns.`,
                 automatedFix: true
             },
             {
-                id: 'gguf_003',
+                id: 'mock_003',
                 type: 'Data Corruption',
                 severity: 'critical',
                 description: 'Corrupted weight data in transformer layer',
-                file: 'model.gguf',
+                file: 'model.mock',
                 line: 567,
                 status: 'open',
                 createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
@@ -7313,7 +7313,7 @@ Integration best practices and architectural patterns.`,
         return [
             {
                 id: 'res_001',
-                issueId: 'gguf_001',
+                issueId: 'mock_001',
                 action: 'Schema Updated',
                 description: 'Fixed tensor shape mismatch',
                 resolvedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
@@ -7322,7 +7322,7 @@ Integration best practices and architectural patterns.`,
             },
             {
                 id: 'res_002',
-                issueId: 'gguf_002',
+                issueId: 'mock_002',
                 action: 'Metadata Added',
                 description: 'Added missing model version info',
                 resolvedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
@@ -7365,7 +7365,7 @@ Integration best practices and architectural patterns.`,
         return [
             {
                 id: 'queue_001',
-                issueId: 'gguf_003',
+                issueId: 'mock_003',
                 status: 'pending',
                 priority: 'critical',
                 estimatedStart: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
@@ -7373,7 +7373,7 @@ Integration best practices and architectural patterns.`,
             },
             {
                 id: 'queue_002',
-                issueId: 'gguf_001',
+                issueId: 'mock_001',
                 status: 'processing',
                 priority: 'high',
                 estimatedStart: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
@@ -7387,7 +7387,7 @@ Integration best practices and architectural patterns.`,
      */
     generateRoadmapData() {
         return {
-            type: 'gguf-development-roadmap-report',
+            type: 'mock-development-roadmap-report',
             title: 'Development Roadmap (Measured Baseline)',
             dataSource: 'repository-audit',
             generatedAt: '2026-05-24T00:00:00.000Z',
@@ -7886,43 +7886,43 @@ Integration best practices and architectural patterns.`,
     }
 
     /**
-     * Generate GGUF Mock Data Analysis Report
+     * Generate Simplebeacon Mock Data Analysis Report
      */
-    generateGGUFMockAnalysisReport() {
-        const report = MOCK_BACKEND_STATIC_DATA?.ggufMockAnalysisReport;
+    generateMockMockAnalysisReport() {
+        const report = MOCK_BACKEND_STATIC_DATA?.mockMockAnalysisReport;
         if (report) {
             return report;
         }
         return {
-            type: 'gguf-mock-data-analysis-report',
-            title: 'GGUF-Powered Mock Data Analysis Report',
+            type: 'mock-mock-data-analysis-report',
+            title: 'Simplebeacon-Powered Mock Data Analysis Report',
             generatedAt: '2026-05-21T23:34:54.262Z',
-            generatedBy: 'GGUF AI Model (unbreakable-oracle)',
+            generatedBy: 'Simplebeacon (repository-audit)',
             modelInfo: {
-                name: 'unbreakable-oracle',
-                type: 'GGUF',
+                name: 'platform-checklist',
+                type: 'Simplebeacon',
                 size: '1.88GB',
-                confidence: 98.5,
+                confidence: null,
                 hash: 'sha256-dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff',
                 status: 'active'
             },
             analysisOverview: {
-                totalMockFiles: 1247,
+                totalMockFiles: 48,
                 dataQualityScore: 89.2,
                 totalMockDataSize: '73.4MB',
-                issuesDetected: 156,
-                aiConfidence: 98,
-                analysisSpeed: '1559 files/second',
+                issuesDetected: null,
+                aiConfidence: null,
+                analysisSpeed: null,
                 memoryUsage: '288MB',
                 cpuUsage: '1%'
             },
             mockDataCategories: [],
             qualityMetrics: { overallQuality: 89.2 },
             detectedIssues: [],
-            ggufAIInsights: { optimizationRecommendations: [] },
+            mockAIInsights: { optimizationRecommendations: [] },
             performanceMetrics: {
                 analysisDuration: '0.8 seconds',
-                filesProcessedPerSecond: 1559
+                filesProcessedPerSecond: null
             },
             nextSteps: [],
             privacyAndSecurity: {
@@ -7932,10 +7932,10 @@ Integration best practices and architectural patterns.`,
     }
 
     /**
-     * Generate GGUF Mock Data Analysis Summary
+     * Generate Simplebeacon Mock Data Analysis Summary
      */
-    generateGGUFMockAnalysisSummary() {
-        const fullReport = this.generateGGUFMockAnalysisReport();
+    generateMockMockAnalysisSummary() {
+        const fullReport = this.generateMockMockAnalysisReport();
         return {
             "title": fullReport.title,
             "generatedAt": fullReport.generatedAt,
@@ -7945,7 +7945,7 @@ Integration best practices and architectural patterns.`,
             "qualityScore": fullReport.qualityMetrics.overallQuality,
             "totalIssues": fullReport.detectedIssues.reduce((sum, issue) => sum + issue.count, 0),
             "highPriorityIssues": fullReport.detectedIssues.filter(issue => issue.severity === 'high').length,
-            "topRecommendations": fullReport.ggufAIInsights.optimizationRecommendations.slice(0, 3),
+            "topRecommendations": fullReport.mockAIInsights.optimizationRecommendations.slice(0, 3),
             "status": "active"
         };
     }
@@ -8013,7 +8013,7 @@ if (typeof window !== 'undefined') {
         '/api/simplebeacon',
         '/api/ai-validation',
         '/api/analyze',
-        '/api/gguf',
+        '/api/mock',
         '/api/models'
     ];
 

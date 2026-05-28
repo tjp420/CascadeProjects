@@ -61,7 +61,7 @@
         "features": [
           "docker-compose.phase2.yml present",
           "Istanbul collected in CI",
-          "GGUF inference (LLAMA_CPP_BIN/Ollama) — optional",
+          "Mock scanner inference (LLAMA_CPP_BIN/Ollama) — optional",
           "REQUIRE_AUTH production profile ready"
         ],
         "milestones": ["phase2-smoke CI job", "Production runbook"]

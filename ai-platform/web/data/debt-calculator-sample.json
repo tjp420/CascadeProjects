@@ -109,7 +109,7 @@
       "trend": "decreasing",
       "issues": [
         { "type": "Large roadmap artifact", "count": 1, "hours": null, "file": "cascade-project-roadmap.json" },
-        { "type": "GGUF inference optional", "count": 1, "hours": null, "file": "filesystem+gguf-path" },
+        { "type": "Mock scanner inference optional", "count": 1, "hours": null, "file": "filesystem-scan" },
         { "type": "WebSocket noise", "count": 1, "hours": null, "status": "resolved" }
       ]
     },
@@ -213,7 +213,7 @@
     { "priority": "low", "title": "Clear lastDebtCalculatorModel after import", "description": "Stale localStorage may restore 198-item fiction, 665 tests, or 33-sample counts.", "impact": "Correct render" }
   ],
   "quickActions": [
-    { "label": "Mock Scanner", "icon": "🔍", "section": "gguf-analysis" },
+    { "label": "Mock Scanner", "icon": "🔍", "section": "analyze" },
     { "label": "Security Page", "icon": "🛡️", "section": "security" },
     { "label": "Export Report", "icon": "📥", "action": "export" },
     { "label": "Project Roadmap", "icon": "🗺️", "section": "roadmap" }

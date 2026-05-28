@@ -1,0 +1,56 @@
+{
+  "type": "repository-health-model",
+  "title": "Repository Health (Measured Baseline)",
+  "generatedAt": "2026-05-28T12:00:00.000Z",
+  "generatedBy": "file-merger-reduction-scanner",
+  "dataSource": "repository-audit",
+  "overview": {
+    "repositoryHealthScore": 100,
+    "duplicateGroups": 0,
+    "mergeCandidates": 0,
+    "optimizationPotential": "0B"
+  },
+  "platform": {
+    "label": "Platform (ai-platform)",
+    "projectRoot": "…/CascadeProjects/ai-platform",
+    "generatedAt": "2026-05-28T12:00:00.000Z",
+    "reportVersion": 2,
+    "repositoryHealthScore": 100,
+    "optimizationPotential": "0B",
+    "optimizationPotentialBytes": 0,
+    "duplicateGroups": 0,
+    "mergeCandidates": 0,
+    "reductionOpportunities": 0,
+    "oversizedFiles": 0,
+    "repositoryFilesTotal": 19344,
+    "jsonFilesAnalyzed": 250,
+    "sampleDataFilesAnalyzed": 48,
+    "scanScope": "repository-consolidation",
+    "recommendations": [],
+    "scopeNote": "Duplicate and structure analysis on configured mock/sample JSON paths."
+  },
+  "monorepo": {
+    "label": "Monorepo root",
+    "projectRoot": "…/CascadeProjects",
+    "platformRoot": "…/CascadeProjects/ai-platform",
+    "generatedAt": "2026-05-28T12:00:00.000Z",
+    "reportVersion": 2,
+    "repositoryHealthScore": 100,
+    "optimizationPotential": "0B",
+    "duplicateGroups": 0,
+    "mergeCandidates": 0,
+    "reductionOpportunities": 0,
+    "oversizedFiles": 0,
+    "repositoryFilesTotal": 26035,
+    "jsonFilesAnalyzed": 258,
+    "sampleDataFilesAnalyzed": 48,
+    "scanScope": "repository-consolidation",
+    "recommendations": [],
+    "scopeNote": "Full repository inventory plus JSON duplicate detection on audit-scoped paths."
+  },
+  "recommendations": [],
+  "disclaimers": [
+    "Health score reflects measured duplicate groups and oversized files — not semantic code review.",
+    "Run npm run optimization:scan to refresh consolidation-report.json before publishing trust snapshots."
+  ]
+}

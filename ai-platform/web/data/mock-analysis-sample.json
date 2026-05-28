@@ -79,13 +79,13 @@
     "credentialPatternsFound": 0
   },
   "detectedIssues": [],
-  "ggufAIInsights": {
+  "mockAIInsights": {
     "dataPatterns": [
       "40 JSON/mock files across web/data, data/mock, and data-central/ai-tools/mock-data",
       "42/42 dashboard page samples on repository-audit baselines",
       "665/665 Jest tests passing across 32 suites",
       "Schema validation on PAGE_SAMPLE_SPECS + roadmap JSON specs",
-      "Canonical mock analysis lives in web/data/gguf-mock-analysis-sample.json only"
+      "Canonical mock analysis lives in web/data/mock-analysis-sample.json only"
     ],
     "optimizationRecommendations": [
       {
@@ -97,8 +97,8 @@
       },
       {
         "priority": "low",
-        "action": "Optional GGUF semantic hints",
-        "description": "phi-2.Q4_K_M.gguf active — set LLAMA_CPP_BIN for Phase 3 inference (not required for honest dashboard)",
+        "action": "Optional Mock scanner semantic hints",
+        "description": "phi-2.Q4_K_M (local model) active — set LLAMA_CPP_BIN for Phase 3 inference (not required for honest dashboard)",
         "potentialSavings": "Semantic similarity beyond token-jaccard",
         "impact": "Optional"
       }
@@ -106,7 +106,7 @@
     "qualityImprovements": [
       "Run npm test after sample KPI edits — baseline is 665/665",
       "Use Analyze Mock Data for live mock-data-scanner results",
-      "Clear lastGgufAnalysisReport localStorage after baseline updates",
+      "Clear lastMockAnalysisReport localStorage after baseline updates",
       "Reject cached exports with legacy demo-oracle branding, 665/665 jest mismatches, or 98.5% aiConfidence"
     ]
   },

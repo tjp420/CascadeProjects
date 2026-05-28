@@ -17,7 +17,7 @@
     "previousTotalAnalyses": 3842,
     "previousAvgAccuracy": 96.2,
     "previousProcessingSpeed": "1559 files/s",
-    "notes": "GGUF AI Platform demo metrics removed — run counts and SOC-style KPIs were not measured."
+    "notes": "Mock scanner AI Platform demo metrics removed — run counts and SOC-style KPIs were not measured."
   },
   "overview": {
     "totalTools": 9,
@@ -45,20 +45,20 @@
       "category": "Infrastructure",
       "status": "active",
       "section": "local-models",
-      "description": "Register GGUF/Ollama models — agi-chatbot-test registered; inference optional.",
+      "description": "Register Mock scanner/Ollama models — agi-chatbot-test registered; inference optional.",
       "performance": { "accuracy": null, "speed": "manual", "memory": "—", "cpu": "—" },
       "usage": { "totalRuns": null, "successRate": null, "avgTime": "—", "notes": "No run counter" }
     },
     {
-      "id": "gguf-analysis",
-      "name": "GGUF Analysis Engine",
+      "id": "analyze",
+      "name": "Mock data analysis Engine",
       "icon": "🧠",
       "category": "Analysis",
       "status": "active",
-      "section": "gguf-analysis",
+      "section": "analyze",
       "description": "Filesystem mock-data scan — demo Generate/Clean actions off on measured baseline.",
       "performance": { "accuracy": null, "speed": "40 files", "memory": "269.0KB", "cpu": "—" },
-      "usage": { "totalRuns": null, "successRate": null, "avgTime": "—", "notes": "filesystem+gguf-path" }
+      "usage": { "totalRuns": null, "successRate": null, "avgTime": "—", "notes": "filesystem-scan" }
     },
     {
       "id": "code-generation",
@@ -110,7 +110,7 @@
       "icon": "📊",
       "category": "Analysis",
       "status": "active",
-      "section": "gguf-analysis",
+      "section": "analyze",
       "description": "mock-data-scanner: 40 files, 43/43 PAGE_SAMPLE_SPECS, 99% quality, 0 blocking issues.",
       "performance": { "accuracy": 99, "speed": "40 files", "memory": "269.0KB", "cpu": "—" },
       "usage": { "totalRuns": null, "successRate": null, "avgTime": "—" }
@@ -183,7 +183,7 @@
     },
     {
       "priority": "low",
-      "title": "Enable GGUF inference",
+      "title": "Enable Mock scanner inference",
       "description": "Set LLAMA_CPP_BIN or Ollama to move analyze from filesystem scan to model output.",
       "impact": "Live analyze on scan pages",
       "confidence": 70
@@ -226,8 +226,8 @@
     ],
     "longTerm": [
       {
-        "title": "GGUF inference path",
-        "current": "filesystem+gguf-path",
+        "title": "Mock scanner inference path",
+        "current": "filesystem-scan",
         "target": "llama.cpp or Ollama analyze",
         "actions": ["Configure LLAMA_CPP_BIN", "Surface inference mode on tool cards"],
         "impact": "Live analyze output"

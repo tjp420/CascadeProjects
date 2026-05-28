@@ -9,14 +9,14 @@
     "type": "Ollama",
     "confidence": 98,
     "status": "active",
-    "notes": "Live Ollama + GGUF path registry — primary inference via llama3.2-3b-q4_k_m"
+    "notes": "Live Ollama + Mock scanner path registry — primary inference via llama3.2-3b-q4_k_m"
   },
   "deprecatedNarrative": {
     "previousModel": "platform-checklist",
     "previousActiveModel": "platform-checklist-demo",
     "previousConfidence": 95,
     "previousOllamaAlias": "unbreakable-oracle",
-    "notes": "Post-cleanup demo-only registry replaced by Ollama + optional GGUF path registration."
+    "notes": "Post-cleanup demo-only registry replaced by Ollama + optional Mock scanner path registration."
   },
   "activeModelId": "llama3-2-3b-q4-k-m-mpogz7ea",
   "ollamaBaseUrl": "http://127.0.0.1:11434",
@@ -40,7 +40,7 @@
       "provider": "demo",
       "type": "Internal",
       "status": "registered",
-      "description": "Filesystem mock-data scan — not GGUF inference.",
+      "description": "Filesystem mock-data scan — not Mock scanner inference.",
       "path": null,
       "size": null,
       "hash": null,
@@ -51,10 +51,10 @@
       "id": "llama3-2-3b-q4-k-m-mpogz7ea",
       "name": "llama3.2-3b-q4_k_m",
       "provider": "path",
-      "type": "GGUF",
+      "type": "Mock scanner",
       "status": "active",
-      "description": "GGUF path model from Ollama backup (no duplicate copy in uploads/)",
-      "path": "C:/Users/Trevor/.ollama/models/backup/other files/llama3.2-3b-q4_k_m.gguf",
+      "description": "Mock scanner path model from Ollama backup (no duplicate copy in uploads/)",
+      "path": "C:/Users/Trevor/.ollama/models/backup/other files/llama3.2-3b-q4_k_m model file",
       "size": "1.9GB",
       "hash": "sha256-dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff",
       "isDefault": true,
@@ -65,12 +65,12 @@
     {
       "id": "path",
       "name": "Local file path",
-      "description": "Point to a .gguf file already on your machine",
+      "description": "Point to a  model file file already on your machine",
       "icon": "📁"
     },
     {
       "id": "upload",
-      "name": "Upload GGUF",
+      "name": "Upload Mock scanner",
       "description": "Upload a model file into data-central/ai-tools/ai-models/uploads",
       "icon": "⬆️"
     },
@@ -83,7 +83,7 @@
   ],
   "quickActions": [
     { "label": "Test Ollama", "action": "test-ollama" },
-    { "label": "Open Mock Data Analyzer", "section": "gguf-analysis" },
+    { "label": "Open Mock Data Analyzer", "section": "analyze" },
     { "label": "Refresh registry", "action": "refresh" }
   ]
 }

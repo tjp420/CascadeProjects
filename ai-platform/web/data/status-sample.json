@@ -1,0 +1,35 @@
+{
+  "type": "status-model",
+  "title": "Platform Status (Measured Baseline)",
+  "generatedAt": "2026-05-28T12:00:00.000Z",
+  "generatedBy": "RepositoryAudit",
+  "dataSource": "repository-audit",
+  "overview": {
+    "gatePass": true,
+    "qualityScore": 100,
+    "schemaCompliance": 100,
+    "issueCount": 0
+  },
+  "status": "ok",
+  "checks": [
+    {
+      "id": "gate",
+      "label": "Simplebeacon gate",
+      "ok": true,
+      "detail": "Configured rules pass on sample paths"
+    },
+    {
+      "id": "jest",
+      "label": "Jest baseline",
+      "ok": true,
+      "detail": "805/805 tests (61 suites)"
+    },
+    {
+      "id": "samples",
+      "label": "Page samples",
+      "ok": true,
+      "detail": "PAGE_SAMPLE_SPECS validated"
+    }
+  ],
+  "notes": "Static status payload for sign-in and health chips — not live uptime monitoring."
+}

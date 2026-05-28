@@ -1,0 +1,69 @@
+{
+  "type": "audit-gate-report",
+  "title": "Audit Gate Layers (Measured Baseline)",
+  "generatedAt": "2026-05-28T12:00:00.000Z",
+  "generatedBy": "Simplebeacon",
+  "dataSource": "repository-audit",
+  "overview": {
+    "gatePass": true,
+    "qualityScore": 100,
+    "consistencyScore": 100,
+    "pageSpecsLabel": "48/48",
+    "mockSampleFiles": 48,
+    "filesAnalyzed": 191
+  },
+  "layers": [
+    {
+      "id": "credentials",
+      "label": "Credential patterns",
+      "status": "pass",
+      "issues": 0
+    },
+    {
+      "id": "fictionKpis",
+      "label": "Fiction & KPI drift",
+      "status": "pass",
+      "issues": 0
+    },
+    {
+      "id": "schema",
+      "label": "JSON schema & page samples",
+      "status": "pass",
+      "issues": 0
+    },
+    {
+      "id": "productionLeaks",
+      "label": "Production path leaks",
+      "status": "pass",
+      "issues": 0
+    },
+    {
+      "id": "roadmap",
+      "label": "Roadmap & duplicates",
+      "status": "pass",
+      "issues": 0
+    },
+    {
+      "id": "jestBaseline",
+      "label": "Jest baseline",
+      "status": "pass",
+      "issues": 0
+    },
+    {
+      "id": "gate",
+      "label": "Compliance gate",
+      "status": "pass",
+      "issues": 0
+    }
+  ],
+  "npmAudit": {
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "dependencies": 546
+  },
+  "disclaimers": [
+    "Layer counts reflect configured scan paths — not full semantic review of 19k+ inventory files."
+  ]
+}

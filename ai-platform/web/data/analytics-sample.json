@@ -15,7 +15,7 @@
     "previousApiCalls": 85420,
     "previousAiJobs": 3842,
     "previousThroughput": "1559 req/s",
-    "notes": "GGUF AI Platform telemetry fiction removed — no production APM in this repo."
+    "notes": "Mock scanner AI Platform telemetry fiction removed — no production APM in this repo."
   },
   "overview": {
     "apiCalls": null,
@@ -25,7 +25,7 @@
     "measuredBaselines": 43,
     "sampleJsonFiles": 33,
     "scannerIssues": 0,
-    "inferenceMode": "filesystem+gguf-path",
+    "inferenceMode": "filesystem-scan",
     "jestRuntime": "~2.2s",
     "statLabels": {
       "apiCalls": "Jest Tests",
@@ -68,7 +68,7 @@
   },
   "topFeatures": [
     { "name": "Jest Suite", "section": "coverage-reports", "requests": null, "avgTime": "~2.2s", "successRate": 100 },
-    { "name": "Mock Data Scanner", "section": "gguf-analysis", "requests": null, "avgTime": "36 files", "successRate": 99 },
+    { "name": "Mock Data Scanner", "section": "analyze", "requests": null, "avgTime": "36 files", "successRate": 99 },
     { "name": "Stub API", "section": "api", "requests": null, "avgTime": "tier-1", "successRate": null },
     { "name": "Issue Resolution", "section": "issue-resolution", "requests": null, "avgTime": "0 open", "successRate": 100 },
     { "name": "Development Roadmap", "section": "roadmap", "requests": null, "avgTime": "path scan", "successRate": null }

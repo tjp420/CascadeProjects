@@ -61,7 +61,7 @@
     "nextYear": {
       "debt": 2,
       "confidence": 55,
-      "factors": ["Full page documentation", "Live GGUF inference enabled"],
+      "factors": ["Full page documentation", "Live Mock scanner inference enabled"],
       "notes": "Engineering target — not an AI forecast."
     }
   },

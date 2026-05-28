@@ -1,0 +1,73 @@
+{
+  "type": "simplebeacon-trust-verification",
+  "generatedAt": "2026-05-28T12:00:00.000Z",
+  "verificationMethod": "simplebeacon-deterministic-gate",
+  "platform": {
+    "label": "Platform gate (ai-platform)",
+    "projectRoot": "…/CascadeProjects/ai-platform",
+    "generatedAt": "2026-05-28T12:00:00.000Z",
+    "reportVersion": 2,
+    "gatePass": true,
+    "qualityScore": 100,
+    "schemaCompliance": 100,
+    "schemaChecked": 48,
+    "schemaPassed": 48,
+    "issueCount": 0,
+    "repositoryFilesTotal": 19344,
+    "mockSampleFiles": 48,
+    "fictionSampleFilesScanned": 48,
+    "fictionScope": "repository-json"
+  },
+  "monorepo": {
+    "label": "Monorepo root",
+    "projectRoot": "…/CascadeProjects",
+    "platformRoot": "…/CascadeProjects/ai-platform",
+    "generatedAt": "2026-05-28T12:00:00.000Z",
+    "reportVersion": 2,
+    "gatePass": true,
+    "qualityScore": 100,
+    "schemaCompliance": 100,
+    "schemaChecked": 48,
+    "schemaPassed": 48,
+    "issueCount": 0,
+    "repositoryFilesTotal": 26035,
+    "mockSampleFiles": 48,
+    "fictionSampleFilesScanned": 48,
+    "fictionScope": "repository-json"
+  },
+  "headline": {
+    "gatePass": true,
+    "qualityScore": 100,
+    "issueCount": 0,
+    "schemaCompliance": 100,
+    "lastScan": "2026-05-28T12:00:00.000Z",
+    "repositoryFilesTotal": 26035
+  },
+  "disclaimers": [
+    "Gate metrics apply to configured rules and sample paths — not every source file.",
+    "Publish platform and monorepo snapshots together when both are available."
+  ],
+  "repositoryHealth": {
+    "type": "simplebeacon-repository-health",
+    "generatedAt": "2026-05-28T12:00:00.000Z",
+    "platform": {
+      "label": "Platform (ai-platform)",
+      "repositoryHealthScore": 100,
+      "optimizationPotential": "0B",
+      "duplicateGroups": 0,
+      "recommendations": []
+    },
+    "monorepo": {
+      "label": "Monorepo root",
+      "repositoryHealthScore": 100,
+      "optimizationPotential": "0B",
+      "duplicateGroups": 0,
+      "recommendations": []
+    },
+    "recommendations": [],
+    "disclaimers": [
+      "Consolidation savings are measured opportunities — review before deleting files."
+    ]
+  },
+  "verificationId": "sample-trust-verification-demo"
+}

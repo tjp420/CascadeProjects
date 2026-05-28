@@ -15,7 +15,7 @@
     "previousTotalGenerated": 156,
     "previousSuccessRate": 94.2,
     "previousLinesGenerated": 12456,
-    "notes": "GGUF codegen telemetry removed — use Code Templates page for real patterns."
+    "notes": "Mock scanner codegen telemetry removed — use Code Templates page for real patterns."
   },
   "stats": {
     "totalGenerated": 0,
@@ -117,7 +117,7 @@
     {
       "priority": "low",
       "action": "Wire optional LLM codegen later",
-      "description": "Requires configured GGUF/Ollama — not default today",
+      "description": "Requires configured Mock scanner/Ollama — not default today",
       "impact": "Future feature"
     }
   ]

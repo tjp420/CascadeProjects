@@ -22,7 +22,7 @@
     "qualityScore": 99,
     "jestTests": "665/665",
     "pageSamples": "42/42 repository-audit",
-    "inferenceMode": "filesystem scan — not 1,559 files/s GGUF throughput fiction"
+    "inferenceMode": "filesystem scan — not 1,559 files/s Mock scanner throughput fiction"
   },
   "currentCapabilities": [
     {
@@ -37,7 +37,7 @@
         "schemaCompliance": "42/42",
         "qualityScore": 99
       },
-      "dashboardSection": "gguf-analysis"
+      "dashboardSection": "analyze"
     },
     {
       "id": "page-sample-specs",
@@ -61,7 +61,7 @@
       "id": "issue-fix-api",
       "name": "Issue Resolution (scan-driven)",
       "status": "active",
-      "implementation": "src/api/gguf-issues-api.js",
+      "implementation": "src/api/issue-resolution-api.js",
       "features": ["Fix preview/apply from scanner file paths", "Batch resolve wiring"],
       "measuredMetrics": { "openIssues": 0, "not": "156 fictional mock_data_* issues" },
       "dashboardSection": "issue-resolution"
@@ -207,7 +207,7 @@
       "weeks": "9+",
       "status": "not-scoped",
       "items": [
-        "Optional GGUF-assisted pattern suggestions (phi-2 when LLAMA_CPP_BIN set)",
+        "Optional Mock scanner-assisted pattern suggestions (phi-2 when LLAMA_CPP_BIN set)",
         "Drift detection between scan runs",
         "Test data generator from sample patterns"
       ]
@@ -222,7 +222,7 @@
     "immediate": [
       "Maintain 0 open scanner issues after sample edits",
       "Keep 42/42+ schema pass rate on PAGE_SAMPLE_SPECS",
-      "Honest metrics on GGUF Analysis page (no 1,247-file fiction)"
+      "Honest metrics on Mock data analysis page (no 1,247-file fiction)"
     ],
     "v08Beta": [
       "Docker Phase2 CI smoke test",
@@ -237,7 +237,7 @@
     ]
   },
   "crossReferences": {
-    "mockAnalysisSample": "/data/gguf-mock-analysis-sample.json",
+    "mockAnalysisSample": "/data/mock-analysis-sample.json",
     "devToolsSample": "/data/dev-tools-sample.json",
     "engineeringBaseline": "/data/engineering-baseline-sample.json",
     "scannerSource": "server/lib/mock-data-scanner.js"

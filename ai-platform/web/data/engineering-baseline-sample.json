@@ -25,7 +25,7 @@
     "teamSize": 1,
     "internalBudgetEstimateUsd": 72000,
     "activeModel": "llama3.2-3b-q4_k_m",
-    "inferenceMode": "filesystem+gguf-path"
+    "inferenceMode": "filesystem-scan"
   },
   "fictionVsReality": {
     "rejected": [
@@ -79,7 +79,7 @@
       ],
       "remaining": [
         "docker-compose.phase2.yml CI smoke test — wired in dashboard-ci.yml",
-        "GGUF inference (LLAMA_CPP_BIN or Ollama)"
+        "Mock scanner inference (LLAMA_CPP_BIN or Ollama)"
       ]
     },
     {
@@ -99,7 +99,7 @@
   "criticalPath": [
     { "priority": 1, "item": "Docker validation — docker-compose.phase2.yml CI smoke test", "owner": "Maintainer" },
     { "priority": 2, "item": "Coverage guardrails — keep Istanbul merge active in Coverage Reports", "owner": "Maintainer" },
-    { "priority": 3, "item": "GGUF inference — LLAMA_CPP_BIN or Ollama", "owner": "Maintainer" },
+    { "priority": 3, "item": "Mock scanner inference — LLAMA_CPP_BIN or Ollama", "owner": "Maintainer" },
     { "priority": 4, "item": "Auth profile — REQUIRE_AUTH production profile", "owner": "Maintainer" }
   ],
   "riskAssessment": {
@@ -109,7 +109,7 @@
     "overallRiskLevel": "Medium",
     "factors": [
       "Infrastructure completion (Docker CI lifecycle)",
-      "GGUF inference enablement",
+      "Mock scanner inference enablement",
       "Production auth profile",
       "Enterprise scope not yet defined"
     ]
@@ -139,7 +139,7 @@
     ],
     "shortTerm": [
       "Complete v0.8-beta by 2026-06-28",
-      "Configure GGUF inference path"
+      "Configure Mock scanner inference path"
     ],
     "strategic": [
       "Define enterprise scope only after v1.0-internal",

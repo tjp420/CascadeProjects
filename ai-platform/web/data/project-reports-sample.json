@@ -162,8 +162,8 @@
       "rating": null,
       "size": "38 KB",
       "format": "JSON",
-      "tags": ["repository-audit", "roadmap", "gguf"],
-      "description": "Measured roadmap — phi-2.Q4_K_M.gguf active, 665/665 tests"
+      "tags": ["repository-audit", "roadmap", "mock-scan"],
+      "description": "Measured roadmap — phi-2.Q4_K_M (local model) active, 665/665 tests"
     },
     {
       "id": "report_issues",

@@ -36,14 +36,14 @@
   },
   "tools": [
     { "id": "jest", "name": "Jest Test Suite", "description": "665/665 tests across 32 suites — npm test --no-coverage", "category": "Testing", "icon": "🧪", "status": "active", "usage": null, "successRate": 100, "avgTime": "~37s", "section": "coverage-reports" },
-    { "id": "simplebeacon", "name": "Simplebeacon", "description": "packages/simplebeacon-cli — npm run simplebeacon --gate", "category": "CI", "icon": "✅", "status": "active", "usage": null, "successRate": null, "avgTime": "gate", "section": "gguf-analysis" },
-    { "id": "mock-scanner", "name": "Mock Data Scanner", "description": "40 files, 100% schema (43/43), 99% quality, 0 blocking issues", "category": "Analysis", "icon": "🔍", "status": "active", "usage": null, "successRate": null, "avgTime": "40 files", "section": "gguf-analysis" },
+    { "id": "simplebeacon", "name": "Simplebeacon", "description": "packages/simplebeacon-cli — npm run simplebeacon --gate", "category": "CI", "icon": "✅", "status": "active", "usage": null, "successRate": null, "avgTime": "gate", "section": "analyze" },
+    { "id": "mock-scanner", "name": "Mock Data Scanner", "description": "40 files, 100% schema (43/43), 99% quality, 0 blocking issues", "category": "Analysis", "icon": "🔍", "status": "active", "usage": null, "successRate": null, "avgTime": "40 files", "section": "analyze" },
     { "id": "page-specs", "name": "Page Sample Specs", "description": "Validates 42/42 dashboard *-sample.json files", "category": "Testing", "icon": "📋", "status": "active", "usage": null, "successRate": null, "avgTime": "specs", "section": "quality" },
     { "id": "stub-api", "name": "Dashboard Stub API", "description": "Tier-1 routes in dashboard-stub-api.js", "category": "Backend", "icon": "🔌", "status": "active", "usage": null, "successRate": null, "avgTime": "integration", "section": "api" },
     { "id": "github-ci", "name": "GitHub Actions CI", "description": "dashboard-ci.yml + simplebeacon.yml — Jest, Istanbul, phase2 config smoke", "category": "CI", "icon": "⚙️", "status": "active", "usage": null, "successRate": null, "avgTime": "CI", "section": "implementation-plan" },
-    { "id": "code-roadmap", "name": "Code Roadmap Generator", "description": "Filesystem sprint roadmap — structure, deps, features; not 98% GGUF fiction", "category": "Planning", "icon": "🗺️", "status": "active", "usage": null, "successRate": null, "avgTime": "path scan", "section": "roadmap" },
+    { "id": "code-roadmap", "name": "Code Roadmap Generator", "description": "Filesystem sprint roadmap — structure, deps, features; not 98% Mock scanner fiction", "category": "Planning", "icon": "🗺️", "status": "active", "usage": null, "successRate": null, "avgTime": "path scan", "section": "roadmap" },
     { "id": "roadmap-scan", "name": "Roadmap Path Builder", "description": "POST /api/dynamic-roadmap/build-from-path — uses code-roadmap-generator", "category": "Planning", "icon": "🗺️", "status": "active", "usage": null, "successRate": null, "avgTime": "path scan", "section": "roadmap" },
-    { "id": "issue-fix", "name": "Issue Fix API", "description": "Wired from Issue Resolution to /api/gguf/issues", "category": "Maintenance", "icon": "🔧", "status": "active", "usage": null, "successRate": null, "avgTime": "0 open", "section": "issue-resolution" },
+    { "id": "issue-fix", "name": "Issue Fix API", "description": "Wired from Issue Resolution to /api/mock-scanner/issues", "category": "Maintenance", "icon": "🔧", "status": "active", "usage": null, "successRate": null, "avgTime": "0 open", "section": "issue-resolution" },
     { "id": "analyzer-roadmap", "name": "Data Maintenance Analyzers", "description": "Measured analyzer roadmap — schema, dedup, npm audit live", "category": "Analysis", "icon": "🔬", "status": "active", "usage": null, "successRate": null, "avgTime": "roadmap", "section": "dev-tools", "sample": "/data/data-maintenance-analyzers-sample.json" },
     { "id": "docker-phase2", "name": "Phase 2 Docker", "description": "docker-compose.phase2.yml — config validated in CI; live up/down smoke pending deploy host", "category": "Infrastructure", "icon": "🐳", "status": "beta", "usage": null, "successRate": null, "avgTime": "config smoke", "section": "implementation-plan" },
     { "id": "npm-audit", "name": "Dependency Audit", "description": "npm audit wired to Security page (SEC-004 closed)", "category": "Security", "icon": "🛡️", "status": "active", "usage": null, "successRate": null, "avgTime": "stub API", "section": "security" }
@@ -78,7 +78,7 @@
   "quickActions": [
     { "label": "Run Simplebeacon", "command": "cd ai-platform && npm run simplebeacon", "icon": "✅" },
     { "label": "Run Jest", "command": "cd ai-platform && npm test -- --no-coverage", "icon": "🧪" },
-    { "label": "Mock Scanner", "icon": "🔍", "section": "gguf-analysis" },
+    { "label": "Mock Scanner", "icon": "🔍", "section": "analyze" },
     { "label": "Implementation Plan", "icon": "🚀", "section": "implementation-plan" }
   ]
 }

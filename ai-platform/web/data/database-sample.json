@@ -85,8 +85,8 @@
       "description": "snapshotGet cache for tier-1 routes"
     },
     {
-      "id": "gguf_path",
-      "name": "GGUF Model Path",
+      "id": "mock_path",
+      "name": "Mock scanner Model Path",
       "type": "Filesystem",
       "icon": "🧠",
       "host": "local path",
@@ -165,7 +165,7 @@
     },
     {
       "priority": "low",
-      "title": "GGUF path optional",
+      "title": "Mock scanner path optional",
       "description": "Fourth store stays disconnected until inference configured.",
       "impact": "Expected local-only state",
       "confidence": 90

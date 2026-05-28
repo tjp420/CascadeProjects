@@ -101,18 +101,18 @@
       "summary": "Prior template predicted August 30, 2026 at 94.3% probability — placeholder text, not model output.",
       "factors": [
         { "text": "732/732 tests passing", "type": "positive" },
-        { "text": "Filesystem scan, not GGUF inference", "type": "negative" },
+        { "text": "Filesystem scan, not mock inference", "type": "negative" },
         { "text": "Generate from project path for live scan", "type": "neutral" }
       ]
     },
     {
       "icon": "⚡",
-      "title": "GGUF Inference Enablement",
+      "title": "mock Inference Enablement",
       "confidence": null,
       "summary": "Set LLAMA_CPP_BIN or Ollama to move from filesystem scan to model inference (Phase 3)",
       "factors": [
-        { "text": "phi-2.Q4_K_M.gguf active (1.7GB)", "type": "positive" },
-        { "text": "Current mode: filesystem+gguf-path", "type": "negative" },
+        { "text": "phi-2.Q4_K_M.mock active (1.7GB)", "type": "positive" },
+        { "text": "Current mode: filesystem+mock-path", "type": "negative" },
         { "text": "Ollama client already integrated", "type": "positive" }
       ]
     },
@@ -120,7 +120,7 @@
       "icon": "🎯",
       "title": "Engineering Focus",
       "confidence": null,
-      "summary": "All 4 sprints complete on measured baseline — optional GGUF semantic hints remain backlog",
+      "summary": "All 4 sprints complete on measured baseline — optional mock semantic hints remain backlog",
       "factors": [
         { "text": "43/43 repository-audit page specs", "type": "positive" },
         { "text": "phase2-smoke + Istanbul in dashboard-ci.yml", "type": "positive" },
@@ -139,7 +139,7 @@
       "title": "Inference Not Enabled",
       "level": "medium",
       "score": 45,
-      "description": "GGUF model registered but analyze uses filesystem scan unless llama.cpp/Ollama configured"
+      "description": "mock model registered but analyze uses filesystem scan unless llama.cpp/Ollama configured"
     },
     {
       "title": "Sample Drift",
@@ -163,7 +163,7 @@
         "benefits": ["Shareable milestone report", "No 47-feature fiction"]
       },
       {
-        "title": "Enable GGUF Inference (Optional)",
+        "title": "Enable mock Inference (Optional)",
         "impact": "Medium Impact",
         "description": "Configure LLAMA_CPP_BIN or switch active model to Ollama provider.",
         "benefits": ["Phase 3 semantic hints", "Not required for honest dashboard"]
@@ -179,7 +179,7 @@
     ]
   },
   "insights": [
-    { "icon": "🎯", "title": "What This Page Is", "description": "Renders JSON roadmap reports — not live GGUF forecasts unless wired to analyze output or a path scan." },
+    { "icon": "🎯", "title": "What This Page Is", "description": "Renders JSON roadmap reports — not live mock forecasts unless wired to analyze output or a path scan." },
     { "icon": "👥", "title": "Team Reality", "description": "Solo maintainer project; multi-FTE team composition was fictional." },
     { "icon": "🔧", "title": "Prior Fiction Removed", "description": "Hardcoded feature totals and confidence/accuracy percentages were template placeholders." },
     { "icon": "📈", "title": "Honest Progress", "description": "4/4 delivery sprints complete on CI baseline; Production Deploy deferred for Simplebeacon v0.1." }

@@ -3,6 +3,9 @@ const {
     scanFileMergerReduction,
     buildConsolidationConclusion
 } = require('../../server/lib/file-merger-reduction-scanner');
+const { PAGE_SAMPLE_SPECS } = require('../../packages/simplebeacon-cli/src/lib/page-sample-specs');
+
+const SAMPLE_FILE_CEILING = Object.keys(PAGE_SAMPLE_SPECS).length + 10;
 
 describe('file merger reduction scanner', () => {
     const baseDir = path.join(__dirname, '../..');
@@ -31,7 +34,7 @@ describe('file merger reduction scanner', () => {
         expect(report.summary.filesAnalyzed).toBeGreaterThan(1000);
         expect(report.summary.repositoryFilesTotal).toBe(report.summary.filesAnalyzed);
         expect(report.summary.sampleDataFilesAnalyzed).toBeGreaterThan(30);
-        expect(report.summary.sampleDataFilesAnalyzed).toBeLessThan(45);
+        expect(report.summary.sampleDataFilesAnalyzed).toBeLessThan(SAMPLE_FILE_CEILING);
         expect(report.summary.jsonFilesAnalyzed).toBeGreaterThan(100);
         expect(report.scanScope?.mode).toBe('repository-consolidation');
         expect(report.repositoryInventory?.totalFiles).toBeGreaterThan(1000);
@@ -42,7 +45,7 @@ describe('file merger reduction scanner', () => {
     test('sample-data-only scope limits filesAnalyzed to sample paths', async () => {
         const report = await scanFileMergerReduction(baseDir, { scope: 'sample-data-only' });
         expect(report.scanScope?.mode).toBe('sample-data-consolidation');
-        expect(report.summary.filesAnalyzed).toBeLessThan(45);
+        expect(report.summary.filesAnalyzed).toBeLessThan(SAMPLE_FILE_CEILING);
         expect(report.summary.filesAnalyzed).toBe(report.summary.sampleDataFilesAnalyzed);
     });
 
@@ -61,7 +64,7 @@ describe('file merger reduction scanner', () => {
             ...report.reductionOpportunities.flatMap((o) => o.files.map((f) => f.path))
         ];
         expect(scannedPaths.some((p) => p.includes('roadmap/archive/'))).toBe(false);
-        expect(report.summary.sampleDataFilesAnalyzed).toBeLessThan(45);
+        expect(report.summary.sampleDataFilesAnalyzed).toBeLessThan(SAMPLE_FILE_CEILING);
     });
 
     test('does not flag ai-roadmap web sample vs report as exact duplicate', async () => {
@@ -104,7 +107,7 @@ describe('file merger reduction scanner', () => {
         expect(report.reportVersion).toBe(2);
         expect(report.summary.repositoryFilesTotal).toBeGreaterThan(platformReport.summary.repositoryFilesTotal);
         expect(report.summary.repositoryFilesTotal).toBeGreaterThan(10000);
-        expect(report.summary.sampleDataFilesAnalyzed).toBeLessThan(45);
+        expect(report.summary.sampleDataFilesAnalyzed).toBeLessThan(SAMPLE_FILE_CEILING);
         expect(report.summary.jsonFilesAnalyzed).toBeGreaterThanOrEqual(200);
         expect(report.summary.filesAnalyzed).toBe(report.summary.repositoryFilesTotal);
         expect(report.scanPaths.some((p) => p.includes('web/data'))).toBe(true);

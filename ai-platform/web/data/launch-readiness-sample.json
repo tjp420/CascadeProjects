@@ -1,0 +1,59 @@
+{
+  "type": "simplebeacon-launch-readiness-summary",
+  "title": "Launch Readiness (Measured Baseline)",
+  "generatedAt": "2026-05-28T12:00:00.000Z",
+  "generatedBy": "verify:predeploy",
+  "dataSource": "repository-audit",
+  "passed": 4,
+  "failed": 1,
+  "total": 5,
+  "decision": "NO-GO",
+  "checks": [
+    {
+      "id": "compliance",
+      "title": "Compliance gate",
+      "command": "npm run compliance:check",
+      "ok": true,
+      "exitCode": 0,
+      "elapsedMs": 420,
+      "stdoutTail": ["8/8 applicable rules pass"]
+    },
+    {
+      "id": "trust",
+      "title": "Trust publish",
+      "command": "npm run trust:publish",
+      "ok": true,
+      "exitCode": 0,
+      "elapsedMs": 2100,
+      "stdoutTail": ["public/trust-verification.json written"]
+    },
+    {
+      "id": "optimization",
+      "title": "Consolidation scan",
+      "command": "npm run optimization:scan",
+      "ok": true,
+      "exitCode": 0,
+      "elapsedMs": 32000,
+      "stdoutTail": ["duplicate groups: 0", "savings: 0B"]
+    },
+    {
+      "id": "page-samples",
+      "title": "Page sample specs",
+      "command": "npm test -- page-samples",
+      "ok": true,
+      "exitCode": 0,
+      "elapsedMs": 120000,
+      "stdoutTail": ["PAGE_SAMPLE_SPECS pass"]
+    },
+    {
+      "id": "stripe",
+      "title": "Stripe predeploy",
+      "command": "npm run verify:stripe",
+      "ok": false,
+      "exitCode": 1,
+      "elapsedMs": 800,
+      "stdoutTail": ["Action: configure STRIPE keys or skip for internal-only deploy"]
+    }
+  ],
+  "notes": "Sample summary for dashboard — re-run verify:predeploy for live decision."
+}

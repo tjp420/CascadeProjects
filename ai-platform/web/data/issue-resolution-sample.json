@@ -33,11 +33,11 @@
       "severity": "low",
       "type": "Duplicate Data",
       "count": 1,
-      "description": "Roadmap duplicate cleared — gguf-roadmap-sample.json vs gguf-development-roadmap-report.json (reportPurpose field)",
+      "description": "Roadmap duplicate cleared — master-roadmap-sample.json vs development-roadmap-report.json (reportPurpose field)",
       "recommendedAction": "Resolved — scanner reports 0 open duplicate groups",
       "affectedFiles": [
-        "gguf-roadmap-sample.json",
-        "gguf-development-roadmap-report.json"
+        "master-roadmap-sample.json",
+        "development-roadmap-report.json"
       ],
       "status": "resolved"
     },
@@ -81,8 +81,8 @@
       "description": "Duplicate roadmap JSON content between sample and export slot",
       "recommendedAction": "Resolved — reportPurpose field deduplicated content; 0 open scanner issues",
       "affectedFiles": [
-        "gguf-roadmap-sample.json",
-        "gguf-development-roadmap-report.json"
+        "master-roadmap-sample.json",
+        "development-roadmap-report.json"
       ],
       "status": "resolved",
       "automationAvailable": false,
@@ -103,7 +103,7 @@
       "id": "ISS-005",
       "type": "Fiction Telemetry",
       "severity": "medium",
-      "description": "Tier-1 samples (api, database, codegen, debt-calculator) still used GGUF fiction",
+      "description": "Tier-1 samples (api, database, codegen, debt-calculator) still used Mock scanner fiction",
       "recommendedAction": "Resolved — repository-audit rewrites + stale guards",
       "affectedFiles": [
         "api-sample.json",
@@ -126,7 +126,7 @@
     },
     {
       "priority": "low",
-      "action": "Optional GGUF inference",
+      "action": "Optional Mock scanner inference",
       "description": "Set LLAMA_CPP_BIN or Ollama for semantic hints — not required for honest dashboard.",
       "potentialSavings": "Phase 4 backlog only",
       "impact": "Low"

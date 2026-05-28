@@ -21,6 +21,11 @@
     "lib/"
   ],
   "sampleDir": "web/data",
+  "pathExclusions": [
+    "mock-backend.js",
+    "mock-backend-static-data.js",
+    "RoadmapDataAnalyzer.js"
+  ],
   "consistencyAnchorSamples": [
     "engineering-baseline-sample.json",
     "implementation-plan-sample.json",
@@ -135,8 +140,7 @@
         "server/lib/fixtures/sample-audit-report-data.js",
         "server/services/cloud-inference-service.js",
         "src/api/dashboard-stub-api.js",
-        "src/api/simplebeacon-api.js",
-        "src/server/index.js"
+        "src/api/simplebeacon-api.js"
       ]
     },
     "jest-baseline": {
@@ -153,6 +157,12 @@
         "src/api",
         "src/server",
         "packages/simplebeacon-cli/src"
+      ],
+      "ignoreGlobs": [
+        "**/mock-backend.js",
+        "**/mock-backend-static-data.js",
+        "**/RoadmapDataAnalyzer.js",
+        "**/*-sample.json"
       ]
     }
   },

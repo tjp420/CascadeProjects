@@ -159,11 +159,11 @@
       "description": "Move Tier-1 pages from stub/sample to live backends — dashboard freeze"
     },
     {
-      "feature": "GGUF inference enablement",
+      "feature": "Mock scanner inference enablement",
       "priority": "Low",
       "status": "Deferred",
       "storyPoints": "—",
-      "description": "Configure LLAMA_CPP_BIN or Ollama for active model (phi-2.Q4_K_M.gguf)"
+      "description": "Configure LLAMA_CPP_BIN or Ollama for active model (phi-2.Q4_K_M (local model))"
     }
   ],
   "velocityAnalysis": {

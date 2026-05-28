@@ -155,7 +155,7 @@
     },
     {
       "id": "doc_dashboard_server",
-      "title": "GGUF Dashboard Server",
+      "title": "Simplebeacon dashboard Server",
       "category": "Development",
       "difficulty": "Intermediate",
       "readTime": "6 min",

@@ -121,11 +121,11 @@
       "authentication": "None",
       "rateLimit": "None (local)",
       "icon": "🧠",
-      "description": "GGUF path/upload registry when server runs"
+      "description": "Mock scanner path/upload registry when server runs"
     },
     {
       "id": "issues_api",
-      "name": "Issues / GGUF Fix API",
+      "name": "Issues / Mock scanner Fix API",
       "version": "v1",
       "status": "active",
       "baseUrl": "/api/issues",

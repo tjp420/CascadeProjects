@@ -21,33 +21,33 @@
     "avgFileSize": "~156 MB",
     "storageAvailable": null,
     "downloadRateThisMonth": null,
-    "notes": "Counts from web/data samples (42/42), GGUF uploads (~5.8 GB), and mock fixtures — not marketing media downloads."
+    "notes": "Counts from web/data samples (42/42), Mock scanner uploads (~5.8 GB), and mock fixtures — not marketing media downloads."
   },
   "assets": [
     {
-      "id": "asset_gguf_active",
-      "name": "phi-2.Q4_K_M.gguf",
-      "type": "GGUF Models",
-      "format": "GGUF",
+      "id": "asset_mock_active",
+      "name": "phi-2.Q4_K_M (local model)",
+      "type": "Mock scanner Models",
+      "format": "Mock scanner",
       "size": "1.7 GB",
       "uploaded": "2026-05-23T08:21:45.145Z",
       "downloads": null,
       "category": "Inference",
-      "tags": ["active-model", "gguf", "upload"],
+      "tags": ["active-model", "mock-scan", "upload"],
       "thumbnail": "🤖",
       "status": "active",
       "description": "Active registry model — filesystem scan or llama.cpp when configured"
     },
     {
-      "id": "asset_gguf_registered",
+      "id": "asset_mock_registered",
       "name": "agi-chatbot-test",
-      "type": "GGUF Models",
-      "format": "GGUF",
+      "type": "Mock scanner Models",
+      "format": "Mock scanner",
       "size": "4.1 GB",
       "uploaded": "2026-05-23T08:31:20.771Z",
       "downloads": null,
       "category": "Uploads",
-      "tags": ["registered", "gguf", "upload"],
+      "tags": ["registered", "mock-scan", "upload"],
       "thumbnail": "📦",
       "status": "registered",
       "description": "Registered upload — not the active analyze model"
@@ -82,7 +82,7 @@
     },
     {
       "id": "asset_mock_analysis",
-      "name": "gguf-mock-analysis-sample.json",
+      "name": "mock-analysis-sample.json",
       "type": "Mock Data",
       "format": "JSON",
       "size": "48 KB",
@@ -96,7 +96,7 @@
     }
   ],
   "categories": [
-    { "id": "cat_gguf", "name": "GGUF Models", "count": 2, "size": "~5.8 GB", "icon": "🤖", "color": "primary" },
+    { "id": "cat_models", "name": "Mock scanner Models", "count": 2, "size": "~5.8 GB", "icon": "🤖", "color": "primary" },
     { "id": "cat_samples", "name": "Dashboard Samples", "count": 33, "size": "~400 KB", "icon": "📄", "color": "info" },
     { "id": "cat_mock", "name": "Mock & Scan Data", "count": 2, "size": "~212 KB", "icon": "🔍", "color": "warning" },
     { "id": "cat_roadmap", "name": "Roadmap Data", "count": 1, "size": "~40 KB", "icon": "🗺️", "color": "success" }
@@ -111,16 +111,16 @@
       { "month": "May W4", "uploads": 33, "downloads": null }
     ],
     "popularAssets": [
-      { "name": "phi-2.Q4_K_M.gguf", "usage": "Active inference model", "type": "GGUF Models" },
+      { "name": "phi-2.Q4_K_M (local model)", "usage": "Active inference model", "type": "Mock scanner Models" },
       { "name": "repository-audit samples", "usage": "42/42 measured baselines", "type": "Sample JSON" },
       { "name": "mock-data-scanner fixtures", "usage": "Analyze page input", "type": "Mock Data" },
-      { "name": "agi-chatbot-test", "usage": "Registered GGUF upload", "type": "GGUF Models" }
+      { "name": "agi-chatbot-test", "usage": "Registered Mock scanner upload", "type": "Mock scanner Models" }
     ],
     "storageUsage": {
       "used": 5.8,
       "limit": null,
       "percentage": null,
-      "notes": "Dominated by GGUF uploads (1.7 GB active + 4.1 GB registered) — no SaaS quota."
+      "notes": "Dominated by Mock scanner uploads (1.7 GB active + 4.1 GB registered) — no SaaS quota."
     },
     "summary": {
       "uploadsThisMonth": 33,
@@ -138,8 +138,8 @@
       "created": "2026-05-24T00:00:00.000Z"
     },
     {
-      "id": "col_gguf",
-      "name": "GGUF & Inference",
+      "id": "col_models",
+      "name": "Mock scanner & Inference",
       "description": "Active model path, uploads, and local-models API registry",
       "assets": 2,
       "created": "2026-05-23T08:21:45.145Z"
@@ -172,9 +172,9 @@
       "color": "info"
     },
     {
-      "id": "act_gguf",
-      "action": "Active GGUF model switched",
-      "description": "phi-2.Q4_K_M.gguf set as active model for analyze routes",
+      "id": "act_models",
+      "action": "Active Mock scanner model switched",
+      "description": "phi-2.Q4_K_M (local model) set as active model for analyze routes",
       "time": "3 days ago",
       "details": "1.7 GB • upload provider",
       "icon": "🤖",
@@ -193,7 +193,7 @@
   "quickActions": [
     { "label": "Open Local Models", "icon": "🤖", "section": "local-models" },
     { "label": "Export Inventory", "icon": "📥", "action": "export" },
-    { "label": "Run Mock Scan", "icon": "🔍", "section": "gguf-analysis" },
+    { "label": "Run Mock Scan", "icon": "🔍", "section": "analyze" },
     { "label": "Open Reports Catalog", "icon": "📚", "section": "reports" }
   ],
   "deprecatedNarrative": {
