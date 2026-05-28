@@ -1,6 +1,6 @@
 /**
  * Repository scanner APIs — project structure, backlog, mock-data analyzer.
- * Shared by gguf-dashboard-server (port 54355) and server/index.js consumers.
+ * Shared by simplebeacon-server (port 54355) and server/index.js consumers.
  */
 
 const fs = require('fs').promises;

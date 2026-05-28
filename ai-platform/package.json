@@ -68,7 +68,7 @@
     "coverage:sync": "npm run test:coverage && node tools/sync-coverage-reports-sample.js",
     "test:dashboard": "jest --config jest.config.js",
     "test:all": "jest",
-    "dashboard": "node gguf-dashboard-server.js",
+    "dashboard": "node simplebeacon-server.js",
     "dashboard:stub": "node fixed-server.js",
     "phase2:infra": "docker compose -f docker-compose.phase2.yml up -d",
     "phase2:infra:down": "docker compose -f docker-compose.phase2.yml down",

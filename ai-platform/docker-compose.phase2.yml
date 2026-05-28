@@ -2,7 +2,7 @@
 # Usage:
 #   npm run phase2:infra
 #   ENABLE_DATABASE=true DATABASE_URL=postgresql://cascade_user:secure_password@localhost:5432/cascade_ai_platform \
-#   ENABLE_REDIS=true REDIS_URL=redis://127.0.0.1:6379 node gguf-dashboard-server.js
+#   ENABLE_REDIS=true REDIS_URL=redis://127.0.0.1:6379 node simplebeacon-server.js
 
 services:
   postgres:

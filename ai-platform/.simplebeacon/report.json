@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-05-27T23:58:32.038Z",
+  "generatedAt": "2026-05-28T00:04:31.749Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\config.json",
@@ -10,16 +10,16 @@
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-    "totalFiles": 19414,
-    "totalFolders": 2585,
+    "totalFiles": 19437,
+    "totalFolders": 2616,
     "profile": "explorer"
   },
   "mockSampleFiles": 40,
   "totalFiles": 40,
-  "ruleScopedFilesAnalyzed": 193,
-  "repositoryFilesTotal": 19414,
-  "repositoryFoldersTotal": 2585,
-  "filesAnalyzed": 19414,
+  "ruleScopedFilesAnalyzed": 191,
+  "repositoryFilesTotal": 19437,
+  "repositoryFoldersTotal": 2616,
+  "filesAnalyzed": 19437,
   "totalSizeBytes": 264583,
   "totalSizeLabel": "258.4KB",
   "issueCount": 0,
@@ -40,11 +40,11 @@
   "fictionJsonFilesScanned": 67,
   "fictionSampleFilesScanned": 40,
   "fictionScope": "repository-json",
-  "credentialScanned": 178,
+  "credentialScanned": 170,
   "credentialFindings": 0,
-  "productionLeakScanned": 124,
+  "productionLeakScanned": 116,
   "productionLeakFindings": 0,
-  "sourceCodeFilesScanned": 193,
+  "sourceCodeFilesScanned": 191,
   "sourceFictionPatternHits": 0,
   "jestBaselineChecked": false,
   "jestBaselinePassed": true,
@@ -135,7 +135,7 @@
     "pageSpecsValidated": 42,
     "pageSpecsFromScanPaths": 40,
     "pageSpecsFromAliasPaths": 2,
-    "productionDirsScanned": 124,
+    "productionDirsScanned": 116,
     "productionPaths": [
       "server/",
       "src/",
@@ -148,20 +148,20 @@
       "src/server",
       "packages/simplebeacon-cli/src"
     ],
-    "sourceCodeFilesScanned": 193,
+    "sourceCodeFilesScanned": 191,
     "sourceFictionPatternHits": 0,
     "jestExecutedDuringScan": false,
     "consistencyAnchorCount": 5,
     "fictionScope": "repository-json",
     "fictionJsonFilesScanned": 67,
     "fictionSampleFilesScanned": 40,
-    "ruleScopedFilesAnalyzed": 193,
-    "repositoryFilesTotal": 19414,
-    "repositoryFoldersTotal": 2585,
+    "ruleScopedFilesAnalyzed": 191,
+    "repositoryFilesTotal": 19437,
+    "repositoryFoldersTotal": 2616,
     "limitations": [
-      "Repository inventory: 19,414 files — gate rules checked 193 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 19,437 files — gate rules checked 191 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-      "Fiction/KPI rules scan repository JSON (67) plus source code (193 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
+      "Fiction/KPI rules scan repository JSON (67) plus source code (191 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
     ]
   },
@@ -178,5 +178,5 @@
     "warningCount": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-05-27T23:58:32.041Z"
+  "sanitizedAt": "2026-05-28T00:04:31.752Z"
 }
