@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-05-28T00:03:31.646Z",
+  "generatedAt": "2026-05-28T00:27:05.203Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "platformRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
@@ -11,16 +11,16 @@
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-    "totalFiles": 26013,
-    "totalFolders": 2945,
+    "totalFiles": 26014,
+    "totalFolders": 3011,
     "profile": "explorer"
   },
   "mockSampleFiles": 40,
   "totalFiles": 40,
   "ruleScopedFilesAnalyzed": 191,
-  "repositoryFilesTotal": 26013,
-  "repositoryFoldersTotal": 2945,
-  "filesAnalyzed": 26013,
+  "repositoryFilesTotal": 26014,
+  "repositoryFoldersTotal": 3011,
+  "filesAnalyzed": 26014,
   "totalSizeBytes": 264583,
   "totalSizeLabel": "258.4KB",
   "issueCount": 0,
@@ -35,10 +35,10 @@
   "duplicateGroups": 0,
   "roadmapSchemaChecked": 1,
   "roadmapSchemaPassed": 1,
-  "consistencyChecked": 67,
-  "consistencyPassed": 67,
+  "consistencyChecked": 68,
+  "consistencyPassed": 68,
   "consistencyScore": 100,
-  "fictionJsonFilesScanned": 67,
+  "fictionJsonFilesScanned": 68,
   "fictionSampleFilesScanned": 40,
   "fictionScope": "repository-json",
   "credentialScanned": 170,
@@ -154,15 +154,15 @@
     "jestExecutedDuringScan": false,
     "consistencyAnchorCount": 5,
     "fictionScope": "repository-json",
-    "fictionJsonFilesScanned": 67,
+    "fictionJsonFilesScanned": 68,
     "fictionSampleFilesScanned": 40,
     "ruleScopedFilesAnalyzed": 191,
-    "repositoryFilesTotal": 26013,
-    "repositoryFoldersTotal": 2945,
+    "repositoryFilesTotal": 26014,
+    "repositoryFoldersTotal": 3011,
     "limitations": [
-      "Repository inventory: 26,013 files — gate rules checked 191 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 26,014 files — gate rules checked 191 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-      "Fiction/KPI rules scan repository JSON (67) plus source code (191 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
+      "Fiction/KPI rules scan repository JSON (68) plus source code (191 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
     ]
   },
@@ -179,5 +179,5 @@
     "warningCount": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-05-28T00:03:31.649Z"
+  "sanitizedAt": "2026-05-28T00:27:05.205Z"
 }
