@@ -4,6 +4,10 @@
 
 const path = require('path');
 const {
+    assessAuditExportTier,
+    resolveAuditClientName
+} = require('./audit-export-tier');
+const {
     collectIssues,
     resolveSeverityCounts,
     buildDetailedFindings,
@@ -201,7 +205,8 @@ function getAuditReportStyles() {
     .cover-title { font-family: "Inter", "Segoe UI", sans-serif; font-size: 34pt; line-height: 1.12; margin: 0 0 16px; font-weight: 700; max-width: 720px; letter-spacing: -0.02em; }
     .cover-sub { font-size: 13pt; color: #c9d1d9; max-width: 640px; margin: 0 0 28px; }
     .cover-meta { font-size: 10pt; color: var(--muted); line-height: 1.7; }
-    .cover-badges { margin-top: 32px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .cover-badges { margin-top: 32px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .cover-badges .badge { display: inline-flex; margin: 0; flex-shrink: 0; }
     .badge { display: inline-block; padding: 6px 14px; border-radius: 999px; font-size: 10pt; font-weight: 700; letter-spacing: 0.04em; border: 1px solid var(--border); }
     .badge-gold { background: rgba(210, 153, 34, 0.12); color: #e3b341; border-color: rgba(210, 153, 34, 0.35); }
     .badge-pass { background: var(--pass-bg); color: var(--pass); border-color: rgba(63, 185, 80, 0.35); }
@@ -248,6 +253,7 @@ function getAuditReportStyles() {
     .gate-banner.fail { background: var(--blocked-bg); border-color: rgba(248, 81, 73, 0.45); color: var(--blocked); }
     .gate-banner-label { font-size: 10pt; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.85; }
     .gate-banner-value { font-family: "Inter", "Segoe UI", sans-serif; font-size: 42pt; font-weight: 800; line-height: 1.1; margin-top: 6px; }
+    .gate-banner-value.gate-banner-compact { font-size: 24pt; line-height: 1.25; }
     .ledger-table td:first-child { width: 34%; font-weight: 600; background: var(--bg-panel); color: #c9d1d9; }
     .tier-dot { display: inline-block; width: 10px; height: 10px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
     .tier-critical { background: #f85149; }
@@ -774,14 +780,16 @@ function buildCompleteAuditModel(completeScan, options = {}) {
     ].filter(Boolean);
 
     const normalizedSimplebeacon = normalizeSimplebeaconForCompliance(simplebeacon);
+    const projectPath = normalizedScan?.projectPath || simplebeacon?.projectRoot || dataQuality?.projectRoot || '';
+    const resolvedClient = resolveAuditClientName(options, projectPath || redactPathForDisplay(projectPath));
 
     const model = {
         reportId: buildReportId(normalizedScan?.generatedAt),
-        projectPath: normalizedScan?.projectPath || simplebeacon?.projectRoot || dataQuality?.projectRoot || '',
+        projectPath,
         platformRoot: simplebeacon?.platformRoot || codebase?.platformRoot || null,
         generatedAt: normalizedScan?.generatedAt || new Date().toISOString(),
-        client: options.client || options.company || redactPathForDisplay(normalizedScan?.projectPath),
-        company: options.company || options.client || redactPathForDisplay(normalizedScan?.projectPath),
+        client: resolvedClient,
+        company: resolvedClient,
         assessor: options.assessor || 'Simplebeacon Security Audit Service',
         branch: options.branch || normalizedScan?.branch || 'main',
         engineLabel: `Simplebeacon Engine v${normalizedScan?.version || ENGINE_VERSION} (Zero-Dependency)`,
@@ -818,6 +826,22 @@ function buildCompleteAuditModel(completeScan, options = {}) {
             dataQualityFindings: dataQuality?.summary?.totalFindings ?? normalizedScan?.summary?.dataQualityFindings ?? null,
             fileReductionFindings: fileReduction?.summary?.totalFindings ?? normalizedScan?.summary?.fileReductionFindings ?? null,
             orphanedDataFiles: dataQuality?.executiveSummary?.data?.orphanedDataFiles ?? null,
+            fileReductionReclaimableBytes: fileReduction?.summary?.reclaimableBytes
+                ?? normalizedScan?.summary?.fileReductionReclaimableBytes
+                ?? null,
+            roadmapCompletion: results.roadmap?.executiveSummary?.completionRate
+                ?? normalizedScan?.summary?.roadmapCompletion
+                ?? null,
+            roadmapSprints: results.roadmap?.executiveSummary?.totalFeatures
+                ?? normalizedScan?.summary?.roadmapSprints
+                ?? null,
+            roadmapFiles: results.roadmap?.codeAnalysis?.structure?.totalFiles
+                ?? normalizedScan?.summary?.roadmapFiles
+                ?? null,
+            cleanupSafeFiles: results.cleanupAssistant?.estimatedReduction?.files
+                ?? normalizedScan?.summary?.cleanupSafeFiles
+                ?? null,
+            scanKind: normalizedScan?.summary?.scanKind ?? null,
             severityCounts,
             codeSeverity: dedupedSeverity,
             productionSeverity
@@ -850,6 +874,7 @@ function buildCompleteAuditModel(completeScan, options = {}) {
     model.codebaseActionPlan = buildCodebaseActionPlan(model);
     model.businessRiskCounts = buildBusinessRiskCounts(model);
     model.remediationRows = buildDeveloperRemediationRows(model);
+    model.exportTier = assessAuditExportTier(normalizedScan);
     return model;
 }
 
@@ -858,29 +883,235 @@ function buildDeterministicExecutive(model) {
     const sev = s.severityCounts || { critical: 0, high: 0, medium: 0, low: 0 };
     const gate = s.gatePass === true ? 'PASS' : s.gatePass === false ? 'REVIEW REQUIRED' : 'NOT EVALUATED';
     const readiness = model.readiness;
+    const tier = model.exportTier?.tier || 'handoff';
+    const stepKey = model.exportTier?.stepKey || s.scanKind || null;
 
     let headline;
-    if (s.gatePass === false || sev.high) {
+    let intro;
+    let businessImpact;
+
+    if (tier === 'codebase-only') {
+        headline = s.productionFindings > 0
+            ? `Prioritize ${s.productionFindings} production-path hygiene item(s) before handoff — attach gate PASS evidence separately.`
+            : `Production paths are clean under configured rules (${s.codeFilesAnalyzed?.toLocaleString() ?? '—'} files deep-scanned) — pair with gate attestation for sign-off.`;
+        intro = `Supplementary codebase hygiene deliverable: deep scan on ${s.codeFilesAnalyzed?.toLocaleString() ?? '—'} source files at ${s.codebaseHealth ?? '—'}% code health. Simplebeacon gate attestation was not included in this export bundle.`;
+        businessImpact = s.productionFindings > 0
+            ? 'Unresolved production-path debt increases regression risk and on-call burden even when gate evidence is tracked separately.'
+            : 'Codebase paths look clean under configured rules; residual risk is regression without automated gate enforcement between audits.';
+    } else if (tier === 'supplementary') {
+        if (stepKey === 'data-quality') {
+            headline = `Data quality review: ${(s.dataQualityFindings ?? 0).toLocaleString()} finding(s) across config, privacy, and lineage — not a security gate result.`;
+            intro = `Supplementary data-quality scan covering config sprawl, env keys, stale data, privacy patterns, and lineage. ${(s.dataQualityFindings ?? 0).toLocaleString()} finding(s) recorded — run Simplebeacon gate + codebase for vendor handoff.`;
+            businessImpact = 'Config and lineage hygiene reduce operational risk but do not replace gate attestation or production-path deep scan evidence.';
+        } else if (stepKey === 'file-reduction') {
+            headline = `File reduction dry-run: ${(s.fileReductionFindings ?? 0).toLocaleString()} reclaim candidate(s) identified — review before delete.`;
+            intro = `Supplementary file-reduction scan listing build artifacts, duplicate assets, and unused-file candidates (dry-run). Gate attestation and codebase deep scan are not included.`;
+            businessImpact = 'Disk reclamation is operational efficiency — it does not attest production security posture for client questionnaires.';
+        } else if (stepKey === 'consolidation') {
+            headline = `Consolidation scan: ${(s.duplicateGroups ?? 0).toLocaleString()} exact duplicate JSON group(s) — merge candidates only.`;
+            intro = `Supplementary data-consolidation scan for duplicate JSON groups and merge candidates. Not a compliance gate or codebase hygiene attestation.`;
+            businessImpact = 'Duplicate data groups increase maintenance cost but are separate from credential, mock-path, and fiction KPI gate rules.';
+        } else if (stepKey === 'roadmap') {
+            headline = `Roadmap analysis: ${s.roadmapCompletion != null ? `${s.roadmapCompletion}% sprint completion` : 'filesystem sprint metrics'} — engineering planning, not security attestation.`;
+            intro = `Supplementary roadmap analysis from filesystem structure and sprint phase detection. Use for engineering planning — not vendor security questionnaires.`;
+            businessImpact = 'Roadmap metrics reflect detected project structure, not runtime security posture or gate compliance.';
+        } else if (stepKey === 'cleanup-assistant') {
+            headline = s.cleanupSafeFiles != null
+                ? `Cleanup assistant: ${Number(s.cleanupSafeFiles).toLocaleString()} files flagged tier-1 safe — dry-run delete plan only.`
+                : 'Cleanup assistant: tiered safe-delete plan — dry-run only, not a security attestation.';
+            intro = 'Supplementary cleanup-assistant deliverable with tiered safe-delete recommendations and agent brief export. Gate and codebase evidence are not included.';
+            businessImpact = 'Cleanup tiers reduce repository noise; they do not substitute for gate PASS or production-path audit evidence.';
+        } else if (stepKey === 'mock-scan') {
+            headline = `Fiction and KPI digest: ${(s.fictionKpiHits ?? 0).toLocaleString()} hit(s) in repository JSON samples.`;
+            intro = `Supplementary mock-data and fiction KPI digest scoped to JSON sample files — not a full gate or codebase attestation.`;
+            businessImpact = 'Fiction KPI hits in sample JSON threaten demo credibility; pair with gate scan for release evidence.';
+        } else {
+            headline = `${model.exportTier?.label || 'Supplementary scan'} — not a standalone pre-launch security handoff.`;
+            intro = `Supplementary scan deliverable (${model.exportTier?.label || 'partial step'}). Run Analyze → Complete or combine gate attestation + codebase audit PDFs for vendor sign-off.`;
+            businessImpact = 'Partial scan exports support internal triage — they do not alone satisfy vendor security questionnaire requirements.';
+        }
+    } else if (s.gatePass === false || sev.high) {
         headline = `Release blocked: resolve ${sev.high || s.simplebeaconIssues} gate-level issue(s) before client handoff.`;
-    } else if (s.dataQualityFindings > 0 && s.gatePass == null) {
-        headline = `Data quality review: ${s.dataQualityFindings.toLocaleString()} finding(s) across config, privacy, and lineage — run gate scan before release.`;
+        intro = `Independent pre-launch assessment combining Simplebeacon gate analysis (${gate}), full-tree inventory, and deep codebase hygiene on ${s.codeFilesAnalyzed?.toLocaleString() ?? '—'} source files. This deliverable is scoped to configured paths and deterministic rules — not a penetration test.`;
+        businessImpact = 'Credential leaks, mock data in production paths, or fiction KPIs at this stage directly threaten client trust, incident response cost, and launch timelines.';
     } else if (s.productionFindings > 0) {
         headline = `Gate is clear. Prioritize ${s.productionFindings} production-path hygiene item(s); ${s.documentationFindings.toLocaleString()} doc-tier markers are non-blocking.`;
+        intro = `Independent pre-launch assessment combining Simplebeacon gate analysis (${gate}), full-tree inventory, and deep codebase hygiene on ${s.codeFilesAnalyzed?.toLocaleString() ?? '—'} source files. This deliverable is scoped to configured paths and deterministic rules — not a penetration test.`;
+        businessImpact = 'Launch is feasible from a gate perspective, but unresolved production-path debt increases regression risk, on-call burden, and the probability of embarrassing demo data surfacing post-handoff.';
     } else {
-        headline = 'Gate and production paths are clean under configured rules — lock in CI enforcement before release.';
+        headline = tier === 'gate-only'
+            ? `Gate attestation: ${gate} — attach codebase deep-scan PDF for unified vendor handoff.`
+            : 'Gate and production paths are clean under configured rules — lock in CI enforcement before release.';
+        intro = tier === 'gate-only'
+            ? `Supplementary gate attestation deliverable with Simplebeacon gate result (${gate}). Codebase deep scan was not included — export codebase hygiene separately or run Complete scan.`
+            : `Independent pre-launch assessment combining Simplebeacon gate analysis (${gate}), full-tree inventory, and deep codebase hygiene on ${s.codeFilesAnalyzed?.toLocaleString() ?? '—'} source files. This deliverable is scoped to configured paths and deterministic rules — not a penetration test.`;
+        businessImpact = tier === 'gate-only'
+            ? 'Gate PASS attests configured rule compliance; pair with codebase audit evidence for full stakeholder sign-off.'
+            : 'Primary residual risk is regression: without automated gate enforcement, placeholder metrics and debug artifacts can re-enter production between audits.';
     }
 
     return {
         verdict: readiness.label,
-        intro: `Independent pre-launch assessment combining Simplebeacon gate analysis (${gate}), full-tree inventory, and deep codebase hygiene on ${s.codeFilesAnalyzed?.toLocaleString() ?? '—'} source files. This deliverable is scoped to configured paths and deterministic rules — not a penetration test.`,
-        businessImpact: s.gatePass === false
-            ? 'Credential leaks, mock data in production paths, or fiction KPIs at this stage directly threaten client trust, incident response cost, and launch timelines.'
-            : s.productionFindings > 0
-                ? 'Launch is feasible from a gate perspective, but unresolved production-path debt increases regression risk, on-call burden, and the probability of embarrassing demo data surfacing post-handoff.'
-                : 'Primary residual risk is regression: without automated gate enforcement, placeholder metrics and debug artifacts can re-enter production between audits.',
+        intro,
+        businessImpact,
         headline,
         priorities: buildExecutivePriorities(s)
     };
+}
+
+function buildExecutiveDashboardBanner(model) {
+    const tier = model.exportTier || { tier: 'handoff' };
+    const s = model.summary;
+    const gatePass = s.gatePass === true;
+    const gateLabel = gatePass ? 'PASS' : s.gatePass === false ? 'FAIL' : 'NOT EVALUATED';
+    const stepKey = tier.stepKey || s.scanKind || null;
+    const scopeNote = '<p class="meta" style="margin-top:10px">Gate attestation not included in this export — run Simplebeacon gate or Complete scan, or attach a gate PDF separately.</p>';
+
+    if (tier.tier === 'handoff' || tier.tier === 'gate-only') {
+        return `<div class="gate-banner ${gatePass ? 'pass' : s.gatePass === false ? 'fail' : 'fail'}">
+        <div class="gate-banner-label">Overall gate result</div>
+        <div class="gate-banner-value">${escapeHtml(gateLabel)}</div>
+      </div>`;
+    }
+
+    if (tier.tier === 'codebase-only') {
+        const health = s.codebaseHealth != null ? `${s.codebaseHealth}%` : '—';
+        const files = s.codeFilesAnalyzed != null ? Number(s.codeFilesAnalyzed).toLocaleString() : '—';
+        const prodFindings = s.productionFindings ?? 0;
+        return `<div class="gate-banner pass">
+        <div class="gate-banner-label">Codebase deep scan</div>
+        <div class="gate-banner-value gate-banner-compact">${escapeHtml(files)} files · ${escapeHtml(health)} health</div>
+        <p class="meta" style="margin-top:10px">${Number(prodFindings).toLocaleString()} production-path finding(s) · gate attestation not in this export</p>
+      </div>`;
+    }
+
+    let bannerLabel = tier.label || 'Supplementary scan';
+    let bannerValue = 'See metrics below';
+    let bannerClass = 'pass';
+
+    switch (stepKey) {
+        case 'data-quality':
+            bannerLabel = 'Data quality scan';
+            bannerValue = `${Number(s.dataQualityFindings ?? 0).toLocaleString()} finding(s)`;
+            break;
+        case 'file-reduction':
+            bannerLabel = 'File reduction scan';
+            bannerValue = `${Number(s.fileReductionFindings ?? 0).toLocaleString()} finding(s)`;
+            break;
+        case 'consolidation':
+            bannerLabel = 'Data consolidation scan';
+            bannerValue = `${Number(s.duplicateGroups ?? 0).toLocaleString()} duplicate group(s)`;
+            break;
+        case 'roadmap':
+            bannerLabel = 'Roadmap analysis';
+            bannerValue = s.roadmapCompletion != null
+                ? `${s.roadmapCompletion}% complete · ${s.roadmapSprints ?? '—'} sprints`
+                : `${s.roadmapFiles != null ? Number(s.roadmapFiles).toLocaleString() : '—'} files scanned`;
+            break;
+        case 'cleanup-assistant':
+            bannerLabel = 'Cleanup assistant';
+            bannerValue = s.cleanupSafeFiles != null
+                ? `${Number(s.cleanupSafeFiles).toLocaleString()} tier-1 safe file(s)`
+                : 'Tiered cleanup plan';
+            break;
+        case 'mock-scan':
+            bannerLabel = 'Fiction and KPI digest';
+            bannerValue = `${Number(s.fictionKpiHits ?? 0).toLocaleString()} hit(s)`;
+            break;
+        default:
+            bannerClass = 'fail';
+            break;
+    }
+
+    return `<div class="gate-banner ${bannerClass}">
+        <div class="gate-banner-label">${escapeHtml(bannerLabel)}</div>
+        <div class="gate-banner-value gate-banner-compact">${escapeHtml(bannerValue)}</div>
+        ${scopeNote}
+      </div>`;
+}
+
+function buildExecutiveKpiStrip(model) {
+    const s = model.summary;
+    const tier = model.exportTier?.tier || 'handoff';
+    const stepKey = model.exportTier?.stepKey || s.scanKind || null;
+    const codeHealthSuffix = s.codebaseHealth != null ? '%' : '';
+    const kpis = [];
+
+    const pushKpi = (value, label) => {
+        kpis.push(`<div class="kpi"><strong>${escapeHtml(String(value))}</strong><span>${escapeHtml(label)}</span></div>`);
+    };
+
+    if (tier === 'handoff' || tier.tier === 'gate-only') {
+        pushKpi(s.simplebeaconIssues ?? 0, 'Gate issues');
+        pushKpi(s.productionFindings ?? 0, 'Runtime findings');
+        pushKpi(s.documentationFindings ?? 0, 'Doc-tier (info)');
+        pushKpi(`${s.codebaseHealth ?? '—'}${codeHealthSuffix}`, 'Code health');
+        pushKpi(s.codeFilesAnalyzed ?? '—', 'Files deep-scanned');
+    } else if (tier === 'codebase-only') {
+        pushKpi(s.codeFilesAnalyzed ?? '—', 'Files deep-scanned');
+        pushKpi(`${s.codebaseHealth ?? '—'}${codeHealthSuffix}`, 'Code health');
+        pushKpi(s.productionFindings ?? 0, 'Production findings');
+        pushKpi(s.documentationFindings ?? 0, 'Doc-tier (info)');
+        pushKpi('N/A', 'Gate (not scanned)');
+    } else {
+        switch (stepKey) {
+            case 'data-quality':
+                pushKpi(s.dataQualityFindings ?? 0, 'DQ findings');
+                pushKpi(s.orphanedDataFiles ?? '—', 'Orphaned data');
+                pushKpi(s.repositoryFiles ?? '—', 'Repo files');
+                pushKpi('N/A', 'Gate (not scanned)');
+                pushKpi('N/A', 'Deep scan');
+                break;
+            case 'file-reduction':
+                pushKpi(s.fileReductionFindings ?? 0, 'FR findings');
+                pushKpi(s.fileReductionReclaimableBytes != null ? `${Math.round(s.fileReductionReclaimableBytes / 1024 / 1024)} MB` : '—', 'Reclaimable');
+                pushKpi(s.repositoryFiles ?? '—', 'Repo files');
+                pushKpi('N/A', 'Gate (not scanned)');
+                pushKpi('N/A', 'Deep scan');
+                break;
+            case 'consolidation':
+                pushKpi(s.duplicateGroups ?? 0, 'Dup groups');
+                pushKpi(s.repositoryFiles ?? '—', 'Repo files');
+                pushKpi('N/A', 'Gate (not scanned)');
+                pushKpi('N/A', 'Deep scan');
+                pushKpi('N/A', 'Code health');
+                break;
+            case 'roadmap':
+                pushKpi(s.roadmapSprints ?? '—', 'Sprints');
+                pushKpi(s.roadmapCompletion != null ? `${s.roadmapCompletion}%` : '—', 'Complete');
+                pushKpi(s.roadmapFiles ?? '—', 'Files scanned');
+                pushKpi('N/A', 'Gate (not scanned)');
+                pushKpi('N/A', 'Deep scan');
+                break;
+            case 'cleanup-assistant':
+                pushKpi(s.cleanupSafeFiles ?? '—', 'Safe-delete files');
+                pushKpi(s.dataQualityFindings ?? '—', 'DQ findings');
+                pushKpi(s.fileReductionFindings ?? '—', 'FR findings');
+                pushKpi('N/A', 'Gate (not scanned)');
+                pushKpi('N/A', 'Deep scan');
+                break;
+            case 'mock-scan':
+                pushKpi(s.fictionKpiHits ?? 0, 'Fiction/KPI hits');
+                pushKpi(s.simplebeaconIssues ?? 0, 'Gate issues');
+                pushKpi('N/A', 'Deep scan');
+                pushKpi('N/A', 'Code health');
+                pushKpi('N/A', 'Production findings');
+                break;
+            default:
+                pushKpi('N/A', 'Gate (not scanned)');
+                pushKpi(s.productionFindings ?? 0, 'Runtime findings');
+                pushKpi(s.dataQualityFindings ?? '—', 'DQ findings');
+                pushKpi(s.codeFilesAnalyzed ?? '—', 'Files deep-scanned');
+                pushKpi(`${s.codebaseHealth ?? '—'}${codeHealthSuffix}`, 'Code health');
+                break;
+        }
+    }
+
+    while (kpis.length < 5) {
+        pushKpi('—', 'N/A');
+    }
+
+    return kpis.slice(0, 5).join('\n        ');
 }
 
 function buildCompleteAuditPrompt(model) {
@@ -1021,13 +1252,56 @@ function renderDeveloperRemediationRows(rows, summary = {}) {
     `).join('');
 }
 
+function buildCoverPresentation(model) {
+    const tier = model.exportTier || { tier: 'handoff', showReadinessScore: true, showSignOffBlock: true, label: 'Pre-launch security audit' };
+    const s = model.summary;
+    const gatePass = s.gatePass === true;
+    const gateLabel = gatePass ? 'PASS' : s.gatePass === false ? 'FAIL' : 'NOT EVALUATED';
+    const readiness = model.readiness;
+
+    let kicker;
+    let subtitle;
+    if (tier.tier === 'handoff') {
+        kicker = 'Simplebeacon · Pre-Launch Security Audit';
+        subtitle = 'Formal static assessment for vendor security questionnaires, client handoff packages, and production readiness sign-off.';
+    } else {
+        kicker = `Simplebeacon · Supplementary — ${tier.label}`;
+        subtitle = `Supplementary scan deliverable — not a standalone pre-launch security handoff. ${tier.handoffHint || ''}`.trim();
+    }
+
+    let badges = '<span class="badge badge-gold">CONFIDENTIAL</span>';
+    if (tier.tier === 'handoff') {
+        badges += `<span class="badge ${gatePass ? 'badge-pass' : 'badge-blocked'}">GATE ${escapeHtml(gateLabel)}</span>`;
+        badges += `<span class="badge badge-gold">READINESS ${Math.round(readiness.score)}/100</span>`;
+    } else if (tier.tier === 'gate-only') {
+        badges += `<span class="badge ${gatePass ? 'badge-pass' : 'badge-blocked'}">GATE ${escapeHtml(gateLabel)}</span>`;
+        badges += '<span class="badge badge-gold">SUPPLEMENTARY</span>';
+    } else {
+        badges += '<span class="badge badge-gold">SUPPLEMENTARY</span>';
+        if (tier.readinessDisplay) {
+            badges += `<span class="badge badge-blocked">${escapeHtml(tier.readinessDisplay)}</span>`;
+        }
+    }
+
+    const supplementaryCallout = tier.tier !== 'handoff' && tier.missingForHandoff?.length
+        ? `<div class="callout"><strong>Not a full handoff bundle.</strong> Missing for vendor sign-off: ${escapeHtml(tier.missingForHandoff.join(' · '))}.</div>`
+        : '';
+
+    const pageTitle = tier.tier === 'handoff'
+        ? `Pre-Launch Code Audit — ${model.client}`
+        : `Supplementary Audit — ${tier.label} — ${model.client}`;
+
+    return { kicker, subtitle, badges, supplementaryCallout, pageTitle, tier };
+}
+
 function renderCompleteAuditHtml(model, options = {}) {
     const exec = options.executive || buildDeterministicExecutive(model);
     const s = model.summary;
     const risk = model.businessRiskCounts || buildBusinessRiskCounts(model);
-    const gatePass = s.gatePass === true;
-    const gateLabel = gatePass ? 'PASS' : s.gatePass === false ? 'FAIL' : 'NOT EVALUATED';
-    const readiness = model.readiness;
+    const cover = buildCoverPresentation(model);
+    const tier = cover.tier;
+    const executiveBanner = buildExecutiveDashboardBanner(model);
+    const executiveKpis = buildExecutiveKpiStrip(model);
     const verificationCommand = buildVerificationCommand(model.projectPath);
     const narrativeLine = options.aiEnhanced
         ? `Executive narrative refined by ${escapeHtml(options.aiProvider || 'AI')} · all metrics and remediation rows are deterministic from scan JSON`
@@ -1068,7 +1342,7 @@ function renderCompleteAuditHtml(model, options = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0d1117">
-  <title>Pre-Launch Code Audit — ${escapeHtml(model.client)}</title>
+  <title>${escapeHtml(cover.pageTitle)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1077,9 +1351,9 @@ function renderCompleteAuditHtml(model, options = {}) {
 </head>
 <body>
   <section class="cover-page">
-    <p class="cover-kicker">Simplebeacon · Pre-Launch Security Audit</p>
+    <p class="cover-kicker">${escapeHtml(cover.kicker)}</p>
     <h1 class="cover-title">${escapeHtml(model.client)}</h1>
-    <p class="cover-sub">Formal static assessment for vendor security questionnaires, client handoff packages, and production readiness sign-off.</p>
+    <p class="cover-sub">${escapeHtml(cover.subtitle)}</p>
     <div class="cover-meta">
       <div><strong>Report ID:</strong> ${escapeHtml(model.reportId)}</div>
       <div><strong>Executed:</strong> ${escapeHtml(formatReportTimestamp(model.generatedAt))}</div>
@@ -1089,10 +1363,9 @@ function renderCompleteAuditHtml(model, options = {}) {
       <div><strong>Repository:</strong> ${escapeHtml(model.repositoryLabel)} / ${escapeHtml(model.branch)}</div>
     </div>
     <div class="cover-badges">
-      <span class="badge badge-gold">CONFIDENTIAL</span>
-      <span class="badge ${gatePass ? 'badge-pass' : 'badge-blocked'}">GATE ${escapeHtml(gateLabel)}</span>
-      <span class="badge badge-gold">READINESS ${Math.round(readiness.score)}/100</span>
+      ${cover.badges}
     </div>
+    ${cover.supplementaryCallout}
     <p class="confidential">Prepared for authorized business and engineering recipients. This document combines executive risk metrics for leadership and deterministic remediation mapping for developers.</p>
   </section>
 
@@ -1116,10 +1389,7 @@ function renderCompleteAuditHtml(model, options = {}) {
       <div class="section-num">Section 02</div>
       <h2>Executive Dashboard (CFO View)</h2>
       <p class="meta">${narrativeLine}</p>
-      <div class="gate-banner ${gatePass ? 'pass' : 'fail'}">
-        <div class="gate-banner-label">Overall gate result</div>
-        <div class="gate-banner-value">${escapeHtml(gateLabel)}</div>
-      </div>
+      ${executiveBanner}
       <table class="data-table">
         <tr><th>Risk tier</th><th>Count</th><th>Business meaning</th></tr>
         <tr>
@@ -1144,11 +1414,7 @@ function renderCompleteAuditHtml(model, options = {}) {
         <ol>${(exec.priorities || []).map((p) => `<li>${escapeHtml(p)}</li>`).join('')}</ol>
       </div>
       <div class="kpi-strip">
-        <div class="kpi"><strong>${escapeHtml(String(s.simplebeaconIssues))}</strong><span>Gate issues</span></div>
-        <div class="kpi"><strong>${escapeHtml(String(s.productionFindings))}</strong><span>Runtime findings</span></div>
-        <div class="kpi"><strong>${escapeHtml(String(s.documentationFindings))}</strong><span>Doc-tier (info)</span></div>
-        <div class="kpi"><strong>${escapeHtml(String(s.codebaseHealth ?? '—'))}${codeHealthSuffix}</strong><span>Code health</span></div>
-        <div class="kpi"><strong>${escapeHtml(String(s.codeFilesAnalyzed ?? '—'))}</strong><span>Files deep-scanned</span></div>
+        ${executiveKpis}
       </div>
     </section>
 
@@ -1192,6 +1458,7 @@ function renderCompleteAuditHtml(model, options = {}) {
       </div>
     </section>
 
+    ${tier.showSignOffBlock ? `
     <section class="section signoff-section">
       <div class="section-num">Section 05</div>
       <h2>Simplebeacon production compliance sign-off</h2>
@@ -1206,6 +1473,13 @@ function renderCompleteAuditHtml(model, options = {}) {
         <span class="signoff-role">CTO / Lead Architect · Date: _______________</span>
       </div>
     </section>
+    ` : `
+    <section class="section signoff-section">
+      <div class="section-num">Section 05</div>
+      <h2>Production compliance sign-off</h2>
+      <p class="meta">Not applicable for supplementary deliverables. Run Analyze → Complete (gate + codebase) for a unified handoff PDF, or combine gate attestation and codebase audit exports.</p>
+    </section>
+    `}
 
     <section class="section">
       <div class="section-num">Appendix</div>
@@ -1263,7 +1537,10 @@ async function buildCompleteAuditReport(completeScan, options = {}) {
         filename: `${model.reportId}-${slug}.html`,
         model,
         aiEnhanced,
-        aiProvider: aiEnhanced ? aiProvider : 'deterministic'
+        aiProvider: aiEnhanced ? aiProvider : 'deterministic',
+        tier: model.exportTier?.tier || 'handoff',
+        exportTierLabel: model.exportTier?.label || 'Pre-launch security audit',
+        missingForHandoff: model.exportTier?.missingForHandoff || []
     };
 }
 

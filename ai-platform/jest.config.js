@@ -37,6 +37,7 @@ module.exports = {
         '**/tests/unit/complete-scan-artifacts.test.js',
         '**/tests/unit/codebase-analyzer.test.js',
         '**/tests/unit/complete-scan-audit-report.test.js',
+        '**/tests/unit/audit-export-tier.test.js',
         '**/tests/unit/audit-remediation-recipes.test.js',
         '**/tests/unit/upgrade-legacy-audit-html.test.js',
         '**/tests/unit/universal-language-framework.test.js',

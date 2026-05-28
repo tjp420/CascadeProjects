@@ -318,6 +318,87 @@ describe('complete scan audit report', () => {
         expect(html).not.toContain('Risk assessment matrix');
     });
 
+    test('supplementary data-quality export is labeled and omits misleading readiness 50', () => {
+        const model = buildCompleteAuditModel({
+            projectPath: 'C:\\Projects\\demo',
+            summary: { scanKind: 'data-quality', dataQualityFindings: 75 },
+            results: {
+                dataQuality: { summary: { totalFindings: 75 } }
+            }
+        });
+        const html = renderCompleteAuditHtml(model);
+        expect(model.exportTier.tier).toBe('supplementary');
+        expect(html).toContain('Supplementary — Data quality');
+        expect(html).not.toContain('READINESS 50/100');
+        expect(html).toContain('Not a full handoff bundle');
+        expect(html).toContain('Not applicable for supplementary deliverables');
+        expect(html).not.toContain('Overall gate result');
+        expect(html).not.toContain('NOT EVALUATED');
+        expect(html).toContain('Data quality scan');
+    });
+
+    test('codebase-only export shows codebase banner instead of gate NOT EVALUATED', () => {
+        const model = buildCompleteAuditModel({
+            projectPath: 'C:\\Projects\\demo',
+            summary: { scanKind: 'codebase', codebaseHealthScore: 100 },
+            results: {
+                codebase: {
+                    summary: { codeFilesAnalyzed: 1921, healthScore: 100, findingsTotal: 0 },
+                    findings: []
+                }
+            }
+        });
+        const html = renderCompleteAuditHtml(model);
+        expect(model.exportTier.tier).toBe('codebase-only');
+        expect(html).toContain('Codebase deep scan');
+        expect(html).not.toContain('Overall gate result');
+        expect(html).not.toContain('NOT EVALUATED');
+        expect(html).toContain('1,921 files');
+    });
+
+    test('gate-only export shows gate pass without readiness score badge', () => {
+        const model = buildCompleteAuditModel({
+            projectPath: 'C:\\Projects\\demo',
+            results: {
+                simplebeacon: {
+                    gate: { pass: true },
+                    issueCount: 0,
+                    qualityScore: 100,
+                    credentialScanned: 174,
+                    productionLeakScanned: 113,
+                    schemaChecked: 51,
+                    schemaPassed: 51,
+                    consistencyScore: 100,
+                    scanScope: { limitations: ['Gate scan only.'] }
+                }
+            }
+        });
+        const html = renderCompleteAuditHtml(model);
+        expect(model.exportTier.tier).toBe('gate-only');
+        expect(html).toContain('GATE PASS');
+        expect(html).toContain('Supplementary — Gate attestation');
+        expect(html).toContain('Overall gate result');
+        expect(html).not.toContain('READINESS 70/100');
+        expect(html).not.toContain('READINESS 50/100');
+    });
+
+    test('handoff export retains overall gate result banner', () => {
+        const model = buildCompleteAuditModel({
+            projectPath: 'C:\\Projects\\demo',
+            results: {
+                simplebeacon: { gate: { pass: true }, issueCount: 0, qualityScore: 100 },
+                codebase: {
+                    summary: { codeFilesAnalyzed: 1921, healthScore: 100, findingsTotal: 0 },
+                    findings: []
+                }
+            }
+        });
+        const html = renderCompleteAuditHtml(model);
+        expect(model.exportTier.tier).toBe('handoff');
+        expect(html).toContain('Overall gate result');
+        expect(html).toContain('READINESS');
+    });
+
     test('sample marketing report uses the same premium template as paid PDF deliverables', () => {
         const model = buildSampleAuditReportModel();
         expect(model.reportId).toBe('SB-AUD-2026-SAMPLE');

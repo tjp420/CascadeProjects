@@ -504,7 +504,20 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const userCredentials = await loadUserCredentials(req);
 
             let report;
-            if (body.filePath && projectPath) {
+            // Dropped-file / paste flows send inline code — prefer that over disk lookup even
+            // when filePath + projectPath are also present (filename may live outside project root).
+            if (body.code) {
+                report = await understandCodeSnippet(String(body.code), {
+                    filePath: body.filePath || 'snippet.txt',
+                    projectPath: projectPath || undefined,
+                    platformRoot: baseDir
+                }, {
+                    mode: understandingMode,
+                    aiProvider,
+                    registry,
+                    userCredentials
+                });
+            } else if (body.filePath && projectPath) {
                 const abs = path.isAbsolute(body.filePath)
                     ? body.filePath
                     : path.join(projectPath, body.filePath);
@@ -514,17 +527,6 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     relativePath: path.relative(projectPath, abs).replace(/\\/g, '/'),
                     mode: understandingMode,
                     understandingMode,
-                    aiProvider,
-                    registry,
-                    userCredentials
-                });
-            } else if (body.code) {
-                report = await understandCodeSnippet(String(body.code), {
-                    filePath: body.filePath || 'snippet.txt',
-                    projectPath: projectPath || undefined,
-                    platformRoot: baseDir
-                }, {
-                    mode: understandingMode,
                     aiProvider,
                     registry,
                     userCredentials
@@ -658,10 +660,27 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 delete require.cache[reportModulePath];
             }
             const { buildCompleteAuditReport } = require('../lib/complete-scan-audit-report');
+            const { assessAuditExportTier, resolveAuditClientName } = require('../lib/audit-export-tier');
+
+            const tierPreview = assessAuditExportTier(completeScan);
+            if (tierPreview.exportBlocked) {
+                return res.status(422).json({
+                    success: false,
+                    error: tierPreview.blockReason,
+                    tier: tierPreview.tier,
+                    missingForHandoff: tierPreview.missingForHandoff
+                });
+            }
+
+            const projectPath = completeScan.projectPath || completeScan.projectRoot || '';
+            const clientName = resolveAuditClientName(
+                { client: body.client, company: body.company },
+                projectPath
+            );
 
             const report = await buildCompleteAuditReport(completeScan, {
-                client: body.client,
-                company: body.company,
+                client: clientName,
+                company: clientName,
                 assessor: body.assessor,
                 aiProvider: providerOpts?.providerId || aiProvider,
                 summarizeFn: providerOpts
@@ -688,7 +707,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 aiProvider: report.aiProvider,
                 aiEnhanced: report.aiEnhanced,
                 filename: report.filename,
-                html: report.html
+                html: report.html,
+                tier: report.tier,
+                exportTierLabel: report.exportTierLabel,
+                missingForHandoff: report.missingForHandoff
             });
         } catch (error) {
             logger.warn('[complete-audit-report] generation failed', { error: error.message });

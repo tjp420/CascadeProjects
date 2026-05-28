@@ -24,9 +24,13 @@ import {
   filterIssuesByKind,
   fetchCompleteAuditReport,
   openAuditReportPrintWindow,
+  previewAuditExportTier,
+  auditExportButtonLabel,
   fetchDataCleanupScan,
-  ensureDashboardApiReady
-} from '../services/analyzeService.js?v=20260527preflight1';
+  ensureDashboardApiReady,
+  fetchUnderstandSnippet,
+  isCodebaseReport
+} from '../services/analyzeService.js?v=20260528filedrop1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
 import {
   AI_SYSTEM_ISSUES,
@@ -52,6 +56,16 @@ import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../compo
 import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/ZscriptReport.js';
 import { showLoginModal } from '../components/LoginModal.js';
 import { authService } from '../services/authService.js';
+import {
+  MAX_SNIPPET_BYTES,
+  isSupportedSourceFile,
+  scanSnippetText,
+  computeThreatScore,
+  redactMatch,
+  severityLabel
+} from '../utils/snippetDiagnostic.js?v=20260528py1';
+
+const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 
 function formatCount(value) {
   if (value == null || Number.isNaN(Number(value))) return '—';
@@ -314,6 +328,8 @@ export class AnalyzeView {
     this.issueTaxonomyGroups = groupIssuesByCategory();
     this.selectedIssueIds = new Set(AI_SYSTEM_ISSUES.map((issue) => issue.id));
     this.aiIssueAnalysisResult = null;
+    this.snippetResult = null;
+    this.snippetBusy = false;
   }
 
   render() {
@@ -324,7 +340,9 @@ export class AnalyzeView {
     el.className = 'fade-in';
     el.innerHTML = `
       <h1 class="page-title">Analyze</h1>
-      <p class="text-muted mb-6">Scan a repo folder on the dashboard server, or import JSON reports from your computer.</p>
+      <p class="text-muted mb-6">Drop a single source file for a quick check, import a JSON report, or scan a repo folder on the dashboard server.</p>
+
+      ${this.renderFileDropCard()}
 
       <div class="card mb-6 analyze-path-card">
         <div class="card-header">
@@ -410,6 +428,86 @@ export class AnalyzeView {
     this._root = el;
     this.syncAnalyzeModeUi(el);
     return el;
+  }
+
+  renderFileDropCard() {
+    const busy = this.snippetBusy;
+    const result = this.snippetResult;
+    return `
+      <div class="card analyze-dropzone mb-6${busy ? ' busy' : ''}" id="analyze-file-dropzone">
+        <div class="analyze-dropzone-inner">
+          <div class="analyze-dropzone-icon" aria-hidden="true">📄</div>
+          <p class="card-title" style="margin-bottom: 0.35rem;">Quick file check</p>
+          <p class="text-muted analyze-file-drop-lead">
+            Drag &amp; drop a single file here, or browse. Pattern scan runs in your browser.
+            Optional server pass adds language detection and semantic summary (file text is sent to the dashboard API only when you run understanding).
+          </p>
+          <p class="text-muted analyze-file-drop-hint">Supported: ${escapeHtml(SNIPPET_ACCEPT.replace(/\./g, ' .'))} · max ${Math.round(MAX_SNIPPET_BYTES / 1024)} KB · JSON scan exports can be imported</p>
+          <div class="analyze-dropzone-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="analyze-file-browse-btn" ${busy ? 'disabled' : ''}>Choose file</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="analyze-file-clear-btn" ${result ? '' : 'disabled'}>Clear</button>
+          </div>
+          <input type="file" id="analyze-file-input" accept="${SNIPPET_ACCEPT}" hidden>
+        </div>
+        ${result ? this.renderSnippetResults(result) : ''}
+      </div>
+    `;
+  }
+
+  renderSnippetResults(result) {
+    const findings = result.findings || [];
+    const threatScore = result.threatScore ?? 0;
+    const critical = findings.filter((f) => f.severity === 'critical').length;
+    const high = findings.filter((f) => f.severity === 'high').length;
+    const understanding = result.understanding;
+
+    const findingsHtml = findings.length
+      ? `<ul class="analyze-snippet-findings">
+          ${findings.slice(0, 8).map((f) => `
+            <li>
+              <span class="analyze-snippet-sev analyze-snippet-sev--${escapeHtml(f.severity)}">${escapeHtml(severityLabel(f.severity))}</span>
+              <strong>${escapeHtml(f.label)}</strong> line ${f.line}
+              <code>${escapeHtml(redactMatch(f.match))}</code>
+            </li>
+          `).join('')}
+          ${findings.length > 8 ? `<li class="text-muted">+ ${findings.length - 8} more — run a full repo scan for branch-wide coverage</li>` : ''}
+        </ul>`
+      : '<p class="text-muted analyze-snippet-clean">No credential, mock-path, or AI-fiction KPI patterns in this file.</p>';
+
+    const understandingHtml = understanding
+      ? `
+        <div class="analyze-snippet-understanding">
+          <p class="text-muted" style="font-size: var(--font-size-xs); margin: 0 0 0.5rem;">
+            Server understanding · ${escapeHtml(understanding.layers?.static?.languageLabel || understanding.layers?.static?.language || 'unknown')}
+          </p>
+          <p style="font-size: var(--font-size-sm); margin: 0;">${escapeHtml(understanding.summary || understanding.layers?.semantic?.purpose || 'Summary unavailable.')}</p>
+        </div>
+      `
+      : (result.understandingSkipped
+        ? `<p class="text-muted analyze-snippet-note">${escapeHtml(result.understandingSkipped)}</p>`
+        : '');
+
+    return `
+      <div class="analyze-snippet-results" id="analyze-snippet-results">
+        <div class="analyze-snippet-results-head">
+          <div>
+            <strong>${escapeHtml(result.fileName || 'File')}</strong>
+            <span class="text-muted"> · ${formatCount(result.bytes)} bytes</span>
+          </div>
+          <div class="metric-chip ${threatScore >= 35 ? 'metric-chip-danger' : ''}">
+            Threat score <strong>${threatScore}</strong>/100
+          </div>
+        </div>
+        <p class="text-muted analyze-snippet-meta">${findings.length} pattern hit(s) · ${critical} critical · ${high} high</p>
+        ${findingsHtml}
+        ${understandingHtml}
+        <div class="analyze-snippet-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="analyze-snippet-understand-btn" ${this.snippetBusy ? 'disabled' : ''}>
+            ${understanding ? 'Re-run server understanding' : 'Run server understanding'}
+          </button>
+        </div>
+      </div>
+    `;
   }
 
   renderQuickPaths(defaultPath, currentPath) {
@@ -755,7 +853,7 @@ export class AnalyzeView {
 
     return `
       <div class="card analyze-empty-state">
-        <p class="text-muted" style="margin:0">No analysis yet — drop a JSON report, pick a quick path above, or run a scan.</p>
+        <p class="text-muted" style="margin:0">No analysis yet — use quick file check above, pick a server path, or run a scan.</p>
         ${defaultPath ? `
           <div class="analyze-empty-actions">
             <button type="button" class="btn btn-primary btn-sm" id="quick-rescan-btn">Run complete scan on server default</button>
@@ -1218,7 +1316,234 @@ export class AnalyzeView {
       }
     });
 
+    this.bindFileDropEvents(el);
     this.loadProviders(providerSelect);
+  }
+
+  bindFileDropEvents(el) {
+    const dropzone = el.querySelector('#analyze-file-dropzone');
+    const fileInput = el.querySelector('#analyze-file-input');
+    if (!dropzone) return;
+
+    dropzone.querySelector('#analyze-file-browse-btn')?.addEventListener('click', () => {
+      fileInput?.click();
+    });
+
+    dropzone.querySelector('#analyze-file-clear-btn')?.addEventListener('click', () => {
+      this.snippetResult = null;
+      this.refresh();
+    });
+
+    dropzone.querySelector('#analyze-snippet-understand-btn')?.addEventListener('click', () => {
+      void this.runSnippetUnderstanding();
+    });
+
+    fileInput?.addEventListener('change', () => {
+      const files = fileInput.files;
+      if (files?.length) {
+        void this.handleAnalyzeFiles(files);
+        fileInput.value = '';
+      }
+    });
+
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dropzone.classList.add('drag-active');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (eventName === 'dragleave' && event.target !== dropzone && dropzone.contains(event.relatedTarget)) {
+          return;
+        }
+        dropzone.classList.remove('drag-active');
+      });
+    });
+
+    dropzone.addEventListener('drop', (event) => {
+      const files = event.dataTransfer?.files;
+      if (files?.length) {
+        void this.handleAnalyzeFiles(files);
+      }
+    });
+  }
+
+  readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error(`Could not read ${file.name}`));
+      reader.readAsText(file);
+    });
+  }
+
+  tryParseJsonReport(text) {
+    try {
+      const parsed = JSON.parse(text);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  importCompleteScanExport(parsed, fileName) {
+    const results = parsed.results || {};
+    const stepDefs = [
+      { id: 'simplebeacon', report: results.simplebeacon },
+      { id: 'consolidation', scan: results.consolidation },
+      { id: 'mock-scan', report: results.mockScan },
+      { id: 'roadmap', roadmap: results.roadmap, data: { roadmap: results.roadmap } },
+      { id: 'codebase', scan: results.codebase },
+      { id: 'file-reduction', scan: results.fileReduction },
+      { id: 'data-quality', scan: results.dataQuality },
+      { id: 'cleanup-assistant', brief: results.cleanupAssistant, fileReduction: results.fileReduction, dataQuality: results.dataQuality }
+    ];
+    const steps = stepDefs
+      .filter((def) => def.report || def.scan || def.roadmap || def.brief)
+      .map((def) => ({ ...def, status: 'done' }));
+
+    this.lastResult = {
+      kind: 'complete',
+      projectPath: parsed.projectPath || '',
+      label: `Imported: ${fileName}`,
+      steps,
+      errors: parsed.errors || []
+    };
+    this.app.state.analyzeResult = this.lastResult;
+    if (results.simplebeacon) {
+      this.app.state.report = results.simplebeacon;
+      this.app.scanService.report = results.simplebeacon;
+    }
+    showToast(`Imported complete scan from ${fileName}`, 'success');
+    this.refresh();
+  }
+
+  importJsonReport(parsed, fileName) {
+    if (parsed.type === 'simplebeacon-complete-scan' && parsed.results) {
+      this.importCompleteScanExport(parsed, fileName);
+      return true;
+    }
+    if (isSimplebeaconReport(parsed)) {
+      this.applyReport(parsed, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(parsed) });
+      return true;
+    }
+    if (isCodebaseReport(parsed)) {
+      this.lastResult = {
+        kind: 'codebase',
+        scan: parsed,
+        projectPath: parsed.projectPath || parsed.projectRoot || '',
+        label: `Imported codebase report: ${fileName}`,
+        conclusion: buildCodebaseConclusion(parsed)
+      };
+      this.app.state.analyzeResult = this.lastResult;
+      showToast(`Imported codebase report from ${fileName}`, 'success');
+      this.refresh();
+      return true;
+    }
+    if (parsed.type === 'data-cleanup-report') {
+      const profile = parsed.scanProfile || 'file-reduction';
+      this.lastResult = {
+        kind: profile === 'data-quality' ? 'data-quality' : 'file-reduction',
+        scan: parsed,
+        projectPath: parsed.projectRoot || '',
+        label: `Imported ${profile}: ${fileName}`,
+        conclusion: buildDataCleanupConclusion(parsed, profile)
+      };
+      this.app.state.analyzeResult = this.lastResult;
+      showToast(`Imported ${profile} report from ${fileName}`, 'success');
+      this.refresh();
+      return true;
+    }
+    return false;
+  }
+
+  async handleAnalyzeFiles(fileList) {
+    const file = fileList[0];
+    if (!file) return;
+    if (fileList.length > 1) {
+      showToast('Drop one file at a time', 'info');
+    }
+    if (file.size > MAX_SNIPPET_BYTES) {
+      showToast(`File too large (max ${Math.round(MAX_SNIPPET_BYTES / 1024)} KB for quick check)`, 'error');
+      return;
+    }
+
+    this.snippetBusy = true;
+    this.refresh();
+
+    try {
+      const text = await this.readFileAsText(file);
+      if (file.name.toLowerCase().endsWith('.json')) {
+        const parsed = this.tryParseJsonReport(text);
+        if (parsed && this.importJsonReport(parsed, file.name)) {
+          this.snippetBusy = false;
+          return;
+        }
+      }
+
+      if (!isSupportedSourceFile(file.name)) {
+        showToast('Unsupported file type for quick check', 'error');
+        return;
+      }
+
+      const findings = scanSnippetText(text);
+      this.snippetResult = {
+        fileName: file.name,
+        bytes: file.size,
+        text,
+        findings,
+        threatScore: computeThreatScore(findings),
+        understanding: null,
+        understandingSkipped: null
+      };
+      showToast(`Scanned ${file.name} locally (${findings.length} hit(s))`, findings.length ? 'info' : 'success');
+    } catch (error) {
+      showToast(error.message || 'File read failed', 'error');
+    } finally {
+      this.snippetBusy = false;
+      this.refresh();
+    }
+  }
+
+  async runSnippetUnderstanding() {
+    if (!this.snippetResult?.text) {
+      showToast('Drop a source file first', 'error');
+      return;
+    }
+
+    this.snippetBusy = true;
+    this.refresh();
+
+    try {
+      await ensureDashboardApiReady();
+      const projectPath = this.resolveProjectPath(document.getElementById('project-path-input')?.value) || undefined;
+      const data = await fetchUnderstandSnippet(this.snippetResult.text, {
+        filePath: this.snippetResult.fileName,
+        projectPath: projectPath || undefined,
+        understandingMode: this.understandingMode === 'off' ? 'deterministic' : this.understandingMode,
+        aiProvider: this.aiProvider || 'demo'
+      });
+      this.snippetResult = {
+        ...this.snippetResult,
+        understanding: data.report,
+        understandingSkipped: null
+      };
+      showToast('Server understanding complete', 'success');
+    } catch (error) {
+      this.snippetResult = {
+        ...this.snippetResult,
+        understandingSkipped: error.message || 'Server understanding failed'
+      };
+      showToast(error.message || 'Server understanding failed', 'error');
+    } finally {
+      this.snippetBusy = false;
+      this.refresh();
+    }
   }
 
   async loadProviders(select) {
@@ -1854,12 +2179,41 @@ export class AnalyzeView {
 
     return `
       <div class="scan-results-export-bar card mb-4">
+        ${this.renderAuditExportCallout()}
         <div class="section-heading" style="margin-bottom: 0;">
           <span class="card-title" style="font-size: var(--font-size-sm);">Export</span>
-          ${this.renderScanDownloadActions({ isComplete, showGotoResults, gotoLabel, extraButtons })}
+          ${this.renderScanDownloadActions({
+            isComplete,
+            showGotoResults,
+            gotoLabel,
+            extraButtons,
+            auditButtonLabel: this.getAuditExportButtonLabel()
+          })}
         </div>
       </div>
     `;
+  }
+
+  getAuditExportPreview() {
+    const payload = this.buildAuditExportPayload();
+    if (!this.scanExportHasPayload(payload)) return null;
+    return previewAuditExportTier(payload);
+  }
+
+  getAuditExportButtonLabel() {
+    return auditExportButtonLabel(this.getAuditExportPreview());
+  }
+
+  renderAuditExportCallout() {
+    const preview = this.getAuditExportPreview();
+    if (!preview || preview.exportBlocked || preview.tier === 'handoff') return '';
+    const gateNote = preview.tier === 'gate-only' || preview.tier === 'codebase-only'
+      ? 'Gate attestation is not combined with codebase in this export.'
+      : 'This PDF covers this step only — gate attestation is not included unless you run Simplebeacon gate or Complete scan.';
+    const missing = preview.tier === 'gate-only' || preview.tier === 'codebase-only'
+      ? 'For vendor handoff, also export the complementary gate or codebase PDF, or run Complete scan.'
+      : 'For vendor handoff, run Analyze → Complete (all steps).';
+    return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>Supplementary deliverable (${escapeHtml(preview.label)}).</strong> ${escapeHtml(gateNote)} ${escapeHtml(missing)}</p>`;
   }
 
   wrapAnalyzeResults(content) {
@@ -1870,7 +2224,8 @@ export class AnalyzeView {
     isComplete = false,
     showGotoResults = false,
     gotoLabel = 'Open Simplebeacon Results →',
-    extraButtons = ''
+    extraButtons = '',
+    auditButtonLabel = 'Download audit PDF'
   } = {}) {
     const locked = this.isResultsLocked();
     const checkoutUrl = this.app.billingService?.getAuditCheckoutUrl?.() || null;
@@ -1882,7 +2237,7 @@ export class AnalyzeView {
         <button type="button" class="btn btn-primary btn-sm" id="download-scan-result">${downloadLabel}</button>
         ${locked
           ? `<a class="btn btn-accent btn-sm cta-pay-button" href="${escapeHtml(checkoutUrl || '#')}" target="_blank" rel="noopener noreferrer">Unlock audit PDF (${escapeHtml(priceLabel)})</a>`
-          : '<button type="button" class="btn btn-accent btn-sm" id="download-audit-pdf" title="Professional audit PDF — print to save">Download audit PDF</button>'}
+          : `<button type="button" class="btn btn-accent btn-sm" id="download-audit-pdf" title="Professional audit PDF — print to save">${escapeHtml(auditButtonLabel)}</button>`}
         ${showGotoResults
           ? `<button type="button" class="btn btn-secondary btn-sm" id="goto-results-btn">${escapeHtml(gotoLabel)}</button>`
           : ''}
@@ -2054,7 +2409,9 @@ export class AnalyzeView {
     };
     this.app.state.analyzeResult = this.lastResult;
     showToast(label, 'success');
-    this.refresh();
+    if (!options.skipRefresh) {
+      this.refresh();
+    }
   }
 
   resolveResultsReport() {
@@ -2407,6 +2764,9 @@ export class AnalyzeView {
           <div class="metric-chip"><strong>${stepTotal}</strong> analyses</div>
           <div class="metric-chip"><strong>${steps.length}</strong> succeeded</div>
           <div class="metric-chip gate-badge ${simplebeacon?.gate?.pass ? 'pass' : 'warn'}">${simplebeacon?.gate?.pass ? 'GATE PASS' : 'GATE REVIEW'}</div>
+          ${simplebeacon?.gate?.pass && codebase?.summary?.codeFilesAnalyzed
+            ? '<div class="metric-chip gate-badge pass">READY FOR SIGN-OFF</div>'
+            : ''}
           <div class="metric-chip"><strong>${codebase?.summary?.codeFilesAnalyzed ?? '—'}/${codebase?.summary?.codeFilesDiscovered ?? '—'}</strong> code files</div>
           <div class="metric-chip"><strong>${codebase?.summary?.healthScore ?? '—'}%</strong> code health</div>
           <div class="metric-chip"><strong>${consolidation?.summary?.exactDuplicateGroups ?? '—'}</strong> dup groups</div>
@@ -2635,11 +2995,12 @@ export class AnalyzeView {
       try {
         const data = await fetchCompleteAuditReport(payload, {
           aiProvider: 'demo',
-          client: formatPathLabel(payload.projectPath) || 'Client project'
+          client: formatPathLabel(payload.projectPath) || redactPathForDisplay(payload.projectPath) || undefined
         });
         openAuditReportPrintWindow(data.html, data.filename);
+        const tierLabel = data.exportTierLabel || data.tier || 'audit';
         showToast(
-          `Audit report saved to Downloads as ${data.filename}. Open the HTML file, scroll through all sections, then Print → Save as PDF.`,
+          `${tierLabel} report saved to Downloads as ${data.filename}. Open the HTML file, scroll through all sections, then Print → Save as PDF.`,
           'success'
         );
       } catch (err) {

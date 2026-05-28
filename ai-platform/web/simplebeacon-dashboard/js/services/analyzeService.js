@@ -120,6 +120,28 @@ export async function analyzePath(projectPath, options = {}) {
   return data;
 }
 
+/** Analyze pasted or dropped file text without requiring a server project path. */
+export async function fetchUnderstandSnippet(code, options = {}) {
+  const data = await fetchJsonWithGuidance('/api/analyze/understand', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authService.getAuthHeaders()
+    },
+    body: JSON.stringify({
+      code: String(code || ''),
+      filePath: options.filePath || 'snippet.txt',
+      projectPath: options.projectPath || undefined,
+      understandingMode: options.understandingMode || 'deterministic',
+      aiProvider: options.aiProvider || 'demo'
+    })
+  }, options.timeoutMs ?? 90000);
+  if (!data.success) {
+    throw new Error(data.error || data.message || 'Code understanding failed');
+  }
+  return data;
+}
+
 export async function scanPath(projectPath) {
   return scanService.runScan(projectPath);
 }
@@ -358,8 +380,20 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
             conclusion: results.mockScan.conclusion
           }
         : null,
-      roadmap: results.roadmap?.executiveSummary
-        ? { executiveSummary: results.roadmap.executiveSummary }
+      roadmap: results.roadmap
+        ? {
+            projectTitle: results.roadmap.projectTitle || results.roadmap.projectName || null,
+            executiveSummary: results.roadmap.executiveSummary
+              ? {
+                  completionRate: results.roadmap.executiveSummary.completionRate,
+                  totalFeatures: results.roadmap.executiveSummary.totalFeatures,
+                  projectHealth: results.roadmap.executiveSummary.projectHealth
+                }
+              : null,
+            codeAnalysis: results.roadmap.codeAnalysis?.structure
+              ? { structure: { totalFiles: results.roadmap.codeAnalysis.structure.totalFiles } }
+              : null
+          }
         : null,
       codebase: slimCodebase,
       fileReduction: slimFileReduction,
@@ -396,6 +430,98 @@ export function normalizeAuditExportPayload(exportPayload) {
   return exportPayload;
 }
 
+const SUPPLEMENTARY_STEP_LABELS = {
+  'data-quality': 'Data quality',
+  'file-reduction': 'File reduction',
+  consolidation: 'Data consolidation',
+  'cleanup-assistant': 'Cleanup assistant',
+  roadmap: 'Roadmap analysis',
+  'mock-scan': 'Fiction and KPI digest',
+  'simplebeacon-report': 'Simplebeacon scan',
+  complete: 'Partial complete scan'
+};
+
+function gatePassFromExportScan(normalized) {
+  const results = normalized?.results || {};
+  const fromGate = results.simplebeacon?.gate?.pass;
+  if (fromGate === true || fromGate === false) return fromGate;
+  const fromSummary = normalized?.summary?.simplebeaconGatePass;
+  if (fromSummary === true || fromSummary === false) return fromSummary;
+  return null;
+}
+
+function codeFilesFromExportScan(normalized) {
+  const value = normalized?.results?.codebase?.summary?.codeFilesAnalyzed;
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function detectSupplementaryExportStep(normalized) {
+  const results = normalized?.results || {};
+  const scanKind = normalized?.summary?.scanKind;
+  if (scanKind && SUPPLEMENTARY_STEP_LABELS[scanKind]) {
+    return { key: scanKind, label: SUPPLEMENTARY_STEP_LABELS[scanKind] };
+  }
+  if (results.dataQuality) return { key: 'data-quality', label: SUPPLEMENTARY_STEP_LABELS['data-quality'] };
+  if (results.fileReduction) return { key: 'file-reduction', label: SUPPLEMENTARY_STEP_LABELS['file-reduction'] };
+  if (results.consolidation) return { key: 'consolidation', label: SUPPLEMENTARY_STEP_LABELS.consolidation };
+  if (results.cleanupAssistant) return { key: 'cleanup-assistant', label: SUPPLEMENTARY_STEP_LABELS['cleanup-assistant'] };
+  if (results.roadmap) return { key: 'roadmap', label: SUPPLEMENTARY_STEP_LABELS.roadmap };
+  if (results.mockScan) return { key: 'mock-scan', label: SUPPLEMENTARY_STEP_LABELS['mock-scan'] };
+  if (results.simplebeacon) return { key: 'simplebeacon-report', label: SUPPLEMENTARY_STEP_LABELS['simplebeacon-report'] };
+  return { key: 'complete', label: SUPPLEMENTARY_STEP_LABELS.complete };
+}
+
+export function previewAuditExportTier(exportPayload) {
+  const normalized = normalizeAuditExportPayload(exportPayload);
+  if (!normalized) {
+    return {
+      tier: 'insufficient',
+      label: 'Insufficient scan data',
+      exportBlocked: true,
+      blockReason: 'No scan data available for audit PDF export.'
+    };
+  }
+  const results = normalized.results || {};
+  const hasAnyResult = Object.values(results).some(Boolean);
+  if (!hasAnyResult) {
+    return {
+      tier: 'insufficient',
+      label: 'Insufficient scan data',
+      exportBlocked: true,
+      blockReason: 'Export payload has no scan steps — run Complete scan or an individual analysis first.'
+    };
+  }
+
+  const hasGate = gatePassFromExportScan(normalized) != null;
+  const hasCodebase = codeFilesFromExportScan(normalized) != null;
+
+  if (hasGate && hasCodebase) {
+    return { tier: 'handoff', label: 'Pre-launch security audit', exportBlocked: false };
+  }
+  if (hasGate && !hasCodebase) {
+    return { tier: 'gate-only', label: 'Gate attestation', exportBlocked: false };
+  }
+  if (hasCodebase && !hasGate) {
+    return { tier: 'codebase-only', label: 'Codebase hygiene', exportBlocked: false };
+  }
+  const step = detectSupplementaryExportStep(normalized);
+  return { tier: 'supplementary', label: step.label, exportBlocked: false };
+}
+
+export function auditExportButtonLabel(tierInfo) {
+  if (!tierInfo || tierInfo.exportBlocked) return 'Download audit PDF';
+  switch (tierInfo.tier) {
+    case 'handoff':
+      return 'Download security audit PDF';
+    case 'gate-only':
+      return 'Download supplementary PDF (gate attestation)';
+    case 'codebase-only':
+      return 'Download supplementary PDF (codebase)';
+    default:
+      return `Download supplementary PDF (${tierInfo.label})`;
+  }
+}
+
 export async function fetchCompleteAuditReport(completeScan, options = {}) {
   const normalized = normalizeAuditExportPayload(completeScan);
   if (!normalized || typeof normalized !== 'object') {
@@ -406,6 +532,10 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
   }) || normalized;
   if (!payload || typeof payload !== 'object') {
     throw new Error('Audit export payload could not be prepared.');
+  }
+  const tierPreview = previewAuditExportTier(payload);
+  if (tierPreview.exportBlocked) {
+    throw new Error(tierPreview.blockReason);
   }
   const timeoutMs = options.timeoutMs ?? 120000;
   const res = await fetchWithTimeout('/api/analyze/complete-audit-report', {
@@ -428,6 +558,9 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
     err.code = 'audit_paywall';
     err.checkoutUrl = data.checkoutUrl;
     throw err;
+  }
+  if (res.status === 422) {
+    throw new Error(data.error || 'Audit export payload is insufficient.');
   }
   if (!res.ok || !data.success) {
     throw new Error(data.error || data.message || 'Audit report generation failed');
