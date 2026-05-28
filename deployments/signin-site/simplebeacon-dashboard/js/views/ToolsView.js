@@ -325,7 +325,9 @@ export class ToolsView {
     })();
     try {
       await this._platformLoadPromise;
-    } catch (_) {}
+    } catch (_) {
+      /* platform load errors handled in _ensurePlatformData promise */
+    }
   }
 
   async _ensureScanData() {
@@ -346,7 +348,9 @@ export class ToolsView {
     })();
     try {
       await this._scanLoadPromise;
-    } catch (_) {}
+    } catch (_) {
+      /* scan load errors handled in _ensureScanData promise */
+    }
   }
 
   mount(container) {

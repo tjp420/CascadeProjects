@@ -105,7 +105,7 @@ export class SecurityView {
       return el;
     }
 
-    const report = this.getReport();
+    const _report = this.getReport();
     const findings = this.getFindings();
     const summary = this.getSummary();
     const gateLabel = summary.gatePass ? 'PASS' : summary.gatePass === false ? 'REVIEW' : '—';
@@ -250,3 +250,4 @@ export class SecurityView {
     void this.loadCompliance();
   }
 }
+

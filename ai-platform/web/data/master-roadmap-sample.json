@@ -74,7 +74,7 @@
         "startDate": "2026-05-08T00:00:00.000Z",
         "endDate": "2026-05-14T00:00:00.000Z",
         "description": "Tier-1 dashboard stub routes and Jest coverage",
-        "features": ["Tier-1 stub API routes", "805 Jest tests passing (64 suites)"],
+        "features": ["Tier-1 stub API routes", "805 Jest tests passing (61 suites)"],
         "duration": "1 week",
         "teamSize": 1
       },

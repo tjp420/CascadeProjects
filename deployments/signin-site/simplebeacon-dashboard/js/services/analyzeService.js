@@ -993,7 +993,7 @@ export function buildScanConclusion(report, options = {}) {
   }
 
   const focus = options.focus || 'all';
-  const raw = focus === 'fiction' ? filterIssuesByKind(report, 'fiction') : issueList(report);
+  const _raw = focus === 'fiction' ? filterIssuesByKind(report, 'fiction') : issueList(report);
   const countIssues = (items) => items.reduce((sum, i) => sum + (i.count || 1), 0);
 
   const fiction = filterIssuesByKind(report, 'fiction');
@@ -1122,3 +1122,4 @@ export async function readDroppedFiles(fileList) {
   }
   return { total: files.length, reports };
 }
+

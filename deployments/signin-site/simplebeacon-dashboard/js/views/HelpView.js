@@ -217,7 +217,7 @@ export class HelpView {
       <div class="section-block">
         <div class="section-heading"><h2>Quick Links</h2></div>
         <div class="tool-grid">
-          ${quickLinks.map((link, index) => `
+          ${quickLinks.map((link, _index) => `
             <div class="tool-card">
               <div class="tool-card-header"><span>${link.icon || '📄'}</span></div>
               <h3>${escapeHtml(link.title)}</h3>
@@ -281,6 +281,7 @@ npx simplebeacon hook install
 
 # Monorepo dev (this repo)
 npm run simplebeacon:report
+npm run trust:refresh
 
 # Local dashboard (v1-internal, port 54355)
 npm run dashboard:v1-internal
@@ -461,3 +462,4 @@ export class FeaturesView {
 
 // Backward compat alias
 export const LegacyHubView = FeaturesView;
+

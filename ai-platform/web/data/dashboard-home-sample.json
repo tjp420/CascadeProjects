@@ -88,7 +88,7 @@
   "insights": [
     {
       "title": "Jest Suite Healthy",
-      "description": "805/805 tests pass across 64 suites; default npm test runs with --no-coverage."
+      "description": "805/805 tests pass across 61 suites; default npm test runs with --no-coverage."
     },
     {
       "title": "Repository-Audit Migration",
@@ -154,7 +154,7 @@
   "healthSummary": {
     "status": "HEALTHY",
     "highlights": [
-      "805/805 Jest tests passing across 64 suites",
+      "805/805 Jest tests passing across 61 suites",
       "42/42 page samples on repository-audit baselines",
       "100% schema pass (42/42) and 99% mock-scan quality measured",
       "0 open scanner issues — Istanbul coverage synced to Coverage Reports"

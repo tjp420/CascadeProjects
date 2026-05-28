@@ -1,5 +1,3 @@
-import { escapeHtml } from '../utils.js';
-
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 const CLI_DOCS = 'https://github.com/tjp420/simplebeacon/blob/main/README.md';
 
@@ -73,3 +71,4 @@ export class PricingView {
 
   destroy() {}
 }
+

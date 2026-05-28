@@ -105,9 +105,9 @@ export function renderScanStatus(report, options = {}) {
 
 export function bindScanStatus(container, options = {}) {
   const {
-    onRescan,
+    _onRescan,
     defaultProjectPath = '',
-    getLastProjectPath = () => '',
+    _getLastProjectPath = () => '',
     setLastProjectPath = () => {}
   } = options;
 
@@ -137,3 +137,4 @@ export function bindScanStatus(container, options = {}) {
     }
   });
 }
+

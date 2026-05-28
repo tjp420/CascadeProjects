@@ -4,7 +4,7 @@ export class TrendChart {
     this.ctx = canvas.getContext('2d');
   }
 
-  render(history, options = {}) {
+  render(history, _options = {}) {
     const data = history.length ? history : [{ date: new Date().toISOString(), issueCount: 0, qualityScore: 99 }];
     const dpr = window.devicePixelRatio || 1;
     const rect = this.canvas.parentElement.getBoundingClientRect();
@@ -127,3 +127,4 @@ export function mountTrendChart(container, history) {
   window.addEventListener('resize', onResize);
   return () => window.removeEventListener('resize', onResize);
 }
+

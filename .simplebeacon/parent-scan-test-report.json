@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-05-27T20:43:43.173Z",
+  "generatedAt": "2026-05-27T23:52:34.038Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "platformRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
@@ -11,22 +11,22 @@
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-    "totalFiles": 30881,
-    "totalFolders": 3631,
+    "totalFiles": 25901,
+    "totalFolders": 2884,
     "profile": "explorer"
   },
   "mockSampleFiles": 40,
   "totalFiles": 40,
   "ruleScopedFilesAnalyzed": 193,
-  "repositoryFilesTotal": 30881,
-  "repositoryFoldersTotal": 3631,
-  "filesAnalyzed": 30881,
+  "repositoryFilesTotal": 25901,
+  "repositoryFoldersTotal": 2884,
+  "filesAnalyzed": 25901,
   "totalSizeBytes": 264583,
   "totalSizeLabel": "258.4KB",
-  "issueCount": 0,
+  "issueCount": 4,
   "invalidJson": 0,
   "emptyFiles": 0,
-  "qualityScore": 100,
+  "qualityScore": 98,
   "schemaCompliance": 100,
   "schemaChecked": 43,
   "schemaPassed": 43,
@@ -36,14 +36,14 @@
   "roadmapSchemaChecked": 1,
   "roadmapSchemaPassed": 1,
   "consistencyChecked": 67,
-  "consistencyPassed": 67,
-  "consistencyScore": 100,
+  "consistencyPassed": 63,
+  "consistencyScore": 94,
   "fictionJsonFilesScanned": 67,
   "fictionSampleFilesScanned": 40,
   "fictionScope": "repository-json",
-  "credentialScanned": 177,
+  "credentialScanned": 178,
   "credentialFindings": 0,
-  "productionLeakScanned": 123,
+  "productionLeakScanned": 124,
   "productionLeakFindings": 0,
   "sourceCodeFilesScanned": 193,
   "sourceFictionPatternHits": 0,
@@ -53,7 +53,7 @@
   "severityCounts": {
     "critical": 0,
     "high": 0,
-    "medium": 0,
+    "medium": 4,
     "low": 0
   },
   "mockDataCategories": [
@@ -67,8 +67,130 @@
       "description": "JSON Files discovered during filesystem scan"
     }
   ],
-  "detectedIssues": [],
-  "rawIssues": [],
+  "detectedIssues": [
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Jest Count Mismatch",
+      "count": 1,
+      "description": "engineering-baseline-sample.json: jest=805/805 (expected 783/783)",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Run npm test and sync sample KPIs to measured baseline",
+      "recommendedAction": "Run npm test and sync sample KPIs to measured baseline",
+      "affectedFiles": [
+        "engineering-baseline-sample.json"
+      ],
+      "filePaths": [
+        "engineering-baseline-sample.json"
+      ],
+      "file": "engineering-baseline-sample.json"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Jest Count Mismatch",
+      "count": 1,
+      "description": "implementation-plan-sample.json: jest=805 (expected 783/783)",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Run npm test and sync sample KPIs to measured baseline",
+      "recommendedAction": "Run npm test and sync sample KPIs to measured baseline",
+      "affectedFiles": [
+        "implementation-plan-sample.json"
+      ],
+      "filePaths": [
+        "implementation-plan-sample.json"
+      ],
+      "file": "implementation-plan-sample.json"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Jest Count Mismatch",
+      "count": 1,
+      "description": "master-roadmap-sample.json: jest=805/805 (expected 783/783)",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Run npm test and sync sample KPIs to measured baseline",
+      "recommendedAction": "Run npm test and sync sample KPIs to measured baseline",
+      "affectedFiles": [
+        "master-roadmap-sample.json"
+      ],
+      "filePaths": [
+        "master-roadmap-sample.json"
+      ],
+      "file": "master-roadmap-sample.json"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Jest Count Mismatch",
+      "count": 1,
+      "description": "dashboard-home-sample.json: jest=805/805 (expected 783/783)",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Run npm test and sync sample KPIs to measured baseline",
+      "recommendedAction": "Run npm test and sync sample KPIs to measured baseline",
+      "affectedFiles": [
+        "dashboard-home-sample.json"
+      ],
+      "filePaths": [
+        "dashboard-home-sample.json"
+      ],
+      "file": "dashboard-home-sample.json"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "jest-engineering-baseline-sample.json",
+      "severity": "medium",
+      "type": "Jest Count Mismatch",
+      "filePath": "engineering-baseline-sample.json",
+      "count": 1,
+      "description": "engineering-baseline-sample.json: jest=805/805 (expected 783/783)",
+      "recommendedAction": "Run npm test and sync sample KPIs to measured baseline",
+      "affectedFiles": [
+        "engineering-baseline-sample.json"
+      ]
+    },
+    {
+      "id": "jest-implementation-plan-sample.json",
+      "severity": "medium",
+      "type": "Jest Count Mismatch",
+      "filePath": "implementation-plan-sample.json",
+      "count": 1,
+      "description": "implementation-plan-sample.json: jest=805 (expected 783/783)",
+      "recommendedAction": "Run npm test and sync sample KPIs to measured baseline",
+      "affectedFiles": [
+        "implementation-plan-sample.json"
+      ]
+    },
+    {
+      "id": "jest-master-roadmap-sample.json",
+      "severity": "medium",
+      "type": "Jest Count Mismatch",
+      "filePath": "master-roadmap-sample.json",
+      "count": 1,
+      "description": "master-roadmap-sample.json: jest=805/805 (expected 783/783)",
+      "recommendedAction": "Run npm test and sync sample KPIs to measured baseline",
+      "affectedFiles": [
+        "master-roadmap-sample.json"
+      ]
+    },
+    {
+      "id": "jest-dashboard-home-sample.json",
+      "severity": "medium",
+      "type": "Jest Count Mismatch",
+      "filePath": "dashboard-home-sample.json",
+      "count": 1,
+      "description": "dashboard-home-sample.json: jest=805/805 (expected 783/783)",
+      "recommendedAction": "Run npm test and sync sample KPIs to measured baseline",
+      "affectedFiles": [
+        "dashboard-home-sample.json"
+      ]
+    }
+  ],
   "sampleFiles": [
     "ai-adoption-trends-sample.json",
     "ai-analysis-sample.json",
@@ -136,7 +258,7 @@
     "pageSpecsValidated": 42,
     "pageSpecsFromScanPaths": 40,
     "pageSpecsFromAliasPaths": 2,
-    "productionDirsScanned": 123,
+    "productionDirsScanned": 124,
     "productionPaths": [
       "server/",
       "src/",
@@ -157,10 +279,10 @@
     "fictionJsonFilesScanned": 67,
     "fictionSampleFilesScanned": 40,
     "ruleScopedFilesAnalyzed": 193,
-    "repositoryFilesTotal": 30881,
-    "repositoryFoldersTotal": 3631,
+    "repositoryFilesTotal": 25901,
+    "repositoryFoldersTotal": 2884,
     "limitations": [
-      "Repository inventory: 30,881 files — gate rules checked 193 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 25,901 files — gate rules checked 193 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
       "Fiction/KPI rules scan repository JSON (67) plus source code (193 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
@@ -176,8 +298,8 @@
       "low"
     ],
     "blockingCount": 0,
-    "warningCount": 0
+    "warningCount": 4
   },
   "sanitized": true,
-  "sanitizedAt": "2026-05-27T20:43:43.175Z"
+  "sanitizedAt": "2026-05-27T23:52:34.041Z"
 }

@@ -7,6 +7,7 @@ This bundle is generated from the current repository state.
 - Landing/marketing files from `coming-soon/` (kept intact).
 - Dashboard assets from `ai-platform/web/simplebeacon-dashboard/`.
 - A dashboard entry page at `/signin/index.html`.
+- `.simplebeacon/`, `stripe-audit-product.ids.json`, and `trust-verification.json` link to canonical sources (`coming-soon/` and `ai-platform/public/`) — run `npm run bundle:signin-site:links` after manual edits if copies drift.
 
 ## Expected behavior
 

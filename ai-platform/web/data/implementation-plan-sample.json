@@ -22,7 +22,7 @@
     "budgetNote": "Solo notional hours only — not enterprise budget forecasts",
     "teamSize": 1,
     "duration": "4 sprints delivered; optional Phase 3 backlog",
-    "notes": "805/805 Jest (64 suites), 43/43 PAGE_SAMPLE_SPECS, Phase 2 code-roadmap on path scan."
+    "notes": "805/805 Jest (61 suites), 43/43 PAGE_SAMPLE_SPECS, Phase 2 code-roadmap on path scan."
   },
   "sprintStatus": [
     { "sprint": "Sprint 1: Server & Auth", "status": "completed", "progress": 100, "window": "2026-05-01 — 2026-05-07" },
@@ -135,7 +135,7 @@
         "target": 100,
         "unit": "%",
         "status": "complete",
-        "source": "805/805 tests passing (64 suites)"
+        "source": "805/805 tests passing (61 suites)"
       },
       {
         "metric": "Honest Sample Pages",

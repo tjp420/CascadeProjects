@@ -80,7 +80,7 @@ export class BillingService {
     return Boolean(plan?.internalDashboard || status?.bypass);
   }
 
-  async resolveEntitlement(email = this.getEmail() || '') {
+  async resolveEntitlement(_email = this.getEmail() || '') {
     try {
       const res = await fetch('/api/simplebeacon/entitlements', {
         headers: this.getRequestHeaders()
@@ -155,3 +155,4 @@ export class BillingService {
 }
 
 export const billingService = new BillingService();
+

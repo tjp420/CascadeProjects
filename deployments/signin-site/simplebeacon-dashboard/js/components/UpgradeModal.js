@@ -1,5 +1,3 @@
-import { showToast } from '../utils.js';
-
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 
 export function renderUpgradeModal({ onDismiss } = {}) {
@@ -52,3 +50,4 @@ export function showUpgradeModal(options) {
   document.body.appendChild(overlay);
   return overlay;
 }
+

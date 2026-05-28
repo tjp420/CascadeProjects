@@ -1,8 +1,56 @@
 {
   "type": "simplebeacon-trust-history",
   "version": 1,
-  "generatedAt": "2026-05-27T23:40:35.815Z",
+  "generatedAt": "2026-05-27T23:59:32.505Z",
   "entries": [
+    {
+      "recordedAt": "2026-05-27T23:59:32.504Z",
+      "generatedAt": "2026-05-27T23:59:32.494Z",
+      "verificationId": "7d000da0494d5c3f",
+      "verificationMethod": "simplebeacon-deterministic-gate",
+      "source": "trust:publish",
+      "headlineSource": "platform",
+      "gatePass": true,
+      "qualityScore": 100,
+      "issues": 0,
+      "schemaCompliance": 100,
+      "repositoryFilesTotal": 19414,
+      "ruleScopedFilesAnalyzed": 193,
+      "platform": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T23:58:32.038Z"
+      },
+      "monorepo": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T23:40:35.727Z"
+      }
+    },
+    {
+      "recordedAt": "2026-05-27T23:53:08.411Z",
+      "generatedAt": "2026-05-27T23:53:08.401Z",
+      "verificationId": "407f18e902c9fcbe",
+      "verificationMethod": "simplebeacon-deterministic-gate",
+      "source": "trust:publish",
+      "headlineSource": "platform",
+      "gatePass": true,
+      "qualityScore": 98,
+      "issues": 4,
+      "schemaCompliance": 100,
+      "repositoryFilesTotal": 19379,
+      "ruleScopedFilesAnalyzed": 193,
+      "platform": {
+        "issueCount": 4,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T23:52:55.203Z"
+      },
+      "monorepo": {
+        "issueCount": 0,
+        "gatePass": true,
+        "generatedAt": "2026-05-27T23:40:35.727Z"
+      }
+    },
     {
       "recordedAt": "2026-05-27T23:40:35.815Z",
       "generatedAt": "2026-05-27T23:40:35.811Z",

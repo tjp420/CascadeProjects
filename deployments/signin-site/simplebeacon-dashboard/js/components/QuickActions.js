@@ -1,4 +1,4 @@
-export function renderQuickActions({ onRunScan, onExport, onLegacy }) {
+export function renderQuickActions({ _onRunScan, _onExport, _onLegacy }) {
   return `
     <div class="card">
       <div class="card-header">
@@ -27,3 +27,4 @@ export function bindQuickActions(container, handlers) {
   container.querySelector('#action-export')?.addEventListener('click', handlers.onExport);
   container.querySelector('#action-legacy')?.addEventListener('click', handlers.onLegacy);
 }
+

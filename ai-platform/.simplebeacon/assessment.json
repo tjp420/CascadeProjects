@@ -1,37 +1,37 @@
 {
   "type": "simplebeacon-assessment-report",
   "title": "Simplebeacon Free Assessment — ai-platform",
-  "generatedAt": "2026-05-27T20:04:11.791Z",
+  "generatedAt": "2026-05-27T23:56:21.559Z",
   "generatedBy": "Simplebeacon",
   "assessor": "",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
   "executiveSummary": {
-    "gateResult": "PASS",
-    "qualityScore": 100,
+    "gateResult": "FAIL",
+    "qualityScore": 97,
     "filesScanned": 40,
     "criticalIssues": 0,
-    "highIssues": 0,
-    "mediumIssues": 0,
+    "highIssues": 1,
+    "mediumIssues": 4,
     "lowIssues": 0,
-    "headline": "Clean scan — no blocking mock/fiction findings in configured paths.",
-    "complianceScore": 100,
-    "complianceReady": true
+    "headline": "4 fiction/KPI issue(s). Gate would fail — these issues block merge when --gate is enabled.",
+    "complianceScore": 63,
+    "complianceReady": false
   },
   "complianceChecklist": {
     "type": "simplebeacon-compliance-checklist",
     "version": "1.0.0",
     "title": "Simplebeacon Corporate Safety Checklist",
     "description": "Automated guardrails for AI-generated code — maps scan signals to deploy readiness.",
-    "evaluatedAt": "2026-05-27T20:04:11.790Z",
+    "evaluatedAt": "2026-05-27T23:56:21.558Z",
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
     "summary": {
-      "passed": 8,
-      "failed": 0,
+      "passed": 5,
+      "failed": 3,
       "skipped": 0,
       "total": 8,
-      "score": 100,
-      "readyForAutomation": true,
-      "headline": "8/8 applicable rules pass — safe to enable automated AI deploy gates"
+      "score": 63,
+      "readyForAutomation": false,
+      "headline": "3 rule(s) fail — fix before handing operations to AI-generated code"
     },
     "rules": [
       {
@@ -40,8 +40,8 @@
         "category": "Automation",
         "severity": "critical",
         "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
-        "status": "pass",
-        "evidence": "Gate pass — no blocking issues at configured severities"
+        "status": "fail",
+        "evidence": "Gate fail — 1 blocking issue(s)"
       },
       {
         "id": "CRED-001",
@@ -50,7 +50,7 @@
         "severity": "critical",
         "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
         "status": "pass",
-        "evidence": "Scanned 226 path(s) — no credential patterns"
+        "evidence": "Scanned 178 path(s) — no credential patterns"
       },
       {
         "id": "LEAK-001",
@@ -59,7 +59,7 @@
         "severity": "high",
         "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
         "status": "pass",
-        "evidence": "Scanned 172 production file(s) — no sample-path leaks"
+        "evidence": "Scanned 124 production file(s) — no sample-path leaks"
       },
       {
         "id": "DATA-001",
@@ -68,7 +68,7 @@
         "severity": "high",
         "remediation": "Fix schema violations listed in the scan report",
         "status": "pass",
-        "evidence": "44/44 samples match schema specs"
+        "evidence": "43/43 samples match schema specs"
       },
       {
         "id": "DATA-002",
@@ -76,8 +76,8 @@
         "category": "Data integrity",
         "severity": "high",
         "remediation": "Replace fiction metrics with repository-audit baseline values",
-        "status": "pass",
-        "evidence": "Consistency score 100% — no fiction KPI drift"
+        "status": "fail",
+        "evidence": "Consistency score 94% — fiction or baseline drift detected"
       },
       {
         "id": "SUPPLY-001",
@@ -94,8 +94,8 @@
         "category": "Supply chain",
         "severity": "medium",
         "remediation": "Upgrade dependencies flagged by npm audit (moderate severity)",
-        "status": "pass",
-        "evidence": "0 moderate (limit 0)"
+        "status": "fail",
+        "evidence": "1 moderate exceeds policy limit of 0"
       },
       {
         "id": "AUTH-001",
@@ -110,40 +110,79 @@
   },
   "findings": {
     "credentials": {
-      "scanned": 226,
+      "scanned": 178,
       "findings": 0,
       "severity": "high",
       "items": [],
       "summary": "No credential patterns detected in scanned paths."
     },
     "fictionKpis": {
-      "scanned": 73,
-      "findings": 0,
+      "scanned": 67,
+      "findings": 4,
       "severity": "high",
-      "items": [],
-      "summary": "No fiction KPI or consistency drift detected."
+      "items": [
+        {
+          "file": "engineering-baseline-sample.json",
+          "description": "engineering-baseline-sample.json: jest=805/805 (expected 783/783)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Run npm test and sync sample KPIs to measured baseline"
+        },
+        {
+          "file": "implementation-plan-sample.json",
+          "description": "implementation-plan-sample.json: jest=805 (expected 783/783)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Run npm test and sync sample KPIs to measured baseline"
+        },
+        {
+          "file": "master-roadmap-sample.json",
+          "description": "master-roadmap-sample.json: jest=805/805 (expected 783/783)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Run npm test and sync sample KPIs to measured baseline"
+        },
+        {
+          "file": "dashboard-home-sample.json",
+          "description": "dashboard-home-sample.json: jest=805/805 (expected 783/783)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Run npm test and sync sample KPIs to measured baseline"
+        }
+      ],
+      "summary": "engineering-baseline-sample.json: engineering-baseline-sample.json: jest=805/805 (expected 783/783); implementation-plan-sample.json: implementation-plan-sample.json: jest=805 (expected 783/783); master-roadmap-sample.json: master-roadmap-sample.json: jest=805/805 (expected 783/783); dashboard-home-sample.json: dashboard-home-sample.json: jest=805/805 (expected 783/783)"
     },
     "productionLeaks": {
-      "scanned": 172,
+      "scanned": 124,
       "findings": 0,
       "severity": "medium",
       "items": [],
       "summary": "No mock/sample path references in production directories."
     },
     "schemaDrift": {
-      "checked": 44,
-      "passed": 44,
+      "checked": 43,
+      "passed": 43,
       "severity": "high",
       "items": [],
       "summary": "All registered page samples match schema specs."
     },
     "other": {
-      "items": [],
-      "summary": "No other findings."
+      "items": [
+        {
+          "file": "jest",
+          "description": "Jest reported failures — 804/805 passed",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Fix failing tests before merge"
+        }
+      ],
+      "summary": "jest: Jest reported failures — 804/805 passed"
     }
   },
   "recommendedActions": {
     "immediate": [
+      "Fix high-severity findings before enabling --gate on main",
+      "Replace fiction KPIs with repository-audit baseline values",
       "Add simplebeacon scan --gate to PR workflow (see docs/GITHUB-ACTION-QUICKSTART.md)"
     ],
     "next30Days": [
@@ -172,12 +211,12 @@
     "npx simplebeacon assess --company \"ai-platform\""
   ],
   "sourceReport": {
-    "generatedAt": "2026-05-27T20:04:11.348Z",
+    "generatedAt": "2026-05-27T23:54:18.443Z",
     "scanPaths": [
       "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web\\data"
     ],
     "duplicateGroups": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-05-27T20:04:11.792Z"
+  "sanitizedAt": "2026-05-27T23:56:21.563Z"
 }

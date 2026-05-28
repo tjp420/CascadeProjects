@@ -66,10 +66,16 @@ function assertNoSecrets() {
     /\bAKIA[0-9A-Z]{16}\b/,
     /re_[a-zA-Z0-9]{20,}/
   ];
+  const exampleAllowlist = [
+    'AKIAIOSFODNN7EXAMPLE'
+  ];
   for (const rel of FILES) {
     const filePath = path.join(OUT, rel);
     if (!fs.existsSync(filePath) || !/\.(html|js|css)$/i.test(rel)) continue;
-    const text = fs.readFileSync(filePath, 'utf8');
+    let text = fs.readFileSync(filePath, 'utf8');
+    for (const example of exampleAllowlist) {
+      text = text.split(example).join('');
+    }
     for (const pattern of secretPatterns) {
       if (pattern.test(text)) {
         throw new Error(`Possible secret in ${rel}`);
