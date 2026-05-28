@@ -46,16 +46,14 @@ describe('mock data scanner', () => {
 
     test('detects duplicate JSON content with relative paths', async () => {
         const dataDir = path.join(baseDir, 'web', 'data');
-        const mockDir = path.join(baseDir, 'data', 'mock');
-        fs.mkdirSync(mockDir, { recursive: true });
         const payload = JSON.stringify({ duplicate: true, value: 1 });
         fs.writeFileSync(path.join(dataDir, 'dup-a.json'), payload);
-        fs.writeFileSync(path.join(mockDir, 'dup-b.json'), payload);
+        fs.writeFileSync(path.join(dataDir, 'dup-b.json'), payload);
 
         const scan = await scanMockDataDirectories(baseDir);
         const dupIssue = scan.rawIssues.find((issue) => issue.type === 'Duplicate Data');
         expect(dupIssue).toBeTruthy();
-        expect(dupIssue.affectedFiles).toEqual(expect.arrayContaining(['web/data/dup-a.json', 'data/mock/dup-b.json']));
+        expect(dupIssue.affectedFiles).toEqual(expect.arrayContaining(['web/data/dup-a.json', 'web/data/dup-b.json']));
         expect(new Set(dupIssue.affectedFiles).size).toBe(2);
     });
 

@@ -3,7 +3,7 @@
   "reportVersion": 2,
   "title": "File Merger & Reduction Scan (Measured Baseline)",
   "dataSource": "repository-audit",
-  "generatedAt": "2026-05-28T00:06:02.528Z",
+  "generatedAt": "2026-05-28T00:22:07.595Z",
   "generatedBy": "file-merger-reduction-scanner",
   "scanEngine": "file-merger-reduction-scanner",
   "inferenceMode": "filesystem + fuzzy-match",
@@ -27,8 +27,6 @@
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
   "scanPaths": [
     "web/data",
-    "data/mock",
-    "data-central/ai-tools/mock-data",
     "data/roadmap"
   ],
   "scanScope": {
@@ -36,17 +34,15 @@
     "description": "Duplicate and structure analysis on configured mock/sample JSON paths only.",
     "sampleDataPaths": [
       "web/data",
-      "data/mock",
-      "data-central/ai-tools/mock-data",
       "data/roadmap"
     ],
-    "sampleDataFilesAnalyzed": 43,
-    "jsonFilesAnalyzed": 42,
-    "repositoryFilesAudited": 43,
+    "sampleDataFilesAnalyzed": 41,
+    "jsonFilesAnalyzed": 41,
+    "repositoryFilesAudited": 41,
     "repositoryInventoryProfile": "explorer",
     "repositoryInventoryIncluded": true,
-    "repositoryFilesTotal": 19441,
-    "repositoryFoldersTotal": 2620,
+    "repositoryFilesTotal": 19345,
+    "repositoryFoldersTotal": 2676,
     "limitations": [
       "Sample-path mode only — use scope=repository for full tree inventory.",
       "Structure similarity does not scan application source code."
@@ -54,19 +50,19 @@
   },
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-    "totalFiles": 19441,
-    "totalFolders": 2620,
+    "totalFiles": 19345,
+    "totalFolders": 2676,
     "profile": "explorer"
   },
   "summary": {
-    "filesAnalyzed": 43,
-    "sampleDataFilesAnalyzed": 43,
-    "jsonFilesAnalyzed": 42,
-    "repositoryFilesTotal": 19441,
-    "repositoryFilesAudited": 43,
-    "repositoryFoldersTotal": 2620,
-    "totalSizeBytes": 275160,
-    "totalSizeLabel": "268.7KB",
+    "filesAnalyzed": 41,
+    "sampleDataFilesAnalyzed": 41,
+    "jsonFilesAnalyzed": 41,
+    "repositoryFilesTotal": 19345,
+    "repositoryFilesAudited": 41,
+    "repositoryFoldersTotal": 2676,
+    "totalSizeBytes": 274001,
+    "totalSizeLabel": "267.6KB",
     "mergeCandidates": 0,
     "reductionOpportunities": 0,
     "potentialSavingsBytes": 0,

@@ -17,8 +17,6 @@ describe('central-data-config loader', () => {
     test('resolveMockDataScanPaths includes configured roots', () => {
         const paths = resolveMockDataScanPaths(baseDir);
         expect(paths.some((p) => p.endsWith(`${path.sep}web${path.sep}data`))).toBe(true);
-        expect(paths.some((p) => p.endsWith(`${path.sep}data${path.sep}mock`))).toBe(true);
-        expect(paths.some((p) => p.includes('mock-data'))).toBe(true);
     });
 
     test('falls back to defaults when config missing', () => {

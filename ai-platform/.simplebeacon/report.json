@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-05-28T00:06:46.112Z",
+  "generatedAt": "2026-05-28T00:21:42.201Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\config.json",
@@ -10,16 +10,16 @@
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-    "totalFiles": 19441,
-    "totalFolders": 2620,
+    "totalFiles": 19500,
+    "totalFolders": 2677,
     "profile": "explorer"
   },
   "mockSampleFiles": 40,
   "totalFiles": 40,
   "ruleScopedFilesAnalyzed": 191,
-  "repositoryFilesTotal": 19441,
-  "repositoryFoldersTotal": 2620,
-  "filesAnalyzed": 19441,
+  "repositoryFilesTotal": 19500,
+  "repositoryFoldersTotal": 2677,
+  "filesAnalyzed": 19500,
   "totalSizeBytes": 264583,
   "totalSizeLabel": "258.4KB",
   "issueCount": 0,
@@ -34,10 +34,10 @@
   "duplicateGroups": 0,
   "roadmapSchemaChecked": 1,
   "roadmapSchemaPassed": 1,
-  "consistencyChecked": 67,
-  "consistencyPassed": 67,
+  "consistencyChecked": 68,
+  "consistencyPassed": 68,
   "consistencyScore": 100,
-  "fictionJsonFilesScanned": 67,
+  "fictionJsonFilesScanned": 68,
   "fictionSampleFilesScanned": 40,
   "fictionScope": "repository-json",
   "credentialScanned": 170,
@@ -46,9 +46,15 @@
   "productionLeakFindings": 0,
   "sourceCodeFilesScanned": 191,
   "sourceFictionPatternHits": 0,
-  "jestBaselineChecked": false,
+  "jestBaselineChecked": true,
   "jestBaselinePassed": true,
-  "jestSummary": null,
+  "jestSummary": {
+    "testsPassed": 805,
+    "testsTotal": 805,
+    "testsFailed": 0,
+    "suitesPassed": 61,
+    "suitesTotal": 61
+  },
   "severityCounts": {
     "critical": 0,
     "high": 0,
@@ -119,6 +125,7 @@
       "sample-consistency",
       "roadmap",
       "production-leak",
+      "jest-baseline",
       "fiction-kpi-patterns"
     ],
     "gatePolicy": {
@@ -150,19 +157,19 @@
     ],
     "sourceCodeFilesScanned": 191,
     "sourceFictionPatternHits": 0,
-    "jestExecutedDuringScan": false,
+    "jestExecutedDuringScan": true,
     "consistencyAnchorCount": 5,
     "fictionScope": "repository-json",
-    "fictionJsonFilesScanned": 67,
+    "fictionJsonFilesScanned": 68,
     "fictionSampleFilesScanned": 40,
     "ruleScopedFilesAnalyzed": 191,
-    "repositoryFilesTotal": 19441,
-    "repositoryFoldersTotal": 2620,
+    "repositoryFilesTotal": 19500,
+    "repositoryFoldersTotal": 2677,
     "limitations": [
-      "Repository inventory: 19,441 files — gate rules checked 191 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 19,500 files — gate rules checked 191 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-      "Fiction/KPI rules scan repository JSON (67) plus source code (191 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
-      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
+      "Fiction/KPI rules scan repository JSON (68) plus source code (191 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
+      "Jest was executed during this scan."
     ]
   },
   "gate": {
@@ -178,5 +185,5 @@
     "warningCount": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-05-28T00:06:46.115Z"
+  "sanitizedAt": "2026-05-28T00:21:42.203Z"
 }

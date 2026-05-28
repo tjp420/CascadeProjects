@@ -31,9 +31,7 @@ const GENERIC_REJECTED_FICTION = {
 };
 
 const DEFAULT_MOCK_SCAN_RELATIVE_PATHS = [
-    'web/data',
-    'data/mock',
-    'data-central/ai-tools/mock-data'
+    'web/data'
 ];
 
 const DEFAULT_CONSISTENCY_ANCHOR_SAMPLES = CASCADE_ANCHORS;
@@ -135,10 +133,17 @@ function resolvePathFromBase(baseDir, relativePath) {
 }
 
 function loadCentralDataConfig(baseDir) {
-    const configPath = path.join(baseDir, 'data-central', 'config', 'central-data-config.json');
-    const result = readJsonFile(configPath);
-    if (!result.ok) return null;
-    return result.data?.centralDataTruth || result.data || null;
+    const candidates = [
+        path.join(baseDir, 'config', 'central-data-config.json'),
+        path.join(baseDir, 'data-central', 'config', 'central-data-config.json')
+    ];
+    for (const configPath of candidates) {
+        const result = readJsonFile(configPath);
+        if (result.ok) {
+            return result.data?.centralDataTruth || result.data || null;
+        }
+    }
+    return null;
 }
 
 function resolveScanPaths(baseDir, config, extraPaths = []) {

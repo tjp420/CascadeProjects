@@ -1,7 +1,7 @@
 {
-  "name": "cascade-ai-platform",
+  "name": "simplebeacon-platform",
   "version": "1.0.0",
-  "description": "Unified AI Platform for Cascade Projects",
+  "description": "Simplebeacon — AI safety scanning, dashboard, and audit APIs",
   "main": "server/index.js",
   "workspaces": [
     "packages/*"
@@ -55,8 +55,8 @@
     "export-system:check": "node tools/verify-export-system-shim.js",
     "security:scan": "npm run simplebeacon:report && npm run simplebeacon:assess -- --output .simplebeacon/assessment.json && npm run trust:publish",
     "compliance:check": "node packages/simplebeacon-cli/bin/simplebeacon.js compliance --path . --report .simplebeacon/report.json",
-    "start": "node src/server/index.js",
-    "dev": "nodemon src/server/index.js",
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
     "build": "webpack --mode production",
     "fast": "node scripts/build-fast.js",
     "fast:simple": "node scripts/build-fast.js simple",
