@@ -8,7 +8,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULT_BASE_URL = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:54355';
+const DEFAULT_BASE_URL = process.env.SMOKE_BASE_URL
+    || (process.argv.includes('--production') ? 'https://simplebeacon.ai' : 'http://127.0.0.1:54355');
 
 function loadLocalVaultEnv() {
     if (process.env.DASHBOARD_VAULT_PASSWORD || process.env.SMOKE_VAULT_PASSWORD) return;
@@ -56,7 +57,8 @@ async function fetchJson(url, options = {}) {
 async function main() {
     loadLocalVaultEnv();
     const baseUrl = String(DEFAULT_BASE_URL).replace(/\/$/, '');
-    const requireAuth = (process.env.SMOKE_REQUIRE_AUTH || process.env.REQUIRE_AUTH) === 'true';
+    const marketingOnly = process.argv.includes('--marketing');
+    const requireAuth = !marketingOnly && (process.env.SMOKE_REQUIRE_AUTH || process.env.REQUIRE_AUTH) === 'true';
     const configuredBearer = process.env.SMOKE_BEARER_TOKEN || process.env.SIMPLEBEACON_DASHBOARD_TOKEN || '';
     const failures = [];
     const notes = [];
@@ -82,6 +84,22 @@ async function main() {
     await expectStatus('platform status', '/api/platform/status', 200);
     await expectStatus('billing plan', '/api/simplebeacon/billing/plan', 200);
     await expectStatus('assessment health', '/api/assessment/health', 200);
+
+    if (marketingOnly) {
+        await expectStatus('pricing page', '/pricing', 200);
+        for (const line of notes) {
+            console.log(line);
+        }
+        if (failures.length) {
+            console.error('SMOKE SUITE FAILED');
+            for (const failure of failures) {
+                console.error(` - ${failure}`);
+            }
+            process.exit(1);
+        }
+        console.log('SMOKE SUITE PASSED (marketing/public routes only)');
+        return;
+    }
 
     // Protected route: without token should be 401 when REQUIRE_AUTH=true.
     const { res: protectedRes } = await fetchJson(`${baseUrl}/api/analyze/providers`);
