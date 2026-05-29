@@ -112,7 +112,7 @@ function lineTextAt(text, lineNumber) {
 
 function isPathRegistryLine(line) {
   const trimmed = String(line || '').trim();
-  return /"[^"]+[\\/][^"]+\.(?:js|mjs|cjs|ts|tsx|json)":\s*[\{,]/.test(trimmed);
+  return /"[^"]+[\\/][^"]+\.(?:js|mjs|cjs|ts|tsx|json)":\s*[{,]/.test(trimmed);
 }
 
 function isFindingRegistryLine(line) {

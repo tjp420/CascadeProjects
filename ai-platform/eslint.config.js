@@ -190,6 +190,13 @@ export default [
     }
   },
   {
+    files: ['packages/**/complete-scan-artifact-profile.browser.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module'
+    }
+  },
+  {
     files: ['src/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,

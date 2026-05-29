@@ -1318,7 +1318,6 @@ function renderCompleteAuditHtml(model, options = {}) {
         + (s.codebaseHealth != null ? escapeHtml(String(s.codebaseHealth)) + '%' : '—')
         + ' · audit confidence '
         + (s.confidenceScore != null ? escapeHtml(String(s.confidenceScore)) + '/100' : '—');
-    const codeHealthSuffix = s.codebaseHealth != null ? '%' : '';
     const section03IntroSuffix = s.codebaseFindingsRaw > (model.remediationRows?.length || 0)
         ? ' from ' + Number(s.codebaseFindingsRaw).toLocaleString() + ' total scan match(es)'
         : '';
