@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-05-29T05:14:36.360Z",
+  "generatedAt": "2026-05-29T05:16:07.590Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\config.json",
@@ -10,16 +10,16 @@
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-    "totalFiles": 2224,
-    "totalFolders": 200,
+    "totalFiles": 2230,
+    "totalFolders": 206,
     "profile": "audit"
   },
   "mockSampleFiles": 48,
   "totalFiles": 48,
   "ruleScopedFilesAnalyzed": 209,
-  "repositoryFilesTotal": 2224,
-  "repositoryFoldersTotal": 200,
-  "filesAnalyzed": 2224,
+  "repositoryFilesTotal": 2230,
+  "repositoryFoldersTotal": 206,
+  "filesAnalyzed": 2230,
   "totalSizeBytes": 278846,
   "totalSizeLabel": "272.3KB",
   "issueCount": 0,
@@ -170,12 +170,12 @@
     "fictionJsonFilesScanned": 64,
     "fictionSampleFilesScanned": 48,
     "ruleScopedFilesAnalyzed": 209,
-    "repositoryFilesTotal": 2224,
-    "repositoryFoldersTotal": 200,
+    "repositoryFilesTotal": 2230,
+    "repositoryFoldersTotal": 206,
     "benchmarkCacheIssuesExcluded": 0,
     "excludedPathsNote": null,
     "limitations": [
-      "Repository inventory: 2,224 files — gate rules checked 209 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 2,230 files — gate rules checked 209 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
       "Fiction/KPI rules scan repository JSON (64) plus source code (209 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
@@ -197,5 +197,5 @@
     "warningCount": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-05-29T05:14:36.363Z"
+  "sanitizedAt": "2026-05-29T05:16:07.592Z"
 }
