@@ -20,9 +20,48 @@ const {
     DEFAULT_FUZZY_THRESHOLD
 } = require('./fuzzy-content-matcher');
 const { isDistinctCanonicalRoadmapPair } = require('./canonical-roadmap-files');
+const { isExternalBenchmarkCachePath } = require('../../packages/simplebeacon-cli/src/lib/benchmark-cache-paths');
 
 const DEFAULT_EXTRA_PATHS = ['data/roadmap'];
-const REPO_SKIP_DIRS = new Set(['node_modules', '.git', 'uploads', 'coverage', 'archive', 'dist', 'build']);
+const REPO_SKIP_DIRS = new Set([
+    'node_modules', '.git', 'uploads', 'coverage', 'archive', 'dist', 'build',
+    '.next', '.cache', 'github-cache', 'deliverables', 'data-central',
+    'java-ai-vulnerable', 'security-reports', '.simplebeacon', '__pycache__', '.venv', 'htmlcov'
+]);
+
+function isExcludedConsolidationPath(filePath) {
+    const rel = normalizeRelativePath(filePath);
+    if (isExternalBenchmarkCachePath(rel)) return true;
+    if (rel.startsWith('deliverables/') || rel.includes('/deliverables/')) return true;
+    if (rel.startsWith('github-cache/') || rel.includes('/github-cache/')) return true;
+    return false;
+}
+
+function candidateTouchesExcludedPath(candidate) {
+    const paths = (candidate?.files || []).map((file) => file.path || file.relativePath || file.name);
+    return paths.some(isExcludedConsolidationPath);
+}
+
+function filterAdvancedAnalysis(analysis) {
+    if (!analysis) return analysis;
+    const fuzzyPairs = (analysis.fuzzyNearDuplicates?.pairs || [])
+        .filter((pair) => !isExcludedConsolidationPath(pair.fileA) && !isExcludedConsolidationPath(pair.fileB));
+    const patternGroups = (analysis.patternConsolidation?.recommendations || [])
+        .filter((group) => !(group.files || []).every((file) => isExcludedConsolidationPath(file.path)));
+    return {
+        ...analysis,
+        fuzzyNearDuplicates: {
+            ...analysis.fuzzyNearDuplicates,
+            pairsFound: fuzzyPairs.length,
+            pairs: fuzzyPairs
+        },
+        patternConsolidation: {
+            ...analysis.patternConsolidation,
+            groupsFound: patternGroups.length,
+            recommendations: patternGroups
+        }
+    };
+}
 const SAMPLE_WALK_MAX_DEPTH = 6;
 const REPO_WALK_MAX_DEPTH = 24;
 const JSON_MAX_BYTES = 512000;
@@ -352,23 +391,26 @@ function buildScanScope(scope, scanPaths, counts) {
     return {
         mode: isRepository ? 'repository-consolidation' : 'sample-data-consolidation',
         description: isRepository
-            ? 'Full repository inventory (explorer profile) plus JSON duplicate detection on audit-scoped paths — skips node_modules, .git, coverage, archive for merge logic.'
+            ? `Full repository inventory (${counts.repositoryInventoryProfile || 'audit'} profile) plus JSON duplicate detection on audit-scoped paths — skips node_modules, .git, coverage, archive for merge logic.`
             : 'Duplicate and structure analysis on configured mock/sample JSON paths only.',
         sampleDataPaths: relativePaths,
         sampleDataFilesAnalyzed: counts.sampleDataFiles,
         jsonFilesAnalyzed: counts.jsonFiles,
         repositoryFilesAudited: counts.repositoryFilesAudited ?? null,
-        repositoryInventoryProfile: counts.repositoryInventoryProfile || 'explorer',
+        repositoryInventoryProfile: counts.repositoryInventoryProfile || 'audit',
         repositoryInventoryIncluded: Boolean(counts.repositoryFiles != null),
         repositoryFilesTotal: counts.repositoryFiles ?? null,
         repositoryFoldersTotal: counts.repositoryFolders ?? null,
         limitations: isRepository
             ? [
-                `repositoryFilesTotal uses explorer inventory (${counts.repositoryFiles?.toLocaleString?.() ?? counts.repositoryFiles ?? '—'} files).`,
+                `repositoryFilesTotal uses ${counts.repositoryInventoryProfile || 'audit'} inventory (${counts.repositoryFiles?.toLocaleString?.() ?? counts.repositoryFiles ?? '—'} files).`,
                 `Merge/dedup logic walked ${counts.repositoryFilesAudited?.toLocaleString?.() ?? counts.repositoryFilesAudited ?? '—'} audit-scoped files and hashed ${counts.jsonFiles ?? '—'} JSON files.`,
                 'Structure similarity pairs are limited to configured sample paths.',
-                'node_modules, .git, coverage, archive, dist, and build are excluded from merge walks.'
-            ]
+                'node_modules, .git, coverage, archive, dist, build, github-cache/, and deliverables/ are excluded from merge walks.',
+                counts.benchmarkCacheCandidatesExcluded
+                    ? `${counts.benchmarkCacheCandidatesExcluded} benchmark-clone candidate(s) excluded from platform consolidation scores.`
+                    : null
+            ].filter(Boolean)
             : [
                 'Sample-path mode only — use scope=repository for full tree inventory.',
                 'Structure similarity does not scan application source code.'
@@ -412,9 +454,10 @@ async function scanFileMergerReduction(baseDir, options = {}) {
         ? await collectRepositoryFiles(resolvedBase)
         : sampleFiles;
 
+    const inventoryRoot = platformRoot || resolvedBase;
     const repositoryInventory = includeRepositoryInventory
-        ? await countRepositoryInventory(resolvedBase, {
-            profile: options.inventoryProfile || 'explorer'
+        ? await countRepositoryInventory(inventoryRoot, {
+            profile: options.inventoryProfile || 'audit'
         })
         : null;
     const repositoryFilesAudited = repositoryFiles.length;
@@ -441,24 +484,35 @@ async function scanFileMergerReduction(baseDir, options = {}) {
         )
     );
 
-    const fuzzyScopeFiles = scope === 'repository' ? repositoryFiles : sampleFiles;
-    const advancedAnalysis = buildAdvancedAnalysis(fuzzyScopeFiles, {
+    const fuzzyScopeFiles = (scope === 'repository' ? repositoryFiles : sampleFiles)
+        .filter((file) => !isExcludedConsolidationPath(file.relativePath || file.path));
+    const rawAdvancedAnalysis = buildAdvancedAnalysis(fuzzyScopeFiles, {
         threshold: options.fuzzyThreshold ?? DEFAULT_FUZZY_THRESHOLD
     });
+    const advancedAnalysis = filterAdvancedAnalysis(rawAdvancedAnalysis);
     const fuzzyCandidates = buildFuzzyMergeCandidates(
         advancedAnalysis.fuzzyNearDuplicates.pairs,
         formatBytes
     );
 
+    const platformDuplicateGroups = duplicateGroups.filter(
+        (group) => !group.every((entry) => isExcludedConsolidationPath(entry.relativePath || entry.path))
+    );
+    const benchmarkCacheCandidatesExcluded = (duplicateGroups.length - platformDuplicateGroups.length)
+        + ((rawAdvancedAnalysis.fuzzyNearDuplicates?.pairs?.length || 0)
+            - (advancedAnalysis.fuzzyNearDuplicates?.pairs?.length || 0))
+        + ((rawAdvancedAnalysis.patternConsolidation?.recommendations?.length || 0)
+            - (advancedAnalysis.patternConsolidation?.recommendations?.length || 0));
+
     const mergeCandidates = [
-        ...buildExactDuplicateCandidates(duplicateGroups),
+        ...buildExactDuplicateCandidates(platformDuplicateGroups),
         ...await findStructureSimilarPairs(sampleFiles.filter((f) => f.ext === '.json')),
         ...fuzzyCandidates
-    ];
+    ].filter((candidate) => !candidateTouchesExcludedPath(candidate));
 
     const reductionOpportunities = [
-        ...buildOversizedOpportunities(scope === 'repository' ? repositoryFiles : sampleFiles),
-        ...duplicateGroups.map((group, index) => ({
+        ...buildOversizedOpportunities(fuzzyScopeFiles),
+        ...platformDuplicateGroups.map((group, index) => ({
             id: `dedupe-${index + 1}`,
             type: 'duplicate-removal',
             method: 'deduplicate',
@@ -477,7 +531,7 @@ async function scanFileMergerReduction(baseDir, options = {}) {
             risk: 'low',
             description: `${group.length} files share identical JSON content`
         }))
-    ];
+    ].filter((opportunity) => !(opportunity.files || []).every((file) => isExcludedConsolidationPath(file.path)));
 
     const potentialSavingsBytes = reductionOpportunities.reduce(
         (sum, opp) => sum + (opp.savingsBytes || 0),
@@ -511,7 +565,8 @@ async function scanFileMergerReduction(baseDir, options = {}) {
             repositoryFiles: repositoryFilesTotal,
             repositoryFolders: repositoryInventory?.totalFolders ?? null,
             repositoryFilesAudited,
-            repositoryInventoryProfile: repositoryInventory?.profile || 'explorer'
+            repositoryInventoryProfile: repositoryInventory?.profile || 'explorer',
+            benchmarkCacheCandidatesExcluded
         }),
         repositoryInventory: repositoryInventory ? {
             projectRoot: path.relative(resolvedBase, repositoryInventory.projectRoot).replace(/\\/g, '/')
@@ -533,7 +588,8 @@ async function scanFileMergerReduction(baseDir, options = {}) {
             reductionOpportunities: reductionOpportunities.length,
             potentialSavingsBytes,
             potentialSavingsLabel: formatBytes(potentialSavingsBytes),
-            exactDuplicateGroups: duplicateGroups.length,
+            exactDuplicateGroups: platformDuplicateGroups.length,
+            benchmarkCacheCandidatesExcluded,
             structureSimilarPairs: mergeCandidates.filter((c) => c.mergeType === 'structure-based').length,
             fuzzyNearDuplicatePairs: advancedAnalysis.fuzzyNearDuplicates.pairsFound,
             patternConsolidationGroups: advancedAnalysis.patternConsolidation.groupsFound,
@@ -543,7 +599,9 @@ async function scanFileMergerReduction(baseDir, options = {}) {
         reductionOpportunities,
         recommendations: [
             ...buildRecommendations(mergeCandidates, reductionOpportunities),
-            ...buildPatternRecommendations(advancedAnalysis).map((group) => ({
+            ...buildPatternRecommendations(advancedAnalysis)
+                .filter((group) => !(group.files || []).every((file) => isExcludedConsolidationPath(file.path)))
+                .map((group) => ({
                 priority: 'medium',
                 action: 'pattern-consolidation',
                 files: group.files.map((f) => f.path),

@@ -7,7 +7,10 @@ const path = require('path');
 
 const SKIP_BY_PROFILE = {
     explorer: [],
-    audit: ['node_modules', '.git', 'coverage', 'uploads', 'dist', 'build', 'archive']
+    audit: [
+        'node_modules', '.git', 'coverage', 'uploads', 'dist', 'build', 'archive',
+        'github-cache', 'deliverables', 'java-ai-vulnerable', '.simplebeacon', 'security-reports'
+    ]
 };
 
 async function countRepositoryInventory(rootDir, options = {}) {

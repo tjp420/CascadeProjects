@@ -12,7 +12,7 @@ const {
 } = require('../server/lib/repository-health-payload');
 
 async function main() {
-    const baseDir = path.resolve(process.argv[2] || path.join(process.cwd(), '..'));
+    const baseDir = path.resolve(process.argv[2] || process.cwd());
     const { platformRoot } = resolvePlatformRoot(baseDir);
 
     console.log(`Running consolidation scan: ${baseDir}`);

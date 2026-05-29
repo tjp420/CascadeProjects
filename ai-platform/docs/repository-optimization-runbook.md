@@ -68,6 +68,8 @@ npm run optimization:scan
 
 Report saved to `.simplebeacon/consolidation-report.json`.
 
+**Trust check:** `repositoryFilesTotal` should be ~2,200 on `ai-platform` (audit inventory). Exports showing **~69k files** or merge candidates under `github-cache/` are stale — re-run after restarting the dashboard server. See [benchmark-scan-allowlist.md](./benchmark-scan-allowlist.md) § Dashboard export trust.
+
 ### 2. Preview merge plan
 
 ```bash

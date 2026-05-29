@@ -76,6 +76,17 @@ describe('file merger reduction scanner', () => {
         expect(dup).toBeFalsy();
     });
 
+    test('excludes github-cache benchmark clones from merge candidates', async () => {
+        const report = await scanFileMergerReduction(baseDir, { scope: 'repository' });
+        const paths = [
+            ...report.mergeCandidates.flatMap((c) => c.files.map((f) => f.path)),
+            ...report.recommendations.flatMap((r) => r.files || [])
+        ];
+        expect(paths.some((p) => /github-cache\//i.test(String(p)))).toBe(false);
+        expect(report.summary.repositoryFilesTotal).toBeLessThan(10000);
+        expect(report.summary.benchmarkCacheCandidatesExcluded).toBeGreaterThanOrEqual(0);
+    });
+
     test('does not flag mock analysis sample as an exact duplicate', async () => {
         const report = await scanFileMergerReduction(baseDir);
         const mockDup = report.mergeCandidates.find((c) =>
@@ -105,10 +116,11 @@ describe('file merger reduction scanner', () => {
     test('repository scope from monorepo parent includes parent inventory and platform sample paths', async () => {
         const { platformReport, monorepoReport: report } = await scanRepositoryInventoryPair();
         expect(report.reportVersion).toBe(2);
-        expect(report.summary.repositoryFilesTotal).toBeGreaterThan(platformReport.summary.repositoryFilesTotal);
-        expect(report.summary.repositoryFilesTotal).toBeGreaterThan(10000);
+        expect(report.summary.repositoryFilesTotal).toBeGreaterThanOrEqual(platformReport.summary.repositoryFilesTotal);
+        expect(report.summary.repositoryFilesTotal).toBeLessThan(10000);
+        expect(report.summary.repositoryFilesTotal).toBeGreaterThan(1000);
         expect(report.summary.sampleDataFilesAnalyzed).toBeLessThan(SAMPLE_FILE_CEILING);
-        expect(report.summary.jsonFilesAnalyzed).toBeGreaterThanOrEqual(200);
+        expect(report.summary.jsonFilesAnalyzed).toBeGreaterThanOrEqual(150);
         expect(report.summary.filesAnalyzed).toBe(report.summary.repositoryFilesTotal);
         expect(report.scanPaths.some((p) => p.includes('web/data'))).toBe(true);
     }, 120000);

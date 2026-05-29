@@ -131,7 +131,7 @@ function buildRepositoryHealthPayload(options = {}) {
         recommendations: primary?.recommendations || [],
         disclaimers: [
             'Health score reflects measured duplicate groups, oversized files, and estimated savings — not security gate results.',
-            'Repository file totals are explorer inventory; JSON duplicate detection scans hashed JSON under audit scope.',
+            'Repository file totals use audit inventory (github-cache/, deliverables/, and benchmark clones excluded); JSON duplicate detection scans hashed JSON under the same scope.',
             'Potential savings are opportunities — review before deleting or merging any file.'
         ]
     };
