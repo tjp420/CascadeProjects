@@ -33,3 +33,6 @@ docs/*-stderr*.txt
 data-central/ai-tools/ai-models/uploads/*.gguf
 data-central/ai-tools/ai-models/uploads/**
 !data-central/ai-tools/ai-models/uploads/.gitkeep
+
+# Ollama/local model blob cache (regenerated — never commit)
+src/ai-system/blobs/
