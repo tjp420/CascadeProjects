@@ -83,7 +83,7 @@
     "dataPatterns": [
       "40 JSON/mock files across web/data, data/mock, and data-central/ai-tools/mock-data",
       "42/42 dashboard page samples on repository-audit baselines",
-      "665/665 Jest tests passing across 32 suites",
+      "936/936 Jest tests passing across 73 suites",
       "Schema validation on PAGE_SAMPLE_SPECS + roadmap JSON specs",
       "Canonical mock analysis lives in web/data/mock-analysis-sample.json only"
     ],
@@ -104,10 +104,10 @@
       }
     ],
     "qualityImprovements": [
-      "Run npm test after sample KPI edits — baseline is 665/665",
+      "Run npm test after sample KPI edits — baseline is 936/936",
       "Use Analyze Mock Data for live mock-data-scanner results",
       "Clear lastMockAnalysisReport localStorage after baseline updates",
-      "Reject cached exports with legacy demo-oracle branding, 665/665 jest mismatches, or 98.5% aiConfidence"
+      "Reject cached exports with legacy demo-oracle branding, 936/936 jest mismatches, or 98.5% aiConfidence"
     ]
   },
   "privacyAndSecurity": {
@@ -128,7 +128,7 @@
     "claims": [
       "Legacy demo oracle generatedBy branding",
       "98.5% aiConfidence on filesystem scan",
-      "665/665 jest baseline mismatch false positives"
+      "936/936 jest baseline mismatch false positives"
     ]
   },
   "deprecatedNarrative": {

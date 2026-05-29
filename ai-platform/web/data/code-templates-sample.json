@@ -227,7 +227,7 @@
       { "name": "Self-Contained Page Script", "usage": "32 pages", "rating": null },
       { "name": "repository-audit Sample JSON", "usage": "42/42 baselines", "rating": null },
       { "name": "Stale localStorage Guard", "usage": "33 page scripts", "rating": null },
-      { "name": "page-samples.test.js Spec", "usage": "665/665 tests (32 suites)", "rating": null }
+      { "name": "page-samples.test.js Spec", "usage": "936/936 tests (73 suites)", "rating": null }
     ],
     "contributorStats": [
       { "name": "Maintainer", "templates": 8, "downloads": null }
@@ -263,7 +263,7 @@
       "action": "page-samples tests passing",
       "description": "Jest validates all 33 sample JSON files and page script presence",
       "time": "1 day ago",
-      "details": "665/665 tests (32 suites)",
+      "details": "936/936 tests (73 suites)",
       "icon": "🧪",
       "color": "primary"
     },

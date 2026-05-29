@@ -38,7 +38,7 @@
       "date": "2026-05-14",
       "status": "completed",
       "description": "Auth, models registry, scanner, issues fix API",
-      "achievements": ["JWT auth", "local models API", "mock-data scanner", "665 Jest tests (32 suites)"],
+      "achievements": ["JWT auth", "local models API", "mock-data scanner", "936 Jest tests (73 suites)"],
       "completionRate": "100%"
     },
     {
@@ -70,7 +70,7 @@
     "progress": "100%",
     "completedTasks": [
       "4/4 sprints complete on path scan",
-      "665/665 Jest (32 suites)",
+      "936/936 Jest (73 suites)",
       "42/42 repository-audit page specs",
       "Code-roadmap Phase 2 + executive HTML export",
       "docker-compose.phase2.yml smoke + Istanbul in CI"
@@ -102,14 +102,14 @@
   "recommendations": [
     "Treat release timeline as engineering milestones — not shipped product history",
     "Run tools/verify-roadmap-alignment.js after major merges",
-    "Clear lastReleaseTimelineModel if you still see 75% v0.8 or 665-test references"
+    "Clear lastReleaseTimelineModel if you still see 75% v0.8 or 936-test references"
   ],
   "crossReferences": {
     "implementationPlan": "/data/implementation-plan-sample.json",
     "aiRoadmap": "/data/ai-roadmap-sample.json",
     "cascadeRoadmap": "/data/cascade-roadmap-sample.json",
     "measuredAt": "2026-05-23T20:00:00.000Z",
-    "jestTests": 665,
+    "jestTests": 936,
     "jestSuites": 32,
     "pageSampleSpecs": "42/42",
     "sprintsComplete": "4/4"
@@ -117,12 +117,12 @@
   "rejectedFiction": {
     "claims": [
       "75% v0.8-beta with Docker/Istanbul remaining",
-      "665/665 tests and 43/43 samples",
+      "936/936 tests and 43/43 samples",
       "July 2026 enterprise deployment with 6 FTE"
     ]
   },
   "deprecatedNarrative": {
-    "warning": "Prior sample claimed v0.8 at 75%, 665 tests, 43/43 samples, and Docker/Istanbul as remaining.",
+    "warning": "Prior sample claimed v0.8 at 75%, 936 tests, 43/43 samples, and Docker/Istanbul as remaining.",
     "previousOnTrackPercentage": "72%",
     "previousJestTests": 502,
     "previousSamples": "42/42"

@@ -64,7 +64,8 @@ const PROFILE_RULES = {
         roadmap: { enabled: true },
         'production-leak': { enabled: true, severity: 'high' },
         'jest-baseline': { enabled: false, runTests: false },
-        'fiction-kpi-patterns': { enabled: true, severity: 'medium' }
+        'fiction-kpi-patterns': { enabled: true, severity: 'medium' },
+        'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false }
     },
     cascade: {
         credentials: { enabled: true, scanProduction: true },
@@ -87,7 +88,8 @@ const PROFILE_RULES = {
             enabled: false,
             runTests: false,
             testCommand: 'npm test -- --no-coverage --passWithNoTests'
-        }
+        },
+        'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false }
     }
 };
 

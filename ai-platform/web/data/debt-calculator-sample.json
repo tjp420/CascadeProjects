@@ -27,7 +27,7 @@
     "maintainability": 78,
     "testCoverage": "79.5%",
     "documentation": null,
-    "jestTests": "665/665",
+    "jestTests": "936/936",
     "scannerIssues": 0,
     "fictionSamplesRemaining": 0,
     "statLabels": {
@@ -36,7 +36,7 @@
       "totalHours": "Est. Hours",
       "totalCost": "Est. Cost"
     },
-    "notes": "Open items are production profile and auth hardening — CI baseline (665 tests, Istanbul, phase2-smoke) is wired."
+    "notes": "Open items are production profile and auth hardening — CI baseline (936 tests, Istanbul, phase2-smoke) is wired."
   },
   "categories": [
     {
@@ -80,7 +80,7 @@
       "issues": [
         { "type": "Istanbul collected in CI", "count": 1, "hours": null, "file": "dashboard-ci.yml test:coverage (~79.5% line)", "status": "resolved" },
         { "type": "Docker phase2-smoke in CI", "count": 1, "hours": null, "file": "dashboard-ci.yml phase2-smoke job", "status": "resolved" },
-        { "type": "Jest suite green", "count": 566, "hours": null, "file": "32 suites", "status": "resolved" }
+        { "type": "Jest suite green", "count": 566, "hours": null, "file": "73 suites", "status": "resolved" }
       ]
     },
     {
@@ -209,8 +209,8 @@
   "insights": [
     { "priority": "low", "title": "Scanner backlog cleared", "description": "0 open mock-data-scanner issues — 42/42 schema pass, 42/42 baselines.", "impact": "Honest debt KPIs" },
     { "priority": "low", "title": "SEC-004 closed — npm audit wired", "description": "Security page merges /api/security/npm-audit on refresh and Run Scan.", "impact": "Measured dependency posture" },
-    { "priority": "low", "title": "CI baseline wired", "description": "665/665 Jest, Istanbul test:coverage (~79.5% line), and phase2-smoke in dashboard-ci.yml.", "impact": "Honest testing row" },
-    { "priority": "low", "title": "Clear lastDebtCalculatorModel after import", "description": "Stale localStorage may restore 198-item fiction, 665 tests, or 33-sample counts.", "impact": "Correct render" }
+    { "priority": "low", "title": "CI baseline wired", "description": "936/936 Jest, Istanbul test:coverage (~79.5% line), and phase2-smoke in dashboard-ci.yml.", "impact": "Honest testing row" },
+    { "priority": "low", "title": "Clear lastDebtCalculatorModel after import", "description": "Stale localStorage may restore 198-item fiction, 936 tests, or 33-sample counts.", "impact": "Correct render" }
   ],
   "quickActions": [
     { "label": "Mock Scanner", "icon": "🔍", "section": "analyze" },

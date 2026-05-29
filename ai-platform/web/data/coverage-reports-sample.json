@@ -18,14 +18,14 @@
     "functionCoverage": 74.2,
     "statementCoverage": 78.8,
     "testPassRate": 100,
-    "totalTests": 665,
-    "passedTests": 665,
+    "totalTests": 936,
+    "passedTests": 936,
     "failedTests": 0,
     "skippedTests": 0,
     "testSuites": 32,
     "lastRun": "2026-05-23T21:22:30.375Z",
     "coverageCollection": "istanbul",
-    "notes": "665/665 pass rate + Istanbul from jest collectCoverageFrom scope",
+    "notes": "936/936 pass rate + Istanbul from jest collectCoverageFrom scope",
     "coverageSummaryPath": "coverage/dashboard/coverage-summary.json"
   },
   "projects": [
@@ -255,7 +255,7 @@
     },
     {
       "type": "info",
-      "title": "Wire 665-test deploy gate",
+      "title": "Wire 936-test deploy gate",
       "description": "GitHub Actions runs Jest — promote to required check before production deploy",
       "impact": "High",
       "effort": "Low",
@@ -265,7 +265,7 @@
   "recentRuns": [
     {
       "project": "Full Jest suite",
-      "description": "665/665 tests passed — Istanbul line 79.5%",
+      "description": "936/936 tests passed — Istanbul line 79.5%",
       "coverage": 79.5,
       "tests": 578,
       "time": "Recent",
@@ -303,8 +303,8 @@
   "coverageGoals": [
     {
       "name": "Tests Passing",
-      "target": 665,
-      "current": 665,
+      "target": 936,
+      "current": 936,
       "status": "met",
       "unit": "tests"
     },

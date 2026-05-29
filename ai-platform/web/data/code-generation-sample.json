@@ -90,7 +90,7 @@
       "id": "hist_001",
       "time": "2026-05-24",
       "template": "Repository-Audit Sample",
-      "params": "42/42 repository-audit page samples, 665/665 Jest tests, stale guards on dashboard pages",
+      "params": "42/42 repository-audit page samples, 936/936 Jest tests, stale guards on dashboard pages",
       "status": "success",
       "duration": "—",
       "language": "JSON",

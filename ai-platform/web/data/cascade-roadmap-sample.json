@@ -36,9 +36,9 @@
         "phase": "Sprint 2: Stub APIs & Tests",
         "status": "completed",
         "progress": 100,
-        "description": "Stub API routes (100 detected) and 805/805 Jest tests (61 suites)",
-        "features": ["Tier-1 stub API routes", "805/805 Jest tests (61 suites)"],
-        "milestones": ["dashboard-stub-api.js", "805/805"]
+        "description": "Stub API routes (100 detected) and 936/936 Jest tests (73 suites)",
+        "features": ["Tier-1 stub API routes", "936/936 Jest tests (73 suites)"],
+        "milestones": ["dashboard-stub-api.js", "936/936"]
       },
       {
         "phase": "Sprint 3: Honest Dashboard Data",
@@ -80,7 +80,7 @@
         "completed": 1,
         "total": 1,
         "completionRate": 100,
-        "description": "Tier-1 page endpoints + 665/665 Jest (32 suites)"
+        "description": "Tier-1 page endpoints + 936/936 Jest (73 suites)"
       },
       {
         "category": "Sample Baselines",
@@ -116,7 +116,7 @@
         "milestone": "Stub APIs Complete",
         "status": "completed",
         "date": "2026-05-14",
-        "description": "Tier-1 page endpoints + 665/665 tests"
+        "description": "Tier-1 page endpoints + 936/936 tests"
       },
       {
         "milestone": "Honest Dashboard Samples",

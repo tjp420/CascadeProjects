@@ -12,7 +12,7 @@
   "status": "within_threshold",
   "overview": {
     "compliance": "100%",
-    "jestTestsLabel": "665/665",
+    "jestTestsLabel": "936/936",
     "pageSamplesLabel": "43/43",
     "gatePass": true
   },

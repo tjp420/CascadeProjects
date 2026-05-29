@@ -133,7 +133,7 @@
       "title": "Stale Cache Risk",
       "level": "low",
       "score": 20,
-      "description": "Stale guards reject 47-feature / 665-test / 33-33 exports — clear lastAIRoadmapModel if old metrics persist."
+      "description": "Stale guards reject 47-feature / 936-test / 33-33 exports — clear lastAIRoadmapModel if old metrics persist."
     },
     {
       "title": "Inference Not Enabled",
@@ -173,7 +173,7 @@
       {
         "title": "Clear Stale localStorage",
         "impact": "Low Impact",
-        "description": "Remove lastAIRoadmapModel / lastDynamicRoadmap if they show 62%, 665 tests, or 43/43 samples.",
+        "description": "Remove lastAIRoadmapModel / lastDynamicRoadmap if they show 62%, 936 tests, or 43/43 samples.",
         "benefits": ["Fresh measured baseline on refresh"]
       }
     ]

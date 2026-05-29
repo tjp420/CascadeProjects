@@ -20,7 +20,7 @@
     "schemaFilesPassed": 31,
     "schemaPassRate": 100,
     "qualityScore": 99,
-    "jestTests": "665/665",
+    "jestTests": "936/936",
     "pageSamples": "42/42 repository-audit",
     "inferenceMode": "filesystem scan — not 1,559 files/s Mock scanner throughput fiction"
   },
@@ -115,7 +115,7 @@
           "id": "consistency",
           "name": "Data Consistency Analyzer",
           "status": "implemented",
-          "notes": "sample-consistency-checker.js — anchor samples vs 665 tests, v0.8-beta, repository-audit"
+          "notes": "sample-consistency-checker.js — anchor samples vs 936 tests, v0.8-beta, repository-audit"
         }
       ]
     },

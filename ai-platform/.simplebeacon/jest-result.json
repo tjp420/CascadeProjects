@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-05-28T00:53:52.867Z",
+  "generatedAt": "2026-05-29T05:12:30.216Z",
   "summary": {
-    "testsPassed": 853,
-    "testsTotal": 854,
-    "testsFailed": 1,
-    "suitesPassed": 60,
-    "suitesTotal": 61
+    "testsPassed": 936,
+    "testsTotal": 936,
+    "testsFailed": 0,
+    "suitesPassed": 73,
+    "suitesTotal": 73
   },
-  "exitCode": 1
+  "exitCode": 0
 }

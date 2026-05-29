@@ -35,7 +35,7 @@
     }
   },
   "tools": [
-    { "id": "jest", "name": "Jest Test Suite", "description": "665/665 tests across 32 suites — npm test --no-coverage", "category": "Testing", "icon": "🧪", "status": "active", "usage": null, "successRate": 100, "avgTime": "~37s", "section": "coverage-reports" },
+    { "id": "jest", "name": "Jest Test Suite", "description": "936/936 tests across 73 suites — npm test --no-coverage", "category": "Testing", "icon": "🧪", "status": "active", "usage": null, "successRate": 100, "avgTime": "~37s", "section": "coverage-reports" },
     { "id": "simplebeacon", "name": "Simplebeacon", "description": "packages/simplebeacon-cli — npm run simplebeacon --gate", "category": "CI", "icon": "✅", "status": "active", "usage": null, "successRate": null, "avgTime": "gate", "section": "analyze" },
     { "id": "mock-scanner", "name": "Mock Data Scanner", "description": "40 files, 100% schema (43/43), 99% quality, 0 blocking issues", "category": "Analysis", "icon": "🔍", "status": "active", "usage": null, "successRate": null, "avgTime": "40 files", "section": "analyze" },
     { "id": "page-specs", "name": "Page Sample Specs", "description": "Validates 42/42 dashboard *-sample.json files", "category": "Testing", "icon": "📋", "status": "active", "usage": null, "successRate": null, "avgTime": "specs", "section": "quality" },
@@ -66,7 +66,7 @@
   ],
   "activity": [
     { "time": "2026-05-24", "event": "simplebeacon CLI extracted — npm run simplebeacon", "tool": "simplebeacon", "status": "success" },
-    { "time": "2026-05-24", "event": "665/665 Jest tests passed (SIMPLEBEACON_INTERNAL_DASHBOARD in jest.config)", "tool": "jest", "status": "success" },
+    { "time": "2026-05-24", "event": "936/936 Jest tests passed (SIMPLEBEACON_INTERNAL_DASHBOARD in jest.config)", "tool": "jest", "status": "success" },
     { "time": "2026-05-24", "event": "Mock scanner: 40 files, 0 blocking issues", "tool": "mock-scanner", "status": "success" },
     { "time": "2026-05-23", "event": "GitHub Actions dashboard-ci green (Istanbul + phase2 config)", "tool": "github-ci", "status": "success" }
   ],

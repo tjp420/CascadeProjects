@@ -1,0 +1,41 @@
+{
+  "sourceExport": "j:\\Downloads\\simplebeacon-report-2026-05-29.json",
+  "generatedAt": "2026-05-29T03:45:00.000Z",
+  "verdict": "export was dominated by github-cache benchmark noise — not ai-platform product quality",
+  "exportSummary": {
+    "repositoryFilesTotal": 69695,
+    "mockSampleFiles": 35481,
+    "fictionJsonFilesScanned": 3027,
+    "issueCount": 224,
+    "qualityScore": 100,
+    "invalidJson": 26,
+    "severityCounts": { "critical": 14, "high": 36, "medium": 10, "low": 164 }
+  },
+  "triage": {
+    "githubCacheIssueGroups": 84,
+    "platformIssueGroups": 23,
+    "topNoiseTypes": [
+      "Invalid JSON in github-cache tsconfig/devcontainer (JSONC — benchmark allowlist)",
+      "Duplicate Data across github-cache clones",
+      "Credential patterns in OSS test fixtures"
+    ],
+    "realPlatformSignals": [
+      "Duplicate: .simplebeacon/archive/complete-scan-latest.json vs deliverables/vendor-handoff export",
+      "Review any credential hits under server/ (not github-cache)"
+    ]
+  },
+  "fixesApplied": [
+    "isIsolatedScanRoot: ai-platform with cascade layout uses configured scanPaths (web/data), not full repo walk",
+    "walkFiles + fiction JSON walk skip github-cache/, deliverables/, data-central/",
+    "benchmark-cache issues excluded from gate scores and qualityScore",
+    "qualityScore uses severity-weighted penalty (no longer 100% with 224 issues)",
+    "config ignore: github-cache/**"
+  ],
+  "expectedAfterRescan": {
+    "scanPaths": ["ai-platform/web/data"],
+    "mockSampleFiles": "~48",
+    "fictionJsonFilesScanned": "~64",
+    "repositoryFilesTotal": "~2200 (audit inventory, excludes github-cache)",
+    "issueCount": "low — platform-only"
+  }
+}

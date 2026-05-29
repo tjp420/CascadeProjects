@@ -129,7 +129,7 @@
     },
     {
       "service": "Jest Test Suite",
-      "description": "npm test — 665/665 passing, 32 suites",
+      "description": "npm test — 936/936 passing, 73 suites",
       "status": "healthy",
       "uptime": "last run OK"
     },
@@ -158,7 +158,7 @@
       "action": "Coverage Reports Baseline",
       "user": "Maintainer",
       "time": "1 hour ago",
-      "details": "Replaced 73.4% Istanbul fiction with 665/665 Jest health (32 suites)",
+      "details": "Replaced 73.4% Istanbul fiction with 936/936 Jest health (73 suites)",
       "icon": "📊"
     },
     {
@@ -172,7 +172,7 @@
       "action": "Jest Suite Green",
       "user": "CI/local",
       "time": "3 hours ago",
-      "details": "665 tests passing across 32 suites (default --no-coverage)",
+      "details": "936 tests passing across 73 suites (default --no-coverage)",
       "icon": "✅"
     },
     {

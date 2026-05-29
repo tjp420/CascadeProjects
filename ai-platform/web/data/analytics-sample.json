@@ -19,7 +19,7 @@
   },
   "overview": {
     "apiCalls": null,
-    "jestTests": 665,
+    "jestTests": 936,
     "jestTestsTotal": 578,
     "testSuites": 25,
     "measuredBaselines": 43,
@@ -62,7 +62,7 @@
     "network": null,
     "diskIO": null,
     "cacheHitRate": null,
-    "throughput": "665/665 Jest",
+    "throughput": "936/936 Jest",
     "schemaPassRate": 100,
     "scanQuality": 99
   },
@@ -104,7 +104,7 @@
     }
   ],
   "businessIntelligence": [
-    { "icon": "🧪", "title": "Jest Health", "value": "665/665", "description": "79.5% Istanbul line in CI — default npm test uses --no-coverage" },
+    { "icon": "🧪", "title": "Jest Health", "value": "936/936", "description": "79.5% Istanbul line in CI — default npm test uses --no-coverage" },
     { "icon": "📊", "title": "Schema Pass", "value": "100%", "description": "42/42 page sample specs validate in scanner" },
     { "icon": "🔍", "title": "Scan Quality", "value": "99%", "description": "36 mock files measured (245.6KB)" },
     { "icon": "🛡️", "title": "Audit Progress", "value": "42/42", "description": "repository-audit sample migration complete" }
@@ -130,8 +130,8 @@
     }
   ],
   "activity": [
-    { "time": "2026-05-24", "event": "665/665 Jest tests passed", "category": "CI", "status": "success" },
-    { "time": "2026-05-24", "event": "Analytics sample refreshed to 665/665 baseline", "category": "Samples", "status": "success" },
+    { "time": "2026-05-24", "event": "936/936 Jest tests passed", "category": "CI", "status": "success" },
+    { "time": "2026-05-24", "event": "Analytics sample refreshed to 936/936 baseline", "category": "Samples", "status": "success" },
     { "time": "2026-05-24", "event": "Mock scanner: 36 files, 0 issues", "category": "Scanner", "status": "success" },
     { "time": "2026-05-23", "event": "Dashboard home + AI tools migrated", "category": "Samples", "status": "success" }
   ]

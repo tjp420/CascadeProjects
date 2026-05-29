@@ -113,7 +113,7 @@
   "insights": [
     {
       "id": "insight_tests",
-      "title": "665/665 Jest tests green",
+      "title": "936/936 Jest tests green",
       "description": "Routing, page samples, stub APIs, and live-server smoke pass — wire deploy gate next.",
       "priority": "success",
       "confidence": 95,
@@ -167,8 +167,8 @@
     },
     {
       "id": "alert_tests",
-      "title": "665-test suite milestone",
-      "description": "Dashboard Jest suite at 665/665 (32 suites) — promote to required CI deploy gate on main.",
+      "title": "936-test suite milestone",
+      "description": "Dashboard Jest suite at 936/936 (73 suites) — promote to required CI deploy gate on main.",
       "severity": "success",
       "icon": "✅",
       "time": "1 day ago"

@@ -26,7 +26,7 @@
     "overallSuccessRate": null,
     "uptime": null,
     "stubRouteCount": 107,
-    "jestTests": "665/665",
+    "jestTests": "936/936",
     "jestRuntime": "~5s",
     "jestPassRate": 100,
     "statLabels": {
@@ -170,7 +170,7 @@
   ],
   "performanceMetrics": [
     { "id": "routes", "name": "Stub Routes", "value": "107", "trend": null, "description": "Registered in dashboard-stub-api.js" },
-    { "id": "jest", "name": "Jest Pass Rate", "value": "100%", "trend": null, "description": "665/665 tests across 32 suites" },
+    { "id": "jest", "name": "Jest Pass Rate", "value": "100%", "trend": null, "description": "936/936 tests across 73 suites" },
     { "id": "requests", "name": "Request Counter", "value": "—", "trend": null, "description": "Not collected — prior 128,456 was fiction" },
     { "id": "runtime", "name": "Jest Runtime", "value": "~5s", "trend": null, "description": "Full unit suite locally" }
   ],

@@ -49,7 +49,7 @@
       "estimatedHours": null,
       "actualHours": null,
       "impact": "Critical",
-      "description": "665/665 Jest tests (32 suites) — Istanbul coverage and deploy gate remain"
+      "description": "936/936 Jest tests (73 suites) — Istanbul coverage and deploy gate remain"
     },
     {
       "id": "sample_telemetry_cleanup",
@@ -236,9 +236,9 @@
     },
     {
       "priority": "medium",
-      "title": "665/665 Jest tests green",
+      "title": "936/936 Jest tests green",
       "description": "Routing, page samples, stub APIs, and live-server smoke pass — wire deploy gate next.",
-      "impact": "665/665 tests"
+      "impact": "936/936 tests"
     },
     {
       "priority": "low",

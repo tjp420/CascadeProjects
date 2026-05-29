@@ -20,7 +20,7 @@
     "nextMilestoneProgress": 15,
     "projectHealth": "Good",
     "overallRisk": "Medium",
-    "jestTests": "805/805",
+    "jestTests": "936/936",
     "repositoryAuditSamples": "43/43",
     "teamSize": 1,
     "internalBudgetEstimateUsd": 72000,
@@ -44,7 +44,7 @@
       "v0.8-beta at 75% — target 2026-06-28 (Honest Dashboard Data)",
       "v1.0-internal at 15% — target 2026-07-31 (Internal Dashboard Ready)",
       "72% on-track",
-      "805 Jest tests passing",
+      "936 Jest tests passing",
       "42/42 repository-audit page samples",
       "Mock scanner 0 open issues"
     ]
@@ -62,7 +62,7 @@
       "title": "Phase 2 Platform Core",
       "date": "2026-05-23",
       "status": "completed",
-      "highlights": ["JWT auth", "Local models API", "Mock-data scanner", "805 Jest tests passing"]
+      "highlights": ["JWT auth", "Local models API", "Mock-data scanner", "936 Jest tests passing"]
     },
     {
       "version": "v0.8-beta",
@@ -127,7 +127,7 @@
   },
   "successMetrics": [
     { "metric": "Release", "current": "v0.8-beta (75%)", "target": "v1.0-internal (2026-07-31)" },
-    { "metric": "Jest tests", "current": "805/805", "target": "805/805 + Istanbul merged in CI (~79.5% line)" },
+    { "metric": "Jest tests", "current": "936/936", "target": "936/936 + Istanbul merged in CI (~79.5% line)" },
     { "metric": "Sample baselines", "current": "42/42", "target": "42/42 maintained" },
     { "metric": "Auth", "current": "JWT dev routes", "target": "REQUIRE_AUTH profile" }
   ],

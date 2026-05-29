@@ -141,7 +141,7 @@
       "ticketsHandled": 578,
       "satisfaction": null,
       "avgResponse": "—",
-      "notes": "665/665 passing"
+      "notes": "936/936 passing"
     }
   ],
   "analytics": {
@@ -150,7 +150,7 @@
     "escalationRate": null,
     "slaCompliance": null,
     "backlogTrend": null,
-    "jestPassRate": "665/665",
+    "jestPassRate": "936/936",
     "schemaPassRate": "100%",
     "measuredBaselines": "42/42",
     "fictionPagesRemaining": 0,

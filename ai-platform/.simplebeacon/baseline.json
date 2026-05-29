@@ -1,7 +1,7 @@
 {
-  "jestTestsPassing": 854,
-  "jestTestsLabel": "854/854",
-  "jestSuites": 61,
+  "jestTestsPassing": 936,
+  "jestTestsLabel": "936/936",
+  "jestSuites": 73,
   "pageSamplesLabel": "43/43",
   "pageSampleSpecCount": 43,
   "currentRelease": "v0.8-beta",
@@ -105,5 +105,5 @@
       "reviewDate": "2026-05-25"
     }
   ],
-  "syncedAt": "2026-05-28T00:58:07.850Z"
+  "syncedAt": "2026-05-29T05:08:30.249Z"
 }

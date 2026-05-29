@@ -42,7 +42,7 @@
       "activeCustomers": 1,
       "revenue": 0,
       "growth": "green",
-      "features": ["665/665 Jest tests (32 suites)", "GitHub Actions workflow", "Stub API integration tests"],
+      "features": ["936/936 Jest tests (73 suites)", "GitHub Actions workflow", "Stub API integration tests"],
       "color": "primary"
     },
     {

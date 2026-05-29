@@ -72,7 +72,7 @@
     },
     {
       "title": "Run Tests",
-      "description": "665/665 Jest tests — npm test in ai-platform/",
+      "description": "936/936 Jest tests — npm test in ai-platform/",
       "icon": "🧪",
       "category": "support",
       "time": "npm test"
@@ -151,7 +151,7 @@
       "path": "jest.config.js",
       "status": "current",
       "author": "Maintainer",
-      "description": "665 tests, 32 suites — default npm test uses --no-coverage"
+      "description": "936 tests, 73 suites — default npm test uses --no-coverage"
     },
     {
       "id": "doc_dashboard_server",
@@ -285,7 +285,7 @@
     },
     {
       "question": "Why is coverage shown as — on Coverage Reports?",
-      "answer": "Default npm test uses --no-coverage. Jest pass rate (665/665) is measured; Istanbul line/branch % are not collected unless enabled in CI.",
+      "answer": "Default npm test uses --no-coverage. Jest pass rate (936/936) is measured; Istanbul line/branch % are not collected unless enabled in CI.",
       "category": "Testing",
       "helpful": null,
       "views": null
@@ -376,7 +376,7 @@
     {
       "id": "update_coverage",
       "title": "Coverage Reports Reframed",
-      "description": "665/665 Jest health replaces 73.4% Istanbul and 5 fake projects",
+      "description": "936/936 Jest health replaces 73.4% Istanbul and 5 fake projects",
       "time": "3 hours ago",
       "icon": "📊"
     },

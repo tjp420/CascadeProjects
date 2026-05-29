@@ -18,8 +18,8 @@
     "suggestionsGenerated": 4,
     "measuredBaselines": 43,
     "schemaPassRate": 100,
-    "jestTestsLabel": "665/665",
-    "notes": "43/43 PAGE_SAMPLE_SPECS validated; Jest 665/665 measured; Istanbul coverage optional in CI."
+    "jestTestsLabel": "936/936",
+    "notes": "43/43 PAGE_SAMPLE_SPECS validated; Jest 936/936 measured; Istanbul coverage optional in CI."
   },
   "scanMeta": {
     "engine": "mock-data-scanner",
@@ -30,7 +30,7 @@
     "overallScore": 96,
     "technicalDebt": "Simplebeacon CLI extraction complete — dashboard frozen as report viewer",
     "maintainability": "Good",
-    "testHealth": "665/665 Jest (32 suites)",
+    "testHealth": "936/936 Jest (73 suites)",
     "pageSampleCoverage": "42/42 specs"
   },
   "security": {
@@ -75,7 +75,7 @@
   ],
   "patterns": {
     "fictionRemoved": ["hardcoded feature totals", "hardcoded completion percentages", "unbreakable-oracle"],
-    "measuredSignals": ["665/665 Jest", "42/42 page specs", "simplebeacon gate PASS"]
+    "measuredSignals": ["936/936 Jest", "42/42 page specs", "simplebeacon gate PASS"]
   },
   "activity": [
     {
@@ -86,7 +86,7 @@
     },
     {
       "time": "2026-05-24",
-      "event": "665/665 Jest tests passing (32 suites)",
+      "event": "936/936 Jest tests passing (73 suites)",
       "category": "Testing",
       "status": "success"
     }

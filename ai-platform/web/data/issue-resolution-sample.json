@@ -205,10 +205,10 @@
     },
     {
       "name": "Jest pass rate",
-      "current": 665,
-      "target": 665,
+      "current": 936,
+      "target": 936,
       "unit": "tests",
-      "timeline": "32 suites",
+      "timeline": "73 suites",
       "status": "complete"
     }
   ],

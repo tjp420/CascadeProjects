@@ -27,8 +27,8 @@
     "documentation": null,
     "qualityScore": 99,
     "complianceRate": 100,
-    "totalTests": 665,
-    "passedTests": 665,
+    "totalTests": 936,
+    "passedTests": 936,
     "testSuites": 18,
     "sampleJsonFiles": 33,
     "measuredBaselines": 43,
@@ -43,7 +43,7 @@
       "codeCoverage": "Istanbul Coverage",
       "documentation": "Docs Score"
     },
-    "notes": "665/665 Jest across 32 suites. mock-data-scanner: 36 files, 0 open issues, 42/42 schema pass, 99% quality."
+    "notes": "936/936 Jest across 73 suites. mock-data-scanner: 36 files, 0 open issues, 42/42 schema pass, 99% quality."
   },
   "metrics": [
     {
@@ -152,7 +152,7 @@
       "type": "Jest Test Health",
       "status": "completed",
       "score": 100,
-      "scoreLabel": "665/665",
+      "scoreLabel": "936/936",
       "generatedAt": "2026-05-24T00:00:00.000Z"
     },
     {

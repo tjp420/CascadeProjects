@@ -22,7 +22,7 @@
     "budgetNote": "Solo notional hours only — not enterprise budget forecasts",
     "teamSize": 1,
     "duration": "4 sprints delivered; optional Phase 3 backlog",
-    "notes": "805/805 Jest (61 suites), 43/43 PAGE_SAMPLE_SPECS, Phase 2 code-roadmap on path scan."
+    "notes": "936/936 Jest (73 suites), 43/43 PAGE_SAMPLE_SPECS, Phase 2 code-roadmap on path scan."
   },
   "sprintStatus": [
     { "sprint": "Sprint 1: Server & Auth", "status": "completed", "progress": 100, "window": "2026-05-01 — 2026-05-07" },
@@ -40,7 +40,7 @@
       "status": "completed",
       "objectives": [
         "Server delegate + Phase 2 JWT",
-        "Stub APIs + 805/805 Jest",
+        "Stub APIs + 936/936 Jest",
         "42/42 repository-audit samples + scanners",
         "docker-compose.phase2.yml config smoke + Istanbul in dashboard-ci.yml",
         "simplebeacon CLI + simplebeacon.yml gate"
@@ -135,7 +135,7 @@
         "target": 100,
         "unit": "%",
         "status": "complete",
-        "source": "805/805 tests passing (61 suites)"
+        "source": "936/936 tests passing (73 suites)"
       },
       {
         "metric": "Honest Sample Pages",
@@ -187,7 +187,7 @@
     { "risk": "Mock scanner inference not required for honest dashboard", "impact": "Low", "probability": "Low", "mitigation": "filesystem-scan is acceptable baseline", "status": "accepted" }
   ],
   "milestones": [
-    { "milestone": "CI Green on PR", "date": "2026-05-23", "deliverable": "dashboard-ci.yml phase2-smoke + test:coverage", "successCriteria": "805 tests pass", "status": "complete" },
+    { "milestone": "CI Green on PR", "date": "2026-05-23", "deliverable": "dashboard-ci.yml phase2-smoke + test:coverage", "successCriteria": "936 tests pass", "status": "complete" },
     { "milestone": "Honest Samples Complete", "date": "2026-05-23", "deliverable": "repository-audit on PAGE_SAMPLE_SPECS", "successCriteria": "43/43 samples; no 47-feature fiction", "status": "complete" },
     { "milestone": "Code Roadmap Phase 2", "date": "2026-05-23", "deliverable": "cycles + fuzzy + HTML export", "successCriteria": "POST build-from-path shows Phase 2 block", "status": "complete" },
     { "milestone": "Mock Scan Honest Attribution", "date": "2026-05-23", "deliverable": "No legacy demo oracle on analyze", "successCriteria": "mock-data-scanner (repository-audit)", "status": "complete" },
@@ -209,8 +209,8 @@
   },
   "repositorySnapshot": {
     "measuredAt": "2026-05-23T20:00:00.000Z",
-    "jestTests": 805,
-    "jestSuites": 64,
+    "jestTests": 936,
+    "jestSuites": 73,
     "pageSampleSpecs": "42/42",
     "sprintsComplete": "4/4",
     "phase2CodeRoadmap": true,
@@ -224,7 +224,7 @@
     "warning": "Enterprise implementation plans pasted from templates are not measured baselines",
     "claims": [
       "Hardcoded feature totals and completion percentages",
-      "43/43 samples and 805/805 tests",
+      "43/43 samples and 936/936 tests",
       "7-week / 280-hour multi-role enterprise plan",
       "Project Manager + Security Specialist staffing matrix",
       "RBAC implementation from scratch (JWT already exists)"

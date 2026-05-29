@@ -66,6 +66,7 @@
     ".simplebeacon/*audit*.json",
     ".simplebeacon/*monitoring*.json",
     ".simplebeacon/*report*.json",
+    ".simplebeacon/credential-incident-triage.json",
     ".simplebeacon/history.json",
     ".simplebeacon/tranche-lib-scan.json",
     ".simplebeacon/user-ai-keys.json",
@@ -97,6 +98,8 @@
     "assessments/**",
     "docs/**",
     "archive/**",
+    "deliverables/**",
+    "github-cache/**",
     "**/cascade-project-roadmap.json",
     "data/roadmap/archive/cascade-project-roadmap.json"
   ],

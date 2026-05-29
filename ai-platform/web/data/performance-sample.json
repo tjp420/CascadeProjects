@@ -26,7 +26,7 @@
     "memoryMax": null,
     "memoryUnit": "KB",
     "memoryTrend": null,
-    "throughput": "665/665",
+    "throughput": "936/936",
     "throughputTrend": null,
     "avgResponseTime": null,
     "responseTrend": null,
@@ -34,8 +34,8 @@
     "uptime": null,
     "errorRate": null,
     "testSuites": 18,
-    "totalTests": 665,
-    "passedTests": 665,
+    "totalTests": 936,
+    "passedTests": 936,
     "sampleJsonFiles": 33,
     "measuredBaselines": 43,
     "mockScanFiles": 36,
@@ -49,7 +49,7 @@
       "cacheHitRate": "Schema Pass",
       "uptime": "Scanner Backlog"
     },
-    "notes": "665/665 Jest across 32 suites. mock-data-scanner: 42/42 schema pass, 0 open issues, 0 duplicate groups."
+    "notes": "936/936 Jest across 73 suites. mock-data-scanner: 42/42 schema pass, 0 open issues, 0 duplicate groups."
   },
   "metricsTimeline": {
     "labels": ["May 19", "May 20", "May 21", "May 22", "May 23", "May 24"],
@@ -188,7 +188,7 @@
   ],
   "activity": [
     { "time": "2026-05-24", "event": "Performance optimization complete — init dedupe + roadmap trim", "category": "Platform", "status": "success" },
-    { "time": "2026-05-24", "event": "665/665 Jest tests passed", "category": "Testing", "status": "success" },
+    { "time": "2026-05-24", "event": "936/936 Jest tests passed", "category": "Testing", "status": "success" },
     { "time": "2026-05-24", "event": "mock-data-scanner: 36 files, 0 issues, 100% schema", "category": "Scanner", "status": "success" },
     { "time": "2026-05-23", "event": "Issue Resolution page on measured baseline", "category": "Platform", "status": "success" }
   ]

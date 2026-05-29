@@ -6,7 +6,10 @@ const fs = require('fs');
 const path = require('path');
 const { globMatch } = require('../rules/production-leak');
 
-const REPO_SKIP_DIRS = new Set(['node_modules', '.git', 'uploads', 'coverage', 'archive', 'dist', 'build']);
+const REPO_SKIP_DIRS = new Set([
+    'node_modules', '.git', 'uploads', 'coverage', 'archive', 'dist', 'build',
+    'github-cache', 'deliverables', '.simplebeacon', 'data-central', 'security-reports'
+]);
 const REPO_WALK_MAX_DEPTH = 24;
 const JSON_MAX_BYTES = 512000;
 
@@ -56,7 +59,27 @@ const NON_FICTION_METRIC_KEYS = new Set([
     'issueCount',
     'credentialScanned',
     'productionLeakScanned',
-    'sourceCodeFilesScanned'
+    'sourceCodeFilesScanned',
+    'apiRouteCount',
+    'similarity',
+    'tokenJaccard',
+    'lineHashJaccard',
+    'confidence',
+    'edges',
+    'nodes',
+    'files',
+    'totalFiles',
+    'totalFolders',
+    'stepsCompleted',
+    'stepCount',
+    'codeFilesAnalyzed',
+    'codeFilesDiscovered',
+    'findingsTotal',
+    'healthScore',
+    'qualityScore',
+    'lineCoverage',
+    'branchCoverage',
+    'testCoverage'
 ]);
 
 const ACTIVE_MODEL_KEYS = new Set(['name', 'activeModel', 'model', 'currentModel']);
@@ -379,6 +402,15 @@ async function loadJsonExtractions(fileRefs, baseline) {
         if (!fs.existsSync(filePath)) continue;
         try {
             const payload = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
+            if (
+                payload?.type === 'simplebeacon-complete-scan'
+                || payload?.type === 'simplebeacon-complete-scan-summary'
+                || payload?.type === 'simplebeacon-report'
+                || payload?.type === 'simplebeacon-cleanup-brief'
+            ) {
+                extractions.push({ fileName: displayName, kpis: {}, fictionHits: [] });
+                continue;
+            }
             extractions.push(extractKpis(payload, displayName, baseline));
         } catch (error) {
             extractions.push({

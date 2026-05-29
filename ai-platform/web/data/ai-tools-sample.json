@@ -122,7 +122,7 @@
       "category": "Performance",
       "status": "active",
       "section": "performance",
-      "description": "Links to Performance page — 665/665 Jest, measured baseline KPIs.",
+      "description": "Links to Performance page — 936/936 Jest, measured baseline KPIs.",
       "performance": { "accuracy": null, "speed": "~5s Jest", "memory": "—", "cpu": "—" },
       "usage": { "totalRuns": null, "successRate": null, "avgTime": "—" }
     },
@@ -147,7 +147,7 @@
     { "category": "Infrastructure", "percentage": 11, "runs": null, "toolCount": 1 }
   ],
   "performanceMetrics": [
-    { "label": "Jest Pass Rate", "value": "665/665", "score": 100, "trend": "32 suites", "trendType": "positive" },
+    { "label": "Jest Pass Rate", "value": "936/936", "score": 100, "trend": "73 suites", "trendType": "positive" },
     { "label": "Schema Pass Rate", "value": "100%", "score": 100, "trend": "42/42 specs", "trendType": "positive" },
     { "label": "Scan Quality", "value": "99%", "score": 99, "trend": "40 files, 0 blocking issues", "trendType": "positive" },
     { "label": "Istanbul Coverage", "value": "79.5%", "score": 80, "trend": "CI test:coverage job", "trendType": "positive" }
@@ -194,14 +194,14 @@
     { "time": "2026-05-24", "tool": "Dashboard CI", "action": "phase2-smoke + test:coverage wired in dashboard-ci.yml", "status": "success", "duration": "—" },
     { "time": "2026-05-24", "tool": "Security Dashboard", "action": "npm audit wired (SEC-004 closed)", "status": "success", "duration": "—" },
     { "time": "2026-05-24", "tool": "Dashboard Samples", "action": "42/42 pages on repository-audit", "status": "success", "duration": "—" },
-    { "time": "2026-05-24", "tool": "Jest Suite", "action": "665/665 tests passed (32 suites)", "status": "success", "duration": "~5s" },
+    { "time": "2026-05-24", "tool": "Jest Suite", "action": "936/936 tests passed (73 suites)", "status": "success", "duration": "~5s" },
     { "time": "2026-05-23", "tool": "Stub API", "action": "Tier-1 routes wired for page samples", "status": "success", "duration": "—" },
     { "time": "2026-05-23", "tool": "Issue Resolution", "action": "5/5 scanner findings marked resolved", "status": "success", "duration": "—" }
   ],
   "recommendations": {
     "immediate": [
       {
-        "title": "Wire 665-test deploy gate",
+        "title": "Wire 936-test deploy gate",
         "current": "Jest + coverage run in dashboard-ci.yml",
         "target": "Required branch protection check on main",
         "actions": ["Mark dashboard-ci required on main", "Block production deploy without green suite"],
@@ -242,7 +242,7 @@
     ]
   },
   "kpis": [
-    { "name": "Jest Pass Rate", "current": "665/665", "target": "665/665", "timeline": "ongoing", "priority": "high" },
+    { "name": "Jest Pass Rate", "current": "936/936", "target": "936/936", "timeline": "ongoing", "priority": "high" },
     { "name": "Measured Baselines", "current": "42/42", "target": "42/42", "timeline": "complete", "priority": "high" },
     { "name": "Schema Pass Rate", "current": "100%", "target": "100%", "timeline": "42/42 specs", "priority": "medium" },
     { "name": "Open Scanner Issues", "current": "0", "target": "0", "timeline": "maintained", "priority": "medium" }
@@ -251,7 +251,7 @@
     "status": "HEALTHY",
     "assessment": "Nine dashboard tools wired as section launchers. Jest, mock-data-scanner, and npm audit metrics are measured; per-tool run counts are not collected.",
     "highlights": [
-      "665/665 Jest tests across 32 suites",
+      "936/936 Jest tests across 73 suites",
       "42/42 page samples on repository-audit",
       "Mock scanner: 40 files, 99% quality, 0 blocking issues, 43/43 PAGE_SAMPLE_SPECS",
       "dashboard-ci.yml: Jest + Istanbul + phase2-smoke on PR",
