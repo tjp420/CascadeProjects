@@ -1,7 +1,7 @@
 {
   "package": "SimpleBeacon Gate Attestation Pack",
-  "generatedAt": "2026-05-29T11:36:10.200Z",
-  "updatedAt": "2026-05-29T11:36:30.745Z",
+  "generatedAt": "2026-05-29T11:37:52.001Z",
+  "updatedAt": "2026-05-29T11:38:11.022Z",
   "repository": "CascadeProjects (monorepo root, platform ai-platform)",
   "instructions": "Attach complete-scan JSON + HTML attestation exports for vendor questionnaires. Re-run Complete scan after code changes.",
   "pricingProofStack": {
@@ -20,7 +20,7 @@
   "artifacts": [
     {
       "role": "gate-attestation",
-      "reportId": "SB-AUD-20260529-7PK00Q",
+      "reportId": "SB-AUD-20260529-A9ESU2",
       "file": "01-gate-attestation-FTTYCS.html",
       "tier": "gate-only",
       "evidence": {
@@ -29,12 +29,12 @@
         "qualityScore": 100,
         "llmSlopHits": 0,
         "codebaseHealthScore": 100,
-        "track2VerifiedAt": "2026-05-29T11:36:30.745Z"
+        "track2VerifiedAt": "2026-05-29T11:38:11.022Z"
       }
     },
     {
       "role": "codebase-hygiene",
-      "reportId": "SB-AUD-20260529-LQHZBC",
+      "reportId": "SB-AUD-20260529-EX7558",
       "file": "02-codebase-hygiene-AJ1JFI.html",
       "tier": "codebase-only",
       "evidence": {
@@ -53,9 +53,9 @@
         "compliancePassed": 7,
         "npmVulnerabilities": 0,
         "codebaseHealthScore": 100,
-        "repositoryFilesTotal": 2320,
+        "repositoryFilesTotal": 2323,
         "mockSampleFiles": 48,
-        "roadmapFiles": 1702,
+        "roadmapFiles": 1703,
         "consolidationDuplicateGroups": 0,
         "fictionKpiHits": 0
       }

@@ -8,8 +8,9 @@ const { buildCompleteAuditReport } = require('../server/lib/complete-scan-audit-
 async function main() {
   const projectRoot = path.resolve(__dirname, '..');
   const archivePath = path.join(projectRoot, '.simplebeacon', 'archive', 'complete-scan-latest.json');
+  const nestedArchivePath = path.join(projectRoot, '.simplebeacon', 'archive', 'archive', 'complete-scan-latest.json');
   const latestPath = path.join(projectRoot, '.simplebeacon', 'complete-scan-latest.json');
-  const candidates = [archivePath, latestPath];
+  const candidates = [archivePath, nestedArchivePath, latestPath];
 
   const scanPath = candidates.find((p) => {
     if (!fs.existsSync(p)) return false;

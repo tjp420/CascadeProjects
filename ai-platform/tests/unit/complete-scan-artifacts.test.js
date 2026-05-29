@@ -58,6 +58,25 @@ describe('complete-scan artifacts', () => {
         expect(saved.results.roadmap).toEqual({ ok: true });
     });
 
+    test('writeCompleteScanOutput writes full payload when path is under archive/', () => {
+        const payload = {
+            type: 'simplebeacon-complete-scan',
+            version: '1.3.0',
+            summary: { stepCount: 8 },
+            results: { codebase: { ok: true } }
+        };
+        const archivePath = path.join(tempDir, 'archive', 'complete-scan-latest.json');
+        const written = writeCompleteScanOutput(archivePath, payload);
+
+        expect(written.archivePath).toBeNull();
+        expect(written.summaryPath).toBeNull();
+        expect(fs.existsSync(archivePath)).toBe(true);
+
+        const saved = JSON.parse(fs.readFileSync(archivePath, 'utf8'));
+        expect(saved.type).toBe('simplebeacon-complete-scan');
+        expect(saved.results.codebase).toEqual({ ok: true });
+    });
+
     test('buildCompleteScanSummary preserves summary fields', () => {
         const summary = buildCompleteScanSummary({
             version: '1.2.0',

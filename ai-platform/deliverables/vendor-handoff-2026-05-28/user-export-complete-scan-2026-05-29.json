@@ -1,41 +1,38 @@
 {
   "type": "simplebeacon-complete-scan",
   "version": "1.3.0",
-  "generatedAt": "2026-05-29T11:36:10.200Z",
+  "generatedAt": "2026-05-29T11:37:52.001Z",
   "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-  "scanDurationMs": 39081,
+  "scanDurationMs": 34884,
   "errors": [],
   "summary": {
     "stepCount": 8,
     "stepsCompleted": 8,
-    "scanDurationMs": 39081,
+    "scanDurationMs": 34884,
     "simplebeaconGatePass": true,
     "simplebeaconIssues": 0,
     "consolidationDuplicateGroups": 0,
     "fictionKpiHits": 0,
-    "roadmapFiles": 1702,
+    "roadmapFiles": 1703,
     "codebaseHealthScore": 100,
     "codebaseFindings": 0,
-    "fileReductionFindings": 6,
+    "fileReductionFindings": 7,
     "fileReductionReclaimableBytes": 0,
     "fileReductionSafeToDeleteBytes": 0,
     "fileReductionImmediateSavingsBytes": 0,
-    "fileReductionUnusedCandidates": 5,
+    "fileReductionUnusedCandidates": 6,
     "dataQualityFindings": 24,
     "dataQualityWorkspacePackages": 2,
     "dataQualityPiiNeedingReview": 0,
     "cleanupSafeFiles": 0,
     "cleanupSafeBytes": 0,
-    "cleanupProjectedFiles": 2322,
-    "fileReductionReviewBytes": 0,
-    "dataQualityUnusedDependencies": 0,
-    "dataQualityCredentialsNeedingReview": 0
+    "cleanupProjectedFiles": 2323
   },
   "results": {
     "simplebeacon": {
       "type": "simplebeacon-report",
       "reportVersion": 2,
-      "generatedAt": "2026-05-29T11:35:31.735Z",
+      "generatedAt": "2026-05-29T11:37:17.703Z",
       "generatedBy": "Simplebeacon",
       "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
       "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\config.json",
@@ -44,16 +41,16 @@
       ],
       "repositoryInventory": {
         "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-        "totalFiles": 2320,
-        "totalFolders": 244,
+        "totalFiles": 2323,
+        "totalFolders": 246,
         "profile": "audit"
       },
       "mockSampleFiles": 48,
       "totalFiles": 48,
       "ruleScopedFilesAnalyzed": 211,
-      "repositoryFilesTotal": 2320,
-      "repositoryFoldersTotal": 244,
-      "filesAnalyzed": 2320,
+      "repositoryFilesTotal": 2323,
+      "repositoryFoldersTotal": 246,
+      "filesAnalyzed": 2323,
       "totalSizeBytes": 278846,
       "totalSizeLabel": "272.3KB",
       "issueCount": 0,
@@ -68,10 +65,10 @@
       "duplicateGroups": 0,
       "roadmapSchemaChecked": 1,
       "roadmapSchemaPassed": 1,
-      "consistencyChecked": 65,
-      "consistencyPassed": 65,
+      "consistencyChecked": 66,
+      "consistencyPassed": 66,
       "consistencyScore": 100,
-      "fictionJsonFilesScanned": 65,
+      "fictionJsonFilesScanned": 66,
       "fictionSampleFilesScanned": 48,
       "fictionScope": "repository-json",
       "credentialScanned": 188,
@@ -201,17 +198,17 @@
         "jestExecutedDuringScan": false,
         "consistencyAnchorCount": 5,
         "fictionScope": "repository-json",
-        "fictionJsonFilesScanned": 65,
+        "fictionJsonFilesScanned": 66,
         "fictionSampleFilesScanned": 48,
         "ruleScopedFilesAnalyzed": 211,
-        "repositoryFilesTotal": 2320,
-        "repositoryFoldersTotal": 244,
+        "repositoryFilesTotal": 2323,
+        "repositoryFoldersTotal": 246,
         "benchmarkCacheIssuesExcluded": 0,
         "excludedPathsNote": null,
         "limitations": [
-          "Repository inventory: 2,320 files — gate rules checked 211 (mock paths, credentials, server/ leaks).",
+          "Repository inventory: 2,323 files — gate rules checked 211 (mock paths, credentials, server/ leaks).",
           "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-          "Fiction/KPI rules scan repository JSON (65) plus source code (211 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
+          "Fiction/KPI rules scan repository JSON (66) plus source code (211 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
           "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
         ],
         "resultsViewScope": "platform-only",
@@ -236,7 +233,7 @@
       "reportVersion": 2,
       "title": "File Merger & Reduction Scan (Measured Baseline)",
       "dataSource": "repository-audit",
-      "generatedAt": "2026-05-29T11:35:36.578Z",
+      "generatedAt": "2026-05-29T11:37:22.550Z",
       "generatedBy": "file-merger-reduction-scanner",
       "scanEngine": "file-merger-reduction-scanner",
       "inferenceMode": "filesystem + fuzzy-match",
@@ -270,34 +267,34 @@
           "data/roadmap"
         ],
         "sampleDataFilesAnalyzed": 49,
-        "jsonFilesAnalyzed": 171,
-        "repositoryFilesAudited": 2320,
+        "jsonFilesAnalyzed": 172,
+        "repositoryFilesAudited": 2323,
         "repositoryInventoryProfile": "audit",
         "repositoryInventoryIncluded": true,
-        "repositoryFilesTotal": 2321,
-        "repositoryFoldersTotal": 247,
+        "repositoryFilesTotal": 2324,
+        "repositoryFoldersTotal": 249,
         "limitations": [
-          "repositoryFilesTotal uses audit inventory (2,321 files).",
-          "Merge/dedup logic walked 2,320 audit-scoped files and hashed 171 JSON files.",
+          "repositoryFilesTotal uses audit inventory (2,324 files).",
+          "Merge/dedup logic walked 2,323 audit-scoped files and hashed 172 JSON files.",
           "Structure similarity pairs are limited to configured sample paths.",
           "node_modules, .git, coverage, archive, dist, build, github-cache/, and deliverables/ are excluded from merge walks."
         ]
       },
       "repositoryInventory": {
         "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-        "totalFiles": 2321,
-        "totalFolders": 247,
+        "totalFiles": 2324,
+        "totalFolders": 249,
         "profile": "audit"
       },
       "summary": {
-        "filesAnalyzed": 2321,
+        "filesAnalyzed": 2324,
         "sampleDataFilesAnalyzed": 49,
-        "jsonFilesAnalyzed": 171,
-        "repositoryFilesTotal": 2321,
-        "repositoryFilesAudited": 2320,
-        "repositoryFoldersTotal": 247,
-        "totalSizeBytes": 14865346,
-        "totalSizeLabel": "14.2MB",
+        "jsonFilesAnalyzed": 172,
+        "repositoryFilesTotal": 2324,
+        "repositoryFilesAudited": 2323,
+        "repositoryFoldersTotal": 249,
+        "totalSizeBytes": 15034445,
+        "totalSizeLabel": "14.3MB",
         "mergeCandidates": 0,
         "reductionOpportunities": 0,
         "potentialSavingsBytes": 0,
@@ -358,7 +355,7 @@
       "sourceReport": {
         "type": "simplebeacon-report",
         "reportVersion": 2,
-        "generatedAt": "2026-05-29T11:35:31.735Z",
+        "generatedAt": "2026-05-29T11:37:17.703Z",
         "generatedBy": "Simplebeacon",
         "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
         "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\config.json",
@@ -367,16 +364,16 @@
         ],
         "repositoryInventory": {
           "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-          "totalFiles": 2320,
-          "totalFolders": 244,
+          "totalFiles": 2323,
+          "totalFolders": 246,
           "profile": "audit"
         },
         "mockSampleFiles": 48,
         "totalFiles": 48,
         "ruleScopedFilesAnalyzed": 211,
-        "repositoryFilesTotal": 2320,
-        "repositoryFoldersTotal": 244,
-        "filesAnalyzed": 2320,
+        "repositoryFilesTotal": 2323,
+        "repositoryFoldersTotal": 246,
+        "filesAnalyzed": 2323,
         "totalSizeBytes": 278846,
         "totalSizeLabel": "272.3KB",
         "issueCount": 0,
@@ -391,10 +388,10 @@
         "duplicateGroups": 0,
         "roadmapSchemaChecked": 1,
         "roadmapSchemaPassed": 1,
-        "consistencyChecked": 65,
-        "consistencyPassed": 65,
+        "consistencyChecked": 66,
+        "consistencyPassed": 66,
         "consistencyScore": 100,
-        "fictionJsonFilesScanned": 65,
+        "fictionJsonFilesScanned": 66,
         "fictionSampleFilesScanned": 48,
         "fictionScope": "repository-json",
         "credentialScanned": 188,
@@ -524,17 +521,17 @@
           "jestExecutedDuringScan": false,
           "consistencyAnchorCount": 5,
           "fictionScope": "repository-json",
-          "fictionJsonFilesScanned": 65,
+          "fictionJsonFilesScanned": 66,
           "fictionSampleFilesScanned": 48,
           "ruleScopedFilesAnalyzed": 211,
-          "repositoryFilesTotal": 2320,
-          "repositoryFoldersTotal": 244,
+          "repositoryFilesTotal": 2323,
+          "repositoryFoldersTotal": 246,
           "benchmarkCacheIssuesExcluded": 0,
           "excludedPathsNote": null,
           "limitations": [
-            "Repository inventory: 2,320 files — gate rules checked 211 (mock paths, credentials, server/ leaks).",
+            "Repository inventory: 2,323 files — gate rules checked 211 (mock paths, credentials, server/ leaks).",
             "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-            "Fiction/KPI rules scan repository JSON (65) plus source code (211 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
+            "Fiction/KPI rules scan repository JSON (66) plus source code (211 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
             "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
           ],
           "resultsViewScope": "platform-only",
@@ -557,8 +554,8 @@
     },
     "roadmap": {
       "type": "dynamic-project-roadmap-analysis",
-      "timestamp": "2026-05-29T11:35:59.529Z",
-      "generatedAt": "2026-05-29T11:35:59.529Z",
+      "timestamp": "2026-05-29T11:37:42.359Z",
+      "generatedAt": "2026-05-29T11:37:42.359Z",
       "generatedBy": "code-roadmap-generator",
       "dataSource": "filesystem-scan",
       "version": "3.1.0",
@@ -575,7 +572,7 @@
         "projectHealth": "Healthy",
         "aiConfidence": null,
         "analysisDuration": null,
-        "lastUpdated": "2026-05-29T11:35:59.529Z",
+        "lastUpdated": "2026-05-29T11:37:42.359Z",
         "teamSize": 1,
         "notes": "Sprint model from filesystem signals + repository-audit baselines — not 47-feature enterprise fiction"
       },
@@ -656,15 +653,15 @@
       },
       "codeAnalysis": {
         "structure": {
-          "totalFiles": 1702,
-          "codeFiles": 899,
+          "totalFiles": 1703,
+          "codeFiles": 900,
           "languages": {
             "other": 12,
             ".example": 6,
             ".phase2-sso": 1,
             ".production": 1,
             ".v1-internal": 1,
-            ".json": 145,
+            ".json": 146,
             ".yml": 9,
             ".md": 21,
             ".py": 687,
@@ -1113,7 +1110,7 @@
         "metrics": {
           "codebaseMaturity": 90,
           "featureCompleteness": 100,
-          "documentationCoverage": 14.177066263288374,
+          "documentationCoverage": 14.176768419504612,
           "testCoverage": 78.17785527462947,
           "lineCoverage": null,
           "branchCoverage": null,
@@ -1621,8 +1618,8 @@
           "automation": true
         },
         "models": [
-          "llama",
           "gguf",
+          "llama",
           "gpt",
           "claude",
           "bert"
@@ -1691,20 +1688,20 @@
       "reportVersion": 1,
       "title": "Codebase Analysis Report",
       "dataSource": "repository-audit",
-      "generatedAt": "2026-05-29T11:36:03.261Z",
+      "generatedAt": "2026-05-29T11:37:45.756Z",
       "generatedBy": "codebase-analyzer",
       "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
       "repositoryInventory": {
         "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-        "totalFiles": 2323,
+        "totalFiles": 2324,
         "totalFolders": 249,
         "profile": "audit"
       },
       "summary": {
-        "repositoryFilesTotal": 2323,
+        "repositoryFilesTotal": 2324,
         "repositoryFoldersTotal": 249,
-        "codeFilesAnalyzed": 1429,
-        "codeFilesDiscovered": 1467,
+        "codeFilesAnalyzed": 1430,
+        "codeFilesDiscovered": 1468,
         "findingsTotal": 0,
         "findingsReturned": 0,
         "findingsTruncated": false,
@@ -2305,7 +2302,7 @@
         ],
         "description": "Complete scan profile — deep content analysis on every discovered code-like file (skips node_modules, .git, coverage). Not a semantic or security certification.",
         "limitations": [
-          "Complete scan: analyzed 1,429 of 1,467 code-like files.",
+          "Complete scan: analyzed 1,430 of 1,468 code-like files.",
           "Extension profile: default (dashboard default: universal; complete/CLI: default; override with SCAN_PROFILE or scanProfile).",
           "52 language plugins (51 registry languages; Tier-2: Python, Rust, Go, SQL).",
           "Context-aware filtering reduces false positives in tests, docs, and example paths.",
@@ -2319,10 +2316,10 @@
       "type": "data-cleanup-report",
       "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
       "dryRun": true,
-      "generatedAt": "2026-05-29T11:36:04.563Z",
-      "durationMs": 1303,
+      "generatedAt": "2026-05-29T11:37:46.868Z",
+      "durationMs": 1114,
       "inventory": {
-        "totalFiles": 2322,
+        "totalFiles": 2323,
         "totalDirectories": 259
       },
       "scanners": {
@@ -2340,9 +2337,9 @@
           "reclaimableBytes": 0
         },
         "unused-files": {
-          "sourceFilesScanned": 1591,
+          "sourceFilesScanned": 1592,
           "entryPoints": 236,
-          "unusedCandidates": 5
+          "unusedCandidates": 6
         }
       },
       "findings": {
@@ -2365,6 +2362,14 @@
           {
             "type": "unused-file",
             "path": "batch_consolidator.py",
+            "reason": "Not referenced by static import graph",
+            "confidence": "low",
+            "action": "review-before-delete",
+            "severity": "medium"
+          },
+          {
+            "type": "unused-file",
+            "path": "complete-scan-export.json",
             "reason": "Not referenced by static import graph",
             "confidence": "low",
             "action": "review-before-delete",
@@ -2416,12 +2421,12 @@
         "bySeverity": {
           "critical": 0,
           "high": 0,
-          "medium": 5,
+          "medium": 6,
           "low": 1
         },
         "byCategory": {
           "build-artifact": 1,
-          "unused-file": 5
+          "unused-file": 6
         },
         "topFiles": [
           {
@@ -2430,6 +2435,10 @@
           },
           {
             "filePath": "batch_consolidator.py",
+            "count": 1
+          },
+          {
+            "filePath": "complete-scan-export.json",
             "count": 1
           },
           {
@@ -2454,6 +2463,14 @@
         {
           "type": "unused-file",
           "path": "batch_consolidator.py",
+          "reason": "Not referenced by static import graph",
+          "confidence": "low",
+          "action": "review-before-delete",
+          "severity": "medium"
+        },
+        {
+          "type": "unused-file",
+          "path": "complete-scan-export.json",
           "reason": "Not referenced by static import graph",
           "confidence": "low",
           "action": "review-before-delete",
@@ -2505,10 +2522,10 @@
         }
       ],
       "summary": {
-        "totalFindings": 6,
+        "totalFindings": 7,
         "buildArtifactFindings": 1,
         "duplicateAssetGroups": 0,
-        "unusedFileCandidates": 5,
+        "unusedFileCandidates": 6,
         "configFindings": 0,
         "dependencyFindings": 0,
         "environmentFindings": 0,
@@ -2814,8 +2831,8 @@
           "topGroups": []
         },
         "unusedFiles": {
-          "candidates": 5,
-          "sourceFilesScanned": 1591,
+          "candidates": 6,
+          "sourceFilesScanned": 1592,
           "entryPoints": 236,
           "note": "Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting."
         },
@@ -2840,7 +2857,7 @@
           },
           {
             "category": "Unused source files",
-            "files": 5,
+            "files": 6,
             "bytes": null,
             "action": "Investigate"
           }
@@ -2855,7 +2872,7 @@
       },
       "executiveSummary": {
         "profile": "file-reduction",
-        "generatedAt": "2026-05-29T11:36:04.563Z",
+        "generatedAt": "2026-05-29T11:37:46.868Z",
         "priorityActions": [],
         "security": {
           "credentialHits": 0,
@@ -2889,7 +2906,7 @@
           "duplicateAssetBytes": 0,
           "estimatedImmediateSavingsBytes": 0,
           "buildArtifactFindings": 1,
-          "unusedFileCandidates": 5,
+          "unusedFileCandidates": 6,
           "duplicateAssetGroups": 0
         },
         "notes": [
@@ -2903,9 +2920,9 @@
         "scope": "workspace",
         "scopeNote": "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
         "project": {
-          "totalFiles": 2322,
+          "totalFiles": 2323,
           "totalDirectories": 259,
-          "durationMs": 1303,
+          "durationMs": 1112,
           "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform"
         },
         "scanners": {
@@ -3078,10 +3095,10 @@
       "type": "data-cleanup-report",
       "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
       "dryRun": true,
-      "generatedAt": "2026-05-29T11:36:10.192Z",
-      "durationMs": 5621,
+      "generatedAt": "2026-05-29T11:37:51.992Z",
+      "durationMs": 5117,
       "inventory": {
-        "totalFiles": 2322,
+        "totalFiles": 2323,
         "totalDirectories": 259
       },
       "scanners": {
@@ -4559,7 +4576,7 @@
       },
       "executiveSummary": {
         "profile": "data-quality",
-        "generatedAt": "2026-05-29T11:36:10.192Z",
+        "generatedAt": "2026-05-29T11:37:51.992Z",
         "priorityActions": [],
         "security": {
           "credentialHits": 1,
@@ -4634,9 +4651,9 @@
         "scope": "workspace",
         "scopeNote": "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
         "project": {
-          "totalFiles": 2322,
+          "totalFiles": 2323,
           "totalDirectories": 259,
-          "durationMs": 5621,
+          "durationMs": 5115,
           "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform"
         },
         "scanners": {
@@ -4813,7 +4830,7 @@
     "cleanupAssistant": {
       "type": "simplebeacon-cleanup-brief",
       "version": "1.0.0",
-      "generatedAt": "2026-05-29T11:36:10.200Z",
+      "generatedAt": "2026-05-29T11:37:52.001Z",
       "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
       "policy": {
         "protectedPaths": [
@@ -4829,11 +4846,11 @@
         "aggressiveness": "moderate"
       },
       "inventory": {
-        "totalFiles": 2322,
+        "totalFiles": 2323,
         "totalFolders": 259
       },
       "projectedInventory": {
-        "totalFiles": 2322,
+        "totalFiles": 2323,
         "totalFolders": 259
       },
       "estimatedReduction": {
@@ -4865,19 +4882,19 @@
           "directories": []
         },
         "investigate": {
-          "files": 5,
+          "files": 6,
           "note": "Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting."
         }
       },
       "scanAnalysis": {
-        "generatedAt": "2026-05-29T11:36:10.200Z",
+        "generatedAt": "2026-05-29T11:37:52.001Z",
         "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
         "fileReduction": {
           "safeToDeleteBytes": 0,
           "reviewBeforeDeleteBytes": 0,
           "immediateSavingsBytes": 0,
           "duplicateAssetBytes": 0,
-          "unusedFileCandidates": 5,
+          "unusedFileCandidates": 6,
           "topSafeDirectories": [
             {
               "path": "node_modules",
@@ -4908,7 +4925,7 @@
             },
             {
               "category": "Unused source files",
-              "files": 5,
+              "files": 6,
               "bytes": null,
               "action": "Investigate"
             }
@@ -4962,91 +4979,7 @@
         "Keep .simplebeacon scan artifacts unless the user opts in.",
         "Target inventory reduction: ~0 files (0 B)."
       ],
-      "agentPrompt": "Proceed in agent mode using the attached cleanup brief for: C:\\Users\\Trevor\\CascadeProjects\\ai-platform\n\nDeletion policy:\n- Safe to delete now: regenerable artifacts only (0 files, 0 B).\n- Protected (never delete): web/data, data/mock, data-central, data/roadmap, uploads, .git\n- Review first: logs, scan cache, and anything flagged reviewFirst in the brief\n- Do not bulk-delete unused-file candidates without verifying imports\n\nInventory: 2,322 files / 259 folders\nProjected after phase 1: ~2,322 files\n\nAttach the exported cleanup-brief JSON and execute phase 1 only unless I say otherwise."
+      "agentPrompt": "Proceed in agent mode using the attached cleanup brief for: C:\\Users\\Trevor\\CascadeProjects\\ai-platform\n\nDeletion policy:\n- Safe to delete now: regenerable artifacts only (0 files, 0 B).\n- Protected (never delete): web/data, data/mock, data-central, data/roadmap, uploads, .git\n- Review first: logs, scan cache, and anything flagged reviewFirst in the brief\n- Do not bulk-delete unused-file candidates without verifying imports\n\nInventory: 2,323 files / 259 folders\nProjected after phase 1: ~2,323 files\n\nAttach the exported cleanup-brief JSON and execute phase 1 only unless I say otherwise."
     }
-  },
-  "enrichedAt": "2026-05-29T11:36:10.200Z",
-  "completeScanAnalysis": {
-    "generatedAt": "2026-05-29T11:36:10.201Z",
-    "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-    "fileReduction": {
-      "safeToDeleteBytes": 0,
-      "reviewBeforeDeleteBytes": 0,
-      "immediateSavingsBytes": 0,
-      "duplicateAssetBytes": 0,
-      "unusedFileCandidates": 5,
-      "topSafeDirectories": [
-        {
-          "path": "node_modules",
-          "bytes": 0,
-          "files": 0,
-          "category": "node_modules"
-        }
-      ],
-      "reviewLogs": [],
-      "summaryTable": [
-        {
-          "category": "Build artifacts (safe)",
-          "files": 0,
-          "bytes": 0,
-          "action": "Safe to delete"
-        },
-        {
-          "category": "Build artifacts (review)",
-          "files": 0,
-          "bytes": 0,
-          "action": "Review first"
-        },
-        {
-          "category": "Duplicate assets",
-          "files": 0,
-          "bytes": 0,
-          "action": "Consolidate"
-        },
-        {
-          "category": "Unused source files",
-          "files": 5,
-          "bytes": null,
-          "action": "Investigate"
-        }
-      ]
-    },
-    "dataQuality": {
-      "workspacePackages": 2,
-      "unusedDependencies": 0,
-      "envInconsistencies": 0,
-      "missingEnvKeys": 0,
-      "shapeDriftGroups": 0,
-      "syncIoPatterns": 0,
-      "orphanedDataFiles": 0,
-      "credentialsNeedingReview": 0,
-      "piiNeedingReview": 0,
-      "piiByCategory": [
-        {
-          "category": "mock-sample-data",
-          "categoryLabel": "Mock or sample data",
-          "count": 14
-        },
-        {
-          "category": "documentation",
-          "categoryLabel": "Documentation / guidelines",
-          "count": 6
-        },
-        {
-          "category": "test-fixture",
-          "categoryLabel": "Intentional test fixture",
-          "count": 1
-        }
-      ]
-    },
-    "priorityActions": [],
-    "notes": [
-      "Directory totals exclude nested artifact paths to avoid double-counting reclaimable space.",
-      "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
-      "Unused dependencies are based on static imports only — verify CLI, test, and config usage before removal.",
-      "Unused env keys may still be supplied by Docker, CI, or runtime injection.",
-      "PII hits in docs, reports, and sample data are common — review production paths first.",
-      "All PII hits are in documentation, reports, or mock/sample data."
-    ]
   }
 }

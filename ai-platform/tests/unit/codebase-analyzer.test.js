@@ -769,6 +769,9 @@ describe('codebase analyzer', () => {
                 "  'tech-debt': 'Resolve unfinished work markers with a tracked ticket before handoff.',",
                 "  'debug-artifact': 'Remove console.log from production paths.'",
                 '};',
+                'function buildStructuredChanges() {',
+                "  return [{ before: text.trim() || 'debugger;' }, { before: 'console.log(...)' }];",
+                '}',
                 'module.exports = { DEFAULT_RECIPES };',
                 ''
             ].join('\n'),

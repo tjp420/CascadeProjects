@@ -5,6 +5,7 @@ const { buildCompleteAuditReport } = require('../server/lib/complete-scan-audit-
 
 const root = path.join(__dirname, '..');
 const archiveScanPath = path.join(root, '.simplebeacon', 'archive', 'complete-scan-latest.json');
+const nestedArchiveScanPath = path.join(root, '.simplebeacon', 'archive', 'archive', 'complete-scan-latest.json');
 const latestScanPath = path.join(root, '.simplebeacon', 'complete-scan-latest.json');
 const handoffDir = path.join(root, 'deliverables', 'vendor-handoff-2026-05-28');
 const manifestPath = path.join(handoffDir, 'manifest.json');
@@ -28,7 +29,7 @@ function copyHandoffJsonExports(scan, scanPath) {
 }
 
 function resolveCompleteScanPath() {
-  const candidates = [archiveScanPath, latestScanPath];
+  const candidates = [archiveScanPath, nestedArchiveScanPath, latestScanPath];
   return candidates.find((p) => {
     if (!fs.existsSync(p)) return false;
     try {

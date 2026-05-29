@@ -21,7 +21,9 @@ function buildCompleteScanSummary(payload) {
 
 function writeCompleteScanOutput(outputPath, payload) {
     const normalized = path.normalize(outputPath);
-    const isLatest = path.basename(normalized) === 'complete-scan-latest.json';
+    const base = path.basename(normalized);
+    const parentDir = path.basename(path.dirname(normalized));
+    const isLatest = base === 'complete-scan-latest.json' && parentDir !== 'archive';
 
     fs.mkdirSync(path.dirname(normalized), { recursive: true });
 
