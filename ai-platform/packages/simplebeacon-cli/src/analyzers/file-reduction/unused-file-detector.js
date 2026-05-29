@@ -41,7 +41,9 @@ const PROTECTED_BASENAMES = new Set([
 ]);
 
 const DEFAULT_SKIP_PATH_PATTERNS = [
+    /(?:^|\/)github-cache\//,
     /(?:^|\/)node_modules\//,
+    /(?:^|\/)coverage\//,
     /(?:^|\/)archive\//,
     /(?:^|\/)temp\//,
     /(?:^|\/)\\.simplebeacon\//,
@@ -50,6 +52,7 @@ const DEFAULT_SKIP_PATH_PATTERNS = [
     /(?:^|\/)\\.vscode(?:\/|$)/,
     /(?:^|\/)docs\//,
     /(?:^|\/)reports\//,
+    /(?:^|\/)deliverables\//,
     /(?:^|\/)security-reports\//,
     /(?:^|\/)data-central\//,
     /(?:^|\/)web\/data\//,
@@ -89,18 +92,32 @@ const PROTECTED_RUNTIME_BASENAMES = new Set([
     'mock_data_validation_report.json',
     'dashboard_config.json',
     'central-data-config.json',
-    '.eslintrc.security.json'
+    '.eslintrc.security.json',
+    // Intentional CJS / browser mirrors (see complete-scan-artifact-profile.js)
+    'complete-scan-artifact-profile.browser.js'
 ]);
 
 const SCRIPT_ENTRY_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.py']);
 const CONFIG_ENTRY_NAMES = new Set([
     'jest.config.js',
+    'jest.critical-path.config.js',
     'vite.config.js',
     'webpack.config.js',
     'eslint.config.js'
 ]);
 
 const NPM_NODE_SCRIPT_PATTERN = /\bnode\s+(?:--[^\s]+\s+)*([^\s&|;]+)/g;
+
+/** Installed dependency trees — never treat as app entry points or orphan scan targets. */
+const VENDOR_PATH_PATTERN = /(?:^|\/)node_modules(?:\/|$)/;
+
+function normalizeRelativePath(relativePath) {
+    return relativePath.split(path.sep).join('/');
+}
+
+function isVendorPath(relativePath) {
+    return VENDOR_PATH_PATTERN.test(normalizeRelativePath(relativePath));
+}
 
 class UnusedFileDetector {
     constructor(config = {}) {
@@ -113,7 +130,9 @@ class UnusedFileDetector {
 
     async scan(projectRoot, options = {}) {
         const inventory = options.inventory || await walkProjectFiles(projectRoot, options);
-        const sourceFiles = inventory.files.filter((file) => this.sourceExtensions.has(file.ext));
+        const sourceFiles = inventory.files.filter(
+            (file) => this.sourceExtensions.has(file.ext) && !isVendorPath(file.relativePath)
+        );
         const imports = [];
         const referenceMap = new Map();
 
@@ -192,10 +211,12 @@ class UnusedFileDetector {
 
     collectEntryPoints(inventory, graph) {
         const entries = new Set();
-        const normalizedPaths = (relativePath) => relativePath.split(path.sep).join('/');
 
         for (const file of inventory.files) {
-            const rel = normalizedPaths(file.relativePath);
+            const rel = normalizeRelativePath(file.relativePath);
+            if (isVendorPath(rel)) {
+                continue;
+            }
 
             if (this.entryBasenames.has(file.name.toLowerCase())) {
                 entries.add(file.path);
@@ -230,7 +251,9 @@ class UnusedFileDetector {
             }
         }
 
-        for (const packageJsonPath of inventory.files.filter((file) => file.name === 'package.json')) {
+        for (const packageJsonPath of inventory.files.filter(
+            (file) => file.name === 'package.json' && !isVendorPath(file.relativePath)
+        )) {
             entries.add(packageJsonPath.path);
             const packageDir = path.dirname(packageJsonPath.path);
             try {
@@ -257,6 +280,10 @@ class UnusedFileDetector {
         }
 
         for (const node of graph.values()) {
+            const rel = path.relative(inventory.root, node.path).split(path.sep).join('/');
+            if (isVendorPath(rel)) {
+                continue;
+            }
             if (node.importedBy.length === 0 && this.entryBasenames.has(path.basename(node.path).toLowerCase())) {
                 entries.add(node.path);
             }
@@ -278,7 +305,7 @@ class UnusedFileDetector {
         if (this.protectedBasenames.has(basename)) return false;
         if (PROTECTED_RUNTIME_BASENAMES.has(basename)) return false;
         if (/\.(test|spec)\.[jt]s$/i.test(basename)) return false;
-        if (relativePath.includes('/tests/') || relativePath.includes('/test/')) return false;
+        if (/(?:^|\/)(?:tests|test)(?:\/|$)/.test(normalized)) return false;
         return true;
     }
 }
@@ -309,5 +336,7 @@ function dedupeFindings(findings) {
 
 module.exports = {
     UnusedFileDetector,
-    dedupeFindings
+    dedupeFindings,
+    isVendorPath,
+    normalizeRelativePath
 };

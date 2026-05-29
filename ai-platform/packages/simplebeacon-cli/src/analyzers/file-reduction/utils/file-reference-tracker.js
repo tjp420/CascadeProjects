@@ -6,15 +6,25 @@ const fs = require('fs');
 const path = require('path');
 const { normalizeSpecifier, resolveImport } = require('./import-parser');
 
+function resolveWebRootRel(relFrom) {
+    if (relFrom.startsWith('web/') || relFrom === 'web') {
+        return 'web';
+    }
+    if (relFrom.includes('/web/')) {
+        return `${relFrom.split('/web/')[0]}/web`;
+    }
+    return null;
+}
+
 function resolveWebAbsolutePath(fromFile, specifier, projectRoot) {
     if (!specifier.startsWith('/')) {
         return null;
     }
     const relFrom = path.relative(projectRoot, fromFile).split(path.sep).join('/');
-    if (!relFrom.includes('/web/')) {
+    const webRootRel = resolveWebRootRel(relFrom);
+    if (!webRootRel) {
         return null;
     }
-    const webRootRel = `${relFrom.split('/web/')[0]}/web`;
     const candidate = path.resolve(projectRoot, webRootRel, specifier.slice(1));
     if (candidate.startsWith(path.resolve(projectRoot)) && fs.existsSync(candidate)) {
         return candidate;

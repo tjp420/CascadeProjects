@@ -3,6 +3,7 @@
  */
 
 const { runFileReductionAnalysis, DEFAULT_SCANNERS } = require('../analyzers/file-reduction');
+const { normalizeFileReductionReport } = require('./normalize-file-reduction-report');
 
 class FileReductionOrchestrator {
     constructor(options = {}) {
@@ -29,7 +30,8 @@ class FileReductionOrchestrator {
 
 async function runFileReductionScan(projectRoot, options = {}) {
     const orchestrator = new FileReductionOrchestrator(options);
-    return orchestrator.run(projectRoot);
+    const report = await orchestrator.run(projectRoot);
+    return normalizeFileReductionReport(report);
 }
 
 module.exports = {

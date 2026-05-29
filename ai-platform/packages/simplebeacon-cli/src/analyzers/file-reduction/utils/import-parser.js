@@ -107,10 +107,49 @@ function parseImports(filePath, content, projectRoot) {
     return [];
 }
 
+const RUNTIME_REFERENCE_PATTERNS = [
+    { kind: 'fetch', regex: /fetch\s*\(\s*['"`]([^'"`]+)['"`]/g },
+    { kind: 'fs-readFile', regex: /fs\.(?:promises\.)?readFile(?:Sync)?\s*\(\s*['"`]([^'"`]+)['"`]/g },
+    { kind: 'readFileSync', regex: /readFileSync\s*\(\s*['"`]([^'"`]+)['"`]/g },
+    { kind: 'createReadStream', regex: /createReadStream\s*\(\s*['"`]([^'"`]+)['"`]/g }
+];
+
+function resolveRuntimePath(fromFile, specifier, projectRoot) {
+    const normalized = normalizeSpecifier(specifier);
+    if (!normalized || normalized.startsWith('http://') || normalized.startsWith('https://')) {
+        return null;
+    }
+    if (isRelativeSpecifier(normalized)) {
+        return resolveImport(fromFile, normalized, projectRoot);
+    }
+    return path.join(projectRoot, normalized.split('/').join(path.sep));
+}
+
+function parseRuntimeReferences(filePath, content, projectRoot) {
+    const ext = path.extname(filePath).toLowerCase();
+    if (!JS_SOURCE_EXTENSIONS.has(ext)) {
+        return [];
+    }
+
+    const references = [];
+    for (const pattern of RUNTIME_REFERENCE_PATTERNS) {
+        for (const specifier of extractMatches(content, pattern.regex)) {
+            references.push({
+                kind: pattern.kind,
+                specifier,
+                source: filePath,
+                resolvedPath: resolveRuntimePath(filePath, specifier, projectRoot)
+            });
+        }
+    }
+    return references;
+}
+
 module.exports = {
     parseImports,
     parseJSImports,
     parsePythonImports,
+    parseRuntimeReferences,
     resolveImport,
     normalizeSpecifier,
     JS_SOURCE_EXTENSIONS

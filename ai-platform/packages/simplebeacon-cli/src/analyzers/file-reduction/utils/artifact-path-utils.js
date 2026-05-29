@@ -25,11 +25,13 @@ function selectTopLevelArtifactDirectories(directories, inventory, patterns) {
             const filePath = normalizeRelativePath(file.relativePath);
             return filePath === relativePath || filePath.startsWith(`${relativePath}/`);
         });
+        const sizeBytes = filesInDir.reduce((sum, file) => sum + file.size, 0);
         candidates.push({
             dir,
             relativePath,
-            sizeBytes: filesInDir.reduce((sum, file) => sum + file.size, 0),
-            fileCount: filesInDir.length
+            sizeBytes,
+            fileCount: filesInDir.length,
+            skipped: Boolean(dir.skipped)
         });
     }
 
@@ -45,7 +47,9 @@ function selectTopLevelArtifactDirectories(directories, inventory, patterns) {
             type: 'build-artifact',
             kind: 'directory',
             path: candidate.relativePath,
-            reason: `${candidate.dir.name} directory`,
+            reason: candidate.skipped
+                ? `${candidate.dir.name} directory (contents not walked)`
+                : `${candidate.dir.name} directory`,
             sizeBytes: candidate.sizeBytes,
             fileCount: candidate.fileCount,
             confidence: 'high',

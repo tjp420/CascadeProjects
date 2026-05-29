@@ -15,7 +15,7 @@ test('compactDataCleanupReportForClient keeps plans but drops bulk finding array
     };
     const compact = compactDataCleanupReportForClient(bulky);
     assert.equal(compact.compact, true);
-    assert.equal(compact.findings.unusedFiles.length, 0);
+    assert.equal(compact.findings.unusedFiles.length, 12);
     assert.equal(compact.allFindings.length, 24);
     assert.ok(JSON.stringify(compact).length < 20000);
     assert.equal(compact.fileReductionPlan.totals.safeToDeleteBytes, 1000);

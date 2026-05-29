@@ -7,7 +7,23 @@ const path = require('path');
 
 const DEFAULT_SKIP_DIRS = new Set([
     '.git',
-    '.simplebeacon'
+    '.simplebeacon',
+    'node_modules',
+    'github-cache',
+    'deliverables',
+    'java-ai-vulnerable',
+    'coverage',
+    'dist',
+    'build',
+    '.next',
+    '.cache',
+    'uploads',
+    'archive',
+    'data-central',
+    'security-reports',
+    '__pycache__',
+    '.venv',
+    'htmlcov'
 ]);
 
 function normalizeRel(baseDir, filePath) {
@@ -44,7 +60,15 @@ async function walkProjectFiles(projectRoot, options = {}) {
         for (const entry of entries) {
             const fullPath = path.join(dir, entry.name);
             if (entry.isDirectory()) {
-                if (skipDirs.has(entry.name)) continue;
+                if (skipDirs.has(entry.name)) {
+                    directories.push({
+                        path: fullPath,
+                        relativePath: normalizeRel(root, fullPath),
+                        name: entry.name,
+                        skipped: true
+                    });
+                    continue;
+                }
                 directories.push({
                     path: fullPath,
                     relativePath: normalizeRel(root, fullPath),
