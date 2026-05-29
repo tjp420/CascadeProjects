@@ -6,6 +6,7 @@ const { isWorkspacePath } = require('../analyzers/data-cleanup/utils/workspace-p
 const { buildExecutiveSummary } = require('./executive-summary');
 const { buildScannerStatistics } = require('./scanner-statistics');
 const { buildFileReductionPlan } = require('./file-reduction-plan');
+const { normalizeFileReductionReport } = require('./normalize-file-reduction-report');
 
 function filterWorkspaceFindings(findings = []) {
     return findings.filter((finding) => isWorkspacePath(finding.path));
@@ -54,12 +55,15 @@ function rebuildWorkspaceScopedSummaries(report) {
             inconsistentEnvKeys: configCounts['env-inconsistency'] || 0
         },
         'dependency-health': {
-            packageJsonFiles: new Set(dependencyFindings.map((finding) => finding.path)).size,
+            ...(report.scanners?.['dependency-health'] || {}),
+            packageJsonFiles: new Set(dependencyFindings.map((finding) => finding.path)).size
+                || report.scanners?.['dependency-health']?.packageJsonFiles
+                || 0,
             uniqueDependencies: new Set(
                 dependencyFindings
                     .map((finding) => finding.metadata?.dependency)
                     .filter(Boolean)
-            ).size,
+            ).size || report.scanners?.['dependency-health']?.uniqueDependencies || 0,
             unusedDependencies: depCounts['unused-dependency'] || 0,
             duplicateDependencies: depCounts['duplicate-dependency'] || 0,
             versionDrift: depCounts['version-drift'] || 0
@@ -111,6 +115,9 @@ function enrichCleanupReport(report, options = {}) {
         rebuildWorkspaceScopedSummaries(enriched);
     }
 
+    const normalized = normalizeFileReductionReport(enriched);
+    Object.assign(enriched, normalized);
+
     enriched.fileReductionPlan = buildFileReductionPlan(enriched);
     enriched.scannerStatistics = buildScannerStatistics(enriched);
     enriched.executiveSummary = buildExecutiveSummary(enriched);
@@ -120,7 +127,7 @@ function enrichCleanupReport(report, options = {}) {
 
 function slimFindingForClient(finding) {
     if (!finding || typeof finding !== 'object') return finding;
-    return {
+    const slim = {
         type: finding.type,
         category: finding.category,
         severity: finding.severity,
@@ -133,6 +140,10 @@ function slimFindingForClient(finding) {
         scanner: finding.scanner,
         metadata: finding.metadata
     };
+    if (finding.kind) slim.kind = finding.kind;
+    if (finding.fileCount != null) slim.fileCount = finding.fileCount;
+    if (finding.sizeEstimated) slim.sizeEstimated = finding.sizeEstimated;
+    return slim;
 }
 
 function sliceFindings(list, limit) {
@@ -150,7 +161,7 @@ function compactDataCleanupReportForClient(report, options = {}) {
         findings: {
             buildArtifacts: sliceFindings(report.findings?.buildArtifacts, bucketLimit),
             assetConsolidation: sliceFindings(report.findings?.assetConsolidation, 8),
-            unusedFiles: [],
+            unusedFiles: sliceFindings(report.findings?.unusedFiles, bucketLimit),
             configManagement: sliceFindings(report.findings?.configManagement, bucketLimit),
             dependencyHealth: sliceFindings(report.findings?.dependencyHealth, bucketLimit),
             environmentVariables: sliceFindings(report.findings?.environmentVariables, bucketLimit),

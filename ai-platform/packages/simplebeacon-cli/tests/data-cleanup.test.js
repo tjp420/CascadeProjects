@@ -255,6 +255,39 @@ test('buildScannerStatistics exposes workspace-scoped scanner counts', () => {
     assert.equal(stats.findingsBreakdown.configManagement.envInconsistencies, 3);
 });
 
+test('enrichCleanupReport preserves dependency-health stats when findings are clean', () => {
+    const { enrichCleanupReport } = require('../src/lib/enrich-cleanup-report');
+    const enriched = enrichCleanupReport({
+        projectRoot: '/tmp/project',
+        durationMs: 500,
+        inventory: { totalFiles: 100, totalDirectories: 10 },
+        scanners: {
+            'dependency-health': {
+                packageJsonFiles: 2,
+                uniqueDependencies: 24,
+                unusedDependencies: 0,
+                duplicateDependencies: 0,
+                versionDrift: 0
+            },
+            'config-management': {
+                configFiles: 5,
+                envFiles: 2,
+                packageJsonFiles: 2
+            }
+        },
+        findings: {
+            configManagement: [],
+            dependencyHealth: [],
+            environmentVariables: []
+        },
+        summary: { totalFindings: 0 }
+    }, { profile: 'data-quality' });
+
+    assert.equal(enriched.scanners['dependency-health'].packageJsonFiles, 2);
+    assert.equal(enriched.scanners['dependency-health'].uniqueDependencies, 24);
+    assert.equal(enriched.executiveSummary.workspace.packageJsonFiles, 2);
+});
+
 test('triagePrivacyFindings groups PII by category', () => {
     const { triagePrivacyFindings } = require('../src/lib/privacy-triage');
     const triaged = triagePrivacyFindings([
