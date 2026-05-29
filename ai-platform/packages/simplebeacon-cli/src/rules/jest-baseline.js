@@ -63,7 +63,7 @@ async function checkJestBaseline(baseDir, options = {}) {
     const expectedPassing = baseline.jestTestsPassing;
     const expectedLabel = baseline.jestTestsLabel;
     const runTests = options.runTests === true;
-    const testCommand = options.testCommand || 'npm test -- --no-coverage --passWithNoTests';
+    const testCommand = options.testCommand || 'npx jest --config jest.config.js --no-coverage --passWithNoTests';
 
     if (expectedPassing == null && !expectedLabel) {
         return { checked: false, passed: true, issues: [], summary: null };

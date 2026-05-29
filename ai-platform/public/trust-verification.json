@@ -1,20 +1,20 @@
 {
   "type": "simplebeacon-trust-verification",
-  "generatedAt": "2026-05-28T00:03:31.732Z",
+  "generatedAt": "2026-05-29T05:26:13.764Z",
   "verificationMethod": "simplebeacon-deterministic-gate",
   "platform": {
     "label": "Platform gate (ai-platform)",
     "projectRoot": "…/CascadeProjects/ai-platform",
-    "generatedAt": "2026-05-28T00:03:30.906Z",
+    "generatedAt": "2026-05-29T05:26:11.021Z",
     "reportVersion": 2,
     "gatePass": true,
     "qualityScore": 100,
     "schemaCompliance": 100,
-    "schemaChecked": 43,
-    "schemaPassed": 43,
+    "schemaChecked": 51,
+    "schemaPassed": 51,
     "consistencyScore": 100,
-    "consistencyChecked": 67,
-    "consistencyPassed": 67,
+    "consistencyChecked": 64,
+    "consistencyPassed": 64,
     "issueCount": 0,
     "severityCounts": {
       "critical": 0,
@@ -22,11 +22,11 @@
       "medium": 0,
       "low": 0
     },
-    "repositoryFilesTotal": 19433,
-    "ruleScopedFilesAnalyzed": 191,
-    "mockSampleFiles": 40,
-    "fictionJsonFilesScanned": 67,
-    "fictionSampleFilesScanned": 40,
+    "repositoryFilesTotal": 2249,
+    "ruleScopedFilesAnalyzed": 209,
+    "mockSampleFiles": 48,
+    "fictionJsonFilesScanned": 64,
+    "fictionSampleFilesScanned": 48,
     "fictionScope": "repository-json",
     "rulesEnabled": [
       "credentials",
@@ -34,25 +34,26 @@
       "sample-consistency",
       "roadmap",
       "production-leak",
-      "fiction-kpi-patterns"
+      "fiction-kpi-patterns",
+      "llm-slop-patterns"
     ],
     "profile": "configured",
-    "scopeNote": "Repository inventory: 19,433 files — gate rules checked 191 (mock paths, credentials, server/ leaks)."
+    "scopeNote": "Repository inventory: 2,249 files — gate rules checked 209 (mock paths, credentials, server/ leaks)."
   },
   "monorepo": {
     "label": "Monorepo root",
     "projectRoot": "…/Trevor/CascadeProjects",
     "platformRoot": "…/CascadeProjects/ai-platform",
-    "generatedAt": "2026-05-28T00:03:31.646Z",
+    "generatedAt": "2026-05-29T00:26:09.537Z",
     "reportVersion": 2,
     "gatePass": true,
     "qualityScore": 100,
     "schemaCompliance": 100,
-    "schemaChecked": 43,
-    "schemaPassed": 43,
+    "schemaChecked": 51,
+    "schemaPassed": 51,
     "consistencyScore": 100,
-    "consistencyChecked": 67,
-    "consistencyPassed": 67,
+    "consistencyChecked": 71,
+    "consistencyPassed": 71,
     "issueCount": 0,
     "severityCounts": {
       "critical": 0,
@@ -60,11 +61,11 @@
       "medium": 0,
       "low": 0
     },
-    "repositoryFilesTotal": 26013,
-    "ruleScopedFilesAnalyzed": 191,
-    "mockSampleFiles": 40,
-    "fictionJsonFilesScanned": 67,
-    "fictionSampleFilesScanned": 40,
+    "repositoryFilesTotal": 25986,
+    "ruleScopedFilesAnalyzed": 204,
+    "mockSampleFiles": 48,
+    "fictionJsonFilesScanned": 71,
+    "fictionSampleFilesScanned": 48,
     "fictionScope": "repository-json",
     "rulesEnabled": [
       "credentials",
@@ -72,21 +73,22 @@
       "sample-consistency",
       "roadmap",
       "production-leak",
-      "fiction-kpi-patterns"
+      "fiction-kpi-patterns",
+      "llm-slop-patterns"
     ],
     "profile": "configured",
-    "scopeNote": "Repository inventory: 26,013 files — gate rules checked 191 (mock paths, credentials, server/ leaks)."
+    "scopeNote": "Repository inventory: 25,986 files — gate rules checked 204 (mock paths, credentials, server/ leaks)."
   },
-  "headlineSource": "monorepo",
-  "headlineReason": "Monorepo snapshot is newer.",
+  "headlineSource": "platform",
+  "headlineReason": "Platform snapshot is newer or equally recent.",
   "headline": {
     "gatePass": true,
     "qualityScore": 100,
     "issueCount": 0,
     "schemaCompliance": 100,
-    "lastScan": "2026-05-28T00:03:31.646Z",
-    "repositoryFilesTotal": 26013,
-    "ruleScopedFilesAnalyzed": 191
+    "lastScan": "2026-05-29T05:26:11.021Z",
+    "repositoryFilesTotal": 2249,
+    "ruleScopedFilesAnalyzed": 209
   },
   "disclaimers": [
     "Quality score and zero-issue counts apply to configured gate rules and sample paths — not semantic review of every source file.",
@@ -95,34 +97,34 @@
   ],
   "methodology": [
     "Simplebeacon runs deterministic pattern matching on configured mock/sample JSON, credentials, and production-path rules.",
-    "Fiction/KPI JSON scope (fictionScope repository-json): recursive walk from …/CascadeProjects/ai-platform, .json at most 512KB, minus config.ignore — 67 JSON pattern-checked (40 dashboard mock JSON files among them); explorer inventory totals are separate and much larger.",
+    "Fiction/KPI JSON scope (fictionScope repository-json): recursive walk from …/CascadeProjects/ai-platform, .json at most 512KB, minus config.ignore — 64 JSON pattern-checked (48 dashboard mock JSON files among them); explorer inventory totals are separate and much larger.",
     "Codebase analyzer (separate scan) flags TODO/FIXME, broken JSON, debug artifacts, and ESLint violations.",
     "We publish scoped metrics so buyers can verify what was actually checked — not marketing averages."
   ],
   "fictionScope": {
     "mode": "repository-json",
     "walkRoot": "…/CascadeProjects/ai-platform",
-    "fictionJsonFilesScanned": 67,
-    "fictionSampleFilesScanned": 40,
+    "fictionJsonFilesScanned": 64,
+    "fictionSampleFilesScanned": 48,
     "platform": {
-      "fictionJsonFilesScanned": 67,
-      "fictionSampleFilesScanned": 40,
+      "fictionJsonFilesScanned": 64,
+      "fictionSampleFilesScanned": 48,
       "fictionScope": "repository-json"
     },
     "monorepo": {
-      "fictionJsonFilesScanned": 67,
-      "fictionSampleFilesScanned": 40,
+      "fictionJsonFilesScanned": 71,
+      "fictionSampleFilesScanned": 48,
       "fictionScope": "repository-json"
     }
   },
-  "verificationId": "ef44458fa9cef42c",
+  "verificationId": "fcf795ef9421ffeb",
   "repositoryHealth": {
     "type": "simplebeacon-repository-health",
-    "generatedAt": "2026-05-28T00:03:31.733Z",
+    "generatedAt": "2026-05-29T05:26:13.765Z",
     "platform": {
       "label": "Platform (ai-platform)",
       "projectRoot": "…/CascadeProjects/ai-platform",
-      "generatedAt": "2026-05-28T00:02:45.039Z",
+      "generatedAt": "2026-05-29T05:25:45.132Z",
       "reportVersion": 2,
       "repositoryHealthScore": 100,
       "optimizationPotential": "0B",
@@ -131,12 +133,12 @@
       "mergeCandidates": 0,
       "reductionOpportunities": 0,
       "oversizedFiles": 0,
-      "repositoryFilesTotal": 19433,
-      "repositoryFoldersTotal": 2612,
-      "repositoryFilesAudited": 43,
-      "jsonFilesAnalyzed": 42,
-      "sampleDataFilesAnalyzed": 43,
-      "totalSizeLabel": "268.7KB",
+      "repositoryFilesTotal": 2250,
+      "repositoryFoldersTotal": 227,
+      "repositoryFilesAudited": 49,
+      "jsonFilesAnalyzed": 49,
+      "sampleDataFilesAnalyzed": 49,
+      "totalSizeLabel": "281.5KB",
       "scanScope": "sample-data-consolidation",
       "recommendations": [],
       "scopeNote": "Duplicate and structure analysis on configured mock/sample JSON paths only."
@@ -145,41 +147,91 @@
       "label": "Monorepo root",
       "projectRoot": "…/Trevor/CascadeProjects",
       "platformRoot": "…/CascadeProjects/ai-platform",
-      "generatedAt": "2026-05-27T23:29:59.655Z",
+      "generatedAt": "2026-05-29T00:26:11.576Z",
       "reportVersion": 2,
-      "repositoryHealthScore": 100,
-      "optimizationPotential": "0B",
-      "optimizationPotentialBytes": 0,
-      "duplicateGroups": 0,
-      "mergeCandidates": 0,
-      "reductionOpportunities": 0,
+      "repositoryHealthScore": 96,
+      "optimizationPotential": "192.8KB",
+      "optimizationPotentialBytes": 197437,
+      "duplicateGroups": 2,
+      "mergeCandidates": 3,
+      "reductionOpportunities": 2,
       "oversizedFiles": 0,
-      "repositoryFilesTotal": 31754,
-      "repositoryFoldersTotal": 3553,
-      "repositoryFilesAudited": 2675,
-      "jsonFilesAnalyzed": 258,
-      "sampleDataFilesAnalyzed": 43,
-      "totalSizeLabel": "19.3MB",
+      "repositoryFilesTotal": 25986,
+      "repositoryFoldersTotal": 2840,
+      "repositoryFilesAudited": 2650,
+      "jsonFilesAnalyzed": 306,
+      "sampleDataFilesAnalyzed": 49,
+      "totalSizeLabel": "19.9MB",
       "scanScope": "repository-consolidation",
-      "recommendations": [],
+      "recommendations": [
+        {
+          "priority": "high",
+          "action": "keep-one-delete-others",
+          "savings": "1.3KB",
+          "effort": "low",
+          "risk": "low",
+          "description": "Keep one canonical file; remove or symlink duplicates after review"
+        },
+        {
+          "priority": "high",
+          "action": "keep-one-delete-others",
+          "savings": "191.5KB",
+          "effort": "low",
+          "risk": "low",
+          "description": "Keep one canonical file; remove or symlink duplicates after review"
+        },
+        {
+          "priority": "medium",
+          "action": "manual-merge-review",
+          "savings": "0B",
+          "effort": "medium",
+          "risk": "medium",
+          "description": "Near-duplicate content — review before merge"
+        }
+      ],
       "scopeNote": "Full repository inventory (explorer profile) plus JSON duplicate detection on audit-scoped paths — skips node_modules, .git, coverage, archive for merge logic."
     },
     "headline": {
-      "repositoryHealthScore": 100,
-      "optimizationPotential": "0B",
-      "optimizationPotentialBytes": 0,
-      "duplicateGroups": 0,
+      "repositoryHealthScore": 96,
+      "optimizationPotential": "192.8KB",
+      "optimizationPotentialBytes": 197437,
+      "duplicateGroups": 2,
       "oversizedFiles": 0,
-      "reductionOpportunities": 0,
-      "mergeCandidates": 0,
-      "repositoryFilesTotal": 31754,
-      "repositoryFoldersTotal": 3553,
-      "lastScan": "2026-05-27T23:29:59.655Z"
+      "reductionOpportunities": 2,
+      "mergeCandidates": 3,
+      "repositoryFilesTotal": 25986,
+      "repositoryFoldersTotal": 2840,
+      "lastScan": "2026-05-29T00:26:11.576Z"
     },
-    "recommendations": [],
+    "recommendations": [
+      {
+        "priority": "high",
+        "action": "keep-one-delete-others",
+        "savings": "1.3KB",
+        "effort": "low",
+        "risk": "low",
+        "description": "Keep one canonical file; remove or symlink duplicates after review"
+      },
+      {
+        "priority": "high",
+        "action": "keep-one-delete-others",
+        "savings": "191.5KB",
+        "effort": "low",
+        "risk": "low",
+        "description": "Keep one canonical file; remove or symlink duplicates after review"
+      },
+      {
+        "priority": "medium",
+        "action": "manual-merge-review",
+        "savings": "0B",
+        "effort": "medium",
+        "risk": "medium",
+        "description": "Near-duplicate content — review before merge"
+      }
+    ],
     "disclaimers": [
       "Health score reflects measured duplicate groups, oversized files, and estimated savings — not security gate results.",
-      "Repository file totals are explorer inventory; JSON duplicate detection scans hashed JSON under audit scope.",
+      "Repository file totals use audit inventory (github-cache/, deliverables/, and benchmark clones excluded); JSON duplicate detection scans hashed JSON under the same scope.",
       "Potential savings are opportunities — review before deleting or merging any file."
     ]
   }

@@ -1,0 +1,14 @@
+{
+  "info": 0,
+  "low": 0,
+  "moderate": 0,
+  "high": 0,
+  "critical": 0,
+  "total": 0,
+  "vulnerabilityTotal": 0,
+  "dependencies": 777,
+  "prodDependencies": 235,
+  "devDependencies": 541,
+  "generatedAt": "2026-05-29T05:24:07.242Z",
+  "dataSource": "npm-audit"
+}

@@ -149,7 +149,7 @@
     "jest-baseline": {
       "enabled": false,
       "runTests": false,
-      "testCommand": "npm test -- --no-coverage --passWithNoTests",
+      "testCommand": "npx jest --config jest.config.js --no-coverage --passWithNoTests",
       "timeoutMs": 300000
     },
     "fiction-kpi-patterns": {
