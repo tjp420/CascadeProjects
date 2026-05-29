@@ -1,0 +1,270 @@
+/**
+ * Client-side snippet scanner — same pattern set as coming-soon homepage diagnostic.
+ * Runs in the browser; file contents are not uploaded for pattern matching.
+ */
+
+const MAX_SNIPPET_BYTES = 512 * 1024;
+
+const PATTERNS = [
+  { id: 'aws-access-key', category: 'credentials', severity: 'critical', label: 'AWS access key pattern', regex: /\bAKIA[0-9A-Z]{16}\b/g },
+  { id: 'openai-key', category: 'credentials', severity: 'critical', label: 'OpenAI-style API key', regex: /\bsk-[A-Za-z0-9]{20,}\b/g },
+  { id: 'github-pat', category: 'credentials', severity: 'critical', label: 'GitHub token pattern', regex: /\bghp_[A-Za-z0-9]{20,}\b/g },
+  { id: 'stripe-key', category: 'credentials', severity: 'critical', label: 'Stripe secret key pattern', regex: /\b(sk|pk)_(test|live)_[A-Za-z0-9]{16,}\b/g },
+  { id: 'private-key', category: 'credentials', severity: 'critical', label: 'Private key block', regex: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/g },
+  { id: 'fiction-metrics', category: 'fiction', severity: 'high', label: 'AI fiction KPI placeholder', regex: /(?:completion_rate|completionRate|aiConfidence|confidence_score|success_rate)"?\s*[:=]\s*["']?(?:98\.5%?|94\.3%?|99\.1%?|87\.5%?)/gi },
+  {
+    id: 'mock-path',
+    category: 'mock-leak',
+    severity: 'high',
+    label: 'Production mock/sample path',
+    regex: /(?:['"`][^'"`]*-sample\.json['"`]|\/mock\/|\\mock\\|(?<![a-zA-Z-])mockData(?![a-zA-Z-])|fixtures\/)/gi
+  },
+  { id: 'generic-secret', category: 'credentials', severity: 'medium', label: 'Hardcoded secret assignment', regex: /\b(api[_-]?key|secret[_-]?key|access[_-]?token)\s*[:=]\s*['"][^'"\s]{12,}['"]/gi }
+];
+
+const ALLOWLIST = [
+  'AKIAIOSFODNN7EXAMPLE',
+  'your-api-key',
+  'your-secret',
+  'placeholder',
+  'example.com',
+  'dummy',
+  'changeme',
+  'replace_me',
+  'not-a-real',
+  'pk_test_1234567890abcdef'
+];
+
+const SOURCE_FILE_RE = /\.(json|js|mjs|cjs|ts|tsx|jsx|py|env|yaml|yml|txt|md|html|css|xml|svg|toml|ini|config|sh|ps1|bat|zsc|zs)$/i;
+
+const SCANNER_META_FILENAMES = new Set([
+  'analyzer-cache.json',
+  'history.json',
+  'trust-history.json',
+  'source-kpi-findings.json',
+  'source-kpi-findings-with-docs.json'
+]);
+
+const LOCKFILE_NAMES = new Set([
+  'package-lock.json',
+  'npm-shrinkwrap.json',
+  'yarn.lock',
+  'pnpm-lock.yaml'
+]);
+
+const TEST_CONFIG_FILENAMES = new Set([
+  'webpack.config.js',
+  'vite.config.js',
+  'vitest.config.js',
+  'jest.config.js',
+  'rollup.config.js'
+]);
+
+export { MAX_SNIPPET_BYTES };
+
+export function isScannerMetaFileName(name) {
+  const base = String(name || '').split(/[/\\]/).pop().toLowerCase();
+  if (SCANNER_META_FILENAMES.has(base)) return true;
+  if (base.startsWith('cleanup-export-') && base.endsWith('.json')) return true;
+  return base.endsWith('-cache.json') || /^\.simplebeacon-/.test(base);
+}
+
+export function isCleanupExportJson(parsed) {
+  if (!parsed || typeof parsed !== 'object') return false;
+  const type = String(parsed.type || '');
+  return type === 'simplebeacon-cleanup-export' || type === 'simplebeacon-cleanup-brief';
+}
+
+export function isAnalyzerCacheJson(parsed) {
+  if (!parsed || typeof parsed !== 'object' || !parsed.files || typeof parsed.files !== 'object') {
+    return false;
+  }
+  const entries = Object.values(parsed.files);
+  if (entries.length === 0) return false;
+  return entries.slice(0, 8).every(
+    (entry) => entry && typeof entry === 'object' && typeof entry.hash === 'string'
+  );
+}
+
+export function isSupportedSourceFile(name) {
+  return SOURCE_FILE_RE.test(String(name || ''));
+}
+
+function isAllowlisted(text, match) {
+  const snippet = text.slice(Math.max(0, match.index - 24), match.index + match[0].length + 24).toLowerCase();
+  return ALLOWLIST.some((allowed) => snippet.indexOf(allowed.toLowerCase()) !== -1);
+}
+
+function lineAt(text, index) {
+  return text.slice(0, Math.max(0, index)).split('\n').length;
+}
+
+function lineTextAt(text, lineNumber) {
+  return text.split('\n')[Math.max(0, lineNumber - 1)] || '';
+}
+
+function isPathRegistryLine(line) {
+  const trimmed = String(line || '').trim();
+  return /"[^"]+[\\/][^"]+\.(?:js|mjs|cjs|ts|tsx|json)":\s*[\{,]/.test(trimmed);
+}
+
+function isFindingRegistryLine(line) {
+  const trimmed = String(line || '').trim();
+  return /"file":\s*"[^"]+"/.test(trimmed);
+}
+
+function isInventoryPathLine(line) {
+  const trimmed = String(line || '').trim();
+  if (/"path"\s*:\s*"[^"]+"/.test(trimmed)) return true;
+  if (/^"[^"]+[\\/][^"]+\.(?:js|mjs|cjs|ts|tsx|json)"\s*,?\s*$/.test(trimmed)) return true;
+  return false;
+}
+
+function looksLikeAuditReportHtml(text, fileName) {
+  const base = String(fileName || '').split(/[/\\]/).pop();
+  if (/^SB-AUD-\d{8}-[A-Z0-9]+.*\.html$/i.test(base)) return true;
+  const sample = String(text || '').slice(0, 6000);
+  if (!/<html[\s>]/i.test(sample)) return false;
+  return /SB-AUD-\d{8}/.test(sample)
+    && /(?:remediation-recipe-table|Simplebeacon Security Audit|gate-attestation|Developer Action Plan)/i.test(sample);
+}
+
+function isAuditReportFindingLine(line) {
+  const trimmed = String(line || '').trim();
+  if (!/<code>[^<]+:\d+<\/code>/.test(trimmed)) return false;
+  return /<code class="snippet">/.test(trimmed) || /<td><code>[^<]+:\d+<\/code>/.test(trimmed);
+}
+
+export function isLockfileName(fileName) {
+  const base = String(fileName || '').split(/[/\\]/).pop().toLowerCase();
+  return LOCKFILE_NAMES.has(base);
+}
+
+function isPackageManifestPathLine(line) {
+  const trimmed = String(line || '').trim();
+  return /^"[^"]+"\s*:\s*"[^"]+\.(?:js|mjs|cjs|ts|tsx|json)"\s*,?\s*$/.test(trimmed);
+}
+
+function isMarkdownFileName(fileName) {
+  return /\.(?:md|markdown)$/i.test(String(fileName || '').split(/[/\\]/).pop());
+}
+
+function isTestConfigFileName(fileName) {
+  const base = String(fileName || '').split(/[/\\]/).pop().toLowerCase();
+  return TEST_CONFIG_FILENAMES.has(base);
+}
+
+function isSampleSuffixDocumentationMatch(matchText) {
+  const trimmed = String(matchText || '').trim();
+  return /^[`'"]-sample\.json[`'"]$/i.test(trimmed);
+}
+
+function looksLikeMarkdownContent(text, fileName) {
+  if (isMarkdownFileName(fileName)) return true;
+  if (fileName) return false;
+  const sample = String(text || '').slice(0, 6000);
+  let signals = 0;
+  for (const line of sample.split('\n').slice(0, 60)) {
+    const t = line.trim();
+    if (/^#{1,6}\s+\S/.test(t)) signals += 1;
+    if (/^[-*+]\s+\S/.test(t)) signals += 1;
+    if (/^```/.test(t)) signals += 1;
+    if (/^\*\*[^*]+\*\*:/.test(t)) signals += 1;
+  }
+  return signals >= 4;
+}
+
+function isNpmBinEntryLine(line) {
+  const trimmed = String(line || '').trim();
+  return /^"[^"]+"\s*:\s*"[^"]*fixtures\/[^"]+"\s*,?\s*$/.test(trimmed);
+}
+
+function shouldSkipMockPathMatch(text, match, options = {}) {
+  const matchText = match[0] || '';
+  const line = lineTextAt(text, lineAt(text, match.index));
+  if (isSampleSuffixDocumentationMatch(matchText)) return true;
+  if (looksLikeMarkdownContent(text, options.fileName)) return true;
+  if (isTestConfigFileName(options.fileName)) return true;
+  if (isLockfileName(options.fileName)) return true;
+  if (isMarkdownFileName(options.fileName)) return true;
+  if (isNpmBinEntryLine(line)) return true;
+  if (isPathRegistryLine(line)) return true;
+  if (isFindingRegistryLine(line)) return true;
+  if (isInventoryPathLine(line)) return true;
+  if (isPackageManifestPathLine(line)) return true;
+  if (looksLikeAuditReportHtml(text, options.fileName) && isAuditReportFindingLine(line)) return true;
+  const lower = line.toLowerCase();
+  if (/__tests__[/\\]|(?:^|[/\\'"])tests[/\\]|\/temp\/|\\temp\\|\/\.simplebeacon\/|github-cache[/\\]/i.test(lower)) return true;
+  if (/['"]tests[/\\]fixtures[/\\]/i.test(lower)) return true;
+  if (/\/scripts\/.*mock/i.test(lower)) return true;
+  return false;
+}
+
+export function computeThreatScore(findings) {
+  let score = 0;
+  findings.forEach((finding) => {
+    if (finding.severity === 'critical') score += 35;
+    else if (finding.severity === 'high') score += 22;
+    else score += 10;
+  });
+  return Math.min(100, score);
+}
+
+export function scanSnippetText(text, options = {}) {
+  if (options.fileName && isScannerMetaFileName(options.fileName)) {
+    return [];
+  }
+  if (options.fileName && isLockfileName(options.fileName)) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+    if (isAnalyzerCacheJson(parsed) || isCleanupExportJson(parsed)) {
+      return [];
+    }
+  } catch {
+    /* not JSON — continue pattern scan */
+  }
+
+  const findings = [];
+  const seen = {};
+
+  PATTERNS.forEach((pattern) => {
+    if (findings.length >= 12) return;
+    pattern.regex.lastIndex = 0;
+    let match;
+    while ((match = pattern.regex.exec(text)) !== null) {
+      if (findings.length >= 12) break;
+      if (isAllowlisted(text, match)) continue;
+      if (pattern.id === 'mock-path' && shouldSkipMockPathMatch(text, match, options)) continue;
+      const key = `${pattern.id}:${lineAt(text, match.index)}`;
+      if (seen[key]) continue;
+      seen[key] = true;
+      findings.push({
+        id: pattern.id,
+        category: pattern.category,
+        severity: pattern.severity,
+        label: pattern.label,
+        line: lineAt(text, match.index),
+        match: match[0]
+      });
+    }
+  });
+
+  return findings;
+}
+
+export function redactMatch(raw) {
+  if (!raw) return '…';
+  const compact = String(raw).replace(/\s+/g, ' ');
+  if (/-----BEGIN/.test(compact)) return '-----BEGIN … PRIVATE KEY----- (redacted)';
+  if (compact.length <= 14) return `${compact.slice(0, 4)}…`;
+  return `${compact.slice(0, 10)}…${compact.slice(-4)}`;
+}
+
+export function severityLabel(severity) {
+  if (severity === 'critical') return 'CRITICAL';
+  if (severity === 'high') return 'HIGH';
+  return 'MEDIUM';
+}

@@ -6,6 +6,7 @@ import {
   fetchAnalyzeProviders,
   fetchRepositoryInventory,
   fetchCodebaseAnalysis,
+  preferPlatformAnalyzePath,
   enrichScanReport,
   fetchZscriptModReport,
   shouldFetchZscriptReport,
@@ -19,18 +20,27 @@ import {
   buildScanConclusion,
   buildConsolidationConclusion,
   buildFictionDigestPayload,
+  sanitizeFictionDigestExport,
   resolveCompleteScanTargetPath,
   normalizeProjectPath,
   filterIssuesByKind,
+  preparePlatformResultsReport,
   fetchCompleteAuditReport,
   openAuditReportPrintWindow,
   previewAuditExportTier,
   auditExportButtonLabel,
   fetchDataCleanupScan,
   ensureDashboardApiReady,
+  assertCompleteScanComplianceFresh,
+  assertCompleteScanFileReductionFresh,
   fetchUnderstandSnippet,
-  isCodebaseReport
-} from '../services/analyzeService.js?v=20260528filedrop1';
+  isCodebaseReport,
+  fetchComplianceChecklist,
+  fetchProjectNpmAudit,
+  exportAgencyCertificate,
+  fetchAgencyBranding,
+  prepareGithubRepo
+} from '../services/analyzeService.js?v=20260528agency3';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
 import {
   AI_SYSTEM_ISSUES,
@@ -41,7 +51,14 @@ import {
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
 import { renderDataCleanupPanel, buildDataCleanupConclusion } from '../components/DataCleanupReport.js?v=20260527exec5';
-import { buildCompleteScanAnalysis, renderCompleteScanAnalysisPanel, formatCompleteScanBytes } from '../utils/completeScanAnalysis.js?v=20260527cleanup1';
+import {
+  buildCompleteScanAnalysis,
+  renderCompleteScanAnalysisPanel,
+  formatCompleteScanBytes,
+  sanitizeCompleteScanBundle,
+  sanitizeConsolidationExport,
+  sanitizeRoadmapExport
+} from '../utils/completeScanAnalysis.js?v=20260528regen1';
 import {
   buildCleanupAssistantBrief,
   buildCleanupBriefFromLastResult,
@@ -59,13 +76,24 @@ import { authService } from '../services/authService.js';
 import {
   MAX_SNIPPET_BYTES,
   isSupportedSourceFile,
+  isAnalyzerCacheJson,
+  isCleanupExportJson,
+  isLockfileName,
+  isScannerMetaFileName,
   scanSnippetText,
   computeThreatScore,
   redactMatch,
   severityLabel
-} from '../utils/snippetDiagnostic.js?v=20260528py1';
+} from '../utils/snippetDiagnostic.js?v=20260529lockfile1';
 
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
+
+function readHashQueryParam(name) {
+  const hash = typeof window !== 'undefined' ? (window.location.hash || '') : '';
+  const qIndex = hash.indexOf('?');
+  if (qIndex === -1) return '';
+  return new URLSearchParams(hash.slice(qIndex + 1)).get(name) || '';
+}
 
 function formatCount(value) {
   if (value == null || Number.isNaN(Number(value))) return '—';
@@ -108,18 +136,76 @@ const COMPLETE_STEPS = [
   { id: 'codebase', label: 'Codebase analysis' },
   { id: 'file-reduction', label: 'File reduction' },
   { id: 'data-quality', label: 'Data quality' },
-  { id: 'cleanup-assistant', label: 'Cleanup assistant' }
+  { id: 'cleanup-assistant', label: 'Cleanup assistant' },
+  { id: 'compliance', label: 'Compliance checklist' },
+  { id: 'npm-audit', label: 'npm audit' }
 ];
 
 function completeStepLabel(index, text) {
   return `${index + 1}/${COMPLETE_STEPS.length} ${text}`;
 }
 
+function normalizePathKey(value) {
+  return String(value || '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+}
+
+function renderComplianceChecklistPanel(checklist, options = {}) {
+  const downloadId = options.downloadButtonId ?? 'download-compliance-json';
+  if (!checklist) {
+    return '<p class="text-muted mt-4">Compliance checklist did not run.</p>';
+  }
+  return `
+    <div class="metrics-row mb-4 mt-4">
+      <div class="metric-chip gate-badge ${checklist.summary?.failed ? 'warn' : 'pass'}">
+        ${checklist.summary?.passed ?? 0}/${checklist.summary?.total ?? 8} passed
+      </div>
+      <div class="metric-chip"><strong>${checklist.summary?.failed ?? 0}</strong> failed</div>
+      ${checklist.summary?.skipped ? `<div class="metric-chip"><strong>${checklist.summary.skipped}</strong> skipped</div>` : ''}
+    </div>
+    <ul class="analyze-mode-steps">
+      ${(checklist.rules || []).map((rule) => `
+        <li><strong>${escapeHtml(rule.id)}</strong> — ${escapeHtml(rule.title || rule.name || '')}
+          <span class="text-muted"> (${escapeHtml(rule.status || 'unknown')})</span></li>
+      `).join('')}
+    </ul>
+    ${downloadId ? `<button type="button" class="btn btn-secondary btn-sm mb-4 mt-4" id="${escapeHtml(downloadId)}">Download compliance JSON</button>` : ''}
+  `;
+}
+
+function renderNpmAuditPanel(npmAudit, options = {}) {
+  const downloadId = options.downloadButtonId ?? 'download-npm-audit-json';
+  if (!npmAudit || npmAudit.error) {
+    return `<p class="text-muted mt-4">${escapeHtml(npmAudit?.error || 'npm audit did not run.')}</p>`;
+  }
+  const auditRootNote = npmAudit.auditRoot && npmAudit.projectPath
+    && normalizePathKey(npmAudit.auditRoot) !== normalizePathKey(npmAudit.projectPath)
+    ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
+        Audited <code>${escapeHtml(redactPathForDisplay(npmAudit.auditRoot))}</code>
+        (Node platform root for scan path <code>${escapeHtml(redactPathForDisplay(npmAudit.projectPath))}</code>).
+      </p>`
+    : npmAudit.auditRoot
+      ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
+          Audited <code>${escapeHtml(redactPathForDisplay(npmAudit.auditRoot))}</code>.
+        </p>`
+      : '';
+  return `
+    ${auditRootNote}
+    <div class="metrics-row mb-4 mt-4">
+      <div class="metric-chip"><strong>${npmAudit.summary?.dependencies ?? npmAudit.dependencies?.total ?? '—'}</strong> dependencies</div>
+      <div class="metric-chip"><strong>${npmAudit.summary?.total ?? npmAudit.vulnerabilityTotal ?? 0}</strong> vulnerabilities</div>
+      ${npmAudit.summary?.critical != null ? `<div class="metric-chip"><strong>${npmAudit.summary.critical}</strong> critical</div>` : ''}
+      ${npmAudit.summary?.high != null ? `<div class="metric-chip"><strong>${npmAudit.summary.high}</strong> high</div>` : ''}
+      ${npmAudit.summary?.moderate != null ? `<div class="metric-chip"><strong>${npmAudit.summary.moderate}</strong> moderate</div>` : ''}
+    </div>
+    ${downloadId ? `<button type="button" class="btn btn-secondary btn-sm mb-4" id="${escapeHtml(downloadId)}">Download npm audit JSON</button>` : ''}
+  `;
+}
+
 const ANALYSIS_MODE_GROUPS = [
   {
     id: 'bundle',
     label: 'Full deliverable',
-    hint: 'All eight scans in one run · includes audit PDF export'
+    hint: 'All ten scans in one run · includes audit PDF + certificate export'
   },
   {
     id: 'standalone',
@@ -133,18 +219,20 @@ const ANALYSIS_MODES = [
     value: 'complete',
     group: 'bundle',
     label: 'Complete',
-    desc: 'Gate + consolidation + fiction + roadmap + codebase + file reduction + data quality + cleanup assistant',
+    desc: 'Gate + consolidation + fiction + roadmap + codebase + file reduction + data quality + cleanup + compliance + npm audit',
     icon: '⚡',
     tag: 'Bundle',
     steps: [
-      'Simplebeacon gate',
+      'Simplebeacon gate (incl. LLM slop patterns)',
       'Consolidation',
       'Fiction digest',
       'Roadmap',
       'Codebase (full depth)',
       'File reduction (dry-run)',
       'Data quality (config, privacy, lineage)',
-      'Cleanup assistant (tiered agent brief)'
+      'Cleanup assistant (tiered agent brief)',
+      'Compliance checklist (8/8 incl. npm audit rule)',
+      'Live npm audit'
     ],
     deliverable: 'Audit PDF + JSON bundle'
   },
@@ -221,6 +309,24 @@ const ANALYSIS_MODES = [
     deliverable: 'Cursor cleanup brief + prompt'
   },
   {
+    value: 'compliance',
+    group: 'standalone',
+    label: 'Compliance',
+    desc: '8/8 checklist on gate report — runs Simplebeacon gate first',
+    icon: '✅',
+    tag: 'Compliance',
+    deliverable: 'Rule-by-rule pass/fail JSON'
+  },
+  {
+    value: 'npm-audit',
+    group: 'standalone',
+    label: 'npm audit',
+    desc: 'Live npm audit for the project path on the server',
+    icon: '📦',
+    tag: 'Supply chain',
+    deliverable: 'Vulnerability summary JSON'
+  },
+  {
     value: 'auto',
     group: 'standalone',
     label: 'Auto',
@@ -250,9 +356,23 @@ function loadRecentPaths() {
   }
 }
 
+function isGithubRepoUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return false;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'https:') return false;
+    return ['github.com', 'www.github.com', 'gitlab.com', 'www.gitlab.com', 'bitbucket.org', 'www.bitbucket.org']
+      .includes(parsed.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
 function isPlausibleProjectPath(value) {
   const raw = String(value || '').trim();
   if (!raw || raw.length > 280) return false;
+  if (isGithubRepoUrl(raw)) return true;
   if (/outside allowed analysis roots|projectPath is required|projectPath is outside/i.test(raw)) {
     return false;
   }
@@ -330,6 +450,20 @@ export class AnalyzeView {
     this.aiIssueAnalysisResult = null;
     this.snippetResult = null;
     this.snippetBusy = false;
+    this.certificateMilestone = 'release';
+    this.certificateClientName = '';
+    this.certificateProjectName = '';
+    this.certificateOrgId = 'default';
+    const urlProjectId = readHashQueryParam('project_id') || '';
+    const storedProjectId = typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('simplebeacon_agency_project_id') || '')
+      : '';
+    this.certificateProjectId = urlProjectId || storedProjectId || '';
+    if (urlProjectId && typeof localStorage !== 'undefined') {
+      localStorage.setItem('simplebeacon_agency_project_id', urlProjectId);
+    }
+    this.agencyBrandingLoaded = false;
+    this.certificateExportBusy = false;
   }
 
   render() {
@@ -339,25 +473,25 @@ export class AnalyzeView {
     const el = document.createElement('div');
     el.className = 'fade-in';
     el.innerHTML = `
-      <h1 class="page-title">Analyze</h1>
-      <p class="text-muted mb-6">Drop a single source file for a quick check, import a JSON report, or scan a repo folder on the dashboard server.</p>
+      <h1 class="page-title">Analyze <span class="text-muted" style="font-size: var(--font-size-sm); font-weight: 500;">build ${escapeHtml(String(window.__SIMPLEBEACON_DASHBOARD_BUILD__ || '20260528-agency3'))}</span></h1>
+      <p class="text-muted mb-6">Drop a single source file for a quick check, import a JSON report, or scan a repo folder on the dashboard server. <strong>Complete</strong> runs ten steps including compliance checklist, npm audit, and certificate export after results.</p>
 
       ${this.renderFileDropCard()}
 
       <div class="card mb-6 analyze-path-card">
         <div class="card-header">
-          <span class="card-title">Project path (server scan)</span>
+          <span class="card-title">Project path or GitHub URL</span>
           <div class="analyze-path-header-actions">
             <button type="button" class="btn btn-ghost btn-sm" id="use-default-path-btn" ${defaultPath ? '' : 'disabled'}>Use server default</button>
             <button type="button" class="btn btn-ghost btn-sm" id="clear-path-btn">Clear</button>
           </div>
         </div>
 
-        <p class="text-muted analyze-path-intro">Enter a folder path on the machine running <code>npm run dashboard</code>, then click <strong>Run analysis</strong>. This is how Dashboard <strong>Rescan</strong> targets a different repo.</p>
+        <p class="text-muted analyze-path-intro">Enter a <strong>folder path</strong> on the machine running <code>npm run dashboard</code>, or paste a public <strong>GitHub/GitLab/Bitbucket HTTPS URL</strong> to clone and scan. Then click <strong>Run analysis</strong>.</p>
 
         <div class="analyze-path-input-wrap">
           <input type="text" id="project-path-input" class="analyze-path-input"
-            placeholder="e.g. C:\\dev\\my-app or /home/you/your-repo"
+            placeholder="e.g. C:\\dev\\my-app or https://github.com/org/repo"
             value="${escapeHtml(redactPathForDisplay(displayPath))}"
             spellcheck="false"
             autocomplete="off"
@@ -366,7 +500,7 @@ export class AnalyzeView {
 
         ${this.renderQuickPaths(defaultPath, displayPath)}
 
-        <p class="text-muted mb-2" style="font-size: var(--font-size-xs);">Analysis mode — <strong>Complete</strong> runs all eight engines; <strong>Cleanup assistant</strong> also runs standalone to tier safe deletes and export a Cursor agent brief; pick any row below for a single focused scan.</p>
+        <p class="text-muted mb-2" style="font-size: var(--font-size-xs);">Analysis mode — <strong>Complete</strong> runs all ten engines; <strong>Cleanup assistant</strong> also runs standalone to tier safe deletes and export a Cursor agent brief; pick any row below for a single focused scan.</p>
         <div class="analyze-mode-grid" id="analyze-mode-grid">
           ${this.renderModePills()}
         </div>
@@ -415,7 +549,7 @@ export class AnalyzeView {
         <p class="text-muted mt-3" style="font-size: var(--font-size-xs);">
           Gate mock folders are configured in <a href="#/settings">Settings → Scan paths</a>, not here.
           <strong>Filesystem scan</strong> = deterministic gate (findings never depend on AI).
-          <strong>Complete</strong> runs all eight steps with full codebase depth (every discovered code file, ESLint when available). File reduction, data quality, and cleanup assistant run as dry-run scanners at the end. Large repos may take several minutes. Standalone <strong>Codebase</strong> runs the same full-depth codebase engine without the other seven scans.
+          <strong>Complete</strong> runs all ten steps with full codebase depth (every discovered code file, ESLint when available). File reduction, data quality, cleanup assistant, compliance checklist, and npm audit run at the end. Large repos may take several minutes. Standalone <strong>Codebase</strong> runs the same full-depth codebase engine without the other nine scans.
         </p>
       </div>
 
@@ -472,7 +606,17 @@ export class AnalyzeView {
           `).join('')}
           ${findings.length > 8 ? `<li class="text-muted">+ ${findings.length - 8} more — run a full repo scan for branch-wide coverage</li>` : ''}
         </ul>`
-      : '<p class="text-muted analyze-snippet-clean">No credential, mock-path, or AI-fiction KPI patterns in this file.</p>';
+        : (result.cacheMeta
+        ? `<p class="text-muted analyze-snippet-clean">${
+          result.cacheMeta.lockfile
+            ? 'Dependency lockfile — npm/yarn bin entries are not production mock-path leaks.'
+            : `Scanner cache index${
+              result.cacheMeta.fileCount != null
+                ? ` (${formatCount(result.cacheMeta.fileCount)} tracked path(s))`
+                : ''
+            } — path keys are not production leak findings. Run a full repo scan for gate coverage.`
+        }</p>`
+        : '<p class="text-muted analyze-snippet-clean">No credential, mock-path, or AI-fiction KPI patterns in this file.</p>');
 
     const understandingHtml = understanding
       ? `
@@ -501,11 +645,12 @@ export class AnalyzeView {
         <p class="text-muted analyze-snippet-meta">${findings.length} pattern hit(s) · ${critical} critical · ${high} high</p>
         ${findingsHtml}
         ${understandingHtml}
+        ${result.cacheMeta ? '' : `
         <div class="analyze-snippet-actions">
           <button type="button" class="btn btn-secondary btn-sm" id="analyze-snippet-understand-btn" ${this.snippetBusy ? 'disabled' : ''}>
             ${understanding ? 'Re-run server understanding' : 'Run server understanding'}
           </button>
-        </div>
+        </div>`}
       </div>
     `;
   }
@@ -575,7 +720,7 @@ export class AnalyzeView {
       : '';
     const alsoAvailable = this.analysisType === 'complete'
       ? ''
-      : `<p class="analyze-mode-also text-muted">Also available individually: ${ANALYSIS_MODES.filter((m) => m.group === 'standalone' && m.value !== mode.value).map((m) => `${m.icon} ${m.label}`).join(' · ')} — or run <strong>Complete</strong> for all eight + audit PDF.</p>`;
+      : `<p class="analyze-mode-also text-muted">Also available individually: ${ANALYSIS_MODES.filter((m) => m.group === 'standalone' && m.value !== mode.value).map((m) => `${m.icon} ${m.label}`).join(' · ')} — or run <strong>Complete</strong> for all ten + audit PDF + certificate.</p>`;
 
     return `
       <div class="analyze-mode-detail card" id="analyze-mode-detail">
@@ -1168,16 +1313,17 @@ export class AnalyzeView {
 
   resolveProjectPath(inputValue = '') {
     const trimmed = String(inputValue || '').trim();
+    const defaultPath = this.app.state.defaultProjectPath || '';
     if (trimmed && !trimmed.startsWith('…') && isPlausibleProjectPath(trimmed)) {
-      return trimmed;
+      return preferPlatformAnalyzePath(trimmed, defaultPath);
     }
     if (this.app.state.lastProjectPath && isPlausibleProjectPath(this.app.state.lastProjectPath)) {
-      return this.app.state.lastProjectPath;
+      return preferPlatformAnalyzePath(this.app.state.lastProjectPath, defaultPath);
     }
     if (trimmed.startsWith('…')) {
-      return this.app.state.defaultProjectPath || '';
+      return defaultPath;
     }
-    return trimmed || this.app.state.defaultProjectPath || '';
+    return preferPlatformAnalyzePath(trimmed || defaultPath, defaultPath);
   }
 
   setPathInputDisplay(pathInput, fullPath) {
@@ -1423,7 +1569,7 @@ export class AnalyzeView {
     this.refresh();
   }
 
-  importJsonReport(parsed, fileName) {
+  importJsonReport(parsed, fileName, meta = {}) {
     if (parsed.type === 'simplebeacon-complete-scan' && parsed.results) {
       this.importCompleteScanExport(parsed, fileName);
       return true;
@@ -1459,6 +1605,43 @@ export class AnalyzeView {
       this.refresh();
       return true;
     }
+    if (isAnalyzerCacheJson(parsed)) {
+      const fileCount = Object.keys(parsed.files).length;
+      this.snippetResult = {
+        fileName,
+        bytes: meta.bytes ?? 0,
+        text: '',
+        findings: [],
+        threatScore: 0,
+        cacheMeta: { fileCount, lastScan: parsed.lastScan || null }
+      };
+      showToast(
+        `Scanner cache index (${fileCount} path(s)) — not a production source file`,
+        'info'
+      );
+      this.refresh();
+      return true;
+    }
+    if (isCleanupExportJson(parsed)) {
+      const unusedCount = parsed.brief?.unusedFiles?.length
+        ?? parsed.unusedFiles?.length
+        ?? parsed.brief?.tiers?.reviewFirst?.files
+        ?? 0;
+      this.snippetResult = {
+        fileName,
+        bytes: meta.bytes ?? 0,
+        text: '',
+        findings: [],
+        threatScore: 0,
+        cacheMeta: { cleanupExport: true, phase: parsed.phase || null, unusedCount }
+      };
+      showToast(
+        `Cleanup export inventory (${unusedCount || 'path'} listing) — not a production source file`,
+        'info'
+      );
+      this.refresh();
+      return true;
+    }
     return false;
   }
 
@@ -1480,7 +1663,7 @@ export class AnalyzeView {
       const text = await this.readFileAsText(file);
       if (file.name.toLowerCase().endsWith('.json')) {
         const parsed = this.tryParseJsonReport(text);
-        if (parsed && this.importJsonReport(parsed, file.name)) {
+        if (parsed && this.importJsonReport(parsed, file.name, { bytes: file.size })) {
           this.snippetBusy = false;
           return;
         }
@@ -1491,7 +1674,37 @@ export class AnalyzeView {
         return;
       }
 
-      const findings = scanSnippetText(text);
+      if (isScannerMetaFileName(file.name)) {
+        this.snippetResult = {
+          fileName: file.name,
+          bytes: file.size,
+          text,
+          findings: [],
+          threatScore: 0,
+          cacheMeta: { scannerMeta: true },
+          understanding: null,
+          understandingSkipped: null
+        };
+        showToast(`${file.name} is scanner metadata — skipped pattern scan`, 'info');
+        return;
+      }
+
+      if (isLockfileName(file.name)) {
+        this.snippetResult = {
+          fileName: file.name,
+          bytes: file.size,
+          text,
+          findings: [],
+          threatScore: 0,
+          cacheMeta: { lockfile: true },
+          understanding: null,
+          understandingSkipped: null
+        };
+        showToast(`${file.name} is a dependency lockfile — skipped mock-path quick check`, 'info');
+        return;
+      }
+
+      const findings = scanSnippetText(text, { fileName: file.name });
       this.snippetResult = {
         fileName: file.name,
         bytes: file.size,
@@ -1511,6 +1724,10 @@ export class AnalyzeView {
   }
 
   async runSnippetUnderstanding() {
+    if (this.snippetResult?.cacheMeta) {
+      showToast('Scanner cache or export inventory — server understanding applies to source files only', 'info');
+      return;
+    }
     if (!this.snippetResult?.text) {
       showToast('Drop a source file first', 'error');
       return;
@@ -1613,22 +1830,45 @@ export class AnalyzeView {
     ].filter(Boolean).join(' ');
   }
 
-  async runPathAnalysis(projectPath) {
+  async runPathAnalysis(inputPath) {
+    let projectPath = String(inputPath || '').trim();
     if (!projectPath) {
-      showToast('Enter a project path on the server machine', 'error');
+      showToast('Enter a project path or GitHub URL', 'error');
       return;
     }
     if (!isPlausibleProjectPath(projectPath)) {
-      showToast('Enter a folder path (not a file like .bat or .json)', 'error');
+      showToast('Enter a folder path (not a file like .bat or .json) or a GitHub HTTPS URL', 'error');
       if (this.app.state.lastProjectPath === projectPath) {
         this.app.state.lastProjectPath = '';
       }
       return;
     }
 
+    const sourceRepoUrl = isGithubRepoUrl(projectPath) ? projectPath : null;
+    if (sourceRepoUrl) {
+      this.busy = true;
+      this.scanStartedAt = Date.now();
+      this.refresh();
+      showToast('Cloning repository…', 'info');
+      try {
+        await ensureDashboardApiReady();
+        const cloned = await prepareGithubRepo(sourceRepoUrl);
+        projectPath = cloned.projectPath;
+        showToast(cloned.cached ? 'Using cached clone — starting scan…' : 'Clone complete — starting scan…', 'info');
+      } catch (err) {
+        this.busy = false;
+        this.refresh();
+        showToast(err.message || 'GitHub clone failed', 'error');
+        return;
+      }
+    }
+
     this.busy = true;
     this.scanStartedAt = Date.now();
     this.app.state.lastProjectPath = projectPath;
+    if (sourceRepoUrl) {
+      this.app.state.lastRepoUrl = sourceRepoUrl;
+    }
     saveAnalyzePrefs({ analysisType: this.analysisType, aiProvider: this.aiProvider, understandingMode: this.understandingMode });
     this.refresh();
 
@@ -1775,10 +2015,12 @@ export class AnalyzeView {
       if (effectiveType === 'cleanup-assistant') {
         const fileReduction = await fetchDataCleanupScan(projectPath, {
           profile: 'file-reduction',
+          refresh: true,
           timeoutMs: 300000
         });
         const dataQuality = await fetchDataCleanupScan(projectPath, {
           profile: 'data-quality',
+          refresh: true,
           timeoutMs: 300000
         });
         await this.attachRepositoryInventory(projectPath, fileReduction);
@@ -1811,6 +2053,60 @@ export class AnalyzeView {
         this.app.state.analyzeResult = this.lastResult;
         this.refresh();
         showToast('Cleanup assistant scan complete', 'success');
+        analysisSucceeded = true;
+        return;
+      }
+
+      if (effectiveType === 'compliance') {
+        this.completeStep = '1/2 Simplebeacon gate…';
+        this.refresh();
+        const data = await scanPath(projectPath);
+        let report = data.report;
+        if (!report) {
+          throw new Error('Gate scan completed but returned no report');
+        }
+        report = await enrichScanReport(report, projectPath);
+        this.repositoryInventory = report.repositoryInventory || null;
+        this.completeStep = '2/2 Compliance checklist…';
+        this.refresh();
+        const complianceData = await fetchComplianceChecklist(report, projectPath);
+        const checklist = complianceData.complianceChecklist;
+        this.lastResult = {
+          kind: 'compliance',
+          report,
+          checklist,
+          projectPath,
+          label: `Compliance checklist: ${formatPathLabel(projectPath)}`,
+          conclusion: checklist?.summary
+            ? `${checklist.summary.passed ?? 0}/${checklist.summary.total ?? 8} rules passed${checklist.summary.failed ? ` — ${checklist.summary.failed} failed` : ''}.`
+            : 'Compliance checklist complete.'
+        };
+        this.app.state.analyzeResult = this.lastResult;
+        this.app.state.report = report;
+        this.app.scanService.report = report;
+        this.refresh();
+        showToast('Compliance checklist complete', 'success');
+        analysisSucceeded = true;
+        return;
+      }
+
+      if (effectiveType === 'npm-audit') {
+        this.completeStep = 'Running npm audit…';
+        this.refresh();
+        const npmAudit = await fetchProjectNpmAudit(projectPath);
+        this.app.state.npmAudit = npmAudit;
+        this.lastResult = {
+          kind: 'npm-audit',
+          npmAudit,
+          projectPath,
+          label: `npm audit: ${formatPathLabel(projectPath)}`,
+          conclusion: npmAudit?.summary
+            ? `${npmAudit.summary.total ?? npmAudit.vulnerabilityTotal ?? 0} vulnerabilities across ${npmAudit.summary.dependencies ?? npmAudit.dependencies?.total ?? '—'} dependencies.`
+            : 'npm audit complete.'
+        };
+        this.app.state.analyzeResult = this.lastResult;
+        this.refresh();
+        showToast('npm audit complete', 'success');
         analysisSucceeded = true;
         return;
       }
@@ -2005,14 +2301,17 @@ export class AnalyzeView {
     await runStep(5, completeStepLabel(5, 'File reduction…'), async () => {
       const scan = await fetchDataCleanupScan(projectPath, {
         profile: 'file-reduction',
+        refresh: true,
         timeoutMs: 300000
       });
+      assertCompleteScanFileReductionFresh(scan);
       return { id: 'file-reduction', scan, profile: 'file-reduction' };
     });
 
     await runStep(6, completeStepLabel(6, 'Data quality…'), async () => {
       const scan = await fetchDataCleanupScan(projectPath, {
         profile: 'data-quality',
+        refresh: true,
         timeoutMs: 300000
       });
       return { id: 'data-quality', scan, profile: 'data-quality' };
@@ -2048,6 +2347,23 @@ export class AnalyzeView {
         repositoryInventory,
         policy
       };
+    });
+
+    await runStep(8, completeStepLabel(8, 'Compliance checklist…'), async () => {
+      const simplebeaconStep = steps.find((s) => s.id === 'simplebeacon');
+      const report = simplebeaconStep?.report;
+      if (!report) {
+        throw new Error('Simplebeacon gate must complete before compliance checklist');
+      }
+      const data = await fetchComplianceChecklist(report, projectPath);
+      assertCompleteScanComplianceFresh(report, data.complianceChecklist);
+      return { id: 'compliance', checklist: data.complianceChecklist };
+    });
+
+    await runStep(9, completeStepLabel(9, 'npm audit…'), async () => {
+      const npmAudit = await fetchProjectNpmAudit(projectPath);
+      this.app.state.npmAudit = npmAudit;
+      return { id: 'npm-audit', npmAudit };
     });
 
     this.lastResult = {
@@ -2115,7 +2431,7 @@ export class AnalyzeView {
 
     const scanDurationMs = this.scanStartedAt ? Date.now() - this.scanStartedAt : null;
 
-    return {
+    const bundle = {
       type: 'simplebeacon-complete-scan',
       version: '1.3.0',
       generatedAt: new Date().toISOString(),
@@ -2150,7 +2466,11 @@ export class AnalyzeView {
         fileReductionReviewBytes: fileReduction?.fileReductionPlan?.totals?.reviewBeforeDeleteBytes ?? null,
         cleanupSafeFiles: cleanupAssistant?.estimatedReduction?.files ?? null,
         cleanupSafeBytes: cleanupAssistant?.estimatedReduction?.bytes ?? null,
-        cleanupProjectedFiles: cleanupAssistant?.projectedInventory?.totalFiles ?? null
+        cleanupProjectedFiles: cleanupAssistant?.projectedInventory?.totalFiles ?? null,
+        llmSlopHits: simplebeacon?.llmSlopPatternHits ?? null,
+        compliancePassed: this.getCompleteStep('compliance')?.checklist?.summary?.passed ?? null,
+        complianceFailed: this.getCompleteStep('compliance')?.checklist?.summary?.failed ?? null,
+        npmVulnerabilities: this.getCompleteStep('npm-audit')?.npmAudit?.summary?.total ?? null
       },
       completeScanAnalysis,
       enrichedAt: new Date().toISOString(),
@@ -2162,9 +2482,18 @@ export class AnalyzeView {
         codebase,
         fileReduction,
         dataQuality,
-        cleanupAssistant
+        cleanupAssistant,
+        compliance: this.getCompleteStep('compliance')?.checklist ?? null,
+        npmAudit: this.getCompleteStep('npm-audit')?.npmAudit ?? null
       }
     };
+
+    return sanitizeCompleteScanBundle(bundle, {
+      preparePlatformResultsReport,
+      sanitizeConsolidationExport,
+      sanitizeRoadmapExport,
+      sanitizeFictionDigestExport
+    });
   }
 
   renderResultsExportBar() {
@@ -2300,6 +2629,27 @@ export class AnalyzeView {
       }
       case 'roadmap':
         return data?.roadmap || null;
+      case 'compliance':
+        return this.lastResult?.checklist
+          ? {
+            type: 'simplebeacon-compliance-checklist',
+            generatedAt,
+            projectPath,
+            scanDurationMs,
+            gateReport: report || null,
+            checklist: this.lastResult.checklist
+          }
+          : null;
+      case 'npm-audit':
+        return this.lastResult?.npmAudit
+          ? {
+            type: 'simplebeacon-npm-audit',
+            generatedAt,
+            projectPath,
+            scanDurationMs,
+            ...this.lastResult.npmAudit
+          }
+          : null;
       default:
         return this.lastResult || null;
     }
@@ -2353,6 +2703,13 @@ export class AnalyzeView {
       }
       case 'roadmap':
         results.roadmap = data?.roadmap || null;
+        break;
+      case 'compliance':
+        results.simplebeacon = report || null;
+        results.compliance = this.lastResult?.checklist || null;
+        break;
+      case 'npm-audit':
+        results.npmAudit = this.lastResult?.npmAudit || null;
         break;
       default:
         break;
@@ -2519,19 +2876,7 @@ export class AnalyzeView {
   }
 
   prepareReportForResults(report) {
-    if (!report) return null;
-    const source = report.rawIssues ?? report.detectedIssues ?? [];
-    const rawIssues = source.map((issue, index) => ({
-      ...issue,
-      id: issue.id || `${issue.severity}|${issue.type}|${issue.description}|${index}`,
-      filePath: issue.filePath || issue.filePaths?.[0] || issue.affectedFiles?.[0]
-    }));
-    return {
-      ...report,
-      rawIssues,
-      detectedIssues: report.detectedIssues ?? rawIssues,
-      issueCount: report.issueCount ?? rawIssues.reduce((sum, i) => sum + (i.count || 1), 0)
-    };
+    return preparePlatformResultsReport(report);
   }
 
   openResultsView(params = {}) {
@@ -2592,6 +2937,7 @@ export class AnalyzeView {
             <div class="metric-chip gate-badge ${r.gate?.pass ? 'pass' : 'warn'}">${r.gate?.pass ? 'PASS' : 'REVIEW'}</div>
           </div>
           <div id="inline-issue-list"></div>
+          ${this.renderCertificateExportPanel(r, projectPath)}
         </div>
       `);
     }
@@ -2659,6 +3005,43 @@ export class AnalyzeView {
       `);
     }
 
+    if (kind === 'compliance' && this.lastResult.checklist) {
+      const r = this.lastResult.report;
+      return this.wrapAnalyzeResults(`
+        <div class="section-block">
+          <div class="section-heading">
+            <h2>${escapeHtml(label || 'Compliance checklist')}</h2>
+          </div>
+          <p class="text-muted mb-4" style="font-size: var(--font-size-sm);">
+            Evaluated against the Simplebeacon gate report for this path. Gate:
+            <strong>${r?.gate?.pass ? 'PASS' : 'REVIEW'}</strong>
+            · ${r?.issueCount ?? 0} issue groups
+          </p>
+          ${renderComplianceChecklistPanel(this.lastResult.checklist)}
+          ${r ? this.renderCertificateExportPanel(r, projectPath) : ''}
+        </div>
+      `);
+    }
+
+    if (kind === 'npm-audit' && this.lastResult.npmAudit) {
+      return this.wrapAnalyzeResults(`
+        <div class="section-block">
+          <div class="section-heading">
+            <h2>${escapeHtml(label || 'npm audit')}</h2>
+          </div>
+          <p class="text-muted mb-4" style="font-size: var(--font-size-sm);">
+            Live <code>npm audit --json</code> for <code>${escapeHtml(redactPathForDisplay(projectPath || ''))}</code> on the dashboard server.
+          </p>
+          ${renderNpmAuditPanel(this.lastResult.npmAudit)}
+          ${this.renderScanSummary(
+            this.lastResult.npmAudit,
+            conclusion || this.lastResult.conclusion,
+            'Supply-chain audit — not a Simplebeacon gate substitute'
+          )}
+        </div>
+      `);
+    }
+
     if (kind === 'roadmap' && data?.roadmap) {
       const roadmap = data.roadmap;
       const phases = roadmap.developmentPhases || roadmap.phases || roadmap.sprintPhases || [];
@@ -2712,6 +3095,50 @@ export class AnalyzeView {
     return isDeliverableLocked(this.app.state.entitlements, this.lastResult);
   }
 
+  renderCertificateExportPanel(report) {
+    if (!report) return '';
+    const slopHits = report.llmSlopPatternHits ?? report.scanScope?.llmSlopPatternHits ?? 0;
+    return `
+      <div class="card mb-6" id="certificate-export-panel">
+        <div class="card-header">
+          <span class="card-title">Code Hygiene Certificate</span>
+        </div>
+        <p class="text-muted" style="font-size: var(--font-size-sm);">
+          Co-branded client deliverable for agency milestone handoffs. Uses the Simplebeacon gate report above
+          ${slopHits ? `(includes <strong>${slopHits}</strong> LLM slop pattern hit${slopHits === 1 ? '' : 's'})` : ''}.
+        </p>
+        <div class="analyze-action-row" style="flex-wrap: wrap; gap: var(--space-3); align-items: flex-end;">
+          <label class="audit-booking-field" style="min-width: 140px;">
+            <span>Milestone</span>
+            <select id="certificate-milestone-select" class="analyze-select">
+              ${['alpha', 'beta', 'release', 'hotfix', 'warranty'].map((m) => `
+                <option value="${m}" ${this.certificateMilestone === m ? 'selected' : ''}>${m}</option>
+              `).join('')}
+            </select>
+          </label>
+          <label class="audit-booking-field" style="min-width: 180px;">
+            <span>Client name</span>
+            <input type="text" id="certificate-client-name" class="analyze-path-input" value="${escapeHtml(this.certificateClientName)}" placeholder="Northwind Retail">
+          </label>
+          <label class="audit-booking-field" style="min-width: 180px;">
+            <span>Project name</span>
+            <input type="text" id="certificate-project-name" class="analyze-path-input" value="${escapeHtml(this.certificateProjectName)}" placeholder="Customer Portal Rebuild">
+          </label>
+          <label class="audit-booking-field" style="min-width: 160px;">
+            <span>Project pack ID</span>
+            <input type="text" id="certificate-project-id" class="analyze-path-input" value="${escapeHtml(this.certificateProjectId)}" placeholder="proj_…">
+          </label>
+          <button type="button" class="btn btn-primary" id="export-certificate-btn" ${this.certificateExportBusy ? 'disabled' : ''}>
+            ${this.certificateExportBusy ? 'Generating…' : 'Generate certificate'}
+          </button>
+        </div>
+        <p class="text-muted" style="font-size: var(--font-size-xs); margin-top: var(--space-2);">
+          Branding: <code>PUT /api/simplebeacon/agency/branding</code> · Optional project pack token burn when <code>project_id</code> is set.
+        </p>
+      </div>
+    `;
+  }
+
   renderCompleteResults() {
     const { projectPath, steps = [], errors = [] } = this.lastResult;
     const simplebeacon = steps.find((s) => s.id === 'simplebeacon')?.report;
@@ -2725,6 +3152,10 @@ export class AnalyzeView {
     const dataQuality = steps.find((s) => s.id === 'data-quality')?.scan;
     const cleanupStep = steps.find((s) => s.id === 'cleanup-assistant');
     const cleanupBrief = cleanupStep?.brief ?? null;
+    const complianceStep = steps.find((s) => s.id === 'compliance');
+    const complianceChecklist = complianceStep?.checklist ?? null;
+    const npmAuditStep = steps.find((s) => s.id === 'npm-audit');
+    const npmAudit = npmAuditStep?.npmAudit ?? null;
     const stepTotal = COMPLETE_STEPS.length;
 
     const completeScanAnalysis = buildCompleteScanAnalysis({ fileReduction, dataQuality, projectPath });
@@ -2773,9 +3204,13 @@ export class AnalyzeView {
           <div class="metric-chip"><strong>${fileReduction?.fileReductionPlan?.totals?.estimatedImmediateSavingsBytes != null ? formatCompleteScanBytes(fileReduction.fileReductionPlan.totals.estimatedImmediateSavingsBytes) : formatCount(fileReduction?.summary?.totalFindings)}</strong> ${fileReduction?.fileReductionPlan ? 'immediate savings' : 'file reduction'}</div>
           <div class="metric-chip"><strong>${formatCount(dataQuality?.executiveSummary?.security?.piiNeedingReview ?? dataQuality?.summary?.totalFindings)}</strong> ${dataQuality?.executiveSummary ? 'PII review' : 'data quality'}</div>
           ${cleanupBrief ? `<div class="metric-chip"><strong>${formatCount(cleanupBrief.estimatedReduction?.files)}</strong> safe cleanup files</div>` : ''}
+          ${complianceChecklist?.summary ? `<div class="metric-chip gate-badge ${complianceChecklist.summary.failed ? 'warn' : 'pass'}">${complianceChecklist.summary.passed ?? 0}/${complianceChecklist.summary.total ?? 8} compliance</div>` : ''}
+          ${npmAudit && !npmAudit.error ? `<div class="metric-chip"><strong>${npmAudit.summary?.total ?? npmAudit.vulnerabilityTotal ?? 0}</strong> npm vulns</div>` : ''}
         </div>
 
         ${renderCompleteScanAnalysisPanel(completeScanAnalysis)}
+
+        ${!locked && simplebeacon ? this.renderCertificateExportPanel(simplebeacon, projectPath) : ''}
 
         ${locked ? renderScanPaywall(
           this.lastResult.publicSummary || buildPublicSummaryFromScan(this.lastResult),
@@ -2789,6 +3224,7 @@ export class AnalyzeView {
               <div class="metric-chip"><strong>${simplebeacon.qualityScore ?? '—'}%</strong> quality</div>
               ${this.renderScanFileMetrics(simplebeacon)}
               <div class="metric-chip"><strong>${simplebeacon.issueCount ?? 0}</strong> issues</div>
+              ${simplebeacon.llmSlopPatternHits != null ? `<div class="metric-chip"><strong>${simplebeacon.llmSlopPatternHits}</strong> LLM slop hits</div>` : ''}
             </div>
             ${(getScanFileMetrics(simplebeacon).mockSampleFiles ?? 0) === 0 ? `
               <p class="text-muted text-sm mb-4">
@@ -2896,6 +3332,16 @@ export class AnalyzeView {
             )}
           ` : renderStepFailure('cleanup-assistant', 'Cleanup assistant')}
         </details>
+
+        <details class="card mb-4">
+          <summary><strong>9. Compliance checklist</strong> ${stepOk('compliance') ? '✅' : '⚠️'}</summary>
+          ${complianceChecklist ? renderComplianceChecklistPanel(complianceChecklist) : renderStepFailure('compliance', 'Compliance')}
+        </details>
+
+        <details class="card mb-4">
+          <summary><strong>10. npm audit</strong> ${stepOk('npm-audit') ? '✅' : '⚠️'}</summary>
+          ${npmAudit && !npmAudit.error ? renderNpmAuditPanel(npmAudit) : renderStepFailure('npm-audit', 'npm audit')}
+        </details>
         `}
       </div>
     `;
@@ -2932,6 +3378,20 @@ export class AnalyzeView {
     container.innerHTML = '';
     const view = this.render();
     container.appendChild(view);
+
+    if (view.querySelector('#certificate-export-panel') && !this.agencyBrandingLoaded) {
+      this.agencyBrandingLoaded = true;
+      fetchAgencyBranding(this.certificateOrgId)
+        .then((data) => {
+          const branding = data?.branding;
+          if (branding?.agency_name && !this.certificateClientName) {
+            this.certificateClientName = branding.agency_name;
+            const clientField = view.querySelector('#certificate-client-name');
+            if (clientField && !clientField.value) clientField.value = branding.agency_name;
+          }
+        })
+        .catch(() => { /* optional branding prefill */ });
+    }
 
     view.querySelector('#goto-results-btn')?.addEventListener('click', () => {
       this.openResultsView();
@@ -3026,13 +3486,72 @@ export class AnalyzeView {
       showToast('Simplebeacon report downloaded', 'success');
     });
 
+    view.querySelector('#certificate-milestone-select')?.addEventListener('change', (e) => {
+      this.certificateMilestone = e.target.value;
+    });
+    view.querySelector('#certificate-client-name')?.addEventListener('input', (e) => {
+      this.certificateClientName = e.target.value;
+    });
+    view.querySelector('#certificate-project-name')?.addEventListener('input', (e) => {
+      this.certificateProjectName = e.target.value;
+    });
+    view.querySelector('#certificate-project-id')?.addEventListener('input', (e) => {
+      this.certificateProjectId = e.target.value.trim();
+      if (this.certificateProjectId) {
+        localStorage.setItem('simplebeacon_agency_project_id', this.certificateProjectId);
+      }
+    });
+    view.querySelector('#export-certificate-btn')?.addEventListener('click', async () => {
+      const report = this.lastResult?.kind === 'complete'
+        ? this.getCompleteStep('simplebeacon')?.report
+        : this.lastResult?.kind === 'compliance'
+          ? this.lastResult.report
+          : (this.lastResult?.report || this.lastResult?.data?.report);
+      if (!report) {
+        showToast('Run a Simplebeacon gate scan first', 'error');
+        return;
+      }
+      this.certificateMilestone = view.querySelector('#certificate-milestone-select')?.value || this.certificateMilestone;
+      this.certificateClientName = view.querySelector('#certificate-client-name')?.value?.trim() || '';
+      this.certificateProjectName = view.querySelector('#certificate-project-name')?.value?.trim() || '';
+      this.certificateProjectId = view.querySelector('#certificate-project-id')?.value?.trim() || '';
+      if (this.certificateProjectId) {
+        localStorage.setItem('simplebeacon_agency_project_id', this.certificateProjectId);
+      }
+      this.certificateExportBusy = true;
+      this.refresh();
+      try {
+        const data = await exportAgencyCertificate({
+          report,
+          milestone: this.certificateMilestone,
+          client_name: this.certificateClientName || undefined,
+          project_name: this.certificateProjectName || undefined,
+          project_id: this.certificateProjectId || undefined,
+          org_id: this.certificateOrgId
+        });
+        if (data.html) {
+          const blob = new Blob([data.html], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank', 'noopener,noreferrer');
+          showToast(`Certificate ${data.certificate_id || ''} opened — Print → Save as PDF`, 'success');
+        } else {
+          showToast('Certificate export returned no HTML', 'error');
+        }
+      } catch (err) {
+        showToast(err.message || 'Certificate export failed', 'error');
+      } finally {
+        this.certificateExportBusy = false;
+        this.refresh();
+      }
+    });
+
     view.querySelector('#download-consolidation-json')?.addEventListener('click', () => {
       const scan = this.getCompleteStep('consolidation')?.scan;
       if (!scan) {
         showToast('Consolidation step has no report', 'error');
         return;
       }
-      downloadJson(scan, `consolidation-${slug}-${dateStamp()}.json`);
+      downloadJson(sanitizeConsolidationExport(scan), `consolidation-${slug}-${dateStamp()}.json`);
       showToast('Consolidation report downloaded', 'success');
     });
 
@@ -3147,7 +3666,7 @@ export class AnalyzeView {
         showToast('Fiction digest step has no report', 'error');
         return;
       }
-      downloadJson(payload, `fiction-digest-${slug}-${dateStamp()}.json`);
+      downloadJson(sanitizeFictionDigestExport(payload), `fiction-digest-${slug}-${dateStamp()}.json`);
       showToast('Fiction digest downloaded', 'success');
     });
 
@@ -3157,13 +3676,52 @@ export class AnalyzeView {
         return;
       }
       const roadmapSlug = pathToFileSlug(this.lastResult?.projectPath || roadmap.projectName);
-      downloadJson(roadmap, `${roadmapSlug || 'roadmap'}-${dateStamp()}.json`);
+      downloadJson(sanitizeRoadmapExport(roadmap), `${roadmapSlug || 'roadmap'}-${dateStamp()}.json`);
       showToast('Full roadmap downloaded', 'success');
     });
+
+    view.querySelector('#download-compliance-json')?.addEventListener('click', () => {
+      const checklist = this.lastResult?.kind === 'complete'
+        ? this.getCompleteStep('compliance')?.checklist
+        : this.lastResult?.checklist;
+      if (!checklist) {
+        showToast('Compliance checklist has no report', 'error');
+        return;
+      }
+      const gateReport = this.lastResult?.kind === 'complete'
+        ? this.getCompleteStep('simplebeacon')?.report
+        : this.lastResult?.report;
+      downloadJson({
+        type: 'simplebeacon-compliance-checklist',
+        generatedAt: new Date().toISOString(),
+        projectPath: this.lastResult?.projectPath,
+        gateReport: gateReport || null,
+        checklist
+      }, `compliance-${slug}-${dateStamp()}.json`);
+      showToast('Compliance checklist downloaded', 'success');
+    });
+
+    view.querySelector('#download-npm-audit-json')?.addEventListener('click', () => {
+      const npmAudit = this.lastResult?.kind === 'complete'
+        ? this.getCompleteStep('npm-audit')?.npmAudit
+        : this.lastResult?.npmAudit;
+      if (!npmAudit) {
+        showToast('npm audit has no report', 'error');
+        return;
+      }
+      downloadJson({
+        type: 'simplebeacon-npm-audit',
+        generatedAt: new Date().toISOString(),
+        projectPath: this.lastResult?.projectPath,
+        ...npmAudit
+      }, `npm-audit-${slug}-${dateStamp()}.json`);
+      showToast('npm audit downloaded', 'success');
+    });
+
     view.querySelector('#copy-roadmap-json')?.addEventListener('click', async () => {
       if (!roadmap) return;
       try {
-        await navigator.clipboard.writeText(JSON.stringify(roadmap, null, 2));
+        await navigator.clipboard.writeText(JSON.stringify(sanitizeRoadmapExport(roadmap), null, 2));
         showToast('Roadmap JSON copied', 'success');
       } catch (err) {
         showToast(err.message || 'Copy failed', 'error');
