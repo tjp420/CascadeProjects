@@ -75,6 +75,25 @@ test('AssetConsolidationScanner groups identical assets', async () => {
     assert.equal(result.findings[0].keeper, 'assets/a.png');
 });
 
+test('UnusedFileDetector does not treat node_modules index.js as entry points', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({ main: 'index.js' }),
+        'index.js': "require('./lib/helper');\n",
+        'lib/helper.js': 'module.exports = () => 1;\n',
+        'node_modules/dep-a/index.js': "require('./lib/internal');\n",
+        'node_modules/dep-a/lib/internal.js': 'module.exports = () => 0;\n',
+        'node_modules/dep-b/index.js': 'module.exports = {};\n'
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const entryPoints = result.metadata.entryPoints || [];
+
+    assert.equal(entryPoints.some((p) => p.includes('node_modules')), false);
+    assert.ok(entryPoints.includes('index.js'));
+    assert.ok(result.summary.entryPoints < 10);
+});
+
 test('UnusedFileDetector skips vendor and archive paths', async () => {
     const root = makeTempProject({
         'package.json': JSON.stringify({ main: 'index.js' }),
@@ -186,6 +205,109 @@ test('UnusedFileDetector skips docs, data samples, and protected runtime files',
     assert.equal(paths.includes('web/api/mock-backend.js'), false);
 });
 
+test('UnusedFileDetector skips tests tree at project root', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({ main: 'index.js' }),
+        'index.js': "require('./lib/helper');\n",
+        'lib/helper.js': 'module.exports = () => 1;\n',
+        'tests/unit/foo.test.js': "require('../../lib/helper');\n",
+        'tests/api/test_auth_critical.py': 'def test_auth(): pass\n'
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const paths = result.findings.map((f) => f.path);
+    assert.equal(paths.some((p) => p.startsWith('tests/')), false);
+});
+
+test('UnusedFileDetector skips coverage artifacts', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({ main: 'index.js' }),
+        'index.js': "require('./lib/helper');\n",
+        'lib/helper.js': 'module.exports = () => 1;\n',
+        'coverage/dashboard/coverage-final.json': '{}',
+        'coverage/dashboard/lcov-report/index.html': '<html></html>'
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const paths = result.findings.map((f) => f.path);
+    assert.equal(paths.some((p) => p.startsWith('coverage/')), false);
+});
+
+test('UnusedFileDetector treats jest.critical-path.config.js as entry point', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({
+            main: 'index.js',
+            scripts: {
+                'test:coverage:critical-path': 'jest --config jest.critical-path.config.js --coverage'
+            }
+        }),
+        'index.js': "require('./lib/core');\n",
+        'lib/core.js': 'module.exports = () => 1;\n',
+        'jest.critical-path.config.js': "module.exports = require('./jest.config');\n",
+        'jest.config.js': 'module.exports = {};\n'
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const paths = result.findings.map((f) => f.path);
+    assert.equal(paths.includes('jest.critical-path.config.js'), false);
+});
+
+test('UnusedFileDetector skips monorepo-prefixed tests tree', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({ name: 'mono' }),
+        'ai-platform/package.json': JSON.stringify({ main: 'index.js' }),
+        'ai-platform/index.js': "require('./lib/helper');\n",
+        'ai-platform/lib/helper.js': 'module.exports = () => 1;\n',
+        'ai-platform/tests/unit/foo.test.js': "require('../../lib/helper');\n",
+        'ai-platform/tests/api/test_auth_critical.py': 'def test_auth(): pass\n'
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const paths = result.findings.map((f) => f.path);
+    assert.equal(paths.some((p) => p.startsWith('ai-platform/tests/')), false);
+});
+
+test('UnusedFileDetector skips monorepo-prefixed coverage artifacts', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({ name: 'mono' }),
+        'ai-platform/package.json': JSON.stringify({ main: 'index.js' }),
+        'ai-platform/index.js': "require('./lib/helper');\n",
+        'ai-platform/lib/helper.js': 'module.exports = () => 1;\n',
+        'ai-platform/coverage/dashboard/coverage-final.json': '{}',
+        'ai-platform/coverage/dashboard/lcov-report/index.html': '<html></html>'
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const paths = result.findings.map((f) => f.path);
+    assert.equal(paths.some((p) => p.includes('coverage/')), false);
+});
+
+test('UnusedFileDetector treats monorepo-prefixed jest.critical-path.config.js as entry point', async () => {
+    const root = makeTempProject({
+        'package.json': JSON.stringify({ name: 'mono' }),
+        'ai-platform/package.json': JSON.stringify({
+            main: 'index.js',
+            scripts: {
+                'test:coverage:critical-path': 'jest --config jest.critical-path.config.js --coverage'
+            }
+        }),
+        'ai-platform/index.js': "require('./lib/core');\n",
+        'ai-platform/lib/core.js': 'module.exports = () => 1;\n',
+        'ai-platform/jest.critical-path.config.js': "module.exports = require('./jest.config');\n",
+        'ai-platform/jest.config.js': 'module.exports = {};\n'
+    });
+
+    const scanner = new UnusedFileDetector();
+    const result = await scanner.scan(root);
+    const paths = result.findings.map((f) => f.path);
+    assert.equal(paths.includes('ai-platform/jest.critical-path.config.js'), false);
+});
+
 test('UnusedFileDetector skips export-system compatibility shim', async () => {
     const root = makeTempProject({
         'package.json': JSON.stringify({ main: 'index.js' }),
@@ -239,6 +361,28 @@ test('runFileReductionAnalysis aggregates scanner summaries', async () => {
     assert.ok(report.findings.buildArtifacts.length > 0);
     assert.ok(report.findings.assetConsolidation.length > 0);
     assert.equal(report.dryRun, true);
+});
+
+test('runFileReductionAnalysis honors explicit scanner allowlist', async () => {
+    const root = makeTempProject({
+        'node_modules/pkg/index.js': 'module.exports = {};\n',
+        'assets/a.png': 'dup',
+        'assets/b.png': 'dup',
+        'package.json': JSON.stringify({ main: 'index.js' }),
+        'index.js': "require('./used.js');\n",
+        'used.js': 'module.exports = 1;\n'
+    });
+
+    const report = await runFileReductionAnalysis(root, {
+        scanners: {
+            'config-management': { enabled: true }
+        }
+    });
+
+    assert.equal(report.findings.buildArtifacts.length, 0);
+    assert.equal(report.findings.assetConsolidation.length, 0);
+    assert.equal(report.findings.unusedFiles.length, 0);
+    assert.ok(Array.isArray(report.findings.configManagement));
 });
 
 test('generateFileReductionReport renders markdown sections', async () => {

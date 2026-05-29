@@ -25,6 +25,7 @@ test('ConfigManagementAnalyzer flags env sprawl and profile-local inconsistencie
         '.env.example': 'PORT=4000\nAPI_URL=http://localhost\n',
         '.env.production': 'PORT=8080\nAPI_URL=https://prod.example\n',
         '.env.development': 'PORT=3000\n',
+        '.env.local': 'PORT=3001\n',
         'webpack.config.js': 'module.exports = {};\n',
         'vite.config.js': 'export default {};\n'
     });
@@ -81,6 +82,45 @@ test('EnvironmentVariableAnalyzer treats OS-injected env keys as runtime-provide
     const scanner = new EnvironmentVariableAnalyzer();
     const result = await scanner.scan(root, { inventory });
     assert.ok(!result.findings.some((f) => f.type === 'missing-env-key' && f.metadata.key === 'USERPROFILE'));
+});
+
+test('EnvironmentVariableAnalyzer skips phase-2 SSO example keys', async () => {
+    const root = makeTempProject({
+        '.env.example.phase2-sso': 'SAML_ENABLED=false\nLDAP_URL=ldap://test\n',
+        '.env.example': 'PORT=3000\n',
+        'server.js': "const port = process.env.PORT;\n"
+    });
+    const inventory = await walkProjectFiles(root);
+    const scanner = new EnvironmentVariableAnalyzer();
+    const result = await scanner.scan(root, { inventory });
+    assert.ok(!result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'SAML_ENABLED'));
+    assert.ok(!result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'LDAP_URL'));
+});
+
+test('EnvironmentVariableAnalyzer skips optional store keys with code defaults', async () => {
+    const root = makeTempProject({
+        '.env': 'PORT=3000\n',
+        'server/lib/sales-commission-store.js': "const p = process.env.SIMPLEBEACON_SALES_COMMISSIONS_STORE || '.simplebeacon/sales-commissions.json';\n"
+    });
+    const inventory = await walkProjectFiles(root);
+    const scanner = new EnvironmentVariableAnalyzer();
+    const result = await scanner.scan(root, { inventory });
+    assert.ok(!result.findings.some((f) =>
+        f.type === 'missing-env-key' && f.metadata.key === 'SIMPLEBEACON_SALES_COMMISSIONS_STORE'
+    ));
+});
+
+test('ConfigManagementAnalyzer ignores example-vs-production feature flag drift', async () => {
+    const root = makeTempProject({
+        '.env.production': 'SIMPLEBEACON_MONETIZATION_ENABLED=true\n',
+        '.env.production.example': 'SIMPLEBEACON_MONETIZATION_ENABLED=false\n'
+    });
+    const inventory = await walkProjectFiles(root);
+    const scanner = new ConfigManagementAnalyzer();
+    const result = await scanner.scan(root, { inventory });
+    assert.ok(!result.findings.some((f) =>
+        f.type === 'env-inconsistency' && f.metadata.key === 'SIMPLEBEACON_MONETIZATION_ENABLED'
+    ));
 });
 
 test('EnvironmentVariableAnalyzer detects get() and resolveCredential env references', async () => {
@@ -266,9 +306,74 @@ test('DataPrivacyAnalyzer flags PII in mock data', async () => {
         'web/data/users-sample.json': '{"email":"john.doe@company.com"}\n'
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-privacy-analyzer').DataPrivacyAnalyzer)();
-    const result = await scanner.scan(root, { inventory });
+    const scanner = new (require('../src/analyzers/data-cleanup/data-privacy-analyzer').DataPrivacyAnalyzer)({ useCache: false });
+    const result = await scanner.scan(root, { inventory, useCache: false });
     assert.ok(result.findings.some((f) => f.type === 'data-privacy'));
+    const hit = result.findings.find((f) => f.metadata?.patternId === 'realistic-email');
+    assert.ok(hit.metadata.confidenceScore >= 0.3);
+});
+
+test('scanPiiContent skips comment and documentation example contexts', () => {
+    const { scanPiiContent } = require('../src/analyzers/data-cleanup/data-privacy-analyzer');
+    const docFindings = scanPiiContent('docs/MOCK_DATA_GUIDE.md', [
+        '// contact admin@example.com for help',
+        'See admin@company.com in production only'
+    ].join('\n'));
+    assert.equal(docFindings.length, 0);
+
+    const codeFindings = scanPiiContent('server/config.js', [
+        "const owner = 'ops@company.com';"
+    ].join('\n'));
+    assert.ok(codeFindings.some((f) => f.metadata.patternId === 'realistic-email'));
+});
+
+test('DataLineageAnalyzer detects runtime fetch references to data files', async () => {
+    const root = makeTempProject({
+        'web/data/users.json': '{"users":[]}\n',
+        'server/routes/users.js': "fetch('web/data/users.json').then(r => r.json());\n"
+    });
+    const inventory = await walkProjectFiles(root);
+    const scanner = new (require('../src/analyzers/data-cleanup/data-lineage-analyzer').DataLineageAnalyzer)();
+    const result = await scanner.scan(root, { inventory });
+    assert.equal(result.findings.length, 0);
+    assert.ok(result.metadata.lineage.some((entry) =>
+        entry.path.includes('web/data/users.json') && entry.consumerCount >= 1
+    ));
+});
+
+test('crossReferenceScannerResults boosts PII severity for orphaned data files', () => {
+    const { crossReferenceScannerResults } = require('../src/lib/cross-analyzer-intelligence');
+    const results = crossReferenceScannerResults({
+        'data-privacy': {
+            findings: [{
+                type: 'data-privacy',
+                path: 'reports/orphan-mock.json',
+                severity: 'medium',
+                metadata: { patternId: 'realistic-email', line: 1 }
+            }]
+        },
+        'data-lineage': {
+            findings: [{
+                type: 'orphaned-data',
+                path: 'reports/orphan-mock.json',
+                metadata: { consumerCount: 0 }
+            }]
+        }
+    });
+    const boosted = results['data-privacy'].findings[0];
+    assert.equal(boosted.severity, 'high');
+    assert.equal(boosted.metadata.crossAnalyzerBoost, 'orphaned-data-with-pii');
+});
+
+test('ConfigManagementAnalyzer flags unreferenced non-root configs', async () => {
+    const root = makeTempProject({
+        'tools/vite.config.js': 'export default {};\n',
+        'server/index.js': "console.log('no vite refs');\n"
+    });
+    const inventory = await walkProjectFiles(root);
+    const scanner = new ConfigManagementAnalyzer();
+    const result = await scanner.scan(root, { inventory });
+    assert.ok(result.findings.some((f) => f.type === 'unused-config' && f.path.includes('tools/vite.config.js')));
 });
 
 test('DataLineageAnalyzer marks unreferenced mock json as orphaned', async () => {

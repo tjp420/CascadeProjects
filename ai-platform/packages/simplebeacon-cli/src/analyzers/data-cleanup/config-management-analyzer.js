@@ -35,15 +35,18 @@ class ConfigManagementAnalyzer {
         }
 
         const envFiles = byCategory.get('env-file') || [];
-        if (envFiles.length > 3) {
+        const operationalEnvFiles = envFiles.filter(
+            (file) => !/\.example|\.template|\.sample|env-sample|env_example/i.test(file.name)
+        );
+        if (operationalEnvFiles.length > 3) {
             findings.push({
                 type: 'config-sprawl',
-                path: envFiles[0].relativePath,
-                reason: `${envFiles.length} environment files detected — consider consolidating secrets`,
+                path: operationalEnvFiles[0].relativePath,
+                reason: `${operationalEnvFiles.length} environment files detected — consider consolidating secrets`,
                 severity: 'medium',
                 confidence: 'medium',
                 action: 'review-config-sprawl',
-                metadata: { files: envFiles.map((file) => file.relativePath) }
+                metadata: { files: operationalEnvFiles.map((file) => file.relativePath) }
             });
         }
 
@@ -77,6 +80,8 @@ class ConfigManagementAnalyzer {
         const envInconsistencies = this.findEnvInconsistencies(envFiles);
         findings.push(...envInconsistencies);
 
+        findings.push(...this.detectUnusedConfigs(configFiles, inventory));
+
         const obsoleteCandidates = configFiles.filter((file) =>
             /\.(original|backup|bak|old)\./i.test(file.name)
         );
@@ -101,9 +106,72 @@ class ConfigManagementAnalyzer {
                 packageJsonFiles: packageJsons.length,
                 sprawlFindings: findings.filter((f) => f.type === 'config-sprawl').length,
                 duplicateConfigTypes: findings.filter((f) => f.type === 'duplicate-config-type').length,
-                inconsistentEnvKeys: findings.filter((f) => f.type === 'env-inconsistency').length
+                inconsistentEnvKeys: findings.filter((f) => f.type === 'env-inconsistency').length,
+                unusedConfigs: findings.filter((f) => f.type === 'unused-config').length
             }
         };
+    }
+
+    isRootConfig(relativePath) {
+        const rel = String(relativePath || '').replace(/\\/g, '/');
+        const base = rel.split('/').pop();
+        return base === 'package.json'
+            || base === '.env'
+            || base === '.env.example'
+            || /^tsconfig(\..+)?\.json$/i.test(base)
+            || /^jest\.config\.(js|mjs|cjs|ts)$/i.test(base);
+    }
+
+    detectConfigReferences(content, configPath) {
+        const relForward = String(configPath || '').replace(/\\/g, '/');
+        const relBackslash = relForward.replace(/\//g, '\\');
+        const base = relForward.split('/').pop();
+        return content.includes(relForward)
+            || content.includes(relBackslash)
+            || (base && content.includes(base));
+    }
+
+    detectUnusedConfigs(configFiles, inventory) {
+        const findings = [];
+        const sourceFiles = inventory.files.filter((file) =>
+            /\.(js|mjs|cjs|ts|tsx|jsx|json|yml|yaml|md|html)$/i.test(file.name)
+        );
+
+        for (const config of configFiles) {
+            if (this.isRootConfig(config.relativePath)) continue;
+            if (/\.example|\.template|\.sample/i.test(config.name)) continue;
+
+            let referenced = false;
+            for (const source of sourceFiles) {
+                if (source.path === config.path) continue;
+                let content = '';
+                try {
+                    content = fs.readFileSync(source.path, 'utf8');
+                } catch {
+                    continue;
+                }
+                if (this.detectConfigReferences(content, config.relativePath)) {
+                    referenced = true;
+                    break;
+                }
+            }
+
+            if (!referenced) {
+                findings.push({
+                    type: 'unused-config',
+                    path: config.relativePath,
+                    reason: 'Config file is not referenced by any scanned source or config file',
+                    severity: 'low',
+                    confidence: 'medium',
+                    action: 'remove-or-archive',
+                    metadata: {
+                        configType: CONFIG_PATTERNS.find((entry) => entry.match(config.name))?.id || 'unknown'
+                    }
+                });
+            }
+        }
+
+        return findings;
     }
 
     findEnvInconsistencies(envFiles) {

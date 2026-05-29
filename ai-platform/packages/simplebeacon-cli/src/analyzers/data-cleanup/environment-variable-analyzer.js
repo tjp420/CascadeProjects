@@ -9,6 +9,8 @@ const { filterWorkspaceFiles } = require('./utils/workspace-path-utils');
 const {
     resolveEnvProfileGroup,
     shouldSkipEnvInconsistency,
+    isPhase2ExampleEnvFile,
+    isPlannedEnvKey,
     isRuntimeInjectedEnvKey,
     isNonProductionSourcePath
 } = require('./utils/env-profile-utils');
@@ -105,6 +107,7 @@ class EnvironmentVariableAnalyzer {
 
         for (const [key, refs] of referencedKeys.entries()) {
             if (isRuntimeInjectedEnvKey(key)) continue;
+            if (isPlannedEnvKey(key)) continue;
             const productionRefs = [...refs].filter((ref) => !isNonProductionSourcePath(ref));
             if (!productionRefs.length) continue;
             const defined = [...envKeys.keys()].some((bucketKey) => bucketKey.endsWith(`::${key}`));
@@ -126,10 +129,12 @@ class EnvironmentVariableAnalyzer {
         for (const key of definedKeys) {
             if (referencedKeys.has(key)) continue;
             if (/^(NODE_ENV|PORT|HOST|CI|DEBUG)$/i.test(key)) continue;
+            if (isPlannedEnvKey(key)) continue;
             const bucketKey = [...envKeys.keys()].find((candidate) => candidate.endsWith(`::${key}`));
             if (!bucketKey) continue;
             const sample = envKeys.get(bucketKey);
             if (!sample) continue;
+            if (sample.every((entry) => isPhase2ExampleEnvFile(entry.file))) continue;
             findings.push({
                 type: 'unused-env-key',
                 path: sample[0].file,

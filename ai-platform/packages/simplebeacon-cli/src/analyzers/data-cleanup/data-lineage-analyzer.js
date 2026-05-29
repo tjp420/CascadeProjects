@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { isDataFile } = require('./utils/data-file-utils');
 const { parseNonCodeReferences } = require('../file-reduction/utils/file-reference-tracker');
-const { parseImports } = require('../file-reduction/utils/import-parser');
+const { parseImports, parseRuntimeReferences } = require('../file-reduction/utils/import-parser');
 
 const SOURCE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.html', '.md']);
 
@@ -39,7 +39,11 @@ function isVendorPath(relativePath) {
     return rel.startsWith('node_modules/')
         || rel.includes('/node_modules/')
         || rel.startsWith('coverage/')
-        || rel.startsWith('.git/');
+        || rel.startsWith('.git/')
+        || rel.startsWith('github-cache/')
+        || rel.includes('/github-cache/')
+        || rel.startsWith('deliverables/')
+        || rel.includes('/deliverables/');
 }
 
 function prioritizeSourceFiles(files, maxFiles) {
@@ -142,6 +146,20 @@ class DataLineageAnalyzer {
                 const rel = path.relative(inventory.root, imp.resolvedPath).split(path.sep).join('/');
                 if (consumers.has(rel)) {
                     consumers.get(rel).add(sourceFile.relativePath);
+                }
+            }
+
+            for (const ref of parseRuntimeReferences(sourceFile.path, content, inventory.root)) {
+                const basename = path.basename(ref.specifier || '');
+                for (const dataFile of dataFiles) {
+                    const relForward = dataFile.relativePath.replace(/\\/g, '/');
+                    if (
+                        basename && dataFile.name === basename
+                        || (ref.resolvedPath && path.normalize(ref.resolvedPath) === path.normalize(dataFile.path))
+                        || ref.specifier.includes(relForward)
+                    ) {
+                        consumers.get(relForward)?.add(sourceFile.relativePath);
+                    }
                 }
             }
         }

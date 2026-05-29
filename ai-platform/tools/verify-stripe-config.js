@@ -14,6 +14,10 @@ const { resolvePriceId } = require('../src/api/simplebeacon-billing-api');
 
 const required = ['STRIPE_SECRET_KEY'];
 const priceProducts = [
+  ['audit_prepurchase', 'STRIPE_PRICE_ID_AUDIT / STRIPE_PRICE_ID (Pre-Launch $499 audit)'],
+  ['agency_project_pack', 'STRIPE_PRICE_ID_AGENCY_PROJECT_PACK ($999 Agency Project Pack)'],
+  ['agency_growth_pack', 'STRIPE_PRICE_ID_AGENCY_GROWTH_PACK ($1,499 Agency Growth Pack)'],
+  ['warranty_rescan', 'STRIPE_PRICE_ID_WARRANTY_RESCAN ($199 warranty re-scan)'],
   ['teams_monthly', 'STRIPE_PRICE_ID_TEAMS_MONTHLY / SIMPLEBEACON_PRO_PRICE_ID'],
   ['teams_annual', 'STRIPE_PRICE_ID_TEAMS_ANNUAL / SIMPLEBEACON_ANNUAL_PROMOTION_ID'],
   ['enterprise_setup', 'STRIPE_PRICE_ID_ENTERPRISE_SETUP / SIMPLEBEACON_ENTERPRISE_SETUP_ID'],
@@ -34,7 +38,9 @@ function requireEnvVar(key, hint) {
 }
 
 function isPlaceholder(value) {
-  return /replace|changeme|example|todo|\.\.\./i.test(String(value || ''));
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return true;
+  return /replace|changeme|example|todo|\.\.\.|placeholder|dummy|REPLACE_ON|rk_live_or|_REPLACE_/i.test(trimmed);
 }
 
 function formatAmount(cents, currency) {
@@ -59,12 +65,17 @@ if (!isMonetizationEnabled()) {
 for (const key of required) {
   const val = requireEnvVar(key, 'set this in .env.production before verifying Stripe');
   if (!val) continue;
-  if (!/^r?k_/.test(val)) {
+  if (isPlaceholder(val)) {
+    console.log(`❌ ${key} is still a placeholder — rotate keys in Stripe Dashboard and paste real rk_live_/sk_live_ value on deploy host only`);
+    ok = false;
+    continue;
+  }
+  if (!/^(sk|rk)_/.test(val)) {
     console.log(`❌ ${key} must start with sk_ or rk_`);
     ok = false;
     continue;
   }
-  const mode = val.includes('_live_') || val.startsWith('rk_live_') ? 'live' : 'test';
+  const mode = val.includes('_live_') ? 'live' : 'test';
   console.log(`✅ ${key} set (${val.slice(0, 8)}…, ${mode} mode)`);
   if (val.startsWith('sk_')) {
     console.log('⚠️  STRIPE_SECRET_KEY uses sk_*; prefer restricted key rk_* for least privilege');

@@ -29,8 +29,10 @@ const BATCH_SCANNER_PATHS = [
     'server/lib/code-roadmap-generator.js',
     'server/lib/code-roadmap-phase2.js',
     'server/lib/code-understanding/',
+    'server/lib/file-merger-reduction-scanner.js',
     'packages/simplebeacon-cli/src/compliance-checklist.js',
     'packages/simplebeacon-cli/src/scan.js',
+    'packages/simplebeacon-cli/src/fix-dry-run.js',
     'packages/simplebeacon-cli/src/lib/file-validator.js'
 ];
 

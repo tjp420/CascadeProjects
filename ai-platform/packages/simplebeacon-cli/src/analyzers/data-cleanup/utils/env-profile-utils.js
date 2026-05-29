@@ -43,6 +43,7 @@ function isPlaceholderEnvValue(value) {
     if (!trimmed) return true;
     return /^(replace|your_|sk_test_|sk_live_|rk_live_|whsec_|price_|\.\.\.|changeme|dummy|placeholder|test-token)/i.test(trimmed)
         || /REPLACE_ME/i.test(trimmed)
+        || /REPLACE_ON/i.test(trimmed)
         || /^replace-with-/i.test(trimmed);
 }
 
@@ -66,6 +67,10 @@ function shouldSkipEnvInconsistency(key, values) {
         if (/^(JWT_|.*_SECRET|.*_PASSWORD|STRIPE_|.*_KEY|DB_PASSWORD|DATABASE_URL)/i.test(key)) {
             return true;
         }
+        // Example templates document defaults; production toggles feature flags independently.
+        if (/^SIMPLEBEACON_/i.test(key)) {
+            return true;
+        }
         if (values.some((entry) => isPlaceholderEnvValue(entry.value))) {
             return true;
         }
@@ -75,6 +80,44 @@ function shouldSkipEnvInconsistency(key, values) {
     }
 
     return false;
+}
+
+/** Keys documented for phase-2 SSO — may be unset until auth providers ship */
+const PLANNED_ENV_KEY_PREFIXES = [
+    /^AZURE_AD_/,
+    /^GOOGLE_/,
+    /^OKTA_/,
+    /^LDAP_/,
+    /^SAML_/
+];
+
+const PLANNED_ENV_KEYS = new Set([
+    'GOOGLE_SSO_ENABLED',
+    'BASE_URL',
+    'APP_URL',
+    'REACT_APP_URL',
+    'EMAIL_FROM',
+    'SMTP_HOST',
+    'SMTP_PORT',
+    'SMTP_USER',
+    'SMTP_PASS'
+]);
+
+/** Keys with in-code defaults — optional in .env.example */
+const OPTIONAL_ENV_KEYS_WITH_CODE_DEFAULTS = new Set([
+    'SIMPLEBEACON_SALES_COMMISSIONS_STORE'
+]);
+
+function isPhase2ExampleEnvFile(relativePath) {
+    const base = path.posix.basename(normalizeEnvRelativePath(relativePath)).toLowerCase();
+    return base.includes('.env.example.phase2')
+        || base.includes('.env.phase2');
+}
+
+function isPlannedEnvKey(key) {
+    if (PLANNED_ENV_KEYS.has(key)) return true;
+    if (OPTIONAL_ENV_KEYS_WITH_CODE_DEFAULTS.has(key)) return true;
+    return PLANNED_ENV_KEY_PREFIXES.some((pattern) => pattern.test(key));
 }
 
 function isRuntimeInjectedEnvKey(key) {
@@ -97,8 +140,11 @@ module.exports = {
     resolveEnvProfileGroup,
     isExampleEnvFile,
     isTemplateEnvFile,
+    isPhase2ExampleEnvFile,
     isPlaceholderEnvValue,
     shouldSkipEnvInconsistency,
+    isPlannedEnvKey,
+    isOptionalEnvKeyWithCodeDefault: (key) => OPTIONAL_ENV_KEYS_WITH_CODE_DEFAULTS.has(key),
     isRuntimeInjectedEnvKey,
     isNonProductionSourcePath
 };

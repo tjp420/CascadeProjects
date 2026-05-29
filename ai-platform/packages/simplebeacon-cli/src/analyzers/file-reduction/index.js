@@ -9,6 +9,7 @@ const { buildExecutiveSummary } = require('../../lib/executive-summary');
 const { buildScannerStatistics } = require('../../lib/scanner-statistics');
 const { buildFileReductionPlan } = require('../../lib/file-reduction-plan');
 const { loadSimplebeaconConfig } = require('../../config');
+const { crossReferenceScannerResults } = require('../../lib/cross-analyzer-intelligence');
 
 const DEFAULT_SCANNERS = fileReductionRules.scanners.map((entry) => ({
     id: entry.id,
@@ -28,8 +29,14 @@ async function runFileReductionAnalysis(projectRoot, options = {}) {
     } catch {
         dataCleanupConfig = {};
     }
+    const hasExplicitScannerConfig = Object.keys(scannerConfig).length > 0;
     const enabledScanners = DEFAULT_SCANNERS
-        .filter((entry) => scannerConfig[entry.id]?.enabled !== false)
+        .filter((entry) => {
+            if (!hasExplicitScannerConfig) {
+                return entry.enabled !== false;
+            }
+            return scannerConfig[entry.id]?.enabled === true;
+        })
         .sort((a, b) => a.priority - b.priority);
 
     const results = {};
@@ -41,6 +48,8 @@ async function runFileReductionAnalysis(projectRoot, options = {}) {
         const scanner = new entry.Scanner(scannerOptions);
         results[entry.id] = await scanner.scan(projectRoot, { ...options, inventory });
     }
+
+    crossReferenceScannerResults(results);
 
     const rawFindings = Object.values(results).flatMap((result) => result.findings || []);
     const aggregated = aggregateCleanupFindings(rawFindings);
