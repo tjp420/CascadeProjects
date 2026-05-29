@@ -27,6 +27,69 @@
     'pk_test_1234567890abcdef'
   ];
 
+  var SCANNER_META_FILENAMES = {
+    'analyzer-cache.json': true,
+    'history.json': true,
+    'trust-history.json': true,
+    'source-kpi-findings.json': true,
+    'source-kpi-findings-with-docs.json': true
+  };
+
+  function isScannerMetaFileName(name) {
+    var base = String(name || '').split(/[/\\]/).pop().toLowerCase();
+    if (SCANNER_META_FILENAMES[base]) return true;
+    if (base.indexOf('cleanup-export-') === 0 && base.slice(-5) === '.json') return true;
+    return base.slice(-11) === '-cache.json' || /^\.simplebeacon-/.test(base);
+  }
+
+  function isAnalyzerCacheJson(parsed) {
+    if (!parsed || typeof parsed !== 'object' || !parsed.files || typeof parsed.files !== 'object') return false;
+    var entries = Object.keys(parsed.files).map(function (key) { return parsed.files[key]; });
+    if (!entries.length) return false;
+    return entries.slice(0, 8).every(function (entry) {
+      return entry && typeof entry === 'object' && typeof entry.hash === 'string';
+    });
+  }
+
+  function isCleanupExportJson(parsed) {
+    if (!parsed || typeof parsed !== 'object') return false;
+    var type = String(parsed.type || '');
+    return type === 'simplebeacon-cleanup-export' || type === 'simplebeacon-cleanup-brief';
+  }
+
+  function lineTextAt(text, lineNumber) {
+    return text.split('\n')[Math.max(0, lineNumber - 1)] || '';
+  }
+
+  function isPathRegistryLine(line) {
+    var trimmed = String(line || '').trim();
+    return /"[^"]+[\\/][^"]+\.(?:js|mjs|cjs|ts|tsx|json)":\s*[\{,]/.test(trimmed);
+  }
+
+  function isFindingRegistryLine(line) {
+    var trimmed = String(line || '').trim();
+    return /"file":\s*"[^"]+"/.test(trimmed);
+  }
+
+  function shouldSkipMockPathMatch(text, match) {
+    var line = lineTextAt(text, lineAt(text, match.index));
+    if (isPathRegistryLine(line)) return true;
+    if (isFindingRegistryLine(line)) return true;
+    var lower = line.toLowerCase();
+    if (/__tests__[/\\]|(?:^|[/\\])tests[/\\]|\/temp\/|\\temp\\|\/\.simplebeacon\/|github-cache[/\\]/i.test(lower)) return true;
+    if (/\/scripts\/.*mock/i.test(lower)) return true;
+    return false;
+  }
+
+  function isScannerMetaText(text) {
+    try {
+      var parsed = JSON.parse(text);
+      return isAnalyzerCacheJson(parsed) || isCleanupExportJson(parsed);
+    } catch {
+      return false;
+    }
+  }
+
   function isAllowlisted(text, match) {
     var snippet = text.slice(Math.max(0, match.index - 24), match.index + match[0].length + 24).toLowerCase();
     return ALLOWLIST.some(function (allowed) {
@@ -48,7 +111,11 @@
     return Math.min(100, score);
   }
 
-  function scanText(text) {
+  function scanText(text, options) {
+    options = options || {};
+    if (options.fileName && isScannerMetaFileName(options.fileName)) return [];
+    if (isScannerMetaText(text)) return [];
+
     var findings = [];
     var seen = {};
 
@@ -59,6 +126,7 @@
       while ((match = pattern.regex.exec(text)) !== null) {
         if (findings.length >= 8) break;
         if (isAllowlisted(text, match)) continue;
+        if (pattern.id === 'mock-path' && shouldSkipMockPathMatch(text, match)) continue;
         var key = pattern.id + ':' + lineAt(text, match.index);
         if (seen[key]) continue;
         seen[key] = true;
@@ -107,15 +175,17 @@
     setHidden(resultEl, false);
   }
 
-  function scanInputText(text) {
+  function scanInputText(text, options) {
+    options = options || {};
     var bundle = window.SIMPLEBEACON_DIAGNOSTIC_BUNDLE && window.SIMPLEBEACON_DIAGNOSTIC_BUNDLE.parseBundle(text);
     if (bundle) {
       text = window.SIMPLEBEACON_DIAGNOSTIC_BUNDLE.bundleToScanText(bundle);
     }
-    return scanText(text);
+    return scanText(text, options);
   }
 
-  function runLocalDiagnostic() {
+  function runLocalDiagnostic(options) {
+    options = options || {};
     var input = document.getElementById('codeInputField');
     var resultEl = document.getElementById('diagnosticResult');
     var gateEl = document.getElementById('paywallGate');
@@ -127,12 +197,20 @@
     setHidden(cleanEl, true);
     setHidden(resultEl, true);
 
+    if (options.cacheMeta) {
+      setHidden(cleanEl, false);
+      if (cleanEl) {
+        cleanEl.textContent = 'Scanner cache or export inventory — path keys are not production leak findings.';
+      }
+      return;
+    }
+
     if (!text.trim()) {
       window.alert('Paste a code snippet or drop a file to scan.');
       return;
     }
 
-    var findings = scanInputText(text);
+    var findings = scanInputText(text, options);
     var threatScore = computeThreatScore(findings);
     renderResult(resultEl, findings, threatScore);
 
@@ -163,17 +241,27 @@
       window.alert('File is too large for the snippet diagnostic (max 256 KB bundle). Book a full repo audit for complete coverage.');
       return;
     }
+    if (isScannerMetaFileName(file.name)) {
+      loadTextIntoInput('');
+      runLocalDiagnostic({ fileName: file.name, cacheMeta: true });
+      return;
+    }
     var reader = new FileReader();
     reader.onload = function () {
       var raw = String(reader.result || '');
+      if (isScannerMetaText(raw)) {
+        loadTextIntoInput('');
+        runLocalDiagnostic({ fileName: file.name, cacheMeta: true });
+        return;
+      }
       var bundle = window.SIMPLEBEACON_DIAGNOSTIC_BUNDLE && window.SIMPLEBEACON_DIAGNOSTIC_BUNDLE.parseBundle(raw);
       if (bundle) {
         loadTextIntoInput(window.SIMPLEBEACON_DIAGNOSTIC_BUNDLE.bundleToScanText(bundle));
-        runLocalDiagnostic();
+        runLocalDiagnostic({ fileName: file.name });
         return;
       }
       loadTextIntoInput(raw);
-      runLocalDiagnostic();
+      runLocalDiagnostic({ fileName: file.name });
     };
     reader.readAsText(file);
   }

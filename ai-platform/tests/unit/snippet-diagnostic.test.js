@@ -12,8 +12,10 @@ function loadSnippetDiagnostic() {
     .replace(/^import .*$/gm, '');
   const fn = new Function(`${stripped}; return {
     scanSnippetText,
+    filterSnippetFindingsForFile,
     isAnalyzerCacheJson,
     isCleanupExportJson,
+    isFictionDigestJson,
     isLockfileName,
     isScannerMetaFileName
   };`);
@@ -22,15 +24,19 @@ function loadSnippetDiagnostic() {
 
 describe('snippetDiagnostic mock-path triage', () => {
   let scanSnippetText;
+  let filterSnippetFindingsForFile;
   let isAnalyzerCacheJson;
   let isCleanupExportJson;
+  let isFictionDigestJson;
   let isScannerMetaFileName;
 
   beforeAll(() => {
     ({
       scanSnippetText,
+      filterSnippetFindingsForFile,
       isAnalyzerCacheJson,
       isCleanupExportJson,
+      isFictionDigestJson,
       isScannerMetaFileName
     } = loadSnippetDiagnostic());
   });
@@ -185,6 +191,21 @@ describe('snippetDiagnostic mock-path triage', () => {
     expect(findings.filter((f) => f.id === 'mock-path')).toEqual([]);
   });
 
+  test('filterSnippetFindingsForFile strips mock-path from markdown even when scanner is stale', () => {
+    const staleFindings = [{
+      id: 'mock-path',
+      severity: 'high',
+      label: 'Production mock/sample path',
+      line: 110,
+      match: '`-sample.json`'
+    }];
+    const filtered = filterSnippetFindingsForFile(
+      staleFindings,
+      'SIMPLEBEACON_DEVSECOPS_WORKFLOW.md'
+    );
+    expect(filtered).toEqual([]);
+  });
+
   test('scanSnippetText ignores bare -sample.json suffix in inline rule docs without filename', () => {
     const line = '- `production-leak` scans hardcoded `-sample.json` paths in `server/` and `src/`.';
     const findings = scanSnippetText(`${line}\n`, {});
@@ -210,5 +231,47 @@ describe('snippetDiagnostic mock-path triage', () => {
     const text = fs.readFileSync(jestConfigPath, 'utf8');
     const findings = scanSnippetText(text, { fileName: 'jest.config.js' });
     expect(findings.filter((f) => f.id === 'mock-path')).toEqual([]);
+  });
+
+  test('isFictionDigestJson recognizes fiction digest shape', () => {
+    expect(isFictionDigestJson({
+      type: 'simplebeacon-fiction-digest',
+      sourceReport: { type: 'simplebeacon-report', gate: { pass: true } }
+    })).toBe(true);
+    expect(isFictionDigestJson({ type: 'simplebeacon-report' })).toBe(false);
+  });
+
+  test('isScannerMetaFileName matches fiction-digest filenames', () => {
+    expect(isScannerMetaFileName('fiction-digest-c-users-trevor-cascadeprojects-ai-platform-2026-05-29.json')).toBe(true);
+  });
+
+  test('scanSnippetText ignores sample catalog lines in fiction digest exports', () => {
+    const lines = [
+      '"mock-analysis-sample.json",',
+      '"fictional-patterns-sample.json",',
+      '"ai-adoption-trends-sample.json",'
+    ].join('\n');
+    const findings = scanSnippetText(`${lines}\n`);
+    expect(findings.filter((f) => f.id === 'mock-path')).toEqual([]);
+  });
+
+  test('fiction digest export on disk produces zero snippet hits', () => {
+    const candidates = [
+      path.join(process.env.USERPROFILE || '', 'Downloads/fiction-digest-c-users-trevor-cascadeprojects-ai-platform-2026-05-29.json'),
+      path.join(__dirname, '../../deliverables/vendor-handoff-2026-05-28/user-export-simplebeacon-report-2026-05-29.json')
+    ];
+    const exportPath = candidates.find((candidate) => fs.existsSync(candidate));
+    if (!exportPath) return;
+    const text = fs.readFileSync(exportPath, 'utf8');
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      return;
+    }
+    if (parsed.type !== 'simplebeacon-fiction-digest') return;
+    const fileName = path.basename(exportPath);
+    const findings = scanSnippetText(text, { fileName });
+    expect(findings).toEqual([]);
   });
 });

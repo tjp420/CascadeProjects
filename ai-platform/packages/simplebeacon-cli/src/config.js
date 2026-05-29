@@ -93,6 +93,14 @@ const PROFILE_RULES = {
     }
 };
 
+const DEFAULT_SCANNER_META_FILES = [
+    '.simplebeacon/analyzer-cache.json',
+    '.simplebeacon/source-kpi-findings.json',
+    '.simplebeacon/source-kpi-findings-with-docs.json',
+    '.simplebeacon/history.json',
+    '.simplebeacon/trust-history.json'
+];
+
 const DEFAULT_CONFIG = {
     profile: 'standard',
     scanPaths: DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
@@ -101,7 +109,7 @@ const DEFAULT_CONFIG = {
     consistencyAnchorSamples: DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
     ignore: IGNORE_DEFAULTS,
     pathExclusions: [], // User-configurable path exclusion tokens
-    scannerMetaFiles: [], // User-configurable scanner infrastructure files to exclude
+    scannerMetaFiles: DEFAULT_SCANNER_META_FILES,
     rules: PROFILE_RULES.standard,
     gate: {
         failOn: ['high'],
@@ -334,6 +342,10 @@ function loadSimplebeaconConfig(baseDir, configPath = null) {
 
     if (!config.ignore) config.ignore = IGNORE_DEFAULTS;
     if (!config.productionPaths) config.productionPaths = DEFAULT_CONFIG.productionPaths;
+    config.scannerMetaFiles = [...new Set([
+        ...DEFAULT_SCANNER_META_FILES,
+        ...(Array.isArray(fileConfig.scannerMetaFiles) ? fileConfig.scannerMetaFiles : [])
+    ])];
 
     return config;
 }

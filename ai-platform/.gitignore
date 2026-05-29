@@ -9,6 +9,7 @@ test-batch-data/
 api/upload.js
 htmlcov/
 __pycache__/
+*.pyc
 *.log
 .venv/
 **/.venv/
@@ -20,7 +21,9 @@ __pycache__/
 .env.v1-internal
 
 # Simplebeacon local scan cache (review before deleting)
+.simplebeacon/analyzer-cache.json
 .simplebeacon/archive/
+github-cache/
 
 # CI step log fragments (empty workflow captures — not source)
 docs/*-stdout*.txt

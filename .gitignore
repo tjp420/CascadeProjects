@@ -32,6 +32,7 @@ ai-platform/htmlcov/
 # Local archives for generated artifacts
 archive/
 ai-platform/archive/
+**/.simplebeacon/analyzer-cache.json
 ai-platform/.simplebeacon/archive/
 ai-platform/.simplebeacon/archive/jest-results/
 ai-platform/.simplebeacon/archive/quality-checks/

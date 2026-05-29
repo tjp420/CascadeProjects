@@ -78,13 +78,16 @@ import {
   isSupportedSourceFile,
   isAnalyzerCacheJson,
   isCleanupExportJson,
+  isFictionDigestJson,
   isLockfileName,
+  isMarkdownFileName,
   isScannerMetaFileName,
+  filterSnippetFindingsForFile,
   scanSnippetText,
   computeThreatScore,
   redactMatch,
   severityLabel
-} from '../utils/snippetDiagnostic.js?v=20260529lockfile1';
+} from '../utils/snippetDiagnostic.js?v=20260529fiction1';
 
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 
@@ -608,7 +611,9 @@ export class AnalyzeView {
         </ul>`
         : (result.cacheMeta
         ? `<p class="text-muted analyze-snippet-clean">${
-          result.cacheMeta.lockfile
+          result.cacheMeta.documentation
+            ? 'Documentation file — rule names like `-sample.json` describe scanner behavior, not production imports.'
+            : result.cacheMeta.lockfile
             ? 'Dependency lockfile — npm/yarn bin entries are not production mock-path leaks.'
             : `Scanner cache index${
               result.cacheMeta.fileCount != null
@@ -1642,6 +1647,29 @@ export class AnalyzeView {
       this.refresh();
       return true;
     }
+    if (isFictionDigestJson(parsed)) {
+      const digest = sanitizeFictionDigestExport(parsed);
+      const report = digest.sourceReport;
+      const fictionCount = (digest.fictionIssues || []).reduce((sum, i) => sum + (i.count || 1), 0);
+      this.lastResult = {
+        kind: 'mock-scan',
+        report,
+        digest,
+        fictionIssues: digest.fictionIssues || [],
+        projectPath: report.projectRoot || report.projectPath || '',
+        label: `Imported fiction digest: ${fileName}`,
+        conclusion: digest.conclusion || buildScanConclusion(report, { focus: 'fiction' })
+      };
+      this.app.state.analyzeResult = this.lastResult;
+      this.app.state.report = report;
+      if (this.app.scanService) this.app.scanService.report = report;
+      showToast(
+        `Imported fiction digest (${fictionCount} KPI hit(s), trust: ${digest.digestTrust || 'unknown'})`,
+        fictionCount ? 'info' : 'success'
+      );
+      this.refresh();
+      return true;
+    }
     return false;
   }
 
@@ -1704,17 +1732,25 @@ export class AnalyzeView {
         return;
       }
 
-      const findings = scanSnippetText(text, { fileName: file.name });
+      const rawFindings = scanSnippetText(text, { fileName: file.name });
+      const findings = filterSnippetFindingsForFile(rawFindings, file.name);
+      const isDocumentation = isMarkdownFileName(file.name);
       this.snippetResult = {
         fileName: file.name,
         bytes: file.size,
         text,
         findings,
         threatScore: computeThreatScore(findings),
+        cacheMeta: isDocumentation && findings.length === 0 ? { documentation: true } : null,
         understanding: null,
         understandingSkipped: null
       };
-      showToast(`Scanned ${file.name} locally (${findings.length} hit(s))`, findings.length ? 'info' : 'success');
+      showToast(
+        isDocumentation && rawFindings.length !== findings.length
+          ? `${file.name} — documentation; mock-path rule tokens skipped`
+          : `Scanned ${file.name} locally (${findings.length} hit(s))`,
+        findings.length ? 'info' : 'success'
+      );
     } catch (error) {
       showToast(error.message || 'File read failed', 'error');
     } finally {

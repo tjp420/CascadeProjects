@@ -66,7 +66,14 @@ export function isScannerMetaFileName(name) {
   const base = String(name || '').split(/[/\\]/).pop().toLowerCase();
   if (SCANNER_META_FILENAMES.has(base)) return true;
   if (base.startsWith('cleanup-export-') && base.endsWith('.json')) return true;
+  if (base.startsWith('fiction-digest-') && base.endsWith('.json')) return true;
   return base.endsWith('-cache.json') || /^\.simplebeacon-/.test(base);
+}
+
+export function isFictionDigestJson(parsed) {
+  if (!parsed || typeof parsed !== 'object') return false;
+  return String(parsed.type || '') === 'simplebeacon-fiction-digest'
+    && parsed.sourceReport && typeof parsed.sourceReport === 'object';
 }
 
 export function isCleanupExportJson(parsed) {
@@ -120,6 +127,11 @@ function isInventoryPathLine(line) {
   return false;
 }
 
+function isSampleCatalogLine(line) {
+  const trimmed = String(line || '').trim();
+  return /^"[^"/\\]+(?:-sample\.json|sample\.json)"\s*,?\s*$/.test(trimmed);
+}
+
 function looksLikeAuditReportHtml(text, fileName) {
   const base = String(fileName || '').split(/[/\\]/).pop();
   if (/^SB-AUD-\d{8}-[A-Z0-9]+.*\.html$/i.test(base)) return true;
@@ -145,8 +157,16 @@ function isPackageManifestPathLine(line) {
   return /^"[^"]+"\s*:\s*"[^"]+\.(?:js|mjs|cjs|ts|tsx|json)"\s*,?\s*$/.test(trimmed);
 }
 
-function isMarkdownFileName(fileName) {
+export function isMarkdownFileName(fileName) {
   return /\.(?:md|markdown)$/i.test(String(fileName || '').split(/[/\\]/).pop());
+}
+
+export function filterSnippetFindingsForFile(findings, fileName) {
+  if (!Array.isArray(findings) || !findings.length) return findings || [];
+  if (isMarkdownFileName(fileName) || isLockfileName(fileName)) {
+    return findings.filter((finding) => finding.id !== 'mock-path');
+  }
+  return findings;
 }
 
 function isTestConfigFileName(fileName) {
@@ -191,6 +211,7 @@ function shouldSkipMockPathMatch(text, match, options = {}) {
   if (isPathRegistryLine(line)) return true;
   if (isFindingRegistryLine(line)) return true;
   if (isInventoryPathLine(line)) return true;
+  if (isSampleCatalogLine(line)) return true;
   if (isPackageManifestPathLine(line)) return true;
   if (looksLikeAuditReportHtml(text, options.fileName) && isAuditReportFindingLine(line)) return true;
   const lower = line.toLowerCase();
@@ -220,7 +241,7 @@ export function scanSnippetText(text, options = {}) {
 
   try {
     const parsed = JSON.parse(text);
-    if (isAnalyzerCacheJson(parsed) || isCleanupExportJson(parsed)) {
+    if (isAnalyzerCacheJson(parsed) || isCleanupExportJson(parsed) || isFictionDigestJson(parsed)) {
       return [];
     }
   } catch {
