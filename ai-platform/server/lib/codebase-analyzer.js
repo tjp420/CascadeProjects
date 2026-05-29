@@ -20,7 +20,8 @@ const execFileAsync = promisify(execFile);
 
 const REPO_SKIP_DIRS = new Set([
     'node_modules', '.git', 'uploads', 'coverage', 'archive', 'dist', 'build', '.next', '.cache',
-    '.venv', 'htmlcov', '.simplebeacon', 'security-reports', '__pycache__'
+    '.venv', 'htmlcov', '.simplebeacon', 'security-reports', '__pycache__',
+    'github-cache', 'deliverables', 'data-central', 'java-ai-vulnerable'
 ]);
 const CODE_EXTENSIONS = getCodeExtensions();
 const languagePluginManager = getBuiltinPluginManager();
@@ -202,7 +203,9 @@ const KNOWN_SHARED_LIB_BASENAMES = new Set([
     'mock-data-schema-validator.js',
     'roadmap-json-specs.js',
     'sample-consistency-checker.js',
-    'sample-path-resolver.js'
+    'sample-path-resolver.js',
+    'complete-scan-artifact-profile.js',
+    'complete-scan-artifact-profile.browser.js'
 ]);
 const DUPLICATE_SKIP_BASENAMES = new Set([
     '__init__.py',
@@ -885,6 +888,9 @@ function detectDebugArtifacts(content, relativePath) {
         return [];
     }
     const rel = normalizedAuditPath(relativePath);
+    if (rel.endsWith('audit-remediation-recipes.js')) {
+        return [];
+    }
     if (rel.endsWith('test-gateway.js') || rel.endsWith('/test-gateway.js')) {
         return [];
     }

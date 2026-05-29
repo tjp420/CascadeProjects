@@ -1,41 +1,41 @@
 {
   "type": "simplebeacon-complete-scan",
   "version": "1.3.0",
-  "generatedAt": "2026-05-29T05:14:46.616Z",
+  "generatedAt": "2026-05-29T11:36:10.200Z",
   "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-  "scanDurationMs": 25264,
+  "scanDurationMs": 39081,
   "errors": [],
   "summary": {
-    "stepCount": 10,
-    "stepsCompleted": 10,
-    "scanDurationMs": 25264,
+    "stepCount": 8,
+    "stepsCompleted": 8,
+    "scanDurationMs": 39081,
     "simplebeaconGatePass": true,
     "simplebeaconIssues": 0,
     "consolidationDuplicateGroups": 0,
     "fictionKpiHits": 0,
-    "roadmapFiles": 1602,
+    "roadmapFiles": 1702,
     "codebaseHealthScore": 100,
     "codebaseFindings": 0,
-    "fileReductionFindings": 1,
+    "fileReductionFindings": 6,
     "fileReductionReclaimableBytes": 0,
     "fileReductionSafeToDeleteBytes": 0,
     "fileReductionImmediateSavingsBytes": 0,
-    "fileReductionUnusedCandidates": 0,
-    "dataQualityFindings": 0,
-    "dataQualityWorkspacePackages": 0,
+    "fileReductionUnusedCandidates": 5,
+    "dataQualityFindings": 24,
+    "dataQualityWorkspacePackages": 2,
     "dataQualityPiiNeedingReview": 0,
     "cleanupSafeFiles": 0,
     "cleanupSafeBytes": 0,
-    "cleanupProjectedFiles": 2222,
-    "compliancePassed": 8,
-    "complianceFailed": 0,
-    "npmVulnerabilities": 0
+    "cleanupProjectedFiles": 2322,
+    "fileReductionReviewBytes": 0,
+    "dataQualityUnusedDependencies": 0,
+    "dataQualityCredentialsNeedingReview": 0
   },
   "results": {
     "simplebeacon": {
       "type": "simplebeacon-report",
       "reportVersion": 2,
-      "generatedAt": "2026-05-29T05:14:21.962Z",
+      "generatedAt": "2026-05-29T11:35:31.735Z",
       "generatedBy": "Simplebeacon",
       "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
       "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\config.json",
@@ -44,16 +44,16 @@
       ],
       "repositoryInventory": {
         "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-        "totalFiles": 2222,
-        "totalFolders": 198,
+        "totalFiles": 2320,
+        "totalFolders": 244,
         "profile": "audit"
       },
       "mockSampleFiles": 48,
       "totalFiles": 48,
-      "ruleScopedFilesAnalyzed": 209,
-      "repositoryFilesTotal": 2222,
-      "repositoryFoldersTotal": 198,
-      "filesAnalyzed": 2222,
+      "ruleScopedFilesAnalyzed": 211,
+      "repositoryFilesTotal": 2320,
+      "repositoryFoldersTotal": 244,
+      "filesAnalyzed": 2320,
       "totalSizeBytes": 278846,
       "totalSizeLabel": "272.3KB",
       "issueCount": 0,
@@ -68,19 +68,19 @@
       "duplicateGroups": 0,
       "roadmapSchemaChecked": 1,
       "roadmapSchemaPassed": 1,
-      "consistencyChecked": 64,
-      "consistencyPassed": 64,
+      "consistencyChecked": 65,
+      "consistencyPassed": 65,
       "consistencyScore": 100,
-      "fictionJsonFilesScanned": 64,
+      "fictionJsonFilesScanned": 65,
       "fictionSampleFilesScanned": 48,
       "fictionScope": "repository-json",
-      "credentialScanned": 187,
+      "credentialScanned": 188,
       "credentialFindings": 0,
-      "productionLeakScanned": 126,
+      "productionLeakScanned": 127,
       "productionLeakFindings": 0,
-      "sourceCodeFilesScanned": 209,
+      "sourceCodeFilesScanned": 211,
       "sourceFictionPatternHits": 0,
-      "llmSlopFilesScanned": 368,
+      "llmSlopFilesScanned": 370,
       "llmSlopPatternHits": 0,
       "jestBaselineChecked": false,
       "jestBaselinePassed": true,
@@ -181,7 +181,7 @@
         "pageSpecsValidated": 50,
         "pageSpecsFromScanPaths": 48,
         "pageSpecsFromAliasPaths": 2,
-        "productionDirsScanned": 126,
+        "productionDirsScanned": 127,
         "productionPaths": [
           "server/",
           "src/",
@@ -194,24 +194,24 @@
           "src/server",
           "packages/simplebeacon-cli/src"
         ],
-        "sourceCodeFilesScanned": 209,
+        "sourceCodeFilesScanned": 211,
         "sourceFictionPatternHits": 0,
-        "llmSlopFilesScanned": 368,
+        "llmSlopFilesScanned": 370,
         "llmSlopPatternHits": 0,
         "jestExecutedDuringScan": false,
         "consistencyAnchorCount": 5,
         "fictionScope": "repository-json",
-        "fictionJsonFilesScanned": 64,
+        "fictionJsonFilesScanned": 65,
         "fictionSampleFilesScanned": 48,
-        "ruleScopedFilesAnalyzed": 209,
-        "repositoryFilesTotal": 2222,
-        "repositoryFoldersTotal": 198,
+        "ruleScopedFilesAnalyzed": 211,
+        "repositoryFilesTotal": 2320,
+        "repositoryFoldersTotal": 244,
         "benchmarkCacheIssuesExcluded": 0,
         "excludedPathsNote": null,
         "limitations": [
-          "Repository inventory: 2,222 files — gate rules checked 209 (mock paths, credentials, server/ leaks).",
+          "Repository inventory: 2,320 files — gate rules checked 211 (mock paths, credentials, server/ leaks).",
           "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-          "Fiction/KPI rules scan repository JSON (64) plus source code (209 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
+          "Fiction/KPI rules scan repository JSON (65) plus source code (211 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
           "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
         ],
         "resultsViewScope": "platform-only",
@@ -236,7 +236,7 @@
       "reportVersion": 2,
       "title": "File Merger & Reduction Scan (Measured Baseline)",
       "dataSource": "repository-audit",
-      "generatedAt": "2026-05-29T05:14:26.952Z",
+      "generatedAt": "2026-05-29T11:35:36.578Z",
       "generatedBy": "file-merger-reduction-scanner",
       "scanEngine": "file-merger-reduction-scanner",
       "inferenceMode": "filesystem + fuzzy-match",
@@ -270,34 +270,34 @@
           "data/roadmap"
         ],
         "sampleDataFilesAnalyzed": 49,
-        "jsonFilesAnalyzed": 170,
-        "repositoryFilesAudited": 2222,
+        "jsonFilesAnalyzed": 171,
+        "repositoryFilesAudited": 2320,
         "repositoryInventoryProfile": "audit",
         "repositoryInventoryIncluded": true,
-        "repositoryFilesTotal": 2223,
-        "repositoryFoldersTotal": 201,
+        "repositoryFilesTotal": 2321,
+        "repositoryFoldersTotal": 247,
         "limitations": [
-          "repositoryFilesTotal uses audit inventory (2,223 files).",
-          "Merge/dedup logic walked 2,222 audit-scoped files and hashed 170 JSON files.",
+          "repositoryFilesTotal uses audit inventory (2,321 files).",
+          "Merge/dedup logic walked 2,320 audit-scoped files and hashed 171 JSON files.",
           "Structure similarity pairs are limited to configured sample paths.",
           "node_modules, .git, coverage, archive, dist, build, github-cache/, and deliverables/ are excluded from merge walks."
         ]
       },
       "repositoryInventory": {
         "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-        "totalFiles": 2223,
-        "totalFolders": 201,
+        "totalFiles": 2321,
+        "totalFolders": 247,
         "profile": "audit"
       },
       "summary": {
-        "filesAnalyzed": 2223,
+        "filesAnalyzed": 2321,
         "sampleDataFilesAnalyzed": 49,
-        "jsonFilesAnalyzed": 170,
-        "repositoryFilesTotal": 2223,
-        "repositoryFilesAudited": 2222,
-        "repositoryFoldersTotal": 201,
-        "totalSizeBytes": 13745960,
-        "totalSizeLabel": "13.1MB",
+        "jsonFilesAnalyzed": 171,
+        "repositoryFilesTotal": 2321,
+        "repositoryFilesAudited": 2320,
+        "repositoryFoldersTotal": 247,
+        "totalSizeBytes": 14865346,
+        "totalSizeLabel": "14.2MB",
         "mergeCandidates": 0,
         "reductionOpportunities": 0,
         "potentialSavingsBytes": 0,
@@ -354,13 +354,11 @@
     },
     "mockScan": {
       "type": "simplebeacon-fiction-digest",
-      "generatedAt": "2026-05-29T05:14:21.962Z",
       "fictionIssues": [],
-      "nonFictionIssues": [],
       "sourceReport": {
         "type": "simplebeacon-report",
         "reportVersion": 2,
-        "generatedAt": "2026-05-29T05:14:21.962Z",
+        "generatedAt": "2026-05-29T11:35:31.735Z",
         "generatedBy": "Simplebeacon",
         "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
         "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\config.json",
@@ -369,16 +367,16 @@
         ],
         "repositoryInventory": {
           "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-          "totalFiles": 2222,
-          "totalFolders": 198,
+          "totalFiles": 2320,
+          "totalFolders": 244,
           "profile": "audit"
         },
         "mockSampleFiles": 48,
         "totalFiles": 48,
-        "ruleScopedFilesAnalyzed": 209,
-        "repositoryFilesTotal": 2222,
-        "repositoryFoldersTotal": 198,
-        "filesAnalyzed": 2222,
+        "ruleScopedFilesAnalyzed": 211,
+        "repositoryFilesTotal": 2320,
+        "repositoryFoldersTotal": 244,
+        "filesAnalyzed": 2320,
         "totalSizeBytes": 278846,
         "totalSizeLabel": "272.3KB",
         "issueCount": 0,
@@ -393,19 +391,19 @@
         "duplicateGroups": 0,
         "roadmapSchemaChecked": 1,
         "roadmapSchemaPassed": 1,
-        "consistencyChecked": 64,
-        "consistencyPassed": 64,
+        "consistencyChecked": 65,
+        "consistencyPassed": 65,
         "consistencyScore": 100,
-        "fictionJsonFilesScanned": 64,
+        "fictionJsonFilesScanned": 65,
         "fictionSampleFilesScanned": 48,
         "fictionScope": "repository-json",
-        "credentialScanned": 187,
+        "credentialScanned": 188,
         "credentialFindings": 0,
-        "productionLeakScanned": 126,
+        "productionLeakScanned": 127,
         "productionLeakFindings": 0,
-        "sourceCodeFilesScanned": 209,
+        "sourceCodeFilesScanned": 211,
         "sourceFictionPatternHits": 0,
-        "llmSlopFilesScanned": 368,
+        "llmSlopFilesScanned": 370,
         "llmSlopPatternHits": 0,
         "jestBaselineChecked": false,
         "jestBaselinePassed": true,
@@ -506,7 +504,7 @@
           "pageSpecsValidated": 50,
           "pageSpecsFromScanPaths": 48,
           "pageSpecsFromAliasPaths": 2,
-          "productionDirsScanned": 126,
+          "productionDirsScanned": 127,
           "productionPaths": [
             "server/",
             "src/",
@@ -519,24 +517,24 @@
             "src/server",
             "packages/simplebeacon-cli/src"
           ],
-          "sourceCodeFilesScanned": 209,
+          "sourceCodeFilesScanned": 211,
           "sourceFictionPatternHits": 0,
-          "llmSlopFilesScanned": 368,
+          "llmSlopFilesScanned": 370,
           "llmSlopPatternHits": 0,
           "jestExecutedDuringScan": false,
           "consistencyAnchorCount": 5,
           "fictionScope": "repository-json",
-          "fictionJsonFilesScanned": 64,
+          "fictionJsonFilesScanned": 65,
           "fictionSampleFilesScanned": 48,
-          "ruleScopedFilesAnalyzed": 209,
-          "repositoryFilesTotal": 2222,
-          "repositoryFoldersTotal": 198,
+          "ruleScopedFilesAnalyzed": 211,
+          "repositoryFilesTotal": 2320,
+          "repositoryFoldersTotal": 244,
           "benchmarkCacheIssuesExcluded": 0,
           "excludedPathsNote": null,
           "limitations": [
-            "Repository inventory: 2,222 files — gate rules checked 209 (mock paths, credentials, server/ leaks).",
+            "Repository inventory: 2,320 files — gate rules checked 211 (mock paths, credentials, server/ leaks).",
             "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-            "Fiction/KPI rules scan repository JSON (64) plus source code (209 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
+            "Fiction/KPI rules scan repository JSON (65) plus source code (211 files in server, src/api, src/server, packages/simplebeacon-cli/src).",
             "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
           ],
           "resultsViewScope": "platform-only",
@@ -555,13 +553,12 @@
             "low"
           ]
         }
-      },
-      "digestTrust": "trustworthy"
+      }
     },
     "roadmap": {
       "type": "dynamic-project-roadmap-analysis",
-      "timestamp": "2026-05-29T05:14:27.510Z",
-      "generatedAt": "2026-05-29T05:14:27.510Z",
+      "timestamp": "2026-05-29T11:35:59.529Z",
+      "generatedAt": "2026-05-29T11:35:59.529Z",
       "generatedBy": "code-roadmap-generator",
       "dataSource": "filesystem-scan",
       "version": "3.1.0",
@@ -578,7 +575,7 @@
         "projectHealth": "Healthy",
         "aiConfidence": null,
         "analysisDuration": null,
-        "lastUpdated": "2026-05-29T05:14:27.510Z",
+        "lastUpdated": "2026-05-29T11:35:59.529Z",
         "teamSize": 1,
         "notes": "Sprint model from filesystem signals + repository-audit baselines — not 47-feature enterprise fiction"
       },
@@ -601,7 +598,7 @@
           "phase": "Sprint 2: Stub APIs & Tests",
           "status": "completed",
           "progress": 100,
-          "description": "Stub API routes (66 detected) and 936/936 Jest tests (73 suites)",
+          "description": "Stub API routes (64 detected) and 936/936 Jest tests (73 suites)",
           "features": [
             "Tier-1 stub API routes",
             "936/936 Jest tests (73 suites)"
@@ -659,30 +656,32 @@
       },
       "codeAnalysis": {
         "structure": {
-          "totalFiles": 1602,
-          "codeFiles": 843,
+          "totalFiles": 1702,
+          "codeFiles": 899,
           "languages": {
             "other": 12,
-            ".example": 5,
+            ".example": 6,
             ".phase2-sso": 1,
             ".production": 1,
             ".v1-internal": 1,
-            ".json": 144,
+            ".json": 145,
             ".yml": 9,
-            ".md": 17,
+            ".md": 21,
+            ".py": 687,
+            ".template": 1,
             ".dashboard": 1,
             ".conf": 1,
             ".sh": 7,
-            ".js": 656,
-            ".ico": 1,
+            ".js": 707,
+            ".ico": 2,
             ".ps1": 5,
             ".tgz": 1,
             ".csv": 1,
             ".html": 19,
             ".txt": 10,
-            ".py": 684,
             ".bat": 5,
             ".sql": 2,
+            ".pyc": 38,
             ".db": 1,
             ".pyi": 1,
             ".1779127569939": 1,
@@ -692,11 +691,24 @@
             ".css": 5,
             ".mjs": 2
           },
-          "topDirectories": []
+          "topDirectories": [
+            "action",
+            "assessments",
+            "config",
+            "data",
+            "data-central",
+            "deliverables",
+            "docker",
+            "github-cache",
+            "packages",
+            "public",
+            "reports",
+            "scripts"
+          ]
         },
         "dependencies": {
-          "internalCount": 619,
-          "externalCount": 41,
+          "internalCount": 607,
+          "externalCount": 42,
           "externalPackages": [
             "@eslint",
             "globals",
@@ -828,8 +840,8 @@
           "status": "active",
           "dependencyGraph": {
             "summary": {
-              "nodes": 322,
-              "edges": 451,
+              "nodes": 323,
+              "edges": 443,
               "circularCycles": 0
             },
             "circularDependencies": [],
@@ -966,7 +978,6 @@
             "/api/assessments/:assessmentId",
             "/api/assessments/:assessmentId/download/:format",
             "/api/audit-booking",
-            "/api/audit-booking/complete",
             "/api/audit-bookings",
             "/api/auth/login",
             "/api/auth/logout",
@@ -989,9 +1000,10 @@
             "/api/health/redis",
             "/api/issues",
             "/api/merger-tool/data-cleanup-scan",
-            "/api/merger-tool/reduction-scan"
+            "/api/merger-tool/reduction-scan",
+            "/api/mock-analysis"
           ],
-          "apiRouteCount": 66,
+          "apiRouteCount": 64,
           "notes": "Routes scraped from server/ and src/ — docs and archive paths excluded"
         }
       },
@@ -1099,16 +1111,16 @@
           "Infrastructure": 100
         },
         "metrics": {
-          "codebaseMaturity": 84,
+          "codebaseMaturity": 90,
           "featureCompleteness": 100,
-          "documentationCoverage": null,
-          "testCoverage": null,
+          "documentationCoverage": 14.177066263288374,
+          "testCoverage": 78.17785527462947,
           "lineCoverage": null,
           "branchCoverage": null,
           "jestTests": "936/936",
           "jestSuites": 73,
           "pageSamples": "50/50",
-          "apiRouteCount": 66
+          "apiRouteCount": 64
         }
       },
       "recommendations": {
@@ -1118,7 +1130,8 @@
         "shortTerm": [
           "Production deploy sign-off after local auth smoke test passes",
           "Configure LLAMA_CPP_BIN or Ollama for optional semantic hints",
-          "Security posture to 80/100 — run npm audit fix on deploy host"
+          "Security posture to 80/100 — run npm audit fix on deploy host",
+          "Improve documentation coverage"
         ],
         "longTerm": [
           "Define enterprise scope only after v1.0-internal"
@@ -1167,12 +1180,510 @@
         "previousTotalFeatures": null,
         "previousCompletionRate": null
       },
-      "scanScope": {
+      "projectStructure": {
+        "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
         "platformRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-        "filesScanned": 1602,
-        "codeFilesAnalyzed": 843,
-        "reportHealth": "platform-scoped",
-        "benchmarkPathsExcluded": true
+        "totalDirectories": 78,
+        "totalFiles": 932,
+        "mainCategories": {
+          "action": {
+            "name": "action",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\action",
+            "exists": true,
+            "fileCount": 1,
+            "subdirectoryCount": 0,
+            "fileTypes": {
+              ".yml": 1
+            },
+            "totalSize": 3436,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "assessments": {
+            "name": "assessments",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\assessments",
+            "exists": true,
+            "fileCount": 0,
+            "subdirectoryCount": 0,
+            "fileTypes": {},
+            "totalSize": 0,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "config": {
+            "name": "config",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\config",
+            "exists": true,
+            "fileCount": 9,
+            "subdirectoryCount": 0,
+            "fileTypes": {
+              "": 2,
+              ".example": 2,
+              ".template": 1,
+              ".json": 2,
+              ".yml": 1,
+              ".md": 1
+            },
+            "totalSize": 10699,
+            "depth": 0,
+            "keyFiles": [
+              {
+                "name": "central-data-config.json",
+                "size": 104,
+                "type": ".json",
+                "modified": "2026-05-28T00:14:44.221Z"
+              },
+              {
+                "name": "dashboard_config.json",
+                "size": 3621,
+                "type": ".json",
+                "modified": "2026-05-27T21:20:33.388Z"
+              },
+              {
+                "name": "docker-compose.yml",
+                "size": 3508,
+                "type": ".yml",
+                "modified": "2026-05-27T21:20:33.392Z"
+              },
+              {
+                "name": "README.md",
+                "size": 807,
+                "type": ".md",
+                "modified": "2026-05-29T11:21:56.176Z"
+              }
+            ]
+          },
+          "data": {
+            "name": "data",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\data",
+            "exists": true,
+            "fileCount": 0,
+            "subdirectoryCount": 4,
+            "fileTypes": {},
+            "totalSize": 0,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "data-central": {
+            "name": "data-central",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\data-central",
+            "exists": true,
+            "fileCount": 0,
+            "subdirectoryCount": 1,
+            "fileTypes": {},
+            "totalSize": 0,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "deliverables": {
+            "name": "deliverables",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\deliverables",
+            "exists": true,
+            "fileCount": 0,
+            "subdirectoryCount": 1,
+            "fileTypes": {},
+            "totalSize": 0,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "docker": {
+            "name": "docker",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\docker",
+            "exists": true,
+            "fileCount": 3,
+            "subdirectoryCount": 2,
+            "fileTypes": {
+              ".dashboard": 1,
+              ".example": 1,
+              ".sh": 1
+            },
+            "totalSize": 3267,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "github-cache": {
+            "name": "github-cache",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\github-cache",
+            "exists": true,
+            "fileCount": 0,
+            "subdirectoryCount": 17,
+            "fileTypes": {},
+            "totalSize": 0,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "packages": {
+            "name": "packages",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages",
+            "exists": true,
+            "fileCount": 0,
+            "subdirectoryCount": 1,
+            "fileTypes": {},
+            "totalSize": 0,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "public": {
+            "name": "public",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\public",
+            "exists": true,
+            "fileCount": 1,
+            "subdirectoryCount": 0,
+            "fileTypes": {
+              ".json": 1
+            },
+            "totalSize": 8555,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "reports": {
+            "name": "reports",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\reports",
+            "exists": true,
+            "fileCount": 9,
+            "subdirectoryCount": 1,
+            "fileTypes": {
+              ".md": 5,
+              ".json": 3,
+              ".csv": 1
+            },
+            "totalSize": 101780,
+            "depth": 0,
+            "keyFiles": [
+              {
+                "name": "README.md",
+                "size": 7186,
+                "type": ".md",
+                "modified": "2026-05-27T21:20:36.177Z"
+              }
+            ]
+          },
+          "scripts": {
+            "name": "scripts",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\scripts",
+            "exists": true,
+            "fileCount": 125,
+            "subdirectoryCount": 2,
+            "fileTypes": {
+              ".py": 47,
+              ".js": 66,
+              ".bat": 5,
+              ".sh": 6,
+              ".ps1": 1
+            },
+            "totalSize": 1089600,
+            "depth": 0,
+            "keyFiles": [
+              {
+                "name": "fix-api-client-fallback.js",
+                "size": 4508,
+                "type": ".js",
+                "modified": "2026-05-27T21:19:33.335Z"
+              },
+              {
+                "name": "fix-remaining-template-literals-v2.js",
+                "size": 1656,
+                "type": ".js",
+                "modified": "2026-05-27T21:19:33.371Z"
+              },
+              {
+                "name": "fix-remaining-template-literals.js",
+                "size": 2165,
+                "type": ".js",
+                "modified": "2026-05-27T21:19:33.381Z"
+              },
+              {
+                "name": "remove-malformed-api-client.js",
+                "size": 725,
+                "type": ".js",
+                "modified": "2026-05-27T21:19:33.577Z"
+              },
+              {
+                "name": "simple-ai-server.js",
+                "size": 5940,
+                "type": ".js",
+                "modified": "2026-05-27T23:52:24.909Z"
+              },
+              {
+                "name": "start-dashboard-with-roadmap.js",
+                "size": 2899,
+                "type": ".js",
+                "modified": "2026-05-28T00:11:57.084Z"
+              },
+              {
+                "name": "test-fixed-dashboard.js",
+                "size": 2812,
+                "type": ".js",
+                "modified": "2026-05-27T21:19:33.753Z"
+              }
+            ]
+          },
+          "server": {
+            "name": "server",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server",
+            "exists": true,
+            "fileCount": 8,
+            "subdirectoryCount": 8,
+            "fileTypes": {
+              ".js": 7,
+              ".md": 1
+            },
+            "totalSize": 72980,
+            "depth": 0,
+            "keyFiles": [
+              {
+                "name": "api-server-optimizations.js",
+                "size": 8032,
+                "type": ".js",
+                "modified": "2026-05-29T11:21:56.326Z"
+              },
+              {
+                "name": "dlp-dashboard.js",
+                "size": 10639,
+                "type": ".js",
+                "modified": "2026-05-29T11:21:56.337Z"
+              },
+              {
+                "name": "index.js",
+                "size": 31219,
+                "type": ".js",
+                "modified": "2026-05-29T11:21:56.343Z"
+              },
+              {
+                "name": "README-DLP.md",
+                "size": 2268,
+                "type": ".md",
+                "modified": "2026-05-27T21:19:33.829Z"
+              }
+            ]
+          },
+          "src": {
+            "name": "src",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\src",
+            "exists": true,
+            "fileCount": 0,
+            "subdirectoryCount": 4,
+            "fileTypes": {},
+            "totalSize": 0,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "temp": {
+            "name": "temp",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\temp",
+            "exists": true,
+            "fileCount": 0,
+            "subdirectoryCount": 2,
+            "fileTypes": {},
+            "totalSize": 0,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "templates": {
+            "name": "templates",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\templates",
+            "exists": true,
+            "fileCount": 1,
+            "subdirectoryCount": 0,
+            "fileTypes": {
+              ".js": 1
+            },
+            "totalSize": 3266,
+            "depth": 0,
+            "keyFiles": []
+          },
+          "tests": {
+            "name": "tests",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests",
+            "exists": true,
+            "fileCount": 690,
+            "subdirectoryCount": 9,
+            "fileTypes": {
+              ".js": 15,
+              ".py": 617,
+              ".html": 17,
+              ".pyc": 38,
+              ".db": 1,
+              ".pyi": 1,
+              ".1779127569939": 1
+            },
+            "totalSize": 3223949,
+            "depth": 0,
+            "keyFiles": [
+              {
+                "name": "dashboard-components.test.js",
+                "size": 15053,
+                "type": ".js",
+                "modified": "2026-05-27T21:19:45.122Z"
+              },
+              {
+                "name": "dashboard-server.test.js",
+                "size": 5653,
+                "type": ".js",
+                "modified": "2026-05-27T21:19:45.123Z"
+              },
+              {
+                "name": "DashboardAnalytics.test.js",
+                "size": 24077,
+                "type": ".js",
+                "modified": "2026-05-27T21:19:45.114Z"
+              },
+              {
+                "name": "test_server.js",
+                "size": 2499,
+                "type": ".js",
+                "modified": "2026-05-27T21:19:45.518Z"
+              }
+            ]
+          },
+          "tools": {
+            "name": "tools",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tools",
+            "exists": true,
+            "fileCount": 81,
+            "subdirectoryCount": 0,
+            "fileTypes": {
+              ".py": 12,
+              ".js": 66,
+              ".ps1": 3
+            },
+            "totalSize": 371114,
+            "depth": 0,
+            "keyFiles": [
+              {
+                "name": "append-trust-step-summary.js",
+                "size": 3223,
+                "type": ".js",
+                "modified": "2026-05-27T23:37:47.593Z"
+              },
+              {
+                "name": "kill-dashboard-ports.js",
+                "size": 1298,
+                "type": ".js",
+                "modified": "2026-05-27T21:19:45.639Z"
+              },
+              {
+                "name": "quality-maintenance-metrics.js",
+                "size": 4577,
+                "type": ".js",
+                "modified": "2026-05-27T21:19:45.642Z"
+              },
+              {
+                "name": "start-v1-internal-dashboard.js",
+                "size": 706,
+                "type": ".js",
+                "modified": "2026-05-27T21:20:36.852Z"
+              },
+              {
+                "name": "strip-cascade-server.js",
+                "size": 5509,
+                "type": ".js",
+                "modified": "2026-05-27T21:20:36.855Z"
+              }
+            ]
+          },
+          "web": {
+            "name": "web",
+            "path": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web",
+            "exists": true,
+            "fileCount": 4,
+            "subdirectoryCount": 7,
+            "fileTypes": {
+              ".ico": 1,
+              ".svg": 1,
+              ".md": 2
+            },
+            "totalSize": 8626,
+            "depth": 0,
+            "keyFiles": []
+          }
+        },
+        "note": "Top-level categories only — use platformRoot for sprint metrics; full tree omitted from export"
+      },
+      "codebaseMetrics": {
+        "totalLinesOfCode": 0,
+        "languages": {},
+        "complexity": {},
+        "testCoverage": 0,
+        "documentation": {
+          "readmeFiles": 0,
+          "totalDocs": 0,
+          "coverage": 0
+        },
+        "dependencies": {}
+      },
+      "aiIntegration": {
+        "level": "basic",
+        "features": {
+          "analysis": true,
+          "generation": true,
+          "processing": true,
+          "automation": true
+        },
+        "models": [
+          "llama",
+          "gguf",
+          "gpt",
+          "claude",
+          "bert"
+        ],
+        "apis": [
+          "/api/:provider",
+          "/api/ai-validation/audit",
+          "/api/ai-validation/dashboard",
+          "/api/ai-validation/results/:scanId",
+          "/api/ai-validation/scan",
+          "/api/analytics/performance",
+          "/api/analyze/chat",
+          "/api/analyze/codebase",
+          "/api/analyze/complete-audit-report",
+          "/api/analyze/compliance-checklist",
+          "/api/analyze/data-cleanup",
+          "/api/analyze/expert-review",
+          "/api/analyze/flexible",
+          "/api/analyze/github-clone",
+          "/api/analyze/inventory",
+          "/api/analyze/npm-audit",
+          "/api/analyze/providers",
+          "/api/analyze/summary",
+          "/api/analyze/understand",
+          "/api/analyze/zscript-report",
+          "/api/assessments",
+          "/api/assessments/:assessmentId",
+          "/api/assessments/:assessmentId/download/:format",
+          "/api/audit-booking",
+          "/api/audit-bookings",
+          "/api/auth/login",
+          "/api/auth/logout",
+          "/api/auth/me",
+          "/api/auth/refresh",
+          "/api/backlog",
+          "/api/code-generation/history",
+          "/api/code-generation/stats",
+          "/api/code-generation/templates",
+          "/api/code-roadmap/analyze",
+          "/api/code-roadmap/export/html",
+          "/api/dev-tools/stats",
+          "/api/dev-tools/tools",
+          "/api/dev-tools/workflows",
+          "/api/dynamic-roadmap/build-from-path",
+          "/api/dynamic-roadmap/health",
+          "/api/dynamic-roadmap/history",
+          "/api/health",
+          "/api/health/db",
+          "/api/health/redis",
+          "/api/issues",
+          "/api/merger-tool/data-cleanup-scan",
+          "/api/merger-tool/reduction-scan",
+          "/api/mock-analysis"
+        ],
+        "apiRouteCount": 64,
+        "confidence": null,
+        "notes": "Routes scraped from server/ and src/ — docs and archive paths excluded"
+      },
+      "scanOptions": {
+        "includePaths": [],
+        "excludePatterns": []
       }
     },
     "codebase": {
@@ -1180,50 +1691,25 @@
       "reportVersion": 1,
       "title": "Codebase Analysis Report",
       "dataSource": "repository-audit",
-      "generatedAt": "2026-05-29T05:14:31.120Z",
+      "generatedAt": "2026-05-29T11:36:03.261Z",
       "generatedBy": "codebase-analyzer",
       "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
       "repositoryInventory": {
         "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-        "totalFiles": 2223,
-        "totalFolders": 201,
+        "totalFiles": 2323,
+        "totalFolders": 249,
         "profile": "audit"
       },
       "summary": {
-        "repositoryFilesTotal": 2223,
-        "repositoryFoldersTotal": 201,
-        "codeFilesAnalyzed": 1374,
-        "codeFilesDiscovered": 1374,
+        "repositoryFilesTotal": 2323,
+        "repositoryFoldersTotal": 249,
+        "codeFilesAnalyzed": 1429,
+        "codeFilesDiscovered": 1467,
         "findingsTotal": 0,
         "findingsReturned": 0,
         "findingsTruncated": false,
         "scanContext": "complete",
         "healthScore": 100,
-        "healthScoreNote": "No pattern-matched issues in scanned production paths — not a security certification or proof of bug absence.",
-        "analyzerCoverage": {
-          "codeFilesAnalyzed": 1374,
-          "productionPathsScanned": 239,
-          "debugArtifactPathsScanned": 226,
-          "pluginEligibleFiles": 545,
-          "sampleProductionPaths": [
-            "simplebeacon-server.js",
-            "server/routes/flexible-analyze-api.js",
-            "packages/simplebeacon-cli/src/scan.js",
-            "web/simplebeacon-dashboard/js/views/AnalyzeView.js"
-          ],
-          "categoriesChecked": [
-            "tech-debt",
-            "debug-artifact",
-            "meaningless-data",
-            "broken",
-            "syntax",
-            "duplicate",
-            "eslint"
-          ],
-          "findingsTotal": 0,
-          "zeroFindings": true,
-          "healthScoreNote": "No pattern-matched issues in scanned production paths — not a security certification or proof of bug absence."
-        },
         "severityCounts": {
           "high": 0,
           "medium": 0,
@@ -1234,8 +1720,8 @@
           "documentation": 0,
           "general": 0
         },
-        "eslintErrors": 0,
-        "eslintWarnings": 0,
+        "eslintErrors": 2,
+        "eslintWarnings": 1,
         "eslintSource": "command",
         "eslintReportPath": null,
         "eslintSkipped": null,
@@ -1268,18 +1754,18 @@
       "eslintSummary": {
         "source": "command",
         "reportPath": null,
-        "filesWithIssues": 0,
-        "totalIssues": 0,
-        "errors": 0,
-        "warnings": 0,
+        "filesWithIssues": 3,
+        "totalIssues": 3,
+        "errors": 2,
+        "warnings": 1,
         "warningTrend": [
           {
             "bucket": "errors",
-            "count": 0
+            "count": 2
           },
           {
             "bucket": "warnings",
-            "count": 0
+            "count": 1
           }
         ],
         "topRules": [],
@@ -1292,453 +1778,41 @@
         "summary": {
           "sampledFiles": 50,
           "byLanguage": {
-            "markdown": 26,
-            "css": 5,
-            "html": 19
+            "markdown": 50
           },
-          "approximateFunctions": 231,
-          "approximateClasses": 5,
+          "approximateFunctions": 133,
+          "approximateClasses": 38,
           "tier": "baseline"
         },
         "samples": [
           {
-            "filePath": "server/README-DLP.md",
+            "filePath": "AI_PLATFORM_ROADMAP.md",
             "language": "markdown",
-            "lineCount": 84,
-            "approximateFunctions": 2,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/ANTI-BLOAT-MANIFESTO.md",
-            "language": "markdown",
-            "lineCount": 167,
-            "approximateFunctions": 2,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 1,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/BENCHMARKS.md",
-            "language": "markdown",
-            "lineCount": 59,
+            "lineCount": 347,
             "approximateFunctions": 0,
             "approximateClasses": 0,
             "importOrIncludeCount": 1,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/CI.md",
-            "language": "markdown",
-            "lineCount": 83,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/CONFIG.md",
-            "language": "markdown",
-            "lineCount": 85,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/DOCKER.md",
-            "language": "markdown",
-            "lineCount": 97,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/examples/outreach-tracker.md",
-            "language": "markdown",
-            "lineCount": 65,
-            "approximateFunctions": 1,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 1,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/GITHUB-ACTION-QUICKSTART.md",
-            "language": "markdown",
-            "lineCount": 121,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
             "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/LAUNCH-TEMPLATE.md",
-            "language": "markdown",
-            "lineCount": 88,
-            "approximateFunctions": 1,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 4,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/MARKETING.md",
-            "language": "markdown",
-            "lineCount": 161,
-            "approximateFunctions": 1,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 1,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/NAMING.md",
-            "language": "markdown",
-            "lineCount": 22,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/OUTREACH.md",
-            "language": "markdown",
-            "lineCount": 354,
-            "approximateFunctions": 7,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 11,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/PRE-COMMIT.md",
-            "language": "markdown",
-            "lineCount": 44,
-            "approximateFunctions": 0,
-            "approximateClasses": 1,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/PRODUCTION-LEAK-TRIAGE.md",
-            "language": "markdown",
-            "lineCount": 138,
-            "approximateFunctions": 1,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 3,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/RULES.md",
-            "language": "markdown",
-            "lineCount": 87,
-            "approximateFunctions": 1,
-            "approximateClasses": 1,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/SAMPLE_REPORT.md",
-            "language": "markdown",
-            "lineCount": 159,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 10,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/docs/TRUST.md",
-            "language": "markdown",
-            "lineCount": 79,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 2,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/PUBLISH.md",
-            "language": "markdown",
-            "lineCount": 114,
-            "approximateFunctions": 2,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 3,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "packages/simplebeacon-cli/README.md",
-            "language": "markdown",
-            "lineCount": 248,
-            "approximateFunctions": 1,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 7,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "web/simplebeacon-dashboard/css/components.css",
-            "language": "css",
-            "lineCount": 2346,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "high",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "web/simplebeacon-dashboard/css/layout.css",
-            "language": "css",
-            "lineCount": 289,
-            "approximateFunctions": 2,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "web/simplebeacon-dashboard/css/reset.css",
-            "language": "css",
-            "lineCount": 74,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "web/simplebeacon-dashboard/css/utilities.css",
-            "language": "css",
-            "lineCount": 29,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "web/simplebeacon-dashboard/css/variables.css",
-            "language": "css",
-            "lineCount": 62,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "web/simplebeacon-dashboard/index.html",
-            "language": "html",
-            "lineCount": 134,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "reports/technical-debt/raw/compliance-endpoint-response.html",
-            "language": "html",
-            "lineCount": 86,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_auth.html",
-            "language": "html",
-            "lineCount": 91,
-            "approximateFunctions": 2,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "low",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_buttons.html",
-            "language": "html",
-            "lineCount": 137,
-            "approximateFunctions": 11,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_comprehensive_fix.html",
-            "language": "html",
-            "lineCount": 263,
-            "approximateFunctions": 13,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_error_management.html",
-            "language": "html",
-            "lineCount": 241,
-            "approximateFunctions": 13,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_folder_upload.html",
-            "language": "html",
-            "lineCount": 339,
-            "approximateFunctions": 24,
-            "approximateClasses": 1,
-            "importOrIncludeCount": 0,
-            "complexity": "high",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_invalid_auth.html",
-            "language": "html",
-            "lineCount": 203,
-            "approximateFunctions": 6,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_log_management.html",
-            "language": "html",
-            "lineCount": 270,
-            "approximateFunctions": 14,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_merger_tool_functionality.html",
-            "language": "html",
-            "lineCount": 259,
-            "approximateFunctions": 30,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "high",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_merger_tool.html",
-            "language": "html",
-            "lineCount": 139,
-            "approximateFunctions": 16,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "high",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_navigation_fix.html",
-            "language": "html",
-            "lineCount": 268,
-            "approximateFunctions": 5,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_path_py.html",
-            "language": "html",
-            "lineCount": 122,
-            "approximateFunctions": 0,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_scanner.js.html",
-            "language": "html",
-            "lineCount": 169,
-            "approximateFunctions": 2,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_server.js.html",
-            "language": "html",
-            "lineCount": 325,
-            "approximateFunctions": 4,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 5,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_sidebar_fix.html",
-            "language": "html",
-            "lineCount": 302,
-            "approximateFunctions": 6,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_tree_view.html",
-            "language": "html",
-            "lineCount": 288,
-            "approximateFunctions": 20,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "high",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_trend_indicators.html",
-            "language": "html",
-            "lineCount": 148,
-            "approximateFunctions": 7,
-            "approximateClasses": 0,
-            "importOrIncludeCount": 0,
-            "complexity": "medium",
-            "tier": "baseline"
-          },
-          {
-            "filePath": "tests/test_websocket.html",
-            "language": "html",
-            "lineCount": 257,
-            "approximateFunctions": 25,
-            "approximateClasses": 1,
-            "importOrIncludeCount": 0,
-            "complexity": "high",
             "tier": "baseline"
           },
           {
             "filePath": "config/README.md",
             "language": "markdown",
-            "lineCount": 78,
-            "approximateFunctions": 1,
+            "lineCount": 22,
+            "approximateFunctions": 0,
             "approximateClasses": 0,
-            "importOrIncludeCount": 2,
+            "importOrIncludeCount": 1,
             "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "DATA_MIGRATION_PLAN.md",
+            "language": "markdown",
+            "lineCount": 342,
+            "approximateFunctions": 0,
+            "approximateClasses": 1,
+            "importOrIncludeCount": 5,
+            "complexity": "medium",
             "tier": "baseline"
           },
           {
@@ -1752,9 +1826,219 @@
             "tier": "baseline"
           },
           {
-            "filePath": "README.md",
+            "filePath": "docs/2015-01-30.md",
             "language": "markdown",
-            "lineCount": 67,
+            "lineCount": 61,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 3,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/30-day-simplebeacon-checklist-print.md",
+            "language": "markdown",
+            "lineCount": 45,
+            "approximateFunctions": 2,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/30-day-simplebeacon-checklist.md",
+            "language": "markdown",
+            "lineCount": 152,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 1,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ABOUT_BUTTONS_FIX_SUMMARY.md",
+            "language": "markdown",
+            "lineCount": 384,
+            "approximateFunctions": 14,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/action-plan-2026-05-26.md",
+            "language": "markdown",
+            "lineCount": 112,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 2,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/action_plan.md",
+            "language": "markdown",
+            "lineCount": 203,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 1,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ACTIVE_SIGNATURE_SUCCESS.md",
+            "language": "markdown",
+            "lineCount": 219,
+            "approximateFunctions": 11,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 3,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ACTUAL_IMPLEMENTATION.md",
+            "language": "markdown",
+            "lineCount": 99,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ADVANCED_FILTERING_IMPLEMENTED.md",
+            "language": "markdown",
+            "lineCount": 255,
+            "approximateFunctions": 10,
+            "approximateClasses": 4,
+            "importOrIncludeCount": 4,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ADVANCED_FILTERING_PERFORMANCE_ANALYSIS.md",
+            "language": "markdown",
+            "lineCount": 198,
+            "approximateFunctions": 7,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 2,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ADVANCED_FILTERING_TEST_RESULTS.md",
+            "language": "markdown",
+            "lineCount": 319,
+            "approximateFunctions": 21,
+            "approximateClasses": 1,
+            "importOrIncludeCount": 4,
+            "complexity": "high",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/advanced_test_guide.md",
+            "language": "markdown",
+            "lineCount": 79,
+            "approximateFunctions": 0,
+            "approximateClasses": 1,
+            "importOrIncludeCount": 1,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AESTHETIC_METAMORPHOSIS_SUCCESS.md",
+            "language": "markdown",
+            "lineCount": 224,
+            "approximateFunctions": 3,
+            "approximateClasses": 1,
+            "importOrIncludeCount": 3,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/agency-code-hygiene-certificate-spec.md",
+            "language": "markdown",
+            "lineCount": 149,
+            "approximateFunctions": 1,
+            "approximateClasses": 1,
+            "importOrIncludeCount": 2,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/agency-retention-playbook.md",
+            "language": "markdown",
+            "lineCount": 117,
+            "approximateFunctions": 2,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/agency-targeting-guide-us-remote.md",
+            "language": "markdown",
+            "lineCount": 175,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 3,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AGENTS.md",
+            "language": "markdown",
+            "lineCount": 27,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AGENT_ZERO_32772_SETUP.md",
+            "language": "markdown",
+            "lineCount": 74,
+            "approximateFunctions": 0,
+            "approximateClasses": 2,
+            "importOrIncludeCount": 3,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AGENT_ZERO_FINAL_SETUP.md",
+            "language": "markdown",
+            "lineCount": 124,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 3,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AGENT_ZERO_FINAL_STATUS.md",
+            "language": "markdown",
+            "lineCount": 59,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 3,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AGENT_ZERO_OLLAMA_SETUP.md",
+            "language": "markdown",
+            "lineCount": 141,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 3,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AGENT_ZERO_WORKING_SOLUTION.md",
+            "language": "markdown",
+            "lineCount": 92,
             "approximateFunctions": 0,
             "approximateClasses": 0,
             "importOrIncludeCount": 1,
@@ -1762,19 +2046,109 @@
             "tier": "baseline"
           },
           {
-            "filePath": "reports/BUILD_DEPLOYMENT_REAL_DATA.md",
+            "filePath": "docs/ai-problem-analyzer-business-case.md",
             "language": "markdown",
-            "lineCount": 680,
+            "lineCount": 61,
             "approximateFunctions": 0,
-            "approximateClasses": 1,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 2,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ai-problem-analyzer-decision-framework-8-weeks.md",
+            "language": "markdown",
+            "lineCount": 85,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 2,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ai-problem-analyzer-kpi-instrumentation-plan.md",
+            "language": "markdown",
+            "lineCount": 62,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 3,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AI_ANALYSIS_EXECUTIVE_RESPONSE.md",
+            "language": "markdown",
+            "lineCount": 261,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AI_CAPABILITY_MATRIX.md",
+            "language": "markdown",
+            "lineCount": 209,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 4,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AI_CODING_ADVANCEMENT_SUMMARY.md",
+            "language": "markdown",
+            "lineCount": 295,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 13,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AI_DASHBOARD_ROADMAP_SUMMARY.md",
+            "language": "markdown",
+            "lineCount": 337,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AI_EMPOWERMENT_BLUEPRINT.md",
+            "language": "markdown",
+            "lineCount": 488,
+            "approximateFunctions": 30,
+            "approximateClasses": 9,
             "importOrIncludeCount": 3,
             "complexity": "high",
             "tier": "baseline"
           },
           {
-            "filePath": "reports/DEVELOPMENT_ROADMAP_REAL_DATA.md",
+            "filePath": "docs/AI_INTERFACE_DOCUMENTATION.md",
             "language": "markdown",
-            "lineCount": 260,
+            "lineCount": 58,
+            "approximateFunctions": 0,
+            "approximateClasses": 1,
+            "importOrIncludeCount": 0,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AI_MANIFEST.md",
+            "language": "markdown",
+            "lineCount": 81,
+            "approximateFunctions": 0,
+            "approximateClasses": 2,
+            "importOrIncludeCount": 4,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AI_OS_INTEGRATION_SUCCESS.md",
+            "language": "markdown",
+            "lineCount": 262,
             "approximateFunctions": 0,
             "approximateClasses": 0,
             "importOrIncludeCount": 1,
@@ -1782,23 +2156,133 @@
             "tier": "baseline"
           },
           {
-            "filePath": "reports/PROJECT_ANALYTICS_REAL_DATA.md",
+            "filePath": "docs/AI_OS_SECURITY_FIX_SUMMARY.md",
             "language": "markdown",
-            "lineCount": 415,
-            "approximateFunctions": 11,
+            "lineCount": 250,
+            "approximateFunctions": 4,
             "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AI_PLATFORM_ENHANCEMENT_PLAN.md",
+            "language": "markdown",
+            "lineCount": 377,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 1,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/AI_POWERED_SYSTEM_BLUEPRINT.md",
+            "language": "markdown",
+            "lineCount": 430,
+            "approximateFunctions": 7,
+            "approximateClasses": 7,
             "importOrIncludeCount": 1,
             "complexity": "high",
             "tier": "baseline"
           },
           {
-            "filePath": "reports/README.md",
+            "filePath": "docs/AI_RECOMMENDATIONS_IMPLEMENTED.md",
             "language": "markdown",
-            "lineCount": 166,
+            "lineCount": 207,
             "approximateFunctions": 0,
             "approximateClasses": 0,
-            "importOrIncludeCount": 4,
+            "importOrIncludeCount": 1,
             "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ALL_ERRORS_SOLVED_FINAL.md",
+            "language": "markdown",
+            "lineCount": 59,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ANALYSIS_MODAL_FIX_SUMMARY.md",
+            "language": "markdown",
+            "lineCount": 139,
+            "approximateFunctions": 7,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ANALYTICS_EXECUTION_SUMMARY.md",
+            "language": "markdown",
+            "lineCount": 202,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ANALYTICS_RESPONSE_PLAN.md",
+            "language": "markdown",
+            "lineCount": 267,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "medium",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ANALYTICS_SETUP.md",
+            "language": "markdown",
+            "lineCount": 403,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "high",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/analyzers-tranche-2026-05-a39-a46.md",
+            "language": "markdown",
+            "lineCount": 38,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/ANTI-BLOAT-MANIFESTO.md",
+            "language": "markdown",
+            "lineCount": 21,
+            "approximateFunctions": 0,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 0,
+            "complexity": "low",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/api-reference.md",
+            "language": "markdown",
+            "lineCount": 452,
+            "approximateFunctions": 10,
+            "approximateClasses": 0,
+            "importOrIncludeCount": 5,
+            "complexity": "high",
+            "tier": "baseline"
+          },
+          {
+            "filePath": "docs/API.md",
+            "language": "markdown",
+            "lineCount": 874,
+            "approximateFunctions": 4,
+            "approximateClasses": 8,
+            "importOrIncludeCount": 10,
+            "complexity": "high",
             "tier": "baseline"
           }
         ]
@@ -1821,14 +2305,13 @@
         ],
         "description": "Complete scan profile — deep content analysis on every discovered code-like file (skips node_modules, .git, coverage). Not a semantic or security certification.",
         "limitations": [
-          "Complete scan: deep content analysis on all 1,374 discovered code-like files.",
+          "Complete scan: analyzed 1,429 of 1,467 code-like files.",
           "Extension profile: default (dashboard default: universal; complete/CLI: default; override with SCAN_PROFILE or scanProfile).",
           "52 language plugins (51 registry languages; Tier-2: Python, Rust, Go, SQL).",
           "Context-aware filtering reduces false positives in tests, docs, and example paths.",
           "Structure hints are regex-based Tier-1 estimates — not AST parsing.",
           "ESLint ran on server, packages, web/scripts, web/components, web/simplebeacon-dashboard/js, src under the platform root when available.",
-          "Does not prove dead-code elimination — flags debt markers and broken files only.",
-          "Zero findings after scanning 239 production-relevant file(s) — pattern-based checks only (TODO/FIXME, console.log in server|packages, placeholders, ESLint). Run the Simplebeacon gate scan for mock/fiction KPI rules."
+          "Does not prove dead-code elimination — flags debt markers and broken files only."
         ]
       }
     },
@@ -1836,11 +2319,11 @@
       "type": "data-cleanup-report",
       "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
       "dryRun": true,
-      "generatedAt": "2026-05-29T05:14:33.330Z",
-      "durationMs": 2213,
+      "generatedAt": "2026-05-29T11:36:04.563Z",
+      "durationMs": 1303,
       "inventory": {
-        "totalFiles": 2222,
-        "totalDirectories": 211
+        "totalFiles": 2322,
+        "totalDirectories": 259
       },
       "scanners": {
         "build-artifacts": {
@@ -1851,15 +2334,15 @@
           "reviewBeforeDeleteBytes": 0
         },
         "asset-consolidation": {
-          "assetFilesScanned": 9,
-          "hashedFiles": 9,
+          "assetFilesScanned": 10,
+          "hashedFiles": 10,
           "duplicateGroups": 0,
           "reclaimableBytes": 0
         },
         "unused-files": {
-          "sourceFilesScanned": 1536,
-          "entryPoints": 235,
-          "unusedCandidates": 0
+          "sourceFilesScanned": 1591,
+          "entryPoints": 236,
+          "unusedCandidates": 5
         }
       },
       "findings": {
@@ -1878,7 +2361,48 @@
           }
         ],
         "assetConsolidation": [],
-        "unusedFiles": [],
+        "unusedFiles": [
+          {
+            "type": "unused-file",
+            "path": "batch_consolidator.py",
+            "reason": "Not referenced by static import graph",
+            "confidence": "low",
+            "action": "review-before-delete",
+            "severity": "medium"
+          },
+          {
+            "type": "unused-file",
+            "path": "mock_data_consolidator.py",
+            "reason": "Not referenced by static import graph",
+            "confidence": "low",
+            "action": "review-before-delete",
+            "severity": "medium"
+          },
+          {
+            "type": "unused-file",
+            "path": "mock_data_monitoring_dashboard.json",
+            "reason": "Not referenced by static import graph",
+            "confidence": "low",
+            "action": "review-before-delete",
+            "severity": "medium"
+          },
+          {
+            "type": "unused-file",
+            "path": "mock_data_validator.py",
+            "reason": "Not referenced by static import graph",
+            "confidence": "low",
+            "action": "review-before-delete",
+            "severity": "medium"
+          },
+          {
+            "type": "unused-file",
+            "path": "standardized_schema.json",
+            "reason": "Not referenced by static import graph",
+            "confidence": "low",
+            "action": "review-before-delete",
+            "severity": "medium"
+          }
+        ],
         "configManagement": [],
         "dependencyHealth": [],
         "environmentVariables": [],
@@ -1892,20 +2416,81 @@
         "bySeverity": {
           "critical": 0,
           "high": 0,
-          "medium": 0,
+          "medium": 5,
           "low": 1
         },
         "byCategory": {
-          "build-artifact": 1
+          "build-artifact": 1,
+          "unused-file": 5
         },
         "topFiles": [
           {
             "filePath": "node_modules",
             "count": 1
+          },
+          {
+            "filePath": "batch_consolidator.py",
+            "count": 1
+          },
+          {
+            "filePath": "mock_data_consolidator.py",
+            "count": 1
+          },
+          {
+            "filePath": "mock_data_monitoring_dashboard.json",
+            "count": 1
+          },
+          {
+            "filePath": "mock_data_validator.py",
+            "count": 1
+          },
+          {
+            "filePath": "standardized_schema.json",
+            "count": 1
           }
         ]
       },
       "allFindings": [
+        {
+          "type": "unused-file",
+          "path": "batch_consolidator.py",
+          "reason": "Not referenced by static import graph",
+          "confidence": "low",
+          "action": "review-before-delete",
+          "severity": "medium"
+        },
+        {
+          "type": "unused-file",
+          "path": "mock_data_consolidator.py",
+          "reason": "Not referenced by static import graph",
+          "confidence": "low",
+          "action": "review-before-delete",
+          "severity": "medium"
+        },
+        {
+          "type": "unused-file",
+          "path": "mock_data_monitoring_dashboard.json",
+          "reason": "Not referenced by static import graph",
+          "confidence": "low",
+          "action": "review-before-delete",
+          "severity": "medium"
+        },
+        {
+          "type": "unused-file",
+          "path": "mock_data_validator.py",
+          "reason": "Not referenced by static import graph",
+          "confidence": "low",
+          "action": "review-before-delete",
+          "severity": "medium"
+        },
+        {
+          "type": "unused-file",
+          "path": "standardized_schema.json",
+          "reason": "Not referenced by static import graph",
+          "confidence": "low",
+          "action": "review-before-delete",
+          "severity": "medium"
+        },
         {
           "type": "build-artifact",
           "kind": "directory",
@@ -1920,10 +2505,10 @@
         }
       ],
       "summary": {
-        "totalFindings": 1,
+        "totalFindings": 6,
         "buildArtifactFindings": 1,
         "duplicateAssetGroups": 0,
-        "unusedFileCandidates": 0,
+        "unusedFileCandidates": 5,
         "configFindings": 0,
         "dependencyFindings": 0,
         "environmentFindings": 0,
@@ -1933,7 +2518,7 @@
         "dataLineageFindings": 0,
         "dataConsistencyFindings": 0,
         "reclaimableBytes": 0,
-        "estimatedReductionPct": 0
+        "estimatedReductionPct": 0.3
       },
       "metadata": {
         "entryPoints": [
@@ -2103,6 +2688,7 @@
           "tools/create-signed-off-site-bundle.js",
           "tools/create_test_templates.py",
           "tools/demo_script.py",
+          "tools/export-compliance-bundle.js",
           "tools/extended-schema-coverage-check.js",
           "tools/extract-dashboard-shell.py",
           "tools/extract-roadmap-core.py",
@@ -2176,7 +2762,7 @@
         "dataLineage": []
       },
       "fileReductionPlan": {
-        "scopeNote": "Directory totals exclude nested artifact paths to avoid double-counting reclaimable space. github-cache/, deliverables/, and .simplebeacon/ trees are excluded from walks.",
+        "scopeNote": "Directory totals exclude nested artifact paths to avoid double-counting reclaimable space.",
         "totals": {
           "reclaimableBytes": 0,
           "safeToDeleteBytes": 0,
@@ -2228,9 +2814,9 @@
           "topGroups": []
         },
         "unusedFiles": {
-          "candidates": 0,
-          "sourceFilesScanned": 1536,
-          "entryPoints": 235,
+          "candidates": 5,
+          "sourceFilesScanned": 1591,
+          "entryPoints": 236,
           "note": "Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting."
         },
         "summaryTable": [
@@ -2254,7 +2840,7 @@
           },
           {
             "category": "Unused source files",
-            "files": 0,
+            "files": 5,
             "bytes": null,
             "action": "Investigate"
           }
@@ -2269,7 +2855,7 @@
       },
       "executiveSummary": {
         "profile": "file-reduction",
-        "generatedAt": "2026-05-29T05:14:33.330Z",
+        "generatedAt": "2026-05-29T11:36:04.563Z",
         "priorityActions": [],
         "security": {
           "credentialHits": 0,
@@ -2303,7 +2889,7 @@
           "duplicateAssetBytes": 0,
           "estimatedImmediateSavingsBytes": 0,
           "buildArtifactFindings": 1,
-          "unusedFileCandidates": 0,
+          "unusedFileCandidates": 5,
           "duplicateAssetGroups": 0
         },
         "notes": [
@@ -2317,9 +2903,9 @@
         "scope": "workspace",
         "scopeNote": "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
         "project": {
-          "totalFiles": 2222,
-          "totalDirectories": 211,
-          "durationMs": 2207,
+          "totalFiles": 2322,
+          "totalDirectories": 259,
+          "durationMs": 1303,
           "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform"
         },
         "scanners": {
@@ -2492,16 +3078,16 @@
       "type": "data-cleanup-report",
       "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
       "dryRun": true,
-      "generatedAt": "2026-05-29T05:14:42.855Z",
-      "durationMs": 9522,
+      "generatedAt": "2026-05-29T11:36:10.192Z",
+      "durationMs": 5621,
       "inventory": {
-        "totalFiles": 2222,
-        "totalDirectories": 211
+        "totalFiles": 2322,
+        "totalDirectories": 259
       },
       "scanners": {
         "config-management": {
-          "configFiles": 11,
-          "envFiles": 7,
+          "configFiles": 13,
+          "envFiles": 9,
           "packageJsonFiles": 2,
           "sprawlFindings": 0,
           "duplicateConfigTypes": 0,
@@ -2509,42 +3095,42 @@
           "unusedConfigs": 0
         },
         "dependency-health": {
-          "packageJsonFiles": 0,
-          "uniqueDependencies": 0,
+          "packageJsonFiles": 2,
+          "uniqueDependencies": 27,
           "unusedDependencies": 0,
           "duplicateDependencies": 0,
           "versionDrift": 0
         },
         "environment-variables": {
-          "envFiles": 7,
-          "envKeys": 277,
-          "referencedKeys": 181,
+          "envFiles": 9,
+          "envKeys": 273,
+          "referencedKeys": 179,
           "secretFindings": 0,
           "missingKeys": 0,
-          "unusedKeys": 0
+          "unusedKeys": 3
         },
         "data-freshness": {
-          "dataFilesScanned": 106,
+          "dataFilesScanned": 107,
           "staleFiles": 0,
           "criticalStale": 0
         },
         "data-access-patterns": {
-          "sourceFilesScanned": 271,
+          "sourceFilesScanned": 272,
           "patternFindings": 0
         },
         "data-privacy": {
-          "dataFilesScanned": 197,
-          "privacyFindings": 0,
-          "credentialHits": 0,
-          "piiHits": 0
+          "dataFilesScanned": 222,
+          "privacyFindings": 21,
+          "credentialHits": 1,
+          "piiHits": 20
         },
         "data-lineage": {
-          "dataFilesTracked": 106,
+          "dataFilesTracked": 107,
           "orphanedDataFiles": 0,
-          "connectedDataFiles": 106
+          "connectedDataFiles": 107
         },
         "data-consistency": {
-          "jsonDataFiles": 103,
+          "jsonDataFiles": 104,
           "directoriesCompared": 15,
           "shapeDriftGroups": 0
         }
@@ -2555,39 +3141,550 @@
         "unusedFiles": [],
         "configManagement": [],
         "dependencyHealth": [],
-        "environmentVariables": [],
+        "environmentVariables": [
+          {
+            "type": "unused-env-key",
+            "path": ".env",
+            "reason": "Environment variable SIMPLEBEACON_RELOAD_SCANNERS is defined but not referenced in scanned source",
+            "severity": "low",
+            "confidence": "medium",
+            "action": "remove-or-document",
+            "metadata": {
+              "key": "SIMPLEBEACON_RELOAD_SCANNERS",
+              "files": [
+                ".env"
+              ]
+            }
+          },
+          {
+            "type": "unused-env-key",
+            "path": ".env.example",
+            "reason": "Environment variable SIMPLEBEACON_DASHBOARD_BUILD is defined but not referenced in scanned source",
+            "severity": "low",
+            "confidence": "medium",
+            "action": "remove-or-document",
+            "metadata": {
+              "key": "SIMPLEBEACON_DASHBOARD_BUILD",
+              "files": [
+                ".env.example"
+              ]
+            }
+          },
+          {
+            "type": "unused-env-key",
+            "path": ".env.production",
+            "reason": "Environment variable STRIPE_CHECKOUT_MODE_TEAMS_MONTHLY is defined but not referenced in scanned source",
+            "severity": "low",
+            "confidence": "medium",
+            "action": "remove-or-document",
+            "metadata": {
+              "key": "STRIPE_CHECKOUT_MODE_TEAMS_MONTHLY",
+              "files": [
+                ".env.production"
+              ]
+            }
+          }
+        ],
         "dataFreshness": [],
         "dataAccessPatterns": [],
-        "dataPrivacy": [],
+        "dataPrivacy": [
+          {
+            "type": "data-privacy",
+            "path": "docs/MockDataAnalysisSystem.md",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 528
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "docs/MockDataAnalysisSystem.md",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 529
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "docs/MockDataAnalysisSystem.md",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 530
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "docs/MOCK_DATA_LIFECYCLE.md",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 493
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "docs/MOCK_DATA_LIFECYCLE.md",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 496
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "docs/mock_data_report_improved.md",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 338
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "tests/fixtures/ai-analyzer-eval/ethical-societal/a-10-privacy-violation.json",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 5
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "tests/fixtures/ai-analyzer-eval/ethical-societal/a-10-privacy-violation.json",
+            "reason": "Possible ssn pattern in data file",
+            "severity": "high",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "ssn-pattern",
+              "line": 5
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "tests/fixtures/simplebeacon-toxic-fixtures/src/server/auth-mock.js",
+            "reason": "Credential pattern (aws-access-key) in data file",
+            "severity": "high",
+            "confidence": "high",
+            "action": "rotate-and-remove-secret",
+            "metadata": {
+              "line": 2,
+              "patternId": "aws-access-key"
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "tools/generate-sample-certificate.js",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 36
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "web/api/mock-backend.js",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 2065
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "web/api/mock-backend.js",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 2077
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "web/api/mock-backend.js",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 2089
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "web/api/mock-backend.js",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 2101
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "web/api/mock-backend.js",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 2113
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "web/api/mock-backend.js",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 2125
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "web/api/mock-backend.js",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 5270
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "web/data/billing-system-sample.json",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 75
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "web/data/billing-system-sample.json",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 86
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "web/data/billing-system-sample.json",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 143
+            }
+          },
+          {
+            "type": "data-privacy",
+            "path": "web/data/code-templates-sample.json",
+            "reason": "Possible realistic email in data file",
+            "severity": "medium",
+            "confidence": "medium",
+            "action": "remove-or-tokenize-pii",
+            "metadata": {
+              "patternId": "realistic-email",
+              "line": 157
+            }
+          }
+        ],
         "dataLineage": [],
         "dataConsistency": []
       },
       "aggregation": {
         "bySeverity": {
           "critical": 0,
-          "high": 0,
-          "medium": 0,
-          "low": 0
+          "high": 2,
+          "medium": 8,
+          "low": 3
         },
-        "byCategory": {},
-        "topFiles": []
+        "byCategory": {
+          "unused-env-key": 3,
+          "data-privacy": 10
+        },
+        "topFiles": [
+          {
+            "filePath": "tests/fixtures/ai-analyzer-eval/ethical-societal/a-10-privacy-violation.json",
+            "count": 2
+          },
+          {
+            "filePath": ".env",
+            "count": 1
+          },
+          {
+            "filePath": ".env.example",
+            "count": 1
+          },
+          {
+            "filePath": ".env.production",
+            "count": 1
+          },
+          {
+            "filePath": "docs/MockDataAnalysisSystem.md",
+            "count": 1
+          },
+          {
+            "filePath": "docs/MOCK_DATA_LIFECYCLE.md",
+            "count": 1
+          },
+          {
+            "filePath": "docs/mock_data_report_improved.md",
+            "count": 1
+          },
+          {
+            "filePath": "tests/fixtures/simplebeacon-toxic-fixtures/src/server/auth-mock.js",
+            "count": 1
+          },
+          {
+            "filePath": "tools/generate-sample-certificate.js",
+            "count": 1
+          },
+          {
+            "filePath": "web/api/mock-backend.js",
+            "count": 1
+          },
+          {
+            "filePath": "web/data/billing-system-sample.json",
+            "count": 1
+          },
+          {
+            "filePath": "web/data/code-templates-sample.json",
+            "count": 1
+          }
+        ]
       },
-      "allFindings": [],
+      "allFindings": [
+        {
+          "type": "data-privacy",
+          "path": "tests/fixtures/ai-analyzer-eval/ethical-societal/a-10-privacy-violation.json",
+          "reason": "Possible ssn pattern in data file",
+          "severity": "high",
+          "confidence": "medium",
+          "action": "remove-or-tokenize-pii",
+          "metadata": {
+            "patternId": "ssn-pattern",
+            "line": 5
+          }
+        },
+        {
+          "type": "data-privacy",
+          "path": "tests/fixtures/simplebeacon-toxic-fixtures/src/server/auth-mock.js",
+          "reason": "Credential pattern (aws-access-key) in data file",
+          "severity": "high",
+          "confidence": "high",
+          "action": "rotate-and-remove-secret",
+          "metadata": {
+            "line": 2,
+            "patternId": "aws-access-key"
+          }
+        },
+        {
+          "type": "data-privacy",
+          "path": "docs/MOCK_DATA_LIFECYCLE.md",
+          "reason": "Possible realistic email in data file",
+          "severity": "medium",
+          "confidence": "medium",
+          "action": "remove-or-tokenize-pii",
+          "metadata": {
+            "patternId": "realistic-email",
+            "line": 493
+          }
+        },
+        {
+          "type": "data-privacy",
+          "path": "docs/mock_data_report_improved.md",
+          "reason": "Possible realistic email in data file",
+          "severity": "medium",
+          "confidence": "medium",
+          "action": "remove-or-tokenize-pii",
+          "metadata": {
+            "patternId": "realistic-email",
+            "line": 338
+          }
+        },
+        {
+          "type": "data-privacy",
+          "path": "docs/MockDataAnalysisSystem.md",
+          "reason": "Possible realistic email in data file",
+          "severity": "medium",
+          "confidence": "medium",
+          "action": "remove-or-tokenize-pii",
+          "metadata": {
+            "patternId": "realistic-email",
+            "line": 528
+          }
+        },
+        {
+          "type": "data-privacy",
+          "path": "tests/fixtures/ai-analyzer-eval/ethical-societal/a-10-privacy-violation.json",
+          "reason": "Possible realistic email in data file",
+          "severity": "medium",
+          "confidence": "medium",
+          "action": "remove-or-tokenize-pii",
+          "metadata": {
+            "patternId": "realistic-email",
+            "line": 5
+          }
+        },
+        {
+          "type": "data-privacy",
+          "path": "tools/generate-sample-certificate.js",
+          "reason": "Possible realistic email in data file",
+          "severity": "medium",
+          "confidence": "medium",
+          "action": "remove-or-tokenize-pii",
+          "metadata": {
+            "patternId": "realistic-email",
+            "line": 36
+          }
+        },
+        {
+          "type": "data-privacy",
+          "path": "web/api/mock-backend.js",
+          "reason": "Possible realistic email in data file",
+          "severity": "medium",
+          "confidence": "medium",
+          "action": "remove-or-tokenize-pii",
+          "metadata": {
+            "patternId": "realistic-email",
+            "line": 2065
+          }
+        },
+        {
+          "type": "data-privacy",
+          "path": "web/data/billing-system-sample.json",
+          "reason": "Possible realistic email in data file",
+          "severity": "medium",
+          "confidence": "medium",
+          "action": "remove-or-tokenize-pii",
+          "metadata": {
+            "patternId": "realistic-email",
+            "line": 75
+          }
+        },
+        {
+          "type": "data-privacy",
+          "path": "web/data/code-templates-sample.json",
+          "reason": "Possible realistic email in data file",
+          "severity": "medium",
+          "confidence": "medium",
+          "action": "remove-or-tokenize-pii",
+          "metadata": {
+            "patternId": "realistic-email",
+            "line": 157
+          }
+        },
+        {
+          "type": "unused-env-key",
+          "path": ".env",
+          "reason": "Environment variable SIMPLEBEACON_RELOAD_SCANNERS is defined but not referenced in scanned source",
+          "severity": "low",
+          "confidence": "medium",
+          "action": "remove-or-document",
+          "metadata": {
+            "key": "SIMPLEBEACON_RELOAD_SCANNERS",
+            "files": [
+              ".env"
+            ]
+          }
+        },
+        {
+          "type": "unused-env-key",
+          "path": ".env.example",
+          "reason": "Environment variable SIMPLEBEACON_DASHBOARD_BUILD is defined but not referenced in scanned source",
+          "severity": "low",
+          "confidence": "medium",
+          "action": "remove-or-document",
+          "metadata": {
+            "key": "SIMPLEBEACON_DASHBOARD_BUILD",
+            "files": [
+              ".env.example"
+            ]
+          }
+        },
+        {
+          "type": "unused-env-key",
+          "path": ".env.production",
+          "reason": "Environment variable STRIPE_CHECKOUT_MODE_TEAMS_MONTHLY is defined but not referenced in scanned source",
+          "severity": "low",
+          "confidence": "medium",
+          "action": "remove-or-document",
+          "metadata": {
+            "key": "STRIPE_CHECKOUT_MODE_TEAMS_MONTHLY",
+            "files": [
+              ".env.production"
+            ]
+          }
+        }
+      ],
       "summary": {
-        "totalFindings": 0,
+        "totalFindings": 24,
         "buildArtifactFindings": 0,
         "duplicateAssetGroups": 0,
         "unusedFileCandidates": 0,
         "configFindings": 0,
         "dependencyFindings": 0,
-        "environmentFindings": 0,
+        "environmentFindings": 3,
         "dataFreshnessFindings": 0,
         "dataAccessFindings": 0,
-        "dataPrivacyFindings": 0,
+        "dataPrivacyFindings": 21,
         "dataLineageFindings": 0,
         "dataConsistencyFindings": 0,
         "reclaimableBytes": 0,
-        "estimatedReductionPct": 0
+        "estimatedReductionPct": 1
       },
       "metadata": {
         "entryPoints": [],
@@ -2624,10 +3721,18 @@
           },
           {
             "path": "mock_data_6.json",
-            "consumerCount": 2,
+            "consumerCount": 3,
             "consumers": [
               "web/api/mock-backend-static-data.js",
-              "web/scripts/roadmap-data-service.js"
+              "web/scripts/roadmap-data-service.js",
+              "tests/unit/snippet-diagnostic.test.js"
+            ]
+          },
+          {
+            "path": "mock_data_monitoring_dashboard.json",
+            "consumerCount": 1,
+            "consumers": [
+              "docs/scan-optimization-complete.md"
             ]
           },
           {
@@ -2639,8 +3744,10 @@
           },
           {
             "path": "tests/fixtures/ai-analyzer-eval/economic-regulatory/a-17-market-monopolization.json",
-            "consumerCount": 0,
-            "consumers": []
+            "consumerCount": 1,
+            "consumers": [
+              "tests/unit/snippet-diagnostic.test.js"
+            ]
           },
           {
             "path": "tests/fixtures/ai-analyzer-eval/economic-regulatory/a-18-environmental-impact.json",
@@ -2929,11 +4036,12 @@
           },
           {
             "path": "web/data/ai-adoption-trends-sample.json",
-            "consumerCount": 3,
+            "consumerCount": 4,
             "consumers": [
               "packages/simplebeacon-cli/src/lib/page-sample-specs.js",
               "src/api/simplebeacon-api.js",
-              "tools/extended-schema-coverage-check.js"
+              "tools/extended-schema-coverage-check.js",
+              "tests/unit/snippet-diagnostic.test.js"
             ]
           },
           {
@@ -3157,10 +4265,11 @@
           },
           {
             "path": "web/data/fictional-patterns-sample.json",
-            "consumerCount": 2,
+            "consumerCount": 3,
             "consumers": [
               "packages/simplebeacon-cli/src/lib/page-sample-specs.js",
-              "src/api/simplebeacon-api.js"
+              "src/api/simplebeacon-api.js",
+              "tests/unit/snippet-diagnostic.test.js"
             ]
           },
           {
@@ -3239,14 +4348,15 @@
           },
           {
             "path": "web/data/mock-analysis-sample.json",
-            "consumerCount": 6,
+            "consumerCount": 7,
             "consumers": [
               "packages/simplebeacon-cli/src/lib/page-sample-specs.js",
               "server/services/model-inference-service.js",
               "tools/extended-schema-coverage-check.js",
               "tests/integration/local-models-api.test.js",
               "tests/unit/codebase-analyzer.test.js",
-              "tests/unit/model-inference-service.test.js"
+              "tests/unit/model-inference-service.test.js",
+              "tests/unit/snippet-diagnostic.test.js"
             ]
           },
           {
@@ -3377,7 +4487,7 @@
         ]
       },
       "fileReductionPlan": {
-        "scopeNote": "Directory totals exclude nested artifact paths to avoid double-counting reclaimable space. github-cache/, deliverables/, and .simplebeacon/ trees are excluded from walks.",
+        "scopeNote": "Directory totals exclude nested artifact paths to avoid double-counting reclaimable space.",
         "totals": {
           "reclaimableBytes": 0,
           "safeToDeleteBytes": 0,
@@ -3449,25 +4559,50 @@
       },
       "executiveSummary": {
         "profile": "data-quality",
-        "generatedAt": "2026-05-29T05:14:42.855Z",
+        "generatedAt": "2026-05-29T11:36:10.192Z",
         "priorityActions": [],
         "security": {
-          "credentialHits": 0,
+          "credentialHits": 1,
           "credentialsNeedingReview": 0,
-          "piiHits": 0,
+          "piiHits": 20,
           "piiNeedingReview": 0,
-          "credentials": [],
-          "piiByCategory": [],
+          "credentials": [
+            {
+              "path": "tests/fixtures/simplebeacon-toxic-fixtures/src/server/auth-mock.js",
+              "line": 2,
+              "pattern": "aws-access-key",
+              "kind": "credential",
+              "category": "test-fixture",
+              "categoryLabel": "Intentional test fixture"
+            }
+          ],
+          "piiByCategory": [
+            {
+              "category": "mock-sample-data",
+              "categoryLabel": "Mock or sample data",
+              "count": 14
+            },
+            {
+              "category": "documentation",
+              "categoryLabel": "Documentation / guidelines",
+              "count": 6
+            },
+            {
+              "category": "test-fixture",
+              "categoryLabel": "Intentional test fixture",
+              "count": 1
+            }
+          ],
           "piiSamples": []
         },
         "workspace": {
-          "packageJsonFiles": 0,
+          "packageJsonFiles": 2,
           "unusedDependencies": 0,
           "versionDrift": 0,
           "duplicateDependencies": 0,
-          "envFiles": 7,
+          "envFiles": 9,
           "envInconsistencies": 0,
-          "unusedEnvKeys": 0,
+          "unusedEnvKeys": 3,
           "missingEnvKeys": 0
         },
         "data": {
@@ -3487,6 +4622,8 @@
           "duplicateAssetGroups": 0
         },
         "notes": [
+          "All PII hits are in documentation, reports, or mock/sample data.",
+          "All credential hits are documented examples or intentional test fixtures.",
           "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
           "Unused dependencies are based on static imports only — verify CLI, test, and config usage before removal.",
           "Unused env keys may still be supplied by Docker, CI, or runtime injection.",
@@ -3497,17 +4634,17 @@
         "scope": "workspace",
         "scopeNote": "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
         "project": {
-          "totalFiles": 2222,
-          "totalDirectories": 211,
-          "durationMs": 9520,
+          "totalFiles": 2322,
+          "totalDirectories": 259,
+          "durationMs": 5621,
           "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform"
         },
         "scanners": {
           "config-management": {
             "label": "Config Management",
             "stats": {
-              "configFiles": 11,
-              "envFiles": 7,
+              "configFiles": 13,
+              "envFiles": 9,
               "packageJsonFiles": 2,
               "sprawlFindings": 0,
               "inconsistentEnvKeys": 0
@@ -3523,8 +4660,8 @@
           "dependency-health": {
             "label": "Dependency Health",
             "stats": {
-              "packageJsonFiles": 0,
-              "uniqueDependencies": 0,
+              "packageJsonFiles": 2,
+              "uniqueDependencies": 27,
               "unusedDependencies": 0,
               "versionDrift": 0,
               "duplicateDependencies": 0
@@ -3540,17 +4677,17 @@
           "environment-variables": {
             "label": "Environment Variables",
             "stats": {
-              "envFiles": 7,
-              "envKeys": 277,
-              "referencedKeys": 181,
+              "envFiles": 9,
+              "envKeys": 273,
+              "referencedKeys": 179,
               "secretFindings": 0,
               "missingKeys": 0,
-              "unusedKeys": 0
+              "unusedKeys": 3
             },
             "findings": {
-              "total": 0,
+              "total": 3,
               "missingKeys": 0,
-              "unusedKeys": 0,
+              "unusedKeys": 3,
               "envSecrets": 0,
               "envInconsistencies": 0
             }
@@ -3558,7 +4695,7 @@
           "data-freshness": {
             "label": "Data Freshness",
             "stats": {
-              "dataFilesScanned": 106,
+              "dataFilesScanned": 107,
               "staleFiles": 0,
               "criticalStale": 0
             },
@@ -3570,7 +4707,7 @@
           "data-access-patterns": {
             "label": "Data Access Patterns",
             "stats": {
-              "sourceFilesScanned": 271,
+              "sourceFilesScanned": 272,
               "patternFindings": 0
             },
             "findings": {
@@ -3581,23 +4718,23 @@
           "data-privacy": {
             "label": "Data Privacy",
             "stats": {
-              "dataFilesScanned": 197,
-              "privacyFindings": 0,
-              "credentialHits": 0,
-              "piiHits": 0
+              "dataFilesScanned": 222,
+              "privacyFindings": 21,
+              "credentialHits": 1,
+              "piiHits": 20
             },
             "findings": {
-              "total": 0,
-              "credentialHits": 0,
-              "piiHits": 0
+              "total": 21,
+              "credentialHits": 1,
+              "piiHits": 20
             }
           },
           "data-lineage": {
             "label": "Data Lineage",
             "stats": {
-              "dataFilesTracked": 106,
+              "dataFilesTracked": 107,
               "orphanedDataFiles": 0,
-              "connectedDataFiles": 106
+              "connectedDataFiles": 107
             },
             "findings": {
               "total": 0,
@@ -3607,7 +4744,7 @@
           "data-consistency": {
             "label": "Data Consistency",
             "stats": {
-              "jsonDataFiles": 103,
+              "jsonDataFiles": 104,
               "directoriesCompared": 15,
               "shapeDriftGroups": 0
             },
@@ -3631,14 +4768,14 @@
             "versionDrift": 0
           },
           "environmentVariables": {
-            "total": 0,
+            "total": 3,
             "missingKeys": 0,
-            "unusedKeys": 0
+            "unusedKeys": 3
           },
           "dataPrivacy": {
-            "total": 0,
-            "credentialHits": 0,
-            "piiHits": 0
+            "total": 21,
+            "credentialHits": 1,
+            "piiHits": 20
           },
           "dataAccessPatterns": {
             "total": 0,
@@ -3676,7 +4813,7 @@
     "cleanupAssistant": {
       "type": "simplebeacon-cleanup-brief",
       "version": "1.0.0",
-      "generatedAt": "2026-05-29T05:14:42.857Z",
+      "generatedAt": "2026-05-29T11:36:10.200Z",
       "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
       "policy": {
         "protectedPaths": [
@@ -3692,12 +4829,12 @@
         "aggressiveness": "moderate"
       },
       "inventory": {
-        "totalFiles": 2222,
-        "totalFolders": 211
+        "totalFiles": 2322,
+        "totalFolders": 259
       },
       "projectedInventory": {
-        "totalFiles": 2222,
-        "totalFolders": 211
+        "totalFiles": 2322,
+        "totalFolders": 259
       },
       "estimatedReduction": {
         "files": 0,
@@ -3728,19 +4865,19 @@
           "directories": []
         },
         "investigate": {
-          "files": 0,
+          "files": 5,
           "note": "Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting."
         }
       },
       "scanAnalysis": {
-        "generatedAt": "2026-05-29T05:14:42.857Z",
+        "generatedAt": "2026-05-29T11:36:10.200Z",
         "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
         "fileReduction": {
           "safeToDeleteBytes": 0,
           "reviewBeforeDeleteBytes": 0,
           "immediateSavingsBytes": 0,
           "duplicateAssetBytes": 0,
-          "unusedFileCandidates": 0,
+          "unusedFileCandidates": 5,
           "topSafeDirectories": [
             {
               "path": "node_modules",
@@ -3771,14 +4908,14 @@
             },
             {
               "category": "Unused source files",
-              "files": 0,
+              "files": 5,
               "bytes": null,
               "action": "Investigate"
             }
           ]
         },
         "dataQuality": {
-          "workspacePackages": 0,
+          "workspacePackages": 2,
           "unusedDependencies": 0,
           "envInconsistencies": 0,
           "missingEnvKeys": 0,
@@ -3787,15 +4924,32 @@
           "orphanedDataFiles": 0,
           "credentialsNeedingReview": 0,
           "piiNeedingReview": 0,
-          "piiByCategory": []
+          "piiByCategory": [
+            {
+              "category": "mock-sample-data",
+              "categoryLabel": "Mock or sample data",
+              "count": 14
+            },
+            {
+              "category": "documentation",
+              "categoryLabel": "Documentation / guidelines",
+              "count": 6
+            },
+            {
+              "category": "test-fixture",
+              "categoryLabel": "Intentional test fixture",
+              "count": 1
+            }
+          ]
         },
         "priorityActions": [],
         "notes": [
-          "Directory totals exclude nested artifact paths to avoid double-counting reclaimable space. github-cache/, deliverables/, and .simplebeacon/ trees are excluded from walks.",
+          "Directory totals exclude nested artifact paths to avoid double-counting reclaimable space.",
           "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
           "Unused dependencies are based on static imports only — verify CLI, test, and config usage before removal.",
           "Unused env keys may still be supplied by Docker, CI, or runtime injection.",
-          "PII hits in docs, reports, and sample data are common — review production paths first."
+          "PII hits in docs, reports, and sample data are common — review production paths first.",
+          "All PII hits are in documentation, reports, or mock/sample data."
         ]
       },
       "duplicateAssets": [],
@@ -3808,145 +4962,91 @@
         "Keep .simplebeacon scan artifacts unless the user opts in.",
         "Target inventory reduction: ~0 files (0 B)."
       ],
-      "agentPrompt": "Proceed in agent mode using the attached cleanup brief for: C:\\Users\\Trevor\\CascadeProjects\\ai-platform\n\nDeletion policy:\n- Safe to delete now: regenerable artifacts only (0 files, 0 B).\n- Protected (never delete): web/data, data/mock, data-central, data/roadmap, uploads, .git\n- Review first: logs, scan cache, and anything flagged reviewFirst in the brief\n- Do not bulk-delete unused-file candidates without verifying imports\n\nInventory: 2,222 files / 211 folders\nProjected after phase 1: ~2,222 files\n\nAttach the exported cleanup-brief JSON and execute phase 1 only unless I say otherwise."
-    },
-    "compliance": {
-      "type": "simplebeacon-compliance-checklist",
-      "version": "1.0.0",
-      "title": "Simplebeacon Corporate Safety Checklist",
-      "description": "Automated guardrails for AI-generated code — maps scan signals to deploy readiness.",
-      "evaluatedAt": "2026-05-29T05:14:44.784Z",
-      "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-      "summary": {
-        "passed": 8,
-        "failed": 0,
-        "skipped": 0,
-        "total": 8,
-        "score": 100,
-        "readyForAutomation": true,
-        "headline": "8/8 applicable rules pass — safe to enable automated AI deploy gates"
-      },
-      "rules": [
+      "agentPrompt": "Proceed in agent mode using the attached cleanup brief for: C:\\Users\\Trevor\\CascadeProjects\\ai-platform\n\nDeletion policy:\n- Safe to delete now: regenerable artifacts only (0 files, 0 B).\n- Protected (never delete): web/data, data/mock, data-central, data/roadmap, uploads, .git\n- Review first: logs, scan cache, and anything flagged reviewFirst in the brief\n- Do not bulk-delete unused-file candidates without verifying imports\n\nInventory: 2,322 files / 259 folders\nProjected after phase 1: ~2,322 files\n\nAttach the exported cleanup-brief JSON and execute phase 1 only unless I say otherwise."
+    }
+  },
+  "enrichedAt": "2026-05-29T11:36:10.200Z",
+  "completeScanAnalysis": {
+    "generatedAt": "2026-05-29T11:36:10.201Z",
+    "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "fileReduction": {
+      "safeToDeleteBytes": 0,
+      "reviewBeforeDeleteBytes": 0,
+      "immediateSavingsBytes": 0,
+      "duplicateAssetBytes": 0,
+      "unusedFileCandidates": 5,
+      "topSafeDirectories": [
         {
-          "id": "GATE-001",
-          "title": "Merge gate passes on configured severities",
-          "category": "Automation",
-          "severity": "critical",
-          "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
-          "status": "pass",
-          "evidence": "Gate pass — no blocking issues at configured severities"
+          "path": "node_modules",
+          "bytes": 0,
+          "files": 0,
+          "category": "node_modules"
+        }
+      ],
+      "reviewLogs": [],
+      "summaryTable": [
+        {
+          "category": "Build artifacts (safe)",
+          "files": 0,
+          "bytes": 0,
+          "action": "Safe to delete"
         },
         {
-          "id": "CRED-001",
-          "title": "No credential or secret patterns in scanned paths",
-          "category": "Security",
-          "severity": "critical",
-          "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
-          "status": "pass",
-          "evidence": "Scanned 187 path(s) — no credential patterns"
+          "category": "Build artifacts (review)",
+          "files": 0,
+          "bytes": 0,
+          "action": "Review first"
         },
         {
-          "id": "LEAK-001",
-          "title": "No mock/sample JSON paths referenced from production directories",
-          "category": "Data integrity",
-          "severity": "high",
-          "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
-          "status": "pass",
-          "evidence": "Scanned 126 production file(s) — no sample-path leaks"
+          "category": "Duplicate assets",
+          "files": 0,
+          "bytes": 0,
+          "action": "Consolidate"
         },
         {
-          "id": "DATA-001",
-          "title": "Registered page samples match schema specs",
-          "category": "Data integrity",
-          "severity": "high",
-          "remediation": "Fix schema violations listed in the scan report",
-          "status": "pass",
-          "evidence": "51/51 samples match schema specs"
-        },
-        {
-          "id": "DATA-002",
-          "title": "No fiction KPI or baseline drift in anchor samples",
-          "category": "Data integrity",
-          "severity": "high",
-          "remediation": "Replace fiction metrics with repository-audit baseline values",
-          "status": "pass",
-          "evidence": "Consistency score 100% — no fiction KPI drift"
-        },
-        {
-          "id": "SUPPLY-001",
-          "title": "No critical or high npm audit vulnerabilities",
-          "category": "Supply chain",
-          "severity": "critical",
-          "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
-          "status": "pass",
-          "evidence": "npm audit: 0 critical, 0 high (npm-audit)"
-        },
-        {
-          "id": "SUPPLY-002",
-          "title": "Moderate npm vulnerabilities within policy limit",
-          "category": "Supply chain",
-          "severity": "medium",
-          "remediation": "Upgrade dependencies flagged by npm audit (moderate severity)",
-          "status": "pass",
-          "evidence": "0 moderate (limit 0)"
-        },
-        {
-          "id": "AUTH-001",
-          "title": "Production profile has JWT auth enabled (REQUIRE_AUTH)",
-          "category": "Access control",
-          "severity": "medium",
-          "remediation": "Set REQUIRE_AUTH=true and real JWT secrets in .env.production on the deploy host",
-          "status": "pass",
-          "evidence": "REQUIRE_AUTH=true with non-placeholder JWT"
+          "category": "Unused source files",
+          "files": 5,
+          "bytes": null,
+          "action": "Investigate"
         }
       ]
     },
-    "npmAudit": {
-      "generatedAt": "2026-05-29T05:14:46.616Z",
-      "dataSource": "npm-audit",
-      "auditReportVersion": 2,
-      "metadata": {
-        "vulnerabilities": {
-          "info": 0,
-          "low": 0,
-          "moderate": 0,
-          "high": 0,
-          "critical": 0,
-          "total": 0
+    "dataQuality": {
+      "workspacePackages": 2,
+      "unusedDependencies": 0,
+      "envInconsistencies": 0,
+      "missingEnvKeys": 0,
+      "shapeDriftGroups": 0,
+      "syncIoPatterns": 0,
+      "orphanedDataFiles": 0,
+      "credentialsNeedingReview": 0,
+      "piiNeedingReview": 0,
+      "piiByCategory": [
+        {
+          "category": "mock-sample-data",
+          "categoryLabel": "Mock or sample data",
+          "count": 14
         },
-        "dependencies": {
-          "prod": 235,
-          "dev": 541,
-          "optional": 2,
-          "peer": 0,
-          "peerOptional": 0,
-          "total": 777
+        {
+          "category": "documentation",
+          "categoryLabel": "Documentation / guidelines",
+          "count": 6
+        },
+        {
+          "category": "test-fixture",
+          "categoryLabel": "Intentional test fixture",
+          "count": 1
         }
-      },
-      "dependencies": {
-        "prod": 235,
-        "dev": 541,
-        "optional": 2,
-        "peer": 0,
-        "peerOptional": 0,
-        "total": 777
-      },
-      "vulnerabilities": [],
-      "summary": {
-        "info": 0,
-        "low": 0,
-        "moderate": 0,
-        "high": 0,
-        "critical": 0,
-        "total": 0,
-        "vulnerabilityTotal": 0,
-        "dependencies": 777,
-        "prodDependencies": 235,
-        "devDependencies": 541
-      },
-      "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-      "scanRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-      "auditRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform"
-    }
+      ]
+    },
+    "priorityActions": [],
+    "notes": [
+      "Directory totals exclude nested artifact paths to avoid double-counting reclaimable space.",
+      "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
+      "Unused dependencies are based on static imports only — verify CLI, test, and config usage before removal.",
+      "Unused env keys may still be supplied by Docker, CI, or runtime injection.",
+      "PII hits in docs, reports, and sample data are common — review production paths first.",
+      "All PII hits are in documentation, reports, or mock/sample data."
+    ]
   }
 }

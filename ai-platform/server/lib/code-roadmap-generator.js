@@ -16,7 +16,8 @@ const PLATFORM_DIR_NAMES = ['ai-platform'];
 
 const SKIP_DIRS = new Set([
     'node_modules', '.git', 'dist', 'build', 'coverage', 'htmlcov',
-    '__pycache__', '.next', '.cache', 'uploads', '.venv', '.simplebeacon'
+    '__pycache__', '.next', '.cache', 'uploads', '.venv', '.simplebeacon',
+    'github-cache', 'deliverables', 'data-central', 'security-reports'
 ]);
 
 /** Legacy trees excluded from roadmap file counts and dependency walks. */

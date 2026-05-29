@@ -1,13 +1,13 @@
 {
   "package": "SimpleBeacon Gate Attestation Pack",
-  "generatedAt": "2026-05-29T05:14:46.616Z",
-  "updatedAt": "2026-05-29T05:14:51.073Z",
+  "generatedAt": "2026-05-29T11:36:10.200Z",
+  "updatedAt": "2026-05-29T11:36:30.745Z",
   "repository": "CascadeProjects (monorepo root, platform ai-platform)",
   "instructions": "Attach complete-scan JSON + HTML attestation exports for vendor questionnaires. Re-run Complete scan after code changes.",
   "pricingProofStack": {
     "completeScanVersion": "1.3.0",
     "gatePass": true,
-    "compliancePassed": 8,
+    "compliancePassed": 7,
     "npmVulnerabilities": 0,
     "llmSlopHits": 0,
     "codebaseHealthScore": 100,
@@ -20,21 +20,21 @@
   "artifacts": [
     {
       "role": "gate-attestation",
-      "reportId": "SB-AUD-20260529-AH15V9",
+      "reportId": "SB-AUD-20260529-7PK00Q",
       "file": "01-gate-attestation-FTTYCS.html",
       "tier": "gate-only",
       "evidence": {
         "gatePass": true,
-        "gateFilesChecked": 209,
+        "gateFilesChecked": 211,
         "qualityScore": 100,
         "llmSlopHits": 0,
         "codebaseHealthScore": 100,
-        "track2VerifiedAt": "2026-05-29T05:14:51.073Z"
+        "track2VerifiedAt": "2026-05-29T11:36:30.745Z"
       }
     },
     {
       "role": "codebase-hygiene",
-      "reportId": "SB-AUD-20260529-WT6IQZ",
+      "reportId": "SB-AUD-20260529-LQHZBC",
       "file": "02-codebase-hygiene-AJ1JFI.html",
       "tier": "codebase-only",
       "evidence": {
@@ -48,14 +48,14 @@
       "file": "user-export-complete-scan-2026-05-29.json",
       "note": "Platform-scoped complete scan (2026-05-29) — repo ~2.2k files, gate pass",
       "evidence": {
-        "stepsCompleted": 10,
+        "stepsCompleted": 8,
         "simplebeaconGatePass": true,
-        "compliancePassed": 8,
+        "compliancePassed": 7,
         "npmVulnerabilities": 0,
         "codebaseHealthScore": 100,
-        "repositoryFilesTotal": 2222,
+        "repositoryFilesTotal": 2320,
         "mockSampleFiles": 48,
-        "roadmapFiles": 1602,
+        "roadmapFiles": 1702,
         "consolidationDuplicateGroups": 0,
         "fictionKpiHits": 0
       }

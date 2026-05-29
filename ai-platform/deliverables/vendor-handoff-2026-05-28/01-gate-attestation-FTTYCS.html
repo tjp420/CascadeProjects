@@ -130,11 +130,6 @@
     .impact-review { background: rgba(110, 118, 129, 0.12); color: #c9d1d9; }
     .recipe-cell { color: #c9d1d9; }
     .recipe-cell code { display: inline; font-size: 8.5pt; }
-    .fix-meta { font-size: 8pt; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.02em; }
-    .fix-diff { font-family: "JetBrains Mono", Consolas, monospace; font-size: 8.5pt; line-height: 1.45; margin: 4px 0 8px; white-space: pre-wrap; word-break: break-word; }
-    .fix-diff-minus { color: #ff7b72; display: block; }
-    .fix-diff-plus { color: #3fb950; display: block; }
-    .fix-manual { font-size: 9pt; line-height: 1.45; margin: 4px 0 8px; }
     .verify-block { margin: 18px 0 8px; }
     .verify-block h3 { margin-top: 0; }
     .signoff-section { page-break-before: always; }
@@ -177,8 +172,8 @@
     <h1 class="cover-title">ai-platform</h1>
     <p class="cover-sub">Supplementary scan deliverable — not a standalone pre-launch security handoff. For vendor handoff, run Analyze → Complete (all steps) or combine gate attestation + codebase audit PDFs.</p>
     <div class="cover-meta">
-      <div><strong>Report ID:</strong> SB-AUD-20260529-AH15V9</div>
-      <div><strong>Executed:</strong> May 28, 2026 at 11:14 PM</div>
+      <div><strong>Report ID:</strong> SB-AUD-20260529-7PK00Q</div>
+      <div><strong>Executed:</strong> May 29, 2026 at 5:36 AM</div>
       <div><strong>Client:</strong> ai-platform</div>
       <div><strong>Assessor:</strong> Simplebeacon Security Audit Service</div>
       <div><strong>Engine:</strong> Simplebeacon Engine v1.3.0 (Zero-Dependency)</div>
@@ -199,9 +194,9 @@
       <table class="data-table ledger-table">
         <tr><td>Client name</td><td>ai-platform</td></tr>
         <tr><td>Target repository / branch</td><td><code>CascadeProjects/ai-platform</code> / <code>main</code></td></tr>
-        <tr><td>Timestamp</td><td>May 28, 2026 at 11:14 PM</td></tr>
+        <tr><td>Timestamp</td><td>May 29, 2026 at 5:36 AM</td></tr>
         <tr><td>Engine core version</td><td>Simplebeacon Engine v1.3.0 (Zero-Dependency)</td></tr>
-        <tr><td>Scan performance ledger</td><td>209 gate-rule files checked · 2,222 repo files indexed · execution 25.3 seconds</td></tr>
+        <tr><td>Scan performance ledger</td><td>211 gate-rule files checked · 2,320 repo files indexed · execution 39.1 seconds</td></tr>
         <tr><td>Report assessor</td><td>Simplebeacon Security Audit Service</td></tr>
         <tr><td>Quality score</td><td>100% · code health 100% · audit confidence 100/100</td></tr>
       </table>
@@ -241,7 +236,7 @@
       <div class="kpi-strip">
         <div class="kpi"><strong>N/A</strong><span>Gate (not scanned)</span></div>
         <div class="kpi"><strong>0</strong><span>Runtime findings</span></div>
-        <div class="kpi"><strong>0</strong><span>DQ findings</span></div>
+        <div class="kpi"><strong>24</strong><span>DQ findings</span></div>
         <div class="kpi"><strong>—</strong><span>Files deep-scanned</span></div>
         <div class="kpi"><strong>100%</strong><span>Code health</span></div>
       </div>
@@ -251,7 +246,6 @@
       <div class="section-num">Section 03</div>
       <h2>Developer Action Plan (Technical Recipe Book)</h2>
       <p class="meta">Each row maps scan JSON to a full remediation chain: raw file flag → business impact → safe copy-paste fix recipe. Showing up to 100 prioritized rows.</p>
-      <p class="meta"><strong>0 gate-blocking</strong> · 0 hygiene · ~0 min estimated</p>
       <table class="data-table remediation-recipe-table">
         <tr><th>Severity</th><th>File &amp; snippet</th><th>Rule triggered</th><th>Why it breaks (impact)</th><th>Safe code fix recipe</th></tr>
         <tr><td colspan="6" class="empty clean-scan">No production-path issues detected under this audit profile. Code health 100% — production paths are clean.</td></tr>
@@ -285,12 +279,12 @@
 <tr>
 <td>Zero hardcoded credential patterns</td>
 <td><strong>PASS</strong></td>
-<td>Scanned 187 path(s) — no credential patterns</td>
+<td>Scanned 188 path(s) — no credential patterns</td>
 </tr>
 <tr>
 <td>Production path separation</td>
 <td><strong>PASS</strong></td>
-<td>Scanned 126 production file(s) — no sample-path leaks</td>
+<td>Scanned 127 production file(s) — no sample-path leaks</td>
 </tr>
 <tr>
 <td>Schema conformity (configured samples)</td>
@@ -325,13 +319,13 @@
     <section class="section">
       <div class="section-num">Appendix</div>
       <h2>Methodology &amp; scan scope</h2>
-      <ul><li>Repository inventory: 2,222 files — gate rules checked 209 (mock paths, credentials, server/ leaks).</li><li>Pattern matching on JSON samples and server/ production paths — not LLM semantic review.</li><li>Fiction/KPI rules scan repository JSON (64) plus source code (209 files in server, src/api, src/server, packages/simplebeacon-cli/src).</li><li>Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.</li></ul>
+      <ul><li>Repository inventory: 2,320 files — gate rules checked 211 (mock paths, credentials, server/ leaks).</li><li>Pattern matching on JSON samples and server/ production paths — not LLM semantic review.</li><li>Fiction/KPI rules scan repository JSON (65) plus source code (211 files in server, src/api, src/server, packages/simplebeacon-cli/src).</li><li>Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.</li></ul>
       
     </section>
 
     <div class="footer">
-      <p><strong>Report ID SB-AUD-20260529-AH15V9</strong> · Generated May 28, 2026 at 11:14 PM by Simplebeacon</p>
-      <p>Print this document (Ctrl+P / Cmd+P) → Destination: <strong>Save as PDF</strong> · Recommended filename: <code>SB-AUD-20260529-AH15V9.pdf</code></p>
+      <p><strong>Report ID SB-AUD-20260529-7PK00Q</strong> · Generated May 29, 2026 at 5:36 AM by Simplebeacon</p>
+      <p>Print this document (Ctrl+P / Cmd+P) → Destination: <strong>Save as PDF</strong> · Recommended filename: <code>SB-AUD-20260529-7PK00Q.pdf</code></p>
     </div>
   </main>
 </body>

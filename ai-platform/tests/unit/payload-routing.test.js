@@ -41,7 +41,14 @@ describe('payload-routing detectPayloadType', () => {
         ['reports-model', 'reports'],
         ['gguf-mock-data-analysis-report', 'mock-analysis'],
         ['mock-data-analysis-report', 'mock-analysis'],
-        ['ai-roadmap-report-model', 'ai-roadmap']
+        ['ai-roadmap-report-model', 'ai-roadmap'],
+        ['status-model', 'dashboard'],
+        ['repository-health-model', 'repository-health'],
+        ['simplebeacon-trust-verification', 'trust'],
+        ['simplebeacon-launch-readiness-summary', 'platform'],
+        ['audit-gate-report', 'audit'],
+        ['analyze-pipeline-report', 'analyze'],
+        ['compliance-summary-report', 'results']
     ])('detects explicit type %s → %s', (type, expected) => {
         expect(detectPayloadType({ type })).toBe(expected);
     });

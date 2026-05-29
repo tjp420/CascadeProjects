@@ -48,6 +48,13 @@
         if (payload.type === 'ai-adoption-trends-report') return 'quality';
         if (payload.type === 'data-maintenance-analyzers-report') return 'dev-tools';
         if (payload.type === 'local-models-model') return 'local-models';
+        if (payload.type === 'status-model') return 'dashboard';
+        if (payload.type === 'repository-health-model') return 'repository-health';
+        if (payload.type === 'simplebeacon-trust-verification') return 'trust';
+        if (payload.type === 'simplebeacon-launch-readiness-summary') return 'platform';
+        if (payload.type === 'audit-gate-report') return 'audit';
+        if (payload.type === 'analyze-pipeline-report') return 'analyze';
+        if (payload.type === 'compliance-summary-report') return 'results';
         if (payload.type === 'gguf-mock-data-analysis-report' || payload.type === 'mock-data-analysis-report') return 'mock-analysis';
         if (payload.type === 'issue-resolution-model') return 'issue-resolution';
         if (payload.type === 'merger-tool-model') return 'merger-tool';
