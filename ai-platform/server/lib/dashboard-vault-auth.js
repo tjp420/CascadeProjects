@@ -27,12 +27,18 @@ function isVaultAuthenticated(req, options = {}) {
   const secret = options.vaultPassword || process.env.DASHBOARD_VAULT_PASSWORD;
   const expected = getVaultSessionToken(secret);
   if (!expected) return false;
-  if (req.query?.password === secret) return true;
+  // Cookie only — never accept ?password= on arbitrary routes (leaks in logs/referrers).
   return parseRequestCookies(req).sb_vault === expected;
 }
 
 function isProtectedDashboardPath(reqPath) {
-  return /^\/(app|demo|signin|dashboard-new\.html|simplebeacon-dashboard|services|scripts|components)(\/|$)/.test(reqPath);
+  if (reqPath === '/favicon.svg' || reqPath === '/favicon.ico') return false;
+  return /^\/(app|demo|signin|dashboard-new\.html|simplebeacon-dashboard|services|scripts|components|assets)(\/|$)/.test(reqPath);
+}
+
+/** @deprecated Dashboard JS/CSS/JSON are vault-gated when DASHBOARD_VAULT_PASSWORD is set. */
+function isPublicDashboardAssetPath(reqPath) {
+  return reqPath === '/favicon.svg' || reqPath === '/favicon.ico';
 }
 
 function setVaultSessionCookie(res, secret) {
@@ -46,5 +52,6 @@ module.exports = {
   getVaultSessionToken,
   isVaultAuthenticated,
   isProtectedDashboardPath,
+  isPublicDashboardAssetPath,
   setVaultSessionCookie
 };

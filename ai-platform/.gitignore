@@ -1,0 +1,14 @@
+# SimpleBeacon local vault — never commit licenses, reports, or subscription store
+.simplebeacon/*
+!.simplebeacon/config.json
+
+# Enterprise license signing (public key may be added deliberately via tools/generate-enterprise-license-keys.js)
+**/enterprise-license-private.pem
+**/license-private.pem
+**/simplebeacon-license.json
+**/license.json
+
+# Secrets / env
+.env
+.env.*
+!.env.example*
