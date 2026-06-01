@@ -27,6 +27,9 @@ const {
     summarizeScanWithProvider
 } = require('../services/cloud-inference-service');
 const { analyzeStrategicInsights } = require('../lib/strategic-insights-engine');
+const { evaluateComplianceChecklist } = require('../../packages/simplebeacon-cli/src/compliance-checklist');
+const { runNpmAudit } = require('../lib/npm-audit-runner');
+const { sanitizeComplianceBundleExport } = require('../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize');
 const {
     understandCodeSnippet,
     understandFile,
@@ -786,6 +789,95 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 enhanced: false,
                 error: error.message,
                 message: error.message
+            });
+        }
+    });
+
+    app.post('/api/analyze/compliance-checklist', async (req, res) => {
+        try {
+            const body = req.body || {};
+            const report = body.report;
+            if (!report || typeof report !== 'object') {
+                return res.status(400).json({ success: false, error: 'report is required' });
+            }
+
+            let projectPath = null;
+            if (body.projectPath) {
+                try {
+                    projectPath = resolveSafeProjectPath(body.projectPath);
+                } catch (err) {
+                    return res.status(400).json({ success: false, error: err.message });
+                }
+            }
+
+            const resolvedRoot = projectPath || report.projectRoot || baseDir;
+            let npmAudit = body.npmAudit || null;
+            if (!npmAudit) {
+                try {
+                    npmAudit = runNpmAudit(resolvedRoot, { force: body.forceNpmAudit === true });
+                } catch {
+                    npmAudit = null;
+                }
+            }
+
+            const complianceChecklist = evaluateComplianceChecklist(report, {
+                projectRoot: resolvedRoot,
+                npmAudit,
+                checklistProfile: body.checklistProfile || body.checklist || undefined,
+                productionProfile: body.productionProfile
+            });
+
+            let complianceExport = null;
+            try {
+                complianceExport = sanitizeComplianceBundleExport({
+                    checklist: complianceChecklist,
+                    gateReport: report,
+                    npmAudit,
+                    projectPath: resolvedRoot
+                });
+            } catch {
+                complianceExport = null;
+            }
+
+            res.set('Cache-Control', 'no-store');
+            return sendAnalyzeJson(res, {
+                success: true,
+                complianceChecklist,
+                complianceExport,
+                npmAuditSource: npmAudit?.dataSource || npmAudit?.source || null
+            });
+        } catch (error) {
+            return res.status(400).json({
+                success: false,
+                error: toClientError(error, 'Compliance checklist failed')
+            });
+        }
+    });
+
+    app.get('/api/analyze/npm-audit', async (req, res) => {
+        try {
+            let projectPath = baseDir;
+            if (req.query.projectPath || req.query.path) {
+                try {
+                    projectPath = resolveSafeProjectPath(req.query.projectPath || req.query.path);
+                } catch (err) {
+                    return res.status(400).json({ success: false, error: err.message });
+                }
+            }
+
+            const force = req.query.force === '1' || req.query.force === 'true';
+            const npmAudit = runNpmAudit(projectPath, { force });
+            res.set('Cache-Control', 'no-store');
+            return sendAnalyzeJson(res, {
+                success: true,
+                ...npmAudit,
+                projectPath,
+                auditRoot: projectPath
+            });
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                error: toClientError(error, 'npm audit failed')
             });
         }
     });
