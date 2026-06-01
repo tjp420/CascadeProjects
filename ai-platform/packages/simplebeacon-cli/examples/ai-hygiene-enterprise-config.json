@@ -21,6 +21,12 @@
   "intelligence": {
     "enabled": true,
     "languages": ["javascript", "typescript", "python"],
+    "fingerprintMatch": false,
+    "severity": "medium",
+    "patternSeverity": {
+      "SB-INTENT-001": "low",
+      "SB-INTENT-004": "low"
+    },
     "treeSitter": { "enabled": true },
     "slm": { "enabled": false }
   }

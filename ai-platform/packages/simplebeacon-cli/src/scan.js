@@ -714,8 +714,13 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             intelligence: intelOpts
         });
         const intentSeverity = intelOpts.severity || 'medium';
+        const patternSeverity = intelOpts.patternSeverity && typeof intelOpts.patternSeverity === 'object'
+            ? intelOpts.patternSeverity
+            : {};
         for (const issue of structuralIntentScan.issues) {
-            if (!issue.severity) issue.severity = intentSeverity;
+            const pattern = issue.pattern || issue.metadata?.ruleId;
+            issue.severity = patternSeverity[pattern] || issue.severity || intentSeverity;
+            issue.severityBand = issue.severity;
         }
         issues.push(...structuralIntentScan.issues);
     }

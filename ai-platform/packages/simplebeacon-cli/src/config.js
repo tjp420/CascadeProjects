@@ -146,6 +146,8 @@ const DEFAULT_INTELLIGENCE = {
     sourcePaths: null,
     genericVarThreshold: 0.6,
     fingerprintMatch: true,
+    severity: 'medium',
+    patternSeverity: null,
     treeSitter: { enabled: true },
     slm: { enabled: false, binPath: null, modelPath: null }
 };
