@@ -9,6 +9,12 @@ const { installCursorMcpConfig } = require('../mcp/install-cursor-config');
 const PACKAGE_ROOT = path.join(__dirname, '..', '..');
 const CURSOR_RULE_TEMPLATE = path.join(PACKAGE_ROOT, 'examples', 'cursor', 'simplebeacon-scan-workflow.mdc');
 const CI_WORKFLOW_TEMPLATE = path.join(PACKAGE_ROOT, 'examples', 'github-action', 'simplebeacon.yml');
+const ENTERPRISE_CI_WORKFLOW_TEMPLATE = path.join(
+    PACKAGE_ROOT,
+    'examples',
+    'github-action',
+    'simplebeacon-enterprise.yml'
+);
 
 function writeIfAbsentOrForce(filePath, content, options = {}) {
     const force = Boolean(options.force);
@@ -34,8 +40,12 @@ function installCursorRule(projectRoot, options = {}) {
 }
 
 function installCiWorkflow(projectRoot, options = {}) {
-    const target = path.join(path.resolve(projectRoot), '.github', 'workflows', 'simplebeacon.yml');
-    const content = fs.readFileSync(CI_WORKFLOW_TEMPLATE, 'utf8');
+    const useEnterprise = options.ciProfile === 'enterprise';
+    const templatePath = options.ciWorkflowTemplate
+        || (useEnterprise ? ENTERPRISE_CI_WORKFLOW_TEMPLATE : CI_WORKFLOW_TEMPLATE);
+    const workflowName = useEnterprise ? 'simplebeacon-enterprise.yml' : 'simplebeacon.yml';
+    const target = path.join(path.resolve(projectRoot), '.github', 'workflows', workflowName);
+    const content = fs.readFileSync(templatePath, 'utf8');
     return writeIfAbsentOrForce(target, content, options);
 }
 
@@ -66,5 +76,6 @@ module.exports = {
     installCiWorkflow,
     installDeveloperStack,
     CURSOR_RULE_TEMPLATE,
-    CI_WORKFLOW_TEMPLATE
+    CI_WORKFLOW_TEMPLATE,
+    ENTERPRISE_CI_WORKFLOW_TEMPLATE
 };

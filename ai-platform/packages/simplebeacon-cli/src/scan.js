@@ -20,6 +20,7 @@ const { scanLlmSlopPatterns } = require('./rules/llm-slop-patterns');
 const { scanAgencyHandoffPatterns } = require('./rules/agency-handoff-patterns');
 const { scanEuAiActPatterns, buildEuAiActSummaryFromScan } = require('./rules/eu-ai-act-patterns');
 const { scanTokenBleedPatterns } = require('./rules/token-bleed-patterns');
+const { scanEnterpriseGuardrailPatterns } = require('./rules/enterprise-guardrail-patterns');
 const { scanArchitectureDriftPatterns } = require('./rules/architecture-drift-patterns');
 const { scanPythonAstPatterns } = require('./lib/python-ast-scanner');
 const { scanJavascriptAstPatterns } = require('./lib/javascript-ast-scanner');
@@ -681,6 +682,20 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         }
     }
 
+    let enterpriseGuardrailScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
+    if (isRuleEnabled(config, 'enterprise-guardrail-patterns') && !benchmarkScanTarget) {
+        const entOpts = getRuleOptions(config, 'enterprise-guardrail-patterns');
+        enterpriseGuardrailScan = await scanEnterpriseGuardrailPatterns(ruleWalkRoot, {
+            sourcePaths: entOpts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: entOpts.productionPaths || config.productionPaths,
+            ignoreGlobs: entOpts.ignoreGlobs || config.ignore,
+            severity: entOpts.severity || 'high',
+            tokenCapSeverity: entOpts.tokenCapSeverity || 'high',
+            extraLeakTokens: entOpts.extraLeakTokens || []
+        });
+        issues.push(...enterpriseGuardrailScan.issues);
+    }
+
     let jestBaseline = { checked: false, passed: true, issues: [], summary: null };
     if (isRuleEnabled(config, 'jest-baseline')) {
         const jestOpts = getRuleOptions(config, 'jest-baseline');
@@ -754,6 +769,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         euAiActFilesScanned: euAiActScan.scanned,
         euAiActPatternHits: euAiActScan.findings,
         euAiActHighRiskIndicators: euAiActScan.summary?.highRiskIndicators ?? 0,
+        enterpriseGuardrailFilesScanned: enterpriseGuardrailScan.scanned,
+        enterpriseGuardrailHits: enterpriseGuardrailScan.findings,
         tokenBleedFilesScanned: tokenBleedScan.scanned,
         tokenBleedPatternHits: tokenBleedScan.findings,
         architectureDriftFilesScanned: architectureDriftScan.scanned,
@@ -799,6 +816,9 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
                 : 'Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.',
             config.profile === 'cascade'
                 ? 'Cascade profile scans server/ for production leaks — src/ stub API is excluded by design.'
+                : null,
+            config.profile === 'enterprise'
+                ? 'Enterprise profile: credentials + data-leak/token-cap guardrails (SB-ENT-001/002) — no fiction, EU AI Act, or opt-in AST rules.'
                 : null
         ].filter(Boolean)
     };
@@ -852,6 +872,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         euAiActScanned: euAiActScan.scanned,
         euAiActFindings: euAiActScan.findings,
         euAiActSummary: euAiActScan.summary,
+        enterpriseGuardrailScanned: enterpriseGuardrailScan.scanned,
+        enterpriseGuardrailFindings: enterpriseGuardrailScan.findings,
         jestBaselineChecked: jestBaseline.checked,
         jestBaselinePassed: jestBaseline.passed,
         jestSummary: jestBaseline.summary || null,

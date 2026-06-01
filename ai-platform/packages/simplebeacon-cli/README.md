@@ -54,6 +54,21 @@ npx simplebeacon scan --gate --offline
 
 For credentials + production-leak only: `npx simplebeacon init --profile minimal`
 
+## Enterprise guardrail profile
+
+For teams focused on **data leakage into LLM prompts** and **unbounded token spend** (not fiction KPIs or EU legal checklists):
+
+```bash
+npx simplebeacon init --profile enterprise --with-ci
+npx simplebeacon scan --gate --offline
+```
+
+Rules: `SB-ENT-001` (critical) corporate identifiers in strings, `SB-ENT-002` (high) LLM calls without `max_tokens` / `max_completion_tokens`. Add custom tokens in `.simplebeacon/config.json` under `rules.enterprise-guardrail-patterns.extraLeakTokens`.
+
+CI template (gate only, no cloud upload): [examples/github-action/simplebeacon-enterprise.yml](examples/github-action/simplebeacon-enterprise.yml)
+
+Paid enterprise seats use an **offline signed license** (Ed25519, no Stripe keys in the CLI). See [docs/ENTERPRISE-LICENSE-VAULT.md](docs/ENTERPRISE-LICENSE-VAULT.md) and CI template [simplebeacon-enterprise-vault.yml](examples/github-action/simplebeacon-enterprise-vault.yml).
+
 ## GitHub Actions
 
 Copy [examples/github-action/simplebeacon.yml](examples/github-action/simplebeacon.yml) to `.github/workflows/simplebeacon.yml`:

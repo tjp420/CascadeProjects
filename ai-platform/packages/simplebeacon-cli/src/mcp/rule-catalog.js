@@ -4,6 +4,7 @@
 
 const { RULE_CATALOG } = require('../rules/llm-slop-patterns');
 const { LEAK_PATTERNS } = require('../rules/production-leak');
+const { RULE_CATALOG: ENTERPRISE_RULE_CATALOG } = require('../rules/enterprise-guardrail-patterns');
 const { RULE_CATALOG: TOKEN_BLEED_RULES } = require('../rules/token-bleed-patterns');
 const { RULE_CATALOG: ARCHITECTURE_DRIFT_RULES } = require('../rules/architecture-drift-patterns');
 const { PYTHON_AST_RULE_CATALOG } = require('../lib/python-ast-scanner');
@@ -45,6 +46,22 @@ function explainFinding(patternId, options = {}) {
     const id = String(patternId || '').trim();
     if (!id) {
         return { found: false, error: 'patternId is required' };
+    }
+
+    const enterpriseRule = ENTERPRISE_RULE_CATALOG.find((r) => r.id === id);
+    if (enterpriseRule) {
+        return {
+            found: true,
+            patternId: id,
+            category: enterpriseRule.category,
+            severity: enterpriseRule.severity,
+            summary: enterpriseRule.description,
+            deterministic: true,
+            usesLlm: false,
+            tuning: id === 'SB-ENT-001'
+                ? 'Remove PII/secrets from prompts and source; use vault/env; add tokens to rules.enterprise-guardrail-patterns.extraLeakTokens'
+                : 'Set max_tokens or max_completion_tokens on every production LLM API call'
+        };
     }
 
     const llmRule = RULE_CATALOG.find((r) => r.id === id);

@@ -1,0 +1,60 @@
+# Enterprise guardrail — data leak + token budget (local CLI, no cloud).
+# Config: ai-platform/.simplebeacon/config.json (profile: enterprise)
+
+name: Simplebeacon Enterprise Guardrail
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/simplebeacon-enterprise-gate.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/simplebeacon-enterprise-gate.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: ai-platform
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  enterprise-guardrail:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install SimpleBeacon CLI dependencies
+        working-directory: ai-platform/packages/simplebeacon-cli
+        run: npm install --ignore-scripts
+
+      - name: Run enterprise guardrail gate (offline)
+        env:
+          SIMPLEBEACON_PARALLEL: '1'
+        run: |
+          node packages/simplebeacon-cli/bin/simplebeacon.js scan \
+            --path . \
+            --format json \
+            --output .simplebeacon/report.json \
+            --gate \
+            --offline \
+            --verbose
+          node packages/simplebeacon-cli/bin/simplebeacon.js gate status
+
+      - name: Upload gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-enterprise-report
+          path: ai-platform/.simplebeacon/report.json
+          if-no-files-found: ignore
