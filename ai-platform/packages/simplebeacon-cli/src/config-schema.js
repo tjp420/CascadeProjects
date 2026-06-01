@@ -86,6 +86,19 @@ function validateConfig(config) {
         }
     }
 
+    if (config.intelligence != null) {
+        if (typeof config.intelligence !== 'object') {
+            errors.push('intelligence must be an object when present');
+        } else {
+            if (config.intelligence.enabled != null && typeof config.intelligence.enabled !== 'boolean') {
+                errors.push('intelligence.enabled must be a boolean');
+            }
+            if (config.intelligence.languages != null && !Array.isArray(config.intelligence.languages)) {
+                errors.push('intelligence.languages must be an array of language ids');
+            }
+        }
+    }
+
     return { valid: errors.length === 0, errors, warnings };
 }
 

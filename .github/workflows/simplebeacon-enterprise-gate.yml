@@ -1,4 +1,4 @@
-# Enterprise guardrail — SB-ENT-001 (data leak) + SB-ENT-002 (token cap), credentials.
+# Enterprise guardrail — SB-ENT-001/002, credentials, structural intent (intelligence.enabled).
 # Config: ai-platform/.simplebeacon/config.json (profile: enterprise)
 
 name: Simplebeacon Enterprise Guardrail
@@ -36,9 +36,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install SimpleBeacon CLI dependencies
-        working-directory: ai-platform/packages/simplebeacon-cli
-        run: npm install --ignore-scripts
+      - name: Install workspace (monorepo)
+        run: npm ci --ignore-scripts
+
+      - name: Fetch Tree-sitter WASM grammars
+        run: npm run fetch-grammars --workspace=@simplebeacon/intelligence
 
       - name: Run enterprise guardrail gate (offline, parallel)
         env:

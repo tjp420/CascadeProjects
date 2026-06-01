@@ -28,6 +28,14 @@ function formatGithubComment(report, gateResult = null) {
         `- **Duplicate groups:** ${report.duplicateGroups ?? 0}`
     ].filter(Boolean);
 
+    const structuralEnabled = report.structuralIntentEnabled || report.scanScope?.structuralIntentEnabled;
+    if (structuralEnabled) {
+        const scanned = report.structuralIntentScanned ?? report.scanScope?.structuralIntentFilesScanned ?? 0;
+        const hits = report.structuralIntentFindings ?? report.scanScope?.structuralIntentHits ?? 0;
+        const engine = report.structuralIntentEngine ?? report.scanScope?.structuralIntentEngine ?? 'structural';
+        lines.push(`- **Structural intent (Tier 1):** ${hits} hit(s) in ${scanned} file(s) via \`${engine}\` engine (local only)`);
+    }
+
     if (report.scanPaths?.length) {
         lines.push('', '**Scan paths:**', ...report.scanPaths.map((p) => `- \`${p}\``));
     }

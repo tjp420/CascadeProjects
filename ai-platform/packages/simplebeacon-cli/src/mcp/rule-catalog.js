@@ -155,6 +155,43 @@ function explainFinding(patternId, options = {}) {
         return { found: true, patternId: id, ...cred, severity: 'high', deterministic: true, usesLlm: false };
     }
 
+    const STRUCTURAL_INTENT_RULES = {
+        'SB-INTENT-001': {
+            category: 'structural-intent',
+            severity: 'medium',
+            summary: 'Hollow or generic AI-shaped function (pass-through logic, generic names)',
+            tuning: 'Replace boilerplate with domain logic; enable intelligence in .simplebeacon/config.json'
+        },
+        'SB-INTENT-002': {
+            category: 'structural-intent',
+            severity: 'high',
+            summary: 'Credential-shaped stub in source (placeholder secret/token assignment)',
+            tuning: 'Load secrets from vault/env; never commit placeholder credentials'
+        },
+        'SB-INTENT-003': {
+            category: 'structural-intent',
+            severity: 'medium',
+            summary: 'Content matches known AI-slop fingerprint in local vector cache',
+            tuning: 'Review matched region; opt into intelligence.slm for offline verification'
+        },
+        'SB-INTENT-004': {
+            category: 'structural-intent',
+            severity: 'low',
+            summary: 'Empty or no-op try/except (common unchecked AI output)',
+            tuning: 'Add real error handling or remove dead try/catch blocks'
+        }
+    };
+    const intentRule = STRUCTURAL_INTENT_RULES[id];
+    if (intentRule) {
+        return {
+            found: true,
+            patternId: id,
+            ...intentRule,
+            deterministic: true,
+            usesLlm: false
+        };
+    }
+
     if (id.startsWith(FICTION_RULE_PREFIX) || id.startsWith('source-fiction-')) {
         return {
             found: true,
