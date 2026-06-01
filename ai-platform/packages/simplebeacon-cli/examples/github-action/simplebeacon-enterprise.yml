@@ -1,5 +1,7 @@
 # Enterprise guardrail CI — local gate only (no cloud ledger).
 # Copy via: npx simplebeacon init --profile enterprise --with-ci
+# Config: examples/enterprise-config.json or ai-hygiene-enterprise-config.json (adds intelligence.enabled)
+# Monorepo with packages/simplebeacon-intelligence: use simplebeacon-enterprise-monorepo.yml at repo root instead.
 
 name: Simplebeacon Enterprise Guardrail
 
@@ -23,6 +25,9 @@ jobs:
           node-version: '20'
 
       - name: Run enterprise guardrail gate (offline)
+        env:
+          SIMPLEBEACON_PARALLEL: '1'
+          SIMPLEBEACON_OFFLINE: '1'
         run: |
           npx --yes simplebeacon scan \
             --format json \
