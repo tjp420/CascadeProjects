@@ -11,6 +11,7 @@ const { buildPatternsFromBaseline, scanFileContent: scanFictionFileContent } = r
 const { scanTextPatterns, scanSuspiciousDependencies } = require('../rules/llm-slop-patterns');
 const { scanTextPatterns: scanTokenBleedText } = require('../rules/token-bleed-patterns');
 const { scanTextPatterns: scanArchitectureDriftText } = require('../rules/architecture-drift-patterns');
+const { scanEnterpriseGuardrailContent } = require('../rules/enterprise-guardrail-patterns');
 const { loadSimplebeaconConfig, isRuleEnabled, getRuleOptions } = require('../config');
 const { scanPythonAstSnippet } = require('./python-ast-scanner');
 const { scanJavascriptAstSnippet } = require('./javascript-ast-scanner');
@@ -94,6 +95,13 @@ function scanSnippetContent(content, options = {}) {
         findings.push(...scanArchitectureDriftText(filePath, content, ext, {
             productionPathsOnly: true,
             productionPaths
+        }).map(normalizeFinding));
+    }
+
+    if (isRuleEnabled(config, 'enterprise-guardrail-patterns')) {
+        const entOpts = getRuleOptions(config, 'enterprise-guardrail-patterns');
+        findings.push(...scanEnterpriseGuardrailContent(filePath, content, {
+            extraLeakTokens: entOpts.extraLeakTokens || []
         }).map(normalizeFinding));
     }
 

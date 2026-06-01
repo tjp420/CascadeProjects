@@ -16,11 +16,12 @@ const VALID_RULES = new Set([
     'token-bleed-patterns',
     'architecture-drift-patterns',
     'python-ast-patterns',
-    'javascript-ast-patterns'
+    'javascript-ast-patterns',
+    'enterprise-guardrail-patterns'
 ]);
 
 const VALID_SEVERITIES = new Set(['critical', 'high', 'medium', 'low']);
-const VALID_PROFILES = new Set(['minimal', 'standard', 'cascade', 'eu-ai-act']);
+const VALID_PROFILES = new Set(['minimal', 'standard', 'cascade', 'eu-ai-act', 'enterprise']);
 
 function validateConfig(config) {
     const errors = [];
@@ -32,7 +33,7 @@ function validateConfig(config) {
     }
 
     if (config.profile && !VALID_PROFILES.has(config.profile)) {
-        warnings.push(`Unknown profile "${config.profile}" — use minimal, standard, or cascade`);
+        warnings.push(`Unknown profile "${config.profile}" — use minimal, standard, cascade, enterprise, or eu-ai-act`);
     }
 
     if (config.scanPaths != null && !Array.isArray(config.scanPaths)) {

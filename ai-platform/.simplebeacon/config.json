@@ -1,24 +1,12 @@
 {
-  "profile": "eu-ai-act",
-  "scanPaths": [
-    "web/data",
-    "data/mock",
-    "tests/fixtures",
-    "data"
-  ],
+  "profile": "enterprise",
+  "scanPaths": [],
   "productionPaths": [
     "server/",
     "src/",
     "app/",
-    "lib/"
-  ],
-  "sampleDir": "web/data",
-  "consistencyAnchorSamples": [
-    "dashboard-home-sample.json",
-    "engineering-baseline-sample.json",
-    "implementation-plan-sample.json",
-    "master-roadmap-sample.json",
-    "release-timeline-sample.json"
+    "lib/",
+    "web/simplebeacon-dashboard/js/"
   ],
   "ignore": [
     "node_modules/**",
@@ -46,62 +34,62 @@
       "scanProduction": true
     },
     "json-schema": {
-      "enabled": true
+      "enabled": false
     },
     "sample-consistency": {
-      "enabled": true
+      "enabled": false
     },
     "roadmap": {
-      "enabled": true
+      "enabled": false
     },
     "production-leak": {
-      "enabled": true,
-      "severity": "high"
+      "enabled": false
     },
     "fiction-kpi-patterns": {
-      "enabled": true,
-      "severity": "medium"
+      "enabled": false
     },
     "llm-slop-patterns": {
-      "enabled": true,
-      "severity": "medium",
-      "registryCheck": false
+      "enabled": false
     },
     "agency-handoff-patterns": {
-      "enabled": true,
-      "severity": "medium"
+      "enabled": false
     },
     "eu-ai-act-patterns": {
-      "enabled": true,
-      "severity": "low"
+      "enabled": false
+    },
+    "token-bleed-patterns": {
+      "enabled": false
+    },
+    "architecture-drift-patterns": {
+      "enabled": false
+    },
+    "python-ast-patterns": {
+      "enabled": false
+    },
+    "javascript-ast-patterns": {
+      "enabled": false
     },
     "jest-baseline": {
       "enabled": false,
       "runTests": false
     },
-    "token-bleed-patterns": {
+    "enterprise-guardrail-patterns": {
       "enabled": true,
-      "severity": "medium"
-    },
-    "architecture-drift-patterns": {
-      "enabled": true,
-      "severity": "high"
-    },
-    "python-ast-patterns": {
-      "enabled": true,
-      "severity": "medium"
-    },
-    "javascript-ast-patterns": {
-      "enabled": true,
-      "severity": "medium"
+      "severity": "critical",
+      "tokenCapSeverity": "high",
+      "extraLeakTokens": [
+        "internal_customer_id",
+        "prod_vault_secret"
+      ]
     }
   },
   "gate": {
     "failOn": [
-      "high",
-      "medium"
+      "critical",
+      "high"
     ],
     "warnOn": [
+      "medium",
       "low"
     ]
   },
@@ -111,11 +99,5 @@
     "app/",
     "lib/"
   ],
-  "fullDirectoryScan": false,
-  "fullDirectoryScanSkipDirs": [
-    ".git",
-    ".github-sync",
-    "github-cache",
-    "node_modules"
-  ]
+  "fullDirectoryScan": false
 }

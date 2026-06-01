@@ -58,6 +58,27 @@ const PROFILE_RULES = {
         'agency-handoff-patterns': { enabled: true, severity: 'medium' },
         'jest-baseline': { enabled: false, runTests: false }
     },
+    enterprise: {
+        credentials: { enabled: true, scanProduction: true },
+        'json-schema': { enabled: false },
+        'sample-consistency': { enabled: false },
+        roadmap: { enabled: false },
+        'production-leak': { enabled: false },
+        'fiction-kpi-patterns': { enabled: false },
+        'llm-slop-patterns': { enabled: false },
+        'agency-handoff-patterns': { enabled: false },
+        'eu-ai-act-patterns': { enabled: false },
+        'token-bleed-patterns': { enabled: false },
+        'architecture-drift-patterns': { enabled: false },
+        'python-ast-patterns': { enabled: false },
+        'javascript-ast-patterns': { enabled: false },
+        'jest-baseline': { enabled: false, runTests: false },
+        'enterprise-guardrail-patterns': {
+            enabled: true,
+            severity: 'high',
+            tokenCapSeverity: 'high'
+        }
+    },
     standard: {
         credentials: { enabled: true, scanProduction: true },
         'json-schema': { enabled: true },
@@ -349,6 +370,11 @@ function buildInitConfig(baseDir, options = {}) {
             config.fullDirectoryScan = false;
         }
         config.fullDirectoryScanSkipDirs = [...MINIMAL_FULL_TREE_SKIP_DIRS, 'node_modules'];
+    }
+
+    if (profile === 'enterprise') {
+        config.scanPaths = [];
+        config.gate = { failOn: ['high', 'critical'], warnOn: ['medium', 'low'] };
     }
 
     return { config, detected, profile };
