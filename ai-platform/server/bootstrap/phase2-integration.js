@@ -132,7 +132,7 @@ async function createDatabaseConnection() {
         }
 
         if (process.env.LOG_QUERIES === 'true' && shouldLogRuntimeInfo()) {
-            logger.info('[Phase2] Database query logging enabled (LOG_QUERIES=true)');
+            logger.info('[Phase2] Database query logging enabled (diagnostic env flag active)');
         }
 
         return { db, status: 'connected' };

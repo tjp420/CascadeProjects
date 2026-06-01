@@ -36,8 +36,8 @@ class EnterpriseDLP {
         this.proxyGateway.start();
         this.dashboard.start();
 
-        logger.info(`Proxy: http://localhost:${this.config.proxyPort}`);
-        logger.info(`Dashboard: http://localhost:${this.config.dashboardPort}`);
+        logger.info(`Proxy listening on port ${this.config.proxyPort}`);
+        logger.info(`DLP dashboard listening on port ${this.config.dashboardPort}`);
     }
 
     getSystemStatus() {

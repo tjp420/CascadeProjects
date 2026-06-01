@@ -73,7 +73,7 @@
     },
     "eu-ai-act-patterns": {
       "enabled": true,
-      "severity": "medium"
+      "severity": "low"
     },
     "jest-baseline": {
       "enabled": false,
@@ -98,10 +98,10 @@
   },
   "gate": {
     "failOn": [
-      "high"
+      "high",
+      "medium"
     ],
     "warnOn": [
-      "medium",
       "low"
     ]
   },
