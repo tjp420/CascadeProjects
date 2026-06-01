@@ -4,6 +4,10 @@
 
 const { RULE_CATALOG } = require('../rules/llm-slop-patterns');
 const { LEAK_PATTERNS } = require('../rules/production-leak');
+const { RULE_CATALOG: TOKEN_BLEED_RULES } = require('../rules/token-bleed-patterns');
+const { RULE_CATALOG: ARCHITECTURE_DRIFT_RULES } = require('../rules/architecture-drift-patterns');
+const { PYTHON_AST_RULE_CATALOG } = require('../lib/python-ast-scanner');
+const { JAVASCRIPT_AST_RULE_CATALOG } = require('../lib/javascript-ast-scanner');
 
 const PRODUCTION_LEAK_SUMMARIES = {
     'sample-json': 'String literal references a *-sample.json fixture path',
@@ -54,6 +58,62 @@ function explainFinding(patternId, options = {}) {
             deterministic: true,
             usesLlm: false,
             tuning: 'Replace placeholder copy before merge; not semantic AI review'
+        };
+    }
+
+    const tokenBleedRule = TOKEN_BLEED_RULES.find((r) => r.id === id);
+    if (tokenBleedRule) {
+        return {
+            found: true,
+            patternId: id,
+            category: 'token-bleed',
+            severity: tokenBleedRule.severity,
+            summary: tokenBleedRule.description,
+            deterministic: true,
+            usesLlm: false,
+            tuning: 'Chunk files and cap prompt size before LLM API calls; enable token-bleed-patterns in config when ready'
+        };
+    }
+
+    const jsRule = JAVASCRIPT_AST_RULE_CATALOG.find((r) => r.id === id);
+    if (jsRule) {
+        return {
+            found: true,
+            patternId: id,
+            category: jsRule.category,
+            severity: jsRule.severity,
+            summary: jsRule.description,
+            deterministic: true,
+            usesLlm: false,
+            tuning: 'Requires javascript-ast-patterns enabled; uses local @babel/parser only'
+        };
+    }
+
+    const pyRule = PYTHON_AST_RULE_CATALOG.find((r) => r.id === id);
+    if (pyRule) {
+        return {
+            found: true,
+            patternId: id,
+            category: pyRule.category,
+            severity: pyRule.severity,
+            summary: pyRule.description,
+            deterministic: true,
+            usesLlm: false,
+            tuning: 'Requires Python 3 and python-ast-patterns enabled; runs local AST only'
+        };
+    }
+
+    const driftRule = ARCHITECTURE_DRIFT_RULES.find((r) => r.id === id);
+    if (driftRule) {
+        return {
+            found: true,
+            patternId: id,
+            category: 'architecture-drift',
+            severity: driftRule.severity,
+            summary: driftRule.description,
+            deterministic: true,
+            usesLlm: false,
+            tuning: 'Add schema validators (zod, ajv, Pydantic) or response_format/json_schema for hybrid model outputs'
         };
     }
 
@@ -113,5 +173,9 @@ function explainFinding(patternId, options = {}) {
 module.exports = {
     explainFinding,
     RULE_CATALOG,
-    LEAK_PATTERNS
+    LEAK_PATTERNS,
+    TOKEN_BLEED_RULES,
+    ARCHITECTURE_DRIFT_RULES,
+    PYTHON_AST_RULE_CATALOG,
+    JAVASCRIPT_AST_RULE_CATALOG
 };

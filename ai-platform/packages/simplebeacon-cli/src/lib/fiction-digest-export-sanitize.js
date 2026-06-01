@@ -266,7 +266,7 @@ function summarizeAncillaryPatternHits(sourceReport) {
     return Object.keys(ancillary).length ? { fictionKpi: 0, ancillary } : null;
 }
 
-function formatAncillaryPatternHitsNote(sourceReport) {
+function formatAncillaryPatternHitsNote(sourceReport, blockingCountOverride) {
     const summary = summarizeAncillaryPatternHits(sourceReport);
     if (!summary?.ancillary) return null;
     const parts = Object.entries(summary.ancillary).map(([key, val]) => {
@@ -274,11 +274,13 @@ function formatAncillaryPatternHitsNote(sourceReport) {
             : key === 'euAiAct' ? 'EU AI Act'
             : key === 'agencyHandoff' ? 'agency-handoff'
             : key === 'productionLeak' ? 'production-leak'
+            : key === 'tokenBleed' ? 'token-bleed'
+            : key === 'architectureDrift' ? 'architecture-drift'
             : key;
         return `${label}: ${val}`;
     });
     const total = Object.values(summary.ancillary).reduce((sum, n) => sum + n, 0);
-    const blocking = sourceReport?.gate?.blockingCount ?? 0;
+    const blocking = blockingCountOverride ?? sourceReport?.gate?.blockingCount ?? 0;
     const gateClause = blocking > 0
         ? `gate blockingCount ${Number(blocking).toLocaleString()} on configured severities`
         : 'gate blockingCount 0 on configured severities';
@@ -286,66 +288,124 @@ function formatAncillaryPatternHitsNote(sourceReport) {
 }
 
 function resolveFictionDigestGateContext(sourceReport, digest, options = {}) {
-    const gate = options.gateReport || {};
+    const gateReportRaw = options.gateReport || {};
     const scope = sourceReport?.scanScope || {};
+    const digestScope = digest?.scanScope || {};
     const hygiene = digest?.hygieneSummary || {};
+    const repositoryFilesTotal = options.repositoryFilesTotal
+        ?? gateReportRaw.repositoryFilesTotal
+        ?? gateReportRaw.repositoryInventory?.totalFiles
+        ?? sourceReport?.repositoryFilesTotal
+        ?? scope.repositoryFilesTotal
+        ?? hygiene.repositoryFilesTotal
+        ?? hygiene.gateRepositoryFilesTotal
+        ?? digestScope.gateRepositoryFilesTotal
+        ?? null;
+    const metadataOnlyFiles = hygiene.metadataOnlyInventoryFiles
+        ?? hygiene.gateMetadataOnlyFiles
+        ?? digestScope.gateMetadataOnlyFiles
+        ?? null;
+    const contentScanned = scope.fullDirectoryStats?.contentScanned
+        ?? scope.fullDirectoryStats?.filesContentScanned
+        ?? gateReportRaw.scanScope?.fullDirectoryStats?.contentScanned
+        ?? gateReportRaw.scanScope?.fullDirectoryStats?.filesContentScanned
+        ?? sourceReport?.credentialScanned
+        ?? gateReportRaw.credentialScanned
+        ?? gateReportRaw.productionLeakScanned
+        ?? hygiene.contentFilesScanned
+        ?? hygiene.gateContentFilesScanned
+        ?? hygiene.credentialScanned
+        ?? null;
+    const credentialScanned = gateReportRaw.credentialScanned
+        ?? gateReportRaw.productionLeakScanned
+        ?? sourceReport?.credentialScanned
+        ?? scope.productionDirsScanned
+        ?? hygiene.credentialScanned
+        ?? hygiene.gateContentFilesScanned
+        ?? contentScanned
+        ?? (repositoryFilesTotal != null && metadataOnlyFiles != null
+            ? repositoryFilesTotal - metadataOnlyFiles
+            : null);
+    const resolvedContentScanned = contentScanned ?? credentialScanned;
+    const ruleScopedFilesAnalyzed = sourceReport?.ruleScopedFilesAnalyzed
+        ?? scope.ruleScopedFilesAnalyzed
+        ?? gateReportRaw.ruleScopedFilesAnalyzed
+        ?? gateReportRaw.scanScope?.ruleScopedFilesAnalyzed
+        ?? hygiene.ruleScopedFilesAnalyzed
+        ?? digestScope.ruleScopedFilesAnalyzed
+        ?? null;
+    const fullDirectoryScan = Boolean(
+        sourceReport?.fullDirectoryScan
+        || scope.fullDirectoryScan
+        || gateReportRaw.fullDirectoryScan
+        || gateReportRaw.scanScope?.fullDirectoryScan
+        || digestScope.fullDirectoryScan
+        || hygiene.fullDirectoryScan
+    ) || (repositoryFilesTotal != null
+        && ruleScopedFilesAnalyzed != null
+        && repositoryFilesTotal === ruleScopedFilesAnalyzed);
+    const gateProfile = scope.profile
+        ?? scope.gateRuleBundleProfile
+        ?? digestScope.gateRuleBundleProfile
+        ?? hygiene.gateRuleBundleProfile
+        ?? gateReportRaw.scanScope?.profile
+        ?? null;
+    const gatePass = gateReportRaw.gate?.pass ?? sourceReport?.gate?.pass ?? hygiene.gatePass ?? null;
+    const blockingCount = gateReportRaw.gate?.blockingCount
+        ?? gateReportRaw.issueCount
+        ?? sourceReport?.gate?.blockingCount
+        ?? hygiene.gateBlockingCount
+        ?? hygiene.blockingCount
+        ?? null;
+    const jestBaselineChecked = gateReportRaw.jestBaselineChecked === false
+        || sourceReport?.jestBaselineChecked === false
+        || scope.jestExecutedDuringScan === false
+        || hygiene.jestBaselineChecked === false
+        ? false
+        : (gateReportRaw.jestBaselineChecked
+            ?? sourceReport?.jestBaselineChecked
+            ?? hygiene.jestBaselineChecked
+            ?? null);
     return {
-        gateReport: gate,
-        repositoryFilesTotal: options.repositoryFilesTotal
-            ?? gate.repositoryFilesTotal
-            ?? sourceReport?.repositoryFilesTotal
-            ?? scope.repositoryFilesTotal
-            ?? hygiene.repositoryFilesTotal
-            ?? digest?.scanScope?.gateRepositoryFilesTotal
-            ?? null,
-        contentScanned: scope.fullDirectoryStats?.contentScanned
-            ?? scope.fullDirectoryStats?.filesContentScanned
-            ?? sourceReport?.credentialScanned
-            ?? gate.credentialScanned
-            ?? hygiene.contentFilesScanned
-            ?? null,
-        gateProfile: scope.profile
-            ?? scope.gateRuleBundleProfile
-            ?? digest?.scanScope?.gateRuleBundleProfile
-            ?? hygiene.gateRuleBundleProfile
-            ?? gate.scanScope?.profile
-            ?? null,
-        gatePass: gate.gate?.pass ?? sourceReport?.gate?.pass ?? hygiene.gatePass ?? null,
-        blockingCount: gate.gate?.blockingCount
-            ?? gate.issueCount
-            ?? sourceReport?.gate?.blockingCount
-            ?? hygiene.blockingCount
-            ?? null
+        gateReport: gateReportRaw,
+        repositoryFilesTotal,
+        credentialScanned,
+        contentScanned: resolvedContentScanned,
+        metadataOnlyFiles,
+        ruleScopedFilesAnalyzed,
+        fullDirectoryScan,
+        gateProfile,
+        gatePass,
+        blockingCount,
+        jestBaselineChecked
     };
 }
 
 function buildProductFictionHygieneSummary(sourceReport, digest, options = {}) {
     const gateContext = resolveFictionDigestGateContext(sourceReport, digest, options);
-    const { repositoryFilesTotal: repoTotal, contentScanned, gateProfile, gateReport, gatePass, blockingCount } = gateContext;
+    const { repositoryFilesTotal: repoTotal, contentScanned, metadataOnlyFiles,
+        ruleScopedFilesAnalyzed, fullDirectoryScan, gateProfile, gatePass, blockingCount } = gateContext;
     const scope = sourceReport?.scanScope || {};
     const ancillary = summarizeAncillaryPatternHits(sourceReport);
     const sourceScanned = scope.sourceCodeFilesScanned ?? sourceReport?.sourceCodeFilesScanned ?? null;
-    const jestChecked = sourceReport?.jestBaselineChecked === false
-        || scope.jestExecutedDuringScan === false
-        || gateReport.jestBaselineChecked === false
-        || digest?.hygieneSummary?.jestBaselineChecked === false
-        ? false
-        : null;
+    const jestChecked = gateContext.jestBaselineChecked === false ? false : null;
     return {
         digestTrust: digest.digestTrust ?? null,
         gatePass: gatePass ?? null,
         blockingCount: blockingCount ?? 0,
-        repositoryFilesTotal: repoTotal,
-        ruleScopedFilesAnalyzed: sourceReport?.ruleScopedFilesAnalyzed ?? scope.ruleScopedFilesAnalyzed ?? null,
+        ...(repoTotal ? { gateRepositoryFilesTotal: repoTotal, repositoryFilesTotal: repoTotal } : {}),
+        ruleScopedFilesAnalyzed,
         fictionJsonFilesScanned: sourceReport?.fictionJsonFilesScanned ?? scope.fictionJsonFilesScanned ?? null,
         fictionSampleFilesScanned: sourceReport?.fictionSampleFilesScanned ?? scope.fictionSampleFilesScanned ?? null,
         fictionKpiHits: (digest.fictionIssues || []).reduce((sum, issue) => sum + (issue.count || 1), 0),
-        fullDirectoryScan: Boolean(sourceReport?.fullDirectoryScan || scope.fullDirectoryScan),
+        ...(fullDirectoryScan ? { fullDirectoryScan: true } : {}),
         sourceCodeFilesScanned: sourceScanned,
         ...(contentScanned != null ? { contentFilesScanned: contentScanned } : {}),
         ...(repoTotal != null && contentScanned != null && repoTotal > contentScanned
             ? { metadataOnlyInventoryFiles: repoTotal - contentScanned }
-            : {}),
+            : metadataOnlyFiles != null
+                ? { metadataOnlyInventoryFiles: metadataOnlyFiles }
+                : {}),
         ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
         ...(ancillary?.fictionKpi != null ? { fictionKpiPatternHits: ancillary.fictionKpi } : {}),
         ...(ancillary?.ancillary ? { ancillaryPatternHits: ancillary.ancillary } : {}),
@@ -357,13 +417,23 @@ function buildProductFictionHygieneSummary(sourceReport, digest, options = {}) {
 function buildProductFictionScanScope(sourceReport, digest, options = {}) {
     const gateContext = resolveFictionDigestGateContext(sourceReport, digest, options);
     const scope = sourceReport?.scanScope || {};
-    const { repositoryFilesTotal: gateTotal, gateProfile } = gateContext;
+    const { repositoryFilesTotal: gateTotal, contentScanned, metadataOnlyFiles,
+        ruleScopedFilesAnalyzed, fullDirectoryScan, gateProfile } = gateContext;
     return {
         resultsViewScope: scope.resultsViewScope || 'platform-only',
-        reportHealth: scope.reportHealth || 'platform-scoped',
+        reportHealth: fullDirectoryScan
+            ? 'platform-scoped-full-tree'
+            : (scope.reportHealth || 'platform-scoped'),
         securityHandoffEligible: false,
-        fullDirectoryScan: Boolean(sourceReport?.fullDirectoryScan || scope.fullDirectoryScan),
+        ...(fullDirectoryScan ? { fullDirectoryScan: true } : {}),
         ...(gateTotal != null ? { gateRepositoryFilesTotal: gateTotal } : {}),
+        ...(ruleScopedFilesAnalyzed != null ? { ruleScopedFilesAnalyzed } : {}),
+        ...(contentScanned != null ? { contentFilesScanned: contentScanned } : {}),
+        ...(gateTotal != null && contentScanned != null && gateTotal > contentScanned
+            ? { gateMetadataOnlyFiles: gateTotal - contentScanned }
+            : metadataOnlyFiles != null
+                ? { gateMetadataOnlyFiles: metadataOnlyFiles }
+                : {}),
         ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
         fictionDigestNote: scope.fictionDigestNote
             || digest?.scanScope?.fictionDigestNote
@@ -377,10 +447,12 @@ function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
         'Absolute scan paths are redacted to project label in operator exports.'
     ];
     const gateContext = resolveFictionDigestGateContext(sourceReport, digest, options);
-    const { repositoryFilesTotal: repoTotal, contentScanned, gateProfile, gatePass } = gateContext;
-    if (repoTotal != null && contentScanned != null && contentScanned < repoTotal) {
+    const { repositoryFilesTotal: repoTotal, contentScanned, credentialScanned,
+        ruleScopedFilesAnalyzed, fullDirectoryScan, gateProfile, gatePass, blockingCount } = gateContext;
+    const credScanned = contentScanned ?? credentialScanned;
+    if (repoTotal != null && credScanned != null && credScanned < repoTotal) {
         notes.push(
-            `Gate content-scanned ${Number(contentScanned).toLocaleString()} production-path file(s) — ${Number(repoTotal - contentScanned).toLocaleString()} binary/metadata-only path(s) in full-tree inventory of ${Number(repoTotal).toLocaleString()}.`
+            `Gate content-scanned ${Number(credScanned).toLocaleString()} production-path file(s) — ${Number(repoTotal - credScanned).toLocaleString()} binary/metadata-only path(s) in full-tree inventory of ${Number(repoTotal).toLocaleString()}.`
         );
     }
     const scope = sourceReport?.scanScope || {};
@@ -397,6 +469,9 @@ function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
     if (scope.mockSampleFilesReconciledNote) {
         notes.push(scope.mockSampleFilesReconciledNote);
     }
+    if (scope.euAiActHighRiskReconciledNote) {
+        notes.push(scope.euAiActHighRiskReconciledNote);
+    }
     const mockSamples = sourceReport?.mockSampleFiles
         ?? sourceReport?.totalFiles
         ?? scope.mockSampleFilesInScanPaths
@@ -409,20 +484,20 @@ function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
             `${mockSamples} mock-data path(s) exist in the tree — fiction KPI rules target *-sample.json filenames; none were counted in this pass.`
         );
     }
-    const ruleScoped = sourceReport?.ruleScopedFilesAnalyzed ?? scope.ruleScopedFilesAnalyzed ?? 0;
-    if (sourceReport?.fullDirectoryScan || scope.fullDirectoryScan) {
+    const ruleScoped = ruleScopedFilesAnalyzed ?? 0;
+    if (fullDirectoryScan) {
         notes.push(
             'Fiction digest sourced from intentional full-directory scan — rule-scoped counts include configured production paths (e.g. server/, src/).'
         );
     }
-    if (gatePass && ruleScoped > 0) {
+    if (gatePass === true && ruleScoped > 0) {
         notes.push(
             `Gate pass on ${Number(ruleScoped).toLocaleString()} rule-scoped files — fiction digest is hygiene only, not vendor handoff certification.`
         );
-    } else if (gatePass && ruleScoped === 0) {
+    } else if (gatePass === true && ruleScoped === 0) {
         notes.push('Gate pass with zero rule-scoped files — limited-scope attestation; re-run on product root with gate profile.');
     } else if (gatePass === false) {
-        const blocking = gateContext.blockingCount ?? 0;
+        const blocking = blockingCount ?? 0;
         if (blocking > 0) {
             notes.push(
                 `Gate FAIL — ${Number(blocking).toLocaleString()} blocking finding(s) in bundled scan — fiction KPI rows are clean; see json/simplebeacon-gate.json for production-path evidence.`
@@ -435,7 +510,10 @@ function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
             `scanScope.profile (${profile}) reflects Complete scan rule bundle — fiction digest lists fiction-KPI rows only.`
         );
     }
-    const ancillaryNote = formatAncillaryPatternHitsNote(sourceReport);
+    if (gatePass === true) {
+        notes.push('Paired gate scan PASS — fiction/KPI digest is hygiene only; see json/simplebeacon-gate.json for gate attestation.');
+    }
+    const ancillaryNote = formatAncillaryPatternHitsNote(sourceReport, blockingCount ?? undefined);
     if (ancillaryNote) {
         notes.push(ancillaryNote);
     }
@@ -444,7 +522,7 @@ function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
             ? 'No fiction-KPI digest rows exported — ancillary pattern totals are in sourceReport.scanScope.fullDirectoryStats.ruleHitTotals.'
             : 'No fiction or ancillary pattern rows in digest export — see sourceReport.scanScope for scan limits.');
     }
-    return [...new Set(notes)].slice(0, 12);
+    return [...new Set(notes)].slice(0, 14);
 }
 
 function enrichProductSourceReport(sourceReport) {
@@ -477,6 +555,39 @@ function enrichProductSourceReport(sourceReport) {
             fictionDigestNote: 'Fiction/KPI digest export — gate pass here does not replace Complete scan clearance bundle.',
             ...(fictionDigestProfileNote ? { fictionDigestProfileNote } : {})
         }
+    };
+}
+
+function reconcileProductSourceReportForDigest(sourceReport, options = {}) {
+    const enriched = enrichProductSourceReport(sourceReport);
+    const gateReport = options.gateReport;
+    if (!gateReport || typeof gateReport !== 'object') return enriched;
+
+    const euSummary = gateReport.euAiActSummary ?? enriched.euAiActSummary ?? null;
+    const priorHighRisk = enriched.scanScope?.euAiActHighRiskIndicators;
+    const authoritativeHighRisk = euSummary?.highRiskIndicators ?? priorHighRisk ?? 0;
+    const highRiskDrift = priorHighRisk != null && priorHighRisk !== authoritativeHighRisk;
+    const scanScope = {
+        ...(enriched.scanScope || {}),
+        ...(gateReport.scanScope?.gateRuleBundleProfile
+            ? { gateRuleBundleProfile: gateReport.scanScope.gateRuleBundleProfile }
+            : {}),
+        ...(gateReport.scanScope?.gateRuleBundleNote
+            ? { gateRuleBundleNote: gateReport.scanScope.gateRuleBundleNote }
+            : {}),
+        euAiActHighRiskIndicators: authoritativeHighRisk,
+        ...(highRiskDrift
+            ? {
+                euAiActHighRiskReconciledNote: `euAiActHighRiskIndicators reconciled from ${priorHighRisk} to ${authoritativeHighRisk} — authoritative count is deduped platform gate issues, not raw pattern hits.`
+            }
+            : {})
+    };
+
+    return {
+        ...enriched,
+        ...(euSummary ? { euAiActSummary: euSummary } : {}),
+        ...(gateReport.gate ? { gate: { ...enriched.gate, ...gateReport.gate } } : {}),
+        scanScope
     };
 }
 
@@ -640,7 +751,7 @@ function sanitizeFictionDigestExport(digest, options = {}) {
     const scanTargetRoot = normalizedPath;
     const enrichedSourceReport = benchmarkScan
         ? sourceReport
-        : enrichProductSourceReport(sourceReport);
+        : reconcileProductSourceReportForDigest(sourceReport, options);
 
     const conclusion = benchmarkScan
         ? buildBenchmarkFictionConclusion(fictionIssues, nonFictionIssues, enrichedSourceReport)

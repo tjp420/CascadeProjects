@@ -1,5 +1,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const {
     sanitizeComplianceBundleExport,
     sanitizeComplianceChecklistArtifactExport
@@ -190,6 +193,7 @@ test('sanitizeComplianceChecklistArtifactExport enriches operator full-tree chec
             score: 100,
             readyForAutomation: true,
             operatorDocumentationCount: 12,
+            checklistProfile: 'default',
             headline: '8/8 applicable rules pass — safe to enable automated AI deploy gates'
         },
         rules: [
@@ -212,10 +216,113 @@ test('sanitizeComplianceChecklistArtifactExport enriches operator full-tree chec
     assert.equal(out.hygieneSummary.fictionJsonFilesScanned, 184);
     assert.equal(out.hygieneSummary.jestBaselineChecked, false);
     assert.equal(out.scanScope.gateRuleBundleProfile, 'eu-ai-act');
+    assert.equal(out.hygieneSummary.fullDirectoryScan, true);
+    assert.equal(out.scanScope.fullDirectoryScan, true);
     assert.ok(out.exportNotes.some((n) => /securityHandoffEligible is false/i.test(String(n))));
     assert.ok(out.exportNotes.some((n) => /46 binary\/metadata-only/i.test(String(n))));
     assert.ok(out.exportNotes.some((n) => /DATA-002 evaluated 184/i.test(String(n))));
     assert.ok(out.exportNotes.some((n) => /eu-ai-act-sprint\.json/i.test(String(n))));
+    assert.ok(out.exportNotes.some((n) => /Corporate safety checklist \(8 rules\)/i.test(String(n))));
+    assert.match(out.summary.headline, /Jest before vendor handoff/i);
+});
+
+test('sanitizeComplianceChecklistArtifactExport syncs stale rows from gate without breaking AUTH on evaluation root', () => {
+    const evalRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-compliance-auth-'));
+    fs.writeFileSync(path.join(evalRoot, 'package.json'), JSON.stringify({ name: 'auth-eval-root' }));
+    fs.writeFileSync(path.join(evalRoot, '.env.production'), [
+        'REQUIRE_AUTH=true',
+        'JWT_SECRET=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
+        'JWT_REFRESH_SECRET=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789'
+    ].join('\n'));
+
+    const gateReport = {
+        projectRoot: 'ai-platform',
+        scanTargetRoot: evalRoot,
+        repositoryFilesTotal: 1693,
+        ruleScopedFilesAnalyzed: 1693,
+        credentialScanned: 1647,
+        productionLeakScanned: 1647,
+        fictionJsonFilesScanned: 185,
+        fictionSampleFilesScanned: 6,
+        jestBaselineChecked: false,
+        fullDirectoryScan: true,
+        scanScope: { profile: 'eu-ai-act', fullDirectoryScan: true },
+        gate: { pass: true, blockingCount: 0 }
+    };
+    const checklist = {
+        type: 'simplebeacon-compliance-checklist',
+        projectRoot: 'ai-platform',
+        summary: {
+            passed: 8,
+            failed: 0,
+            skipped: 0,
+            total: 8,
+            score: 100,
+            readyForAutomation: true,
+            checklistProfile: 'default',
+            headline: '8/8 applicable rules pass — safe to enable automated AI deploy gates'
+        },
+        rules: [
+            { id: 'AUTH-001', status: 'pass', evidence: 'REQUIRE_AUTH=true with non-placeholder JWT' },
+            { id: 'GATE-001', status: 'pass', evidence: 'Gate pass — no blocking issues at configured severities' },
+            { id: 'CRED-001', status: 'pass', evidence: 'Scanned 0 gate-scoped path(s) — no credential patterns' },
+            { id: 'LEAK-001', status: 'pass', evidence: 'Scanned 0 gate-scoped production file(s) — no sample-path leaks' },
+            { id: 'SUPPLY-001', status: 'pass', evidence: 'npm audit: 0 critical, 0 high (scan)' }
+        ]
+    };
+    try {
+        const out = sanitizeComplianceChecklistArtifactExport(checklist, {
+            projectPath: 'ai-platform',
+            gateReport,
+            npmAudit: NPM_AUDIT,
+            evaluationProjectRoot: evalRoot
+        });
+        const auth = out.rules.find((r) => r.id === 'AUTH-001');
+        const cred = out.rules.find((r) => r.id === 'CRED-001');
+        assert.equal(auth?.status, 'pass');
+        assert.match(String(cred?.evidence || ''), /1,?647/);
+        assert.match(out.summary.headline, /Jest before vendor handoff/i);
+        assert.equal(out.scanScope.checklistProfile, 'default');
+    } finally {
+        fs.rmSync(evalRoot, { recursive: true, force: true });
+    }
+});
+
+test('sanitizeComplianceChecklistArtifactExport preserves AUTH on redacted export without stale rows', () => {
+    const gateReport = {
+        projectRoot: 'ai-platform',
+        ruleScopedFilesAnalyzed: 1693,
+        credentialScanned: 1647,
+        jestBaselineChecked: false,
+        scanScope: { profile: 'eu-ai-act' },
+        gate: { pass: true, blockingCount: 0 }
+    };
+    const checklist = {
+        type: 'simplebeacon-compliance-checklist',
+        projectRoot: 'ai-platform',
+        summary: {
+            passed: 8,
+            failed: 0,
+            skipped: 0,
+            total: 8,
+            score: 100,
+            readyForAutomation: true,
+            checklistProfile: 'default',
+            headline: '8/8 applicable rules pass — safe to enable automated AI deploy gates'
+        },
+        rules: [
+            { id: 'AUTH-001', status: 'pass', evidence: 'REQUIRE_AUTH=true with non-placeholder JWT' },
+            { id: 'GATE-001', status: 'pass', evidence: 'Gate pass — no blocking issues at configured severities' },
+            { id: 'CRED-001', status: 'pass', evidence: 'Scanned 1647 gate-scoped path(s) — no credential patterns' }
+        ]
+    };
+    const out = sanitizeComplianceChecklistArtifactExport(checklist, {
+        projectPath: 'ai-platform',
+        gateReport,
+        npmAudit: NPM_AUDIT
+    });
+    assert.equal(out.rules.find((r) => r.id === 'AUTH-001')?.status, 'pass');
+    assert.match(out.summary.headline, /Jest before vendor handoff/i);
 });
 
 test('sanitizeComplianceChecklistArtifactExport enriches failed operator checklist aligned with blocking gate', () => {
@@ -262,4 +369,64 @@ test('sanitizeComplianceChecklistArtifactExport enriches failed operator checkli
     assert.equal(out.scanScope.securityHandoffEligible, false);
     assert.ok(out.exportNotes.some((n) => /GATE-001, LEAK-001/i.test(String(n))));
     assert.ok(out.exportNotes.some((n) => /Gate rule bundle profile: eu-ai-act/i.test(String(n))));
+});
+
+test('sanitizeComplianceChecklistArtifactExport idempotently re-sanitizes from embedded hygiene and gateReport', () => {
+    const gateReport = {
+        repositoryFilesTotal: 1686,
+        ruleScopedFilesAnalyzed: 1686,
+        credentialScanned: 1640,
+        fictionJsonFilesScanned: 185,
+        fictionSampleFilesScanned: 6,
+        jestBaselineChecked: false,
+        scanScope: { profile: 'eu-ai-act', fullDirectoryStats: { contentScanned: 1640 } },
+        euAiActSummary: { operatorDocumentationCount: 12 },
+        gate: { pass: true, blockingCount: 0 }
+    };
+    const enriched = {
+        type: 'simplebeacon-compliance-checklist',
+        projectRoot: 'ai-platform',
+        summary: {
+            passed: 8,
+            failed: 0,
+            score: 100,
+            readyForAutomation: true,
+            operatorDocumentationCount: 12,
+            checklistProfile: 'default'
+        },
+        rules: [{ id: 'SUPPLY-001', status: 'pass', evidence: 'npm audit: 0 critical, 0 high (npm-audit)' }],
+        exportSanitized: true,
+        hygieneSummary: {
+            gateRepositoryFilesTotal: 1686,
+            ruleScopedFilesAnalyzed: 1686,
+            metadataOnlyInventoryFiles: 46,
+            credentialScanned: 1640,
+            contentFilesScanned: 1640,
+            fictionJsonFilesScanned: 185,
+            fictionSampleFilesScanned: 6,
+            gateRuleBundleProfile: 'eu-ai-act',
+            gatePass: true,
+            gateBlockingCount: 0,
+            npmAuditCritical: 0,
+            npmAuditHigh: 0,
+            jestBaselineChecked: false
+        },
+        scanScope: { gateRuleBundleProfile: 'eu-ai-act', sourceArtifacts: { gateReport: true, npmAudit: true } }
+    };
+    const out = sanitizeComplianceChecklistArtifactExport(enriched, {
+        projectPath: 'ai-platform',
+        gateReport,
+        npmAudit: NPM_AUDIT
+    });
+    assert.equal(out.hygieneSummary.gatePass, true);
+    assert.ok(out.exportNotes.some((n) => /Paired gate scan PASS/i.test(String(n))));
+    assert.ok(out.exportNotes.some((n) => /Supply chain: npm audit reported 0 critical/i.test(String(n))));
+    const out2 = sanitizeComplianceChecklistArtifactExport(out, { projectPath: 'ai-platform', gateReport });
+    assert.deepEqual(out2.exportNotes, out.exportNotes);
+    const out3 = sanitizeComplianceChecklistArtifactExport(out, { projectPath: 'ai-platform' });
+    assert.ok(out3.exportNotes.some((n) => /CRED\/LEAK rules scanned/i.test(String(n))));
+    assert.ok(out3.exportNotes.some((n) => /Supply chain: npm audit reported 0 critical/i.test(String(n))));
+    assert.ok(out3.exportNotes.some((n) => /Paired gate scan PASS/i.test(String(n))));
+    assert.equal(out3.hygieneSummary.fullDirectoryScan, true);
+    assert.deepEqual(out3.hygieneSummary, out.hygieneSummary);
 });

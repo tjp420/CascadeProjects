@@ -9,7 +9,11 @@ const { scanTextContent } = require('./credential-pattern-scanner');
 const { scanFileContent: scanProductionLeakContent } = require('../rules/production-leak');
 const { buildPatternsFromBaseline, scanFileContent: scanFictionFileContent } = require('../rules/fiction-kpi-patterns');
 const { scanTextPatterns, scanSuspiciousDependencies } = require('../rules/llm-slop-patterns');
-const { loadSimplebeaconConfig } = require('../config');
+const { scanTextPatterns: scanTokenBleedText } = require('../rules/token-bleed-patterns');
+const { scanTextPatterns: scanArchitectureDriftText } = require('../rules/architecture-drift-patterns');
+const { loadSimplebeaconConfig, isRuleEnabled, getRuleOptions } = require('../config');
+const { scanPythonAstSnippet } = require('./python-ast-scanner');
+const { scanJavascriptAstSnippet } = require('./javascript-ast-scanner');
 const { evaluateGate } = require('../gate');
 const { isPathWithinRoot, resolveCliProjectRoot } = require('./path-utils');
 const { sanitizeFilePath } = require('./input-sanitizer');
@@ -77,6 +81,63 @@ function scanSnippetContent(content, options = {}) {
 
     if (path.basename(filePath) === 'package.json') {
         findings.push(...scanSuspiciousDependencies(filePath, content).map(normalizeFinding));
+    }
+
+    const productionPaths = config.productionPaths || ['server/', 'src/', 'app/', 'lib/'];
+    if (isRuleEnabled(config, 'token-bleed-patterns')) {
+        findings.push(...scanTokenBleedText(filePath, content, ext, {
+            productionPathsOnly: true,
+            productionPaths
+        }).map(normalizeFinding));
+    }
+    if (isRuleEnabled(config, 'architecture-drift-patterns')) {
+        findings.push(...scanArchitectureDriftText(filePath, content, ext, {
+            productionPathsOnly: true,
+            productionPaths
+        }).map(normalizeFinding));
+    }
+
+    if (isRuleEnabled(config, 'python-ast-patterns') && ext === '.py') {
+        let absSnippet = options.absolutePath
+            || (options.projectRoot ? path.resolve(projectRoot, filePath) : null);
+        let tempSnippetPath = null;
+        if (!absSnippet || !fs.existsSync(absSnippet)) {
+            const snippetDir = path.join(projectRoot, '.simplebeacon', 'snippet-cache');
+            fs.mkdirSync(snippetDir, { recursive: true });
+            tempSnippetPath = path.join(snippetDir, `ast-${Date.now()}.py`);
+            fs.writeFileSync(tempSnippetPath, content, 'utf8');
+            absSnippet = tempSnippetPath;
+        }
+        try {
+            const pyOpts = getRuleOptions(config, 'python-ast-patterns');
+            const py = scanPythonAstSnippet(projectRoot, filePath, absSnippet, {
+                productionPaths,
+                severity: pyOpts.severity || 'medium',
+                timeoutMs: pyOpts.timeoutMs
+            });
+            if (py.ok) {
+                findings.push(...py.issues.map(normalizeFinding));
+            }
+        } finally {
+            if (tempSnippetPath) {
+                try {
+                    fs.unlinkSync(tempSnippetPath);
+                } catch {
+                    /* ignore */
+                }
+            }
+        }
+    }
+
+    if (isRuleEnabled(config, 'javascript-ast-patterns') && ['.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx'].includes(ext)) {
+        const jsOpts = getRuleOptions(config, 'javascript-ast-patterns');
+        const js = scanJavascriptAstSnippet(projectRoot, filePath, content, {
+            productionPaths,
+            severity: jsOpts.severity || 'medium'
+        });
+        if (js.ok) {
+            findings.push(...js.issues.map(normalizeFinding));
+        }
     }
 
     const blockingCount = findings.filter(

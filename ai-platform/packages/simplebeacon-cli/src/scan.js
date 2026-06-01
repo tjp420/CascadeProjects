@@ -18,11 +18,17 @@ const { scanProductionLeaks } = require('./rules/production-leak');
 const { scanSourceFictionPatterns } = require('./rules/fiction-kpi-patterns');
 const { scanLlmSlopPatterns } = require('./rules/llm-slop-patterns');
 const { scanAgencyHandoffPatterns } = require('./rules/agency-handoff-patterns');
-const { scanEuAiActPatterns } = require('./rules/eu-ai-act-patterns');
+const { scanEuAiActPatterns, buildEuAiActSummaryFromScan } = require('./rules/eu-ai-act-patterns');
+const { scanTokenBleedPatterns } = require('./rules/token-bleed-patterns');
+const { scanArchitectureDriftPatterns } = require('./rules/architecture-drift-patterns');
+const { scanPythonAstPatterns } = require('./lib/python-ast-scanner');
+const { scanJavascriptAstPatterns } = require('./lib/javascript-ast-scanner');
 const { checkJestBaseline } = require('./rules/jest-baseline');
-const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions } = require('./config');
+const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions, resolveFullTreeSkipDirs } = require('./config');
 const { resolvePlatformRoot, isIsolatedScanRoot } = require('./project-detect');
 const { countRepositoryInventory } = require('./lib/repository-inventory');
+const { analyzeFullDirectory } = require('./lib/full-directory-scanner');
+const { createScanProgressWriter, resolveScanProgressPath } = require('./lib/scan-progress');
 const { normalizePathKey } = require('./lib/path-utils');
 const { sanitizePath } = require('./lib/path-sanitizer');
 const {
@@ -149,6 +155,20 @@ function formatBytes(bytes) {
     return `${size.toFixed(unit === 0 ? 0 : 1)}${units[unit]}`;
 }
 
+function formatFullTreeLimitation(stats, root, fullTreeRoot, skipDirs = []) {
+    const scope = displayRelativePath(root, fullTreeRoot) || fullTreeRoot;
+    const cap = stats.maxContentBytes;
+    const hasCap = Number.isFinite(cap);
+    const capPhrase = hasCap
+        ? `text content capped at ${Math.round(cap / 1024 / 1024)}MB (${stats.filesLargeHashed.toLocaleString()} hashed without content scan)`
+        : 'all text files content-scanned with no size cap';
+    const skipList = skipDirs instanceof Set ? [...skipDirs] : (Array.isArray(skipDirs) ? skipDirs : []);
+    const skipPhrase = skipList.length
+        ? `Skips ${skipList.join(', ')}`
+        : 'Skips only .git';
+    return `Full-tree scan: ${stats.filesAnalyzed.toLocaleString()} files under ${scope} — ${stats.filesHashed.toLocaleString()} SHA-256 hashed, ${stats.filesContentScanned.toLocaleString()} content-scanned (all gate rules; ${capPhrase}), ${stats.filesBinaryHashed.toLocaleString()} binary hashed only. ${skipPhrase}.`;
+}
+
 async function readJsonFile(filePath) {
     try {
         const raw = await fs.promises.readFile(filePath, 'utf8');
@@ -216,7 +236,17 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     const scanRoot = sanitizePath(baseDir, baseDir);
     const { platformRoot } = resolvePlatformRoot(scanRoot);
     const root = platformRoot;
+    const progressPath = resolveScanProgressPath(scanRoot, options);
+    const progress = createScanProgressWriter(progressPath, {
+        projectRoot: scanRoot,
+        phase: 'gate'
+    });
+    progress.update({ label: 'Starting scan', currentFile: null, processed: 0, total: null });
+
+    try {
     const config = options.config || loadSimplebeaconConfig(root, options.configPath);
+    const fullDirectoryScan = Boolean(options.fullDirectoryScan ?? config.fullDirectoryScan);
+    const fullTreeRoot = scanRoot;
     if (options.withJest && config.rules?.['jest-baseline']) {
         config.rules['jest-baseline'] = { ...config.rules['jest-baseline'], enabled: true, runTests: true };
     }
@@ -224,25 +254,74 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         .map((entry) => sanitizePath(entry, scanRoot))
         .filter(Boolean);
     const scanPaths = resolveEffectiveScanPaths(scanRoot, root, config, sanitizedExtraPaths);
-    const schemaEnabled = isRuleEnabled(config, 'json-schema');
-    const inventoryPromise = countRepositoryInventory(root, {
-        profile: options.inventoryProfile || 'audit',
-        skipDirs: [...MOCK_WALK_SKIP_DIRS]
-    });
-
-    const files = [];
-    for (const scanPath of scanPaths) {
-        if (fs.existsSync(scanPath)) {
-            await walkFiles(scanPath, files);
-        }
-    }
-    const uniqueFiles = dedupeScannedFiles(files);
+    const inventoryPromise = fullDirectoryScan
+        ? Promise.resolve(null)
+        : countRepositoryInventory(root, {
+            profile: options.inventoryProfile || 'audit',
+            skipDirs: [...MOCK_WALK_SKIP_DIRS]
+        });
 
     const categories = new Map();
     const issues = [];
+    let fullDirectoryStats = null;
+    let fullDirectoryInventory = null;
+    let fullDirectoryEuActStats = null;
+    let fullTreeSkipDirs = null;
+    let uniqueFiles = [];
+
+    if (fullDirectoryScan) {
+        const leakOpts = getRuleOptions(config, 'production-leak');
+        const euOpts = getRuleOptions(config, 'eu-ai-act-patterns');
+        fullTreeSkipDirs = resolveFullTreeSkipDirs(options, config);
+        const full = await analyzeFullDirectory(fullTreeRoot, {
+            maxFiles: config.fullDirectoryScanMaxFiles,
+            skipDirs: fullTreeSkipDirs,
+            config,
+            productionLeakOptions: leakOpts,
+            euAiActSeverity: euOpts.severity || 'medium',
+            rules: {
+                productionLeak: isRuleEnabled(config, 'production-leak'),
+                agencyHandoff: isRuleEnabled(config, 'agency-handoff-patterns'),
+                fiction: isRuleEnabled(config, 'fiction-kpi-patterns'),
+                euAiAct: isRuleEnabled(config, 'eu-ai-act-patterns'),
+                tokenBleed: isRuleEnabled(config, 'token-bleed-patterns'),
+                architectureDrift: isRuleEnabled(config, 'architecture-drift-patterns')
+            },
+            onProgress: (evt) => progress.update({
+                phase: 'full-tree',
+                label: 'Analyzing files',
+                fileKind: 'full-tree',
+                currentFile: evt.currentFile,
+                processed: evt.processed,
+                total: evt.total,
+                fullDirectoryScan: true,
+                skipDirs: [...fullTreeSkipDirs]
+            })
+        });
+        uniqueFiles = full.files;
+        fullDirectoryStats = full.stats;
+        fullDirectoryInventory = full.inventory;
+        fullDirectoryEuActStats = full.euActStats || null;
+        for (const issue of full.issues) {
+            issues.push(issue);
+        }
+        for (const cat of full.categories) {
+            categories.set(cat.category, cat);
+        }
+    } else {
+        const files = [];
+        for (const scanPath of scanPaths) {
+            if (fs.existsSync(scanPath)) {
+                await walkFiles(scanPath, files);
+            }
+        }
+        uniqueFiles = dedupeScannedFiles(files);
+    }
+
     const hashEntries = [];
-    let invalidJson = 0;
-    let emptyFiles = 0;
+    let invalidJson = fullDirectoryStats?.jsonInvalid ?? 0;
+    let emptyFiles = fullDirectoryStats?.emptyFiles ?? 0;
+    const schemaEnabled = isRuleEnabled(config, 'json-schema');
     const pageSamplesValidated = new Set();
     const schemaStats = {
         schemaChecked: 0,
@@ -251,6 +330,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         pageSampleSchemaPassed: 0
     };
 
+    if (!fullDirectoryScan) {
     for (const file of uniqueFiles) {
         const category = categoryForExt(file.ext);
         const bucket = categories.get(category) || {
@@ -305,9 +385,10 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
 
         categories.set(category, bucket);
     }
+    }
 
     let pageSpecsFromAlias = 0;
-    if (schemaEnabled) {
+    if (!fullDirectoryScan && schemaEnabled) {
         const pageSpecsBeforeAlias = schemaStats.pageSampleSchemaChecked;
         for (const fileName of Object.keys(PAGE_SAMPLE_SPECS)) {
             if (pageSamplesValidated.has(fileName)) continue;
@@ -387,91 +468,217 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let credentialScan = { scanned: 0, findings: 0, issues: [] };
+    const fullTreeHits = fullDirectoryStats?.ruleHitTotals || null;
+    const fullTreeContentScanned = fullDirectoryStats?.filesContentScanned ?? 0;
     if (isRuleEnabled(config, 'credentials')) {
-        const credOpts = getRuleOptions(config, 'credentials');
-        credentialScan = await scanCredentialPatterns(uniqueFiles, {
-            scanProduction: credOpts.scanProduction !== false,
-            baseDir: root,
-            productionPaths: credOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: config.ignore
-        });
-        issues.push(...credentialScan.issues);
+        if (fullDirectoryScan && fullDirectoryStats) {
+            credentialScan = {
+                scanned: fullTreeContentScanned,
+                findings: fullTreeHits?.credentials ?? 0,
+                issues: []
+            };
+        } else {
+            const credOpts = getRuleOptions(config, 'credentials');
+            credentialScan = await scanCredentialPatterns(uniqueFiles, {
+                scanProduction: credOpts.scanProduction !== false,
+                baseDir: root,
+                productionPaths: credOpts.productionPaths || config.productionPaths,
+                ignoreGlobs: config.ignore
+            });
+            issues.push(...credentialScan.issues);
+        }
     }
+
+    const ruleWalkRoot = fullDirectoryScan ? fullTreeRoot : root;
 
     let productionLeakScan = { scanned: 0, findings: 0, issues: [] };
     if (isRuleEnabled(config, 'production-leak')) {
-        const leakOpts = getRuleOptions(config, 'production-leak');
-        productionLeakScan = await scanProductionLeaks(root, {
-            productionPaths: leakOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: leakOpts.ignoreGlobs || config.ignore,
-            allowlistFiles: leakOpts.allowlistFiles || [],
-            scannerMetaFiles: [
-                ...(config.scannerMetaFiles || []),
-                ...(leakOpts.scannerMetaFiles || [])
-            ],
-            severity: leakOpts.severity || 'high',
-            intentClassification: leakOpts.intentClassification !== false,
-            plainSampleJson: leakOpts.plainSampleJson === true
-        });
-        issues.push(...productionLeakScan.issues);
+        if (fullDirectoryScan && fullTreeHits) {
+            productionLeakScan = {
+                scanned: fullTreeContentScanned,
+                findings: fullTreeHits.productionLeak,
+                issues: []
+            };
+        } else {
+            const leakOpts = getRuleOptions(config, 'production-leak');
+            productionLeakScan = await scanProductionLeaks(ruleWalkRoot, {
+                productionPaths: leakOpts.productionPaths || config.productionPaths,
+                ignoreGlobs: leakOpts.ignoreGlobs || config.ignore,
+                allowlistFiles: leakOpts.allowlistFiles || [],
+                scannerMetaFiles: [
+                    ...(config.scannerMetaFiles || []),
+                    ...(leakOpts.scannerMetaFiles || [])
+                ],
+                severity: leakOpts.severity || 'high',
+                intentClassification: leakOpts.intentClassification !== false,
+                plainSampleJson: leakOpts.plainSampleJson === true
+            });
+            issues.push(...productionLeakScan.issues);
+        }
     }
 
     let sourceFictionScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
     if (isRuleEnabled(config, 'fiction-kpi-patterns')) {
-        const fictionOpts = getRuleOptions(config, 'fiction-kpi-patterns');
-        sourceFictionScan = await scanSourceFictionPatterns(root, {
-            sourcePaths: fictionOpts.sourcePaths || config.sourceCodeScanPaths,
-            ignoreGlobs: fictionOpts.ignoreGlobs || config.ignore,
-            pathExclusions: config.pathExclusions || [],
-            baseline: config.baseline
-        });
-        const severity = fictionOpts.severity || 'medium';
-        for (const issue of sourceFictionScan.issues) {
-            issue.severity = severity;
+        if (fullDirectoryScan && fullTreeHits) {
+            sourceFictionScan = {
+                scanned: fullTreeContentScanned,
+                findings: fullTreeHits.fictionKpi,
+                issues: [],
+                patterns: []
+            };
+        } else {
+            const fictionOpts = getRuleOptions(config, 'fiction-kpi-patterns');
+            sourceFictionScan = await scanSourceFictionPatterns(ruleWalkRoot, {
+                sourcePaths: fictionOpts.sourcePaths || config.sourceCodeScanPaths,
+                ignoreGlobs: fictionOpts.ignoreGlobs || config.ignore,
+                pathExclusions: config.pathExclusions || [],
+                baseline: config.baseline
+            });
+            const severity = fictionOpts.severity || 'medium';
+            for (const issue of sourceFictionScan.issues) {
+                issue.severity = severity;
+            }
+            issues.push(...sourceFictionScan.issues);
         }
-        issues.push(...sourceFictionScan.issues);
     }
 
     let llmSlopScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
     if (isRuleEnabled(config, 'llm-slop-patterns')) {
-        const slopOpts = getRuleOptions(config, 'llm-slop-patterns');
-        llmSlopScan = await scanLlmSlopPatterns(root, {
-            sourcePaths: slopOpts.sourcePaths || config.sourceCodeScanPaths,
-            productionPaths: slopOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: slopOpts.ignoreGlobs || config.ignore,
-            registryCheck: slopOpts.registryCheck === true
-                || process.env.SIMPLEBEACON_REGISTRY_CHECK === 'true',
-            registryCheckLimit: slopOpts.registryCheckLimit || 12
-        });
-        const severity = slopOpts.severity || 'medium';
-        for (const issue of llmSlopScan.issues) {
-            if (!issue.severity) issue.severity = severity;
+        if (fullDirectoryScan && fullTreeHits) {
+            llmSlopScan = {
+                scanned: fullTreeContentScanned,
+                findings: fullTreeHits.llmSlop,
+                issues: [],
+                patterns: []
+            };
+        } else {
+            const slopOpts = getRuleOptions(config, 'llm-slop-patterns');
+            llmSlopScan = await scanLlmSlopPatterns(ruleWalkRoot, {
+                sourcePaths: slopOpts.sourcePaths || config.sourceCodeScanPaths,
+                productionPaths: slopOpts.productionPaths || config.productionPaths,
+                ignoreGlobs: slopOpts.ignoreGlobs || config.ignore,
+                registryCheck: slopOpts.registryCheck === true
+                    || process.env.SIMPLEBEACON_REGISTRY_CHECK === 'true',
+                registryCheckLimit: slopOpts.registryCheckLimit || 12
+            });
+            const severity = slopOpts.severity || 'medium';
+            for (const issue of llmSlopScan.issues) {
+                if (!issue.severity) issue.severity = severity;
+            }
+            issues.push(...llmSlopScan.issues);
         }
-        issues.push(...llmSlopScan.issues);
     }
 
+    const benchmarkScanTarget = isExternalBenchmarkCachePath(scanRoot);
+
     let agencyHandoffScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
-    if (isRuleEnabled(config, 'agency-handoff-patterns')) {
-        const handoffOpts = getRuleOptions(config, 'agency-handoff-patterns');
-        agencyHandoffScan = await scanAgencyHandoffPatterns(root, {
-            sourcePaths: handoffOpts.sourcePaths || config.sourceCodeScanPaths,
-            productionPaths: handoffOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: handoffOpts.ignoreGlobs || config.ignore,
-            severity: handoffOpts.severity || 'medium'
+    if (isRuleEnabled(config, 'agency-handoff-patterns') && !benchmarkScanTarget) {
+        if (fullDirectoryScan && fullTreeHits) {
+            agencyHandoffScan = {
+                scanned: fullTreeContentScanned,
+                findings: fullTreeHits.agencyHandoff,
+                issues: [],
+                patterns: []
+            };
+        } else {
+            const handoffOpts = getRuleOptions(config, 'agency-handoff-patterns');
+            agencyHandoffScan = await scanAgencyHandoffPatterns(ruleWalkRoot, {
+                sourcePaths: handoffOpts.sourcePaths || config.sourceCodeScanPaths,
+                productionPaths: handoffOpts.productionPaths || config.productionPaths,
+                ignoreGlobs: handoffOpts.ignoreGlobs || config.ignore,
+                severity: handoffOpts.severity || 'medium'
+            });
+            issues.push(...agencyHandoffScan.issues);
+        }
+    }
+
+    let tokenBleedScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
+    if (isRuleEnabled(config, 'token-bleed-patterns') && !benchmarkScanTarget) {
+        if (fullDirectoryScan && fullTreeHits) {
+            tokenBleedScan = {
+                scanned: fullTreeContentScanned,
+                findings: fullTreeHits.tokenBleed,
+                issues: [],
+                patterns: []
+            };
+        } else {
+            const tbOpts = getRuleOptions(config, 'token-bleed-patterns');
+            tokenBleedScan = await scanTokenBleedPatterns(ruleWalkRoot, {
+                productionPaths: tbOpts.productionPaths || config.productionPaths,
+                ignoreGlobs: tbOpts.ignoreGlobs || config.ignore,
+                severity: tbOpts.severity || 'medium'
+            });
+            issues.push(...tokenBleedScan.issues);
+        }
+    }
+
+    let architectureDriftScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
+    if (isRuleEnabled(config, 'architecture-drift-patterns') && !benchmarkScanTarget) {
+        if (fullDirectoryScan && fullTreeHits) {
+            architectureDriftScan = {
+                scanned: fullTreeContentScanned,
+                findings: fullTreeHits.architectureDrift,
+                issues: [],
+                patterns: []
+            };
+        } else {
+            const adOpts = getRuleOptions(config, 'architecture-drift-patterns');
+            architectureDriftScan = await scanArchitectureDriftPatterns(ruleWalkRoot, {
+                productionPaths: adOpts.productionPaths || config.productionPaths,
+                ignoreGlobs: adOpts.ignoreGlobs || config.ignore,
+                severity: adOpts.severity || 'high'
+            });
+            issues.push(...architectureDriftScan.issues);
+        }
+    }
+
+    let pythonAstScan = { scanned: 0, findings: 0, issues: [], patterns: [], ok: true };
+    if (isRuleEnabled(config, 'python-ast-patterns') && !benchmarkScanTarget) {
+        const pyOpts = getRuleOptions(config, 'python-ast-patterns');
+        pythonAstScan = await scanPythonAstPatterns(ruleWalkRoot, {
+            productionPaths: pyOpts.productionPaths || config.productionPaths,
+            ignoreGlobs: pyOpts.ignoreGlobs || config.ignore,
+            severity: pyOpts.severity || 'medium',
+            timeoutMs: pyOpts.timeoutMs
         });
-        issues.push(...agencyHandoffScan.issues);
+        if (pythonAstScan.ok) {
+            issues.push(...pythonAstScan.issues);
+        }
+    }
+
+    let javascriptAstScan = { scanned: 0, findings: 0, issues: [], patterns: [], ok: true };
+    if (isRuleEnabled(config, 'javascript-ast-patterns') && !benchmarkScanTarget) {
+        const jsOpts = getRuleOptions(config, 'javascript-ast-patterns');
+        javascriptAstScan = await scanJavascriptAstPatterns(ruleWalkRoot, {
+            productionPaths: jsOpts.productionPaths || config.productionPaths,
+            ignoreGlobs: jsOpts.ignoreGlobs || config.ignore,
+            severity: jsOpts.severity || 'medium'
+        });
+        if (javascriptAstScan.ok) {
+            issues.push(...javascriptAstScan.issues);
+        }
     }
 
     let euAiActScan = { scanned: 0, findings: 0, issues: [], summary: null, patterns: [] };
-    if (isRuleEnabled(config, 'eu-ai-act-patterns')) {
-        const euOpts = getRuleOptions(config, 'eu-ai-act-patterns');
-        euAiActScan = await scanEuAiActPatterns(root, {
-            sourcePaths: euOpts.sourcePaths || config.sourceCodeScanPaths,
-            productionPaths: euOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: euOpts.ignoreGlobs || config.ignore,
-            severity: euOpts.severity || 'medium'
-        });
-        issues.push(...euAiActScan.issues);
+    if (isRuleEnabled(config, 'eu-ai-act-patterns') && !benchmarkScanTarget) {
+        if (fullDirectoryScan && fullTreeHits) {
+            euAiActScan = {
+                scanned: fullTreeContentScanned,
+                findings: fullTreeHits.euAiAct,
+                issues: [],
+                summary: buildEuAiActSummaryFromScan(fullTreeRoot, issues, fullDirectoryEuActStats || {}),
+                patterns: []
+            };
+        } else {
+            const euOpts = getRuleOptions(config, 'eu-ai-act-patterns');
+            euAiActScan = await scanEuAiActPatterns(ruleWalkRoot, {
+                sourcePaths: euOpts.sourcePaths || config.sourceCodeScanPaths,
+                productionPaths: euOpts.productionPaths || config.productionPaths,
+                ignoreGlobs: euOpts.ignoreGlobs || config.ignore,
+                severity: euOpts.severity || 'medium'
+            });
+            issues.push(...euAiActScan.issues);
+        }
     }
 
     let jestBaseline = { checked: false, passed: true, issues: [], summary: null };
@@ -512,13 +719,17 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
 
     const rawIssues = scoringIssues;
     const severityCounts = countBySeverity(rawIssues);
-    const repositoryInventory = await inventoryPromise;
-    const ruleScopedFilesAnalyzed = computeFilesAnalyzed(
-        uniqueFiles.length,
-        credentialScan,
-        productionLeakScan,
-        sourceFictionScan
-    );
+    const repositoryInventory = fullDirectoryScan
+        ? fullDirectoryInventory
+        : await inventoryPromise;
+    const ruleScopedFilesAnalyzed = fullDirectoryScan && fullDirectoryStats
+        ? fullDirectoryStats.filesAnalyzed
+        : computeFilesAnalyzed(
+            uniqueFiles.length,
+            credentialScan,
+            productionLeakScan,
+            sourceFictionScan
+        );
     const repositoryFilesTotal = repositoryInventory?.totalFiles ?? null;
     const repositoryFoldersTotal = repositoryInventory?.totalFolders ?? null;
     const rulesEnabled = Object.keys(config.rules || {}).filter((name) => isRuleEnabled(config, name));
@@ -543,6 +754,18 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         euAiActFilesScanned: euAiActScan.scanned,
         euAiActPatternHits: euAiActScan.findings,
         euAiActHighRiskIndicators: euAiActScan.summary?.highRiskIndicators ?? 0,
+        tokenBleedFilesScanned: tokenBleedScan.scanned,
+        tokenBleedPatternHits: tokenBleedScan.findings,
+        architectureDriftFilesScanned: architectureDriftScan.scanned,
+        architectureDriftPatternHits: architectureDriftScan.findings,
+        pythonAstFilesScanned: pythonAstScan.scanned,
+        pythonAstPatternHits: pythonAstScan.findings,
+        pythonAstScanOk: pythonAstScan.ok !== false,
+        pythonAstScanError: pythonAstScan.ok === false ? pythonAstScan.error : undefined,
+        javascriptAstFilesScanned: javascriptAstScan.scanned,
+        javascriptAstPatternHits: javascriptAstScan.findings,
+        javascriptAstScanOk: javascriptAstScan.ok !== false,
+        javascriptAstScanError: javascriptAstScan.ok === false ? javascriptAstScan.error : undefined,
         jestExecutedDuringScan: jestBaseline.checked === true,
         consistencyAnchorCount: (config.consistencyAnchorSamples || []).length,
         fictionScope: consistency.scope || 'repository-json',
@@ -551,15 +774,22 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         ruleScopedFilesAnalyzed,
         repositoryFilesTotal,
         repositoryFoldersTotal,
+        fullDirectoryScan,
+        fullDirectoryStats: fullDirectoryScan && fullDirectoryStats ? fullDirectoryStats : null,
         benchmarkCacheIssuesExcluded: benchmarkCacheIssues.length,
         excludedPathsNote: benchmarkCacheIssues.length
-            ? `${benchmarkCacheIssues.length} issue(s) from github-cache/ benchmark clones excluded from gate scores — scan clones with github-cache/.simplebeacon/config.json (profile: benchmark).`
+            ? `${benchmarkCacheIssues.length} issue(s) from github-cache/ clones and .github-sync/ CLI mirror excluded from gate scores — scan clones with github-cache/.simplebeacon/config.json (profile: benchmark).`
             : null,
         limitations: [
-            repositoryFilesTotal != null
-                ? `Repository inventory: ${repositoryFilesTotal.toLocaleString()} files — gate rules checked ${ruleScopedFilesAnalyzed} (mock paths, credentials, server/ leaks).`
-                : `Gate rules checked ${ruleScopedFilesAnalyzed} files — mock paths, credentials, and production directories only.`,
-            'github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code).',
+            fullDirectoryScan && fullDirectoryStats
+                ? formatFullTreeLimitation(fullDirectoryStats, root, fullTreeRoot, fullTreeSkipDirs)
+                : repositoryFilesTotal != null
+                    ? `Repository inventory: ${repositoryFilesTotal.toLocaleString()} files — gate rules checked ${ruleScopedFilesAnalyzed} (mock paths, credentials, server/ leaks).`
+                    : `Gate rules checked ${ruleScopedFilesAnalyzed} files — mock paths, credentials, and production directories only.`,
+            fullDirectoryScan && fullDirectoryStats?.truncated
+                ? `Inventory truncated at ${fullDirectoryStats.maxFiles?.toLocaleString?.() ?? fullDirectoryStats.maxFiles} files — raise fullDirectoryScanMaxFiles in config for larger trees.`
+                : null,
+            'github-cache/ OSS benchmark clones and .github-sync/ CLI mirror paths are excluded from platform gate scoring (not your product code).',
             'Pattern matching on JSON samples and server/ production paths — not LLM semantic review.',
             consistency.scope === 'repository-json'
                 ? `Fiction/KPI rules scan repository JSON (${consistency.jsonFilesScanned ?? '—'}) plus source code (${sourceFictionScan.scanned ?? 0} files in ${(config.sourceCodeScanPaths || []).join(', ') || 'configured paths'}).`
@@ -579,6 +809,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         generatedAt: new Date().toISOString(),
         generatedBy: 'Simplebeacon',
         projectRoot: scanRoot,
+        scanTargetRoot: fullDirectoryScan ? fullTreeRoot : scanRoot,
         platformRoot: platformRoot !== scanRoot ? platformRoot : undefined,
         configPath: config.configPath,
         scanPaths,
@@ -644,6 +875,9 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     };
 
     return normalizePlatformScanReport(draftReport, { gateConfig: config.gate });
+    } finally {
+        progress.clear();
+    }
 }
 
 async function runScan(baseDir, options = {}) {

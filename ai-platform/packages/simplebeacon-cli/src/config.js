@@ -111,6 +111,14 @@ const PROFILE_RULES = {
     }
 };
 
+/** Opt-in rule packs — merged into every profile unless overridden in config.json */
+const OPT_IN_RULE_DEFAULTS = {
+    'token-bleed-patterns': { enabled: false, severity: 'medium' },
+    'architecture-drift-patterns': { enabled: false, severity: 'high' },
+    'python-ast-patterns': { enabled: false, severity: 'medium' },
+    'javascript-ast-patterns': { enabled: false, severity: 'medium' }
+};
+
 const DEFAULT_SCANNER_META_FILES = [
     '.simplebeacon/analyzer-cache.json',
     '.simplebeacon/source-kpi-findings.json',
@@ -119,6 +127,38 @@ const DEFAULT_SCANNER_META_FILES = [
     '.simplebeacon/trust-history.json'
 ];
 
+const DEFAULT_FULL_TREE_SKIP_DIRS = [
+    '.git',
+    'node_modules',
+    '.github-sync',
+    'github-cache',
+    'coverage',
+    'dist',
+    'build',
+    'temp',
+    'logs',
+    '.simplebeacon-backup'
+];
+
+/** Dashboard checkbox / CLI --full-directory: walk product tree; skip git metadata and local mirror caches only. */
+const MINIMAL_FULL_TREE_SKIP_DIRS = ['.git', '.github-sync', 'github-cache'];
+
+function resolveFullTreeSkipDirs(options = {}, config = {}) {
+    const isFullTree = options.fullDirectoryScan === true || config.fullDirectoryScan === true;
+    if (isFullTree) {
+        const extras = config.fullDirectoryScanSkipDirsCustom && config.fullDirectoryScanSkipDirs instanceof Set
+            ? [...config.fullDirectoryScanSkipDirs]
+            : ['node_modules', ...DEFAULT_FULL_TREE_SKIP_DIRS.filter((dir) => !MINIMAL_FULL_TREE_SKIP_DIRS.includes(dir))];
+        return new Set([...MINIMAL_FULL_TREE_SKIP_DIRS, ...extras]);
+    }
+    if (config.fullDirectoryScanSkipDirsCustom && config.fullDirectoryScanSkipDirs instanceof Set) {
+        return new Set([...MINIMAL_FULL_TREE_SKIP_DIRS, ...config.fullDirectoryScanSkipDirs]);
+    }
+    return config.fullDirectoryScanSkipDirs instanceof Set
+        ? config.fullDirectoryScanSkipDirs
+        : new Set(config.fullDirectoryScanSkipDirs || DEFAULT_FULL_TREE_SKIP_DIRS);
+}
+
 const DEFAULT_CONFIG = {
     profile: 'standard',
     scanPaths: DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
@@ -126,6 +166,7 @@ const DEFAULT_CONFIG = {
     sampleDir: 'web/data',
     consistencyAnchorSamples: DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
     ignore: IGNORE_DEFAULTS,
+    fullDirectoryScanSkipDirs: DEFAULT_FULL_TREE_SKIP_DIRS,
     pathExclusions: [], // User-configurable path exclusion tokens
     scannerMetaFiles: DEFAULT_SCANNER_META_FILES,
     rules: PROFILE_RULES.standard,
@@ -248,10 +289,43 @@ function mergeBaseline(raw, profile = 'standard') {
     };
 }
 
+function relativePathExists(baseDir, relativePath) {
+    const rel = normalizeRelativePath(relativePath);
+    if (!rel || rel === '.') return true;
+    const abs = path.join(baseDir, ...rel.split('/'));
+    try {
+        return fs.existsSync(abs);
+    } catch {
+        return false;
+    }
+}
+
+function filterExistingRelativePaths(baseDir, relativePaths) {
+    return (relativePaths || [])
+        .map(normalizeRelativePath)
+        .filter((rel) => relativePathExists(baseDir, rel));
+}
+
+/** External / minimal repos need whole-tree scope so GATE/CRED/LEAK rules are not skipped. */
+function ensureEuAiActScanScope(baseDir, config) {
+    const root = path.resolve(baseDir);
+    const existingProd = filterExistingRelativePaths(root, config.productionPaths);
+    config.productionPaths = existingProd.length ? existingProd : ['.'];
+    const existingScan = filterExistingRelativePaths(root, config.scanPaths);
+    config.scanPaths = existingScan.length ? existingScan : ['.'];
+    config.sourceCodeScanPaths = config.productionPaths.includes('.')
+        ? ['.']
+        : [...config.productionPaths];
+    return config;
+}
+
 function buildInitConfig(baseDir, options = {}) {
     const detected = detectProjectProfile(baseDir);
     const profile = options.profile || detected.profile;
-    const rules = JSON.parse(JSON.stringify(PROFILE_RULES[profile] || PROFILE_RULES.standard));
+    const rules = {
+        ...JSON.parse(JSON.stringify(PROFILE_RULES[profile] || PROFILE_RULES.standard)),
+        ...OPT_IN_RULE_DEFAULTS
+    };
 
     const config = {
         profile,
@@ -267,6 +341,14 @@ function buildInitConfig(baseDir, options = {}) {
     if (profile === 'cascade') {
         config.rules['production-leak'] = { ...PROFILE_RULES.cascade['production-leak'] };
         config.rules['jest-baseline'] = { ...PROFILE_RULES.cascade['jest-baseline'] };
+    }
+
+    if (profile === 'eu-ai-act') {
+        ensureEuAiActScanScope(baseDir, config);
+        if (config.fullDirectoryScan == null) {
+            config.fullDirectoryScan = false;
+        }
+        config.fullDirectoryScanSkipDirs = [...MINIMAL_FULL_TREE_SKIP_DIRS, 'node_modules'];
     }
 
     return { config, detected, profile };
@@ -341,6 +423,7 @@ function loadSimplebeaconConfig(baseDir, configPath = null) {
         rules: {
             ...PROFILE_RULES.standard,
             ...profileRules,
+            ...OPT_IN_RULE_DEFAULTS,
             ...(fileConfig.rules || {})
         },
         gate: {
@@ -358,12 +441,23 @@ function loadSimplebeaconConfig(baseDir, configPath = null) {
         configValid: validation.valid && configRead.ok !== false
     };
 
-    if (!config.ignore) config.ignore = IGNORE_DEFAULTS;
+    config.ignore = [...new Set([
+        ...IGNORE_DEFAULTS,
+        ...(Array.isArray(fileConfig.ignore) ? fileConfig.ignore : [])
+    ])];
     if (!config.productionPaths) config.productionPaths = DEFAULT_CONFIG.productionPaths;
+    config.fullDirectoryScanSkipDirsCustom = Array.isArray(fileConfig.fullDirectoryScanSkipDirs);
+    config.fullDirectoryScanSkipDirs = config.fullDirectoryScanSkipDirsCustom
+        ? new Set(fileConfig.fullDirectoryScanSkipDirs)
+        : new Set(DEFAULT_FULL_TREE_SKIP_DIRS);
     config.scannerMetaFiles = [...new Set([
         ...DEFAULT_SCANNER_META_FILES,
         ...(Array.isArray(fileConfig.scannerMetaFiles) ? fileConfig.scannerMetaFiles : [])
     ])];
+
+    if (config.profile === 'eu-ai-act') {
+        ensureEuAiActScanScope(root, config);
+    }
 
     return config;
 }
@@ -393,7 +487,11 @@ module.exports = {
     DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
     DEFAULT_BASELINE,
     DEFAULT_CONFIG,
+    DEFAULT_FULL_TREE_SKIP_DIRS,
+    MINIMAL_FULL_TREE_SKIP_DIRS,
+    resolveFullTreeSkipDirs,
     PROFILE_RULES,
+    OPT_IN_RULE_DEFAULTS,
     loadCentralDataConfig,
     loadSimplebeaconConfig,
     loadSamplebeaconConfig: loadSimplebeaconConfig,

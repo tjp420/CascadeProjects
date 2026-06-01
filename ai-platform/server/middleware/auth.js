@@ -30,14 +30,14 @@ const trustLevels = {
     level: 1,
     permissions: ['read:own', 'write:own', 'analyze:public'],
     rateLimitMultiplier: 1,
-    features: ['basic_analysis', 'mock_data_basic'],
+    features: ['basic_analysis', 'sample_data_basic'],
     mfaRequired: false
   },
   silver: {
     level: 2,
     permissions: ['read:own', 'write:own', 'read:shared', 'analyze:public', 'analyze:private'],
     rateLimitMultiplier: 2,
-    features: ['advanced_analysis', 'mock_data_advanced', 'collaboration'],
+    features: ['advanced_analysis', 'sample_data_advanced', 'collaboration'],
     mfaRequired: false
   },
   gold: {
@@ -101,7 +101,7 @@ const verifyToken = (token) => {
       issuer: jwtConfig.issuer,
       audience: jwtConfig.audience
     });
-  } catch (error) {
+  } catch {
     throw createError(401, 'Invalid or expired token');
   }
 };

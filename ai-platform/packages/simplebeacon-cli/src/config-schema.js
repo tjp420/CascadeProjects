@@ -12,7 +12,11 @@ const VALID_RULES = new Set([
     'llm-slop-patterns',
     'agency-handoff-patterns',
     'eu-ai-act-patterns',
-    'jest-baseline'
+    'jest-baseline',
+    'token-bleed-patterns',
+    'architecture-drift-patterns',
+    'python-ast-patterns',
+    'javascript-ast-patterns'
 ]);
 
 const VALID_SEVERITIES = new Set(['critical', 'high', 'medium', 'low']);

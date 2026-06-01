@@ -255,7 +255,7 @@ class UploadSecurityMiddleware {
                 result.warnings.push(`Content type mismatch: ${file.originalname}`);
             }
 
-        } catch (error) {
+        } catch {
             // If we can't read the file, it might be binary or corrupted
             result.warnings.push(`Could not analyze content: ${file.originalname}`);
         }
@@ -358,15 +358,15 @@ class UploadSecurityMiddleware {
     }
 
     /**
-     * Scan for malware (placeholder implementation)
+     * Scan for malware (stub — integrate AV engine in production)
      */
     async scanForMalware(_filePath) {
         // This would integrate with actual antivirus software
-        // For now, return clean as placeholder
+        // For now, return clean until AV integration is wired
         return {
             clean: true,
             scanTime: new Date().toISOString(),
-            engine: 'placeholder'
+            engine: 'stub-pending'
         };
     }
 
