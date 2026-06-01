@@ -1,0 +1,71 @@
+{
+  "name": "simplebeacon",
+  "version": "1.0.0",
+  "description": "Local release-hygiene gate for AI-assisted code — MCP snippet scans, full-repo --gate for CI, credential patterns, sample JSON in prod routes, fiction KPIs. Offline by default.",
+  "author": "SimpleBeacon",
+  "license": "MIT",
+  "homepage": "https://simplebeacon.ai/community",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tjp420/simplebeacon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tjp420/simplebeacon/issues"
+  },
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "simplebeacon": "./bin/simplebeacon.js",
+    "simplebeacon-audit": "./bin/simplebeacon-audit.js",
+    "simplebeacon-proxy": "./bin/simplebeacon-proxy.js",
+    "simplebeacon-mcp": "./bin/simplebeacon-mcp.js",
+    "samplebeacon": "./bin/simplebeacon.js"
+  },
+  "scripts": {
+    "test": "node --test tests/**/*.test.js",
+    "proxy": "node bin/simplebeacon-proxy.js",
+    "mcp": "node bin/simplebeacon-mcp.js --offline",
+    "mcp:smoke": "node bin/simplebeacon-mcp.js --smoke-test",
+    "prepublishOnly": "npm test && npm run mcp:smoke",
+    "pack:check": "npm pack --dry-run"
+  },
+  "keywords": [
+    "simplebeacon",
+    "simplebeacon",
+    "mock-data",
+    "ai-fiction",
+    "code-quality",
+    "ci-gate",
+    "pre-commit",
+    "github-action",
+    "devsecops",
+    "mcp",
+    "cursor",
+    "model-context-protocol"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.26.9",
+    "@babel/traverse": "^7.26.9"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "bin/",
+    "python/",
+    "src/",
+    "docs/",
+    "!docs/OUTREACH.md",
+    "!docs/NPM-PUBLISH.md",
+    "!docs/examples/outreach-tracker.md",
+    "examples/",
+    "LICENSE",
+    "README.md"
+  ]
+}

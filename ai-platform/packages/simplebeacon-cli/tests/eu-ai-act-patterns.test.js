@@ -1,0 +1,113 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const {
+    scanEuAiActPatterns,
+    detectDocumentationArtifacts,
+    hasTransparencyDisclosure
+} = require('../src/rules/eu-ai-act-patterns');
+
+test('hasTransparencyDisclosure detects Article 50 markers', () => {
+    assert.equal(hasTransparencyDisclosure('This content is AI-generated.'), true);
+    assert.equal(hasTransparencyDisclosure('You are interacting with an AI assistant.'), true);
+    assert.equal(hasTransparencyDisclosure('const x = openai.chat.completions.create();'), false);
+});
+
+test('scanEuAiActPatterns detects high-risk employment AI pattern', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-euai-'));
+    fs.mkdirSync(path.join(dir, 'server'), { recursive: true });
+    fs.writeFileSync(
+        path.join(dir, 'server', 'hiring.js'),
+        'export const hiringDecisionModel = trainClassifier(data);'
+    );
+
+    const result = await scanEuAiActPatterns(dir, { sourcePaths: ['server'] });
+    assert.ok(result.summary.highRiskIndicators >= 1);
+    assert.ok(result.issues.some((i) => i.metadata?.patternId === 'EUAI-HR-001'));
+
+    fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('scanEuAiActPatterns flags transparency gap in user-facing AI code', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-euai-t50-'));
+    fs.mkdirSync(path.join(dir, 'web'), { recursive: true });
+    fs.writeFileSync(
+        path.join(dir, 'web', 'ChatPage.tsx'),
+        'import OpenAI from "openai";\nexport function ChatPage() { return openai.chat.completions.create(); }'
+    );
+
+    const result = await scanEuAiActPatterns(dir, { sourcePaths: ['web'] });
+    assert.ok(result.summary.transparencyGaps >= 1);
+    assert.ok(result.issues.some((i) => i.metadata?.patternId === 'EUAI-T50-001'));
+
+    fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('scanEuAiActPatterns collapses multiple AI indicator matches per file', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-euai-collapse-'));
+    fs.mkdirSync(path.join(dir, 'server'), { recursive: true });
+    fs.writeFileSync(
+        path.join(dir, 'server', 'providers.js'),
+        'const openai = 1;\nconst anthropic = 2;\nconst claude = 3;\nconst gpt4 = 4;'
+    );
+
+    const result = await scanEuAiActPatterns(dir, { sourcePaths: ['server'] });
+    const aiIssues = result.issues.filter((i) => i.metadata?.patternId === 'EUAI-AI-001');
+    assert.equal(aiIssues.length, 1);
+    assert.ok((aiIssues[0].metadata?.matchCount || 0) >= 2);
+    assert.equal(aiIssues[0].count, 1);
+
+    fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('detectDocumentationArtifacts finds model-card.md', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-euai-doc-'));
+    fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'docs', 'model-card.md'), '# Model card\n\nPurpose: hiring scorer');
+
+    const artifacts = detectDocumentationArtifacts(dir);
+    assert.ok(artifacts.artifacts.some((a) => a.path.includes('model-card.md')));
+    assert.ok(artifacts.paths.some((p) => p.includes('model-card.md')));
+
+    fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('scanEuAiActPatterns suppresses documented AI inventory indicators when compliance docs exist', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-euai-doc-inv-'));
+    fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+    fs.mkdirSync(path.join(dir, 'server'), { recursive: true });
+    fs.writeFileSync(
+        path.join(dir, 'docs', 'ai-system-documentation.md'),
+        '# AI system documentation\n\nCovers server/providers.js\n'
+    );
+    fs.writeFileSync(
+        path.join(dir, 'docs', 'eu-ai-act-compliance.md'),
+        '# EU AI Act compliance\n\nRegulation (EU) 2024/1689 readiness\n'
+    );
+    fs.writeFileSync(
+        path.join(dir, 'server', 'providers.js'),
+        'const openai = 1;\nexport default openai;\n'
+    );
+
+    const result = await scanEuAiActPatterns(dir, { sourcePaths: ['server'] });
+    assert.equal(result.summary.aiSystemIndicators, 1);
+    assert.equal(result.issues.filter((i) => i.metadata?.patternId === 'EUAI-AI-001').length, 0);
+
+    fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('scanEuAiActPatterns passes transparency when disclosure present', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-euai-ok-'));
+    fs.mkdirSync(path.join(dir, 'web'), { recursive: true });
+    fs.writeFileSync(
+        path.join(dir, 'web', 'ChatPage.tsx'),
+        'const notice = "You are interacting with an AI assistant.";\nopenai.chat.completions.create();'
+    );
+
+    const result = await scanEuAiActPatterns(dir, { sourcePaths: ['web'] });
+    assert.equal(result.summary.transparencyGaps, 0);
+
+    fs.rmSync(dir, { recursive: true, force: true });
+});
