@@ -1,0 +1,49 @@
+# Optional paid-enterprise CI — requires `simplebeacon license verify` in your CLI build.
+# Community teams: use simplebeacon-enterprise.yml (no license secret).
+#
+# GitHub secret: SIMPLEBEACON_LICENSE_JSON (full signed license JSON, one line)
+
+name: Simplebeacon Enterprise Guardrail (licensed)
+
+on:
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  enterprise-guardrail:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify license (when CLI supports license verify)
+        env:
+          SIMPLEBEACON_LICENSE_JSON: ${{ secrets.SIMPLEBEACON_LICENSE_JSON }}
+        run: |
+          if [ -z "${SIMPLEBEACON_LICENSE_JSON}" ]; then
+            echo "No SIMPLEBEACON_LICENSE_JSON — skip license verify (community mode)."
+            exit 0
+          fi
+          npx --yes simplebeacon license verify
+
+      - name: Run enterprise guardrail gate (offline)
+        env:
+          SIMPLEBEACON_LICENSE_JSON: ${{ secrets.SIMPLEBEACON_LICENSE_JSON }}
+          SIMPLEBEACON_OFFLINE: '1'
+        run: |
+          EXTRA=""
+          if [ -n "${SIMPLEBEACON_LICENSE_JSON}" ]; then
+            EXTRA="--require-license"
+          fi
+          npx --yes simplebeacon scan \
+            --format json \
+            --output .simplebeacon/report.json \
+            --gate --offline --verbose ${EXTRA}
+          npx --yes simplebeacon gate status

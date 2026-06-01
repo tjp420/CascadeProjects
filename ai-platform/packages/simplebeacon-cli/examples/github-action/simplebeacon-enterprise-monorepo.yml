@@ -33,14 +33,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install SimpleBeacon CLI + intelligence
-        run: |
-          npm install --ignore-scripts --prefix packages/simplebeacon-cli
-          npm install --ignore-scripts --prefix packages/simplebeacon-intelligence
+      - name: Install workspace (monorepo lockfile)
+        run: npm ci --ignore-scripts
 
       - name: Fetch Tree-sitter WASM grammars
-        working-directory: packages/simplebeacon-intelligence
-        run: npm run fetch-grammars
+        run: npm run fetch-grammars --workspace=@simplebeacon/intelligence
 
       - name: Run enterprise guardrail gate (offline)
         env:
