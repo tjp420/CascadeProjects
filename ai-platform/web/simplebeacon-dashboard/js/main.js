@@ -19,6 +19,7 @@ import { SecurityView } from './views/SecurityView.js?v=20260525security1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js';
+import { OutreachView } from './views/OutreachView.js?v=20260601outreachv2';
 import { SignInView } from './views/SignInView.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
 import { showUpgradeModal } from './components/UpgradeModal.js';
@@ -26,6 +27,14 @@ import { showLoginModal } from './components/LoginModal.js';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
 import { showToast } from './utils.js';
 import { fetchAnalyzeProviders } from './services/analyzeService.js';
+
+function vaultUnlockUrl(returnPath = '/app') {
+  const returnTo = encodeURIComponent(returnPath);
+  if (isLocalDevHost()) {
+    return `/private-dashboard-vault?password=admin&returnTo=${returnTo}`;
+  }
+  return `/private-dashboard-vault?returnTo=${returnTo}`;
+}
 
 const CLOUD_TEAMS_VIEWS = new Set([
   'dashboard', 'audit', 'results', 'analyze', 'security', 'tools', 'platform', 'quality', 'settings', 'assessments'
@@ -96,6 +105,7 @@ class SimplebeaconDashboard {
       analyze: new AnalyzeView(this),
       results: new ResultsView(this),
       security: new SecurityView(this),
+      outreach: new OutreachView(this),
       tools: new ToolsView(this),
       platform: new PlatformView(this),
       quality: new QualityView(this),
@@ -127,6 +137,13 @@ class SimplebeaconDashboard {
       return;
     }
 
+    const vaultReady = await this.ensureVaultSession();
+    if (!vaultReady) {
+      this.router.init();
+      this.updateAuthUi();
+      return;
+    }
+
     const authed = await authService.ensureAuthenticated();
     const initialView = this.router.parseHash().view;
     if (!authed && requiresAuthGate() && !PUBLIC_VIEWS.has(initialView)) {
@@ -149,6 +166,35 @@ class SimplebeaconDashboard {
       <a class="demo-banner-link" href="https://simplebeacon.pages.dev/pricing" target="_blank" rel="noopener noreferrer">View pricing →</a>
     `;
     document.body.prepend(bar);
+  }
+
+  showVaultBanner() {
+    if (document.getElementById('vault-banner')) return;
+    const returnPath = `${window.location.pathname}${window.location.hash || '#/dashboard'}`;
+    const bar = document.createElement('div');
+    bar.id = 'vault-banner';
+    bar.className = 'demo-banner';
+    bar.innerHTML = `
+      <span><strong>Vault locked</strong> — unlock the internal dashboard before scan/API calls work.</span>
+      <a class="demo-banner-link" href="${vaultUnlockUrl(returnPath)}">Unlock vault →</a>
+    `;
+    document.body.prepend(bar);
+  }
+
+  async ensureVaultSession() {
+    if (isDemoMode() || !isLocalSelfHosted()) return true;
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 403 && data.error === 'vault_required') {
+        this.showVaultBanner();
+        return false;
+      }
+      document.getElementById('vault-banner')?.remove();
+      return true;
+    } catch {
+      return true;
+    }
   }
 
   bootstrapAfterAuth() {
@@ -230,7 +276,10 @@ class SimplebeaconDashboard {
     try {
       await this.loadData();
     } catch (err) {
-      if (err.code === 'subscription_required') {
+      if (err.code === 'vault_required') {
+        this.showVaultBanner();
+        showToast('Unlock the internal vault, then sign in and retry.', 'info');
+      } else if (err.code === 'subscription_required') {
         handleSubscriptionGate.call(this);
       } else if (err.code === 'auth_required') {
         showLoginModal({ onSuccess: () => this.loadDataInBackground() });
