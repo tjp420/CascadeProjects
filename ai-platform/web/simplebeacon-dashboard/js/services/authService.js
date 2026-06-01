@@ -1,17 +1,17 @@
+import {
+  hasJsonContentType,
+  readJsonResponseBody,
+  withRecoverableFallback,
+  logRecoverableDashboardError
+} from '../lib/recoverable-fetch.js';
+
 const TOKEN_KEY = 'cascadeAuthToken';
 const USER_KEY = 'cascadeAuthUser';
 /** Legacy dashboards / upload clients read these keys */
 const LEGACY_TOKEN_KEYS = ['access_token', 'token', 'authToken'];
 
-function hasJsonContentType(res) {
-  const contentType = String(res.headers.get('content-type') || '').toLowerCase();
-  return contentType.includes('application/json');
-}
-
 async function readJsonSafe(res, fallback = null) {
-  if (!hasJsonContentType(res)) return fallback;
-  const data = await res.json().catch(() => fallback);
-  return data == null ? fallback : data;
+  return readJsonResponseBody(res, fallback);
 }
 
 function loginErrorMessage(res, payload, fallback = 'Login failed') {
@@ -52,7 +52,8 @@ export class AuthService {
     try {
       const raw = localStorage.getItem(USER_KEY);
       return raw ? JSON.parse(raw) : null;
-    } catch {
+    } catch (parseError) {
+      logRecoverableDashboardError('auth session user parse', parseError);
       return null;
     }
   }
@@ -124,14 +125,12 @@ export class AuthService {
   }
 
   async logout() {
-    try {
+    await withRecoverableFallback('auth logout request', async () => {
       await fetch('/api/auth/logout', {
         method: 'POST',
         headers: this.getAuthHeaders()
       });
-    } catch {
-      /* optional */
-    }
+    }, null);
     this.clearSession();
   }
 

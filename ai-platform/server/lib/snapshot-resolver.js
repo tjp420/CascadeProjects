@@ -9,22 +9,22 @@ const {
     setCachedSnapshot
 } = require('./redis-cache');
 
-function withSource(payload, source) {
-    if (payload == null) return payload;
-    if (Array.isArray(payload)) {
-        return payload;
+function tagSnapshotPayloadWithSource(snapshotPayload, snapshotSource) {
+    if (snapshotPayload == null) return snapshotPayload;
+    if (Array.isArray(snapshotPayload)) {
+        return snapshotPayload;
     }
-    if (typeof payload === 'object') {
-        return { ...payload, _source: source };
+    if (typeof snapshotPayload === 'object') {
+        return { ...snapshotPayload, _source: snapshotSource };
     }
-    return payload;
+    return snapshotPayload;
 }
 
 async function resolveSnapshotPayload(db, key, fallbackFn, redis = null) {
     if (redis) {
         const cached = await getCachedSnapshot(redis, key);
         if (cached !== null && cached !== undefined) {
-            return withSource(cached, 'redis');
+            return tagSnapshotPayloadWithSource(cached, 'redis');
         }
     }
 
@@ -34,12 +34,12 @@ async function resolveSnapshotPayload(db, key, fallbackFn, redis = null) {
             if (redis) {
                 await setCachedSnapshot(redis, key, snapshot);
             }
-            return withSource(snapshot, 'database');
+            return tagSnapshotPayloadWithSource(snapshot, 'database');
         }
     }
 
     const fallback = await fallbackFn();
-    return withSource(fallback, 'sample');
+    return tagSnapshotPayloadWithSource(fallback, 'sample');
 }
 
 async function sendSnapshotOrSample(res, db, key, fallbackFn, redis = null) {
@@ -62,5 +62,5 @@ module.exports = {
     sendSnapshotOrSample,
     REAL_API_PATH_PREFIXES,
     isRealApiPath,
-    withSource
+    tagSnapshotPayloadWithSource
 };

@@ -1,9 +1,4 @@
-import { escapeHtml } from '../utils.js';
-
-function formatCount(value) {
-  if (value == null) return '—';
-  return Number(value).toLocaleString();
-}
+import { escapeHtml, formatNumber } from '../utils.js';
 
 function severityClass(severity) {
   if (severity === 'critical') return 'warn';
@@ -33,15 +28,15 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
   return `
     <div class="metrics-row mb-4">
       <div class="metric-chip" title="Audit-scoped repository inventory">
-        <strong>${formatCount(s.repositoryFilesTotal ?? scan.repositoryInventory?.totalFiles)}</strong> repo files
+        <strong>${formatNumber(s.repositoryFilesTotal ?? scan.repositoryInventory?.totalFiles)}</strong> repo files
       </div>
       <div class="metric-chip" title="Source-like files content-scanned">
-        <strong>${formatCount(s.codeFilesAnalyzed)}</strong> code files analyzed
+        <strong>${formatNumber(s.codeFilesAnalyzed)}</strong> code files analyzed
       </div>
       <div class="metric-chip" title="0–100 health score (lower = more findings)">
         <strong>${s.healthScore ?? '—'}%</strong> health
       </div>
-      <div class="metric-chip"><strong>${formatCount(s.findingsTotal)}</strong> findings</div>
+      <div class="metric-chip"><strong>${formatNumber(s.findingsTotal)}</strong> findings</div>
       <div class="metric-chip gate-badge ${(s.severityCounts?.critical ?? 0) === 0 ? 'pass' : 'warn'}">
         <strong>${s.severityCounts?.critical ?? 0}</strong> critical
       </div>
@@ -64,12 +59,12 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
       ` : ''}
       ${scan.structureInsights?.summary?.sampledFiles ? `
         <div class="metric-chip" title="Tier-1 structure hints from language plugins">
-          <strong>${formatCount(scan.structureInsights.summary.sampledFiles)}</strong> structure samples
+          <strong>${formatNumber(scan.structureInsights.summary.sampledFiles)}</strong> structure samples
         </div>
       ` : ''}
       ${scan.scanScope?.universalLanguageCount ? `
         <div class="metric-chip" title="Registered language analyzer plugins">
-          <strong>${formatCount(scan.scanScope.universalLanguageCount)}</strong> language plugins
+          <strong>${formatNumber(scan.scanScope.universalLanguageCount)}</strong> language plugins
         </div>
       ` : ''}
     </div>
@@ -89,8 +84,8 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
           ESLint integration ${eslintSummary.source === 'artifact' ? '(report artifact)' : '(live command)'}
         </p>
         <div class="metrics-row mb-2">
-          <div class="metric-chip"><strong>${formatCount(eslintSummary.totalIssues)}</strong> total eslint issues</div>
-          <div class="metric-chip"><strong>${formatCount(eslintSummary.filesWithIssues)}</strong> files with issues</div>
+          <div class="metric-chip"><strong>${formatNumber(eslintSummary.totalIssues)}</strong> total eslint issues</div>
+          <div class="metric-chip"><strong>${formatNumber(eslintSummary.filesWithIssues)}</strong> files with issues</div>
         </div>
         ${eslintSummary.categorizedWarnings?.length ? `
           <p class="text-muted" style="font-size: var(--font-size-sm); margin: 0;">
@@ -140,7 +135,7 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
       <div class="card mb-4">
         <h3 class="section-title">Structure hints (Tier-1)</h3>
         <p class="text-muted" style="font-size: var(--font-size-sm);">
-          Regex-based estimates from language plugins — ${formatCount(scan.structureInsights.summary?.sampledFiles)} file(s) sampled.
+          Regex-based estimates from language plugins — ${formatNumber(scan.structureInsights.summary?.sampledFiles)} file(s) sampled.
         </p>
         <div class="consolidation-list">
           ${scan.structureInsights.samples.slice(0, 6).map((item) => `
@@ -148,7 +143,7 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
               <div class="consolidation-meta">
                 <span class="gate-badge pass">${escapeHtml(item.language || 'generic')}</span>
                 ${escapeHtml(item.complexity || 'low')} complexity
-                · ${formatCount(item.approximateFunctions)} fn · ${formatCount(item.approximateClasses)} types
+                · ${formatNumber(item.approximateFunctions)} fn · ${formatNumber(item.approximateClasses)} types
               </div>
               <p><code>${escapeHtml(item.filePath || '—')}</code></p>
             </div>

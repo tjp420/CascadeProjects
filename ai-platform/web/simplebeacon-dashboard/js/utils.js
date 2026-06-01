@@ -23,7 +23,16 @@ export function showToast(message, type = 'info') {
 
 export function formatNumber(n) {
   if (n == null) return '—';
-  return Number(n).toLocaleString();
+  const numericCount = Number(n);
+  if (!Number.isFinite(numericCount)) return '—';
+  return numericCount.toLocaleString();
+}
+
+/** Parse ISO/RFC timestamps to epoch ms; returns null when input is missing or invalid. */
+export function parseIsoTimestampMs(isoTimestamp) {
+  if (isoTimestamp == null || isoTimestamp === '') return null;
+  const epochMs = Date.parse(String(isoTimestamp));
+  return Number.isFinite(epochMs) ? epochMs : null;
 }
 
 export function formatPercent(value) {
@@ -67,6 +76,22 @@ export function redactPathForDisplay(projectPath) {
     return normalized.replace(/((?:^|\/)(?:…|\.{3}))\/[^/]+(\/)/, '$1$2');
   }
   return projectPath;
+}
+
+/** True when the string is a privacy-redacted path (…/folder) rather than a full absolute path. */
+export function isRedactedPathDisplay(value) {
+  if (value == null || value === '') return false;
+  const normalized = String(value).replace(/\\/g, '/').trim();
+  if (/^(?:…|\.{3})(?:\/|$)/.test(normalized)) return true;
+  if (/(?:^|\/)(?:…|\.{3})\//.test(normalized)) return true;
+  return false;
+}
+
+/** Path string for text inputs — redacts home prefixes and normalizes slashes. */
+export function formatPathInputValue(projectPath) {
+  if (!projectPath) return '';
+  const redacted = redactPathForDisplay(projectPath);
+  return String(redacted).replace(/\\/g, '/');
 }
 
 export function formatScanPathForDisplay(scanPath, projectRoot) {
@@ -135,20 +160,25 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000) {
 
 export function downloadJson(data, filename) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, filename);
+}
+
+export function downloadBlob(blob, filename) {
+  if (!blob || typeof document === 'undefined') {
+    throw new Error('Download is unavailable.');
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = filename;
+  a.download = filename || 'download';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 export function downloadText(content, filename, mime = 'text/plain') {
   const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, filename);
 }

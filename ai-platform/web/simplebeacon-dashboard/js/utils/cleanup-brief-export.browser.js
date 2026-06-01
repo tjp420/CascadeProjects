@@ -1,3 +1,5 @@
+import { formatNumber } from '../utils.js';
+
 /**
  * Browser mirror of cleanup-brief export sanitization (packages/simplebeacon-cli).
  */
@@ -49,17 +51,12 @@ function formatBytes(bytes) {
   return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
-function formatCount(value) {
-  if (value == null || Number.isNaN(Number(value))) return '—';
-  return Number(value).toLocaleString();
-}
-
 function resolveProjectedInventoryNote(next, auditFiles) {
   const safeFiles = next.estimatedReduction?.files ?? next.tiers?.safeNow?.files ?? 0;
   const projectedTotal = next.projectedInventory?.totalFiles;
   if (auditFiles != null && (next.inventory?.totalFiles ?? 0) > auditFiles * 2) {
     if (safeFiles > 0 && projectedTotal != null) {
-      return `After phase 1: ~${formatCount(projectedTotal)} files — inventory total still includes un-walked regenerable shells.`;
+      return `After phase 1: ~${formatNumber(projectedTotal)} files — inventory total still includes un-walked regenerable shells.`;
     }
     return 'Projected file count unchanged until phase 1 identifies safe-delete bytes.';
   }
@@ -166,14 +163,14 @@ function buildBenchmarkAgentPrompt(brief) {
     'Scope: OSS benchmark clone under github-cache/ — hygiene comparison only, not Simplebeacon platform cleanup or deploy handoff.',
     '',
     'Deletion policy:',
-    `- Phase 1 (safeNow): ${formatCount(estimatedReduction.files)} files, ${formatBytes(estimatedReduction.bytes)} — no auto-safe directories in this clone.`,
+    `- Phase 1 (safeNow): ${formatNumber(estimatedReduction.files)} files, ${formatBytes(estimatedReduction.bytes)} — no auto-safe directories in this clone.`,
     dup
-      ? `- Phase 2 (optional duplicate consolidation): ~${formatCount(dupFiles)} files, ${formatBytes(dup)} — verify keeper paths; do not bulk-delete without paths in the brief.`
+      ? `- Phase 2 (optional duplicate consolidation): ~${formatNumber(dupFiles)} files, ${formatBytes(dup)} — verify keeper paths; do not bulk-delete without paths in the brief.`
       : '- Phase 2: no duplicate consolidation totals in this export.',
     `- Protected on this clone: ${brief.policy.protectedPaths.join(', ')}`,
     '- Do not bulk-delete unused-file candidates without verifying imports.',
     '',
-    `Inventory: ${formatCount(inventory.totalFiles)} files / ${formatCount(inventory.totalFolders)} folders`,
+    `Inventory: ${formatNumber(inventory.totalFiles)} files / ${formatNumber(inventory.totalFolders)} folders`,
     '',
     'Do not apply Simplebeacon product paths (web/data, data-central) — they are not part of this OSS tree.',
     'For platform cleanup, re-run Complete scan on the ai-platform root and export a new brief.'
@@ -340,19 +337,19 @@ function buildProductExportNotes(brief, options = {}) {
   const explorerFiles = brief.inventory?.totalFiles;
   if (frWorkspace != null && explorerFiles != null && explorerFiles > frWorkspace * 1.5) {
     notes.push(
-      `File-reduction workspace walk counted ${formatCount(frWorkspace)} files — explorer inventory (${formatCount(explorerFiles)} paths) includes un-walked regenerable shells.`
+      `File-reduction workspace walk counted ${formatNumber(frWorkspace)} files — explorer inventory (${formatNumber(explorerFiles)} paths) includes un-walked regenerable shells.`
     );
   }
   const gateContext = resolveGateInventoryContext(brief, options);
   const { repositoryFilesTotal, credentialScanned, gateProfile, gateReport, fictionJsonFilesScanned, fictionSampleFilesScanned } = gateContext;
   if (repositoryFilesTotal != null && credentialScanned != null && credentialScanned < repositoryFilesTotal) {
     notes.push(
-      `CRED/LEAK rules scanned ${formatCount(credentialScanned)} production-path file(s) — ${formatCount(repositoryFilesTotal - credentialScanned)} metadata-only path(s) in gate inventory of ${formatCount(repositoryFilesTotal)}.`
+      `CRED/LEAK rules scanned ${formatNumber(credentialScanned)} production-path file(s) — ${formatNumber(repositoryFilesTotal - credentialScanned)} metadata-only path(s) in gate inventory of ${formatNumber(repositoryFilesTotal)}.`
     );
   }
   if (fictionJsonFilesScanned != null && fictionSampleFilesScanned != null && fictionJsonFilesScanned > fictionSampleFilesScanned) {
     notes.push(
-      `DATA-002 evaluated ${formatCount(fictionJsonFilesScanned)} repository JSON path(s) — ${formatCount(fictionSampleFilesScanned)} *-sample.json KPI file(s) matched in paired gate scan.`
+      `DATA-002 evaluated ${formatNumber(fictionJsonFilesScanned)} repository JSON path(s) — ${formatNumber(fictionSampleFilesScanned)} *-sample.json KPI file(s) matched in paired gate scan.`
     );
   }
   if (gateProfile) {
@@ -386,7 +383,7 @@ function buildProductExportNotes(brief, options = {}) {
   }
   if (cleanupStatus === 'safe-delete-available' && safeFiles > 0) {
     notes.push(
-      `Phase 1 safe-to-delete: ${formatCount(safeFiles)} files (${formatBytes(safeBytes)}) in regenerable artifact directories — restore with npm install / rebuild after delete.`
+      `Phase 1 safe-to-delete: ${formatNumber(safeFiles)} files (${formatBytes(safeBytes)}) in regenerable artifact directories — restore with npm install / rebuild after delete.`
     );
   } else if (
     String(brief.scanAnalysis?.artifactProfile || '').startsWith('mixed')
@@ -426,21 +423,21 @@ function enrichProductAgentPrompt(brief) {
     `Proceed in agent mode using the attached cleanup brief for: ${projectPath}`,
     '',
     'Deletion policy:',
-    `- Safe to delete now (phase 1): ${formatCount(safeFiles)} files, ${formatBytes(estimatedReduction.bytes)}.`,
+    `- Safe to delete now (phase 1): ${formatNumber(safeFiles)} files, ${formatBytes(estimatedReduction.bytes)}.`,
     `- Protected (never delete): ${protectedPaths.join(', ')}`,
     '- Review first: logs, scan cache, and anything flagged reviewFirst in the brief',
     '- Do not bulk-delete unused-file candidates without verifying imports'
   ];
   if (investigate > 0) {
-    lines.push(`- Investigate only (not auto-delete): ${formatCount(investigate)} unused-file candidates — static analysis`);
+    lines.push(`- Investigate only (not auto-delete): ${formatNumber(investigate)} unused-file candidates — static analysis`);
   }
   if (dupBytes > 0) {
-    lines.push(`- Phase 2 optional: consolidate ~${formatCount(dupFiles)} duplicate file(s), ${formatBytes(dupBytes)} — paths listed in duplicateAssets`);
+    lines.push(`- Phase 2 optional: consolidate ~${formatNumber(dupFiles)} duplicate file(s), ${formatBytes(dupBytes)} — paths listed in duplicateAssets`);
   }
   lines.push(
     '',
-    `Inventory: ${formatCount(inventory.totalFiles)} files / ${formatCount(inventory.totalFolders)} folders (may include un-walked node_modules shells)`,
-    `Projected after phase 1: ~${formatCount(projectedInventory.totalFiles)} files`,
+    `Inventory: ${formatNumber(inventory.totalFiles)} files / ${formatNumber(inventory.totalFolders)} folders (may include un-walked node_modules shells)`,
+    `Projected after phase 1: ~${formatNumber(projectedInventory.totalFiles)} files`,
     '',
     safeFiles > 0 || dupBytes > 0
       ? 'Attach the exported cleanup-brief JSON. Execute phase 1 only unless I authorize phase 2 or investigate deletions.'
@@ -472,7 +469,7 @@ function enrichProductAgentInstructions(brief) {
     policy.allowSimplebeaconCache
       ? '.simplebeacon scan artifacts may be trimmed or archived.'
       : 'Keep .simplebeacon scan artifacts unless the user opts in.',
-    `Phase 1 target reduction: ~${formatCount(brief.estimatedReduction?.files)} files (${formatBytes(brief.estimatedReduction?.bytes)}).`
+    `Phase 1 target reduction: ~${formatNumber(brief.estimatedReduction?.files)} files (${formatBytes(brief.estimatedReduction?.bytes)}).`
   );
   return lines;
 }

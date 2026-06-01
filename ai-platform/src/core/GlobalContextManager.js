@@ -763,29 +763,23 @@ class GlobalContextManager {
     /**
      * Search in analysis data
      */
-    searchInAnalysis(analysis, searchTerm) {
-        const matches = [];
-        const searchLower = searchTerm.toLowerCase();
-        
-        for (const [key, value] of Object.entries(analysis)) {
-            if (Array.isArray(value)) {
-                value.forEach(item => {
-                    if (typeof item === 'string' && item.toLowerCase().includes(searchLower)) {
-                        matches.push({
-                            type: key,
-                            value: item
-                        });
+    searchInAnalysis(analysisPayload, searchTerm) {
+        const matchedEntries = [];
+        const normalizedSearch = searchTerm.toLowerCase();
+
+        for (const [sectionKey, sectionValue] of Object.entries(analysisPayload)) {
+            if (Array.isArray(sectionValue)) {
+                sectionValue.forEach((entryText) => {
+                    if (typeof entryText === 'string' && entryText.toLowerCase().includes(normalizedSearch)) {
+                        matchedEntries.push({ type: sectionKey, value: entryText });
                     }
                 });
-            } else if (typeof value === 'string' && value.toLowerCase().includes(searchLower)) {
-                matches.push({
-                    type: key,
-                    value
-                });
+            } else if (typeof sectionValue === 'string' && sectionValue.toLowerCase().includes(normalizedSearch)) {
+                matchedEntries.push({ type: sectionKey, value: sectionValue });
             }
         }
-        
-        return matches;
+
+        return matchedEntries;
     }
 
     /**

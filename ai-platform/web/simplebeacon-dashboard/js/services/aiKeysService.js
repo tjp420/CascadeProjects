@@ -78,19 +78,19 @@ export async function clearUserAiKeys() {
   return normalizeAiKeysRecord(data);
 }
 
-export async function fetchOllamaModels(baseUrl = 'http://127.0.0.1:11434') {
+export async function fetchOllamaModels(ollamaBaseUrl = 'http://127.0.0.1:11434') {
   const res = await fetch('/api/models/test-ollama', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ollamaBaseUrl: baseUrl })
+    body: JSON.stringify({ ollamaBaseUrl })
   });
-  const data = await readJsonSafe(res, {});
-  if (!res.ok || data.success === false) {
-    throw new Error(data.error || data.message || 'Failed to list Ollama models');
+  const ollamaResponse = await readJsonSafe(res, {});
+  if (!res.ok || ollamaResponse.success === false) {
+    throw new Error(ollamaResponse.error || ollamaResponse.message || 'Failed to list Ollama models');
   }
   return {
-    ok: Boolean(data.ok),
-    models: Array.isArray(data.availableModels) ? data.availableModels : [],
-    message: data.message || ''
+    ok: Boolean(ollamaResponse.ok),
+    models: Array.isArray(ollamaResponse.availableModels) ? ollamaResponse.availableModels : [],
+    message: ollamaResponse.message || ''
   };
 }

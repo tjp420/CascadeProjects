@@ -2,7 +2,7 @@
  * Cleanup assistant — tier scan results for safe deletion and agent handoff.
  */
 
-import { escapeHtml } from '../utils.js';
+import { escapeHtml, formatNumber } from '../utils.js';
 import { buildCompleteScanAnalysis } from './completeScanAnalysis.js?v=20260527cleanup1';
 
 export const CLEANUP_ASSISTANT_PREFS_KEY = 'simplebeaconCleanupAssistantPrefs';
@@ -71,11 +71,6 @@ function formatBytes(bytes) {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
   return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
-
-function formatCount(value) {
-  if (value == null || Number.isNaN(Number(value))) return '—';
-  return Number(value).toLocaleString();
 }
 
 function isSimplebeaconCachePath(relativePath) {
@@ -188,6 +183,34 @@ export function resolveFileReductionPlan(fileReduction) {
         }))
     }
   };
+}
+
+export function isCleanupBriefRunnable({ brief, fileReduction, dataQuality } = {}) {
+  if (brief?.inventory?.totalFiles != null) return true;
+  if (fileReduction?.inventory?.totalFiles != null) return true;
+  if (dataQuality?.inventory?.totalFiles != null) return true;
+  if (dataQuality?.summary != null) return true;
+  if (brief?.scanAnalysis?.dataQuality) return true;
+  if (brief?.scanAnalysis?.fileReduction) return true;
+  if ((brief?.estimatedReduction?.files || 0) > 0) return true;
+  if ((brief?.tiers?.investigate?.files || 0) > 0) return true;
+  if ((brief?.dataQualityActions?.length || 0) > 0) return true;
+  return false;
+}
+
+export function buildCleanupAssistantConclusion(brief) {
+  if (!brief) return 'Cleanup assistant complete.';
+  const files = brief.estimatedReduction?.files || 0;
+  const bytes = brief.estimatedReduction?.bytes || 0;
+  const after = brief.projectedInventory?.totalFiles;
+  const inventory = brief.inventory?.totalFiles;
+  if (files > 0) {
+    return `Tiered cleanup plan — ${Number(files).toLocaleString()} files safe now (${formatBytes(bytes)}), ${after != null ? Number(after).toLocaleString() : '—'} projected after phase 1.`;
+  }
+  if (inventory != null) {
+    return `Cleanup brief ready — ${Number(inventory).toLocaleString()} files inventoried; nothing in the safe-now tier under current policy (check investigate + data-quality follow-ups).`;
+  }
+  return 'Cleanup assistant complete — review tiers and data-quality follow-ups.';
 }
 
 export function buildCleanupAssistantBrief({
@@ -357,7 +380,7 @@ function buildAgentInstructions(context) {
     context.policy.allowSimplebeaconCache
       ? '.simplebeacon scan artifacts may be trimmed or archived.'
       : 'Keep .simplebeacon scan artifacts unless the user opts in.',
-    `Target inventory reduction: ~${formatCount(context.estimatedReduction.files)} files (${formatBytes(context.estimatedReduction.bytes)}).`
+    `Target inventory reduction: ~${formatNumber(context.estimatedReduction.files)} files (${formatBytes(context.estimatedReduction.bytes)}).`
   ];
   return lines;
 }
@@ -367,13 +390,13 @@ export function buildAgentPrompt({ projectPath, estimatedReduction, inventory, p
     `Proceed in agent mode using the attached cleanup brief for: ${projectPath}`,
     '',
     'Deletion policy:',
-    `- Safe to delete now: regenerable artifacts only (${formatCount(estimatedReduction.files)} files, ${formatBytes(estimatedReduction.bytes)}).`,
+    `- Safe to delete now: regenerable artifacts only (${formatNumber(estimatedReduction.files)} files, ${formatBytes(estimatedReduction.bytes)}).`,
     `- Protected (never delete): ${policy.protectedPaths.join(', ')}`,
     `- Review first: logs, scan cache, and anything flagged reviewFirst in the brief`,
     `- Do not bulk-delete unused-file candidates without verifying imports`,
     '',
-    `Inventory: ${formatCount(inventory.totalFiles)} files / ${formatCount(inventory.totalFolders)} folders`,
-    `Projected after phase 1: ~${formatCount(projectedInventory.totalFiles)} files`,
+    `Inventory: ${formatNumber(inventory.totalFiles)} files / ${formatNumber(inventory.totalFolders)} folders`,
+    `Projected after phase 1: ~${formatNumber(projectedInventory.totalFiles)} files`,
     '',
     'Attach the exported cleanup-brief JSON and execute phase 1 only unless I say otherwise.'
   ].join('\n');
@@ -386,7 +409,7 @@ function renderTierList(items, emptyLabel) {
   return items.slice(0, 12).map((entry) => `
     <li>
       <code>${escapeHtml(entry.path)}</code>
-      <span class="text-muted"> · ${formatBytes(entry.bytes)} · ${formatCount(entry.files)} file(s)</span>
+      <span class="text-muted"> · ${formatBytes(entry.bytes)} · ${formatNumber(entry.files)} file(s)</span>
       ${entry.reason ? `<span class="text-muted"> — ${escapeHtml(entry.reason)}</span>` : ''}
     </li>
   `).join('');
@@ -408,27 +431,27 @@ export function renderCleanupAssistantPanel(brief, { policy = loadCleanupPolicy(
       </div>
 
       <div class="metrics-row mb-4">
-        <div class="metric-chip"><strong>${formatCount(brief.inventory.totalFiles)}</strong> files now</div>
-        <div class="metric-chip"><strong>${formatCount(brief.inventory.totalFolders)}</strong> folders</div>
-        <div class="metric-chip"><strong>${formatCount(brief.estimatedReduction.files)}</strong> safe to remove</div>
-        <div class="metric-chip"><strong>${formatCount(brief.projectedInventory.totalFiles)}</strong> after phase 1</div>
+        <div class="metric-chip"><strong>${formatNumber(brief.inventory.totalFiles)}</strong> files now</div>
+        <div class="metric-chip"><strong>${formatNumber(brief.inventory.totalFolders)}</strong> folders</div>
+        <div class="metric-chip"><strong>${formatNumber(brief.estimatedReduction.files)}</strong> safe to remove</div>
+        <div class="metric-chip"><strong>${formatNumber(brief.projectedInventory.totalFiles)}</strong> after phase 1</div>
         <div class="metric-chip"><strong>${formatBytes(brief.estimatedReduction.bytes)}</strong> reclaimable</div>
       </div>
 
       <div class="cleanup-tier-grid mb-4">
         <div class="cleanup-tier-card safe">
           <h3>Safe now</h3>
-          <p>${formatCount(brief.tiers.safeNow.files)} files · ${formatBytes(brief.tiers.safeNow.bytes)}</p>
+          <p>${formatNumber(brief.tiers.safeNow.files)} files · ${formatBytes(brief.tiers.safeNow.bytes)}</p>
           <ul>${renderTierList(brief.tiers.safeNow.directories, 'No safe directories after policy filters.')}</ul>
         </div>
         <div class="cleanup-tier-card review">
           <h3>Review first</h3>
-          <p>${formatCount(brief.tiers.reviewFirst.files)} files · ${formatBytes(brief.tiers.reviewFirst.bytes)}</p>
+          <p>${formatNumber(brief.tiers.reviewFirst.files)} files · ${formatBytes(brief.tiers.reviewFirst.bytes)}</p>
           <ul>${renderTierList(brief.tiers.reviewFirst.items, 'Nothing queued for review.')}</ul>
         </div>
         <div class="cleanup-tier-card protected">
           <h3>Protected</h3>
-          <p>${formatCount(brief.tiers.protected.files)} files · ${formatBytes(brief.tiers.protected.bytes)}</p>
+          <p>${formatNumber(brief.tiers.protected.files)} files · ${formatBytes(brief.tiers.protected.bytes)}</p>
           <ul>${renderTierList(brief.tiers.protected.directories, 'No scanned artifact paths overlap protected roots.')}</ul>
         </div>
       </div>
@@ -450,7 +473,7 @@ export function renderCleanupAssistantPanel(brief, { policy = loadCleanupPolicy(
         <summary><strong>Data quality follow-ups</strong></summary>
         <ul class="mt-4" style="padding-left: 1.25rem;">${actions}</ul>
         <p class="text-muted mt-2" style="font-size: var(--font-size-xs);">
-          Investigate tier: ${formatCount(brief.tiers.investigate.files)} unused-file candidates (static analysis only — not auto-delete).
+          Investigate tier: ${formatNumber(brief.tiers.investigate.files)} unused-file candidates (static analysis only — not auto-delete).
         </p>
       </details>
 

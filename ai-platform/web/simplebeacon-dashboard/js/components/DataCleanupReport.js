@@ -1,9 +1,4 @@
-import { escapeHtml } from '../utils.js';
-
-function formatCount(value) {
-  if (value == null || Number.isNaN(Number(value))) return '—';
-  return Number(value).toLocaleString();
-}
+import { escapeHtml, formatNumber } from '../utils.js';
 
 function formatBytes(bytes) {
   const n = Number(bytes) || 0;
@@ -56,7 +51,7 @@ function renderFileReductionPlan(scan, profile) {
   const topDirs = (safe.topDirectories || []).map((entry) => `
     <li>
       <code>${escapeHtml(entry.path)}</code>
-      <span class="text-muted"> · ${formatBytes(entry.bytes)} · ${formatCount(entry.files)} file(s)</span>
+      <span class="text-muted"> · ${formatBytes(entry.bytes)} · ${formatNumber(entry.files)} file(s)</span>
     </li>
   `).join('');
 
@@ -67,7 +62,7 @@ function renderFileReductionPlan(scan, profile) {
   const summaryRows = (plan.summaryTable || []).map((row) => `
     <tr>
       <td>${escapeHtml(row.category)}</td>
-      <td>${formatCount(row.files)}</td>
+      <td>${formatNumber(row.files)}</td>
       <td>${row.bytes == null ? '—' : formatBytes(row.bytes)}</td>
       <td>${escapeHtml(row.action)}</td>
     </tr>
@@ -81,8 +76,8 @@ function renderFileReductionPlan(scan, profile) {
           <div class="metric-chip"><strong>${formatBytes(totals.estimatedImmediateSavingsBytes)}</strong> immediate savings</div>
           <div class="metric-chip"><strong>${formatBytes(totals.safeToDeleteBytes)}</strong> safe to delete</div>
           <div class="metric-chip"><strong>${formatBytes(totals.reviewBeforeDeleteBytes)}</strong> review first</div>
-          <div class="metric-chip"><strong>${formatCount(duplicates.groups)}</strong> duplicate groups</div>
-          <div class="metric-chip"><strong>${formatCount(unused.candidates)}</strong> unused candidates</div>
+          <div class="metric-chip"><strong>${formatNumber(duplicates.groups)}</strong> duplicate groups</div>
+          <div class="metric-chip"><strong>${formatNumber(unused.candidates)}</strong> unused candidates</div>
         </div>
         <p class="text-muted mb-4" style="font-size: var(--font-size-xs);">${escapeHtml(plan.scopeNote || '')}</p>
         <table class="table mb-4" style="width:100%; font-size: var(--font-size-sm);">
@@ -130,15 +125,15 @@ function renderScannerStatistics(scan, profile) {
 
   const statLines = rows.map(([label, block]) => {
     const pairs = Object.entries(block.stats || {})
-      .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${formatCount(value)}`)
+      .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${formatNumber(value)}`)
       .join(' · ');
     const findingPairs = Object.entries(block.findings || {})
       .filter(([key]) => key !== 'total')
-      .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${formatCount(value)}`)
+      .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${formatNumber(value)}`)
       .join(' · ');
     return `
       <div class="consolidation-card card mb-2">
-        <div class="consolidation-meta">${escapeHtml(label)} · ${formatCount(block.findings?.total)} finding(s)</div>
+        <div class="consolidation-meta">${escapeHtml(label)} · ${formatNumber(block.findings?.total)} finding(s)</div>
         <p class="text-muted" style="font-size: var(--font-size-sm);">${escapeHtml(pairs)}</p>
         ${findingPairs ? `<p class="text-muted" style="font-size: var(--font-size-xs);">Findings: ${escapeHtml(findingPairs)}</p>` : ''}
       </div>
@@ -151,10 +146,10 @@ function renderScannerStatistics(scan, profile) {
     <div class="metrics-row mb-2">
       ${piiCategories.map((entry) => `
         <div class="metric-chip" title="${escapeHtml(entry.categoryLabel)}">
-          <strong>${formatCount(entry.count)}</strong> ${escapeHtml(entry.categoryLabel)}
+          <strong>${formatNumber(entry.count)}</strong> ${escapeHtml(entry.categoryLabel)}
         </div>
       `).join('')}
-      <div class="metric-chip"><strong>${formatCount(scan.executiveSummary?.security?.piiNeedingReview)}</strong> need review</div>
+      <div class="metric-chip"><strong>${formatNumber(scan.executiveSummary?.security?.piiNeedingReview)}</strong> need review</div>
     </div>
   ` : '';
 
@@ -206,21 +201,21 @@ function renderExecutiveSummary(scan, profile) {
 
   const workspaceRows = showDataQuality ? `
     <div class="metrics-row mb-2">
-      <div class="metric-chip" title="Workspace package.json files only"><strong>${formatCount(workspace.packageJsonFiles)}</strong> workspace packages</div>
-      <div class="metric-chip"><strong>${formatCount(workspace.unusedDependencies)}</strong> unused deps</div>
-      <div class="metric-chip"><strong>${formatCount(workspace.versionDrift)}</strong> version drift</div>
-      <div class="metric-chip"><strong>${formatCount(workspace.envFiles)}</strong> env files</div>
-      <div class="metric-chip"><strong>${formatCount(workspace.envInconsistencies)}</strong> env conflicts</div>
-      <div class="metric-chip"><strong>${formatCount(workspace.missingEnvKeys)}</strong> missing env keys</div>
+      <div class="metric-chip" title="Workspace package.json files only"><strong>${formatNumber(workspace.packageJsonFiles)}</strong> workspace packages</div>
+      <div class="metric-chip"><strong>${formatNumber(workspace.unusedDependencies)}</strong> unused deps</div>
+      <div class="metric-chip"><strong>${formatNumber(workspace.versionDrift)}</strong> version drift</div>
+      <div class="metric-chip"><strong>${formatNumber(workspace.envFiles)}</strong> env files</div>
+      <div class="metric-chip"><strong>${formatNumber(workspace.envInconsistencies)}</strong> env conflicts</div>
+      <div class="metric-chip"><strong>${formatNumber(workspace.missingEnvKeys)}</strong> missing env keys</div>
     </div>
     <div class="metrics-row mb-2">
-      <div class="metric-chip"><strong>${formatCount(summary.security?.credentialHits)}</strong> credential hits</div>
-      <div class="metric-chip"><strong>${formatCount(summary.security?.credentialsNeedingReview)}</strong> need review</div>
-      <div class="metric-chip"><strong>${formatCount(summary.security?.piiHits)}</strong> PII hits</div>
-      <div class="metric-chip"><strong>${formatCount(summary.security?.piiNeedingReview)}</strong> PII need review</div>
-      <div class="metric-chip"><strong>${formatCount(data.orphanedDataFiles)}</strong> orphaned data</div>
-      <div class="metric-chip"><strong>${formatCount(data.shapeDriftGroups)}</strong> shape drift</div>
-      <div class="metric-chip"><strong>${formatCount(data.syncIoPatterns)}</strong> sync I/O</div>
+      <div class="metric-chip"><strong>${formatNumber(summary.security?.credentialHits)}</strong> credential hits</div>
+      <div class="metric-chip"><strong>${formatNumber(summary.security?.credentialsNeedingReview)}</strong> need review</div>
+      <div class="metric-chip"><strong>${formatNumber(summary.security?.piiHits)}</strong> PII hits</div>
+      <div class="metric-chip"><strong>${formatNumber(summary.security?.piiNeedingReview)}</strong> PII need review</div>
+      <div class="metric-chip"><strong>${formatNumber(data.orphanedDataFiles)}</strong> orphaned data</div>
+      <div class="metric-chip"><strong>${formatNumber(data.shapeDriftGroups)}</strong> shape drift</div>
+      <div class="metric-chip"><strong>${formatNumber(data.syncIoPatterns)}</strong> sync I/O</div>
     </div>
   ` : '';
 
@@ -229,7 +224,7 @@ function renderExecutiveSummary(scan, profile) {
       <div class="metric-chip"><strong>${formatBytes(fileReduction.estimatedImmediateSavingsBytes || fileReduction.safeToDeleteBytes || fileReduction.reclaimableBytes)}</strong> immediate savings</div>
       <div class="metric-chip"><strong>${formatBytes(fileReduction.safeToDeleteBytes || 0)}</strong> safe to delete</div>
       <div class="metric-chip"><strong>${formatBytes(fileReduction.reviewBeforeDeleteBytes || 0)}</strong> review first</div>
-      <div class="metric-chip"><strong>${formatCount(fileReduction.unusedFileCandidates)}</strong> unused files</div>
+      <div class="metric-chip"><strong>${formatNumber(fileReduction.unusedFileCandidates)}</strong> unused files</div>
     </div>
   ` : '';
 
@@ -278,20 +273,20 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
   const topFindings = (scan.allFindings || []).slice(0, 8);
 
   const fileReductionChips = [
-    `<div class="metric-chip"><strong>${formatCount(s.buildArtifactFindings)}</strong> build artifacts</div>`,
-    `<div class="metric-chip"><strong>${formatCount(s.duplicateAssetGroups)}</strong> duplicate groups</div>`,
-    `<div class="metric-chip"><strong>${formatCount(s.unusedFileCandidates)}</strong> unused files</div>`
+    `<div class="metric-chip"><strong>${formatNumber(s.buildArtifactFindings)}</strong> build artifacts</div>`,
+    `<div class="metric-chip"><strong>${formatNumber(s.duplicateAssetGroups)}</strong> duplicate groups</div>`,
+    `<div class="metric-chip"><strong>${formatNumber(s.unusedFileCandidates)}</strong> unused files</div>`
   ];
 
   const dataQualityChips = [
-    `<div class="metric-chip"><strong>${formatCount(s.configFindings)}</strong> config</div>`,
-    `<div class="metric-chip"><strong>${formatCount(s.dependencyFindings)}</strong> deps</div>`,
-    `<div class="metric-chip"><strong>${formatCount(s.environmentFindings)}</strong> env keys</div>`,
-    `<div class="metric-chip"><strong>${formatCount(s.dataFreshnessFindings)}</strong> stale data</div>`,
-    `<div class="metric-chip"><strong>${formatCount(s.dataAccessFindings)}</strong> sync I/O</div>`,
-    `<div class="metric-chip"><strong>${formatCount(s.dataPrivacyFindings)}</strong> privacy</div>`,
-    `<div class="metric-chip"><strong>${formatCount(s.dataLineageFindings)}</strong> orphaned</div>`,
-    `<div class="metric-chip"><strong>${formatCount(s.dataConsistencyFindings)}</strong> shape drift</div>`
+    `<div class="metric-chip"><strong>${formatNumber(s.configFindings)}</strong> config</div>`,
+    `<div class="metric-chip"><strong>${formatNumber(s.dependencyFindings)}</strong> deps</div>`,
+    `<div class="metric-chip"><strong>${formatNumber(s.environmentFindings)}</strong> env keys</div>`,
+    `<div class="metric-chip"><strong>${formatNumber(s.dataFreshnessFindings)}</strong> stale data</div>`,
+    `<div class="metric-chip"><strong>${formatNumber(s.dataAccessFindings)}</strong> sync I/O</div>`,
+    `<div class="metric-chip"><strong>${formatNumber(s.dataPrivacyFindings)}</strong> privacy</div>`,
+    `<div class="metric-chip"><strong>${formatNumber(s.dataLineageFindings)}</strong> orphaned</div>`,
+    `<div class="metric-chip"><strong>${formatNumber(s.dataConsistencyFindings)}</strong> shape drift</div>`
   ];
 
   const metricChips = effectiveProfile === 'file-reduction'
@@ -305,12 +300,12 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
     ${renderFileReductionPlan(scan, effectiveProfile)}
     ${renderScannerStatistics(scan, effectiveProfile)}
     <div class="metrics-row mb-4">
-      <div class="metric-chip" title="Files walked for this scan"><strong>${formatCount(inv.totalFiles)}</strong> files scanned</div>
-      <div class="metric-chip"><strong>${formatCount(s.totalFindings)}</strong> findings</div>
+      <div class="metric-chip" title="Files walked for this scan"><strong>${formatNumber(inv.totalFiles)}</strong> files scanned</div>
+      <div class="metric-chip"><strong>${formatNumber(s.totalFindings)}</strong> findings</div>
       <div class="metric-chip"><strong>${formatBytes(s.reclaimableBytes)}</strong> reclaimable</div>
-      ${sev.critical ? `<div class="metric-chip"><strong>${formatCount(sev.critical)}</strong> critical</div>` : ''}
-      ${sev.high ? `<div class="metric-chip"><strong>${formatCount(sev.high)}</strong> high</div>` : ''}
-      ${sev.medium ? `<div class="metric-chip"><strong>${formatCount(sev.medium)}</strong> medium</div>` : ''}
+      ${sev.critical ? `<div class="metric-chip"><strong>${formatNumber(sev.critical)}</strong> critical</div>` : ''}
+      ${sev.high ? `<div class="metric-chip"><strong>${formatNumber(sev.high)}</strong> high</div>` : ''}
+      ${sev.medium ? `<div class="metric-chip"><strong>${formatNumber(sev.medium)}</strong> medium</div>` : ''}
       ${scan.durationMs != null ? `<div class="metric-chip"><strong>${Math.round(scan.durationMs / 1000)}s</strong> runtime</div>` : ''}
     </div>
     <div class="metrics-row mb-4">
@@ -321,7 +316,7 @@ export function renderDataCleanupPanel({ scan, profile, loading, error } = {}) {
       ${enabled.map((id) => escapeHtml(SCANNER_LABELS[id] || id)).join(' · ')}
     </p>
     ${!topFindings.length ? `
-      <p class="text-muted card">No findings — ${formatCount(inv.totalFiles)} files scanned under ${escapeHtml(profileTitle(effectiveProfile))} profile.</p>
+      <p class="text-muted card">No findings — ${formatNumber(inv.totalFiles)} files scanned under ${escapeHtml(profileTitle(effectiveProfile))} profile.</p>
     ` : `
       <h3 class="mb-2" style="font-size: var(--font-size-base);">Top findings</h3>
       <div class="consolidation-list mb-4">
@@ -347,18 +342,18 @@ export function buildDataCleanupConclusion(scan, profile) {
   const label = profileTitle(profile || scan.scanProfile || 'all');
   const sev = scan.aggregation?.bySeverity || {};
   const severityNote = (sev.critical || sev.high)
-    ? ` ${formatCount(sev.critical)} critical, ${formatCount(sev.high)} high severity.`
+    ? ` ${formatNumber(sev.critical)} critical, ${formatNumber(sev.high)} high severity.`
     : '';
   const exec = scan.executiveSummary;
   const reviewNote = exec?.security?.credentialsNeedingReview
-    ? ` ${formatCount(exec.security.credentialsNeedingReview)} credential hit(s) need manual review.`
+    ? ` ${formatNumber(exec.security.credentialsNeedingReview)} credential hit(s) need manual review.`
     : exec?.security?.credentialHits
       ? ' Credential hits are documented examples or test fixtures.'
       : '';
   const piiNote = exec?.security?.piiNeedingReview
-    ? ` ${formatCount(exec.security.piiNeedingReview)} PII hit(s) need manual review.`
+    ? ` ${formatNumber(exec.security.piiNeedingReview)} PII hit(s) need manual review.`
     : exec?.security?.piiHits
       ? ' PII hits are in docs, reports, or mock/sample data.'
       : '';
-  return `${label}: ${formatCount(s.totalFindings)} finding(s) across ${formatCount(inv.totalFiles)} files — ${formatBytes(s.reclaimableBytes)} potentially reclaimable (dry-run).${severityNote}${reviewNote}${piiNote}`;
+  return `${label}: ${formatNumber(s.totalFindings)} finding(s) across ${formatNumber(inv.totalFiles)} files — ${formatBytes(s.reclaimableBytes)} potentially reclaimable (dry-run).${severityNote}${reviewNote}${piiNote}`;
 }

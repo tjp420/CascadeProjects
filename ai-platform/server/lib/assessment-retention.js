@@ -7,27 +7,23 @@ const logger = require('../lib/app-logger');
 const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
+const {
+    readJsonFileSyncOrNull,
+    statMtimeMsOrNull
+} = require('./recoverable-io');
 
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_INTERVAL_MS = 60 * 60 * 1000;
 
 function parseAssessmentCreatedAt(assessmentDir) {
-    try {
-        const raw = fs.readFileSync(path.join(assessmentDir, 'assessment.json'), 'utf8');
-        const data = JSON.parse(raw);
-        const created = data?.metadata?.createdAt;
-        if (created) {
-            const ts = Date.parse(created);
-            if (Number.isFinite(ts)) return ts;
-        }
-    } catch {
-        /* fall through to mtime */
+    const assessmentMetaPath = path.join(assessmentDir, 'assessment.json');
+    const assessmentMeta = readJsonFileSyncOrNull(assessmentMetaPath, assessmentMetaPath);
+    const createdAtIso = assessmentMeta?.metadata?.createdAt;
+    if (createdAtIso) {
+        const createdAtMs = Date.parse(createdAtIso);
+        if (Number.isFinite(createdAtMs)) return createdAtMs;
     }
-    try {
-        return fs.statSync(assessmentDir).mtimeMs;
-    } catch {
-        return null;
-    }
+    return statMtimeMsOrNull(assessmentDir, assessmentDir);
 }
 
 async function purgeExpiredAssessments(assessmentsDir, options = {}) {

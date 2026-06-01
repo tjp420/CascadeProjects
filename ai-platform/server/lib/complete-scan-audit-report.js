@@ -313,11 +313,11 @@ function formatReportTimestamp(iso) {
     return date.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
 }
 
-function formatScanDuration(ms) {
-    const value = Number(ms);
-    if (!Number.isFinite(value) || value <= 0) return '—';
-    if (value < 1000) return `${(value / 1000).toFixed(2)} seconds`;
-    return `${(value / 1000).toFixed(1)} seconds`;
+function formatScanDuration(durationMs) {
+    const elapsedMs = Number(durationMs);
+    if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) return '—';
+    if (elapsedMs < 1000) return `${(elapsedMs / 1000).toFixed(2)} seconds`;
+    return `${(elapsedMs / 1000).toFixed(1)} seconds`;
 }
 
 function truncateForDisplay(text, maxLen = 96) {
@@ -520,12 +520,12 @@ function normalizeSimplebeaconForCompliance(simplebeacon, summary = {}) {
     };
 }
 
-function isPlaceholderExecutiveText(text) {
-    const value = String(text || '').trim();
-    if (!value) return true;
-    return /^priority\s+\d+$/i.test(value)
-        || /^priority\s*[:-]?\s*\d+$/i.test(value)
-        || /^item\s+\d+$/i.test(value);
+function isPlaceholderExecutiveText(executiveText) {
+    const normalizedText = String(executiveText || '').trim();
+    if (!normalizedText) return true;
+    return /^priority\s+\d+$/i.test(normalizedText)
+        || /^priority\s*[:-]?\s*\d+$/i.test(normalizedText)
+        || /^item\s+\d+$/i.test(normalizedText);
 }
 
 function mergeExecutiveSummary(deterministic, aiParsed) {

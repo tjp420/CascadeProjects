@@ -56,10 +56,10 @@ function normalizeStringList(value) {
 }
 
 function resolveProjectPath(baseDir, rawPath) {
-    const value = String(rawPath || '').trim();
-    if (!value) return null;
-    if (path.isAbsolute(value)) return path.normalize(value);
-    return path.normalize(path.join(baseDir, value));
+    const trimmedPath = String(rawPath || '').trim();
+    if (!trimmedPath) return null;
+    if (path.isAbsolute(trimmedPath)) return path.normalize(trimmedPath);
+    return path.normalize(path.join(baseDir, trimmedPath));
 }
 
 function isSameResolvedPath(a, b) {

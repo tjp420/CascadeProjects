@@ -1,9 +1,4 @@
-import { escapeHtml, showToast } from '../utils.js';
-
-function formatCount(value) {
-  if (value == null || Number.isNaN(Number(value))) return '—';
-  return Number(value).toLocaleString();
-}
+import { escapeHtml, showToast, formatNumber } from '../utils.js';
 
 function npmAuditSummary(audit) {
   const summary = audit?.summary || audit?.metadata?.vulnerabilities || {};
@@ -128,7 +123,7 @@ export class QualityView {
       <div class="card">
         <div class="metrics-row mb-4">
           <div class="metric-chip" title="Packages in npm lockfile tree">
-            <strong>${formatCount(s.dependencies)}</strong> dependencies
+            <strong>${formatNumber(s.dependencies)}</strong> dependencies
           </div>
           <div class="metric-chip severity-high"><strong>${s.critical}</strong> critical</div>
           <div class="metric-chip severity-medium"><strong>${s.high}</strong> high</div>
@@ -136,10 +131,10 @@ export class QualityView {
           <div class="metric-chip"><strong>${s.low}</strong> low</div>
         </div>
         ${s.prod != null ? `
-          <p class="text-muted text-sm mb-4">${formatCount(s.prod)} prod · ${formatCount(s.dev)} dev dependencies scanned.</p>
+          <p class="text-muted text-sm mb-4">${formatNumber(s.prod)} prod · ${formatNumber(s.dev)} dev dependencies scanned.</p>
         ` : ''}
         ${clean ? `
-          <p class="text-success">Clean audit — ${formatCount(s.dependencies)} dependencies, 0 known vulnerabilities.</p>
+          <p class="text-success">Clean audit — ${formatNumber(s.dependencies)} dependencies, 0 known vulnerabilities.</p>
         ` : ''}
         ${vulnerabilities.length ? `
           <table class="results-table">
@@ -169,7 +164,7 @@ export class QualityView {
       const s = npmAuditSummary(this.app.state.npmAudit);
       showToast(
         s.dependencies != null
-          ? `npm audit: ${formatCount(s.dependencies)} dependencies, ${s.vulnerabilityTotal} vulnerabilities`
+          ? `npm audit: ${formatNumber(s.dependencies)} dependencies, ${s.vulnerabilityTotal} vulnerabilities`
           : 'npm audit complete',
         s.vulnerabilityTotal ? 'info' : 'success'
       );
