@@ -22,9 +22,12 @@ function resolveCorsOptions(overrides = {}) {
                 ...overrides
             };
         }
+        const devFallback = String(
+            process.env.CORS_DEV_FALLBACK_ORIGIN || process.env.APP_ORIGIN || overrides.devFallbackOrigin || ''
+        ).trim();
         return {
-            origin: overrides.devFallbackOrigin || 'http://localhost:3000',
-            credentials: true,
+            origin: devFallback || false,
+            credentials: Boolean(devFallback),
             ...overrides
         };
     }
