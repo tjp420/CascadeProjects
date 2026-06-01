@@ -14,6 +14,8 @@
     "simplebeacon:path-check": "node tools/simplebeacon-path-check.js",
     "analyze:zscript-report": "node tools/generate-zscript-mod-report.js",
     "simplebeacon:report": "npm run simplebeacon",
+    "simplebeacon:pre-pr": "node packages/simplebeacon-cli/bin/simplebeacon.js scan --path . --format json --output .simplebeacon/report.json --gate --offline && node packages/simplebeacon-cli/bin/simplebeacon.js gate status",
+    "simplebeacon:hygiene-gate": "node packages/simplebeacon-cli/bin/simplebeacon.js scan --path . --format json --output .simplebeacon/report.json --gate --offline --verbose && node packages/simplebeacon-cli/bin/simplebeacon.js gate status",
     "trust:validate-env": "node tools/validate-trust-publish-env.js",
     "env:audit": "node packages/simplebeacon-cli/bin/simplebeacon.js reduce --path . --scanner environment-variables --format json --output .simplebeacon/env-audit.json",
     "trust:publish": "node tools/publish-trust-verification.js",
