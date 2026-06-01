@@ -53,6 +53,9 @@
     "@babel/parser": "^7.26.9",
     "@babel/traverse": "^7.26.9"
   },
+  "optionalDependencies": {
+    "@simplebeacon/intelligence": "0.1.0"
+  },
   "publishConfig": {
     "access": "public"
   },

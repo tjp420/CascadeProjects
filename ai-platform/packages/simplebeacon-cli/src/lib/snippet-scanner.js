@@ -12,7 +12,8 @@ const { scanTextPatterns, scanSuspiciousDependencies } = require('../rules/llm-s
 const { scanTextPatterns: scanTokenBleedText } = require('../rules/token-bleed-patterns');
 const { scanTextPatterns: scanArchitectureDriftText } = require('../rules/architecture-drift-patterns');
 const { scanEnterpriseGuardrailContent } = require('../rules/enterprise-guardrail-patterns');
-const { loadSimplebeaconConfig, isRuleEnabled, getRuleOptions } = require('../config');
+const { loadSimplebeaconConfig, isRuleEnabled, getRuleOptions, isIntelligenceEnabled, getIntelligenceOptions } = require('../config');
+const { scanIntelligenceLayer } = require('./intelligence-bridge');
 const { scanPythonAstSnippet } = require('./python-ast-scanner');
 const { scanJavascriptAstSnippet } = require('./javascript-ast-scanner');
 const { evaluateGate } = require('../gate');
@@ -148,6 +149,22 @@ function scanSnippetContent(content, options = {}) {
         }
     }
 
+    let intelligenceConfig = getIntelligenceOptions(config);
+    if (options.intelligence === true) {
+        intelligenceConfig = { ...intelligenceConfig, enabled: true };
+    } else if (options.intelligence && typeof options.intelligence === 'object') {
+        intelligenceConfig = { ...intelligenceConfig, ...options.intelligence };
+    }
+    const intelligenceEnabled = intelligenceConfig.enabled === true;
+    const intelligenceResult = scanIntelligenceLayer(content, {
+        filePath,
+        enabled: intelligenceEnabled,
+        intelligence: intelligenceConfig
+    });
+    if (intelligenceResult.findings?.length) {
+        findings.push(...intelligenceResult.findings.map(normalizeFinding));
+    }
+
     const blockingCount = findings.filter(
         (f) => f.severity === 'high' || f.severity === 'critical'
     ).length;
@@ -156,7 +173,13 @@ function scanSnippetContent(content, options = {}) {
         filePath,
         findingCount: findings.length,
         blockingCount,
-        findings
+        findings,
+        intelligence: intelligenceEnabled ? {
+            enabled: true,
+            available: intelligenceResult.available !== false,
+            engine: intelligenceResult.engine || null,
+            findingCount: intelligenceResult.findingCount || 0
+        } : { enabled: false }
     };
 }
 

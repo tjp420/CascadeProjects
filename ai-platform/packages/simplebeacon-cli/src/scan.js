@@ -21,11 +21,12 @@ const { scanAgencyHandoffPatterns } = require('./rules/agency-handoff-patterns')
 const { scanEuAiActPatterns, buildEuAiActSummaryFromScan } = require('./rules/eu-ai-act-patterns');
 const { scanTokenBleedPatterns } = require('./rules/token-bleed-patterns');
 const { scanEnterpriseGuardrailPatterns } = require('./rules/enterprise-guardrail-patterns');
+const { scanStructuralIntentPatterns } = require('./rules/structural-intent-patterns');
 const { scanArchitectureDriftPatterns } = require('./rules/architecture-drift-patterns');
 const { scanPythonAstPatterns } = require('./lib/python-ast-scanner');
 const { scanJavascriptAstPatterns } = require('./lib/javascript-ast-scanner');
 const { checkJestBaseline } = require('./rules/jest-baseline');
-const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions, resolveFullTreeSkipDirs } = require('./config');
+const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions, resolveFullTreeSkipDirs, isIntelligenceEnabled, getIntelligenceOptions } = require('./config');
 const { resolvePlatformRoot, isIsolatedScanRoot } = require('./project-detect');
 const { countRepositoryInventory } = require('./lib/repository-inventory');
 const { analyzeFullDirectory } = require('./lib/full-directory-scanner');
@@ -696,6 +697,29 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         issues.push(...enterpriseGuardrailScan.issues);
     }
 
+    let structuralIntentScan = {
+        scanned: 0,
+        findings: 0,
+        issues: [],
+        available: false,
+        enabled: false,
+        engine: null
+    };
+    if (isIntelligenceEnabled(config)) {
+        const intelOpts = getIntelligenceOptions(config);
+        structuralIntentScan = await scanStructuralIntentPatterns(ruleWalkRoot, {
+            sourcePaths: intelOpts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: config.productionPaths,
+            ignoreGlobs: config.ignore,
+            intelligence: intelOpts
+        });
+        const intentSeverity = intelOpts.severity || 'medium';
+        for (const issue of structuralIntentScan.issues) {
+            if (!issue.severity) issue.severity = intentSeverity;
+        }
+        issues.push(...structuralIntentScan.issues);
+    }
+
     let jestBaseline = { checked: false, passed: true, issues: [], summary: null };
     if (isRuleEnabled(config, 'jest-baseline')) {
         const jestOpts = getRuleOptions(config, 'jest-baseline');
@@ -771,6 +795,12 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         euAiActHighRiskIndicators: euAiActScan.summary?.highRiskIndicators ?? 0,
         enterpriseGuardrailFilesScanned: enterpriseGuardrailScan.scanned,
         enterpriseGuardrailHits: enterpriseGuardrailScan.findings,
+        structuralIntentEnabled: structuralIntentScan.enabled === true,
+        structuralIntentAvailable: structuralIntentScan.available === true,
+        structuralIntentFilesScanned: structuralIntentScan.scanned,
+        structuralIntentHits: structuralIntentScan.findings,
+        structuralIntentEngine: structuralIntentScan.engine || null,
+        structuralIntentSlmReviewCount: structuralIntentScan.slmReviewCount || 0,
         tokenBleedFilesScanned: tokenBleedScan.scanned,
         tokenBleedPatternHits: tokenBleedScan.findings,
         architectureDriftFilesScanned: architectureDriftScan.scanned,
@@ -819,6 +849,9 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
                 : null,
             config.profile === 'enterprise'
                 ? 'Enterprise profile: credentials + data-leak/token-cap guardrails (SB-ENT-001/002) — no fiction, EU AI Act, or opt-in AST rules.'
+                : null,
+            structuralIntentScan.enabled
+                ? `Structural intent (Tier 1): scanned ${structuralIntentScan.scanned} source files via ${structuralIntentScan.engine || 'structural'} engine — local only, no LLM API.`
                 : null
         ].filter(Boolean)
     };
@@ -874,6 +907,12 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         euAiActSummary: euAiActScan.summary,
         enterpriseGuardrailScanned: enterpriseGuardrailScan.scanned,
         enterpriseGuardrailFindings: enterpriseGuardrailScan.findings,
+        structuralIntentScanned: structuralIntentScan.scanned,
+        structuralIntentFindings: structuralIntentScan.findings,
+        structuralIntentEnabled: structuralIntentScan.enabled === true,
+        structuralIntentEngine: structuralIntentScan.engine || null,
+        structuralIntentSlmReviewCount: structuralIntentScan.slmReviewCount || 0,
+        structuralIntentSlmReviews: structuralIntentScan.slmReviews || [],
         jestBaselineChecked: jestBaseline.checked,
         jestBaselinePassed: jestBaseline.passed,
         jestSummary: jestBaseline.summary || null,

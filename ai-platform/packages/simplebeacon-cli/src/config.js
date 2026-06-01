@@ -140,6 +140,16 @@ const OPT_IN_RULE_DEFAULTS = {
     'javascript-ast-patterns': { enabled: false, severity: 'medium' }
 };
 
+const DEFAULT_INTELLIGENCE = {
+    enabled: false,
+    languages: ['javascript', 'typescript', 'python'],
+    sourcePaths: null,
+    genericVarThreshold: 0.6,
+    fingerprintMatch: true,
+    treeSitter: { enabled: true },
+    slm: { enabled: false, binPath: null, modelPath: null }
+};
+
 const DEFAULT_SCANNER_META_FILES = [
     '.simplebeacon/analyzer-cache.json',
     '.simplebeacon/source-kpi-findings.json',
@@ -456,6 +466,18 @@ function loadSimplebeaconConfig(baseDir, configPath = null) {
             ...DEFAULT_CONFIG.gate,
             ...(fileConfig.gate || {})
         },
+        intelligence: {
+            ...DEFAULT_INTELLIGENCE,
+            ...(fileConfig.intelligence || {}),
+            treeSitter: {
+                ...DEFAULT_INTELLIGENCE.treeSitter,
+                ...(fileConfig.intelligence?.treeSitter || {})
+            },
+            slm: {
+                ...DEFAULT_INTELLIGENCE.slm,
+                ...(fileConfig.intelligence?.slm || {})
+            }
+        },
         baseline,
         profile,
         consistencyAnchorSamples: fileConfig.consistencyAnchorSamples
@@ -496,6 +518,14 @@ function getRuleOptions(config, ruleName) {
     return config?.rules?.[ruleName] || {};
 }
 
+function getIntelligenceOptions(config) {
+    return config?.intelligence || { ...DEFAULT_INTELLIGENCE };
+}
+
+function isIntelligenceEnabled(config) {
+    return config?.intelligence?.enabled === true;
+}
+
 function getInitTemplates(baseDir = process.cwd(), options = {}) {
     const { config, detected, profile } = buildInitConfig(baseDir, options);
     return {
@@ -513,6 +543,7 @@ module.exports = {
     DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
     DEFAULT_BASELINE,
     DEFAULT_CONFIG,
+    DEFAULT_INTELLIGENCE,
     DEFAULT_FULL_TREE_SKIP_DIRS,
     MINIMAL_FULL_TREE_SKIP_DIRS,
     resolveFullTreeSkipDirs,
@@ -527,6 +558,8 @@ module.exports = {
     normalizeRelativePath,
     isRuleEnabled,
     getRuleOptions,
+    getIntelligenceOptions,
+    isIntelligenceEnabled,
     getInitTemplates,
     buildInitConfig,
     buildInitBaseline,

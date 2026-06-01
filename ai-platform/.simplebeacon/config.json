@@ -99,5 +99,20 @@
     "app/",
     "lib/"
   ],
+  "intelligence": {
+    "enabled": true,
+    "languages": ["javascript", "typescript", "python"],
+    "sourcePaths": [
+      "server/",
+      "src/",
+      "app/",
+      "lib/",
+      "web/simplebeacon-dashboard/js/"
+    ],
+    "genericVarThreshold": 0.6,
+    "fingerprintMatch": true,
+    "treeSitter": { "enabled": true },
+    "slm": { "enabled": false }
+  },
   "fullDirectoryScan": false
 }
