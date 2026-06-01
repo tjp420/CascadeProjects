@@ -65,7 +65,11 @@ npx simplebeacon scan --gate --offline
 
 Rules: `SB-ENT-001` (critical) corporate identifiers in strings, `SB-ENT-002` (high) LLM calls without `max_tokens` / `max_completion_tokens`. Add custom tokens in `.simplebeacon/config.json` under `rules.enterprise-guardrail-patterns.extraLeakTokens`.
 
-CI template (gate only, no cloud upload): [examples/github-action/simplebeacon-enterprise.yml](examples/github-action/simplebeacon-enterprise.yml)
+Optional **structural intent** (local Tree-sitter, no LLM API): set `intelligence.enabled: true` in config — rules `SB-INTENT-001`–`004`. Package: `@simplebeacon/intelligence` (monorepo workspace or npm). See [packages/simplebeacon-intelligence/README.md](../simplebeacon-intelligence/README.md).
+
+CI templates: [simplebeacon-enterprise.yml](examples/github-action/simplebeacon-enterprise.yml) (npx) · [simplebeacon-enterprise-monorepo.yml](examples/github-action/simplebeacon-enterprise-monorepo.yml) (monorepo at repo root)
+
+**ai-platform monorepo:** `npm run simplebeacon:hygiene-gate` from `ai-platform/` (fetch grammars + offline gate).
 
 Paid enterprise seats use an **offline signed license** (Ed25519, no Stripe keys in the CLI). See [docs/ENTERPRISE-LICENSE-VAULT.md](docs/ENTERPRISE-LICENSE-VAULT.md) and CI template [simplebeacon-enterprise-vault.yml](examples/github-action/simplebeacon-enterprise-vault.yml).
 
