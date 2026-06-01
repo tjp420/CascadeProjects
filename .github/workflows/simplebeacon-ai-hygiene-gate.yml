@@ -1,4 +1,5 @@
 # Opt-in AI hygiene gate (token bleed, architecture drift, Python + JS AST).
+# SB-ENT leak/token-cap rules run via simplebeacon-enterprise-gate.yml (profile: enterprise).
 # Config: ai-platform/.simplebeacon/config.json — enable the four opt-in rules there.
 # GitHub only loads workflows from the repository root (.github/workflows/), not ai-platform/.github/.
 
