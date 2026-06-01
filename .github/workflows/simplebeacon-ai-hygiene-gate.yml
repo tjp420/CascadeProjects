@@ -1,12 +1,25 @@
-# Opt-in AI hygiene gate — enable matching rules in .simplebeacon/config.json.
-# Pilot without --gate first; then use this workflow for PR enforcement.
+# Opt-in AI hygiene gate (token bleed, architecture drift, Python + JS AST).
+# Config: ai-platform/.simplebeacon/config.json — enable the four opt-in rules there.
+# GitHub only loads workflows from the repository root (.github/workflows/), not ai-platform/.github/.
 
 name: SimpleBeacon AI Hygiene Gate
 
 on:
   pull_request:
     branches: [main, master, develop]
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/simplebeacon-ai-hygiene-gate.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/simplebeacon-ai-hygiene-gate.yml'
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: ai-platform
 
 permissions:
   contents: read
@@ -29,24 +42,28 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Run SimpleBeacon gate (offline, parallel text rules)
-        working-directory: .
+      - name: Install SimpleBeacon CLI dependencies
+        working-directory: ai-platform/packages/simplebeacon-cli
+        run: npm install --ignore-scripts
+
+      - name: Run SimpleBeacon AI hygiene gate (offline, parallel)
         env:
           SIMPLEBEACON_PARALLEL: '1'
           SIMPLEBEACON_PARALLEL_MIN_FILES: '48'
         run: |
-          npx --yes simplebeacon scan \
+          node packages/simplebeacon-cli/bin/simplebeacon.js scan \
+            --path . \
             --format json \
             --output .simplebeacon/report.json \
             --gate \
             --offline \
             --verbose
-          npx --yes simplebeacon gate status
+          node packages/simplebeacon-cli/bin/simplebeacon.js gate status
 
       - name: Upload gate report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: simplebeacon-ai-hygiene-report
-          path: .simplebeacon/report.json
+          path: ai-platform/.simplebeacon/report.json
           if-no-files-found: ignore

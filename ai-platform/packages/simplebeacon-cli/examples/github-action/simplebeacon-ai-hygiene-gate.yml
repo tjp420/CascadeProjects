@@ -1,5 +1,6 @@
 # Opt-in AI hygiene gate — token bleed, architecture drift, Python + JS AST packs.
-# Copy to .github/workflows/simplebeacon-ai-hygiene-gate.yml
+# Monorepo: copy to REPO ROOT .github/workflows/ with working-directory: ai-platform
+# Single-repo: copy to .github/workflows/simplebeacon-ai-hygiene-gate.yml
 #
 # Prerequisites (commit to repo):
 #   .simplebeacon/config.json with:
