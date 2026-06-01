@@ -227,6 +227,18 @@ function collapsePatternIssuesByFile(issues, relativePath) {
     }];
 }
 
+const SEVERITY_RANK = Object.freeze({ low: 0, medium: 1, high: 2, critical: 3 });
+
+/** Cap per-pattern severity at the rule-pack default from .simplebeacon/config.json */
+function capIssueSeverity(issueSeverity, severityCap) {
+    const capRank = SEVERITY_RANK[severityCap];
+    const issueRank = SEVERITY_RANK[issueSeverity];
+    if (capRank === undefined || issueRank === undefined) {
+        return issueSeverity || severityCap;
+    }
+    return issueRank > capRank ? severityCap : (issueSeverity || severityCap);
+}
+
 function scanCatalogPatterns(relativePath, content, catalog, severityDefault) {
     const issues = [];
     for (const rule of catalog) {
@@ -235,7 +247,7 @@ function scanCatalogPatterns(relativePath, content, catalog, severityDefault) {
         while ((match = rule.regex.exec(content)) !== null) {
             issues.push({
                 id: `${rule.id}-${relativePath}-${match.index}`,
-                severity: rule.severity || severityDefault,
+                severity: capIssueSeverity(rule.severity || severityDefault, severityDefault),
                 type: rule.type,
                 filePath: relativePath,
                 count: 1,
