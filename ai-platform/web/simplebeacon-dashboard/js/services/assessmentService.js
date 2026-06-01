@@ -1,32 +1,34 @@
 import { authService } from './authService.js';
+import { readJsonResponseBody, logRecoverableDashboardError } from '../lib/recoverable-fetch.js';
 
 const RECENT_KEY = 'simplebeaconRecentAssessments';
 const MAX_RECENT = 20;
 
-function readRecent() {
+function readRecentAssessmentsFromStorage() {
   try {
-    const raw = localStorage.getItem(RECENT_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
+    const storedJson = localStorage.getItem(RECENT_KEY);
+    return storedJson ? JSON.parse(storedJson) : [];
+  } catch (parseError) {
+    logRecoverableDashboardError('assessment recent list parse', parseError);
     return [];
   }
 }
 
-function writeRecent(entries) {
-  localStorage.setItem(RECENT_KEY, JSON.stringify(entries.slice(0, MAX_RECENT)));
+function writeRecentAssessmentsToStorage(assessmentEntries) {
+  localStorage.setItem(RECENT_KEY, JSON.stringify(assessmentEntries.slice(0, MAX_RECENT)));
 }
 
 export class AssessmentService {
   getRecentAssessments() {
-    return readRecent();
+    return readRecentAssessmentsFromStorage();
   }
 
   rememberAssessment(entry) {
     const next = [
       entry,
-      ...readRecent().filter((item) => item.assessmentId !== entry.assessmentId)
+      ...readRecentAssessmentsFromStorage().filter((item) => item.assessmentId !== entry.assessmentId)
     ];
-    writeRecent(next);
+    writeRecentAssessmentsToStorage(next);
     return next;
   }
 
@@ -40,35 +42,35 @@ export class AssessmentService {
       body: JSON.stringify(payload)
     });
 
-    const data = await res.json().catch(() => ({}));
+    const scanPayload = await readJsonResponseBody(res, {});
     if (!res.ok) {
-      const err = new Error(data.error || data.message || `Assessment failed (${res.status})`);
+      const err = new Error(scanPayload.error || scanPayload.message || `Assessment failed (${res.status})`);
       err.status = res.status;
       throw err;
     }
 
-    if (data.assessmentId) {
+    if (scanPayload.assessmentId) {
       this.rememberAssessment({
-        assessmentId: data.assessmentId,
+        assessmentId: scanPayload.assessmentId,
         company: payload.company || 'Unknown',
         createdAt: new Date().toISOString(),
-        reportUrl: data.reportUrl || `/api/assessment/report/${data.assessmentId}`,
-        summary: data.summary || null
+        reportUrl: scanPayload.reportUrl || `/api/assessment/report/${scanPayload.assessmentId}`,
+        summary: scanPayload.summary || null
       });
     }
 
-    return data;
+    return scanPayload;
   }
 
   async fetchReport(assessmentId) {
     const res = await fetch(`/api/assessment/report/${encodeURIComponent(assessmentId)}`, {
       headers: authService.getAuthHeaders()
     });
-    const data = await res.json().catch(() => ({}));
+    const reportPayload = await readJsonResponseBody(res, {});
     if (!res.ok) {
-      throw new Error(data.error || `Report not found (${res.status})`);
+      throw new Error(reportPayload.error || `Report not found (${res.status})`);
     }
-    return data;
+    return reportPayload;
   }
 
   downloadUrl(assessmentId) {

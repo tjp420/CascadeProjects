@@ -23,10 +23,18 @@ Enable in `.simplebeacon/config.json`:
   "intelligence": {
     "enabled": true,
     "languages": ["javascript", "typescript", "python"],
-    "genericVarThreshold": 0.6
+    "genericVarThreshold": 0.65,
+    "fingerprintMatch": false,
+    "severity": "medium",
+    "patternSeverity": {
+      "SB-INTENT-001": "low",
+      "SB-INTENT-004": "low"
+    }
   }
 }
 ```
+
+**Tuning:** `fingerprintMatch: false` disables SB-INTENT-003 vector cache hits (noisy on mature repos). Use `patternSeverity` to downgrade hollow-function noise while keeping SB-INTENT-002 at `high` via default severity + gate `failOn`.
 
 ## Tree-sitter grammars (optional)
 

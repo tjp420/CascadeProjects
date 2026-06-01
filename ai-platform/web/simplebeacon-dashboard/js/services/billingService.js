@@ -1,4 +1,5 @@
 import { authService } from './authService.js';
+import { readJsonResponseBody, withRecoverableFallback } from '../lib/recoverable-fetch.js';
 
 /**
  * Open-source pivot: community CLI is the product. Billing API calls are stubbed;
@@ -81,28 +82,31 @@ export class BillingService {
   }
 
   async resolveEntitlement(_email = this.getEmail() || '') {
-    try {
-      const res = await fetch('/api/simplebeacon/entitlements', {
+    const entitlementPayload = await withRecoverableFallback('billing entitlements fetch', async () => {
+      const entitlementResponse = await fetch('/api/simplebeacon/entitlements', {
         headers: this.getRequestHeaders()
       });
-      if (res.ok) {
-        const data = await res.json();
-        this.plan = {
-          ...COMMUNITY_PLAN,
-          auditCheckoutUrl: data.auditCheckoutUrl,
-          auditPriceLabel: data.auditPriceLabel || '$499'
-        };
-        this.status = {
-          ...COMMUNITY_STATUS,
-          publicGateLocked: Boolean(data.publicGateLocked),
-          hasAuditDeliverableAccess: Boolean(data.hasAuditDeliverableAccess),
-          bypass: Boolean(data.hasAuditDeliverableAccess)
-        };
-        return { plan: this.plan, status: this.status, allowed: this.hasCloudTeamsAccess(this.plan, this.status) };
+      if (!entitlementResponse.ok) {
+        throw new Error(`Entitlements unavailable (${entitlementResponse.status})`);
       }
-    } catch {
-      /* fall through to local defaults */
+      return readJsonResponseBody(entitlementResponse, null);
+    }, null);
+
+    if (entitlementPayload) {
+      this.plan = {
+        ...COMMUNITY_PLAN,
+        auditCheckoutUrl: entitlementPayload.auditCheckoutUrl,
+        auditPriceLabel: entitlementPayload.auditPriceLabel || '$499'
+      };
+      this.status = {
+        ...COMMUNITY_STATUS,
+        publicGateLocked: Boolean(entitlementPayload.publicGateLocked),
+        hasAuditDeliverableAccess: Boolean(entitlementPayload.hasAuditDeliverableAccess),
+        bypass: Boolean(entitlementPayload.hasAuditDeliverableAccess)
+      };
+      return { plan: this.plan, status: this.status, allowed: this.hasCloudTeamsAccess(this.plan, this.status) };
     }
+
     this.plan = COMMUNITY_PLAN;
     this.status = COMMUNITY_STATUS;
     return {

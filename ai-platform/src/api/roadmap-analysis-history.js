@@ -5,21 +5,21 @@
 const HISTORY_KEY = 'roadmap-analysis-history';
 const MAX_ENTRIES = 25;
 
-async function readHistory(db) {
+async function loadRoadmapHistoryFromDb(db) {
     if (!db) {
         return { entries: [] };
     }
 
-    const result = await db.query(
+    const historyRow = await db.query(
         'SELECT payload FROM dashboard_snapshots WHERE key = $1 LIMIT 1',
         [HISTORY_KEY]
     );
-    const payload = result.rows[0]?.payload;
-    if (!payload || typeof payload !== 'object') {
+    const storedPayload = historyRow.rows[0]?.payload;
+    if (!storedPayload || typeof storedPayload !== 'object') {
         return { entries: [] };
     }
     return {
-        entries: Array.isArray(payload.entries) ? payload.entries : []
+        entries: Array.isArray(storedPayload.entries) ? storedPayload.entries : []
     };
 }
 
@@ -36,7 +36,7 @@ async function writeHistory(db, entries) {
 }
 
 async function appendHistoryEntry(db, entry) {
-    const current = await readHistory(db);
+    const current = await loadRoadmapHistoryFromDb(db);
     const entries = [entry, ...current.entries.filter((item) => item.id !== entry.id)].slice(0, MAX_ENTRIES);
     await writeHistory(db, entries);
     return entries;
@@ -60,7 +60,7 @@ function setupRoadmapAnalysisHistoryRoutes(app) {
                 });
             }
 
-            const { entries } = await readHistory(db);
+            const { entries } = await loadRoadmapHistoryFromDb(db);
             res.json({
                 success: true,
                 entries,
@@ -150,7 +150,7 @@ function setupRoadmapAnalysisHistoryRoutes(app) {
 module.exports = {
     HISTORY_KEY,
     MAX_ENTRIES,
-    readHistory,
+    loadRoadmapHistoryFromDb,
     appendHistoryEntry,
     clearHistory,
     setupRoadmapAnalysisHistoryRoutes

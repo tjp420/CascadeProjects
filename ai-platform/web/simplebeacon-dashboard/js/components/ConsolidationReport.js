@@ -1,9 +1,4 @@
-import { escapeHtml } from '../utils.js';
-
-function formatCount(value) {
-  if (value == null) return '—';
-  return Number(value).toLocaleString();
-}
+import { escapeHtml, formatNumber } from '../utils.js';
 
 export function renderConsolidationPanel({ scan, loading, error } = {}) {
   if (loading) {
@@ -37,12 +32,12 @@ export function renderConsolidationPanel({ scan, loading, error } = {}) {
     ` : ''}
     <div class="metrics-row mb-4">
       <div class="metric-chip" title="All files under project root (explorer inventory — includes node_modules count)">
-        <strong>${formatCount(repoFiles)}</strong> repo files
+        <strong>${formatNumber(repoFiles)}</strong> repo files
       </div>
-      ${repoFolders != null ? `<div class="metric-chip"><strong>${formatCount(repoFolders)}</strong> folders</div>` : ''}
-      ${jsonFiles != null ? `<div class="metric-chip" title="JSON files hashed for duplicate detection"><strong>${formatCount(jsonFiles)}</strong> JSON scanned</div>` : ''}
+      ${repoFolders != null ? `<div class="metric-chip"><strong>${formatNumber(repoFolders)}</strong> folders</div>` : ''}
+      ${jsonFiles != null ? `<div class="metric-chip" title="JSON files hashed for duplicate detection"><strong>${formatNumber(jsonFiles)}</strong> JSON scanned</div>` : ''}
       <div class="metric-chip" title="JSON under configured mock/sample paths">
-        <strong>${formatCount(sampleFiles)}</strong> sample JSON
+        <strong>${formatNumber(sampleFiles)}</strong> sample JSON
       </div>
       <div class="metric-chip"><strong>${s.exactDuplicateGroups}</strong> duplicate groups</div>
       <div class="metric-chip"><strong>${s.mergeCandidates}</strong> merge candidates</div>
@@ -60,7 +55,7 @@ export function renderConsolidationPanel({ scan, loading, error } = {}) {
       </p>
     ` : ''}
     ${!candidates.length && !opportunities.length ? `
-      <p class="text-muted card">No merge or reduction candidates — ${formatCount(jsonFiles ?? sampleFiles)} JSON file(s) checked for duplicates across ${formatCount(repoFiles)} repo files (${formatCount(sampleFiles)} under sample paths).</p>
+      <p class="text-muted card">No merge or reduction candidates — ${formatNumber(jsonFiles ?? sampleFiles)} JSON file(s) checked for duplicates across ${formatNumber(repoFiles)} repo files (${formatNumber(sampleFiles)} under sample paths).</p>
     ` : `
       ${candidates.length ? '<h3 class="mb-2" style="font-size: var(--font-size-base);">Merge candidates</h3>' : ''}
       <div class="consolidation-list mb-4">

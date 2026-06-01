@@ -1,15 +1,10 @@
-import { escapeHtml, showToast, downloadJson, redactPathForDisplay } from '../utils.js';
+import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber } from '../utils.js';
 import {
   extractSecurityFindings,
   buildSecuritySummary,
   buildSecurityExportPayload,
   fetchComplianceHeadline
 } from '../services/securityService.js';
-
-function formatCount(value) {
-  if (value == null || Number.isNaN(Number(value))) return '—';
-  return Number(value).toLocaleString();
-}
 
 export class SecurityView {
   constructor(app) {
@@ -36,7 +31,7 @@ export class SecurityView {
   renderSeverityBand(label, count, className) {
     return `
       <div class="card insight-stat">
-        <div class="insight-stat-value ${className}">${formatCount(count)}</div>
+        <div class="insight-stat-value ${className}">${formatNumber(count)}</div>
         <div class="insight-stat-label">${escapeHtml(label)}</div>
       </div>
     `;
@@ -151,9 +146,9 @@ export class SecurityView {
 
       <div class="card mb-6" style="padding:var(--space-4)">
         <p class="text-muted mb-1">
-          ${formatCount(summary.credentialScanned)} files checked for credentials ·
-          ${formatCount(summary.productionLeakScanned)} for production leaks ·
-          <strong>${formatCount(summary.totalFindings)}</strong> finding(s)
+          ${formatNumber(summary.credentialScanned)} files checked for credentials ·
+          ${formatNumber(summary.productionLeakScanned)} for production leaks ·
+          <strong>${formatNumber(summary.totalFindings)}</strong> finding(s)
         </p>
         <p class="text-muted">Last scan ${escapeHtml(lastScan)}</p>
       </div>

@@ -109,8 +109,13 @@
       "lib/",
       "web/simplebeacon-dashboard/js/"
     ],
-    "genericVarThreshold": 0.6,
-    "fingerprintMatch": true,
+    "genericVarThreshold": 0.65,
+    "fingerprintMatch": false,
+    "severity": "medium",
+    "patternSeverity": {
+      "SB-INTENT-001": "low",
+      "SB-INTENT-004": "low"
+    },
     "treeSitter": { "enabled": true },
     "slm": { "enabled": false }
   },

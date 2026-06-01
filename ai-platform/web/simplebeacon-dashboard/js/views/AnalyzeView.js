@@ -1,4 +1,4 @@
-import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay } from '../utils.js';
+import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber } from '../utils.js';
 import {
   analyzePath,
   scanPath,
@@ -131,11 +131,6 @@ function readHashQueryParam(name) {
   const qIndex = hash.indexOf('?');
   if (qIndex === -1) return '';
   return new URLSearchParams(hash.slice(qIndex + 1)).get(name) || '';
-}
-
-function formatCount(value) {
-  if (value == null || Number.isNaN(Number(value))) return '—';
-  return Number(value).toLocaleString();
 }
 
 function pathToFileSlug(projectPath) {
@@ -448,7 +443,7 @@ function formatScanProgressDetails(sp, options = {}) {
 
   let counter = '';
   if (processed != null && total != null) {
-    counter = `${phaseLabel} · ${formatCount(processed)} / ${formatCount(total)} ${unit}`;
+    counter = `${phaseLabel} · ${formatNumber(processed)} / ${formatNumber(total)} ${unit}`;
   } else if (phaseLabel) {
     counter = phaseLabel;
   }
@@ -466,30 +461,30 @@ function formatScanProgressDetails(sp, options = {}) {
     scopeParts.push(
       strictFullTree
         ? 'Every file under the selected path is included (node_modules, etc.) — skips .git, .github-sync CLI mirror, and github-cache benchmark clones only.'
-        : `This step scans ${formatCount(total)} files after skipping ${skipped.length ? skipped.join(', ') : 'configured dirs'}.`
+        : `This step scans ${formatNumber(total)} files after skipping ${skipped.length ? skipped.join(', ') : 'configured dirs'}.`
     );
     if (explorer?.totalFiles != null && Math.abs(explorer.totalFiles - total) > 50) {
       const folderPart = explorer.totalFolders != null
-        ? ` / ${formatCount(explorer.totalFolders)} folders`
+        ? ` / ${formatNumber(explorer.totalFolders)} folders`
         : '';
       scopeParts.push(
-        `Explorer-style inventory for the same path: ${formatCount(explorer.totalFiles)} files${folderPart}.`
+        `Explorer-style inventory for the same path: ${formatNumber(explorer.totalFiles)} files${folderPart}.`
       );
     }
   } else if (phase === 'codebase' || sp.fileKind === 'code') {
     scopeParts.push('Source-code extensions only (.js, .ts, .py, …) — not images, JSON, or other assets.');
     if (explorer?.totalFiles != null && total != null && explorer.totalFiles !== total) {
       scopeParts.push(
-        `Folder holds ${formatCount(explorer.totalFiles)} files total; this step covers ${formatCount(total)} ${unit}.`
+        `Folder holds ${formatNumber(explorer.totalFiles)} files total; this step covers ${formatNumber(total)} ${unit}.`
       );
     }
   } else if (explorer?.totalFiles != null && total != null && explorer.totalFiles !== total) {
     scopeParts.push(
-      `Folder inventory: ${formatCount(explorer.totalFiles)} files${explorer.totalFolders != null ? `, ${formatCount(explorer.totalFolders)} folders` : ''}; active scan: ${formatCount(total)} ${unit}.`
+      `Folder inventory: ${formatNumber(explorer.totalFiles)} files${explorer.totalFolders != null ? `, ${formatNumber(explorer.totalFolders)} folders` : ''}; active scan: ${formatNumber(total)} ${unit}.`
     );
   } else if (sp.repositoryAuditFiles != null && total != null && sp.repositoryAuditFiles !== total) {
     scopeParts.push(
-      `${formatCount(sp.repositoryAuditFiles)} audit-scoped repo files (skips node_modules, github-cache, etc.).`
+      `${formatNumber(sp.repositoryAuditFiles)} audit-scoped repo files (skips node_modules, github-cache, etc.).`
     );
   }
 
@@ -1102,7 +1097,7 @@ export class AnalyzeView {
             ? 'Dependency lockfile — npm/yarn bin entries are not production mock-path leaks.'
             : `Scanner cache index${
               result.cacheMeta.fileCount != null
-                ? ` (${formatCount(result.cacheMeta.fileCount)} tracked path(s))`
+                ? ` (${formatNumber(result.cacheMeta.fileCount)} tracked path(s))`
                 : ''
             } — path keys are not production leak findings. Run a full repo scan for gate coverage.`
         }</p>`
@@ -1126,7 +1121,7 @@ export class AnalyzeView {
         <div class="analyze-snippet-results-head">
           <div>
             <strong>${escapeHtml(result.fileName || 'File')}</strong>
-            <span class="text-muted"> · ${formatCount(result.bytes)} bytes</span>
+            <span class="text-muted"> · ${formatNumber(result.bytes)} bytes</span>
           </div>
           <div class="metric-chip ${threatScore >= 35 ? 'metric-chip-danger' : ''}">
             Threat score <strong>${threatScore}</strong>/100
@@ -2335,13 +2330,13 @@ export class AnalyzeView {
     if (m.repositoryFiles != null) {
       return `
         <div class="metric-chip" title="Filesystem inventory under ${escapeHtml(formatPathInputValue(m.repositoryRoot) || 'project path')} (${escapeHtml(report?.repositoryInventory?.profile || 'audit')} profile — skips node_modules, .git, github-cache)">
-          <strong>${formatCount(m.repositoryFiles)}</strong> repo files · <strong>${formatCount(m.repositoryFolders)}</strong> folders
+          <strong>${formatNumber(m.repositoryFiles)}</strong> repo files · <strong>${formatNumber(m.repositoryFolders)}</strong> folders
         </div>
         <div class="metric-chip" title="Files read by credential, mock-path, and production-leak rules">
-          <strong>${formatCount(m.ruleScopedFilesAnalyzed ?? m.credentialScanned)}</strong> gate rules checked
+          <strong>${formatNumber(m.ruleScopedFilesAnalyzed ?? m.credentialScanned)}</strong> gate rules checked
         </div>
-        ${showFictionJson ? `<div class="metric-chip" title="Repository JSON pattern-scanned for fictional KPI strings"><strong>${formatCount(m.fictionJsonFilesScanned)}</strong> JSON fiction-scanned</div>` : ''}
-        ${showMockBreakdown ? `<div class="metric-chip" title="Mock/sample JSON in configured scan paths"><strong>${formatCount(m.mockSampleFiles)}</strong> mock/sample</div>` : ''}
+        ${showFictionJson ? `<div class="metric-chip" title="Repository JSON pattern-scanned for fictional KPI strings"><strong>${formatNumber(m.fictionJsonFilesScanned)}</strong> JSON fiction-scanned</div>` : ''}
+        ${showMockBreakdown ? `<div class="metric-chip" title="Mock/sample JSON in configured scan paths"><strong>${formatNumber(m.mockSampleFiles)}</strong> mock/sample</div>` : ''}
       `;
     }
 
@@ -2350,10 +2345,10 @@ export class AnalyzeView {
       && m.mockSampleFiles !== m.ruleScopedFilesAnalyzed;
     return `
       <div class="metric-chip" title="Files read across mock/sample, credential, and production-leak rules">
-        <strong>${formatCount(m.ruleScopedFilesAnalyzed ?? m.filesAnalyzed)}</strong> gate rules checked
+        <strong>${formatNumber(m.ruleScopedFilesAnalyzed ?? m.filesAnalyzed)}</strong> gate rules checked
       </div>
-      ${showFictionJson ? `<div class="metric-chip"><strong>${formatCount(m.fictionJsonFilesScanned)}</strong> JSON fiction-scanned</div>` : ''}
-      ${showMockBreakdown ? `<div class="metric-chip"><strong>${formatCount(m.mockSampleFiles)}</strong> mock/sample</div>` : ''}
+      ${showFictionJson ? `<div class="metric-chip"><strong>${formatNumber(m.fictionJsonFilesScanned)}</strong> JSON fiction-scanned</div>` : ''}
+      ${showMockBreakdown ? `<div class="metric-chip"><strong>${formatNumber(m.mockSampleFiles)}</strong> mock/sample</div>` : ''}
       ${showRuleScoped ? '' : ''}
     `;
   }
@@ -4765,8 +4760,8 @@ export class AnalyzeView {
           ${this.renderScanSummary(report, conclusion || buildScanConclusion(report, { focus: 'fiction' }), 'Fiction/KPI scan — all repository JSON files (not source code)')}
           <div class="metrics-row mb-4">
             <div class="metric-chip"><strong>${fictionCount}</strong> fiction/KPI hits</div>
-            ${report.fictionJsonFilesScanned != null ? `<div class="metric-chip" title="JSON files pattern-scanned for fictional KPIs"><strong>${formatCount(report.fictionJsonFilesScanned)}</strong> JSON scanned</div>` : ''}
-            ${report.fictionSampleFilesScanned != null ? `<div class="metric-chip"><strong>${formatCount(report.fictionSampleFilesScanned)}</strong> *-sample.json</div>` : ''}
+            ${report.fictionJsonFilesScanned != null ? `<div class="metric-chip" title="JSON files pattern-scanned for fictional KPIs"><strong>${formatNumber(report.fictionJsonFilesScanned)}</strong> JSON scanned</div>` : ''}
+            ${report.fictionSampleFilesScanned != null ? `<div class="metric-chip"><strong>${formatNumber(report.fictionSampleFilesScanned)}</strong> *-sample.json</div>` : ''}
             ${this.renderScanFileMetrics(report)}
             <div class="metric-chip gate-badge ${report.gate?.pass ? 'pass' : 'warn'}">${report.gate?.pass ? 'PASS' : 'REVIEW'}</div>
           </div>
@@ -5071,9 +5066,9 @@ export class AnalyzeView {
           <div class="metric-chip"><strong>${codebase?.summary?.codeFilesAnalyzed ?? '—'}/${codebase?.summary?.codeFilesDiscovered ?? '—'}</strong> code files</div>
           <div class="metric-chip"><strong>${codebase?.summary?.healthScore ?? '—'}%</strong> code health</div>
           <div class="metric-chip"><strong>${consolidation?.summary?.exactDuplicateGroups ?? '—'}</strong> dup groups</div>
-          <div class="metric-chip"><strong>${fileReduction?.fileReductionPlan?.totals?.estimatedImmediateSavingsBytes != null ? formatCompleteScanBytes(fileReduction.fileReductionPlan.totals.estimatedImmediateSavingsBytes) : formatCount(fileReduction?.summary?.totalFindings)}</strong> ${fileReduction?.fileReductionPlan ? 'immediate savings' : 'file reduction'}</div>
-          <div class="metric-chip"><strong>${formatCount(dataQuality?.executiveSummary?.security?.piiNeedingReview ?? dataQuality?.summary?.totalFindings)}</strong> ${dataQuality?.executiveSummary ? 'PII review' : 'data quality'}</div>
-          ${cleanupBrief ? `<div class="metric-chip"><strong>${formatCount(cleanupBrief.estimatedReduction?.files)}</strong> safe cleanup files</div>` : ''}
+          <div class="metric-chip"><strong>${fileReduction?.fileReductionPlan?.totals?.estimatedImmediateSavingsBytes != null ? formatCompleteScanBytes(fileReduction.fileReductionPlan.totals.estimatedImmediateSavingsBytes) : formatNumber(fileReduction?.summary?.totalFindings)}</strong> ${fileReduction?.fileReductionPlan ? 'immediate savings' : 'file reduction'}</div>
+          <div class="metric-chip"><strong>${formatNumber(dataQuality?.executiveSummary?.security?.piiNeedingReview ?? dataQuality?.summary?.totalFindings)}</strong> ${dataQuality?.executiveSummary ? 'PII review' : 'data quality'}</div>
+          ${cleanupBrief ? `<div class="metric-chip"><strong>${formatNumber(cleanupBrief.estimatedReduction?.files)}</strong> safe cleanup files</div>` : ''}
           ${complianceChecklist?.summary ? `<div class="metric-chip gate-badge ${complianceChecklist.summary.failed ? 'warn' : 'pass'}">${complianceChecklist.summary.passed ?? 0}/${checklistRuleTotal(complianceChecklist)} compliance</div>` : ''}
           ${npmAudit && !npmAudit.error ? `<div class="metric-chip"><strong>${npmAudit.summary?.total ?? npmAudit.vulnerabilityTotal ?? 0}</strong> npm vulns</div>` : ''}
           ${euSprint ? `<div class="metric-chip gate-badge ${euSprint.gate?.pass ? 'pass' : 'warn'}">EU ${euSprint.compliance?.score ?? '—'}% readiness</div>` : ''}
@@ -5126,12 +5121,12 @@ export class AnalyzeView {
             ${this.renderConclusionBanner(
               mockScan.conclusion || buildScanConclusion(mockScan.report, { focus: 'fiction' }),
               mockScan.report.fictionScope === 'repository-json'
-                ? `Derived from step 1 — ${formatCount(mockScan.report.fictionJsonFilesScanned ?? mockScan.report.consistencyChecked ?? '—')} repository JSON files fiction-scanned`
+                ? `Derived from step 1 — ${formatNumber(mockScan.report.fictionJsonFilesScanned ?? mockScan.report.consistencyChecked ?? '—')} repository JSON files fiction-scanned`
                 : 'Derived from step 1 Simplebeacon scan — *-sample.json only'
             )}
             ${(mockScan.nonFictionIssues || []).length ? `
               <p class="text-muted text-sm mb-4">
-                ${formatCount((mockScan.nonFictionIssues || []).reduce((s, i) => s + (i.count || 1), 0))} non-fiction gate finding(s) in step 1
+                ${formatNumber((mockScan.nonFictionIssues || []).reduce((s, i) => s + (i.count || 1), 0))} non-fiction gate finding(s) in step 1
                 (${(mockScan.nonFictionIssues || []).map((i) => i.type).slice(0, 3).join(', ')}) — see Simplebeacon section above.
               </p>
             ` : ''}

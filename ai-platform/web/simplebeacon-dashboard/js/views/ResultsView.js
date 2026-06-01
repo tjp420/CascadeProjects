@@ -1,12 +1,7 @@
-import { escapeHtml, showToast, formatPercent } from '../utils.js';
+import { escapeHtml, showToast, formatPercent, formatNumber } from '../utils.js';
 import { getScanFileMetrics, resolveDisplayScore } from '../services/analyzeService.js';
 
 const SEVERITIES = ['all', 'high', 'medium', 'low'];
-
-function formatCount(value) {
-  if (value == null || Number.isNaN(Number(value))) return '—';
-  return Number(value).toLocaleString();
-}
 
 export class ResultsView {
   constructor(app) {
@@ -69,9 +64,9 @@ export class ResultsView {
       <div class="metrics-row mb-4">
         <div class="metric-chip gate-badge ${gateClass}">${gateLabel}</div>
         <div class="metric-chip"><strong>${formatPercent(resolveDisplayScore(report))}</strong> consistency</div>
-        <div class="metric-chip"><strong>${formatCount(metrics.mockSampleFiles ?? report.totalFiles)}</strong> mock/sample</div>
-        ${metrics.repositoryFiles != null ? `<div class="metric-chip"><strong>${formatCount(metrics.repositoryFiles)}</strong> repo files</div>` : ''}
-        <div class="metric-chip"><strong>${formatCount(metrics.ruleScopedFilesAnalyzed ?? metrics.credentialScanned)}</strong> gate rules checked</div>
+        <div class="metric-chip"><strong>${formatNumber(metrics.mockSampleFiles ?? report.totalFiles)}</strong> mock/sample</div>
+        ${metrics.repositoryFiles != null ? `<div class="metric-chip"><strong>${formatNumber(metrics.repositoryFiles)}</strong> repo files</div>` : ''}
+        <div class="metric-chip"><strong>${formatNumber(metrics.ruleScopedFilesAnalyzed ?? metrics.credentialScanned)}</strong> gate rules checked</div>
         <div class="metric-chip"><strong>${formatPercent(report.schemaCompliance)}</strong> schema</div>
         <div class="metric-chip"><strong>${report.issueCount ?? 0}</strong> issue groups</div>
       </div>

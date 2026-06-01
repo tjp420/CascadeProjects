@@ -18,9 +18,9 @@ function normalizeRelativePath(filePath, baseDir) {
     return normalized;
 }
 
-function roundPct(value) {
-    if (value == null || Number.isNaN(Number(value))) return null;
-    return Math.round(Number(value) * 10) / 10;
+function roundCoveragePercentage(rawPct) {
+    if (rawPct == null || Number.isNaN(Number(rawPct))) return null;
+    return Math.round(Number(rawPct) * 10) / 10;
 }
 
 function resolveSummaryPath(baseDir, options = {}) {
@@ -57,10 +57,10 @@ function loadJestCoverageSummary(baseDir, options = {}) {
         if (filePath === 'total' || !metrics || typeof metrics !== 'object') continue;
         files.push({
             relativePath: normalizeRelativePath(filePath, baseDir),
-            lines: roundPct(metrics.lines?.pct),
-            statements: roundPct(metrics.statements?.pct),
-            functions: roundPct(metrics.functions?.pct),
-            branches: roundPct(metrics.branches?.pct)
+            lines: roundCoveragePercentage(metrics.lines?.pct),
+            statements: roundCoveragePercentage(metrics.statements?.pct),
+            functions: roundCoveragePercentage(metrics.functions?.pct),
+            branches: roundCoveragePercentage(metrics.branches?.pct)
         });
     }
 
@@ -70,10 +70,10 @@ function loadJestCoverageSummary(baseDir, options = {}) {
         summaryPath,
         generatedAt: fs.statSync(summaryPath).mtime.toISOString(),
         totals: {
-            lines: roundPct(total.lines?.pct),
-            statements: roundPct(total.statements?.pct),
-            functions: roundPct(total.functions?.pct),
-            branches: roundPct(total.branches?.pct)
+            lines: roundCoveragePercentage(total.lines?.pct),
+            statements: roundCoveragePercentage(total.statements?.pct),
+            functions: roundCoveragePercentage(total.functions?.pct),
+            branches: roundCoveragePercentage(total.branches?.pct)
         },
         files
     };
@@ -84,5 +84,5 @@ module.exports = {
     loadJestCoverageSummary,
     normalizeRelativePath,
     resolveSummaryPath,
-    roundPct
+    roundCoveragePercentage
 };
