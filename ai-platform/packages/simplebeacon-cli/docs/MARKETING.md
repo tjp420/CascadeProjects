@@ -143,6 +143,20 @@ cd ai-platform && npm run simplebeacon:full
 
 ---
 
+### 8. Enterprise AI technical risk (profile: `enterprise`)
+
+**Claim:** Blocks proprietary leak tokens in strings bound for LLM context (`SB-ENT-001`) and LLM API calls without explicit token caps (`SB-ENT-002`). Optional structural intent (`SB-INTENT-*`) via `@simplebeacon/intelligence` — local only.
+
+| | |
+|---|---|
+| **Rules** | `enterprise-guardrail-patterns`, `credentials`, `intelligence.enabled` |
+| **Scans** | `productionPaths` / `sourceCodeScanPaths` (no mock JSON dirs required) |
+| **Severity** | critical/high for SB-ENT; SB-INTENT tunable via `patternSeverity` |
+| **Verify** | `npm run simplebeacon:hygiene-gate` in ai-platform monorepo |
+| **Caveat** | Pattern-based — not semantic review of prompt content at runtime |
+
+---
+
 ## Sales collateral
 
 - Cold email kit: `docs/simplebeacon-cold-email-kit.md`

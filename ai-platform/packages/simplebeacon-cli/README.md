@@ -71,7 +71,7 @@ CI templates: [simplebeacon-enterprise.yml](examples/github-action/simplebeacon-
 
 **ai-platform monorepo:** `npm run simplebeacon:hygiene-gate` from `ai-platform/` (fetch grammars + offline gate).
 
-Paid enterprise seats use an **offline signed license** (Ed25519, no Stripe keys in the CLI). See [docs/ENTERPRISE-LICENSE-VAULT.md](docs/ENTERPRISE-LICENSE-VAULT.md) and CI template [simplebeacon-enterprise-vault.yml](examples/github-action/simplebeacon-enterprise-vault.yml).
+Paid enterprise seats use an **offline signed license** (Ed25519, no Stripe keys in the CLI). See [docs/ENTERPRISE-LICENSE-VAULT.md](docs/ENTERPRISE-LICENSE-VAULT.md) and CI template [simplebeacon-enterprise-vault.yml](examples/github-action/simplebeacon-enterprise-vault.yml). The ai-platform monorepo runs **community mode** (no license secret in CI).
 
 ## GitHub Actions
 
