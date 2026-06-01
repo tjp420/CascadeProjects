@@ -1,6 +1,9 @@
 import { authService } from './authService.js';
+import { fetchUserAiKeys } from './aiKeysService.js';
 import { scanService } from './scanService.js';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
+import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
+import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 
 let providersPromise = null;
 
@@ -79,14 +82,56 @@ async function fetchJsonWithGuidance(target, options = {}, timeoutMs = 0) {
   return data;
 }
 
+/** Clear cached /api/analyze/providers (call after Settings → Save AI keys). */
+export function invalidateAnalyzeProvidersCache() {
+  providersPromise = null;
+}
+
+/** Merge Settings → AI providers into the Ollama row when the server probe omits credentials. */
+export async function patchProvidersFromSavedAiKeys(data) {
+  if (!data?.providers?.length) return data;
+  let keys;
+  try {
+    keys = await fetchUserAiKeys();
+  } catch {
+    return data;
+  }
+  const model = String(keys?.ollamaModel || '').trim();
+  if (!model) return data;
+
+  const ollama = data.providers.find((p) => p.id === 'ollama');
+  if (!ollama) return data;
+
+  ollama.model = model;
+  ollama.label = `Ollama (${model})`;
+  if (keys.ollamaBaseUrl) {
+    ollama.description = `${keys.ollamaBaseUrl} · ${model}`;
+  }
+  ollama.configured = true;
+  if (!ollama.statusMessage || /not configured|no models/i.test(ollama.statusMessage)) {
+    ollama.statusMessage = `Model from Settings — ${model}`;
+  }
+  return data;
+}
+
+export function isAnalyzeProviderConfigured(provider) {
+  if (!provider) return false;
+  if (provider.id === 'ollama') {
+    return Boolean(provider.configured || provider.model);
+  }
+  return Boolean(provider.configured);
+}
+
 export async function fetchAnalyzeProviders(options = {}) {
   if (!options.refresh && providersPromise) {
     return providersPromise;
   }
 
-  providersPromise = fetchJsonWithGuidance('/api/analyze/providers', {
+  const params = options.refresh ? `?${new URLSearchParams({ _: String(Date.now()) })}` : '';
+  providersPromise = fetchJsonWithGuidance(`/api/analyze/providers${params}`, {
     headers: authService.getAuthHeaders()
   })
+    .then(async (data) => patchProvidersFromSavedAiKeys(data))
     .catch((error) => {
       providersPromise = null;
       throw error;
@@ -111,7 +156,8 @@ export async function analyzePath(projectPath, options = {}) {
       understandingMode: options.understandingMode || 'deterministic',
       scanProfile: options.scanProfile || 'universal',
       includePaths: options.includePaths || [],
-      excludePatterns: options.excludePatterns || []
+      excludePatterns: options.excludePatterns || [],
+      requestedScanRoot: options.requestedScanRoot || options.scanTargetRoot || undefined
     })
   }, timeoutMs);
   if (!data.success) {
@@ -142,8 +188,8 @@ export async function fetchUnderstandSnippet(code, options = {}) {
   return data;
 }
 
-export async function scanPath(projectPath) {
-  return scanService.runScan(projectPath);
+export async function scanPath(projectPath, options = {}) {
+  return scanService.runScan(projectPath, options);
 }
 
 /** Strip large arrays before POST /api/analyze/summary (Express body limit). */
@@ -173,7 +219,10 @@ export function slimReportForSummary(report) {
   if (type === 'simplebeacon-report') {
     return {
       type: report.type,
+      projectRoot: report.projectRoot,
+      platformRoot: report.platformRoot,
       gate: report.gate,
+      gateAttestation: report.gateAttestation,
       issueCount: report.issueCount,
       qualityScore: report.qualityScore,
       schemaCompliance: report.schemaCompliance,
@@ -182,6 +231,9 @@ export function slimReportForSummary(report) {
       fictionJsonFilesScanned: report.fictionJsonFilesScanned,
       severityCounts: report.severityCounts,
       scanScope: report.scanScope,
+      scanTargetProfile: report.scanTargetProfile,
+      handoffEligible: report.handoffEligible,
+      benchmarkScan: report.benchmarkScan,
       rawIssues: (report.rawIssues || report.detectedIssues || []).slice(0, 24),
       detectedIssues: (report.detectedIssues || []).slice(0, 12)
     };
@@ -438,6 +490,7 @@ const SUPPLEMENTARY_STEP_LABELS = {
   roadmap: 'Roadmap analysis',
   'mock-scan': 'Fiction and KPI digest',
   'simplebeacon-report': 'Simplebeacon scan',
+  'eu-ai-act': 'EU AI Act sprint',
   complete: 'Partial complete scan'
 };
 
@@ -568,6 +621,104 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
   return data;
 }
 
+export async function fetchEuAiActAuditReport(options = {}) {
+  const timeoutMs = options.timeoutMs ?? 120000;
+  const res = await fetchWithTimeout('/api/analyze/eu-ai-act-audit-report', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authService.getAuthHeaders()
+    },
+    body: JSON.stringify({
+      projectPath: options.projectPath,
+      client: options.client,
+      company: options.company,
+      assessor: options.assessor,
+      sprintArtifacts: options.sprintArtifacts || undefined
+    })
+  }, timeoutMs);
+  const data = await parseJsonSafe(res);
+  if (res.status === 402) {
+    const err = new Error(data.error || 'EU AI Act audit PDF requires purchase');
+    err.code = 'audit_paywall';
+    err.checkoutUrl = data.checkoutUrl;
+    throw err;
+  }
+  if (res.status === 422) {
+    throw new Error(data.error || 'Run EU AI Act sprint first — no .simplebeacon/eu-ai-act-*.json artifacts found.');
+  }
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || data.message || 'EU AI Act audit report generation failed');
+  }
+  return data;
+}
+
+function parseContentDispositionFilename(header) {
+  if (!header) return null;
+  const quoted = /filename="([^"]+)"/i.exec(header);
+  if (quoted) return quoted[1].trim();
+  const bare = /filename=([^;]+)/i.exec(header);
+  return bare ? bare[1].trim().replace(/^["']|["']$/g, '') : null;
+}
+
+export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
+  const normalized = normalizeAuditExportPayload(completeScan);
+  if (!normalized || typeof normalized !== 'object') {
+    throw new Error('No complete scan data available for ZIP export.');
+  }
+  const timeoutMs = options.timeoutMs ?? 180000;
+  const res = await fetchWithTimeout('/api/analyze/export-bundle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authService.getAuthHeaders()
+    },
+    body: JSON.stringify({
+      completeScan: normalized,
+      deliverableSku: options.deliverableSku || options.tier || undefined,
+      client: options.client,
+      company: options.company,
+      assessor: options.assessor,
+      milestone: options.milestone,
+      projectName: options.projectName,
+      agencyName: options.agencyName,
+      aiProvider: options.aiProvider || 'demo',
+      cloudTeamsActive: options.cloudTeamsActive === true
+    })
+  }, timeoutMs);
+
+  if (res.status === 402) {
+    const data = await parseJsonSafe(res);
+    const err = new Error(data.error || 'Export bundle requires a paid deliverable tier.');
+    err.code = 'export_paywall';
+    err.checkoutUrl = data.checkoutUrl;
+    throw err;
+  }
+  if (res.status === 422) {
+    const data = await parseJsonSafe(res);
+    const err = new Error(data.error || 'Export bundle could not be generated from this scan.');
+    err.code = 'export_empty';
+    err.warnings = data.warnings || [];
+    throw err;
+  }
+  if (!res.ok) {
+    const data = await parseJsonSafe(res);
+    throw new Error(data.error || data.message || 'Export bundle generation failed');
+  }
+
+  const blob = await res.blob();
+  const filename = parseContentDispositionFilename(res.headers.get('Content-Disposition'))
+    || options.filename
+    || `simplebeacon-export-${new Date().toISOString().slice(0, 10)}.zip`;
+  const tierId = res.headers.get('X-Simplebeacon-Export-Tier') || options.deliverableSku || null;
+  const warningsHeader = res.headers.get('X-Simplebeacon-Export-Warnings');
+  const warnings = warningsHeader
+    ? warningsHeader.split('|').map((part) => part.trim()).filter(Boolean)
+    : [];
+
+  return { blob, filename, tierId, warnings };
+}
+
 export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.html') {
   if (typeof document === 'undefined' || !html) {
     throw new Error('Audit report HTML is empty.');
@@ -584,6 +735,47 @@ export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.htm
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
   return safeName;
+}
+
+export async function fetchComplianceTrailExportJson(windowDays = 90) {
+  const params = new URLSearchParams({
+    window: `${windowDays}d`,
+    _: String(Date.now())
+  });
+  const res = await fetch(`/api/compliance-trail/export/json?${params}`, {
+    cache: 'no-store',
+    headers: authService.getAuthHeaders()
+  });
+  if (!res.ok) {
+    const data = await parseJsonSafe(res);
+    throw new Error(data?.message || data?.error || 'Compliance trail JSON export failed');
+  }
+  const payload = await res.json();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="([^"]+)"/i);
+  const filename = match?.[1] || `compliance-trail-${windowDays}d.json`;
+  return { payload, filename };
+}
+
+export async function fetchComplianceTrailExportHtml(windowDays = 90) {
+  const params = new URLSearchParams({
+    window: `${windowDays}d`,
+    disposition: 'inline',
+    _: String(Date.now())
+  });
+  const res = await fetch(`/api/compliance-trail/export/pdf?${params}`, {
+    cache: 'no-store',
+    headers: authService.getAuthHeaders()
+  });
+  if (!res.ok) {
+    const data = await parseJsonSafe(res);
+    throw new Error(data?.message || data?.error || 'Compliance trail PDF export failed');
+  }
+  const html = await res.text();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="([^"]+)"/i);
+  const filename = match?.[1] || `compliance-trail-${windowDays}d.html`;
+  return { html, filename };
 }
 
 export function openAuditReportPrintWindow(html, filename = 'simplebeacon-audit.html') {
@@ -617,6 +809,9 @@ export async function fetchCodebaseAnalysis(projectPath, options = {}) {
   }
   if (options.understandingMode) {
     params.set('understandingMode', options.understandingMode);
+  }
+  if (options.requestedScanRoot || options.scanTargetRoot) {
+    params.set('requestedScanRoot', options.requestedScanRoot || options.scanTargetRoot);
   }
   const timeoutMs = options.timeoutMs ?? (options.context === 'complete' ? 900000 : 600000);
   const data = await fetchJsonWithGuidance(`/api/analyze/codebase?${params}`, {
@@ -743,9 +938,52 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
     headers: authService.getAuthHeaders()
   });
   if (!data.success) {
+    if (data.pathMissing) return null;
     throw new Error(data.error || 'Repository inventory failed');
   }
+  if (data.pathMissing || !data.inventory) return null;
   return data.inventory;
+}
+
+export async function refreshPathInventory(app, projectPath, options = {}) {
+  const path = String(projectPath || '').trim();
+  if (!path || isRemoteRepoUrl(path)) {
+    if (app?.state) app.state.pathInventory = null;
+    return null;
+  }
+  try {
+    const inventory = await fetchRepositoryInventory(path, { profile: options.profile || 'explorer' });
+    const root = inventory?.projectRoot || path;
+    if (inventory?.totalFiles != null && isInventoryRootAligned(path, root)) {
+      const entry = { path, inventory, fetchedAt: Date.now() };
+      if (app?.state) app.state.pathInventory = entry;
+      return inventory;
+    }
+  } catch {
+    /* inventory API unavailable or path outside allowed roots */
+  }
+  if (app?.state) {
+    app.state.pathInventory = { path, inventory: null, fetchedAt: Date.now() };
+  }
+  return null;
+}
+
+export function liveInventoryForPath(app, projectPath) {
+  const cached = app?.state?.pathInventory;
+  if (!cached?.inventory || !projectPath) return null;
+  if (normalizeProjectPath(cached.path) === normalizeProjectPath(projectPath)) {
+    return cached;
+  }
+  return null;
+}
+
+export function buildPathInventoryProvenance(app, projectPath, report = null) {
+  const resolvedReport = report ?? null;
+  const live = liveInventoryForPath(app, projectPath);
+  return buildInventoryProvenance(resolvedReport, projectPath, {
+    liveInventory: live?.inventory || null,
+    inventoryFetchedAt: live?.fetchedAt ?? null
+  });
 }
 
 export function mergeReportInventory(report, inventory) {
@@ -767,6 +1005,7 @@ export async function fetchScanReport(projectPath) {
   const res = await fetch(`/api/simplebeacon/report${params}`, {
     headers: authService.getAuthHeaders()
   });
+  if (res.status === 404) return null;
   if (!res.ok) return null;
   const data = await parseJsonSafe(res);
   return data && typeof data === 'object' ? data : null;
@@ -776,8 +1015,117 @@ export function normalizeProjectPath(value) {
   return String(value || '').replace(/\\/g, '/').toLowerCase().replace(/\/$/, '');
 }
 
+export function preferPlatformAnalyzePath(candidatePath, defaultPath) {
+  const raw = String(candidatePath || defaultPath || '').trim();
+  if (!raw) return raw;
+  const fallback = String(defaultPath || '').trim();
+  if (!fallback) return raw;
+  const candidateNorm = normalizeProjectPath(raw);
+  const defaultNorm = normalizeProjectPath(fallback);
+  if (candidateNorm === defaultNorm) return raw;
+  if (defaultNorm.startsWith(`${candidateNorm}/`)) return fallback;
+  return raw;
+}
+
+function isGateBlockingIssue(issue, gate = {}) {
+  const failOn = gate.failOn || ['high'];
+  const severity = issue.severityBand || issue.severity || 'low';
+  return failOn.includes(severity);
+}
+
+function partitionPlatformScanIssues(issues = []) {
+  const platformIssues = [];
+  const benchmarkCacheIssues = [];
+  for (const issue of issues) {
+    const paths = [
+      issue?.filePath,
+      issue?.file,
+      ...(issue?.affectedFiles || []),
+      ...(issue?.filePaths || [])
+    ].filter(Boolean);
+    if (paths.some(isBenchmarkCachePath)) {
+      benchmarkCacheIssues.push(issue);
+    } else {
+      platformIssues.push(issue);
+    }
+  }
+  return { platformIssues, benchmarkCacheIssues };
+}
+
+export function preparePlatformResultsReport(report) {
+  if (!report || report.type !== 'simplebeacon-report') return report;
+  const sourceIssues = report.rawIssues?.length ? report.rawIssues : (report.detectedIssues || []);
+  const { platformIssues, benchmarkCacheIssues } = partitionPlatformScanIssues(sourceIssues);
+  const gateConfig = report.gate || report.scanScope?.gatePolicy || { failOn: ['high'], warnOn: ['medium', 'low'] };
+  const blockingCount = platformIssues
+    .filter((issue) => isGateBlockingIssue(issue, gateConfig))
+    .reduce((sum, issue) => sum + (issue.count || 1), 0);
+  const warningCount = platformIssues
+    .filter((issue) => (gateConfig.warnOn || []).includes(issue.severityBand || issue.severity))
+    .reduce((sum, issue) => sum + (issue.count || 1), 0);
+  const repoFiles = report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles ?? 0;
+  const staleFullTreeScan = repoFiles > 15000 || (report.mockSampleFiles ?? report.totalFiles ?? 0) > 500;
+
+  return {
+    ...report,
+    rawIssues: platformIssues,
+    benchmarkCacheIssues,
+    issueCount: blockingCount,
+    gate: {
+      ...gateConfig,
+      pass: blockingCount === 0,
+      blockingCount,
+      warningCount
+    },
+    scanScope: {
+      ...(report.scanScope || {}),
+      resultsViewScope: 'platform-only',
+      benchmarkCacheIssuesExcluded: benchmarkCacheIssues.length,
+      reportHealth: staleFullTreeScan
+        ? 'stale-full-tree-scan'
+        : (report.scanScope?.reportHealth || 'platform-scoped'),
+      rescanRecommended: staleFullTreeScan
+        || benchmarkCacheIssues.length > 0
+        || Boolean(report.scanScope?.rescanRecommended)
+    }
+  };
+}
+
+export function sanitizeFictionDigestExport(digest) {
+  if (!digest || typeof digest !== 'object') return digest;
+  if (digest.type !== 'simplebeacon-fiction-digest') return digest;
+
+  const sourceReport = digest.sourceReport
+    ? preparePlatformResultsReport(digest.sourceReport)
+    : null;
+  const fictionIssues = (digest.fictionIssues || []).filter((issue) => {
+    const filePath = issue.filePath || issue.file || '';
+    return !filePath || !isBenchmarkCachePath(filePath);
+  });
+  const nonFictionIssues = (digest.nonFictionIssues || []).filter((issue) => {
+    const filePath = issue.filePath || issue.file || '';
+    return !filePath || !isBenchmarkCachePath(filePath);
+  });
+  const fictionCount = fictionIssues.reduce((sum, issue) => sum + (issue.count || 1), 0);
+
+  return {
+    type: 'simplebeacon-fiction-digest',
+    generatedAt: digest.generatedAt || new Date().toISOString(),
+    conclusion: digest.conclusion || (sourceReport
+      ? buildScanConclusion(sourceReport, { focus: 'fiction' })
+      : ''),
+    fictionIssues,
+    nonFictionIssues,
+    digestTrust: fictionCount === 0 ? 'trustworthy' : 'review',
+    sourceReport: sourceReport ? slimReportForSummary(sourceReport) : null
+  };
+}
+
 /** Prefer platform root from step 1 when scanning a monorepo parent path. */
 export function resolveCompleteScanTargetPath(projectPath, priorSteps = []) {
+  if (isBenchmarkCachePath(projectPath)) {
+    return projectPath;
+  }
   const report = priorSteps.find((step) => step?.id === 'simplebeacon')?.report;
   const platformRoot = report?.platformRoot;
   if (platformRoot && normalizeProjectPath(platformRoot) !== normalizeProjectPath(projectPath)) {
@@ -802,12 +1150,147 @@ export async function enrichScanReport(report, projectPath) {
     : null;
   if (!inventory && projectPath) {
     try {
-      inventory = await fetchRepositoryInventory(projectPath);
+      inventory = await fetchRepositoryInventory(projectPath, { profile: 'audit' });
     } catch {
       inventory = null;
     }
   }
   return mergeReportInventory(merged, inventory);
+}
+
+export function buildInventoryProvenance(report, requestedPath, options = {}) {
+  const requested = String(requestedPath || '').trim();
+  const liveInventory = options.liveInventory || null;
+  if (!report?.generatedAt && !requested && !liveInventory?.totalFiles) return null;
+
+  const reportInventory = report?.repositoryInventory?.totalFiles != null
+    ? report.repositoryInventory
+    : null;
+  const reportRoot = reportInventory?.projectRoot
+    ?? report?.scanTargetRoot
+    ?? report?.platformRoot
+    ?? report?.projectRoot
+    ?? null;
+  const reportStale = report && requested ? isLegacyScanReport(report, requested) : false;
+  const reportAligned = Boolean(
+    report?.generatedAt
+    && requested
+    && reportRoot
+    && isInventoryRootAligned(requested, reportRoot)
+    && !reportStale
+  );
+  const liveRoot = liveInventory?.projectRoot || requested || null;
+  const liveAligned = Boolean(
+    liveInventory?.totalFiles != null
+    && (!requested || isInventoryRootAligned(requested, liveRoot))
+  );
+
+  const inventory = liveAligned && liveInventory
+    ? liveInventory
+    : (reportAligned && reportInventory ? reportInventory : (liveInventory || reportInventory));
+  const inventoryRoot = inventory?.projectRoot
+    ?? (reportAligned ? reportRoot : null)
+    ?? requested
+    ?? null;
+  const profile = inventory?.profile || 'explorer';
+  const files = inventory?.totalFiles
+    ?? (reportAligned ? (report?.repositoryFilesTotal ?? reportInventory?.totalFiles) : null);
+  const folders = inventory?.totalFolders
+    ?? (reportAligned ? (report?.repositoryFoldersTotal ?? reportInventory?.totalFolders) : null);
+  const ruleScoped = reportAligned
+    ? (report?.ruleScopedFilesAnalyzed ?? report?.scanScope?.ruleScopedFilesAnalyzed ?? null)
+    : null;
+  const generatedAt = reportAligned ? (report?.generatedAt ?? null) : null;
+  const pathAligned = requested && inventoryRoot
+    ? isInventoryRootAligned(requested, inventoryRoot)
+    : null;
+
+  return {
+    requestedPath: requested,
+    inventoryRoot,
+    profile,
+    files,
+    folders,
+    ruleScoped,
+    generatedAt,
+    pathAligned: requested ? pathAligned && !reportStale : null,
+    stale: reportStale || (Boolean(report?.generatedAt && requested && reportRoot) && !reportAligned),
+    hasReport: reportAligned,
+    liveInventory: liveAligned && Boolean(liveInventory?.totalFiles != null),
+    inventoryFetchedAt: options.inventoryFetchedAt ?? null,
+    reportMisaligned: Boolean(report?.generatedAt && requested && reportRoot && !reportAligned)
+  };
+}
+
+export function renderInventoryProvenanceHtml(provenance, options = {}) {
+  if (!provenance) return '';
+  const redactPath = options.redactPath || ((value) => String(value || ''));
+  const selectedLabel = provenance.requestedPath ? redactPath(provenance.requestedPath) : '—';
+  const walkedLabel = provenance.inventoryRoot ? redactPath(provenance.inventoryRoot) : selectedLabel;
+  const countLine = provenance.files != null
+    ? `${formatNumber(provenance.files)} files · ${formatNumber(provenance.folders ?? 0)} folders indexed (${provenance.profile} profile)`
+    : 'Inventory pending';
+
+  if (!provenance.hasReport) {
+    if (provenance.liveInventory && provenance.files != null) {
+      const fetchedAt = provenance.inventoryFetchedAt
+        ? new Date(provenance.inventoryFetchedAt).toLocaleString()
+        : 'just now';
+      return `
+      <div class="analyze-inventory-provenance" data-inventory-provenance role="note">
+        <span class="analyze-inventory-provenance-label">Selected folder</span>
+        <code title="Path you entered">${escapeHtml(selectedLabel)}</code>
+        · ${escapeHtml(countLine)}
+        · indexed ${escapeHtml(fetchedAt)}
+        <span class="text-muted analyze-inventory-provenance-hint">Explorer-style walk of the selected folder (includes <code>node_modules</code>). No gate scan for this path yet — run analysis for rule counts.</span>
+      </div>
+    `;
+    }
+    if (provenance.reportMisaligned && provenance.files != null) {
+      return `
+      <div class="analyze-inventory-provenance analyze-inventory-provenance--mismatch" data-inventory-provenance role="alert">
+        <strong>Stale gate report ignored</strong> — selected <code>${escapeHtml(selectedLabel)}</code>
+        · live walk ${escapeHtml(countLine)}
+        <span class="text-muted analyze-inventory-provenance-hint">A scan exists for a nested folder (e.g. ai-platform), not this parent path. Run analysis on the folder you selected for gate counts.</span>
+      </div>
+    `;
+    }
+    return `
+      <div class="analyze-inventory-provenance" data-inventory-provenance role="note">
+        <span class="text-muted">No scan yet for <code>${escapeHtml(selectedLabel)}</code> — run analysis to attach inventory and gate scope.</span>
+      </div>
+    `;
+  }
+
+  const scannedAt = provenance.generatedAt
+    ? new Date(provenance.generatedAt).toLocaleString()
+    : '—';
+  const ruleLine = provenance.ruleScoped != null
+    ? `${formatNumber(provenance.ruleScoped)} gate rules checked`
+    : '';
+
+  if (provenance.stale || provenance.pathAligned === false) {
+    return `
+      <div class="analyze-inventory-provenance analyze-inventory-provenance--mismatch" data-inventory-provenance role="alert">
+        <strong>Path mismatch</strong> — selected <code>${escapeHtml(selectedLabel)}</code> does not match loaded inventory root <code>${escapeHtml(walkedLabel)}</code>.
+        ${provenance.files != null
+    ? `Showing <strong>${escapeHtml(formatNumber(provenance.files))}</strong> files from the loaded report (${escapeHtml(provenance.profile)} profile), not from your selected folder.`
+    : ''}
+        Re-run <strong>Run analysis</strong> on the exact path you want.
+      </div>
+    `;
+  }
+
+  return `
+    <div class="analyze-inventory-provenance" data-inventory-provenance role="note">
+      <span class="analyze-inventory-provenance-label">Selected folder</span>
+      <code title="Path you entered">${escapeHtml(selectedLabel)}</code>
+      · ${escapeHtml(countLine)}
+      ${ruleLine ? ` · ${escapeHtml(ruleLine)}` : ''}
+      · scanned ${escapeHtml(scannedAt)}
+      <span class="text-muted analyze-inventory-provenance-hint">Indexed count is an explorer-style walk of the selected folder. Gate rules checked is the analyzed subset from your last scan.</span>
+    </div>
+  `;
 }
 
 export function buildMonorepoScopeNote(report) {
@@ -830,11 +1313,44 @@ export function buildMonorepoScopeNote(report) {
   return parts.join('. ') + '.';
 }
 
+function projectPathMatchesReportRoot(projectPath, reportRoot) {
+  const normPath = normalizeProjectPath(projectPath);
+  const normRoot = normalizeProjectPath(reportRoot);
+  if (!normPath || !normRoot) return false;
+  if (normPath === normRoot) return true;
+  // Sanitized gate exports redact absolute host paths to project label (basename only).
+  if (!normRoot.includes('/') && (normPath === normRoot || normPath.endsWith(`/${normRoot}`))) {
+    return true;
+  }
+  if (!normPath.includes('/') && (normRoot === normPath || normRoot.endsWith(`/${normPath}`))) {
+    return true;
+  }
+  return false;
+}
+
+/** Stricter than reportMatchesPagePath — parent inventory must not pass for a child path. */
+export function isInventoryRootAligned(requestedPath, inventoryRoot) {
+  if (!requestedPath || !inventoryRoot) return true;
+  const req = normalizeProjectPath(requestedPath);
+  const inv = normalizeProjectPath(inventoryRoot);
+  if (req === inv) return true;
+  if (!inv.includes('/') && req.endsWith(`/${inv}`)) return true;
+  if (!req.includes('/') && inv.endsWith(`/${req}`)) return true;
+  if (req.startsWith(`${inv}/`) && req.length > inv.length) return false;
+  if (inv.startsWith(`${req}/`) && inv.length > req.length) return false;
+  return projectPathMatchesReportRoot(requestedPath, inventoryRoot);
+}
+
 export function isLegacyScanReport(report, projectPath = '') {
   if (!report) return true;
   if (report.reportVersion == null || report.reportVersion < 2) return true;
   if (!projectPath || !report.projectRoot) return false;
-  return normalizeProjectPath(projectPath) !== normalizeProjectPath(report.projectRoot);
+  if (projectPathMatchesReportRoot(projectPath, report.projectRoot)) return false;
+  const inventoryRoot = report.repositoryInventory?.projectRoot;
+  if (inventoryRoot && projectPathMatchesReportRoot(projectPath, inventoryRoot)) return false;
+  const scanTargetRoot = report.scanTargetRoot || report.platformRoot;
+  if (scanTargetRoot && projectPathMatchesReportRoot(projectPath, scanTargetRoot)) return false;
+  return true;
 }
 
 export function getScanFileMetrics(report, options = {}) {
@@ -899,6 +1415,27 @@ export function getScanFileMetrics(report, options = {}) {
 export function resolveDisplayScore(report) {
   if (!report) return null;
   return report.consistencyScore ?? report.schemaCompliance ?? report.qualityScore ?? null;
+}
+
+/** Prefer API report when it is newer than cached app state. */
+export function shouldPreferLiveReport(cachedReport, liveReport) {
+  if (!liveReport?.generatedAt) return false;
+  if (!cachedReport?.generatedAt) return true;
+  const liveAt = Date.parse(liveReport.generatedAt);
+  const cachedAt = Date.parse(cachedReport.generatedAt);
+  if (Number.isNaN(liveAt)) return false;
+  if (Number.isNaN(cachedAt)) return true;
+  return liveAt >= cachedAt;
+}
+
+/** Refresh app scan report from API when live data is newer. */
+export async function refreshLiveReport(scanService, state) {
+  const live = await scanService.fetchReport();
+  if (!live) return state.report ?? null;
+  if (shouldPreferLiveReport(state.report, live) || !state.report) {
+    state.report = live;
+  }
+  return state.report;
 }
 
 export function resolveJestTestsLabel(baseline, dashboardHome) {
@@ -1107,6 +1644,22 @@ export function buildConsolidationConclusion(scan) {
   if (!scan?.summary) {
     return 'No consolidation scan available.';
   }
+  const projectPath = String(scan.projectRoot || scan.projectPath || '').replace(/\\/g, '/');
+  if (isBenchmarkCachePath(projectPath) || scan.benchmarkScan) {
+    const repoFiles = scan.summary.repositoryFilesTotal ?? scan.repositoryInventory?.totalFiles;
+    const candidates = (scan.summary.mergeCandidates || 0) + (scan.summary.reductionOpportunities || 0);
+    const parts = [
+      'OSS benchmark clone under github-cache/ — consolidation hygiene for the clone only',
+      candidates ? `${candidates} merge/reduction candidate(s) inside this clone` : 'No merge/reduction candidates',
+      (scan.summary.sampleDataFilesAnalyzed ?? 0) === 0
+        ? 'Simplebeacon sample paths (web/data, data/roadmap) are not on this clone'
+        : `${scan.summary.sampleDataFilesAnalyzed} sample JSON under configured paths`,
+      repoFiles != null ? `Clone inventory: ${Number(repoFiles).toLocaleString()} files` : null,
+      scan.summary.potentialSavingsLabel ? `Potential savings: ${scan.summary.potentialSavingsLabel}` : null,
+      'Re-run on ai-platform root for product handoff evidence'
+    ].filter(Boolean);
+    return `${parts.join('. ')}.`;
+  }
   const s = scan.summary;
   const candidates = (s.mergeCandidates || 0) + (s.reductionOpportunities || 0);
   const repoFiles = s.repositoryFilesTotal ?? scan.repositoryInventory?.totalFiles;
@@ -1123,6 +1676,25 @@ export function buildConsolidationConclusion(scan) {
 export function buildScanConclusion(report, options = {}) {
   if (!report) {
     return 'No scan report available.';
+  }
+
+  if (options.benchmarkScan) {
+    const repoFiles = report.repositoryFilesTotal ?? report.scanScope?.repositoryFilesTotal;
+    const ruleScoped = report.ruleScopedFilesAnalyzed ?? report.scanScope?.ruleScopedFilesAnalyzed ?? 0;
+    const jsonFiction = report.fictionJsonFilesScanned ?? report.scanScope?.fictionJsonFilesScanned;
+    const fiction = filterIssuesByKind(report, 'fiction');
+    const fictionN = fiction.reduce((sum, i) => sum + (i.count || 1), 0);
+    const parts = [
+      'OSS benchmark clone under github-cache/ — not Simplebeacon product handoff',
+      fictionN
+        ? `${fictionN} fiction/KPI pattern(s) in clone JSON`
+        : 'No fiction KPI hits in product sample paths',
+      repoFiles != null ? `Repository: ${Number(repoFiles).toLocaleString()} files` : null,
+      `Product gate paths checked ${Number(ruleScoped).toLocaleString()}`,
+      jsonFiction != null ? `${Number(jsonFiction).toLocaleString()} JSON scanned for fiction rules` : null,
+      'Agency-handoff and EU AI Act matches excluded from vendor gate'
+    ].filter(Boolean);
+    return `${parts.join('. ')}.`;
   }
 
   const focus = options.focus || 'all';
@@ -1203,18 +1775,22 @@ export function buildScanConclusion(report, options = {}) {
 
 export function buildFictionDigestPayload(report, options = {}) {
   if (!report) return null;
-  const fictionIssues = filterIssuesByKind(report, 'fiction');
-  const nonFictionIssues = issueList(report).filter(
+  const projectPath = options.projectPath || report.projectRoot || '';
+  const prepared = preparePlatformResultsReport(report, projectPath);
+  const fictionIssues = filterIssuesByKind(prepared, 'fiction');
+  const nonFictionIssues = issueList(prepared).filter(
     (item) => !/fiction|fictional|consistency|kpi/i.test(String(item.type || ''))
   );
-  return {
+  return sanitizeFictionDigestExport({
     type: 'simplebeacon-fiction-digest',
     generatedAt: options.generatedAt || new Date().toISOString(),
-    conclusion: buildScanConclusion(report, { focus: 'fiction' }),
+    conclusion: buildScanConclusion(prepared, { focus: 'fiction', benchmarkScan: isBenchmarkCachePath(projectPath) }),
     fictionIssues,
     nonFictionIssues,
-    sourceReport: report
-  };
+    projectPath,
+    sourceProjectPath: projectPath,
+    sourceReport: prepared
+  }, { projectPath });
 }
 
 export function normalizeImportedReport(payload) {
@@ -1254,5 +1830,113 @@ export async function readDroppedFiles(fileList) {
     }
   }
   return { total: files.length, reports };
+}
+
+export async function fetchComplianceChecklist(report, projectPath, options = {}) {
+  const res = await fetchWithTimeout('/api/analyze/compliance-checklist', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authService.getAuthHeaders()
+    },
+    body: JSON.stringify({
+      report,
+      projectPath: projectPath || undefined,
+      npmAudit: options.npmAudit || undefined,
+      forceNpmAudit: options.forceNpmAudit === true
+    })
+  }, options.timeoutMs ?? 120000);
+  const data = await parseJsonSafe(res);
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || data.message || 'Compliance checklist failed');
+  }
+  return data;
+}
+
+export async function fetchProjectNpmAudit(projectPath, options = {}) {
+  const params = new URLSearchParams({ _: String(Date.now()) });
+  if (projectPath) params.set('projectPath', projectPath);
+  if (options.force) params.set('force', '1');
+  const data = await fetchJsonWithGuidance(`/api/analyze/npm-audit?${params}`, {
+    headers: authService.getAuthHeaders()
+  }, options.timeoutMs ?? 180000);
+  if (!data.success) {
+    throw new Error(data.error || 'npm audit failed');
+  }
+  return data;
+}
+
+export async function fetchAnalyzeTestSources() {
+  const params = new URLSearchParams({ _: String(Date.now()) });
+  const data = await fetchJsonWithGuidance(`/api/analyze/test-sources?${params}`, {
+    headers: authService.getAuthHeaders()
+  });
+  if (!data.success) {
+    throw new Error(data.error || 'Failed to load test sources');
+  }
+  return data;
+}
+
+export async function prepareGithubRepo(repoUrl, options = {}) {
+  const data = await fetchJsonWithGuidance('/api/analyze/github-clone', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authService.getAuthHeaders()
+    },
+    body: JSON.stringify({
+      repoUrl,
+      refresh: options.refresh === true
+    })
+  }, options.timeoutMs ?? 180000);
+  if (!data.success) {
+    throw new Error(data.error || 'GitHub clone failed');
+  }
+  return data;
+}
+
+export async function fetchAgencyBranding(orgId = 'default') {
+  const params = new URLSearchParams({ org_id: orgId, _: String(Date.now()) });
+  const data = await fetchJsonWithGuidance(`/api/simplebeacon/agency/branding?${params}`, {
+    headers: authService.getAuthHeaders()
+  });
+  return data.branding || data;
+}
+
+export async function exportAgencyCertificate(payload = {}) {
+  const data = await fetchJsonWithGuidance('/api/simplebeacon/export/certificate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authService.getAuthHeaders()
+    },
+    body: JSON.stringify(payload)
+  }, payload.timeoutMs ?? 120000);
+  if (!data.success) {
+    throw new Error(data.message || data.error || 'Certificate export failed');
+  }
+  return data;
+}
+
+export function assertCompleteScanComplianceFresh(report, checklist) {
+  if (!checklist?.evaluatedAt) return;
+  const reportAt = Date.parse(report?.generatedAt || '');
+  const checklistAt = Date.parse(checklist.evaluatedAt || '');
+  if (Number.isFinite(reportAt) && Number.isFinite(checklistAt) && checklistAt + 5000 < reportAt) {
+    throw new Error('Compliance checklist is older than the gate report — re-run compliance after the latest scan.');
+  }
+}
+
+export function assertCompleteScanFileReductionFresh(scan) {
+  if (!scan || typeof scan !== 'object') {
+    throw new Error('File reduction scan returned no payload');
+  }
+  const hasSignal = scan.fileReductionPlan?.totals?.safeToDeleteBytes != null
+    || scan.fileReductionPlan?.safeToDelete?.topDirectories?.length
+    || scan.scanners?.['build-artifacts']?.safeToDeleteBytes != null
+    || scan.summary?.totalFindings > 0;
+  if (!hasSignal) {
+    throw new Error('File reduction scan returned no findings — restart the SimpleBeacon server and retry.');
+  }
 }
 
