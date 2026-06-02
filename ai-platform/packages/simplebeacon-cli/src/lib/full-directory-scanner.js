@@ -15,21 +15,7 @@ const {
 } = require('../rules/eu-ai-act-patterns');
 const { globMatch } = require('../rules/production-leak');
 
-const DEFAULT_SKIP_DIRS = new Set([
-    '.git',
-    'node_modules',
-    '.github-sync',
-    'github-cache',
-    'coverage',
-    'dist',
-    'build',
-    'temp',
-    'logs',
-    '.simplebeacon-backup',
-    'simplebeacon-rule-tests',
-    'simplebeacon-frameworkless',
-    'marketing-content-test'
-]);
+const DEFAULT_SKIP_DIRS = new Set([]);
 const DEFAULT_MAX_FILES = Number(process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES) || 2_000_000;
 const BATCH_LOG_EVERY = Number(process.env.SIMPLEBEACON_FULL_SCAN_LOG_EVERY) || 5000;
 
@@ -270,7 +256,7 @@ async function analyzeFullDirectory(rootDir, options = {}) {
             continue;
         }
 
-        if (isExcludedPath(file.relativePath)) {
+        if (isExcludedPath(file.relativePath, { universal: isUniversal })) {
             continue;
         }
 

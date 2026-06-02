@@ -9,12 +9,9 @@ const { globMatch } = require('./production-leak');
 const { shouldExcludePath } = require('../lib/path-exclusion-filter');
 
 const DEFAULT_SOURCE_PATHS = ['server', 'src', 'web', 'lib', 'packages'];
-const SCANNABLE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py']);
-const SKIP_DIRS = new Set([
-    'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'docs'
-]);
-const MAX_SCAN_BYTES = 512000;
+const SCANNABLE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.json', '.yaml', '.yml', '.xml', '.csv', '.sql', '.md', '.txt', '.html', '.css', '.scss']);
+const SKIP_DIRS = new Set([]);
+const MAX_SCAN_BYTES = 10485760;
 
 const EXCLUSION_SUBSTRINGS = [
     '_example_only_placeholder',
@@ -86,8 +83,13 @@ function isIgnored(relativePath, ignoreGlobs) {
     return ignoreGlobs.some((pattern) => globMatch(relativePath, pattern));
 }
 
-function isExcludedPath(relativePath, userExclusions = []) {
+function isExcludedPath(relativePath, options = {}) {
     const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
+    if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
+    if (/(?:^|\/)marketing-content-test\//.test(normalized)) return true;
+    if (options.universal) {
+        return false;
+    }
     
     // Test and fixture exclusions (always applied)
     if (/\.(test|spec)\.[jt]sx?$/.test(normalized)) return true;
@@ -106,7 +108,7 @@ function isExcludedPath(relativePath, userExclusions = []) {
     if (scannerFiles.some(file => normalized.includes(file))) return true;
     
     // Apply dynamic user exclusions from config
-    if (shouldExcludePath(normalized, userExclusions)) return true;
+    if (shouldExcludePath(normalized, options.userExclusions || [])) return true;
     
     return false;
 }

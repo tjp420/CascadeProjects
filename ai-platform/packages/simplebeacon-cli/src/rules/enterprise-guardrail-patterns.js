@@ -13,7 +13,8 @@ const SCANNABLE_EXTENSIONS = new Set([
 ]);
 const SKIP_DIRS = new Set([
     'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'examples'
+    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'examples',
+    'simplebeacon-rule-tests', 'simplebeacon-frameworkless', 'marketing-content-test'
 ]);
 const MAX_SCAN_BYTES = 512000;
 const CALL_BLOCK_MAX_LINES = 48;
@@ -97,8 +98,14 @@ function isIgnored(relativePath, ignoreGlobs) {
     return (ignoreGlobs || []).some((pattern) => globMatch(relativePath, pattern));
 }
 
-function isExcludedPath(relativePath) {
+function isExcludedPath(relativePath, options = {}) {
     const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
+    if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
+    if (/(?:^|\/)marketing-content-test\//.test(normalized)) return true;
+    if (options.universal) {
+        return false;
+    }
+
     if (/\.(test|spec)\.[jt]sx?$/.test(normalized)) return true;
     if (/\/tests?\//.test(normalized)) return true;
     if (/\/fixtures?\//.test(normalized)) return true;

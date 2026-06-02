@@ -571,10 +571,10 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         }
     }
 
-    const benchmarkScanTarget = isExternalBenchmarkCachePath(scanRoot);
+    const benchmarkScanTarget = isExternalBenchmarkCachePath(scanRoot) && !options.universal;
 
     let agencyHandoffScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
-    if (isRuleEnabled(config, 'agency-handoff-patterns') && !benchmarkScanTarget) {
+    if (isRuleEnabled(config, 'agency-handoff-patterns')) {
         if (fullDirectoryScan && fullTreeHits) {
             agencyHandoffScan = {
                 scanned: fullTreeContentScanned,
@@ -595,7 +595,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let tokenBleedScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
-    if (isRuleEnabled(config, 'token-bleed-patterns') && !benchmarkScanTarget) {
+    if (isRuleEnabled(config, 'token-bleed-patterns')) {
         if (fullDirectoryScan && fullTreeHits) {
             tokenBleedScan = {
                 scanned: fullTreeContentScanned,
@@ -615,7 +615,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let architectureDriftScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
-    if (isRuleEnabled(config, 'architecture-drift-patterns') && !benchmarkScanTarget) {
+    if (isRuleEnabled(config, 'architecture-drift-patterns')) {
         if (fullDirectoryScan && fullTreeHits) {
             architectureDriftScan = {
                 scanned: fullTreeContentScanned,
@@ -635,7 +635,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let pythonAstScan = { scanned: 0, findings: 0, issues: [], patterns: [], ok: true };
-    if (isRuleEnabled(config, 'python-ast-patterns') && !benchmarkScanTarget) {
+    if (isRuleEnabled(config, 'python-ast-patterns')) {
         const { scanPythonAstPatterns } = require('./lib/python-ast-scanner');
         const pyOpts = getRuleOptions(config, 'python-ast-patterns');
         pythonAstScan = await scanPythonAstPatterns(ruleWalkRoot, {
@@ -650,7 +650,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let javascriptAstScan = { scanned: 0, findings: 0, issues: [], patterns: [], ok: true };
-    if (isRuleEnabled(config, 'javascript-ast-patterns') && !benchmarkScanTarget) {
+    if (isRuleEnabled(config, 'javascript-ast-patterns')) {
         const { scanJavascriptAstPatterns } = require('./lib/javascript-ast-scanner');
         const jsOpts = getRuleOptions(config, 'javascript-ast-patterns');
         javascriptAstScan = await scanJavascriptAstPatterns(ruleWalkRoot, {
@@ -664,7 +664,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let euAiActScan = { scanned: 0, findings: 0, issues: [], summary: null, patterns: [] };
-    if (isRuleEnabled(config, 'eu-ai-act-patterns') && !benchmarkScanTarget) {
+    if (isRuleEnabled(config, 'eu-ai-act-patterns')) {
         if (fullDirectoryScan && fullTreeHits) {
             euAiActScan = {
                 scanned: fullTreeContentScanned,
@@ -687,7 +687,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let enterpriseGuardrailScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
-    if (isRuleEnabled(config, 'enterprise-guardrail-patterns') && !benchmarkScanTarget) {
+    if (isRuleEnabled(config, 'enterprise-guardrail-patterns')) {
         const entOpts = getRuleOptions(config, 'enterprise-guardrail-patterns');
         enterpriseGuardrailScan = await scanEnterpriseGuardrailPatterns(ruleWalkRoot, {
             sourcePaths: entOpts.sourcePaths || config.sourceCodeScanPaths,
@@ -740,7 +740,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         issues.push(...jestBaseline.issues);
     }
 
-    const { platformIssues, benchmarkCacheIssues } = partitionBenchmarkIssues(issues);
+    const { platformIssues, benchmarkCacheIssues } = partitionBenchmarkIssues(issues, { universal: options.universal });
     const scoringIssues = platformIssues;
 
     const totalSize = uniqueFiles.reduce((sum, file) => sum + file.size, 0);

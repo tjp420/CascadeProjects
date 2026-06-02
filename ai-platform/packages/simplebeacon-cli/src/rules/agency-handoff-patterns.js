@@ -15,7 +15,11 @@ const SCANNABLE_EXTENSIONS = new Set([
 const SKIP_DIRS = new Set([
     'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
     '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'docs', 'deliverables',
-    'rules', 'reporters', 'analyzers', 'proxy', 'examples'
+    'rules', 'reporters', 'analyzers', 'proxy', 'examples',
+    'coming-soon', 'reports', 'security-reports', 'templates', 'data-central',
+    'deployments', 'public', 'functions', 'cloudflare-deploy', 'temp', 'tests-legacy',
+    '.github-sync', '.cursor', '.vscode', 'downloads', 'findings',
+    'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures'
 ]);
 
 function isScannerImplementationPath(relativePath) {
@@ -175,14 +179,34 @@ function lineNumberAt(content, index) {
     return content.slice(0, Math.max(0, index)).split('\n').length;
 }
 
-function isExcludedPath(relativePath) {
+function isExcludedPath(relativePath, options = {}) {
     const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
     if (isScannerImplementationPath(relativePath)) return true;
+    if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
+    if (/(?:^|\/)marketing-content-test\//.test(normalized)) return true;
+    if (options.universal) {
+        return false;
+    }
+
     if (/\.(test|spec)\.[jt]sx?$/.test(normalized)) return true;
     if (/\/tests?\//.test(normalized)) return true;
     if (/\/fixtures?\//.test(normalized)) return true;
     if (/\.example\.[a-z0-9]+$/i.test(normalized)) return true;
     if (normalized.endsWith('.md')) return true;
+    if (/(?:^|\/)coming-soon\//.test(normalized)) return true;
+    if (/(?:^|\/)reports\//.test(normalized)) return true;
+    if (/(?:^|\/)security-reports\//.test(normalized)) return true;
+    if (/(?:^|\/)templates\//.test(normalized)) return true;
+    if (/(?:^|\/)data-central\//.test(normalized)) return true;
+    if (/(?:^|\/)deployments\//.test(normalized)) return true;
+    if (/(?:^|\/)public\//.test(normalized)) return true;
+    if (/(?:^|\/)functions\//.test(normalized)) return true;
+    if (/(?:^|\/)cloudflare-deploy\//.test(normalized)) return true;
+    if (/(?:^|\/)archive\//.test(normalized)) return true;
+    if (/(?:^|\/)temp\//.test(normalized)) return true;
+    if (/(?:^|\/)tests-legacy\//.test(normalized)) return true;
+    if (/(?:^|\/)downloads\//.test(normalized)) return true;
+    if (/(?:^|\/)web\/(?:data|findings|simplebeacon-findings)\//.test(normalized)) return true;
     return false;
 }
 
@@ -234,6 +258,8 @@ function scanTextPatterns(relativePath, content, ext) {
             if (isCommentLine(line, ext) && !rule.id.startsWith('SB-HANDOFF')) continue;
             if (isAllowlistedMatch(line, match[0])) continue;
             if (rule.id === 'SB-DEPLOY-001' && /(?:localhost|127\.0\.0\.1):(?:54355|11434)\b/.test(match[0])) continue;
+            if ((rule.id === 'SB-DEPLOY-001' || rule.id === 'SB-DEPLOY-005') && /console\.log\s*\(/.test(line)) continue;
+            if (rule.id === 'SB-AI-001' && /completionRate|roadmap|percent|progress|taskCount/i.test(line)) continue;
 
             findings.push({
                 id: `agency-handoff-${rule.id}-${relativePath}-${match.index}`,

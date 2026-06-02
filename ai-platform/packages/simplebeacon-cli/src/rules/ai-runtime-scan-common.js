@@ -8,6 +8,15 @@ const DEFAULT_PRODUCTION_PATHS = ['server/', 'src/', 'app/', 'lib/'];
 const SCANNABLE_EXTENSIONS = new Set([
     '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.html', '.vue', '.svelte'
 ]);
+const UNIVERSAL_TEXT_EXTENSIONS = new Set([
+    '.json', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.env', '.yaml', '.yml', '.toml',
+    '.txt', '.md', '.html', '.css', '.scss', '.sass', '.less', '.vue', '.svelte', '.astro',
+    '.py', '.pyw', '.rb', '.go', '.rs', '.java', '.kt', '.cs', '.php', '.swift', '.c', '.cpp', '.h',
+    '.hpp', '.sh', '.bash', '.zsh', '.ps1', '.bat', '.cmd', '.sql', '.graphql', '.xml', '.csv',
+    '.ini', '.cfg', '.conf', '.properties', '.dockerfile', '.tf', '.hcl', '.lua', '.pl', '.r',
+    '.scala', '.groovy', '.clj', '.erl', '.ex', '.exs', '.elm', '.fs', '.fsx', '.ml', '.nim',
+    '.dart', '.sol', '.vy', '.move', '.cairo', '.tsv', '.log', '.lock', '.sum', '.mod', '.work'
+]);
 
 const ALLOWLIST_SNIPPETS = [
     'token-bleed-patterns.js',
@@ -59,6 +68,9 @@ function isExcludedPath(relativePath) {
     if (/\/docs?\//.test(normalized)) return true;
     if (/\/examples?\//.test(normalized)) return true;
     if (/\.example\.[-a-z0-9]+$/i.test(normalized)) return true;
+    if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
+    if (/(?:^|\/)marketing-content-test\//.test(normalized)) return true;
+    if (/(?:^|\/)simplebeacon-frameworkless\//.test(normalized)) return true;
     if (normalized.endsWith('.md')) return true;
     return false;
 }
@@ -134,6 +146,7 @@ function makeFinding(relativePath, line, rule, matchText, recommendation) {
 module.exports = {
     DEFAULT_PRODUCTION_PATHS,
     SCANNABLE_EXTENSIONS,
+    UNIVERSAL_TEXT_EXTENSIONS,
     ALLOWLIST_SNIPPETS,
     lineNumberAt,
     isExcludedPath,
