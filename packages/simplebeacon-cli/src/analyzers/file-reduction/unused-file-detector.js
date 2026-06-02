@@ -111,8 +111,15 @@ const PROTECTED_RUNTIME_BASENAMES = new Set([
     'dashboard_config.json',
     'central-data-config.json',
     '.eslintrc.security.json',
+    'app-logger.js',
+    'simplebeacon_ast_scan.py',
+    'default-fingerprints.json',
+    'analyzer-cache.js',
     // Intentional CJS / browser mirrors (see complete-scan-artifact-profile.js)
-    'complete-scan-artifact-profile.browser.js'
+    'complete-scan-artifact-profile.browser.js',
+    'complete-scan-artifact-profile.js',
+    'full-tree-rule-worker.js',
+    'scan-orchestrator.js'
 ]);
 
 const SCRIPT_ENTRY_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.py']);
@@ -329,6 +336,11 @@ class UnusedFileDetector {
         const basename = path.basename(relativePath);
         if (this.protectedBasenames.has(basename)) return false;
         if (PROTECTED_RUNTIME_BASENAMES.has(basename)) return false;
+        if (/\.browser\.js$/i.test(basename)) return false;
+        if (/^(credential-pattern-scanner|roadmap-json-specs|sample-consistency-checker)\.js$/.test(basename)
+            && /(?:^|\/)(?:server\/lib|packages\/simplebeacon-cli\/src\/lib)\//.test(normalized)) {
+            return false;
+        }
         if (/\.(test|spec)\.[jt]s$/i.test(basename)) return false;
         if (/(?:^|\/)(?:tests|test)(?:\/|$)/.test(normalized)) return false;
         return true;
