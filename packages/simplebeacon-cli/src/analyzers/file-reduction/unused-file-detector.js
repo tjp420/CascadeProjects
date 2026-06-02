@@ -24,6 +24,7 @@ const ENTRY_BASENAMES = new Set([
     'index.js',
     'index.ts',
     'index.mjs',
+    'index.cjs',
     'main.js',
     'main.ts',
     'app.js',
@@ -37,7 +38,8 @@ const PROTECTED_BASENAMES = new Set([
     'jsconfig.json',
     'README.md',
     'LICENSE',
-    '.gitignore'
+    '.gitignore',
+    'vercel.json'
 ]);
 
 const DEFAULT_SKIP_PATH_PATTERNS = [
@@ -48,6 +50,7 @@ const DEFAULT_SKIP_PATH_PATTERNS = [
     /(?:^|\/)temp\//,
     /(?:^|\/)\\.simplebeacon\//,
     /(?:^|\/)simplebeacon-test-repo\//,
+    /(?:^|\/)simplebeacon-rule-tests\//,
     /(?:^|\/)\\.cursor(?:\/|$)/,
     /(?:^|\/)\\.vscode(?:\/|$)/,
     /(?:^|\/)docs\//,
@@ -92,6 +95,7 @@ const DEFAULT_SKIP_GLOBS = [
     '**/complete-scan-export.json',
     '**/complete-scan-export.enriched.json',
     'tests-legacy/**',
+    'simplebeacon-rule-tests/**',
     '.github-sync/**',
     'packages/simplebeacon-cli/examples/**',
     'web/findings/**',
