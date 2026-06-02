@@ -92,7 +92,7 @@ test('MCP stdio: initialize, tools/list, scan_snippet, gate_status', async () =>
     assert.equal(init?.result?.serverInfo?.name, 'simplebeacon');
 
     const toolList = lines.find((m) => m.id === 2);
-    assert.equal(toolList?.result?.tools?.length, 4);
+    assert.equal(toolList?.result?.tools?.length, 6);
 
     const snippet = lines.find((m) => m.id === 3);
     const snippetPayload = JSON.parse(snippet.result.content[0].text);
