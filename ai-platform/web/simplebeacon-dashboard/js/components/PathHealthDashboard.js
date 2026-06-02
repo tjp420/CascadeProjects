@@ -3,7 +3,7 @@ import { fetchPathHealthMetrics } from '../services/pathHealthService.js';
 let refreshInterval = null;
 let isRefreshing = false;
 
-export async function renderPathHealthDashboard() {
+export function renderPathHealthDashboard() {
   const container = document.createElement('div');
   container.className = 'card';
   container.id = 'path-health-dashboard';
