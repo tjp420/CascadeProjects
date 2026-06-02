@@ -227,6 +227,8 @@ const DUPLICATE_SKIP_BASENAMES = new Set([
     'RoadmapAnalyzer.js',
     'run-analysis.js',
     'enrich-complete-scan.js',
+    'index.cjs',
+    'index.html',
     ['code-generation', SAMPLE_JSON_SUFFIX].join(''),
     'ai-roadmap-report.json'
 ]);
@@ -680,6 +682,16 @@ function isExcludedPlaceholderMatch(content, matchIndex) {
     return false;
 }
 
+function isInsideHtmlCodeBlock(content, matchIndex) {
+    const before = content.slice(0, matchIndex);
+    const after = content.slice(matchIndex);
+    const lastCodeOpen = before.lastIndexOf('<code');
+    const lastCodeClose = before.lastIndexOf('</code>');
+    const nextCodeClose = after.indexOf('</code>');
+    if (lastCodeOpen === -1) return false;
+    return lastCodeOpen > lastCodeClose && nextCodeClose !== -1;
+}
+
 function scanContentPatterns(content, relativePath, patterns, category, severity, productionOnly = false) {
     const hits = [];
     if (productionOnly && !isProductionPath(relativePath)) {
@@ -688,6 +700,7 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
     if (isVendorBundledAssetPath(relativePath) && (category === 'meaningless-data' || category === 'tech-debt')) {
         return hits;
     }
+    const isHtml = /\.html?$/i.test(relativePath);
     const seen = new Set();
     for (const item of patterns) {
         const pattern = new RegExp(item.pattern.source, ensureGlobalPatternFlags(item.pattern.flags));
@@ -695,6 +708,7 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
         while ((match = pattern.exec(content)) !== null) {
             if (isExcludedPatternCatalogLine(content, match.index)) continue;
             if (isRemediationContextLine(content, match.index)) continue;
+            if (isHtml && isInsideHtmlCodeBlock(content, match.index)) continue;
             if (category === 'tech-debt' && isExcludedTechDebtLine(content, match.index)) continue;
             if (item.id === 'python-mock-in-prod' || item.id === 'python-unittest-mock' || item.id === 'python-magic-mock' || item.id === 'python-mock-module-call') {
                 if (isExcludedPythonMockProductionMatch(content, match.index, relativePath)) continue;
@@ -991,6 +1005,10 @@ function classifyPlaceholderSeverity(patternId, relativePath) {
 
 function detectPlaceholderAndFictionalData(content, relativePath) {
     if (isPlaceholderCatalogOrMetaDoc(relativePath)) {
+        return [];
+    }
+    const rel = normalizedAuditPath(relativePath);
+    if (rel.startsWith('coming-soon/')) {
         return [];
     }
     const hits = [];

@@ -92,7 +92,8 @@ function isIntentionalTestFixturePath(relativePath) {
     const rel = String(relativePath || '').replace(/\\/g, '/').toLowerCase();
     return /(?:^|\/)tests\/fixtures\//.test(rel)
         || /simplebeacon-toxic-fixtures\//.test(rel)
-        || /ai-analyzer-eval\//.test(rel);
+        || /ai-analyzer-eval\//.test(rel)
+        || /simplebeacon-rule-tests\//.test(rel);
 }
 
 function isProtectedSampleDataPath(relativePath) {

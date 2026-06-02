@@ -211,20 +211,14 @@
   <script>
     // Handle YouTube embeds for file:// protocol ONLY
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('Current protocol:', window.location.protocol);
-      console.log('Current hostname:', window.location.hostname);
-      
       // Only activate fallback for file:// protocol, not for localhost
       if (window.location.protocol === 'file:') {
-        console.log('File protocol detected - replacing YouTube embeds with fallback buttons');
         const videoFrames = document.querySelectorAll('.demo-video-frame');
-        console.log('Found video frames:', videoFrames.length);
-        videoFrames.forEach((frame, index) => {
+        videoFrames.forEach((frame) => {
           const iframe = frame.querySelector('iframe');
           const fallback = frame.querySelector('.demo-video-fallback');
           if (iframe && fallback) {
             const youtubeUrl = iframe.src.replace('https://www.youtube-nocookie.com/embed/', 'https://youtu.be/');
-            console.log('Hiding iframe and showing fallback for video', index);
             iframe.style.display = 'none';
             fallback.style.display = 'block';
             // Update the YouTube link in the fallback
@@ -235,7 +229,6 @@
           }
         });
       } else {
-        console.log('Not file:// protocol - YouTube embeds should work normally');
         // Ensure fallbacks are hidden and iframes are visible for http/https
         const videoFrames = document.querySelectorAll('.demo-video-frame');
         videoFrames.forEach((frame) => {

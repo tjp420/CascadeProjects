@@ -2,7 +2,7 @@
   "name": "simplebeacon-platform",
   "version": "1.0.0",
   "description": "Simplebeacon — AI safety scanning, dashboard, and audit APIs",
-  "main": "server/index.js",
+  "main": "server/index.cjs",
   "type": "module",
   "workspaces": [
     "packages/*"
@@ -63,7 +63,7 @@
     "export-system:check": "node tools/verify-export-system-shim.js",
     "security:scan": "npm run simplebeacon:report && npm run simplebeacon:assess -- --output .simplebeacon/assessment.json && npm run trust:publish",
     "compliance:check": "node packages/simplebeacon-cli/bin/simplebeacon.js compliance --path . --report .simplebeacon/report.json",
-    "start": "node server/index.js",
+    "start": "node server/index.cjs",
     "dev": "nodemon server/index.js",
     "build": "webpack --mode production",
     "fast": "node scripts/build-fast.js",

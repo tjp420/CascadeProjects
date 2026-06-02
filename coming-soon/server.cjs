@@ -62,6 +62,6 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`\n🚀 Coming Soon server running at http://localhost:${PORT}`);
+    console.log(`\n🚀 Simplebeacon landing server running at http://localhost:${PORT}`);
     console.log(`💾 Persisting data to: ${SUBSCRIPTIONS_FILE}\n`);
 });

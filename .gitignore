@@ -8,6 +8,22 @@ java-ai-vulnerable/
 .simplebeacon/*.bak
 !ai-platform/.simplebeacon/config.json
 
+# Root-level generated scan reports
+consolidation-report.json
+data-access-patterns.json
+env-audit.json
+file-reduction-analysis.json
+file-reduction-detailed.json
+full-reduction-scan.json
+parent-scan-test-report.json
+parent-verify.json
+reduce-fresh.json
+reduce-verify.json
+report-updated.json
+report-with-jest.json
+report.json
+unused-files.json
+
 # Node modules
 node_modules/
 **/node_modules/

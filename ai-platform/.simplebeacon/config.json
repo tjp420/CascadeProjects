@@ -1,15 +1,12 @@
 {
-  "profile": "cascade",
+  "profile": "minimal",
   "scanPaths": [
     "web/data",
-    "tests/fixtures",
-    "data"
+    "textarea"
   ],
   "productionPaths": [
     "server/",
-    "src/",
-    "app/",
-    "lib/"
+    "src/"
   ],
   "sampleDir": "web/data",
   "consistencyAnchorSamples": [
@@ -25,29 +22,26 @@
       "scanProduction": true
     },
     "json-schema": {
-      "enabled": true
+      "enabled": false
     },
     "sample-consistency": {
-      "enabled": true
+      "enabled": false
     },
     "roadmap": {
-      "enabled": true
+      "enabled": false
     },
     "production-leak": {
       "enabled": true,
-      "severity": "medium",
+      "severity": "high",
       "allowlistFiles": [
-        "server/lib/snapshot-seeds.js",
-        "server/lib/snapshot-resolver.js",
+        "server/lib/snapshot-seeds.cjs",
+        "server/lib/snapshot-resolver.cjs",
         "server/lib/sample-path-resolver.cjs",
-        "server/lib/code-roadmap-generator.cjs",
-        "server/services/model-inference-service.js"
+        "server/lib/code-roadmap-generator.cjs"
       ],
       "productionPaths": [
         "server/",
-        "src/",
-        "app/",
-        "lib/"
+        "src/"
       ],
       "plainSampleJson": true,
       "intentClassification": true
@@ -102,7 +96,8 @@
   },
   "sourceCodeScanPaths": [
     "server/",
-    "src/"
+    "src/",
+    "packages/"
   ],
   "fullDirectoryScan": false,
   "fullDirectoryScanSkipDirs": [

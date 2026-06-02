@@ -258,6 +258,14 @@ function classifyProductionLeakMatch({
         };
     }
 
+    if (/simplebeacon-rule-tests\//.test(rel)) {
+        return {
+            intent: 'test-negative-case',
+            suppress: true,
+            reason: 'Intentional negative test fixture — fake credentials used for scanner validation'
+        };
+    }
+
     if (isDocumentationPath(rel) && !isAccidentalLoadPattern(line, matchText)) {
         return {
             intent: 'documentation-metadata',
