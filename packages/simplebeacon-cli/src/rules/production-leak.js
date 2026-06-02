@@ -303,9 +303,6 @@ async function scanProductionLeaks(baseDir, options = {}) {
 
     for (const file of files) {
         const relativePath = normalizeRel(baseDir, file.path);
-        if (relativePath.includes('.github-sync')) {
-            console.log('[DEBUG] .github-sync file:', relativePath, 'isIgnored:', isIgnored(relativePath, ignoreGlobs), 'ignoreGlobs length:', ignoreGlobs.length, 'has .github-sync:', ignoreGlobs.some(g => g.includes('github-sync')));
-        }
         if (isIgnored(relativePath, ignoreGlobs)) continue;
         if (isAllowlisted(relativePath, allowlistFiles)) continue;
         if (isScannerMetaFile(relativePath, scannerMetaFiles)) continue;
