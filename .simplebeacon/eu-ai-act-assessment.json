@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-assessment-report",
   "title": "Simplebeacon EU AI Act Readiness — CascadeProjects",
-  "generatedAt": "2026-06-02T05:46:13.407Z",
+  "generatedAt": "2026-06-02T06:14:55.580Z",
   "generatedBy": "Simplebeacon",
   "assessor": "SimpleBeacon Operator",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
@@ -11,7 +11,7 @@
     "highRiskIndicators": 0,
     "aiSystemIndicators": 59,
     "transparencyGaps": 4,
-    "documentationArtifacts": 35,
+    "documentationArtifacts": 39,
     "documentationFound": [
       "file-reduction-analysis.json",
       "parent-scan-test-report.json",
@@ -24,6 +24,7 @@
       ".simplebeacon/eu-ai-act-assessment.json",
       ".simplebeacon/eu-ai-act-compliance.json",
       ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/gate-workspace-fresh.json",
       ".simplebeacon/parent-scan-test-report.json",
       ".simplebeacon/parent-verify.json",
       ".simplebeacon/report.json"
@@ -33,14 +34,14 @@
   "executiveSummary": {
     "gateResult": "FAIL",
     "qualityScore": 15,
-    "filesScanned": 1069,
+    "filesScanned": 1062,
     "criticalIssues": 1,
-    "highIssues": 172,
-    "mediumIssues": 65,
-    "lowIssues": 24,
-    "warningCount": 65,
-    "blockingCount": 172,
-    "headline": "63 EU AI Act signal(s); 170 production-path leak(s); 4 credential pattern(s). Gate would fail — these issues block merge when --gate is enabled.",
+    "highIssues": 171,
+    "mediumIssues": 66,
+    "lowIssues": 26,
+    "warningCount": 66,
+    "blockingCount": 171,
+    "headline": "63 EU AI Act signal(s); 169 production-path leak(s); 4 credential pattern(s). Gate would fail — these issues block merge when --gate is enabled.",
     "complianceScore": 50,
     "complianceReady": false
   },
@@ -49,7 +50,7 @@
     "version": "1.0.0",
     "title": "Simplebeacon EU AI Act Readiness Checklist",
     "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
-    "evaluatedAt": "2026-06-02T05:46:13.407Z",
+    "evaluatedAt": "2026-06-02T06:14:55.580Z",
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
     "summary": {
       "passed": 4,
@@ -69,7 +70,7 @@
         "severity": "critical",
         "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
         "status": "fail",
-        "evidence": "Gate fail — 172 blocking issue(s)"
+        "evidence": "Gate fail — 171 blocking issue(s)"
       },
       {
         "id": "CRED-001",
@@ -87,7 +88,7 @@
         "severity": "high",
         "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
         "status": "fail",
-        "evidence": "170 production leak(s) — mock/sample paths in prod code"
+        "evidence": "169 production leak(s) — mock/sample paths in prod code"
       },
       {
         "id": "EUAI-001",
@@ -114,7 +115,7 @@
         "severity": "high",
         "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
         "status": "pass",
-        "evidence": "35 documentation artifact(s) found for 59 AI indicator(s)"
+        "evidence": "39 documentation artifact(s) found for 59 AI indicator(s)"
       },
       {
         "id": "EUAI-004",
@@ -147,7 +148,7 @@
   },
   "findings": {
     "credentials": {
-      "scanned": 996,
+      "scanned": 984,
       "findings": 4,
       "severity": "high",
       "items": [
@@ -183,15 +184,15 @@
       "summary": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs: C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs:24 possible database url; C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs: C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs:25 possible generic api key; C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js: C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js:8 possible stripe key; C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js: C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js:8 possible generic api key"
     },
     "fictionKpis": {
-      "scanned": 55,
+      "scanned": 54,
       "findings": 0,
       "severity": "high",
       "items": [],
       "summary": "No fiction KPI or consistency drift detected."
     },
     "productionLeaks": {
-      "scanned": 521,
-      "findings": 170,
+      "scanned": 515,
+      "findings": 169,
       "severity": "medium",
       "items": [
         {
@@ -972,13 +973,6 @@
           "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
         },
         {
-          "file": "ai-platform/test-server-start.cjs",
-          "description": "ai-platform/test-server-start.cjs:6 references mock/sample path (jwt-env-var)",
-          "severity": "high",
-          "count": 1,
-          "recommendedAction": "Remove hardcoded JWT/Bearer tokens and use environment variables or secret management services"
-        },
-        {
           "file": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js",
           "description": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js:1620 references mock/sample path (web-data-sample)",
           "severity": "high",
@@ -1395,7 +1389,7 @@
       "summary": "All registered page samples match schema specs."
     },
     "euAiAct": {
-      "scanned": 592,
+      "scanned": 585,
       "findings": 63,
       "severity": "high",
       "items": [
@@ -1568,7 +1562,7 @@
           "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
         },
         {
-          "file": "ai-platform/server/test-gateway.cjs",
+          "file": "ai-platform/server/test-gateway.js",
           "description": "Generative AI or LLM integration detected (7 matches in file)",
           "severity": "medium",
           "count": 1,
@@ -1717,6 +1711,13 @@
           "description": "3 files share identical JSON content",
           "severity": "low",
           "count": 3,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\package.json",
+          "description": "2 files share identical JSON content",
+          "severity": "low",
+          "count": 2,
           "recommendedAction": "Remove duplicate entries to optimize data size"
         },
         {
@@ -1887,12 +1888,12 @@
     "npx simplebeacon assess --report .simplebeacon/report.json"
   ],
   "sourceReport": {
-    "generatedAt": "2026-06-02T05:46:13.383Z",
+    "generatedAt": "2026-06-02T06:14:55.553Z",
     "scanPaths": [
       "C:\\Users\\Trevor\\CascadeProjects"
     ],
-    "duplicateGroups": 9
+    "duplicateGroups": 10
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-02T05:46:13.409Z"
+  "sanitizedAt": "2026-06-02T06:14:55.582Z"
 }

@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-06-02T06:14:38.982Z",
+  "generatedAt": "2026-06-02T06:03:36.640Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "scanTargetRoot": "C:\\Users\\Trevor\\CascadeProjects",
@@ -21,7 +21,7 @@
   "repositoryFilesTotal": 1088,
   "repositoryFoldersTotal": 156,
   "filesAnalyzed": 1088,
-  "totalSizeBytes": 11008114,
+  "totalSizeBytes": 11007632,
   "totalSizeLabel": "10.5MB",
   "issueCount": 79,
   "invalidJson": 0,
@@ -56,7 +56,7 @@
     "highRiskIndicators": 0,
     "aiSystemIndicators": 59,
     "transparencyGaps": 4,
-    "documentationArtifacts": 39,
+    "documentationArtifacts": 35,
     "documentationFound": [
       "file-reduction-analysis.json",
       "parent-scan-test-report.json",
@@ -69,7 +69,6 @@
       ".simplebeacon/eu-ai-act-assessment.json",
       ".simplebeacon/eu-ai-act-compliance.json",
       ".simplebeacon/eu-ai-act-report.json",
-      ".simplebeacon/gate-workspace-fresh.json",
       ".simplebeacon/parent-scan-test-report.json",
       ".simplebeacon/parent-verify.json",
       ".simplebeacon/report.json"
@@ -3054,5 +3053,5 @@
     "warningCount": 63
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-02T06:14:38.988Z"
+  "sanitizedAt": "2026-06-02T06:03:36.647Z"
 }

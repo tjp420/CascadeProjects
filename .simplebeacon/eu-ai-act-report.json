@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-06-02T05:46:13.383Z",
+  "generatedAt": "2026-06-02T06:14:55.553Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "scanTargetRoot": "C:\\Users\\Trevor\\CascadeProjects",
@@ -11,19 +11,19 @@
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-    "totalFiles": 1095,
-    "totalFolders": 157,
+    "totalFiles": 1088,
+    "totalFolders": 156,
     "profile": "audit"
   },
-  "mockSampleFiles": 1069,
-  "totalFiles": 1069,
-  "ruleScopedFilesAnalyzed": 1069,
-  "repositoryFilesTotal": 1095,
-  "repositoryFoldersTotal": 157,
-  "filesAnalyzed": 1095,
-  "totalSizeBytes": 11048841,
+  "mockSampleFiles": 1062,
+  "totalFiles": 1062,
+  "ruleScopedFilesAnalyzed": 1062,
+  "repositoryFilesTotal": 1088,
+  "repositoryFoldersTotal": 156,
+  "filesAnalyzed": 1088,
+  "totalSizeBytes": 11008114,
   "totalSizeLabel": "10.5MB",
-  "issueCount": 252,
+  "issueCount": 253,
   "invalidJson": 0,
   "emptyFiles": 0,
   "qualityScore": 15,
@@ -32,31 +32,31 @@
   "schemaPassed": 9,
   "pageSampleSchemaChecked": 9,
   "pageSampleSchemaPassed": 9,
-  "duplicateGroups": 9,
+  "duplicateGroups": 10,
   "roadmapSchemaChecked": 0,
   "roadmapSchemaPassed": 0,
-  "consistencyChecked": 55,
-  "consistencyPassed": 55,
+  "consistencyChecked": 54,
+  "consistencyPassed": 54,
   "consistencyScore": 100,
-  "fictionJsonFilesScanned": 55,
+  "fictionJsonFilesScanned": 54,
   "fictionSampleFilesScanned": 9,
   "fictionScope": "repository-json",
-  "credentialScanned": 996,
+  "credentialScanned": 984,
   "credentialFindings": 4,
-  "productionLeakScanned": 521,
-  "productionLeakFindings": 170,
+  "productionLeakScanned": 515,
+  "productionLeakFindings": 169,
   "productionLeakSuppressedIntent": 278,
   "sourceCodeFilesScanned": 0,
   "sourceFictionPatternHits": 0,
-  "llmSlopFilesScanned": 638,
+  "llmSlopFilesScanned": 630,
   "llmSlopPatternHits": 1,
-  "euAiActScanned": 592,
+  "euAiActScanned": 585,
   "euAiActFindings": 63,
   "euAiActSummary": {
     "highRiskIndicators": 0,
     "aiSystemIndicators": 59,
     "transparencyGaps": 4,
-    "documentationArtifacts": 35,
+    "documentationArtifacts": 39,
     "documentationFound": [
       "file-reduction-analysis.json",
       "parent-scan-test-report.json",
@@ -69,13 +69,14 @@
       ".simplebeacon/eu-ai-act-assessment.json",
       ".simplebeacon/eu-ai-act-compliance.json",
       ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/gate-workspace-fresh.json",
       ".simplebeacon/parent-scan-test-report.json",
       ".simplebeacon/parent-verify.json",
       ".simplebeacon/report.json"
     ],
     "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
   },
-  "enterpriseGuardrailScanned": 526,
+  "enterpriseGuardrailScanned": 519,
   "enterpriseGuardrailFindings": 0,
   "structuralIntentScanned": 0,
   "structuralIntentFindings": 0,
@@ -88,14 +89,14 @@
   "jestSummary": null,
   "severityCounts": {
     "critical": 1,
-    "high": 171,
+    "high": 170,
     "medium": 56,
-    "low": 24
+    "low": 26
   },
   "mockDataCategories": [
     {
       "category": "Stale inventory (full-tree scan)",
-      "fileCount": 1069,
+      "fileCount": 1062,
       "totalSize": "10.5MB",
       "qualityScore": null,
       "issues": null,
@@ -237,6 +238,26 @@
       "severityBand": "low",
       "type": "Duplicate Data",
       "count": 1,
+      "description": "2 files share identical JSON content",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Remove duplicate entries to optimize data size",
+      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "affectedFiles": [
+        "ai-platform/.github-sync/simplebeacon/package.json",
+        "ai-platform/packages/simplebeacon-cli/package.json"
+      ],
+      "filePaths": [
+        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\package.json",
+        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\package.json"
+      ],
+      "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\package.json"
+    },
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "Duplicate Data",
+      "count": 1,
       "description": "3 files share identical JSON content",
       "pattern": null,
       "line": null,
@@ -331,24 +352,6 @@
         "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs"
       ],
       "file": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs"
-    },
-    {
-      "severity": "critical",
-      "severityBand": "critical",
-      "type": "Credential Pattern",
-      "count": 1,
-      "description": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js:8 possible stripe key",
-      "pattern": "stripe-key",
-      "line": 8,
-      "recommendation": "Immediately remove and rotate this credential; store only via environment/secret manager bindings",
-      "recommendedAction": "Immediately remove and rotate this credential; store only via environment/secret manager bindings",
-      "affectedFiles": [
-        "auth.js"
-      ],
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js"
-      ],
-      "file": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js"
     }
   ],
   "rawIssues": [
@@ -534,6 +537,34 @@
           "packages/simplebeacon-cli/examples/mcp/cursor.npx-github.mcp.json"
         ],
         "contentHash": "abebfd2b2ef178a75fb4fa063fdfafebecd3c8dac9854b8578849e094905d8c9"
+      }
+    },
+    {
+      "id": "duplicate-159c40e3",
+      "severity": "low",
+      "type": "Duplicate Data",
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\package.json",
+      "filePaths": [
+        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\package.json",
+        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\package.json"
+      ],
+      "count": 2,
+      "description": "2 files share identical JSON content",
+      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "affectedFiles": [
+        "ai-platform/.github-sync/simplebeacon/package.json",
+        "ai-platform/packages/simplebeacon-cli/package.json"
+      ],
+      "metadata": {
+        "duplicatePaths": [
+          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\package.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\package.json"
+        ],
+        "relativePaths": [
+          "ai-platform/.github-sync/simplebeacon/package.json",
+          "ai-platform/packages/simplebeacon-cli/package.json"
+        ],
+        "contentHash": "159c40e30031e321bdc64abefde8fce7bbc21ed4e295fbdba61cc19d9b25d0e1"
       }
     },
     {
@@ -4067,36 +4098,6 @@
       }
     },
     {
-      "id": "production-leak-jwt-env-var-ai-platform/test-server-start.cjs-275",
-      "severity": "high",
-      "severityBand": "high",
-      "type": "Production Leak",
-      "filePath": "ai-platform/test-server-start.cjs",
-      "file": "ai-platform/test-server-start.cjs",
-      "line": 6,
-      "pattern": "jwt-env-var",
-      "count": 1,
-      "description": "ai-platform/test-server-start.cjs:6 references mock/sample path (jwt-env-var)",
-      "recommendation": "Remove hardcoded JWT/Bearer tokens and use environment variables or secret management services",
-      "recommendedAction": "Remove hardcoded JWT/Bearer tokens and use environment variables or secret management services",
-      "affectedFiles": [
-        "test-server-start.cjs"
-      ],
-      "metadata": {
-        "patternId": "jwt-env-var",
-        "offset": 275,
-        "match": "JWT_SECRET = 'test_jwt_secret_for_development'",
-        "intent": "unclassified",
-        "intentReason": "Mock/sample path reference in production-eligible code",
-        "findingPayload": {
-          "file": "ai-platform/test-server-start.cjs",
-          "line": 6,
-          "pattern": "jwt-env-var",
-          "recommendation": "Remove hardcoded JWT/Bearer tokens and use environment variables or secret management services"
-        }
-      }
-    },
-    {
       "id": "production-leak-web-data-sample-ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js-63841",
       "severity": "high",
       "severityBand": "high",
@@ -6748,15 +6749,15 @@
       }
     },
     {
-      "id": "EUAI-AI-001-ai-platform/server/test-gateway.cjs",
+      "id": "EUAI-AI-001-ai-platform/server/test-gateway.js",
       "severity": "medium",
       "type": "EU AI Act — AI System Indicator",
-      "filePath": "ai-platform/server/test-gateway.cjs",
+      "filePath": "ai-platform/server/test-gateway.js",
       "count": 1,
       "description": "Generative AI or LLM integration detected (7 matches in file)",
       "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
       "affectedFiles": [
-        "ai-platform/server/test-gateway.cjs"
+        "ai-platform/server/test-gateway.js"
       ],
       "metadata": {
         "patternId": "EUAI-AI-001",
@@ -7375,7 +7376,6 @@
     "risk-assessment.md",
     "eslint.config.js",
     "jest.config.js",
-    "simplebeacon-gate.json",
     "node",
     "package-lock.json",
     "package.json",
@@ -7660,7 +7660,7 @@
     "schema-phase2.sql",
     "schema-subscription.sql",
     "dlp-dashboard.cjs",
-    "enterprise-dlp.cjs",
+    "enterprise-dlp.js",
     "enterprise-patterns.cjs",
     "index.cjs",
     "agency-branding-store.cjs",
@@ -7695,7 +7695,6 @@
     "complete-scan-audit-report.cjs",
     "cors-config.cjs",
     "coverage-reports-builder.cjs",
-    "credential-pattern-scanner.cjs",
     "dashboard-home-builder.cjs",
     "dashboard-vault-auth.cjs",
     "data-cleanup-scan.cjs",
@@ -7714,7 +7713,6 @@
     "jest-coverage-reader.cjs",
     "json-file-cache.cjs",
     "go-patterns.cjs",
-    "index.cjs",
     "python-patterns.cjs",
     "rust-patterns.cjs",
     "sql-patterns.cjs",
@@ -7732,7 +7730,6 @@
     "outreach-resend-webhook.cjs",
     "outreach-route.cjs",
     "page-sample-specs.cjs",
-    "index.cjs",
     "language-parser-base.cjs",
     "zscript-parser.cjs",
     "path-safety.cjs",
@@ -7749,9 +7746,7 @@
     "repository-audit-baseline.cjs",
     "repository-health-payload.cjs",
     "roadmap-history-metrics.cjs",
-    "roadmap-json-specs.cjs",
     "safe-merge-guard.cjs",
-    "sample-consistency-checker.cjs",
     "sample-path-resolver.cjs",
     "secret-config.cjs",
     "security-dashboard-builder.cjs",
@@ -7783,7 +7778,7 @@
     "ollama-client.cjs",
     "phase2-auth-handlers.cjs",
     "user-service.cjs",
-    "test-gateway.cjs",
+    "test-gateway.js",
     "simplebeacon-platform@1.0.0",
     "simplebeacon-server.cjs",
     "build-from-path-route.cjs",
@@ -7800,7 +7795,6 @@
     "export-system.js",
     "start-dashboard.bat",
     "stop-dashboard.bat",
-    "test-server-start.cjs",
     "github-repo-clone.test.js",
     "apply-roadmap-export.js",
     "kill-dashboard-ports.cjs",
@@ -7837,7 +7831,6 @@
     "LoginModal.js",
     "Onboarding.js",
     "PathHealthDashboard.js",
-    "PathHealthDashboard.jsx",
     "QuickActions.js",
     "ScanPaywall.js",
     "ScanStatus.js",
@@ -8150,6 +8143,7 @@
     "parent-scan-test-report.json",
     "parent-verify.json",
     "README.md",
+    "REMEDIATION.md",
     "report-updated.json",
     "report-with-jest.json",
     "report.json",
@@ -8187,12 +8181,12 @@
         "low"
       ]
     },
-    "mockSampleFilesInScanPaths": 1069,
+    "mockSampleFilesInScanPaths": 1062,
     "pageSpecCatalogSize": 50,
     "pageSpecsValidated": 9,
     "pageSpecsFromScanPaths": 9,
     "pageSpecsFromAliasPaths": 0,
-    "productionDirsScanned": 521,
+    "productionDirsScanned": 515,
     "productionPaths": [
       "."
     ],
@@ -8201,12 +8195,12 @@
     ],
     "sourceCodeFilesScanned": 0,
     "sourceFictionPatternHits": 0,
-    "llmSlopFilesScanned": 638,
+    "llmSlopFilesScanned": 630,
     "llmSlopPatternHits": 1,
-    "euAiActFilesScanned": 592,
+    "euAiActFilesScanned": 585,
     "euAiActPatternHits": 63,
     "euAiActHighRiskIndicators": 0,
-    "enterpriseGuardrailFilesScanned": 526,
+    "enterpriseGuardrailFilesScanned": 519,
     "enterpriseGuardrailHits": 0,
     "structuralIntentEnabled": false,
     "structuralIntentAvailable": false,
@@ -8227,19 +8221,19 @@
     "jestExecutedDuringScan": false,
     "consistencyAnchorCount": 0,
     "fictionScope": "repository-json",
-    "fictionJsonFilesScanned": 55,
+    "fictionJsonFilesScanned": 54,
     "fictionSampleFilesScanned": 9,
-    "ruleScopedFilesAnalyzed": 1069,
-    "repositoryFilesTotal": 1095,
-    "repositoryFoldersTotal": 157,
+    "ruleScopedFilesAnalyzed": 1062,
+    "repositoryFilesTotal": 1088,
+    "repositoryFoldersTotal": 156,
     "fullDirectoryScan": false,
     "fullDirectoryStats": null,
     "benchmarkCacheIssuesExcluded": 0,
     "excludedPathsNote": "30 issue(s) from github-cache/ clones and .github-sync/ CLI mirror excluded from gate scores — scan clones with github-cache/.simplebeacon/config.json (profile: benchmark).",
     "limitations": [
-      "Repository inventory: 1,095 files — gate rules checked 1069 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 1,088 files — gate rules checked 1062 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-      "Fiction/KPI rules scan repository JSON (55) plus source code (0 files in .).",
+      "Fiction/KPI rules scan repository JSON (54) plus source code (0 files in .).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
       "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
       "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
@@ -8258,9 +8252,9 @@
       "medium",
       "low"
     ],
-    "blockingCount": 172,
-    "warningCount": 65
+    "blockingCount": 171,
+    "warningCount": 66
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-02T05:46:13.393Z"
+  "sanitizedAt": "2026-06-02T06:14:55.564Z"
 }

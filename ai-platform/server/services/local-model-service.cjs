@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { ollamaListModels } = require('./ollama-client.cjs');
+const logger = require('../lib/app-logger.cjs');
 
 const DEFAULT_OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
 
@@ -418,7 +419,7 @@ async function testOllamaConnection(baseUrl, modelName) {
         const names = listed.models || [];
         const listMs = listed.timing?.durationMs ?? (Date.now() - startedAt);
         if (process.env.NODE_ENV !== 'production') {
-            console.log('[Ollama Test] Models found:', names);
+            logger.info('[Ollama Test] Models found:', names);
         }
         if (modelName && !names.some((n) => n === modelName || n.startsWith(`${modelName}:`))) {
             return {

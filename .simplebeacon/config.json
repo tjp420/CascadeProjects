@@ -19,8 +19,7 @@
     "**/*.spec.ts",
     "tests/**",
     "test/**",
-    "packages/simplebeacon-cli/**",
-    "simplebeacon-rule-tests/**"
+    "packages/simplebeacon-cli/**"
   ],
   "rules": {
     "credentials": {
@@ -95,7 +94,6 @@
     ".git",
     ".github-sync",
     "github-cache",
-    "node_modules",
-    "simplebeacon-rule-tests"
+    "node_modules"
   ]
 }

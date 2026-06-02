@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "title": "Simplebeacon EU AI Act Readiness Checklist",
   "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
-  "evaluatedAt": "2026-06-02T05:46:13.405Z",
+  "evaluatedAt": "2026-06-02T06:14:55.577Z",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "summary": {
     "passed": 4,
@@ -23,7 +23,7 @@
       "severity": "critical",
       "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
       "status": "fail",
-      "evidence": "Gate fail — 172 blocking issue(s)"
+      "evidence": "Gate fail — 171 blocking issue(s)"
     },
     {
       "id": "CRED-001",
@@ -41,7 +41,7 @@
       "severity": "high",
       "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
       "status": "fail",
-      "evidence": "170 production leak(s) — mock/sample paths in prod code"
+      "evidence": "169 production leak(s) — mock/sample paths in prod code"
     },
     {
       "id": "EUAI-001",
@@ -68,7 +68,7 @@
       "severity": "high",
       "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
       "status": "pass",
-      "evidence": "35 documentation artifact(s) found for 59 AI indicator(s)"
+      "evidence": "39 documentation artifact(s) found for 59 AI indicator(s)"
     },
     {
       "id": "EUAI-004",

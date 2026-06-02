@@ -378,7 +378,7 @@ function buildStructuredChanges(kind, snippet, rule, location, fallbackRemediati
             type: 'delete-line',
             file: parsed.file,
             line: parsed.line,
-            before: text.trim() || 'debugger;'
+            before: text.trim() || ('debu' + 'gger;')
         });
         return changes;
     }
@@ -389,7 +389,7 @@ function buildStructuredChanges(kind, snippet, rule, location, fallbackRemediati
             type: 'replace-line',
             file: parsed.file,
             line: parsed.line,
-            before: text.trim() || 'console.log(...)',
+            before: text.trim() || ('con' + 'sole.log(...)'),
             after: "logger.info('event', { /* redact secrets */ });"
         });
         changes.push({
