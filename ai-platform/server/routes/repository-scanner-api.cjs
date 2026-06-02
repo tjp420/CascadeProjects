@@ -5,7 +5,7 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const { calculateFileQuality, contentNeedsValidation } = require('../lib/file-quality-heuristics');
+const { calculateFileQuality, contentNeedsValidation } = require('../lib/file-quality-heuristics.cjs');
 
 const SKIP_DIR_NAMES = new Set([
     'node_modules',

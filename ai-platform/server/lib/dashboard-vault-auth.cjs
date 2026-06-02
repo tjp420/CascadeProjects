@@ -33,6 +33,8 @@ function isVaultAuthenticated(req, options = {}) {
 
 function isProtectedDashboardPath(reqPath) {
   if (reqPath === '/favicon.svg' || reqPath === '/favicon.ico') return false;
+  // Exclude static assets (CSS, JS, images, fonts) from vault protection
+  if (/\.(css|js|mjs|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map)$/i.test(reqPath)) return false;
   return /^\/(app|demo|signin|dashboard-new\.html|simplebeacon-dashboard|services|scripts|components|assets)(\/|$)/.test(reqPath);
 }
 

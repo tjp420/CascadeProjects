@@ -264,7 +264,9 @@ export class ToolsView {
   renderToolGrid(el, tools) {
     const grid = el.querySelector('#tool-grid');
     if (!tools.length) {
-      grid.innerHTML = '<p class="text-muted"><span class="loading-spinner"></span> Loading repository tools…</p>';
+      grid.innerHTML = this._platformLoadAttempted
+        ? '<p class="text-muted card">No repository tools configured — add web/data/dev-tools-sample.json or run a consolidation scan.</p>'
+        : '<p class="text-muted"><span class="loading-spinner"></span> Loading repository tools…</p>';
       return;
     }
     grid.innerHTML = tools.map((t) => `
@@ -284,7 +286,9 @@ export class ToolsView {
   renderWorkflows(el, workflows) {
     const tbody = el.querySelector('#workflow-body');
     if (!workflows.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-muted">Loading workflows…</td></tr>';
+      tbody.innerHTML = this._platformLoadAttempted
+        ? '<tr><td colspan="4" class="text-muted">No CI workflows configured — add entries to dev-tools-sample.json workflows.</td></tr>'
+        : '<tr><td colspan="4" class="text-muted"><span class="loading-spinner"></span> Loading workflows…</td></tr>';
       return;
     }
     tbody.innerHTML = workflows.map((w) => `

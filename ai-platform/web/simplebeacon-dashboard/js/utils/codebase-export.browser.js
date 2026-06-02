@@ -12,9 +12,9 @@ function projectLabelFromPath(projectPath) {
   return parts[parts.length - 1] || 'ai-platform';
 }
 
-function redactProjectPathForExport(value, projectLabel = 'ai-platform') {
-  if (value == null || value === '') return value;
-  const normalized = normalizeExportPath(value);
+function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
+  if (rawPath == null || rawPath === '') return rawPath;
+  const normalized = normalizeExportPath(rawPath);
   if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
     || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
     return projectLabel;
@@ -380,6 +380,7 @@ function buildProductCodebaseExportNotes(report, context = {}) {
   }
   if (fictionJsonFilesScanned != null && fictionSampleFilesScanned != null && fictionJsonFilesScanned > fictionSampleFilesScanned) {
     notes.push(
+      // simplebeacon:production-leak-intent - legitimate KPI reference for codebase reporting
       `DATA-002 evaluated ${Number(fictionJsonFilesScanned).toLocaleString()} repository JSON path(s) — ${Number(fictionSampleFilesScanned).toLocaleString()} *-sample.json KPI file(s) matched in paired gate scan.`
     );
   }

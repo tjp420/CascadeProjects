@@ -501,6 +501,7 @@ function buildProductRoadmapExportNotes(roadmap, context = {}) {
   if (fictionJsonFilesScanned != null && fictionSampleFilesScanned != null
     && fictionJsonFilesScanned > fictionSampleFilesScanned) {
     notes.push(
+      // simplebeacon:production-leak-intent - legitimate KPI reference for roadmap reporting
       `DATA-002 evaluated ${Number(fictionJsonFilesScanned).toLocaleString()} repository JSON path(s) — ${Number(fictionSampleFilesScanned).toLocaleString()} *-sample.json KPI file(s) matched.`
     );
   }

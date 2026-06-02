@@ -17,6 +17,7 @@ const PATTERNS = [
     category: 'mock-leak',
     severity: 'high',
     label: 'Production mock/sample path',
+    // simplebeacon:production-leak-intent - legitimate diagnostic pattern for snippet analysis
     regex: /(?:['"`][^'"`]*-sample\.json['"`]|\/mock\/|\\mock\\|(?<![a-zA-Z-])mockData(?![a-zA-Z-])|fixtures\/)/gi
   },
   { id: 'generic-secret', category: 'credentials', severity: 'medium', label: 'Hardcoded secret assignment', regex: /\b(api[_-]?key|secret[_-]?key|access[_-]?token)\s*[:=]\s*['"][^'"\s]{12,}['"]/gi }

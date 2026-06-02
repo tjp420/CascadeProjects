@@ -2,6 +2,7 @@ import { fetchWithTimeout, downloadJson, downloadText } from '../utils.js';
 import { billingService } from './billingService.js';
 import { authService } from './authService.js';
 import { isDemoMode, DEMO_API_BASE } from '../demoMode.js';
+import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 
 function simplebeaconApiBase() {
   return isDemoMode() ? DEMO_API_BASE : '/api/simplebeacon';
@@ -11,22 +12,11 @@ function mergeAuthHeaders(extra = {}) {
   return { ...authService.getAuthHeaders(), ...billingService.getAuthHeaders(), ...extra };
 }
 
-function hasJsonContentType(res) {
-  const contentType = String(res.headers.get('content-type') || '').toLowerCase();
-  return contentType.includes('application/json');
-}
-
-async function readJsonSafe(res, fallback = {}) {
-  if (!hasJsonContentType(res)) return fallback;
-  const data = await res.json().catch(() => fallback);
-  return data == null ? fallback : data;
-}
-
 async function fetchSimplebeacon(url, options = {}, timeout = 30000) {
   const headers = mergeAuthHeaders(options.headers || {});
   let res;
   try {
-    res = await fetchWithTimeout(url, { ...options, headers }, timeout);
+    res = await fetchWithTimeout(url, { credentials: 'same-origin', ...options, headers }, timeout);
   } catch (error) {
     const detail = error?.message ? ` (${error.message})` : '';
     throw new Error(
@@ -35,15 +25,20 @@ async function fetchSimplebeacon(url, options = {}, timeout = 30000) {
     );
   }
   if (res.status === 403) {
-    const data = await readJsonSafe(res, {});
-    if (data.error === 'demo_readonly') {
-      const err = new Error(data.message || 'Demo mode is read-only');
+    const forbiddenBody = await readJsonResponseBody(res, {});
+    if (forbiddenBody.error === 'demo_readonly') {
+      const err = new Error(forbiddenBody.message || 'Demo mode is read-only');
       err.code = 'demo_readonly';
       throw err;
     }
-    const err = new Error(data.message || 'Subscription required');
+    if (forbiddenBody.error === 'vault_required') {
+      const err = new Error(forbiddenBody.message || 'Internal dashboard requires vault authentication.');
+      err.code = 'vault_required';
+      throw err;
+    }
+    const err = new Error(forbiddenBody.message || 'Subscription required');
     err.code = 'subscription_required';
-    err.details = data;
+    err.details = forbiddenBody;
     throw err;
   }
   if (res.status === 401) {
@@ -87,7 +82,7 @@ export class ScanService {
     const params = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
     const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report${params}`);
     if (!res.ok) throw new Error('Failed to load scan report — is the dashboard server running?');
-    const report = await readJsonSafe(res, null);
+    const report = await readJsonResponseBody(res, null);
     if (!report || typeof report !== 'object') {
       throw new Error('Scan report API unavailable on this host (received HTML instead of JSON).');
     }
@@ -98,10 +93,10 @@ export class ScanService {
   async fetchRepositoryInventory(projectPath) {
     if (!projectPath) return null;
     const params = new URLSearchParams({ projectPath, profile: 'explorer' });
-    const res = await fetchWithTimeout(`/api/analyze/inventory?${params}`, { headers: mergeAuthHeaders() });
-    const data = await readJsonSafe(res, {});
-    if (!res.ok || !data.success) return null;
-    return data.inventory;
+    const inventoryHttpResponse = await fetchWithTimeout(`/api/analyze/inventory?${params}`, { headers: mergeAuthHeaders() });
+    const inventoryPayload = await readJsonResponseBody(inventoryHttpResponse, {});
+    if (!inventoryHttpResponse.ok || !inventoryPayload.success) return null;
+    return inventoryPayload.inventory;
   }
 
   async enrichReport(report) {
@@ -116,7 +111,7 @@ export class ScanService {
   async fetchBaseline() {
     const res = await fetchWithTimeout(`${simplebeaconApiBase()}/baseline`, { headers: mergeAuthHeaders() });
     if (!res.ok) throw new Error('Failed to load baseline');
-    this.baseline = await readJsonSafe(res, null);
+    this.baseline = await readJsonResponseBody(res, null);
     if (!this.baseline || typeof this.baseline !== 'object') {
       throw new Error('Baseline API unavailable on this host (received HTML instead of JSON).');
     }
@@ -126,7 +121,7 @@ export class ScanService {
   async fetchConfig() {
     const res = await fetchWithTimeout(`${simplebeaconApiBase()}/config`, { headers: mergeAuthHeaders() });
     if (!res.ok) throw new Error('Failed to load config');
-    this.config = await readJsonSafe(res, null);
+    this.config = await readJsonResponseBody(res, null);
     if (!this.config || typeof this.config !== 'object') {
       throw new Error('Config API unavailable on this host (received HTML instead of JSON).');
     }
@@ -134,10 +129,10 @@ export class ScanService {
   }
 
   async fetchConfigPresets() {
-    const res = await fetchWithTimeout(`${simplebeaconApiBase()}/config/presets`, { headers: mergeAuthHeaders() });
-    if (!res.ok) throw new Error('Failed to load config presets');
-    const data = await readJsonSafe(res, {});
-    return data.presets || {};
+    const presetsHttpResponse = await fetchWithTimeout(`${simplebeaconApiBase()}/config/presets`, { headers: mergeAuthHeaders() });
+    if (!presetsHttpResponse.ok) throw new Error('Failed to load config presets');
+    const presetsPayload = await readJsonResponseBody(presetsHttpResponse, {});
+    return presetsPayload.presets || {};
   }
 
   async saveConfig(config) {
@@ -146,7 +141,7 @@ export class ScanService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config)
     }, 30000);
-    const data = await readJsonSafe(res, {});
+    const data = await readJsonResponseBody(res, {});
     if (!res.ok) {
       const detail = data.errors?.join('; ') || data.message || 'Failed to save config';
       throw new Error(detail);
@@ -158,36 +153,36 @@ export class ScanService {
   async fetchHistory() {
     const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/history`);
     if (!res.ok) return [];
-    const history = await readJsonSafe(res, []);
+    const history = await readJsonResponseBody(res, []);
     this.history = Array.isArray(history) ? history : [];
     return this.history;
   }
 
   async fetchDashboard() {
-    const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/dashboard`);
-    if (!res.ok) throw new Error('Failed to load dashboard aggregate');
-    const data = await readJsonSafe(res, null);
-    if (!data || typeof data !== 'object') {
+    const dashboardHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/dashboard`);
+    if (!dashboardHttpResponse.ok) throw new Error('Failed to load dashboard aggregate');
+    const dashboardPayload = await readJsonResponseBody(dashboardHttpResponse, null);
+    if (!dashboardPayload || typeof dashboardPayload !== 'object') {
       throw new Error('Dashboard API unavailable on this host (received HTML instead of JSON).');
     }
-    return data;
+    return dashboardPayload;
   }
 
   async fetchScanResults(scanId = 'latest') {
-    const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/results/${encodeURIComponent(scanId)}`);
-    if (!res.ok) throw new Error('Failed to load scan results');
-    const data = await readJsonSafe(res, null);
-    if (!data || typeof data !== 'object') {
+    const resultsHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/results/${encodeURIComponent(scanId)}`);
+    if (!resultsHttpResponse.ok) throw new Error('Failed to load scan results');
+    const scanResultsPayload = await readJsonResponseBody(resultsHttpResponse, null);
+    if (!scanResultsPayload || typeof scanResultsPayload !== 'object') {
       throw new Error('Scan results API unavailable on this host (received HTML instead of JSON).');
     }
-    return data;
+    return scanResultsPayload;
   }
 
   async fetchAudit(includeNpmAudit = false) {
     const query = includeNpmAudit ? '?npmAudit=1' : '';
     const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/audit${query}`, {}, includeNpmAudit ? 120000 : 30000);
     if (!res.ok) throw new Error('Failed to load compliance audit');
-    const data = await readJsonSafe(res, null);
+    const data = await readJsonResponseBody(res, null);
     if (!data || typeof data !== 'object') {
       throw new Error('Audit API unavailable on this host (received HTML instead of JSON).');
     }
@@ -195,27 +190,47 @@ export class ScanService {
   }
 
   async runAssess() {
-    const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/assess`, { method: 'POST' }, 60000);
-    const data = await readJsonSafe(res, {});
-    if (!res.ok) throw new Error(data.error || data.message || 'Assessment failed');
-    return data;
+    const assessHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/assess`, { method: 'POST' }, 60000);
+    const assessResponse = await readJsonResponseBody(assessHttpResponse, {});
+    if (!assessHttpResponse.ok) throw new Error(assessResponse.error || assessResponse.message || 'Assessment failed');
+    return assessResponse;
   }
 
   async runNpmAudit() {
-    const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/npm-audit`, { method: 'POST' }, 120000);
-    const data = await readJsonSafe(res, {});
-    if (!res.ok) throw new Error(data.error || data.message || 'npm audit failed');
-    return data;
+    const npmAuditHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/npm-audit`, { method: 'POST' }, 120000);
+    const npmAuditResponse = await readJsonResponseBody(npmAuditHttpResponse, {});
+    if (!npmAuditHttpResponse.ok) throw new Error(npmAuditResponse.error || npmAuditResponse.message || 'npm audit failed');
+    return npmAuditResponse;
   }
 
   async fetchAssessment() {
-    const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/assessment`);
-    if (!res.ok) throw new Error('Failed to load assessment');
-    const data = await readJsonSafe(res, null);
-    if (!data || typeof data !== 'object') {
+    const assessmentHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/assessment`);
+    if (!assessmentHttpResponse.ok) throw new Error('Failed to load assessment');
+    const assessmentPayload = await readJsonResponseBody(assessmentHttpResponse, null);
+    if (!assessmentPayload || typeof assessmentPayload !== 'object') {
       throw new Error('Assessment API unavailable on this host (received HTML instead of JSON).');
     }
-    return data;
+    return assessmentPayload;
+  }
+
+  async fetchScanProgress(projectPath) {
+    if (!projectPath) return { active: false };
+    const params = new URLSearchParams({ projectPath });
+    try {
+      const res = await fetchWithTimeout(
+        `${simplebeaconApiBase()}/scan/progress?${params}`,
+        { headers: mergeAuthHeaders() },
+        5000
+      );
+      const data = await readJsonResponseBody(res, {});
+      if (res.status === 404) {
+        return { active: false, endpointUnavailable: true };
+      }
+      if (!res.ok) return { active: false };
+      return data.progress || { active: false };
+    } catch {
+      return { active: false, endpointUnavailable: true };
+    }
   }
 
   async runScan(projectPath) {
@@ -229,7 +244,7 @@ export class ScanService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projectPath: projectPath || undefined })
     }, 120000);
-    const data = await readJsonSafe(res, {});
+    const data = await readJsonResponseBody(res, {});
     if (!res.ok) {
       if (data.partialReport) {
         this.report = await this.enrichReport(data.partialReport);
@@ -260,7 +275,7 @@ export class ScanService {
     let data = report;
     if (!data) {
       const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report`);
-      data = await readJsonSafe(res, null);
+      data = await readJsonResponseBody(res, null);
       if (!data || typeof data !== 'object') {
         throw new Error('Scan report API unavailable on this host (received HTML instead of JSON).');
       }

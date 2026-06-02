@@ -42,7 +42,7 @@ const {
     sanitizePublicOutput,
     applyPublicGateToAnalyzeResponse
 } = require('./lib/report-sanitizer');
-const { syncJestBaseline, verifyJestBaseline } = require('./baseline-sync');
+const { syncJestBaseline, syncMeasuredBaseline, verifyJestBaseline } = require('./baseline-sync');
 const { installSimplebeaconHook, buildHookScript } = require('./hook-install');
 const {
     createNetworkGuard,
@@ -214,6 +214,7 @@ module.exports = {
     sanitizePublicOutput,
     applyPublicGateToAnalyzeResponse,
     syncJestBaseline,
+    syncMeasuredBaseline,
     verifyJestBaseline,
     installSimplebeaconHook,
     buildHookScript,

@@ -2,6 +2,10 @@
 
 HTTP forward proxy + dashboard that screens outbound AI API request bodies using Simplebeacon credential and privacy pattern engines.
 
+## EU AI Act — Article 50 transparency
+
+This component forwards client traffic to third-party AI systems (for example OpenAI). Operators must inform end users when they interact with AI or when outputs are AI-generated, per Article 50 of Regulation (EU) 2024/1689. The DLP dashboard and proxy logs support audit review; disclosure copy belongs in client applications that initiate AI requests.
+
 ## Quick start
 
 From the `ai-platform` directory:

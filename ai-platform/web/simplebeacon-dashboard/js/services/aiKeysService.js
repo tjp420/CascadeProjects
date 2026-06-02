@@ -1,20 +1,10 @@
 import { authService } from './authService.js';
+import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 
 const BASE = '/api/simplebeacon/user/ai-keys';
 
-function hasJsonContentType(res) {
-  const contentType = String(res.headers.get('content-type') || '').toLowerCase();
-  return contentType.includes('application/json');
-}
-
-async function readJsonSafe(res, fallback = {}) {
-  if (!hasJsonContentType(res)) return fallback;
-  const data = await res.json().catch(() => fallback);
-  return data == null ? fallback : data;
-}
-
-export function normalizeAiKeysRecord(data = null) {
-  if (!data || typeof data !== 'object') {
+export function normalizeAiKeysRecord(keysRecord = null) {
+  if (!keysRecord || typeof keysRecord !== 'object') {
     return {
       email: '',
       providers: {},
@@ -24,28 +14,28 @@ export function normalizeAiKeysRecord(data = null) {
     };
   }
   return {
-    email: data.email || '',
-    providers: data.providers || {},
-    ollamaBaseUrl: data.ollamaBaseUrl || '',
-    ollamaModel: data.ollamaModel || '',
-    updatedAt: data.updatedAt || null
+    email: keysRecord.email || '',
+    providers: keysRecord.providers || {},
+    ollamaBaseUrl: keysRecord.ollamaBaseUrl || '',
+    ollamaModel: keysRecord.ollamaModel || '',
+    updatedAt: keysRecord.updatedAt || null
   };
 }
 
 export async function fetchUserAiKeys() {
-  const res = await fetch(BASE, { headers: authService.getAuthHeaders() });
-  const data = await readJsonSafe(res, {});
-  if (!res.ok || !data.success) {
-    if (res.status === 404 && data.error === 'API route not found') {
+  const keysHttpResponse = await fetch(BASE, { headers: authService.getAuthHeaders() });
+  const keysPayload = await readJsonResponseBody(keysHttpResponse, {});
+  if (!keysHttpResponse.ok || !keysPayload.success) {
+    if (keysHttpResponse.status === 404 && keysPayload.error === 'API route not found') {
       throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
     }
-    throw new Error(data.error || data.message || 'Failed to load AI keys');
+    throw new Error(keysPayload.error || keysPayload.message || 'Failed to load AI keys');
   }
-  return normalizeAiKeysRecord(data);
+  return normalizeAiKeysRecord(keysPayload);
 }
 
 export async function saveUserAiKeys(payload) {
-  const res = await fetch(BASE, {
+  const saveHttpResponse = await fetch(BASE, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -53,44 +43,58 @@ export async function saveUserAiKeys(payload) {
     },
     body: JSON.stringify(payload)
   });
-  const data = await readJsonSafe(res, {});
-  if (!res.ok || !data.success) {
-    if (res.status === 404 && data.error === 'API route not found') {
+  const savePayload = await readJsonResponseBody(saveHttpResponse, {});
+  if (!saveHttpResponse.ok || !savePayload.success) {
+    if (saveHttpResponse.status === 404 && savePayload.error === 'API route not found') {
       throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
     }
-    throw new Error(data.error || data.message || 'Failed to save AI keys');
+    throw new Error(savePayload.error || savePayload.message || 'Failed to save AI keys');
   }
-  return normalizeAiKeysRecord(data);
+  return normalizeAiKeysRecord(savePayload);
 }
 
 export async function clearUserAiKeys() {
-  const res = await fetch(BASE, {
+  const clearHttpResponse = await fetch(BASE, {
     method: 'DELETE',
     headers: authService.getAuthHeaders()
   });
-  const data = await readJsonSafe(res, {});
-  if (!res.ok || !data.success) {
-    if (res.status === 404 && data.error === 'API route not found') {
+  const clearPayload = await readJsonResponseBody(clearHttpResponse, {});
+  if (!clearHttpResponse.ok || !clearPayload.success) {
+    if (clearHttpResponse.status === 404 && clearPayload.error === 'API route not found') {
       throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
     }
-    throw new Error(data.error || data.message || 'Failed to clear AI keys');
+    throw new Error(clearPayload.error || clearPayload.message || 'Failed to clear AI keys');
   }
-  return normalizeAiKeysRecord(data);
+  return normalizeAiKeysRecord(clearPayload);
 }
 
 export async function fetchOllamaModels(ollamaBaseUrl = 'http://127.0.0.1:11434') {
-  const res = await fetch('/api/models/test-ollama', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ollamaBaseUrl })
-  });
-  const ollamaResponse = await readJsonSafe(res, {});
-  if (!res.ok || ollamaResponse.success === false) {
-    throw new Error(ollamaResponse.error || ollamaResponse.message || 'Failed to list Ollama models');
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+  try {
+    const ollamaHttpResponse = await fetch('/api/models/test-ollama', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ollamaBaseUrl }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    const ollamaProbe = await readJsonResponseBody(ollamaHttpResponse, {});
+    if (!ollamaHttpResponse.ok || ollamaProbe.success === false) {
+      throw new Error(ollamaProbe.error || ollamaProbe.message || 'Failed to list Ollama models');
+    }
+    return {
+      ok: Boolean(ollamaProbe.ok),
+      models: Array.isArray(ollamaProbe.availableModels) ? ollamaProbe.availableModels : [],
+      message: ollamaProbe.message || ''
+    };
+  } catch (error) {
+    clearTimeout(timeout);
+    if (error.name === 'AbortError') {
+      throw new Error('Ollama connection timed out - is Ollama running?');
+    }
+    throw error;
   }
-  return {
-    ok: Boolean(ollamaResponse.ok),
-    models: Array.isArray(ollamaResponse.availableModels) ? ollamaResponse.availableModels : [],
-    message: ollamaResponse.message || ''
-  };
 }

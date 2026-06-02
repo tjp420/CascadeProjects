@@ -101,7 +101,7 @@ function detectPlatformSignalsAt(baseDir) {
     return {
         cascadeLayout: isCascadeMonorepo(root),
         pageSampleDir: pathExists(root, 'web/data'),
-        stubApi: fs.existsSync(path.join(root, 'src/api/dashboard-stub-api.js')),
+        stubApi: fs.existsSync(path.join(root, 'src/api/dashboard-stub-api.cjs')),
         serverEntry: fs.existsSync(path.join(root, 'simplebeacon-server.js'))
     };
 }

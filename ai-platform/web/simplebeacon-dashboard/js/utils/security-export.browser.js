@@ -10,11 +10,11 @@ const SECURITY_RULES_EVALUATED = ['credentials', 'production-leak'];
 
 
 
-function redactProjectPathForExport(value, projectLabel = 'ai-platform') {
+function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
 
-  if (value == null || value === '') return value;
+  if (rawPath == null || rawPath === '') return rawPath;
 
-  const normalized = String(value).replace(/\\/g, '/');
+  const normalized = String(rawPath).replace(/\\/g, '/');
 
   if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
 
@@ -126,11 +126,11 @@ function dedupeExportNotes(notes = []) {
 
 
 
-function parseTimestamp(value) {
+function parseTimestamp(isoTimestamp) {
 
-  if (value == null || value === '') return null;
+  if (isoTimestamp == null || isoTimestamp === '') return null;
 
-  const ms = Date.parse(String(value));
+  const ms = Date.parse(String(isoTimestamp));
 
   return Number.isFinite(ms) ? ms : null;
 

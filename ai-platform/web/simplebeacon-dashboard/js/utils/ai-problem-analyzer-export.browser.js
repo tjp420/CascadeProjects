@@ -29,9 +29,9 @@ function isBenchmarkPath(projectPath) {
   return /\/github-cache\//i.test(String(projectPath || '').replace(/\\/g, '/'));
 }
 
-function redactPathForExport(value, projectLabel = 'ai-platform') {
-  if (value == null || value === '') return value;
-  const normalized = String(value).replace(/\\/g, '/');
+function redactPathForExport(rawPath, projectLabel = 'ai-platform') {
+  if (rawPath == null || rawPath === '') return rawPath;
+  const normalized = String(rawPath).replace(/\\/g, '/');
   if (/^[a-zA-Z]:\//.test(normalized)
     || normalized.startsWith('/Users/')
     || normalized.startsWith('/home/')
@@ -126,29 +126,29 @@ function slimMitigationThemes(themes = []) {
   return { sharedThemes: SHARED_MITIGATION_THEMES, categories };
 }
 
-function deepRedact(value, projectLabel, depth = 0) {
-  if (depth > 8 || value == null) return value;
-  if (typeof value === 'string') {
-    if (/^[a-zA-Z]:\\/.test(value) || value.includes('CascadeProjects')) {
-      return redactPathForExport(value, projectLabel);
+function deepRedact(exportNode, projectLabel, depth = 0) {
+  if (depth > 8 || exportNode == null) return exportNode;
+  if (typeof exportNode === 'string') {
+    if (/^[a-zA-Z]:\\/.test(exportNode) || exportNode.includes('CascadeProjects')) {
+      return redactPathForExport(exportNode, projectLabel);
     }
-    return normalizeSimpleBeaconBranding(value);
+    return normalizeSimpleBeaconBranding(exportNode);
   }
-  if (Array.isArray(value)) {
-    return value.map((item) => deepRedact(item, projectLabel, depth + 1));
+  if (Array.isArray(exportNode)) {
+    return exportNode.map((childNode) => deepRedact(childNode, projectLabel, depth + 1));
   }
-  if (typeof value === 'object') {
+  if (typeof exportNode === 'object') {
     const out = {};
-    for (const [key, item] of Object.entries(value)) {
+    for (const [key, childNode] of Object.entries(exportNode)) {
       if (['projectRoot', 'projectPath', 'scanTargetRoot', 'platformRoot'].includes(key)) {
-        out[key] = redactPathForExport(item, projectLabel);
+        out[key] = redactPathForExport(childNode, projectLabel);
       } else {
-        out[key] = deepRedact(item, projectLabel, depth + 1);
+        out[key] = deepRedact(childNode, projectLabel, depth + 1);
       }
     }
     return out;
   }
-  return value;
+  return exportNode;
 }
 
 function peakSeverityFromCounts(counts = {}) {

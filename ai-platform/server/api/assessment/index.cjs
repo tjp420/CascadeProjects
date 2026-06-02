@@ -8,7 +8,7 @@
  */
 
 const express = require('express');
-const controller = require('./AssessmentController');
+const controller = require('./AssessmentController.cjs');
 
 const router = express.Router();
 

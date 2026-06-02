@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demos — SimpleBeacon CLI, MCP &amp; Gate</title>
+  <meta name="description" content="Install SimpleBeacon locally, watch gate output demos, and preview optional executive PDF deliverables. Local MCP + CLI — no repo upload required.">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://simplebeacon.ai/demo">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260530site">
+</head>
+<body>
+  <main class="sales-gate-wrap">
+    <div class="sales-gate">
+      <p class="sales-gate-brand"><a href="landing.html">SimpleBeacon</a></p>
+      <h1>Demos &amp; walkthroughs</h1>
+      <p class="pitch-text hero-solution">
+        The product is <strong>local MCP + CLI gate</strong> on your machine. Videos below show scan depth, blocking output, and an optional client-room PDF — not a cloud upload service.
+      </p>
+      <p class="teams-preview-actions" style="margin:0 0 1.5rem;">
+        <a href="community.html" class="cta-billing-btn">Install CLI + MCP — free</a>
+        <a href="landing.html" class="cta-billing-btn cta-billing-btn--secondary">Homepage snippet scan</a>
+      </p>
+
+      <section class="market-section demo-start-section" aria-labelledby="start-title">
+        <p class="market-kicker">Start here</p>
+        <h2 id="start-title" class="market-heading">Install + gate (no video required)</h2>
+        <p class="market-lead">Run this in your repo root — wires Cursor MCP, GitHub Action, config, and agent scan rule in one step.</p>
+        <div class="cli-hint"><code>npx --yes simplebeacon init --starter</code></div>
+        <div class="cli-hint"><code>npx simplebeacon-mcp --smoke-test</code></div>
+        <div class="cli-hint"><code>npx simplebeacon scan --gate --offline</code></div>
+        <div class="cli-hint"><code>npx simplebeacon gate status</code></div>
+        <p class="market-lead" style="margin-top:1rem;">Report <strong>blocking issues</strong>, not raw finding counts. Full guide: <a href="community.html">simplebeacon.ai/community</a></p>
+      </section>
+
+      <section class="market-section demo-issue-index" aria-labelledby="issue-index-title">
+        <p class="market-kicker">What we catch</p>
+        <h2 id="issue-index-title" class="market-heading">Issue types in the videos</h2>
+        <ul class="demo-issue-list">
+          <li><strong>Credential patterns</strong> — API keys, tokens, and secret-shaped strings in config and source</li>
+          <li><strong>AI-fiction KPIs</strong> — inflated completion rates and unverifiable metrics in <code>*-sample.json</code> and dashboards</li>
+          <li><strong>Mock / sample path leaks</strong> — runtime <code>import</code>/<code>require</code> of <code>*-sample.json</code>, <code>web/data</code>, and mock/fixture paths from production <code>server/</code> or <code>src/</code> (not demo/example routes)</li>
+          <li><strong>Gate calibration</strong> — what blocks merge vs. reporting-only informational hits</li>
+          <li><strong>Optional PDF</strong> — formatted pass/fail artifact from your local gate JSON ($499 when needed)</li>
+        </ul>
+        <p class="market-lead">Videos use sample or public repositories for illustration only — not official audits of any company shown.</p>
+      </section>
+
+      <section class="demo-library" aria-labelledby="demo-library-title">
+        <h2 id="demo-library-title" class="market-heading">Video library</h2>
+
+        <article class="demo-library-item">
+          <p class="market-kicker">Demo 1 · recommended</p>
+          <h3>Gate output &amp; production-path findings</h3>
+          <p class="demo-library-lead">What blocks merge vs. reporting-only mode — the metric that matters for CI and client walkthroughs.</p>
+          <div class="demo-video-frame demo-video-frame--featured">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/ZDd21p36njQ?rel=0"
+              title="SimpleBeacon gate output demo"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              loading="lazy"
+              referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <div class="demo-video-fallback" style="display: none;">
+              <p><strong>Video embeds are blocked when opening files directly in browser.</strong></p>
+              <p style="margin-top: 0.5rem; font-size: 0.9rem;">Due to browser security restrictions, YouTube videos cannot be embedded when using the file:// protocol.</p>
+              <a href="https://youtu.be/ZDd21p36njQ" target="_blank" rel="noopener noreferrer" class="cta-billing-btn" style="margin-top: 1rem; display: inline-block;">Watch on YouTube</a>
+            </div>
+          </div>
+          <p class="demo-video-card-caption">
+            <a href="https://youtu.be/ZDd21p36njQ" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
+          </p>
+        </article>
+
+        <article class="demo-library-item">
+          <p class="market-kicker">Demo 2</p>
+          <h3>Deep repository scan</h3>
+          <p class="demo-library-lead">File depth, pattern hits, and how fiction KPIs surface outside unit tests.</p>
+          <div class="demo-video-frame">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/vbtI_WjlR88?rel=0"
+              title="SimpleBeacon deep repository scan demo"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              loading="lazy"
+              referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <div class="demo-video-fallback" style="display: none;">
+              <p><strong>Video embeds are blocked when opening files directly in browser.</strong></p>
+              <p style="margin-top: 0.5rem; font-size: 0.9rem;">Due to browser security restrictions, YouTube videos cannot be embedded when using the file:// protocol.</p>
+              <a href="https://youtu.be/vbtI_WjlR88" target="_blank" rel="noopener noreferrer" class="cta-billing-btn" style="margin-top: 1rem; display: inline-block;">Watch on YouTube</a>
+            </div>
+          </div>
+          <p class="demo-video-card-caption">
+            <a href="https://youtu.be/vbtI_WjlR88" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
+          </p>
+        </article>
+
+        <article class="demo-library-item">
+          <p class="market-kicker">Demo 3 · optional paid</p>
+          <h3>Executive PDF &amp; certificate preview</h3>
+          <p class="demo-library-lead">Formatted pass/fail PDF from your gate report — optional when the client CTO wants a document. The gate itself stays free.</p>
+          <div class="demo-video-frame">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/MEvTwZPKqRc?rel=0"
+              title="SimpleBeacon executive PDF preview demo"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              loading="lazy"
+              referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <div class="demo-video-fallback" style="display: none;">
+              <p><strong>Video embeds are blocked when opening files directly in browser.</strong></p>
+              <p style="margin-top: 0.5rem; font-size: 0.9rem;">Due to browser security restrictions, YouTube videos cannot be embedded when using the file:// protocol.</p>
+              <a href="https://youtu.be/MEvTwZPKqRc" target="_blank" rel="noopener noreferrer" class="cta-billing-btn" style="margin-top: 1rem; display: inline-block;">Watch on YouTube</a>
+            </div>
+          </div>
+          <p class="demo-video-card-caption">
+            <a href="https://youtu.be/MEvTwZPKqRc" target="_blank" rel="noopener noreferrer">Open on YouTube</a>
+            · <a href="sample-report.html" data-sample-report>Sample report layout</a>
+          </p>
+        </article>
+      </section>
+
+      <section class="market-section demo-try-section" aria-labelledby="try-title">
+        <h2 id="try-title" class="market-heading">Try it on your snippet</h2>
+        <p class="market-lead">Videos show full branches. The homepage diagnostic runs one file in your browser — nothing uploads.</p>
+        <p class="demo-try-actions">
+          <a href="community.html" class="cta-billing-btn">Install CLI + MCP</a>
+          <a href="landing.html#diagnostic-title" class="cta-billing-btn cta-billing-btn--secondary">Run snippet scan</a>
+          <a href="#auditBookingForm" class="cta-billing-btn cta-billing-btn--secondary checkout-audit">Optional clearance PDF — $499</a>
+        </p>
+      </section>
+
+      <form id="auditBookingForm" class="audit-booking-form pricing-booking-form">
+        <input type="text" name="website" class="audit-booking-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <input type="hidden" name="source" value="demo-page">
+
+        <div class="booking-header">
+          <h2 class="audit-booking-heading">Request $499 executive clearance PDF</h2>
+          <p class="shield-callout"><strong>Run the gate locally first:</strong> <code>npx simplebeacon scan --gate --offline</code> — then we format your JSON. <a href="community.html">Free CLI &amp; MCP setup</a>.</p>
+          <p class="audit-booking-intro">Submit below — we email you within one business day with payment link and <a href="downloads/repo-handoff.html">clearance delivery guide</a> (JSON report upload). Agency pack buttons above use instant Stripe checkout. <strong>Not for hobby repos or general security pen-tests.</strong></p>
+        </div>
+
+        <label class="audit-booking-field">
+          <span>Work email</span>
+          <input type="email" name="contactEmail" required autocomplete="email" placeholder="you@agency.com">
+          <span class="validation-message" id="contactEmailValidation"></span>
+        </label>
+        <label class="audit-booking-field">
+          <span>Agency / company</span>
+          <input type="text" name="company" required autocomplete="organization" placeholder="Agency name">
+          <span class="validation-message" id="companyValidation"></span>
+        </label>
+        <label class="audit-booking-field">
+          <span>Your role</span>
+          <select name="buyerRole" required>
+            <option value="">Select one…</option>
+            <option value="agency_owner">Agency owner / founder</option>
+            <option value="cto">CTO / Head of Engineering</option>
+            <option value="tech_director">Technical director / delivery lead</option>
+            <option value="pm">Product / program manager</option>
+            <option value="other">Other</option>
+          </select>
+          <span class="validation-message" id="buyerRoleValidation"></span>
+        </label>
+        <label class="audit-booking-field">
+          <span>Project / repository name (for PDF cover)</span>
+          <input type="text" name="repository" required placeholder="github.com/org/client-repo or client-project-name">
+          <span class="validation-message" id="repositoryValidation"></span>
+        </label>
+        <label class="audit-booking-field">
+          <span>Branch scanned locally</span>
+          <input type="text" name="branch" value="main" autocomplete="off">
+        </label>
+        <label class="audit-booking-field">
+          <span>Client delivery date (required for priority)</span>
+          <input type="date" name="handoffDate" required>
+          <span class="validation-message" id="handoffDateValidation"></span>
+        </label>
+        <label class="audit-booking-field">
+          <span>Client name &amp; context (optional)</span>
+          <textarea name="notes" rows="3" placeholder="Client name, retainer value, what is at stake if hygiene issues surface at handoff…"></textarea>
+        </label>
+        <button type="submit" class="audit-booking-submit">Request $499 clearance — send</button>
+        <p class="audit-booking-status" role="status" aria-live="polite" hidden></p>
+      </form>
+
+      <p class="sample-report-cta" style="margin-top:1.25rem;">
+        <a href="sample-report.html" class="sample-report-link" data-sample-report>Sample $499 clearance PDF</a>
+        · <a href="sample-clearance-pdf.html">Sample $999+ certificate</a>
+        · <a href="community.html">Free CLI install</a>
+      </p>
+
+      <p class="sales-gate-foot">
+        <a href="landing.html">← Home</a>
+        · <a href="community.html">Install</a>
+        · <a href="pricing.html">Pricing</a>
+        · <a href="sample-report.html" data-sample-report>Sample report</a>
+        · <a href="contact.html" data-audit-email-link data-audit-email-label="Contact us">Contact us</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="site-config.js?v=20260530site"></script>
+  <script src="app-links.js?v=20260530site"></script>
+  <script src="audit-booking.js?v=20260530site"></script>
+  <script>
+    // Handle YouTube embeds for file:// protocol ONLY
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Current protocol:', window.location.protocol);
+      console.log('Current hostname:', window.location.hostname);
+      
+      // Only activate fallback for file:// protocol, not for localhost
+      if (window.location.protocol === 'file:') {
+        console.log('File protocol detected - replacing YouTube embeds with fallback buttons');
+        const videoFrames = document.querySelectorAll('.demo-video-frame');
+        console.log('Found video frames:', videoFrames.length);
+        videoFrames.forEach((frame, index) => {
+          const iframe = frame.querySelector('iframe');
+          const fallback = frame.querySelector('.demo-video-fallback');
+          if (iframe && fallback) {
+            const youtubeUrl = iframe.src.replace('https://www.youtube-nocookie.com/embed/', 'https://youtu.be/');
+            console.log('Hiding iframe and showing fallback for video', index);
+            iframe.style.display = 'none';
+            fallback.style.display = 'block';
+            // Update the YouTube link in the fallback
+            const link = fallback.querySelector('a');
+            if (link) {
+              link.href = youtubeUrl;
+            }
+          }
+        });
+      } else {
+        console.log('Not file:// protocol - YouTube embeds should work normally');
+        // Ensure fallbacks are hidden and iframes are visible for http/https
+        const videoFrames = document.querySelectorAll('.demo-video-frame');
+        videoFrames.forEach((frame) => {
+          const iframe = frame.querySelector('iframe');
+          const fallback = frame.querySelector('.demo-video-fallback');
+          if (iframe) iframe.style.display = 'block';
+          if (fallback) fallback.style.display = 'none';
+        });
+      }
+    });
+  </script>
+  <script>
+    // Only load Cloudflare analytics in production, not on localhost or file:// protocol
+    if (window.location.protocol !== 'file:' && !window.location.hostname.match(/^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/)) {
+      (function() {
+        var script = document.createElement('script');
+        script.defer = true;
+        script.src = 'https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447';
+        script.integrity = 'sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==';
+        script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"YOUR_CLOUDFLARE_TOKEN","r":1}');
+        script.crossOrigin = 'anonymous';
+        document.body.appendChild(script);
+      })();
+    }
+  </script>
+</body>
+</html>

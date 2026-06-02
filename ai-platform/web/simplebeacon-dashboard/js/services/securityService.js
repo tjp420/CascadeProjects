@@ -75,12 +75,12 @@ export function buildSecurityExportPayload(report, findings, compliance = null) 
 }
 
 export async function fetchComplianceHeadline() {
-  const res = await fetch('/api/optimization/compliance', {
+  const complianceHttpResponse = await fetch('/api/optimization/compliance', {
     headers: { Accept: 'application/json' }
   });
-  if (!res.ok) {
+  if (!complianceHttpResponse.ok) {
     throw new Error('Compliance API unavailable');
   }
-  const data = await res.json();
-  return data.success === false ? null : data;
+  const complianceHeadline = await complianceHttpResponse.json();
+  return complianceHeadline.success === false ? null : complianceHeadline;
 }

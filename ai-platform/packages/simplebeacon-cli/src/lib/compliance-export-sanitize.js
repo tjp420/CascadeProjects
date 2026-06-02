@@ -76,9 +76,14 @@ function checklistHasStaleFailRows(checklist, gateReport) {
     const blocking = gateReport.gate?.blockingCount ?? gateReport.issueCount ?? null;
     if (blocking != null && blocking > 0) return false;
     if ((gateReport.productionLeakFindings ?? 0) > 0) return false;
+    const schemaChecked = gateReport.schemaChecked ?? gateReport.pageSampleSchemaChecked ?? 0;
+    const schemaPassed = gateReport.schemaPassed ?? gateReport.pageSampleSchemaPassed ?? 0;
+    const schemaOk = schemaChecked > 0 && schemaPassed === schemaChecked;
     return checklist.rules.some((rule) => {
         if (rule.status !== 'fail') return false;
-        return rule.id === 'GATE-001' || rule.id === 'LEAK-001';
+        if (rule.id === 'GATE-001' || rule.id === 'LEAK-001') return true;
+        if (rule.id === 'DATA-001' && schemaOk) return true;
+        return false;
     });
 }
 

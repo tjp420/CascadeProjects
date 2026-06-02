@@ -1,5 +1,11 @@
 /**
  * Browser ESM mirror — keep in sync with complete-scan-artifact-profile.js (CJS).
+ *
+ * PURPOSE: This file is an intentional near-duplicate of the CJS version.
+ * - CJS version (complete-scan-artifact-profile.js) for Node.js environments
+ * - ESM version (this file) for browser environments
+ * - Both files must remain synchronized for cross-platform compatibility
+ * - CI should verify that exports match between both versions
  */
 
 function isBenchmarkCachePath(filePath) {

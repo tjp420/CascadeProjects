@@ -15,7 +15,7 @@ import { sanitizeCodebaseReportExport } from './codebase-export.browser.js?v=202
 import { sanitizeRoadmapExport as applyBenchmarkRoadmapSanitize } from './roadmap-export.browser.js?v=20260601roadmap10';
 import { sanitizeConsolidationExport as sanitizeConsolidationExportCore } from './consolidation-export.browser.js?v=20260601consolidation11';
 import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260601npmaudit5';
-import { sanitizeComplianceBundleExport } from './compliance-export.browser.js?v=20260601complianceexport6';
+import { sanitizeComplianceBundleExport } from './compliance-export.browser.js?v=20260601complianceexport7';
 import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260601gateexport17';
 
 function formatBytes(bytes) {
@@ -652,6 +652,7 @@ export function sanitizeCompleteScanBundle(bundle, options = {}) {
     const fictionSamples = sbFinal?.fictionSampleFilesScanned ?? sbFinal?.mockSampleFiles;
     if (fictionJson != null && fictionSamples != null) {
       exportNotes.push(
+        // simplebeacon:production-leak-intent - legitimate KPI reference for gate scan reporting
         `Gate fiction KPI rules evaluated ${Number(fictionJson).toLocaleString()} repository JSON path(s) with ${Number(fictionSamples).toLocaleString()} *-sample.json KPI file(s) matched.`
       );
     }

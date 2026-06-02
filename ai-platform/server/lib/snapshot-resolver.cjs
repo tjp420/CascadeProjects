@@ -2,12 +2,12 @@
  * Resolve dashboard API payloads from PostgreSQL snapshots with JSON fallback.
  */
 
-const { REAL_API_PATH_PREFIXES } = require('./snapshot-seeds');
-const { readDashboardSnapshot } = require('../bootstrap/phase2-integration');
+const { REAL_API_PATH_PREFIXES } = require('./snapshot-seeds.cjs');
+const { readDashboardSnapshot } = require('../bootstrap/phase2-integration.cjs');
 const {
     getCachedSnapshot,
     setCachedSnapshot
-} = require('./redis-cache');
+} = require('./redis-cache.cjs');
 
 function tagSnapshotPayloadWithSource(snapshotPayload, snapshotSource) {
     if (snapshotPayload == null) return snapshotPayload;

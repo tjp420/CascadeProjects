@@ -9,7 +9,7 @@
  * - Automated compliance violation detection
  */
 
-const logger = require('../lib/app-logger');
+const logger = require('../lib/app-logger.cjs');
 
 const crypto = require('crypto');
 const fs = require('fs').promises;

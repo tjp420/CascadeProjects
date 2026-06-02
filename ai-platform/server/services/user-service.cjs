@@ -3,9 +3,9 @@
  */
 
 const path = require('path');
-const { hashPassword, verifyPassword } = require('../middleware/auth');
-const logger = require('../lib/app-logger');
-const { readJsonFileCached } = require('../lib/json-file-cache');
+const { hashPassword, verifyPassword } = require('../middleware/auth.cjs');
+const logger = require('../lib/app-logger.cjs');
+const { readJsonFileCached } = require('../lib/json-file-cache.cjs');
 
 const DEMO_USERS_PATH = path.join(__dirname, '..', 'db', 'demo-users.json');
 
@@ -38,13 +38,13 @@ function toAuthUser(row) {
 }
 
 async function findUserByEmail(db, email) {
-    const result = await db.query(
+    const emailLookupQuery = await db.query(
         `SELECT id, email, password_hash, name, trust_level, successful_analyses,
                 security_incidents, community_contributions, verification_status, created_at
          FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
         [email]
     );
-    return result.rows[0] || null;
+    return emailLookupQuery.rows[0] || null;
 }
 
 async function seedDemoUsers(db) {

@@ -1,4 +1,33 @@
 import { escapeHtml, showToast, formatNumber } from '../utils.js';
+import { resolveJestTestsLabel } from '../services/analyzeService.js';
+
+function parseJestTotal(jestTestsLabel, fallback) {
+  if (!jestTestsLabel) return fallback ?? null;
+  const match = String(jestTestsLabel).match(/\/(\d+)/);
+  return match ? Number(match[1]) : fallback ?? null;
+}
+
+function resolveCoverageSnapshot(coverage, baseline, dashboardHome) {
+  const merged = { ...(coverage || {}) };
+  if (merged.passedTests != null && merged.totalTests != null) return merged;
+
+  const jestLabel = resolveJestTestsLabel(baseline, dashboardHome);
+  const passed = merged.passedTests ?? baseline?.jestTestsPassing ?? dashboardHome?.overview?.passedTests;
+  const total = merged.totalTests
+    ?? parseJestTotal(baseline?.jestTestsLabel, passed)
+    ?? dashboardHome?.overview?.totalTests
+    ?? passed;
+
+  if (passed != null) merged.passedTests = passed;
+  if (total != null) merged.totalTests = total;
+  return merged;
+}
+
+function coveragePendingMessage(coverage) {
+  if (coverage?.branchCoverage != null || coverage?.lineCoverage != null) return '';
+  return coverage?.notes
+    || 'Run npm run test:coverage for Istanbul percentages. Sync Jest counts via Tools → Baseline sync.';
+}
 
 function npmAuditSummary(audit) {
   const summary = audit?.summary || audit?.metadata?.vulnerabilities || {};
@@ -24,8 +53,13 @@ export class QualityView {
 
   render() {
     const security = this.app.state.security || {};
-    const coverage = this.app.state.coverage || {};
+    const coverage = resolveCoverageSnapshot(
+      this.app.state.coverage,
+      this.app.state.baseline,
+      this.app.state.dashboardHome
+    );
     const quality = this.app.state.quality || {};
+    const coverageHint = coveragePendingMessage(coverage);
     const npmAudit = this.app.state.npmAudit;
     const auditStats = npmAudit && !npmAudit.error ? npmAuditSummary(npmAudit) : null;
     const dependencyVulnTotal = auditStats?.vulnerabilityTotal ?? security.npmAuditTotal ?? security.openVulnerabilities ?? '—';
@@ -69,6 +103,7 @@ export class QualityView {
             <div class="settings-row"><span class="settings-label">Statement</span><span class="settings-value">${coverage.statementCoverage ?? '—'}%</span></div>
             <div class="settings-row"><span class="settings-label">Tests</span><span class="settings-value">${coverage.passedTests ?? '—'}/${coverage.totalTests ?? '—'}</span></div>
           </div>
+          ${coverageHint ? `<p class="text-muted text-sm mt-4">${escapeHtml(coverageHint)}</p>` : ''}
           <button class="btn btn-secondary btn-sm mt-4" data-scroll="coverage">Coverage details ↑</button>
         </div>
         <div class="card">
@@ -199,8 +234,21 @@ export class QualityView {
     }
   }
 
-  mount(container) {
+  async mount(container) {
     if (!container) return;
+    this._container = container;
+
+    const needsPlatformData = this.app.state.coverage == null || this.app.state.security == null;
+    if (needsPlatformData) {
+      container.innerHTML = '<p class="text-muted card">Loading quality metrics…</p>';
+      try {
+        await this.app.loadPlatformData();
+      } catch (err) {
+        showToast(err.message || 'Failed to load quality metrics', 'error');
+      }
+    }
+
+    if (this._container !== container) return;
     container.innerHTML = '';
     container.appendChild(this.render());
     if (!this.app.state.npmAudit && !this.auditLoading) {

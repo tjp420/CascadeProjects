@@ -1,4 +1,4 @@
-const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin'];
+const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'security', 'outreach', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot'];
 
 export const PUBLIC_VIEWS = new Set(['signin', 'pricing', 'about', 'help', 'features', 'trust', 'repository-health']);
 

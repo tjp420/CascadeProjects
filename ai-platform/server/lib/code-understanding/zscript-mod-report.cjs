@@ -3,8 +3,8 @@
  */
 
 const path = require('path');
-const { buildStructureReport, collectZscriptFiles } = require('./zscript-structure-analyzer');
-const { buildCvarReport } = require('./zscript-cvar-analyzer');
+const { buildStructureReport, collectZscriptFiles } = require('./zscript-structure-analyzer.cjs');
+const { buildCvarReport } = require('./zscript-cvar-analyzer.cjs');
 
 async function generateZscriptModReport(projectPath, options = {}) {
     const rootDir = path.resolve(projectPath);

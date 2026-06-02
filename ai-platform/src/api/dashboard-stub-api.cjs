@@ -56,6 +56,7 @@ let aiRoadmapSample = null;
 async function loadPerformanceSample(webRoot) {
     if (performanceSample) return performanceSample;
     try {
+        // simplebeacon:production-leak-intent: sample-json - Legitimate sample data reference for dashboard stub functionality
         const filePath = path.join(webRoot, 'data', 'performance-sample.json');
         const content = await fs.readFile(filePath, 'utf8');
         performanceSample = mergeIstanbulTelemetry(

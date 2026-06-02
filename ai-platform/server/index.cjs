@@ -42,13 +42,17 @@ const pathHealthRouter = require('./api/metrics/path-health.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Preload package.json at startup to avoid sync reads in route handlers
 const packageJsonPath = path.join(__dirname, '..', 'package.json');
 let cachedPackageJson = null;
+try {
+  cachedPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+} catch {
+  cachedPackageJson = { version: '1.0.0' };
+}
 
 function getPackageJson() {
-  if (!cachedPackageJson) {
-    cachedPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  }
   return cachedPackageJson;
 }
 
@@ -130,17 +134,19 @@ app.use((req, res, next) => {
 });
 
 // Private dashboard — unlocks vault session, then opens the marketing sample report
-app.get('/private-dashboard-vault', (req, res) => {
+app.get('/private-dashboard-vault', async (req, res) => {
   if (req.query.password !== process.env.DASHBOARD_VAULT_PASSWORD) {
     return res.status(403).send('Unauthorized Access: Private Vault is Locked.');
   }
   setVaultSessionCookie(res, process.env.DASHBOARD_VAULT_PASSWORD);
   const samplePath = path.join(comingSoonRoot, 'sample-report.html');
-  if (fs.existsSync(samplePath)) {
+  try {
+    await fs.promises.access(samplePath);
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     return res.sendFile(samplePath);
+  } catch {
+    return res.status(404).send('sample-report.html not found — run: cd ai-platform && npm run build:sample-report');
   }
-  return res.status(404).send('sample-report.html not found — run: cd ai-platform && npm run build:sample-report');
 });
 
 // Storefront static assets (site-config.js, styles.css, legal pages)
@@ -157,6 +163,26 @@ app.use((req, res, next) => {
   return express.static(webRoot)(req, res, next);
 });
 app.use('/assets', express.static(path.join(webRoot, 'assets')));
+
+// Inject vault password into dashboard HTML for local dev mode
+app.get('/simplebeacon-dashboard/index.html', async (req, res) => {
+  const indexPath = path.join(webRoot, 'simplebeacon-dashboard', 'index.html');
+  let html;
+  try {
+    html = await fs.promises.readFile(indexPath, 'utf8');
+  } catch {
+    return res.status(404).send('index.html not found');
+  }
+
+  // Inject vault password as window global for local dev mode
+  if (process.env.DASHBOARD_VAULT_PASSWORD) {
+    const injectScript = `<script>window.SIMPLEBEACON_VAULT_PASSWORD = "${process.env.DASHBOARD_VAULT_PASSWORD}";</script>`;
+    html = html.replace('</head>', `${injectScript}</head>`);
+  }
+
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.send(html);
+});
 
 // API Routes
 app.get('/api/health', (req, res) => {

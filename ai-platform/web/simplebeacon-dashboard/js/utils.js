@@ -79,19 +79,18 @@ export function redactPathForDisplay(projectPath) {
 }
 
 /** True when the string is a privacy-redacted path (…/folder) rather than a full absolute path. */
-export function isRedactedPathDisplay(value) {
-  if (value == null || value === '') return false;
-  const normalized = String(value).replace(/\\/g, '/').trim();
+export function isRedactedPathDisplay(displayPath) {
+  if (displayPath == null || displayPath === '') return false;
+  const normalized = String(displayPath).replace(/\\/g, '/').trim();
   if (/^(?:…|\.{3})(?:\/|$)/.test(normalized)) return true;
   if (/(?:^|\/)(?:…|\.{3})\//.test(normalized)) return true;
   return false;
 }
 
-/** Path string for text inputs — redacts home prefixes and normalizes slashes. */
+/** Editable path inputs — keep the full absolute path; normalize slashes only. */
 export function formatPathInputValue(projectPath) {
   if (!projectPath) return '';
-  const redacted = redactPathForDisplay(projectPath);
-  return String(redacted).replace(/\\/g, '/');
+  return String(projectPath).replace(/\\/g, '/');
 }
 
 export function formatScanPathForDisplay(scanPath, projectRoot) {
@@ -181,4 +180,26 @@ export function downloadBlob(blob, filename) {
 export function downloadText(content, filename, mime = 'text/plain') {
   const blob = new Blob([content], { type: mime });
   downloadBlob(blob, filename);
+}
+
+/**
+ * Sanitizes input strings by replacing sensitive patterns with generic placeholders.
+ * @param {string} text - The raw log or user input string.
+ * @returns {string} The anonymized text.
+ */
+export function sanitizePrivacyData(text) {
+  if (!text || typeof text !== 'string') return text;
+
+  let cleaned = text;
+
+  // Redact Emails
+  cleaned = cleaned.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]');
+
+  // Redact IPv4 Addresses
+  cleaned = cleaned.replace(/\b(?:(?:25[0-5]|2[0-4][0-3]|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4][0-3]|[01]?\d\d?)\b/g, '[REDACTED_IP]');
+
+  // Redact Bearer Tokens / API Keys / Password assignments
+  cleaned = cleaned.replace(/(([a-zA-Z0-9_-]*(?:secret|token|key|pwd|password|auth))(=|:)\s*['"][^'"]+['"])/gi, '$2$3"[REDACTED_CREDENTIAL]"');
+
+  return cleaned;
 }

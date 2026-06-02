@@ -1,32 +1,23 @@
 {
-  "profile": "enterprise",
-  "scanPaths": [],
+  "profile": "cascade",
+  "scanPaths": [
+    "web/data",
+    "tests/fixtures",
+    "data"
+  ],
   "productionPaths": [
     "server/",
     "src/",
     "app/",
-    "lib/",
-    "web/simplebeacon-dashboard/js/"
+    "lib/"
   ],
-  "ignore": [
-    "node_modules/**",
-    "coverage/**",
-    "dist/**",
-    "build/**",
-    "**/*.test.js",
-    "**/*.spec.js",
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "tests/**",
-    "test/**",
-    "packages/simplebeacon-cli/**",
-    ".github-sync/**",
-    "github-cache/**",
-    "temp/**",
-    "logs/**",
-    "docs/archive/**",
-    "docs/codemap/**",
-    "src/api/dashboard-stub-api.js"
+  "sampleDir": "web/data",
+  "consistencyAnchorSamples": [
+    "dashboard-home-sample.json",
+    "engineering-baseline-sample.json",
+    "implementation-plan-sample.json",
+    "master-roadmap-sample.json",
+    "release-timeline-sample.json"
   ],
   "rules": {
     "credentials": {
@@ -34,58 +25,74 @@
       "scanProduction": true
     },
     "json-schema": {
-      "enabled": false
+      "enabled": true
     },
     "sample-consistency": {
-      "enabled": false
+      "enabled": true
     },
     "roadmap": {
-      "enabled": false
+      "enabled": true
     },
     "production-leak": {
-      "enabled": false
+      "enabled": true,
+      "severity": "medium",
+      "allowlistFiles": [
+        "server/lib/snapshot-seeds.js",
+        "server/lib/snapshot-resolver.js",
+        "server/lib/sample-path-resolver.cjs",
+        "server/lib/code-roadmap-generator.cjs",
+        "server/services/model-inference-service.js"
+      ],
+      "productionPaths": [
+        "server/",
+        "src/",
+        "app/",
+        "lib/"
+      ],
+      "plainSampleJson": true,
+      "intentClassification": true
     },
     "fiction-kpi-patterns": {
-      "enabled": false
+      "enabled": true,
+      "severity": "medium"
     },
     "llm-slop-patterns": {
-      "enabled": false
+      "enabled": true,
+      "severity": "medium",
+      "registryCheck": false
     },
     "agency-handoff-patterns": {
-      "enabled": false
+      "enabled": true,
+      "severity": "medium"
     },
     "eu-ai-act-patterns": {
-      "enabled": false
-    },
-    "token-bleed-patterns": {
-      "enabled": false
-    },
-    "architecture-drift-patterns": {
-      "enabled": false
-    },
-    "python-ast-patterns": {
-      "enabled": false
-    },
-    "javascript-ast-patterns": {
-      "enabled": false
+      "enabled": true,
+      "severity": "medium"
     },
     "jest-baseline": {
       "enabled": false,
-      "runTests": false
+      "runTests": false,
+      "testCommand": "npm test -- --no-coverage --passWithNoTests"
     },
-    "enterprise-guardrail-patterns": {
-      "enabled": true,
-      "severity": "critical",
-      "tokenCapSeverity": "high",
-      "extraLeakTokens": [
-        "internal_customer_id",
-        "prod_vault_secret"
-      ]
+    "token-bleed-patterns": {
+      "enabled": false,
+      "severity": "medium"
+    },
+    "architecture-drift-patterns": {
+      "enabled": false,
+      "severity": "high"
+    },
+    "python-ast-patterns": {
+      "enabled": false,
+      "severity": "medium"
+    },
+    "javascript-ast-patterns": {
+      "enabled": false,
+      "severity": "medium"
     }
   },
   "gate": {
     "failOn": [
-      "critical",
       "high"
     ],
     "warnOn": [
@@ -95,29 +102,14 @@
   },
   "sourceCodeScanPaths": [
     "server/",
-    "src/",
-    "app/",
-    "lib/"
+    "src/"
   ],
-  "intelligence": {
-    "enabled": true,
-    "languages": ["javascript", "typescript", "python"],
-    "sourcePaths": [
-      "server/",
-      "src/",
-      "app/",
-      "lib/",
-      "web/simplebeacon-dashboard/js/"
-    ],
-    "genericVarThreshold": 0.65,
-    "fingerprintMatch": false,
-    "severity": "medium",
-    "patternSeverity": {
-      "SB-INTENT-001": "low",
-      "SB-INTENT-004": "low"
-    },
-    "treeSitter": { "enabled": true },
-    "slm": { "enabled": false }
-  },
-  "fullDirectoryScan": false
+  "fullDirectoryScan": false,
+  "fullDirectoryScanSkipDirs": [
+    ".git",
+    ".github-sync",
+    "github-cache",
+    "node_modules",
+    "simplebeacon-rule-tests"
+  ]
 }

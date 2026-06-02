@@ -1,3 +1,7 @@
+# Standalone simplebeacon repo only — GitHub ignores nested .github/workflows/.
+# Monorepo (CascadeProjects): use ../../../../../.github/workflows/simplebeacon-npm-publish.yml
+# or examples/github-action/simplebeacon-npm-publish-monorepo.yml at the repo root.
+
 name: Publish to npm
 
 on:

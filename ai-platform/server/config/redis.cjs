@@ -2,7 +2,7 @@
  * Redis configuration for Phase 2 snapshot caching.
  */
 
-const logger = require('../lib/app-logger');
+const logger = require('../lib/app-logger.cjs');
 
 function parseRedisUrl(url) {
     if (!url) return null;

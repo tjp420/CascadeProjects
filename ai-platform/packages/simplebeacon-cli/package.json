@@ -54,7 +54,7 @@
     "@babel/traverse": "^7.26.9"
   },
   "optionalDependencies": {
-    "@simplebeacon/intelligence": "0.1.0"
+    "@simplebeacon/intelligence": "1.0.0"
   },
   "publishConfig": {
     "access": "public"

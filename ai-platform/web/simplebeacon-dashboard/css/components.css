@@ -30,6 +30,27 @@
   text-decoration: underline;
 }
 
+.ai-transparency-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: var(--space-2);
+}
+
+.ai-transparency-icon {
+  font-size: var(--font-size-base);
+}
+
+.ai-transparency-text {
+  flex: 1;
+}
+
 .signin-page {
   display: flex;
   align-items: center;
@@ -2676,5 +2697,32 @@ button.tool-card.help-page-card:hover {
 .chatbot-copy-btn.copied {
   opacity: 1;
   color: var(--success);
+}
+
+/* Typing Indicator Dot Waves */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--bg-nested, #f8fafc);
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--text-muted, #64748b);
+  border-radius: 50%;
+  animation: pulseWave 1.4s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes pulseWave {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
 }
 

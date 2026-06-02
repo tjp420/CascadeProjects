@@ -1,0 +1,101 @@
+{
+  "type": "simplebeacon-compliance-checklist",
+  "version": "1.0.0",
+  "title": "Simplebeacon EU AI Act Readiness Checklist",
+  "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
+  "evaluatedAt": "2026-06-02T05:46:13.405Z",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "summary": {
+    "passed": 4,
+    "failed": 4,
+    "skipped": 1,
+    "total": 9,
+    "score": 50,
+    "readyForAutomation": false,
+    "checklistProfile": "eu-ai-act",
+    "headline": "4 EU AI Act rule(s) fail — address before August 2026 deadline"
+  },
+  "rules": [
+    {
+      "id": "GATE-001",
+      "title": "Merge gate passes on configured severities",
+      "category": "Automation",
+      "severity": "critical",
+      "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
+      "status": "fail",
+      "evidence": "Gate fail — 172 blocking issue(s)"
+    },
+    {
+      "id": "CRED-001",
+      "title": "No credential or secret patterns in scanned paths",
+      "category": "Security",
+      "severity": "critical",
+      "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
+      "status": "fail",
+      "evidence": "4 credential pattern(s) detected"
+    },
+    {
+      "id": "LEAK-001",
+      "title": "No mock/sample JSON paths referenced from production directories",
+      "category": "Data integrity",
+      "severity": "high",
+      "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
+      "status": "fail",
+      "evidence": "170 production leak(s) — mock/sample paths in prod code"
+    },
+    {
+      "id": "EUAI-001",
+      "title": "High-risk AI indicators documented or absent",
+      "category": "EU AI Act — Classification",
+      "severity": "critical",
+      "remediation": "Conduct Annex III classification review; add risk-assessment.md and conformity documentation for high-risk systems",
+      "status": "pass",
+      "evidence": "No Annex III high-risk AI patterns detected in scanned paths"
+    },
+    {
+      "id": "EUAI-002",
+      "title": "Article 50 transparency — AI outputs disclosed to users",
+      "category": "EU AI Act — Transparency",
+      "severity": "high",
+      "remediation": "Add user-facing disclosure that content is AI-generated or that users interact with an AI system",
+      "status": "fail",
+      "evidence": "4 transparency gap(s) — add AI-generated / AI interaction disclosure in UI"
+    },
+    {
+      "id": "EUAI-003",
+      "title": "AI system documentation present when AI integrations detected",
+      "category": "EU AI Act — Documentation",
+      "severity": "high",
+      "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
+      "status": "pass",
+      "evidence": "35 documentation artifact(s) found for 59 AI indicator(s)"
+    },
+    {
+      "id": "EUAI-004",
+      "title": "Human oversight signals for high-risk AI decision paths",
+      "category": "EU AI Act — Human oversight",
+      "severity": "high",
+      "remediation": "Implement human-in-the-loop review, manual override, or appeal mechanism for automated decisions",
+      "status": "pass",
+      "evidence": "No high-risk AI patterns — human oversight rule not applicable"
+    },
+    {
+      "id": "EUAI-005",
+      "title": "AI decision logging for accountability",
+      "category": "EU AI Act — Record-keeping",
+      "severity": "medium",
+      "remediation": "Log AI system inputs, outputs, and decision rationale for audit trails",
+      "status": "pass",
+      "evidence": "AI decision paths include audit/logging signals"
+    },
+    {
+      "id": "SUPPLY-001",
+      "title": "No critical or high npm audit vulnerabilities",
+      "category": "Supply chain",
+      "severity": "critical",
+      "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
+      "status": "skip",
+      "evidence": "No package.json — npm audit not applicable"
+    }
+  ]
+}

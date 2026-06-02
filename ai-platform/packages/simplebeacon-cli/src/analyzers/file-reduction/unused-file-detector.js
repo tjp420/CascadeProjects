@@ -5,8 +5,8 @@
 const fs = require('fs');
 const path = require('path');
 const { walkProjectFiles } = require('./utils/project-walker');
-const { parseImports, JS_SOURCE_EXTENSIONS } = require('./utils/import-parser');
-const { parseNonCodeReferences, addReference } = require('./utils/file-reference-tracker');
+const { parseImports, JS_SOURCE_EXTENSIONS, parseRuntimeReferences } = require('./utils/import-parser');
+const { parseNonCodeReferences, addReference, parseWorkerScriptReferences } = require('./utils/file-reference-tracker');
 const { buildDependencyGraph, findUnreferencedNodes } = require('./utils/dependency-graph-builder');
 const { globMatch } = require('../../rules/production-leak');
 
@@ -64,6 +64,8 @@ const DEFAULT_SKIP_PATH_PATTERNS = [
     /(?:^|\/)public\//,
     /(?:^|\/)functions\//,
     /(?:^|\/)cloudflare-deploy\//,
+    /(?:^|\/)packages\/simplebeacon-cli\/python\//,
+    /(?:^|\/)packages\/simplebeacon-intelligence\/vector-cache\//,
     /(?:^|\/)packages\/simplebeacon-cli\/docs\//,
     /(?:^|\/)packages\/simplebeacon-cli\/examples(?:\/|$)/,
     /(?:^|\/)web\/findings(?:\/|$)/,
@@ -107,8 +109,15 @@ const PROTECTED_RUNTIME_BASENAMES = new Set([
     'dashboard_config.json',
     'central-data-config.json',
     '.eslintrc.security.json',
+    'app-logger.js',
+    'simplebeacon_ast_scan.py',
+    'default-fingerprints.json',
+    'analyzer-cache.js',
     // Intentional CJS / browser mirrors (see complete-scan-artifact-profile.js)
-    'complete-scan-artifact-profile.browser.js'
+    'complete-scan-artifact-profile.browser.js',
+    'complete-scan-artifact-profile.js',
+    'full-tree-rule-worker.js',
+    'scan-orchestrator.js'
 ]);
 
 const SCRIPT_ENTRY_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.py']);
@@ -161,6 +170,16 @@ class UnusedFileDetector {
             imports.push(...parseImports(file.path, content, inventory.root));
             for (const ref of parseNonCodeReferences(file.path, content, inventory.root)) {
                 if (ref.resolvedPath) {
+                    addReference(referenceMap, ref.resolvedPath, ref.source);
+                }
+            }
+            for (const ref of parseWorkerScriptReferences(file.path, content, inventory.root)) {
+                if (ref.resolvedPath) {
+                    addReference(referenceMap, ref.resolvedPath, ref.source);
+                }
+            }
+            for (const ref of parseRuntimeReferences(file.path, content, inventory.root)) {
+                if (ref.resolvedPath && fs.existsSync(ref.resolvedPath)) {
                     addReference(referenceMap, ref.resolvedPath, ref.source);
                 }
             }
@@ -266,6 +285,9 @@ class UnusedFileDetector {
             if (/(?:^|\/)src\/app\/(layout|page|loading|error|not-found|global-error|route)\.[jt]sx?$/.test(rel)) {
                 entries.add(file.path);
             }
+            if (/(?:^|\/)web\/simplebeacon-dashboard\/js\/main\.js$/.test(rel)) {
+                entries.add(file.path);
+            }
             if (/(?:^|\/)packages\/simplebeacon-cli\/(?:bin|src\/reporters|src\/rules)\//.test(rel)
                 && SCRIPT_ENTRY_EXTENSIONS.has(file.ext)) {
                 entries.add(file.path);
@@ -325,6 +347,11 @@ class UnusedFileDetector {
         const basename = path.basename(relativePath);
         if (this.protectedBasenames.has(basename)) return false;
         if (PROTECTED_RUNTIME_BASENAMES.has(basename)) return false;
+        if (/\.browser\.js$/i.test(basename)) return false;
+        if (/^(credential-pattern-scanner|roadmap-json-specs|sample-consistency-checker)\.js$/.test(basename)
+            && /(?:^|\/)(?:server\/lib|packages\/simplebeacon-cli\/src\/lib)\//.test(normalized)) {
+            return false;
+        }
         if (/\.(test|spec)\.[jt]s$/i.test(basename)) return false;
         if (/(?:^|\/)(?:tests|test)(?:\/|$)/.test(normalized)) return false;
         return true;

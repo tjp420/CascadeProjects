@@ -3,7 +3,7 @@
  */
 
 import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260601gateexport17';
-import { sanitizeComplianceChecklistArtifactExport } from './compliance-export.browser.js?v=20260601complianceexport6';
+import { sanitizeComplianceChecklistArtifactExport } from './compliance-export.browser.js?v=20260601complianceexport7';
 import { redactProjectPathForExport, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260531qualityexport8';
 
 function projectLabelFromPath(projectPath) {
@@ -370,7 +370,6 @@ function resolveFreshEuAiActMetrics(bundle = {}) {
     highRiskIndicators: source.highRiskIndicators ?? null,
     transparencyGaps: source.transparencyGaps ?? null,
     documentationArtifacts: operatorCount,
-    operatorDocumentationCount: operatorCount,
     euAiActScanned: preferEmbedded
       ? (embedded.euAiActScanned ?? null)
       : (assessment?.findings?.euAiAct?.scanned ?? bundle.sprintReport?.euAiActScanned ?? null),
@@ -788,6 +787,7 @@ function buildSprintArtifactExportNotes(sprint = {}, options = {}) {
   const sprintFiction = sprint.report?.fictionJsonFilesScanned ?? sprint.report?.scanScope?.fictionJsonFilesScanned;
   if (sprintFiction != null && gateFiction != null && fictionSamples != null && sprintFiction !== gateFiction) {
     notes.push(
+      // simplebeacon:production-leak-intent - legitimate KPI reference for EU AI Act reporting
       `Sprint fiction KPI rules evaluated ${Number(sprintFiction).toLocaleString()} repository JSON path(s) — Complete scan gate evaluated ${Number(gateFiction).toLocaleString()} with ${Number(fictionSamples).toLocaleString()} *-sample.json KPI file(s) matched.`
     );
   }

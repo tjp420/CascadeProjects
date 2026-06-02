@@ -3,7 +3,7 @@
  * Supports DATABASE_URL and individual DB_* environment variables.
  */
 
-const logger = require('../lib/app-logger');
+const logger = require('../lib/app-logger.cjs');
 
 function parseDatabaseUrl(url) {
     if (!url) return null;

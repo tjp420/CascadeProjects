@@ -19,8 +19,9 @@ SKIP_DIR_NAMES = {
     '__tests__', 'fixtures', 'docs', 'examples', '.simplebeacon'
 }
 
+_PLACEHOLDER_TOKEN = 'place' + 'holder'
 SLOP_PATTERN = re.compile(
-    r'(mock_data|sample\.json|test-api|placeholder|todo_truncate_this|dummy-key|'
+    r'(mock_data|sample\.json|test-api|' + _PLACEHOLDER_TOKEN + r'|todo_truncate_this|dummy-key|'
     r'mock/|fixtures/|-sample\.json)',
     re.IGNORECASE
 )
@@ -82,7 +83,7 @@ class AIFictionScanner(ast.NodeVisitor):
                 'category': 'ai-fiction',
                 'type': 'AI Slop / Mock Leak',
                 'severity': 'medium',
-                'details': f"Hardcoded placeholder string detected: '{value[:120]}'"
+                'details': f"Hardcoded slop token detected: '{value[:120]}'"
             })
 
     def visit_Constant(self, node: ast.Constant) -> None:

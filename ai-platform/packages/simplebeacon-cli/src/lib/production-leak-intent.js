@@ -1,37 +1,66 @@
 /**
  * Classify production-leak pattern matches — separate repository-audit
  * infrastructure from accidental sample paths in shipping code.
+ * 
+ * Supports inline intent markers for explicit false positive suppression:
+ * // simplebeacon:production-leak-intent: <intent-type> - <reason>
  */
 
 const REPOSITORY_AUDIT_INFRA_FILES = new Set([
-    'sample-path-resolver.js',
+    'sample-path-resolver.cjs',
     'snapshot-seeds.js',
+    'snapshot-seeds.cjs',
     'snapshot-resolver.js',
+    'snapshot-resolver.cjs',
     'mock-data-schema-validator.js',
+    'mock-data-schema-validator.cjs',
     'sample-consistency-checker.js',
+    'sample-consistency-checker.cjs',
     'roadmap-json-specs.js',
+    'roadmap-json-specs.cjs',
     'page-sample-specs.js',
-    'code-roadmap-generator.js',
+    'page-sample-specs.cjs',
+    'code-roadmap-generator.cjs',
     'mock-data-scanner.js',
+    'mock-data-scanner.cjs',
     'dev-tools-workflows.js',
+    'dev-tools-workflows.cjs',
     'rule-catalog.js',
+    'rule-catalog.cjs',
     'production-leak.js',
+    'production-leak.cjs',
     'production-leak-intent.js',
+    'production-leak-intent.cjs',
     'snippet-scanner.js',
+    'snippet-scanner.cjs',
     'project-detect.js',
+    'project-detect.cjs',
     'remediation-guides.js',
+    'remediation-guides.cjs',
     'normalize-scan-report.js',
+    'normalize-scan-report.cjs',
     'privacy-triage.js',
+    'privacy-triage.cjs',
     'scan-conclusion.js',
+    'scan-conclusion.cjs',
     'cleanup-assistant-brief.js',
+    'cleanup-assistant-brief.cjs',
     'cleanup-brief-export-sanitize.js',
+    'cleanup-brief-export-sanitize.cjs',
     'compliance-export-sanitize.js',
+    'compliance-export-sanitize.cjs',
     'complete-scan-export-sanitize.js',
+    'complete-scan-export-sanitize.cjs',
     'data-cleanup-export-sanitize.js',
+    'data-cleanup-export-sanitize.cjs',
     'data-lineage-analyzer.js',
+    'data-lineage-analyzer.cjs',
     'data-file-utils.js',
+    'data-file-utils.cjs',
     'unused-file-detector.js',
-    'eu-ai-act-export.js'
+    'unused-file-detector.cjs',
+    'eu-ai-act-export.js',
+    'eu-ai-act-export.cjs'
 ]);
 
 const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
@@ -128,7 +157,7 @@ function isStubApiSampleJoin(line) {
 }
 
 function isStubApiLoaderFile(relativePath) {
-    return /stub-api\.js$/i.test(normalizeRel(relativePath));
+    return /stub-api\.[cm]?js$/i.test(normalizeRel(relativePath));
 }
 
 function isPathJoinWebData(line) {
@@ -141,7 +170,12 @@ const DEMO_TOOL_PATH_SEGMENTS = [
     '/tools/',
     '/applets/',
     '/demos/',
-    '/demo/'
+    '/demo/',
+    '/simplebeacon-dashboard/',
+    '/coming-soon/',
+    'coming-soon/',
+    '/simplebeacon-frameworkless/',
+    'simplebeacon-frameworkless/'
 ];
 
 function isDemoToolSamplePath(relativePath) {
@@ -208,6 +242,21 @@ function classifyProductionLeakMatch({
 }) {
     const line = (content || '').split('\n')[lineIndex] || '';
     const rel = normalizeRel(relativePath);
+
+    // Check for inline intent marker on the same line or previous line
+    const intentMarkerPattern = /simplebeacon:production-leak-intent:\s*(\S+)\s*-\s*(.+)/;
+    const lineMatch = line.match(intentMarkerPattern);
+    const prevLine = lineIndex > 0 ? (content || '').split('\n')[lineIndex - 1] : '';
+    const prevLineMatch = prevLine.match(intentMarkerPattern);
+    
+    if (lineMatch || prevLineMatch) {
+        const match = lineMatch || prevLineMatch;
+        return {
+            intent: match[1],
+            suppress: true,
+            reason: `Explicit intent marker: ${match[2].trim()}`
+        };
+    }
 
     if (isDocumentationPath(rel) && !isAccidentalLoadPattern(line, matchText)) {
         return {

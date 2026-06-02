@@ -1,0 +1,960 @@
+{
+  "type": "dynamic-project-roadmap-analysis",
+  "timestamp": "2026-06-01T11:01:04.868Z",
+  "generatedAt": "2026-06-01T11:01:04.868Z",
+  "generatedBy": "code-roadmap-generator",
+  "dataSource": "filesystem-scan",
+  "version": "3.1.0",
+  "roadmapExportProfile": "filtered-v3.1",
+  "inferenceMode": "filesystem + fuzzy-match + strategic-insights-rules",
+  "projectTitle": "simplebeacon-platform",
+  "projectName": "simplebeacon-platform",
+  "executiveSummary": {
+    "totalFeatures": 4,
+    "completedFeatures": 3,
+    "inProgressFeatures": 0,
+    "plannedFeatures": 1,
+    "completionRate": 67,
+    "projectHealth": "Fair",
+    "aiConfidence": null,
+    "analysisDuration": null,
+    "lastUpdated": "2026-06-01T11:01:04.868Z",
+    "teamSize": 1,
+    "notes": "Sprint model from filesystem signals + repository-audit baselines — not 47-feature enterprise fiction"
+  },
+  "developmentPhases": [
+    {
+      "phase": "Sprint 1: Server & Auth",
+      "status": "completed",
+      "progress": 100,
+      "description": "Canonical server entry and optional JWT auth",
+      "features": [
+        "Root server delegate",
+        "Phase 2 JWT auth"
+      ],
+      "milestones": [
+        "Single server entry",
+        "Auth routes live"
+      ]
+    },
+    {
+      "phase": "Sprint 2: Stub APIs & Tests",
+      "status": "completed",
+      "progress": 100,
+      "description": "Stub API routes (64 detected) and null Jest tests (null suites)",
+      "features": [
+        "Tier-1 stub API routes",
+        "139 test files on disk (run Jest for live suite count)"
+      ],
+      "milestones": [
+        "dashboard-stub-api.js",
+        "139 tests"
+      ]
+    },
+    {
+      "phase": "Sprint 3: Honest Dashboard Data",
+      "status": "completed",
+      "progress": 100,
+      "description": "9/50 page samples with repository-audit analyzers",
+      "features": [
+        "9/50 PAGE_SAMPLE_SPECS samples",
+        "SEC-004 npm audit wired to Security page",
+        "Mock-data scanner with schema validation",
+        "File merger reduction scanner"
+      ],
+      "milestones": [
+        "Repository-audit samples",
+        "Mock-data + merger scanners"
+      ]
+    },
+    {
+      "phase": "Sprint 4: Production Profile",
+      "status": "planned",
+      "progress": 0,
+      "description": "Docker Phase2, CI smoke test, Istanbul coverage, production profile",
+      "features": [
+        "Docker compose pending",
+        "Istanbul pending",
+        "GGUF inference (LLAMA_CPP_BIN/Ollama) — optional",
+        "REQUIRE_AUTH production profile ready"
+      ],
+      "milestones": [
+        "phase2-smoke CI job",
+        "Production runbook"
+      ]
+    }
+  ],
+  "projectOverview": {
+    "projectName": "simplebeacon-platform",
+    "projectType": "Scanned Codebase",
+    "totalFeatures": 4,
+    "completedFeatures": 3,
+    "inProgressFeatures": 0,
+    "plannedFeatures": 1,
+    "completionRate": 67,
+    "overallProgress": "In Progress",
+    "projectHealth": "Fair",
+    "developmentVelocity": "Measured",
+    "teamProductivity": "Filesystem scan"
+  },
+  "codeAnalysis": {
+    "structure": {
+      "totalFiles": 756,
+      "codeFiles": 707,
+      "languages": {
+        "other": 13,
+        ".example": 1,
+        ".production": 1,
+        ".v1-internal": 1,
+        ".md": 8,
+        ".yml": 15,
+        ".js": 656,
+        ".json": 35,
+        ".mdc": 2,
+        ".py": 2,
+        ".ps1": 5,
+        ".wasm": 4,
+        ".sql": 2,
+        ".bat": 2,
+        ".svg": 1,
+        ".css": 5,
+        ".html": 1,
+        ".mjs": 2
+      },
+      "topDirectories": [
+        "data",
+        "packages",
+        "server",
+        "src",
+        "tests",
+        "tools",
+        "web"
+      ]
+    },
+    "dependencies": {
+      "internalCount": 916,
+      "externalCount": 16,
+      "externalPackages": [
+        "fs",
+        "path",
+        "crypto",
+        "child_process",
+        "worker_threads",
+        "os",
+        "@babel",
+        "http",
+        "https",
+        "readline",
+        "express",
+        "lodash",
+        "archiver",
+        "openai",
+        "@",
+        "zod"
+      ],
+      "sampleInternal": [
+        ".github-sync/simplebeacon/bin/enrich-complete-scan.js -> ../src/lib/enrich-complete-scan",
+        ".github-sync/simplebeacon/bin/simplebeacon-audit.js -> ../src/index",
+        ".github-sync/simplebeacon/bin/simplebeacon-audit.js -> ../src/reporters/text",
+        ".github-sync/simplebeacon/bin/simplebeacon-audit.js -> ../src/lib/liability-metrics",
+        ".github-sync/simplebeacon/bin/simplebeacon-audit.js -> ../src/lib/trust-guard",
+        ".github-sync/simplebeacon/bin/simplebeacon-audit.js -> ../src/lib/file-validator",
+        ".github-sync/simplebeacon/bin/simplebeacon-audit.js -> ../src/assessment",
+        ".github-sync/simplebeacon/bin/simplebeacon-audit.js -> ../src/lib/path-sanitizer"
+      ]
+    },
+    "features": [
+      {
+        "name": "Dashboard Server",
+        "category": "Infrastructure",
+        "status": "implemented"
+      },
+      {
+        "name": "Phase 2 JWT Auth",
+        "category": "Security",
+        "status": "implemented"
+      },
+      {
+        "name": "Dashboard Stub API",
+        "category": "API",
+        "status": "implemented"
+      },
+      {
+        "name": "Mock Data Scanner",
+        "category": "Analysis",
+        "status": "implemented"
+      },
+      {
+        "name": "npm Audit Runner",
+        "category": "Security",
+        "status": "implemented"
+      },
+      {
+        "name": "File Merger Scanner",
+        "category": "Analysis",
+        "status": "implemented"
+      },
+      {
+        "name": "Code Roadmap Generator",
+        "category": "Planning",
+        "status": "implemented"
+      },
+      {
+        "name": "Assessment API",
+        "category": "API",
+        "status": "implemented"
+      },
+      {
+        "name": "Page Sample Baselines",
+        "category": "Data",
+        "status": "implemented",
+        "count": 9
+      },
+      {
+        "name": "Jest Test Files",
+        "category": "Testing",
+        "status": "implemented",
+        "count": 139
+      }
+    ],
+    "samples": {
+      "onDisk": 9,
+      "withSpecs": 9,
+      "specTotal": 50,
+      "pageSamplesLabel": "9/50"
+    },
+    "signals": {
+      "serverEntry": true,
+      "phase2Auth": true,
+      "stubApi": true,
+      "mockScanner": true,
+      "codeRoadmapGenerator": true,
+      "fileMergerScanner": true,
+      "npmAudit": true,
+      "dockerPhase2": false,
+      "githubCi": false,
+      "istanbulInCi": false,
+      "phase2SmokeInCi": false,
+      "pageSampleDir": true,
+      "buildFromPath": true,
+      "assessmentApi": true,
+      "npmAuditClean": false
+    },
+    "phase2": {
+      "phase": "Phase 2 — Code intelligence",
+      "status": "active",
+      "dependencyGraph": {
+        "summary": {
+          "nodes": 343,
+          "edges": 679,
+          "circularCycles": 0
+        },
+        "circularDependencies": [],
+        "sampleEdges": [
+          {
+            "from": ".github-sync/simplebeacon/bin/enrich-complete-scan.js",
+            "to": ".github-sync/simplebeacon/src/lib/enrich-complete-scan.js",
+            "type": "require"
+          },
+          {
+            "from": ".github-sync/simplebeacon/bin/simplebeacon-audit.js",
+            "to": ".github-sync/simplebeacon/src/index.js",
+            "type": "require"
+          },
+          {
+            "from": ".github-sync/simplebeacon/bin/simplebeacon-audit.js",
+            "to": ".github-sync/simplebeacon/src/reporters/text.js",
+            "type": "require"
+          },
+          {
+            "from": ".github-sync/simplebeacon/bin/simplebeacon-audit.js",
+            "to": ".github-sync/simplebeacon/src/lib/liability-metrics.js",
+            "type": "require"
+          },
+          {
+            "from": ".github-sync/simplebeacon/bin/simplebeacon-audit.js",
+            "to": ".github-sync/simplebeacon/src/lib/trust-guard.js",
+            "type": "require"
+          },
+          {
+            "from": ".github-sync/simplebeacon/bin/simplebeacon-audit.js",
+            "to": ".github-sync/simplebeacon/src/lib/file-validator.js",
+            "type": "require"
+          },
+          {
+            "from": ".github-sync/simplebeacon/bin/simplebeacon-audit.js",
+            "to": ".github-sync/simplebeacon/src/assessment.js",
+            "type": "require"
+          },
+          {
+            "from": ".github-sync/simplebeacon/bin/simplebeacon-audit.js",
+            "to": ".github-sync/simplebeacon/src/lib/path-sanitizer.js",
+            "type": "require"
+          },
+          {
+            "from": ".github-sync/simplebeacon/bin/simplebeacon-audit.js",
+            "to": ".github-sync/simplebeacon/src/lib/cloud-upload.js",
+            "type": "require"
+          },
+          {
+            "from": ".github-sync/simplebeacon/bin/simplebeacon-mcp.js",
+            "to": ".github-sync/simplebeacon/src/mcp/stdio-server.js",
+            "type": "require"
+          },
+          {
+            "from": ".github-sync/simplebeacon/bin/simplebeacon-mcp.js",
+            "to": ".github-sync/simplebeacon/src/mcp/tools.js",
+            "type": "require"
+          },
+          {
+            "from": ".github-sync/simplebeacon/bin/simplebeacon-proxy.js",
+            "to": ".github-sync/simplebeacon/src/proxy/gateway.js",
+            "type": "require"
+          }
+        ]
+      },
+      "fuzzySimilarity": {
+        "method": "token-jaccard",
+        "threshold": 0.92,
+        "pairsFound": 0,
+        "pairs": [],
+        "gguf": {
+          "available": false,
+          "executable": false,
+          "llamaCppBin": null,
+          "mode": "filesystem-only",
+          "semanticSimilarity": "Fuzzy token match only — set LLAMA_CPP_BIN for optional hints",
+          "note": "No embedding model run during filesystem scan unless analyze uses model.path"
+        }
+      },
+      "semanticHints": {
+        "enabled": false,
+        "mode": "filesystem-only",
+        "hints": [],
+        "note": "Set LLAMA_CPP_BIN for optional semantic review hints on fuzzy pairs"
+      },
+      "resourceEstimate": {
+        "teamSize": 1,
+        "role": "Solo maintainer",
+        "remainingSprints": 1,
+        "estimatedHours": 40,
+        "hourlyRateUsd": 75,
+        "internalBudgetUsd": 3000,
+        "budgetNote": "Internal notional estimate — not $204k enterprise fiction",
+        "sprintBreakdown": [
+          {
+            "phase": "Sprint 4: Production Profile",
+            "progress": 0,
+            "estimatedHours": 40
+          }
+        ]
+      },
+      "visualization": {
+        "circularDependencyGraph": {
+          "nodes": [],
+          "edges": []
+        }
+      },
+      "rejectedFiction": {
+        "claims": [
+          "85-95% roadmap accuracy guarantees",
+          "Multi-FTE team composition from GGUF",
+          "$204k budget forecasts from scan"
+        ]
+      }
+    },
+    "aiIntegration": {
+      "apis": [
+        "/api/:provider",
+        "/api/ai-validation/audit",
+        "/api/ai-validation/dashboard",
+        "/api/ai-validation/results/:scanId",
+        "/api/ai-validation/scan",
+        "/api/analytics/performance",
+        "/api/analyze/codebase",
+        "/api/analyze/complete-audit-report",
+        "/api/analyze/compliance-checklist",
+        "/api/analyze/data-cleanup",
+        "/api/analyze/eu-ai-act-audit-report",
+        "/api/analyze/expert-review",
+        "/api/analyze/export-bundle",
+        "/api/analyze/flexible",
+        "/api/analyze/inventory",
+        "/api/analyze/npm-audit",
+        "/api/analyze/providers",
+        "/api/analyze/summary",
+        "/api/analyze/test-sources",
+        "/api/analyze/understand",
+        "/api/analyze/zscript-report",
+        "/api/assessments",
+        "/api/assessments/:assessmentId",
+        "/api/assessments/:assessmentId/download/:format",
+        "/api/audit-booking",
+        "/api/audit-bookings",
+        "/api/auth/login",
+        "/api/auth/logout",
+        "/api/auth/me",
+        "/api/auth/refresh",
+        "/api/backlog",
+        "/api/code-generation/history",
+        "/api/code-generation/stats",
+        "/api/code-generation/templates",
+        "/api/code-roadmap/analyze",
+        "/api/code-roadmap/export/html",
+        "/api/dev-tools/stats",
+        "/api/dev-tools/tools",
+        "/api/dev-tools/workflows",
+        "/api/dynamic-roadmap/build-from-path",
+        "/api/dynamic-roadmap/health",
+        "/api/dynamic-roadmap/history",
+        "/api/health",
+        "/api/health/db",
+        "/api/health/redis",
+        "/api/issues",
+        "/api/merger-tool/data-cleanup-scan",
+        "/api/merger-tool/reduction-scan"
+      ],
+      "apiRouteCount": 64,
+      "notes": "Routes scraped from server/ and src/ — docs and archive paths excluded"
+    }
+  },
+  "resourceEstimate": {
+    "teamSize": 1,
+    "role": "Solo maintainer",
+    "remainingSprints": 1,
+    "estimatedHours": 40,
+    "hourlyRateUsd": 75,
+    "internalBudgetUsd": 3000,
+    "budgetNote": "Internal notional estimate — not $204k enterprise fiction",
+    "sprintBreakdown": [
+      {
+        "phase": "Sprint 4: Production Profile",
+        "progress": 0,
+        "estimatedHours": 40
+      }
+    ]
+  },
+  "implementationPhases": [
+    {
+      "phase": "Phase 1 — Sprint detection",
+      "status": "complete",
+      "items": [
+        "Filesystem signals",
+        "Sprint roadmap",
+        "API route counts"
+      ]
+    },
+    {
+      "phase": "Phase 2 — Code intelligence",
+      "status": "active",
+      "items": [
+        "Circular dependency detection",
+        "Fuzzy similarity pairs",
+        "Solo resource estimate",
+        "HTML executive export"
+      ]
+    },
+    {
+      "phase": "Phase 3 — Optional GGUF",
+      "status": "planned",
+      "items": [
+        "Semantic hints when analyze endpoint wired",
+        "Not 85-95% accuracy claims"
+      ]
+    }
+  ],
+  "featureCategories": [
+    {
+      "category": "Infrastructure",
+      "completed": 1,
+      "total": 1,
+      "completionRate": 100
+    },
+    {
+      "category": "Security",
+      "completed": 2,
+      "total": 2,
+      "completionRate": 100
+    },
+    {
+      "category": "API",
+      "completed": 2,
+      "total": 2,
+      "completionRate": 100
+    },
+    {
+      "category": "Analysis",
+      "completed": 2,
+      "total": 2,
+      "completionRate": 100
+    },
+    {
+      "category": "Planning",
+      "completed": 1,
+      "total": 1,
+      "completionRate": 100
+    },
+    {
+      "category": "Data",
+      "completed": 1,
+      "total": 1,
+      "completionRate": 100
+    },
+    {
+      "category": "Testing",
+      "completed": 1,
+      "total": 1,
+      "completionRate": 100
+    }
+  ],
+  "progressMetrics": {
+    "overall": 67,
+    "phases": {
+      "Sprint 1: Server & Auth": 100,
+      "Sprint 2: Stub APIs & Tests": 100,
+      "Sprint 3: Honest Dashboard Data": 100,
+      "Sprint 4: Production Profile": 0
+    },
+    "categories": {
+      "AI Tools": 100,
+      "Analytics": 100,
+      "Development Tools": 100,
+      "Infrastructure": 45
+    },
+    "metrics": {
+      "codebaseMaturity": 71,
+      "featureCompleteness": 67,
+      "documentationCoverage": 7.38255033557047,
+      "testCoverage": null,
+      "lineCoverage": null,
+      "branchCoverage": null,
+      "jestTests": null,
+      "jestSuites": null,
+      "pageSamples": "9/50",
+      "apiRouteCount": 64,
+      "testCoverageNote": "Coverage % omitted — no live Jest baseline paired in this scan; run npm test with Istanbul before citing in handoffs."
+    }
+  },
+  "recommendations": {
+    "immediate": [
+      "Add docker-compose.phase2.yml smoke test to CI",
+      "Enable Istanbul coverage in CI (npm run test:coverage)"
+    ],
+    "shortTerm": [
+      "Complete remaining sprint deliverables",
+      "Wire null deploy gate before production profile",
+      "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)",
+      "Improve documentation coverage"
+    ],
+    "longTerm": [
+      "Define enterprise scope only after v1.0-internal"
+    ],
+    "priorities": {
+      "high": [
+        "Add docker-compose.phase2.yml smoke test to CI",
+        "Enable Istanbul coverage in CI (npm run test:coverage)"
+      ],
+      "medium": [
+        "Complete remaining sprint deliverables",
+        "Wire null deploy gate before production profile",
+        "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)"
+      ],
+      "low": [
+        "Optional GGUF semantic feature extraction"
+      ]
+    }
+  },
+  "v1InternalDeploy": {
+    "localStatus": "not_started",
+    "productionStatus": "env_partial",
+    "localEnvConfigured": true,
+    "productionEnvConfigured": true,
+    "stripeConfigured": false,
+    "gateRemaining": true,
+    "runbook": "docs/v1-internal-runbook.md",
+    "verifyLocal": "npm run verify:v1-internal-profile",
+    "verifyProduction": "npm run verify:production-deploy",
+    "deploy": "npm run simplebeacon:deploy"
+  },
+  "sourceProjectPath": "ai-platform",
+  "platformRoot": "ai-platform",
+  "rejectedFiction": {
+    "warning": "Enterprise roadmap design claims not produced by this scanner",
+    "claims": [
+      "Hardcoded GGUF confidence or prediction accuracy percentages",
+      "Hardcoded feature totals or completion-rate defaults",
+      "85-95% accuracy enhancement guarantees",
+      "Multi-FTE team and budget estimation from GGUF",
+      "Auto-merge roadmap executor"
+    ],
+    "replacedBy": "Sprint deliverable detection from filesystem + package.json + API route counts"
+  },
+  "deprecatedNarrative": {
+    "warning": "RoadmapDataAnalyzer previously returned hardcoded feature totals and completion defaults.",
+    "previousTotalFeatures": null,
+    "previousCompletionRate": null
+  },
+  "projectStructure": {
+    "projectRoot": "ai-platform",
+    "platformRoot": "ai-platform",
+    "totalDirectories": 28,
+    "totalFiles": 21,
+    "mainCategories": {
+      "data": {
+        "name": "data",
+        "path": "ai-platform/data",
+        "exists": true,
+        "fileCount": 1,
+        "subdirectoryCount": 1,
+        "fileTypes": {
+          ".json": 1
+        },
+        "totalSize": 434,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "data-central": {
+        "name": "data-central",
+        "path": "ai-platform/data-central",
+        "exists": true,
+        "fileCount": 0,
+        "subdirectoryCount": 1,
+        "fileTypes": {},
+        "totalSize": 0,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "github-cache": {
+        "name": "github-cache",
+        "path": "ai-platform/github-cache",
+        "exists": true,
+        "fileCount": 0,
+        "subdirectoryCount": 1,
+        "fileTypes": {},
+        "totalSize": 0,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "packages": {
+        "name": "packages",
+        "path": "ai-platform/packages",
+        "exists": true,
+        "fileCount": 0,
+        "subdirectoryCount": 2,
+        "fileTypes": {},
+        "totalSize": 0,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "server": {
+        "name": "server",
+        "path": "ai-platform/server",
+        "exists": true,
+        "fileCount": 8,
+        "subdirectoryCount": 8,
+        "fileTypes": {
+          ".js": 7,
+          ".md": 1
+        },
+        "totalSize": 73391,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": "api-server-optimizations.js",
+            "size": 8032,
+            "type": ".js",
+            "modified": "2026-06-01T08:55:22.799Z"
+          },
+          {
+            "name": "dlp-dashboard.js",
+            "size": 10639,
+            "type": ".js",
+            "modified": "2026-05-31T00:30:38.138Z"
+          },
+          {
+            "name": "index.js",
+            "size": 31229,
+            "type": ".js",
+            "modified": "2026-06-01T08:55:22.798Z"
+          },
+          {
+            "name": "README-DLP.md",
+            "size": 2665,
+            "type": ".md",
+            "modified": "2026-06-01T10:46:02.955Z"
+          }
+        ]
+      },
+      "src": {
+        "name": "src",
+        "path": "ai-platform/src",
+        "exists": true,
+        "fileCount": 0,
+        "subdirectoryCount": 4,
+        "fileTypes": {},
+        "totalSize": 0,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "tests": {
+        "name": "tests",
+        "path": "ai-platform/tests",
+        "exists": true,
+        "fileCount": 1,
+        "subdirectoryCount": 0,
+        "fileTypes": {
+          ".js": 1
+        },
+        "totalSize": 577,
+        "depth": 0,
+        "keyFiles": []
+      },
+      "tools": {
+        "name": "tools",
+        "path": "ai-platform/tools",
+        "exists": true,
+        "fileCount": 10,
+        "subdirectoryCount": 0,
+        "fileTypes": {
+          ".js": 10
+        },
+        "totalSize": 19285,
+        "depth": 0,
+        "keyFiles": [
+          {
+            "name": "kill-dashboard-ports.js",
+            "size": 1298,
+            "type": ".js",
+            "modified": "2026-05-31T00:31:36.122Z"
+          },
+          {
+            "name": "start-v1-internal-dashboard.js",
+            "size": 706,
+            "type": ".js",
+            "modified": "2026-05-31T00:30:38.812Z"
+          }
+        ]
+      },
+      "web": {
+        "name": "web",
+        "path": "ai-platform/web",
+        "exists": true,
+        "fileCount": 1,
+        "subdirectoryCount": 2,
+        "fileTypes": {
+          ".svg": 1
+        },
+        "totalSize": 370,
+        "depth": 0,
+        "keyFiles": []
+      }
+    },
+    "note": "Top-level categories only (21 immediate files walked) — codeAnalysis.structure.totalFiles (756) is audit-scoped inventory for sprint metrics."
+  },
+  "aiIntegration": {
+    "level": "basic",
+    "features": {
+      "analysis": true,
+      "generation": true,
+      "processing": true,
+      "automation": true
+    },
+    "models": [
+      "llama",
+      "gguf",
+      "gpt",
+      "claude",
+      "bert"
+    ],
+    "apis": [
+      "/api/:provider",
+      "/api/ai-validation/audit",
+      "/api/ai-validation/dashboard",
+      "/api/ai-validation/results/:scanId",
+      "/api/ai-validation/scan",
+      "/api/analytics/performance",
+      "/api/analyze/codebase",
+      "/api/analyze/complete-audit-report",
+      "/api/analyze/compliance-checklist",
+      "/api/analyze/data-cleanup",
+      "/api/analyze/eu-ai-act-audit-report",
+      "/api/analyze/expert-review",
+      "/api/analyze/export-bundle",
+      "/api/analyze/flexible",
+      "/api/analyze/inventory",
+      "/api/analyze/npm-audit",
+      "/api/analyze/providers",
+      "/api/analyze/summary",
+      "/api/analyze/test-sources",
+      "/api/analyze/understand",
+      "/api/analyze/zscript-report",
+      "/api/assessments",
+      "/api/assessments/:assessmentId",
+      "/api/assessments/:assessmentId/download/:format",
+      "/api/audit-booking",
+      "/api/audit-bookings",
+      "/api/auth/login",
+      "/api/auth/logout",
+      "/api/auth/me",
+      "/api/auth/refresh",
+      "/api/backlog",
+      "/api/code-generation/history",
+      "/api/code-generation/stats",
+      "/api/code-generation/templates",
+      "/api/code-roadmap/analyze",
+      "/api/code-roadmap/export/html",
+      "/api/dev-tools/stats",
+      "/api/dev-tools/tools",
+      "/api/dev-tools/workflows",
+      "/api/dynamic-roadmap/build-from-path",
+      "/api/dynamic-roadmap/health",
+      "/api/dynamic-roadmap/history",
+      "/api/health",
+      "/api/health/db",
+      "/api/health/redis",
+      "/api/issues",
+      "/api/merger-tool/data-cleanup-scan",
+      "/api/merger-tool/reduction-scan"
+    ],
+    "apiRouteCount": 64,
+    "confidence": null,
+    "notes": "Routes scraped from server/ and src/ — docs and archive paths excluded"
+  },
+  "scanOptions": {
+    "includePaths": [],
+    "excludePatterns": []
+  },
+  "strategicInsights": {
+    "type": "strategic-insights",
+    "mode": "deterministic",
+    "generatedAt": "2026-06-01T11:01:04.871Z",
+    "executiveSummary": "* Test coverage percentages require live Jest/Istanbul — not inferred by roadmap LLM.",
+    "riskAssessment": {
+      "overallRisk": "MODERATE",
+      "riskCategories": {
+        "security": "MINIMAL",
+        "compliance": "MODERATE",
+        "performance": "MINIMAL",
+        "maintainability": "MODERATE"
+      },
+      "riskFactors": [
+        {
+          "category": "maintainability",
+          "severity": "medium",
+          "description": "Test coverage requires live Jest/Istanbul — not inferred by roadmap LLM.",
+          "recommendation": "Expand Jest/Istanbul coverage on critical server paths",
+          "estimatedImpact": "Lower regression risk in compliance reviews"
+        }
+      ]
+    },
+    "recommendations": [
+      {
+        "priority": "HIGH",
+        "category": "delivery",
+        "action": "Add docker-compose.phase2.yml smoke test to CI",
+        "estimatedEffort": "1–3 days",
+        "estimatedImpact": "Unblocks production readiness",
+        "businessValue": "Revenue and compliance timeline"
+      },
+      {
+        "priority": "HIGH",
+        "category": "delivery",
+        "action": "Enable Istanbul coverage in CI (npm run test:coverage)",
+        "estimatedEffort": "1–3 days",
+        "estimatedImpact": "Unblocks production readiness",
+        "businessValue": "Revenue and compliance timeline"
+      },
+      {
+        "priority": "MEDIUM",
+        "category": "maintainability",
+        "action": "Complete remaining sprint deliverables",
+        "estimatedEffort": "3–5 days",
+        "estimatedImpact": "Improved engineering velocity",
+        "businessValue": "Lower ongoing ops cost"
+      },
+      {
+        "priority": "MEDIUM",
+        "category": "maintainability",
+        "action": "Wire null deploy gate before production profile",
+        "estimatedEffort": "3–5 days",
+        "estimatedImpact": "Improved engineering velocity",
+        "businessValue": "Lower ongoing ops cost"
+      },
+      {
+        "priority": "MEDIUM",
+        "category": "maintainability",
+        "action": "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)",
+        "estimatedEffort": "3–5 days",
+        "estimatedImpact": "Improved engineering velocity",
+        "businessValue": "Lower ongoing ops cost"
+      }
+    ],
+    "complianceNarrative": "Deterministic scan scope: filesystem inventory, sample-path gate rules, and sprint baselines. Test coverage should be verified separately before SOC 2 change-management claims. 64 API routes inventoried for perimeter review. Fiction KPI and mock-data governance require Simplebeacon gate scans — not inferred by this roadmap layer.",
+    "llmProvider": null,
+    "llmSummary": null,
+    "sourceMetrics": {
+      "projectName": "simplebeacon-platform",
+      "totalFiles": 756,
+      "codeFiles": 707,
+      "apiRoutes": 64,
+      "testFiles": null,
+      "completionRate": 67,
+      "testCoverage": null,
+      "lineCoverage": null,
+      "featureCompleteness": 67,
+      "phaseCount": 4,
+      "totalFeatures": 4,
+      "completedFeatures": 3,
+      "projectHealth": "Fair",
+      "immediateActions": [
+        "Add docker-compose.phase2.yml smoke test to CI",
+        "Enable Istanbul coverage in CI (npm run test:coverage)"
+      ],
+      "shortTermActions": [
+        "Complete remaining sprint deliverables",
+        "Wire null deploy gate before production profile",
+        "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)",
+        "Improve documentation coverage"
+      ],
+      "longTermActions": [
+        "Define enterprise scope only after v1.0-internal"
+      ],
+      "dataSource": "filesystem-scan",
+      "generatedBy": "code-roadmap-generator",
+      "testCoverageNote": "Coverage % stripped on export — pair with live Jest result or gate JSON for handoff evidence."
+    },
+    "llmAdvisoryOnly": true,
+    "llmDisclaimer": "Coverage percentages in LLM fields are not handoff evidence unless paired with live Jest output."
+  },
+  "coverageEvidenceSource": "omitted-stale-prior",
+  "exportNormalized": true,
+  "exportSanitized": true,
+  "scanTargetProfile": "product",
+  "securityHandoffEligible": false,
+  "handoffEligible": false,
+  "roadmapHealthStatus": "product-advisory",
+  "scanScope": {
+    "resultsViewScope": "filesystem-roadmap-advisory",
+    "securityHandoffEligible": false,
+    "roadmapNote": "Roadmap metrics are filesystem-derived — strategicInsights LLM narrative is advisory only."
+  },
+  "hygieneSummary": {
+    "roadmapAuditFiles": 756,
+    "gateRepositoryFilesTotal": null,
+    "sprintCompletionRate": 67,
+    "coverageEvidenceSource": "omitted-stale-prior",
+    "apiRouteCount": 64,
+    "jestFilesOnDisk": 139,
+    "roadmapHealthStatus": "product-advisory",
+    "attestationNote": "Filesystem roadmap + LLM advisory — gate JSON is source of truth for vendor handoff."
+  },
+  "exportNotes": [
+    "securityHandoffEligible is false — roadmap is filesystem/LLM advisory; gate JSON is required for vendor security handoff.",
+    "Absolute scan paths are redacted to project label in operator exports.",
+    "progressMetrics coverage % removed — no Jest baseline label was paired in this scan (likely prior-progress or disk cache).",
+    "strategicInsights LLM narrative is advisory — deterministic codeAnalysis and gate exports are source of truth.",
+    "rejectedFiction block documents claims this scanner does not produce — do not cite LLM coverage % in compliance handoffs.",
+    "Roadmap scan did not pair live Jest — use gate/complete scan for test attestation.",
+    "Sprint completion % is filesystem-derived — not vendor handoff clearance."
+  ]
+}

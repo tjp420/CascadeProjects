@@ -6,7 +6,7 @@ const path = require('path');
 const {
     assessAuditExportTier,
     resolveAuditClientName
-} = require('./audit-export-tier');
+} = require('./audit-export-tier.cjs');
 const {
     collectIssues,
     resolveSeverityCounts,
@@ -18,12 +18,13 @@ const {
     defaultRemediation
 } = require('../../packages/simplebeacon-cli/src/reporters/audit-report');
 
-const { escapeHtml } = require('./code-roadmap-export');
-const { buildSampleAuditReportModel: buildSampleAuditReportModelFromFixtures } = require(path.join(__dirname, 'fixtures', 'sample-audit-report-data'));
+const { escapeHtml } = require('./code-roadmap-export.cjs');
+// simplebeacon:production-leak-intent: fixtures-path - Legitimate fixture data for audit report generation in development/demo mode
+const { buildSampleAuditReportModel: buildSampleAuditReportModelFromFixtures } = require('./fixtures/sample-audit-report-data.cjs');
 const {
     enrichRemediationRow,
     buildVerificationCommand
-} = require('./audit-remediation-recipes');
+} = require('./audit-remediation-recipes.cjs');
 
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 const PRODUCTION_PREFIXES = ['server/', 'src/', 'packages/', 'app/', 'lib/', 'client/', 'api/'];
@@ -747,7 +748,59 @@ function normalizeCompleteScanInput(completeScan) {
             }
         };
     }
-    return completeScan;
+    return hydrateCompleteScanFromSteps(completeScan);
+}
+
+function hydrateCompleteScanFromSteps(completeScan) {
+    if (!completeScan || typeof completeScan !== 'object') return null;
+    const steps = Array.isArray(completeScan.steps) ? completeScan.steps : [];
+    if (!steps.length) return completeScan;
+
+    const byId = new Map(steps.filter(Boolean).map((step) => [step.id, step]));
+    const results = { ...(completeScan.results || {}) };
+    const assign = (engineId, resultKey, ...fields) => {
+        if (results[resultKey]) return;
+        const step = byId.get(engineId);
+        if (!step) return;
+        for (const field of fields) {
+            if (step[field]) {
+                results[resultKey] = step[field];
+                return;
+            }
+        }
+    };
+
+    assign('simplebeacon', 'simplebeacon', 'report');
+    assign('consolidation', 'consolidation', 'scan');
+    assign('mock-scan', 'mockScan', 'report');
+    assign('roadmap', 'roadmap', 'roadmap', 'data');
+    assign('codebase', 'codebase', 'scan');
+    assign('file-reduction', 'fileReduction', 'scan');
+    assign('data-quality', 'dataQuality', 'scan');
+    assign('cleanup-assistant', 'cleanupAssistant', 'brief');
+    assign('compliance', 'compliance', 'checklist');
+    assign('npm-audit', 'npmAudit', 'npmAudit');
+    assign('eu-ai-act', 'sprint', 'sprint');
+
+    if (results.roadmap?.roadmap && !results.roadmap.codeAnalysis) {
+        results.roadmap = results.roadmap.roadmap;
+    }
+
+    return {
+        ...completeScan,
+        type: completeScan.type || 'simplebeacon-complete-scan',
+        results
+    };
+}
+
+function completeScanHasExportableResults(completeScan) {
+    const normalized = normalizeCompleteScanInput(completeScan);
+    if (!normalized) return false;
+    if (normalized.results && Object.values(normalized.results).some(Boolean)) return true;
+    return Array.isArray(normalized.steps) && normalized.steps.some((step) => step && (
+        step.report || step.scan || step.checklist || step.npmAudit || step.sprint || step.brief
+        || step.roadmap || step.data?.roadmap
+    ));
 }
 
 function buildCompleteAuditModel(completeScan, options = {}) {
@@ -1631,6 +1684,8 @@ module.exports = {
     normalizeSimplebeaconForCompliance,
     isPlaceholderExecutiveText,
     normalizeCompleteScanInput,
+    hydrateCompleteScanFromSteps,
+    completeScanHasExportableResults,
     buildLaunchReadiness,
     calculateAuditConfidence,
     buildExecutivePriorities,

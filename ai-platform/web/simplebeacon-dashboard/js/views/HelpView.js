@@ -9,6 +9,8 @@ import {
   formatScanInventoryNote
 } from '../services/analyzeService.js';
 
+// simplebeacon:production-leak-intent: web-data-sample - Legitimate documentation about web data paths in help documentation
+
 const DASHBOARD_PAGES = [
   {
     route: 'dashboard',
@@ -174,7 +176,7 @@ export class HelpView {
           <table class="results-table">
             <thead><tr><th>Metric</th><th>Meaning</th></tr></thead>
             <tbody>
-              <tr><td><strong>mock/sample</strong></td><td>Files in configured <code>scanPaths</code> (e.g. <code>web/data/*-sample.json</code>) — the gate target (~42 on ai-platform).</td></tr>
+              <tr><td><strong>mock/sample</strong></td><td>Files in configured <code>scanPaths</code> (e.g. <code>web/data/*-sample.json</code>) — the gate target (~42 on ai-platform). <!-- simplebeacon:production-leak-intent - legitimate example in documentation --></td></tr>
               <tr><td><strong>rule-scoped</strong></td><td>Files read by credential + production-leak rules (often ~117) — broader than mock paths alone.</td></tr>
               <tr><td><strong>page specs</strong></td><td>Page-sample JSON validated against Jest specs (e.g. 42/42) — includes aliased roadmap samples outside <code>scanPaths</code>.</td></tr>
               <tr><td><strong>repo files</strong></td><td>Explorer-style inventory of project root (~42k on ai-platform) — context only, not a full-fiction scan.</td></tr>

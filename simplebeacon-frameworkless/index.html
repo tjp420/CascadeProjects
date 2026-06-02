@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SimpleBeacon — Release hygiene for AI-assisted code</title>
+  <meta name="description" content="Local MCP + CLI gate for credential patterns, *-sample.json in production routes, and AI-fiction KPIs. Free offline scans — optional $499 executive PDF from your report.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .terminal-text {
+      font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            dark: {
+              bg: '#0B0F19',
+              card: '#161B22',
+              border: '#30363D',
+              text: '#E6EDF3',
+              muted: '#8B949E',
+              dim: '#6E7681'
+            },
+            accent: {
+              green: '#2EA44F',
+              greenHover: '#238636',
+              blue: '#58A6FF',
+              red: '#FF6B6B',
+              yellow: '#D29922'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-dark-bg text-dark-text min-h-screen">
+  
+  <!-- Hero Section -->
+  <section class="max-w-4xl mx-auto px-6 py-16 md:py-24">
+    <div class="text-center">
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+        Release hygiene for AI-assisted code
+      </h1>
+      <p class="text-lg md:text-xl text-dark-muted mb-8 max-w-2xl mx-auto leading-relaxed">
+        LLMs write your code. Sample JSON and fiction KPIs slip into production routes. SimpleBeacon catches them before the client walkthrough.
+      </p>
+      
+      <!-- Terminal Command -->
+      <div class="bg-dark-card border border-dark-border rounded-lg p-4 md:p-6 max-w-xl mx-auto mb-8">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-3 h-3 rounded-full bg-red-500"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+          <div class="w-3 h-3 rounded-full bg-green-500"></div>
+        </div>
+        <div class="flex items-center justify-between bg-dark-bg border border-dark-border rounded p-3">
+          <code class="terminal-text text-sm md:text-base text-accent-green" id="terminalCommand">npx --yes simplebeacon init --starter</code>
+          <button onclick="copyToClipboard()" class="ml-3 p-2 hover:bg-dark-card rounded transition-colors" title="Copy to clipboard">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-dark-muted hover:text-dark-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <p class="text-sm text-dark-dim">
+        Local MCP for shift-left feedback · full-repo <code class="terminal-text text-accent-green">--gate</code> for PR/CI · tuned allowlists so you report blocking issues, not raw finding counts.
+      </p>
+    </div>
+  </section>
+
+  <!-- Diagnostic Tool Section -->
+  <section class="max-w-4xl mx-auto px-6 py-12 border-t border-dark-border">
+    <div class="bg-dark-card border border-dark-border rounded-lg p-6 md:p-8">
+      <h2 class="text-2xl font-bold mb-4">Instant AI-fiction & token diagnostic</h2>
+      <p class="text-dark-muted mb-6">Paste a config snippet or drop one file. Runs locally in your browser — nothing uploads.</p>
+      
+      <div class="mb-4">
+        <textarea 
+          id="diagnosticInput" 
+          class="w-full bg-dark-bg border border-dark-border rounded-lg p-4 terminal-text text-sm text-dark-text focus:outline-none focus:border-accent-blue resize-none"
+          rows="7"
+          placeholder="Paste JSON, .env, server config, or a code block here…"
+        ></textarea>
+      </div>
+      
+      <button 
+        onclick="runDiagnostic()" 
+        id="diagnosticButton"
+        class="bg-accent-green hover:bg-accent-greenHover text-white font-semibold px-6 py-3 rounded-lg transition-colors mb-6"
+      >
+        Run diagnostic
+      </button>
+      
+      <!-- Loading State -->
+      <div id="diagnosticLoading" class="hidden mb-6">
+        <div class="flex items-center gap-3">
+          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-accent-green"></div>
+          <span class="text-dark-muted">Analyzing code snippet…</span>
+        </div>
+      </div>
+      
+      <!-- Clean Result -->
+      <div id="diagnosticClean" class="hidden bg-dark-bg border border-accent-green/30 rounded-lg p-4">
+        <p class="text-accent-green font-semibold mb-2">✓ This snippet looks clean.</p>
+        <p class="text-dark-muted text-sm">AI-fiction KPIs and mock paths often hide in other folders, imports, and config files this quick check cannot see — the same gaps that embarrass agencies in client walkthroughs.</p>
+      </div>
+      
+      <!-- Blocking Result -->
+      <div id="diagnosticBlocking" class="hidden bg-dark-bg border border-accent-red/30 rounded-lg p-4">
+        <p class="text-accent-red font-semibold mb-2">⚠ Blocking patterns detected in this snippet</p>
+        <p class="text-dark-muted text-sm mb-3">Deterministic checks found credential, sample-path, fiction KPI, debug code, or compliance issues.</p>
+        <div id="diagnosticFindings" class="terminal-text text-sm text-dark-dim space-y-2"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EU AI Act Section -->
+  <section class="max-w-4xl mx-auto px-6 py-12 border-t border-dark-border">
+    <div class="mb-8">
+      <span class="inline-block bg-accent-yellow/10 border border-accent-yellow/30 text-accent-yellow px-3 py-1 rounded-full text-sm font-semibold mb-4">
+        EU AI Act · August 2026 deadline
+      </span>
+      <h2 class="text-3xl font-bold mb-4">Get EU AI Act ready before August 2026</h2>
+      <p class="text-dark-muted max-w-2xl">
+        Enterprises deploying AI in the EU face fines up to <strong class="text-dark-text">7% of global turnover</strong>. SimpleBeacon scans your repo for Annex III high-risk patterns, Article 50 transparency gaps, and missing documentation.
+      </p>
+    </div>
+    
+    <div class="grid md:grid-cols-3 gap-4">
+      <div class="bg-dark-card border border-dark-border rounded-lg p-5">
+        <span class="inline-block bg-accent-blue/10 border border-accent-blue/30 text-accent-blue px-2 py-1 rounded text-xs font-semibold mb-3">
+          Annex III
+        </span>
+        <h3 class="font-bold mb-2">High-risk AI detection</h3>
+        <p class="text-dark-muted text-sm">Static signals for employment, credit, biometric, insurance, and law-enforcement AI patterns in your source code.</p>
+      </div>
+      
+      <div class="bg-dark-card border border-dark-border rounded-lg p-5">
+        <span class="inline-block bg-accent-blue/10 border border-accent-blue/30 text-accent-blue px-2 py-1 rounded text-xs font-semibold mb-3">
+          Art. 50
+        </span>
+        <h3 class="font-bold mb-2">Transparency obligations</h3>
+        <p class="text-dark-muted text-sm">Flags user-facing LLM integrations without AI-generated or AI-interaction disclosure.</p>
+      </div>
+      
+      <div class="bg-dark-card border border-dark-border rounded-lg p-5">
+        <span class="inline-block bg-accent-blue/10 border border-accent-blue/30 text-accent-blue px-2 py-1 rounded text-xs font-semibold mb-3">
+          Docs
+        </span>
+        <h3 class="font-bold mb-2">Documentation completeness</h3>
+        <p class="text-dark-muted text-sm">Checks for model cards, risk assessments, and technical documentation when AI systems are detected.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reputation Workflow Section -->
+  <section class="max-w-4xl mx-auto px-6 py-12 border-t border-dark-border">
+    <h2 class="text-3xl font-bold mb-8">From one-off audit to recurring agency shield</h2>
+    <p class="text-dark-muted mb-8 max-w-2xl">
+      Investors and buyers both want the same thing: proof you caught AI slop <em>before</em> the client does. SimpleBeacon starts transactional, then stays on the repo.
+    </p>
+    
+    <div class="space-y-6">
+      <!-- Step 1 -->
+      <div class="flex gap-4">
+        <div class="flex-shrink-0 w-12 h-12 bg-accent-green/10 border border-accent-green/30 rounded-lg flex items-center justify-center text-accent-green font-bold">
+          1
+        </div>
+        <div class="flex-1">
+          <h3 class="font-bold text-lg mb-2">Local MCP + CLI — free</h3>
+          <p class="text-dark-muted text-sm mb-3">
+            <code class="terminal-text text-accent-green">npx --yes simplebeacon init --starter</code> wires Cursor MCP, config, and GitHub Action. Scan snippets while coding; run <code class="terminal-text text-accent-green">scan --gate --offline</code> before PR.
+          </p>
+          <span class="inline-block bg-dark-bg border border-dark-border px-2 py-1 rounded text-xs text-dark-muted">Community install guide · no repo upload</span>
+        </div>
+      </div>
+      
+      <!-- Step 2 -->
+      <div class="flex gap-4">
+        <div class="flex-shrink-0 w-12 h-12 bg-dark-card border border-dark-border rounded-lg flex items-center justify-center text-dark-muted font-bold">
+          2
+        </div>
+        <div class="flex-1">
+          <h3 class="font-bold text-lg mb-2">CI gate on every PR</h3>
+          <p class="text-dark-muted text-sm mb-3">
+            Reporting-first mode tunes noise; <code class="terminal-text text-accent-green">--gate</code> blocks merge when fiction KPIs or sample paths leak into production dirs. Same rules as MCP — authoritative on the full branch.
+          </p>
+          <span class="inline-block bg-dark-bg border border-dark-border px-2 py-1 rounded text-xs text-dark-muted">GitHub repo · Action quickstart</span>
+        </div>
+      </div>
+      
+      <!-- Step 3 -->
+      <div class="flex gap-4">
+        <div class="flex-shrink-0 w-12 h-12 bg-dark-card border border-dark-border rounded-lg flex items-center justify-center text-dark-muted font-bold">
+          3
+        </div>
+        <div class="flex-1">
+          <h3 class="font-bold text-lg mb-2">Executive clearance PDF — $499</h3>
+          <p class="text-dark-muted text-sm mb-3">
+            Formatted pass/fail report from your local gate JSON when the client room needs a document — not a substitute for running the CLI yourself.
+          </p>
+          <span class="inline-block bg-dark-bg border border-dark-border px-2 py-1 rounded text-xs text-dark-muted">Book clearance · Sample report</span>
+        </div>
+      </div>
+      
+      <!-- Step 4 -->
+      <div class="flex gap-4">
+        <div class="flex-shrink-0 w-12 h-12 bg-dark-card border border-dark-border rounded-lg flex items-center justify-center text-dark-muted font-bold">
+          4
+        </div>
+        <div class="flex-1">
+          <h3 class="font-bold text-lg mb-2">Co-branded proof of work — from $999</h3>
+          <p class="text-dark-muted text-sm mb-3">
+            Agency packs include milestone scans plus <strong>white-label hygiene certificates</strong> (your logo, brand color) for the client CTO — a sales-close artifact, not just a dev log.
+          </p>
+          <span class="inline-block bg-dark-bg border border-dark-border px-2 py-1 rounded text-xs text-dark-muted">Sample certificate · Agency packs</span>
+        </div>
+      </div>
+      
+      <!-- Step 5 -->
+      <div class="flex gap-4">
+        <div class="flex-shrink-0 w-12 h-12 bg-dark-card border border-dark-border rounded-lg flex items-center justify-center text-dark-muted font-bold">
+          5
+        </div>
+        <div class="flex-1">
+          <h3 class="font-bold text-lg mb-2">Cloud Teams — internal scan history</h3>
+          <p class="text-dark-muted text-sm mb-3">
+            $49/mo (waitlist) for your dev team's hosted dashboard — scan history and compliance UI. <strong>Not</strong> a client clearance PDF; upsell after $499 proves the wedge.
+          </p>
+          <span class="inline-block bg-dark-bg border border-dark-border px-2 py-1 rounded text-xs text-dark-muted">Teams waitlist · Free CLI</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Table Section -->
+  <section class="max-w-4xl mx-auto px-6 py-12 border-t border-dark-border">
+    <h2 class="text-3xl font-bold mb-8">SimpleBeacon vs. traditional security scanners</h2>
+    <p class="text-dark-muted mb-8 max-w-2xl">
+      Snyk, GitHub Advanced Security, and GitGuardian are built for hacker defenses — CVEs, dependency bugs, and secret patterns in the cloud. SimpleBeacon solves a different problem: <strong>AI-era reputation risk</strong> before your client sees the repo.
+    </p>
+    
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="border-b border-dark-border">
+            <th class="text-left py-4 px-4 text-dark-muted font-semibold">What matters at handoff</th>
+            <th class="text-left py-4 px-4 text-dark-muted font-semibold">Snyk & GitHub Security</th>
+            <th class="text-left py-4 px-4 text-accent-green font-semibold">SimpleBeacon</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-dark-border">
+            <td class="py-4 px-4 font-semibold">Data privacy</td>
+            <td class="py-4 px-4 text-dark-muted">Uploads source to vendor cloud — corporate data-leak risk</td>
+            <td class="py-4 px-4 text-dark-muted">Local CLI & MCP by default · optional PDF from your report · no standing SaaS repo hook</td>
+          </tr>
+          <tr class="border-b border-dark-border">
+            <td class="py-4 px-4 font-semibold">Primary pain</td>
+            <td class="py-4 px-4 text-dark-muted">Snyk stops hackers from breaking your code</td>
+            <td class="py-4 px-4 text-dark-muted">SimpleBeacon stops hallucinations from firing your agency</td>
+          </tr>
+          <tr class="border-b border-dark-border">
+            <td class="py-4 px-4 font-semibold">Sample data in prod routes</td>
+            <td class="py-4 px-4 text-dark-muted">No signal on <code class="terminal-text text-xs">import … from './kpi-sample.json'</code> in shipping code</td>
+            <td class="py-4 px-4 text-dark-muted">Flags runtime loads of <code class="terminal-text text-xs">*-sample.json</code>, <code class="terminal-text text-xs">web/data</code>, and mock/fixture paths — with intent classification to skip demo/example routes</td>
+          </tr>
+          <tr>
+            <td class="py-4 px-4 font-semibold">Buying motion</td>
+            <td class="py-4 px-4 text-dark-muted">Enterprise contracts — months of sales cycles</td>
+            <td class="py-4 px-4 text-dark-muted">Free CLI + MCP · optional $499 PDF from your report · agency certificates · optional Teams</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Lead Capture Form Section -->
+  <section class="max-w-4xl mx-auto px-6 py-12 border-t border-dark-border" id="auditBookingForm">
+    <div class="bg-dark-card border border-dark-border rounded-lg p-6 md:p-8">
+      <h2 class="text-2xl font-bold mb-2">Request $499 executive clearance PDF</h2>
+      <p class="text-dark-muted mb-6">Run the gate locally, then book a formatted clearance PDF from your JSON report — no zip handoff required for the free tier.</p>
+      
+      <form 
+        id="auditForm" 
+        action="https://formspree.io/f/mlgvpkgd" 
+        method="POST" 
+        onsubmit="handleFormSubmit(event)" 
+        class="space-y-4"
+      >
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-2">Work email *</label>
+            <input 
+              type="email" 
+              name="email" 
+              required
+              class="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-dark-text focus:outline-none focus:border-accent-blue"
+              placeholder="you@agency.com"
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-2">Agency/company *</label>
+            <input 
+              type="text" 
+              name="company" 
+              required
+              class="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-dark-text focus:outline-none focus:border-accent-blue"
+              placeholder="Your Agency Name"
+            >
+          </div>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-2">Role *</label>
+            <select 
+              name="role" 
+              required
+              class="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-dark-text focus:outline-none focus:border-accent-blue"
+            >
+              <option value="">Select role</option>
+              <option value="developer">Developer</option>
+              <option value="tech-lead">Tech Lead</option>
+              <option value="cto">CTO</option>
+              <option value="founder">Founder</option>
+              <option value="agency-owner">Agency Owner</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-2">Project name *</label>
+            <input 
+              type="text" 
+              name="project" 
+              required
+              class="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-dark-text focus:outline-none focus:border-accent-blue"
+              placeholder="Project name"
+            >
+          </div>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-2">Branch scanned</label>
+            <input 
+              type="text" 
+              name="branch" 
+              class="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-dark-text focus:outline-none focus:border-accent-blue"
+              placeholder="main"
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-2">Client delivery date</label>
+            <input 
+              type="date" 
+              name="deliveryDate" 
+              class="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-dark-text focus:outline-none focus:border-accent-blue"
+            >
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-semibold mb-2">Client name</label>
+          <input 
+            type="text" 
+            name="client" 
+            class="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-dark-text focus:outline-none focus:border-accent-blue"
+            placeholder="Client company name"
+          >
+        </div>
+        
+        <button 
+          type="submit" 
+          class="w-full bg-accent-green hover:bg-accent-greenHover text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+        >
+          Request clearance PDF — $499
+        </button>
+      </form>
+      
+      <div id="formSuccess" class="hidden mt-4 bg-dark-bg border border-accent-green/30 rounded-lg p-4">
+        <p class="text-accent-green font-semibold">✓ Request submitted successfully!</p>
+        <p class="text-dark-muted text-sm mt-2">We'll contact you shortly to process your executive clearance PDF.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="max-w-4xl mx-auto px-6 py-8 border-t border-dark-border text-center">
+    <p class="text-dark-dim text-sm">
+      © 2024 SimpleBeacon. Local-first AI code hygiene.
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

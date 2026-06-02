@@ -11,6 +11,25 @@ function normalizeRelPath(value) {
   return String(value || '').replace(/\\/g, '/').replace(/^\.\//, '');
 }
 
+function isExcludedAnalyzePath(value) {
+  const rel = normalizeRelPath(value);
+  return rel.startsWith('.github-sync/') || rel.includes('/.github-sync/');
+}
+
+function isIntentionalConsolidationCandidate(item) {
+  const paths = (item?.files || []).map((file) =>
+    normalizeRelPath(typeof file === 'string' ? file : (file.path || file.relativePath || file.name))
+  ).filter(Boolean);
+  if (paths.some(isExcludedAnalyzePath)) return true;
+  if (paths.length !== 2) return false;
+  const [a, b] = paths;
+  const browserRe = /\.browser\.(js|mjs|cjs|ts|tsx)$/i;
+  const toSource = (p) => p.replace(/\.browser\.(js|mjs|cjs|ts|tsx)$/i, '.$1');
+  if ((browserRe.test(a) || browserRe.test(b)) && (toSource(a) === b || toSource(b) === a)) return true;
+  const isMcpConfig = (p) => p.endsWith('mcp.json') || /\/examples\/mcp\//.test(p);
+  return isMcpConfig(a) && isMcpConfig(b);
+}
+
 function issuePaths(issue) {
   const paths = [
     issue?.filePath,
@@ -49,6 +68,7 @@ function rowsFromIssues(issues = [], ruleLabel = 'gate') {
   const map = new Map();
   for (const issue of issues) {
     for (const path of issuePaths(issue)) {
+      if (isExcludedAnalyzePath(path)) continue;
       upsertRow(map, path, {
         path,
         status: severityToStatus(issue.severity || issue.severityBand),
@@ -131,7 +151,7 @@ function rowsFromFindings(findings = [], rulePrefix = 'finding') {
   const map = new Map();
   for (const finding of findings) {
     const path = finding.path || finding.filePath || finding.file || finding.id;
-    if (!path || String(path).includes(' ')) continue;
+    if (!path || String(path).includes(' ') || isExcludedAnalyzePath(path)) continue;
     upsertRow(map, path, {
       path: normalizeRelPath(path),
       status: severityToStatus(finding.severity),
@@ -145,6 +165,7 @@ function rowsFromFindings(findings = [], rulePrefix = 'finding') {
 function rowsFromConsolidation(scan) {
   const map = new Map();
   for (const item of scan?.mergeCandidates || []) {
+    if (isIntentionalConsolidationCandidate(item)) continue;
     for (const file of item.files || []) {
       const path = file.path || file;
       upsertRow(map, path, {

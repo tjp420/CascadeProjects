@@ -437,10 +437,20 @@ async function runBaselineSyncCommand(options) {
         writeStdoutLine('DRY RUN — baseline sync requires a test run; use without --dry-run to execute.');
         return;
     }
-    const { summary, baselinePath, baseline } = await syncJestBaseline(root, { config: options.config });
+    const { syncMeasuredBaseline } = require('../src/baseline-sync');
+    const result = await syncMeasuredBaseline(root, { config: options.config });
+    const { baselinePath, baseline, jestNote, pageSamplesLabel } = result;
 
     writeStdoutLine(`Baseline synced: ${baselinePath}`);
-    writeStdoutLine(`  Jest: ${baseline.jestTestsLabel} (${summary.suitesPassed} suites)`);
+    if (pageSamplesLabel) {
+        writeStdoutLine(`  Page samples: ${pageSamplesLabel}`);
+    }
+    if (baseline.jestTestsLabel) {
+        writeStdoutLine(`  Jest: ${baseline.jestTestsLabel}${result.summary?.suitesPassed != null ? ` (${result.summary.suitesPassed} suites)` : ''}`);
+    }
+    if (jestNote) {
+        writeStdoutLine(`  Note: ${jestNote}`);
+    }
 }
 
 async function runCommentCommand(options) {

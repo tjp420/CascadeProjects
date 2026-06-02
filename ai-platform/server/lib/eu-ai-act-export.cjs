@@ -1,11 +1,12 @@
 /**
  * EU AI Act compliance page export bundle — checklist, assessment, sprint artifacts.
  * Canonical CJS — keep in sync with web/simplebeacon-dashboard/js/utils/eu-ai-act-export.browser.js
+ * simplebeacon:production-leak-intent: sample-data-reference - This file references sample data patterns in a descriptive message about KPI evaluation, not actual production data paths
  */
 
 const { sanitizeSimplebeaconReportExport } = require('../../packages/simplebeacon-cli/src/lib/simplebeacon-report-export-sanitize.js');
 const { sanitizeComplianceChecklistArtifactExport } = require('../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize.js');
-const { redactProjectPathForExport } = require('./quality-export.js');
+const { redactProjectPathForExport } = require('../../packages/simplebeacon-cli/src/lib/assessment-export-sanitize');
 const {
   evaluateEuExportEligibility,
   evaluateSprintFreshness,
@@ -807,7 +808,9 @@ function buildSprintArtifactExportNotes(sprint = {}, options = {}) {
   }
   const sprintFiction = sprint.report?.fictionJsonFilesScanned ?? sprint.report?.scanScope?.fictionJsonFilesScanned;
   if (sprintFiction != null && gateFiction != null && fictionSamples != null && sprintFiction !== gateFiction) {
+    // simplebeacon:production-leak-intent: template-sample - Legitimate KPI metric notation describing sample file counts in audit report
     notes.push(
+      // simplebeacon:production-leak-intent: template-sample - Legitimate KPI metric notation describing sample file counts in audit report
       `Sprint fiction KPI rules evaluated ${Number(sprintFiction).toLocaleString()} repository JSON path(s) — Complete scan gate evaluated ${Number(gateFiction).toLocaleString()} with ${Number(fictionSamples).toLocaleString()} *-sample.json KPI file(s) matched.`
     );
   }

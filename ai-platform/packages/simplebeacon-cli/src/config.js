@@ -117,8 +117,8 @@ const PROFILE_RULES = {
             allowlistFiles: [
                 'server/lib/snapshot-seeds.js',
                 'server/lib/snapshot-resolver.js',
-                'server/lib/sample-path-resolver.js',
-                'server/lib/code-roadmap-generator.js',
+                'server/lib/sample-path-resolver.cjs',
+                'server/lib/code-roadmap-generator.cjs',
                 'server/services/model-inference-service.js'
             ]
         },

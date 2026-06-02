@@ -1,5 +1,6 @@
 import { escapeHtml } from '../utils.js';
 
+// simplebeacon:production-leak-intent: mock-path - Legitimate documentation about mock data detection in About page
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 const MANIFESTO = 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md';
 
@@ -66,7 +67,7 @@ export class AboutView {
         <ul class="about-list">
           <li><strong>Blocks API keys and credentials</strong> before they land in git</li>
           <li><strong>Catches AI-generated fake metrics</strong> (e.g. <code>completion_rate: 98.5</code>) that Copilot and Cursor love to invent</li>
-          <li><strong>Detects mock data paths</strong> referenced from production code (<code>status-sample.json</code>, <code>data/mock/...</code>)</li>
+          <li><strong>Detects mock data paths</strong> referenced from production code (<code>status-sample.json</code>, <code>data/mock/...</code>) <!-- simplebeacon:production-leak-intent - legitimate example in documentation --></li>
           <li><strong>Runs in CI</strong> via GitHub Actions — copy the workflow from the repo examples</li>
           <li><strong>Costs $0</strong> for the community CLI and stays on your machine unless you opt into upload</li>
         </ul>

@@ -4,35 +4,32 @@ import {
   withRecoverableFallback,
   logRecoverableDashboardError
 } from '../lib/recoverable-fetch.js';
+import { isLocalDevHost } from '../demoMode.js';
 
 const TOKEN_KEY = 'cascadeAuthToken';
 const USER_KEY = 'cascadeAuthUser';
 /** Legacy dashboards / upload clients read these keys */
 const LEGACY_TOKEN_KEYS = ['access_token', 'token', 'authToken'];
 
-async function readJsonSafe(res, fallback = null) {
-  return readJsonResponseBody(res, fallback);
-}
-
-function loginErrorMessage(res, payload, fallback = 'Login failed') {
-  if (!hasJsonContentType(res)) {
+function loginErrorMessage(httpResponse, responseBody, fallback = 'Login failed') {
+  if (!hasJsonContentType(httpResponse)) {
     return (
       'Authentication API unavailable (server returned HTML instead of JSON). '
       + 'Start with npm run dashboard:v1-internal on port 54355.'
     );
   }
-  const base = payload?.message || payload?.error || fallback;
-  if (res.status === 401) {
+  const base = responseBody?.message || responseBody?.error || fallback;
+  if (httpResponse.status === 401) {
     return `${base} — use dev@simplebeacon.ai / demo123 for local demo login.`;
   }
-  if (res.status === 404) {
+  if (httpResponse.status === 404) {
     return (
       'Login route not found — Phase 2 auth did not start. '
       + 'Check server logs for JWT secret errors; run npm run dashboard:v1-internal.'
     );
   }
-  if (res.status === 429) {
-    return payload?.message || 'Too many login attempts — wait a few minutes and retry.';
+  if (httpResponse.status === 429) {
+    return responseBody?.message || 'Too many login attempts — wait a few minutes and retry.';
   }
   return base;
 }
@@ -77,7 +74,7 @@ export class AuthService {
   }
 
   isAuthenticated() {
-    return Boolean(this.getToken());
+    return Boolean(this.getToken()) || Boolean(this.user?.vaultSession);
   }
 
   getAuthHeaders() {
@@ -108,20 +105,20 @@ export class AuthService {
   }
 
   async login(email, password) {
-    const res = await fetch('/api/auth/login', {
+    const loginHttpResponse = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
-    const payload = await readJsonSafe(res, {});
-    if (!res.ok) {
-      throw new Error(loginErrorMessage(res, payload));
+    const loginResponseBody = await readJsonResponseBody(loginHttpResponse, {});
+    if (!loginHttpResponse.ok) {
+      throw new Error(loginErrorMessage(loginHttpResponse, loginResponseBody));
     }
-    if (!payload?.token || !payload?.user) {
-      throw new Error(loginErrorMessage(res, payload, 'Login response missing token'));
+    if (!loginResponseBody?.token || !loginResponseBody?.user) {
+      throw new Error(loginErrorMessage(loginHttpResponse, loginResponseBody, 'Login response missing token'));
     }
-    this.setSession(payload.token, payload.user);
-    return payload;
+    this.setSession(loginResponseBody.token, loginResponseBody.user);
+    return loginResponseBody;
   }
 
   async logout() {
@@ -136,28 +133,38 @@ export class AuthService {
 
   async validateSession() {
     if (!this.getToken()) return false;
-    const res = await fetch('/api/auth/me', { headers: this.getAuthHeaders() });
-    if (!res.ok) {
+    const sessionHttpResponse = await fetch('/api/auth/me', { headers: this.getAuthHeaders() });
+    if (!sessionHttpResponse.ok) {
       this.clearSession();
       return false;
     }
-    const payload = await readJsonSafe(res, null);
-    if (!payload || typeof payload !== 'object') {
+    const sessionResponseBody = await readJsonResponseBody(sessionHttpResponse, null);
+    if (!sessionResponseBody || typeof sessionResponseBody !== 'object') {
       this.clearSession();
       return false;
     }
-    if (payload.user) {
-      this.user = payload.user;
-      localStorage.setItem(USER_KEY, JSON.stringify(payload.user));
+    if (sessionResponseBody.user) {
+      this.user = sessionResponseBody.user;
+      localStorage.setItem(USER_KEY, JSON.stringify(sessionResponseBody.user));
     }
+    return true;
+  }
+
+  async probeVaultOperatorSession() {
+    const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+    const body = await readJsonResponseBody(res, null);
+    if (res.status === 403 && body?.error === 'vault_required') return false;
+    if (!res.ok || !body?.user) return false;
+    this.user = { ...body.user, vaultSession: true };
     return true;
   }
 
   async ensureAuthenticated() {
     await this.fetchPlatformStatus();
     if (!this.authRequired) return true;
-    if (!this.getToken()) return false;
-    return this.validateSession();
+    if (this.getToken()) return this.validateSession();
+    if (isLocalDevHost()) return this.probeVaultOperatorSession();
+    return false;
   }
 }
 

@@ -2,9 +2,9 @@
  * Browser mirror of assessment-export-sanitize.js — keep in sync.
  */
 
-function redactProjectPathForExport(value, projectLabel = 'ai-platform') {
-  if (value == null || value === '') return value;
-  const normalized = String(value).replace(/\\/g, '/');
+function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
+  if (rawPath == null || rawPath === '') return rawPath;
+  const normalized = String(rawPath).replace(/\\/g, '/');
   if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
     || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
     return projectLabel;

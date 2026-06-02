@@ -1,6 +1,12 @@
 /**
  * Complete scan artifact profile helpers — canonical implementation (CJS).
  * Browser ESM mirror: complete-scan-artifact-profile.browser.js (keep in sync).
+ *
+ * PURPOSE: This file is the canonical CJS version with an intentional ESM mirror.
+ * - CJS version (this file) for Node.js environments
+ * - ESM version (complete-scan-artifact-profile.browser.js) for browser environments
+ * - Both files must remain synchronized for cross-platform compatibility
+ * - CI should verify that exports match between both versions
  */
 
 const REGENERABLE_CATEGORIES = new Set([

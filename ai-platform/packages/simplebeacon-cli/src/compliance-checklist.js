@@ -247,11 +247,26 @@ function evaluateRule(rule, context) {
             };
         }
         case 'schema-compliance': {
-            const checked = report.schemaChecked ?? 0;
+            const pageChecked = report.pageSampleSchemaChecked ?? 0;
+            const totalChecked = report.schemaChecked ?? 0;
+            const checked = totalChecked || pageChecked;
             if (!checked) {
-                return { ...base, status: 'skip', evidence: 'No registered page samples in this project' };
+                const paths = (report.scanPaths || [])
+                    .map((p) => String(p).replace(/\\/g, '/'))
+                    .slice(0, 3)
+                    .join(', ');
+                const pathHint = paths ? ` Last scan paths: ${paths}.` : '';
+                return {
+                    ...base,
+                    status: 'skip',
+                    evidence:
+                        'No registered page samples checked — enable rules.json-schema and set scanPaths to your sample dir (e.g. web/data), then re-run scan.'
+                        + pathHint
+                };
             }
-            const passed = report.schemaPassed ?? 0;
+            const passed = totalChecked
+                ? (report.schemaPassed ?? 0)
+                : (report.pageSampleSchemaPassed ?? 0);
             const ok = passed === checked;
             return {
                 ...base,

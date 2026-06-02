@@ -205,29 +205,57 @@ function assessAuditExportTier(completeScan) {
 function normalizeClientPathLabel(path) {
     let normalized = String(path || '').replace(/\\/g, '/').trim();
     if (!normalized) return '';
+    if (/ai-platform/i.test(normalized)) return 'ai-platform';
+    if (/cascadeprojects/i.test(normalized) && !/ai-platform/i.test(normalized)) return 'CascadeProjects';
+    if (/github-cache/i.test(normalized)) {
+        const parts = normalized.split('/').filter(Boolean);
+        const cacheIdx = parts.findIndex((part) => part.toLowerCase() === 'github-cache');
+        if (cacheIdx >= 0 && parts[cacheIdx + 1]) return parts[cacheIdx + 1];
+    }
     const cEllipsisUsers = normalized.match(/^[a-zA-Z]:…\/Users\/[^/]+(\/.+)?$/i);
     if (cEllipsisUsers) {
         return cEllipsisUsers[1] ? `…${cEllipsisUsers[1]}` : '…';
     }
     const winHome = normalized.match(/^[a-zA-Z]:\/Users\/[^/]+(\/.+)?$/i);
     if (winHome) {
-        return winHome[1] ? `…${winHome[1]}` : '…';
+        const tail = winHome[1] || '';
+        if (/ai-platform/i.test(tail)) return 'ai-platform';
+        return tail ? `…${tail}` : '…';
     }
     const unixHome = normalized.match(/^\/Users\/[^/]+(\/.+)?$/);
     if (unixHome) {
-        return unixHome[1] ? `…${unixHome[1]}` : '…';
+        const tail = unixHome[1] || '';
+        if (/ai-platform/i.test(tail)) return 'ai-platform';
+        return tail ? `…${tail}` : '…';
     }
     if (/^(?:…|\.{3})\//.test(normalized)) {
+        if (/ai-platform/i.test(normalized)) return 'ai-platform';
         return normalized;
     }
     const parts = normalized.split('/').filter(Boolean);
     if (/^[A-Za-z]:$/i.test(parts[0]) && parts.length > 1) {
         if (parts[1]?.toLowerCase() === 'users' && parts.length > 3) {
-            return `…/${parts.slice(3).join('/')}`;
+            const tail = parts.slice(3).join('/');
+            if (/ai-platform/i.test(tail)) return 'ai-platform';
+            return `…/${tail}`;
         }
-        return parts.length > 2 ? `…/${parts.slice(-2).join('/')}` : parts[parts.length - 1];
+        const tail = parts.length > 2 ? parts.slice(-2).join('/') : parts[parts.length - 1];
+        if (/ai-platform/i.test(tail)) return 'ai-platform';
+        return parts.length > 2 ? `…/${tail}` : tail;
     }
     return parts[parts.length - 1] || normalized;
+}
+
+function normalizeSimpleBeaconBranding(value) {
+    return String(value ?? '').replace(/\bSimplebeacon\b/g, 'SimpleBeacon');
+}
+
+function sanitizeFrozenAuditDeliverableHtml(html) {
+    if (!html || typeof html !== 'string') return html;
+    let next = normalizeSimpleBeaconBranding(html);
+    next = next.replace(/…\/CascadeProjects\/ai-platform/gi, 'ai-platform');
+    next = next.replace(/<code>CascadeProjects\/ai-platform<\/code>/gi, '<code>ai-platform</code>');
+    return next;
 }
 
 function resolveAuditClientName(options = {}, projectPath = '') {
@@ -259,5 +287,7 @@ module.exports = {
     normalizeExportScan,
     assessAuditExportTier,
     resolveAuditClientName,
-    auditExportButtonLabel
+    auditExportButtonLabel,
+    normalizeClientPathLabel,
+    sanitizeFrozenAuditDeliverableHtml
 };

@@ -90,7 +90,7 @@ async function handleAuditBooking(req, res, options = {}) {
   }
 
   try {
-    const { sendAuditBookingEmail } = require('./audit-booking-mail');
+    const { sendAuditBookingEmail } = require('./audit-booking-mail.cjs');
     const result = await sendAuditBookingEmail(entry);
     if (!result.sent) {
       return res.json(bookingResponse(saved, result));
@@ -131,7 +131,7 @@ function registerOperatorInboxPage(app, options = {}) {
     res.sendFile(inboxHtml);
   }
 
-  app.get(['/operator/bookings', '/operator/bookings/', '/operator/bookings.html', '/operator-inbox'], sendInbox);
+  app.get('/operator/bookings', sendInbox);
 }
 
 function registerAuditBookingRoute(app, options = {}) {

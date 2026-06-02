@@ -9,7 +9,7 @@ const SKIP_BY_PROFILE = {
     explorer: [],
     audit: [
         'node_modules', '.git', 'coverage', 'uploads', 'dist', 'build', 'archive',
-        'github-cache', 'deliverables', 'java-ai-vulnerable', '.simplebeacon', 'security-reports'
+        'github-cache', '.github-sync', 'deliverables', 'java-ai-vulnerable', '.simplebeacon', 'security-reports'
     ]
 };
 

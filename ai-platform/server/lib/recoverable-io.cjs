@@ -3,7 +3,7 @@
  */
 
 const fs = require('fs');
-const logger = require('./app-logger');
+const logger = require('./app-logger.cjs');
 
 function logRecoverableIoError(contextLabel, error) {
     const message = error instanceof Error ? error.message : String(error);

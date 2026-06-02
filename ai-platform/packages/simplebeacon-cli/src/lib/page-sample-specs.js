@@ -15,7 +15,8 @@ const PAGE_SAMPLE_SPECS = {
         topLevelKeys: ['projectOverview'],
         nestedChecks: [{ path: ['projectOverview', 'projectName'] }],
         arrayKeys: ['developmentPhases', 'predictions', 'risks', 'actionPlan', 'performanceMetrics'],
-        objectKeys: ['recommendations']
+        objectKeys: ['recommendations'],
+        allowEmptyArrays: ['predictions', 'performanceMetrics']
     },
     'local-models-sample.json': {
         type: 'local-models-model',

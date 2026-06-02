@@ -9,7 +9,8 @@ const { filterWorkspaceFiles, isWorkspacePath } = require('./utils/workspace-pat
 const IMPORT_PATTERNS = [
     /require\(\s*['"]([^'"]+)['"]\s*\)/g,
     /from\s+['"]([^'"]+)['"]/g,
-    /import\s*\(\s*['"]([^'"]+)['"]\s*\)/g
+    /import\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /require\s*\(\s*['"]([^'"]+)['"]\s*\)/g
 ];
 
 /** Declared for phase-2 SSO / tooling — not always wired via static import yet */
@@ -21,7 +22,8 @@ const PLANNED_RUNTIME_DEPENDENCIES = new Set([
     'qrcode',
     'axios',
     'compromise',
-    'natural'
+    'natural',
+    '@simplebeacon/intelligence'
 ]);
 
 function prioritizeDependencyScanFiles(files, maxFiles = 1500) {
@@ -171,7 +173,7 @@ class DependencyHealthAnalyzer {
 
     isLikelyToolingDependency(name, section) {
         if (section === 'devDependencies') {
-            return /^(eslint|jest|vitest|typescript|prettier|husky|nodemon|webpack|vite|rollup|postcss|tailwindcss|autoprefixer|@types\/)/.test(name);
+            return /^(eslint|@eslint\/|jest|vitest|typescript|prettier|husky|nodemon|webpack|vite|rollup|postcss|tailwindcss|autoprefixer|globals|@types\/)/.test(name);
         }
         return false;
     }
@@ -199,6 +201,22 @@ class DependencyHealthAnalyzer {
             }
             for (const pkg of collectImportedPackages(content)) {
                 used.add(pkg);
+            }
+        }
+
+        const packageDirKey = packageDir.replace(/\\/g, '/');
+        if (packageDirKey === inventory.root.replace(/\\/g, '/')) {
+            for (const file of inventory.files) {
+                if (!/^eslint\.config\.(js|cjs|mjs)$/i.test(file.name)) continue;
+                if (path.dirname(file.path).replace(/\\/g, '/') !== packageDirKey) continue;
+                try {
+                    const content = fs.readFileSync(file.path, 'utf8');
+                    for (const pkg of collectImportedPackages(content)) {
+                        used.add(pkg);
+                    }
+                } catch {
+                    /* ignore */
+                }
             }
         }
         return used;

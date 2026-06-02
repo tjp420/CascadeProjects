@@ -1,5 +1,9 @@
 import { escapeHtml, formatScanPathForDisplay } from '../utils.js';
-import { resolveJestTestsLabel, hydrateDashboardHome } from '../services/analyzeService.js';
+import {
+  resolveJestTestsLabel,
+  resolvePageSpecsLabel,
+  hydrateDashboardHome
+} from '../services/analyzeService.js';
 
 function formatPercent(value) {
   if (value == null || value === '') return '—';
@@ -31,8 +35,8 @@ function buildPlatformMetrics(home, report, baseline) {
     schemaPassRate: report?.schemaCompliance ?? overview.schemaPassRate,
     scannerIssues: report?.issueCount ?? overview.scannerIssues,
     securityScore: overview.securityScore ?? '80/100',
-    jestTests: resolveJestTestsLabel(baseline, home),
-    pageSamples: baseline?.pageSamplesLabel ?? overview.pageSamplesLabel,
+    jestTests: resolveJestTestsLabel(baseline, home, report),
+    pageSamples: resolvePageSpecsLabel(report, baseline) ?? overview.pageSamplesLabel,
     sampleJsonFiles: report?.mockSampleFiles ?? report?.totalFiles ?? overview.sampleJsonFiles
   };
 }
@@ -127,6 +131,7 @@ export class PlatformView {
           <div class="card-header"><span class="card-title">Test Health</span></div>
           <div class="settings-grid">
             <div class="settings-row"><span class="settings-label">Jest tests</span><span class="settings-value">${escapeHtml(metrics.jestTests ?? '—')}</span></div>
+            ${metrics.jestTests ? '' : '<p class="text-muted mb-0" style="font-size:var(--font-size-xs);margin-top:-0.25rem;">Run <strong>Tools → Baseline sync</strong> or enable <code>jest-baseline</code> in config.</p>'}
             <div class="settings-row"><span class="settings-label">Page samples</span><span class="settings-value">${escapeHtml(metrics.pageSamples ?? '—')}</span></div>
             <div class="settings-row"><span class="settings-label">Schema pass</span><span class="settings-value">${formatPercent(metrics.schemaPassRate)}</span></div>
             <div class="settings-row"><span class="settings-label">Scanner issues</span><span class="settings-value">${metrics.scannerIssues ?? '—'}</span></div>

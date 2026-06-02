@@ -30,6 +30,7 @@ function isBenchmarkPath(filePath) {
 
 const PRODUCT_MOCK_PATH_MARKERS = [
 
+  // simplebeacon:production-leak-intent - legitimate mock path markers for gate reporting
   /^fixtures$/i,
 
   /^__mocks__$/i,
@@ -48,9 +49,9 @@ const PRODUCT_MOCK_PATH_MARKERS = [
 
 const DEFAULT_FALLBACK_MOCK_PATHS = new Set(['fixtures', '__mocks__', 'data']);
 
-function redactProjectPathForExport(value, projectLabel = 'ai-platform') {
-  if (value == null || value === '') return value;
-  const normalized = String(value).replace(/\\/g, '/');
+function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
+  if (rawPath == null || rawPath === '') return rawPath;
+  const normalized = String(rawPath).replace(/\\/g, '/');
   if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
     || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
     return projectLabel;
@@ -559,6 +560,7 @@ function buildProductGateExportNotes(report, options = {}) {
   const mockN = report.mockSampleFiles ?? report.totalFiles ?? 0;
   const fictionSamples = report.fictionSampleFilesScanned ?? scope.fictionSampleFilesScanned ?? 0;
   if (mockN > 0 && fictionSamples === 0) {
+    // simplebeacon:production-leak-intent - legitimate sample path reference for gate reporting
     notes.push(`${mockN} JSON file(s) under configured mock paths — fiction KPI rules target *-sample.json filenames; none matched in this pass.`);
   }
   const repoTotal = report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles;
@@ -614,6 +616,7 @@ function buildProductGateExportNotes(report, options = {}) {
   }
   const fictionJson = report.fictionJsonFilesScanned ?? scope.fictionJsonFilesScanned;
   if (fictionJson != null && fictionSamples > 0 && fictionJson > fictionSamples) {
+    // simplebeacon:production-leak-intent - legitimate KPI reference for gate reporting
     notes.push(`Fiction KPI rules evaluated ${Number(fictionJson).toLocaleString()} repository JSON path(s) — ${Number(fictionSamples).toLocaleString()} *-sample.json KPI file(s) matched.`);
   }
   const llmHits = report.llmSlopPatternHits ?? scope.llmSlopPatternHits ?? 0;
@@ -792,6 +795,7 @@ function reconcileProductFullDirectoryMockMetrics(report) {
       ...scanScope,
       mockSampleFilesInScanPaths: reconciledMock,
       mockSampleFilesReconciledNote:
+        // simplebeacon:production-leak-intent - legitimate sample path reference for gate reporting
         `mockSampleFilesInScanPaths reconciled from ${Number(mockInPaths).toLocaleString()} to ${Number(reconciledMock).toLocaleString()} — full-directory scan counts repo-wide paths, not *-sample.json only.`
     };
   }

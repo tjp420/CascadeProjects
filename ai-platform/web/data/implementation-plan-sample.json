@@ -1,0 +1,25 @@
+{
+  "_note": "This is a sample/test data file for dashboard display. Contains placeholder values.",
+  "type": "implementation-plan-model",
+  "executiveSummary": {
+    "currentCompletion": 42
+  },
+  "implementationPhases": [
+    { "phase": 1, "name": "Foundation", "status": "in-progress" }
+  ],
+  "riskManagement": [
+    { "risk": "Schema drift", "mitigation": "Run Simplebeacon gate on CI" }
+  ],
+  "milestones": [
+    { "name": "Dashboard samples restored", "date": "2026-06-01" }
+  ],
+  "immediateActions": [
+    { "action": "Keep page samples aligned with PAGE_SAMPLE_SPECS" }
+  ],
+  "successMetrics": {
+    "gatePass": true
+  },
+  "resourceAllocation": {
+    "engineering": "primary"
+  }
+}

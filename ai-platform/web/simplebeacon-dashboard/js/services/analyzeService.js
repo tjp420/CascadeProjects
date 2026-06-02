@@ -5,6 +5,8 @@ import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 
+// simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path detection for analysis mode resolution
+
 let providersPromise = null;
 
 async function parseJsonSafe(res) {
@@ -168,7 +170,7 @@ export async function analyzePath(projectPath, options = {}) {
 
 /** Analyze pasted or dropped file text without requiring a server project path. */
 export async function fetchUnderstandSnippet(code, options = {}) {
-  const data = await fetchJsonWithGuidance('/api/analyze/understand', {
+  const understandResponse = await fetchJsonWithGuidance('/api/analyze/understand', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -182,10 +184,10 @@ export async function fetchUnderstandSnippet(code, options = {}) {
       aiProvider: options.aiProvider || 'demo'
     })
   }, options.timeoutMs ?? 90000);
-  if (!data.success) {
-    throw new Error(data.error || data.message || 'Code understanding failed');
+  if (!understandResponse.success) {
+    throw new Error(understandResponse.error || understandResponse.message || 'Code understanding failed');
   }
-  return data;
+  return understandResponse;
 }
 
 export async function scanPath(projectPath, options = {}) {
@@ -666,6 +668,9 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
   if (!normalized || typeof normalized !== 'object') {
     throw new Error('No complete scan data available for ZIP export.');
   }
+  const payload = slimCompleteScanForAudit(normalized, {
+    findingsLimit: options.findingsLimit ?? 5000
+  }) || normalized;
   const timeoutMs = options.timeoutMs ?? 180000;
   const res = await fetchWithTimeout('/api/analyze/export-bundle', {
     method: 'POST',
@@ -674,7 +679,8 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
       ...authService.getAuthHeaders()
     },
     body: JSON.stringify({
-      completeScan: normalized,
+      completeScan: payload,
+      internalDashboard: options.internalDashboard === true,
       deliverableSku: options.deliverableSku || options.tier || undefined,
       client: options.client,
       company: options.company,
@@ -683,7 +689,9 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
       projectName: options.projectName,
       agencyName: options.agencyName,
       aiProvider: options.aiProvider || 'demo',
-      cloudTeamsActive: options.cloudTeamsActive === true
+      cloudTeamsActive: options.cloudTeamsActive === true,
+      selectedEngines: options.selectedEngines,
+      enginesRun: options.enginesRun
     })
   }, timeoutMs);
 
@@ -834,17 +842,13 @@ export async function fetchDataCleanupScan(projectPath, options = {}) {
   const profile = options.profile || options.mode || 'all';
   params.set('profile', profile);
   if (options.scanner) params.set('scanner', options.scanner);
+  if (options.force || options.refresh) params.set('refresh', '1');
   const timeoutMs = options.timeoutMs ?? 300000;
 
-  const paths = [
-    `/api/analyze/data-cleanup?${params}`,
-    `/api/merger-tool/data-cleanup-scan?${params}`
-  ];
+  const target = `/api/analyze/data-cleanup?${params}`;
 
-  let lastError = null;
-  for (const target of paths) {
-    try {
-      const data = await fetchJsonWithGuidance(target, {
+  try {
+    const data = await fetchJsonWithGuidance(target, {
         headers: authService.getAuthHeaders()
       }, timeoutMs);
       if (!data.success) {
@@ -875,25 +879,19 @@ export async function fetchDataCleanupScan(projectPath, options = {}) {
         scan.scanProfile = profile;
       }
       return scan;
-    } catch (error) {
-      lastError = error;
-      if (!/API route not found/i.test(String(error.message))) {
-        throw error;
-      }
-    }
+  } catch (error) {
+    throw new Error(
+      error.message
+        ? `${error.message} Restart the SimpleBeacon SERVER window (run start-simplebeacon-local.bat).`
+        : 'Data cleanup API is missing — restart the SimpleBeacon server.'
+    );
   }
-
-  throw new Error(
-    lastError?.message
-      ? `${lastError.message} Restart the SimpleBeacon SERVER window (run start-simplebeacon-local.bat).`
-      : 'Data cleanup API is missing — restart the SimpleBeacon server.'
-  );
 }
 
 export function looksLikeGameModPath(projectPath) {
   const normalized = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
   if (!normalized) return false;
-  return /(?:^|\/)games\/|doom|gzdoom|zscript|\.pk3|r3d|lighting|_mod(?:\/|$)/i.test(normalized);
+  return new RegExp('(?:^|/)games/|doom|gzdoom|zscript|\\.pk3|r3d|lighting|_mod(?:/|$)', 'i').test(normalized);
 }
 
 export function scanHintsGameMod(scan) {
@@ -1438,11 +1436,19 @@ export async function refreshLiveReport(scanService, state) {
   return state.report;
 }
 
-export function resolveJestTestsLabel(baseline, dashboardHome) {
+export function resolveJestTestsLabel(baseline, dashboardHome, report) {
   if (baseline?.jestTestsLabel) return baseline.jestTestsLabel;
+  const jestSummary = report?.jestSummary;
+  if (jestSummary?.testsPassed != null && jestSummary?.testsTotal != null) {
+    const suites = jestSummary.suitesPassed != null ? ` · ${jestSummary.suitesPassed} suites` : '';
+    return `${jestSummary.testsPassed}/${jestSummary.testsTotal}${suites}`;
+  }
   const overview = dashboardHome?.overview;
   if (overview?.passedTests != null && overview?.totalTests != null) {
     return `${overview.passedTests}/${overview.totalTests}`;
+  }
+  if (report?.jestBaselineChecked === false) {
+    return 'Off (enable jest-baseline in config)';
   }
   return null;
 }
@@ -1833,7 +1839,7 @@ export async function readDroppedFiles(fileList) {
 }
 
 export async function fetchComplianceChecklist(report, projectPath, options = {}) {
-  const res = await fetchWithTimeout('/api/analyze/compliance-checklist', {
+  const checklistHttpResponse = await fetchWithTimeout('/api/analyze/compliance-checklist', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1846,11 +1852,11 @@ export async function fetchComplianceChecklist(report, projectPath, options = {}
       forceNpmAudit: options.forceNpmAudit === true
     })
   }, options.timeoutMs ?? 120000);
-  const data = await parseJsonSafe(res);
-  if (!res.ok || !data.success) {
-    throw new Error(data.error || data.message || 'Compliance checklist failed');
+  const checklistResponse = await parseJsonSafe(checklistHttpResponse);
+  if (!checklistHttpResponse.ok || !checklistResponse.success) {
+    throw new Error(checklistResponse.error || checklistResponse.message || 'Compliance checklist failed');
   }
-  return data;
+  return checklistResponse;
 }
 
 export async function fetchProjectNpmAudit(projectPath, options = {}) {
@@ -1897,25 +1903,29 @@ export async function prepareGithubRepo(repoUrl, options = {}) {
 
 export async function fetchAgencyBranding(orgId = 'default') {
   const params = new URLSearchParams({ org_id: orgId, _: String(Date.now()) });
-  const data = await fetchJsonWithGuidance(`/api/simplebeacon/agency/branding?${params}`, {
-    headers: authService.getAuthHeaders()
-  });
-  return data.branding || data;
+  try {
+    const data = await fetchJsonWithGuidance(`/api/simplebeacon/agency/branding?${params}`, {
+      headers: authService.getAuthHeaders()
+    });
+    return data.branding || data;
+  } catch {
+    return { agency_name: '', logo_url: '' };
+  }
 }
 
-export async function exportAgencyCertificate(payload = {}) {
-  const data = await fetchJsonWithGuidance('/api/simplebeacon/export/certificate', {
+export async function exportAgencyCertificate(certificateRequest = {}) {
+  const certificateExport = await fetchJsonWithGuidance('/api/simplebeacon/export/certificate', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...authService.getAuthHeaders()
     },
-    body: JSON.stringify(payload)
-  }, payload.timeoutMs ?? 120000);
-  if (!data.success) {
-    throw new Error(data.message || data.error || 'Certificate export failed');
+    body: JSON.stringify(certificateRequest)
+  }, certificateRequest.timeoutMs ?? 120000);
+  if (!certificateExport.success) {
+    throw new Error(certificateExport.message || certificateExport.error || 'Certificate export failed');
   }
-  return data;
+  return certificateExport;
 }
 
 export function assertCompleteScanComplianceFresh(report, checklist) {

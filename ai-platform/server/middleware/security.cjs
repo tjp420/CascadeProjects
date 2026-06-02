@@ -9,7 +9,7 @@
  * - IP-based protection
  */
 
-const logger = require('../lib/app-logger');
+const logger = require('../lib/app-logger.cjs');
 
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
@@ -181,6 +181,22 @@ const requestLogger = (req, res, next) => {
   next();
 };
 
+/** Scan/export POST bodies legitimately contain code paths, SQL keywords, and HTML — skip naive pattern scan. */
+const BODY_SUSPICIOUS_SCAN_SKIP_PREFIXES = [
+  '/api/analyze/',
+  '/api/simplebeacon/scan',
+  '/api/simplebeacon/assess',
+  '/api/simplebeacon/npm-audit',
+  '/api/ai-validation/scan',
+  '/api/ai-validation/audit'
+];
+
+function shouldSkipBodySuspiciousScan(req) {
+  if (!['POST', 'PUT', 'PATCH'].includes(req.method)) return false;
+  const routePath = String(req.path || req.originalUrl || '').split('?')[0];
+  return BODY_SUSPICIOUS_SCAN_SKIP_PREFIXES.some((prefix) => routePath.startsWith(prefix));
+}
+
 // IP-based protection
 const ipProtection = (req, res, next) => {
   const clientIP = req.ip;
@@ -212,7 +228,7 @@ const ipProtection = (req, res, next) => {
   };
   
   // Check request body and query parameters
-  if (req.body && checkSuspiciousContent(req.body)) {
+  if (!shouldSkipBodySuspiciousScan(req) && req.body && checkSuspiciousContent(req.body)) {
     return res.status(400).json({
       error: 'Security violation',
       message: 'Suspicious content detected in request'

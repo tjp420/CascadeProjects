@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clearance Delivery Guide — SimpleBeacon</title>
+  <meta name="description" content="SimpleBeacon clearance delivery guide: how to send your gate JSON report after payment for executive clearance PDF generation.">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <main class="sales-gate-wrap">
+    <div class="sales-gate">
+      <p class="sales-gate-brand"><a href="../landing.html">SimpleBeacon</a></p>
+      <h1>Clearance Delivery Guide</h1>
+      <p class="hero-shield-note">After payment, send your gate JSON report. We format it into an executive clearance PDF within 48 hours.</p>
+
+      <section class="market-section">
+        <h2 class="market-heading">Step 1: Run the gate locally</h2>
+        <p class="market-lead">Generate your gate JSON report from your repository.</p>
+        <div class="cli-hint"><code>npx simplebeacon scan --gate --offline</code></div>
+        <p class="market-lead" style="margin-top: 1rem;">This creates a <code>simplebeacon-gate-report.json</code> file in your repository root.</p>
+      </section>
+
+      <section class="market-section">
+        <h2 class="market-heading">Step 2: Locate your gate report</h2>
+        <p class="market-lead">Find the JSON file in your repository:</p>
+        <ul class="pricing-features">
+          <li>Default location: <code>./simplebeacon-gate-report.json</code></li>
+          <li>Or in your configured output directory</li>
+          <li>File size should be under 1 MB for most repositories</li>
+        </ul>
+      </section>
+
+      <section class="market-section">
+        <h2 class="market-heading">Step 3: Send your gate report</h2>
+        <p class="market-lead">Email your JSON report to the address provided in your payment confirmation.</p>
+        <ul class="pricing-features">
+          <li>Attach the <code>simplebeacon-gate-report.json</code> file</li>
+          <li>Include your order/payment reference number</li>
+          <li>Mention your target delivery date if urgent</li>
+          <li>No source code or zip files needed — JSON only</li>
+        </ul>
+        <p class="market-lead" style="margin-top: 1rem;"><strong>Security note:</strong> The JSON report contains only scan findings, file paths, and issue counts — no source code content, credentials, or secrets.</p>
+      </section>
+
+      <section class="market-section">
+        <h2 class="market-heading">Step 4: Receive your clearance PDF</h2>
+        <p class="market-lead">Within 48 hours, you'll receive:</p>
+        <ul class="pricing-features">
+          <li>Executive clearance PDF formatted for client presentation</li>
+          <li>Gate verdict and readiness score</li>
+          <li>Developer remediation recipes for each blocking issue</li>
+          <li>Compliance checklist and sign-off seal</li>
+        </ul>
+        <p class="market-lead" style="margin-top: 1rem;"><strong>Priority delivery:</strong> If you provided a client delivery date, we prioritize your report accordingly.</p>
+      </section>
+
+      <section class="market-section">
+        <h2 class="market-heading">What's included in the PDF</h2>
+        <p class="market-lead">Your executive clearance PDF includes:</p>
+        <ul class="pricing-features">
+          <li>Cover page with project metadata and confidentiality notice</li>
+          <li>Executive summary with key findings and risk matrix</li>
+          <li>Detailed remediation matrix with code fixes</li>
+          <li>Compliance checklist (credential patterns, sample paths, AI-fiction KPIs)</li>
+          <li>Production sign-off seal for CTO / Lead Architect</li>
+        </ul>
+      </section>
+
+      <section class="market-section">
+        <h2 class="market-heading">Need help?</h2>
+        <p class="market-lead">If you have questions about the delivery process:</p>
+        <ul class="pricing-features">
+          <li>Reply to your payment confirmation email</li>
+          <li>Contact us at <a href="../contact.html?topic=audit">support</a></li>
+          <li>Include your order reference number</li>
+        </ul>
+      </section>
+
+      <p class="sales-gate-foot">
+        <a href="../landing.html">← Home</a>
+        · <a href="../pricing.html">Pricing</a>
+        · <a href="../sample-report.html">Sample report</a>
+        · <a href="../contact.html">Contact us</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="../site-config.js"></script>
+  <script src="../app-links.js"></script>
+  <script>
+    // Only load Cloudflare analytics in production, not on localhost or file:// protocol
+    if (window.location.protocol !== 'file:' && !window.location.hostname.match(/^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/)) {
+      (function() {
+        var script = document.createElement('script');
+        script.defer = true;
+        script.src = 'https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447';
+        script.integrity = 'sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==';
+        script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"YOUR_CLOUDFLARE_TOKEN","r":1}');
+        script.crossOrigin = 'anonymous';
+        document.body.appendChild(script);
+      })();
+    }
+  </script>
+</body>
+</html>

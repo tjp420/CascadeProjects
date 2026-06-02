@@ -26,7 +26,7 @@ const SKIP_PATH_HINTS = [
 
 const BATCH_SCANNER_PATHS = [
     'server/lib/codebase-analyzer.js',
-    'server/lib/code-roadmap-generator.js',
+    'server/lib/code-roadmap-generator.cjs',
     'server/lib/code-roadmap-phase2.js',
     'server/lib/code-understanding/',
     'server/lib/file-merger-reduction-scanner.js',

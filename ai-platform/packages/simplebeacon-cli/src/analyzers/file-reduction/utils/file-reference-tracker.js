@@ -147,6 +147,94 @@ function parseNonCodeReferences(filePath, content, projectRoot) {
     return [];
 }
 
+function parseWorkerScriptReferences(filePath, content, projectRoot) {
+    const refs = [];
+    const fromDir = path.dirname(filePath);
+    const projectRootResolved = path.resolve(projectRoot);
+
+    const singleSegmentPatterns = [
+        /path\.join\s*\(\s*__dirname\s*,\s*['"]([^'"]+)['"]\s*\)/g,
+        /WORKER_SCRIPT\s*=\s*path\.join\s*\(\s*__dirname\s*,\s*['"]([^'"]+)['"]\s*\)/g
+    ];
+    for (const regex of singleSegmentPatterns) {
+        regex.lastIndex = 0;
+        let match = regex.exec(content);
+        while (match) {
+            const resolvedPath = path.resolve(fromDir, match[1]);
+            if (resolvedPath.startsWith(projectRootResolved)) {
+                refs.push({ kind: 'worker-ref', specifier: match[1], source: filePath, resolvedPath });
+            }
+            match = regex.exec(content);
+        }
+    }
+
+    const multiSegmentPattern = /path\.join\s*\(\s*__dirname\s*((?:\s*,\s*['"][^'"]+['"])+)\s*\)/g;
+    multiSegmentPattern.lastIndex = 0;
+    let multiMatch = multiSegmentPattern.exec(content);
+    while (multiMatch) {
+        const segments = [...multiMatch[1].matchAll(/['"]([^'"]+)['"]/g)].map((part) => part[1]);
+        if (segments.length) {
+            const resolvedPath = path.resolve(fromDir, ...segments);
+            if (resolvedPath.startsWith(projectRootResolved)) {
+                refs.push({
+                    kind: 'path-join-ref',
+                    specifier: segments.join('/'),
+                    source: filePath,
+                    resolvedPath
+                });
+            }
+        }
+        multiMatch = multiSegmentPattern.exec(content);
+    }
+
+    const packageRelativePattern = /path\.join\s*\(\s*[^,)]+,\s*((?:['"][^'"]+['"]\s*,?\s*)+)\)/g;
+    packageRelativePattern.lastIndex = 0;
+    let packageMatch = packageRelativePattern.exec(content);
+    while (packageMatch) {
+        const segments = [...packageMatch[1].matchAll(/['"]([^'"]+)['"]/g)].map((part) => part[1]);
+        if (!segments.length) {
+            packageMatch = packageRelativePattern.exec(content);
+            continue;
+        }
+        const resolvedPath = path.resolve(fromDir, ...segments);
+        if (resolvedPath.startsWith(projectRootResolved)) {
+            refs.push({
+                kind: 'package-ref',
+                specifier: segments.join('/'),
+                source: filePath,
+                resolvedPath
+            });
+        }
+        packageMatch = packageRelativePattern.exec(content);
+    }
+
+    const spawnPattern = /(?:spawn|spawnSync|execFile(?:Sync)?)\s*\(\s*['"]([^'"]+\.py)['"]/g;
+    spawnPattern.lastIndex = 0;
+    let spawnMatch = spawnPattern.exec(content);
+    while (spawnMatch) {
+        const resolvedPath = path.resolve(fromDir, spawnMatch[1]);
+        const candidates = [
+            resolvedPath,
+            path.resolve(projectRootResolved, spawnMatch[1]),
+            path.resolve(projectRootResolved, 'packages/simplebeacon-cli', spawnMatch[1])
+        ];
+        for (const candidate of candidates) {
+            if (candidate.startsWith(projectRootResolved) && fs.existsSync(candidate)) {
+                refs.push({
+                    kind: 'spawn-ref',
+                    specifier: spawnMatch[1],
+                    source: filePath,
+                    resolvedPath: candidate
+                });
+                break;
+            }
+        }
+        spawnMatch = spawnPattern.exec(content);
+    }
+
+    return refs;
+}
+
 function addReference(referenceMap, targetPath, sourcePath) {
     const key = path.resolve(targetPath);
     const bucket = referenceMap.get(key) || new Set();
@@ -156,6 +244,7 @@ function addReference(referenceMap, targetPath, sourcePath) {
 
 module.exports = {
     parseNonCodeReferences,
+    parseWorkerScriptReferences,
     addReference,
     parseHtmlReferences,
     parseCssReferences,

@@ -2,12 +2,12 @@
  * Layer 2 — semantic / intent analysis (deterministic + optional LLM).
  */
 
-const { createLanguageDetector } = require('../universal-language-detector');
-const { detectBusinessLogicPatterns } = require('./business-logic-patterns');
+const { createLanguageDetector } = require('../universal-language-detector.cjs');
+const { detectBusinessLogicPatterns } = require('./business-logic-patterns.cjs');
 const {
     explainCodeWithProvider,
     providerConfigured
-} = require('../../services/cloud-inference-service');
+} = require('../../services/cloud-inference-service.cjs');
 
 const detector = createLanguageDetector();
 

@@ -1,0 +1,29 @@
+{
+  "_note": "This is a sample/test data file for dashboard display. Contains placeholder values.",
+  "type": "engineering-baseline-report",
+  "overview": {
+    "currentRelease": "1.0.0"
+  },
+  "fictionVsReality": {
+    "summary": "Repository-audit baseline — no fictional KPI claims in active fields."
+  },
+  "releaseMilestones": [
+    { "name": "Initial release", "status": "planned" }
+  ],
+  "criticalPath": [
+    { "task": "Gate scan integration", "owner": "platform" }
+  ],
+  "successMetrics": [
+    { "metric": "Gate pass rate", "target": "100%" }
+  ],
+  "riskAssessment": {
+    "level": "low"
+  },
+  "budgetEstimate": {
+    "currency": "USD",
+    "note": "Internal tooling — not a client deliverable estimate."
+  },
+  "recommendations": {
+    "priority": "Maintain schema-valid page samples under web/data."
+  }
+}

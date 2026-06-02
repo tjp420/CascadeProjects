@@ -1,0 +1,130 @@
+{
+  "_note": "This is a sample/test data file for dashboard display. Contains placeholder values.",
+  "type": "dev-tools-model",
+  "generatedAt": "2026-06-01T00:00:00.000Z",
+  "overview": {
+    "totalTools": 8,
+    "activeTools": 8,
+    "totalUsage": null,
+    "runningWorkflows": 3,
+    "avgResponseTime": null,
+    "successRate": null,
+    "notes": "Catalog of npm scripts and CI workflows available from the Tools page — run counts are not measured until wired to live telemetry."
+  },
+  "tools": [
+    {
+      "id": "simplebeacon-scan",
+      "name": "Simplebeacon Scan",
+      "description": "Regenerate .simplebeacon/report.json with gate rules (npm run simplebeacon).",
+      "category": "hygiene",
+      "status": "active",
+      "icon": "✅",
+      "avgTime": "1–3 min",
+      "section": "Runnable Actions"
+    },
+    {
+      "id": "baseline-sync",
+      "name": "Baseline Sync",
+      "description": "Update Jest counts in .simplebeacon/baseline.json (npm run simplebeacon:baseline-sync).",
+      "category": "metrics",
+      "status": "active",
+      "icon": "🔄",
+      "avgTime": "30–90 sec",
+      "section": "Runnable Actions"
+    },
+    {
+      "id": "npm-audit",
+      "name": "npm audit",
+      "description": "Live dependency vulnerability scan via the dashboard API.",
+      "category": "security",
+      "status": "active",
+      "icon": "🛡️",
+      "avgTime": "15–45 sec",
+      "section": "Runnable Actions"
+    },
+    {
+      "id": "consolidation-scan",
+      "name": "Consolidation Scan",
+      "description": "Find duplicate JSON, similar schemas, and oversized files under configured sample paths.",
+      "category": "data",
+      "status": "active",
+      "icon": "🔀",
+      "avgTime": "30–120 sec",
+      "section": "Runnable Actions"
+    },
+    {
+      "id": "simplebeacon-pre-pr",
+      "name": "Pre-PR Gate",
+      "description": "Offline gate scan plus gate status (npm run simplebeacon:pre-pr).",
+      "category": "hygiene",
+      "status": "active",
+      "icon": "🚦",
+      "avgTime": "1–2 min",
+      "section": "Repository"
+    },
+    {
+      "id": "env-audit",
+      "name": "Environment Audit",
+      "description": "Scan for missing or undocumented environment variables (npm run env:audit).",
+      "category": "config",
+      "status": "active",
+      "icon": "🔑",
+      "avgTime": "20–60 sec",
+      "section": "Repository"
+    },
+    {
+      "id": "compliance-check",
+      "name": "Compliance Check",
+      "description": "Validate compliance trail against the latest scan report (npm run compliance:check).",
+      "category": "compliance",
+      "status": "active",
+      "icon": "📋",
+      "avgTime": "10–30 sec",
+      "section": "Repository"
+    },
+    {
+      "id": "fiction-kpi-guard",
+      "name": "Fiction KPI Guard",
+      "description": "Detect hardcoded KPIs in sample data and server stubs (npm run guard:fiction-kpi:ci).",
+      "category": "quality",
+      "status": "active",
+      "icon": "🔍",
+      "avgTime": "15–45 sec",
+      "section": "Repository"
+    }
+  ],
+  "workflows": [
+    {
+      "id": "enterprise-guardrail",
+      "name": "Simplebeacon Enterprise Guardrail",
+      "description": "SB-ENT rules, credentials, and structural intent (profile: enterprise). Monorepo root: .github/workflows/simplebeacon-enterprise-gate.yml",
+      "status": "active",
+      "tools": ["simplebeacon-scan", "simplebeacon-pre-pr", "compliance-check"],
+      "lastRun": "on PR/push (ai-platform/**)"
+    },
+    {
+      "id": "ai-hygiene-gate",
+      "name": "SimpleBeacon AI Hygiene Gate",
+      "description": "Token bleed, architecture drift, Python + JS AST rules. Monorepo root: .github/workflows/simplebeacon-ai-hygiene-gate.yml",
+      "status": "active",
+      "tools": ["simplebeacon-scan", "simplebeacon-pre-pr"],
+      "lastRun": "on PR/push (ai-platform/**)"
+    },
+    {
+      "id": "npm-publish",
+      "name": "npm publish",
+      "description": "Publish simplebeacon to npm on GitHub Release tag simplebeacon-v* (CascadeProjects/.github/workflows/simplebeacon-npm-publish.yml). Requires NPM_TOKEN secret.",
+      "status": "active",
+      "tools": ["simplebeacon-pre-pr"],
+      "lastRun": "on release (simplebeacon-v*) or workflow_dispatch"
+    },
+    {
+      "id": "pre-push-hook",
+      "name": "Pre-push Hook",
+      "description": "Local git hook: gate scan with Jest evidence (npm run sb:hook:pre-push).",
+      "status": "active",
+      "tools": ["simplebeacon-scan", "baseline-sync"],
+      "lastRun": "on demand"
+    }
+  ]
+}

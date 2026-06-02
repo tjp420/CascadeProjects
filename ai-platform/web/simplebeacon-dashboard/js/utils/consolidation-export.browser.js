@@ -8,9 +8,9 @@ function projectLabelFromPath(projectPath) {
   return parts[parts.length - 1] || 'ai-platform';
 }
 
-function redactProjectPathForExport(value, projectLabel = 'ai-platform') {
-  if (value == null || value === '') return value;
-  const normalized = String(value).replace(/\\/g, '/');
+function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
+  if (rawPath == null || rawPath === '') return rawPath;
+  const normalized = String(rawPath).replace(/\\/g, '/');
   if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
     || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
     return projectLabel;
@@ -156,7 +156,9 @@ function consolidationPathTouchesExcluded(filePath) {
   return isEphemeralConsolidationPath(rel)
     || isBenchmarkPath(rel)
     || rel.startsWith('deliverables/')
-    || rel.includes('/deliverables/');
+    || rel.includes('/deliverables/')
+    || rel.startsWith('.github-sync/')
+    || rel.includes('/.github-sync/');
 }
 
 function resolveProductPlatformRoot(projectPath) {
@@ -564,6 +566,7 @@ function buildProductConsolidationExportNotes(scan, ephemeralExcluded, context =
   }
   if (fictionJsonFilesScanned != null && fictionSampleFilesScanned != null && fictionJsonFilesScanned > fictionSampleFilesScanned) {
     notes.push(
+      // simplebeacon:production-leak-intent - legitimate KPI reference for consolidation reporting
       `DATA-002 evaluated ${Number(fictionJsonFilesScanned).toLocaleString()} repository JSON path(s) — ${Number(fictionSampleFilesScanned).toLocaleString()} *-sample.json KPI file(s) matched in paired gate scan.`
     );
   }

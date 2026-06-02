@@ -9,13 +9,13 @@ const {
   getTierManifest,
   resolveDeliverableTier,
   DELIVERABLE_TIERS
-} = require('./analyze-deliverable-access');
+} = require('./analyze-deliverable-access.cjs');
 const { applyPublicGateToAnalyzeResponse, sanitizePublicOutput } = require('../../packages/simplebeacon-cli/src/lib/report-sanitizer');
-const { normalizeCompleteScanInput } = require('./complete-scan-audit-report');
-const { assessAuditExportTier, sanitizeFrozenAuditDeliverableHtml } = require('./audit-export-tier');
+const { normalizeCompleteScanInput } = require('./complete-scan-audit-report.cjs');
+const { assessAuditExportTier, sanitizeFrozenAuditDeliverableHtml } = require('./audit-export-tier.cjs');
 const { sanitizeCompleteScanExport } = require('../../packages/simplebeacon-cli/src/lib/complete-scan-export-sanitize');
 const { sanitizeComplianceChecklistArtifactExport } = require('../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize');
-const { sanitizeEuAiActSprintArtifactExport } = require('./eu-ai-act-export');
+const { sanitizeEuAiActSprintArtifactExport } = require('./eu-ai-act-export.cjs');
 const { sanitizeFictionDigestExport } = require('../../packages/simplebeacon-cli/src/lib/fiction-digest-export-sanitize');
 const { sanitizeDataCleanupReportExport } = require('../../packages/simplebeacon-cli/src/lib/data-cleanup-export-sanitize');
 const { sanitizeNpmAuditExport } = require('../../packages/simplebeacon-cli/src/lib/npm-audit-export-sanitize');
@@ -247,7 +247,7 @@ function validateScanForTier(tierId, scanKind) {
 }
 
 async function generateExecutiveAuditHtml(completeScan, options = {}) {
-  const { buildCompleteAuditReport } = require('./complete-scan-audit-report');
+  const { buildCompleteAuditReport } = require('./complete-scan-audit-report.cjs');
   const tierPreview = assessAuditExportTier(completeScan);
   if (tierPreview.exportBlocked) {
     return { skipped: true, reason: tierPreview.blockReason };
@@ -263,7 +263,7 @@ async function generateExecutiveAuditHtml(completeScan, options = {}) {
 }
 
 async function generateEuAiActAuditHtml(projectPath, options = {}) {
-  const { buildEuAiActAuditReport } = require('./eu-ai-act-audit-report');
+  const { buildEuAiActAuditReport } = require('./eu-ai-act-audit-report.cjs');
   const sprint = options.sprintPayload || options.inlineArtifacts || null;
   const report = await buildEuAiActAuditReport({
     projectPath: options.euProjectPath || projectPath,
@@ -275,7 +275,7 @@ async function generateEuAiActAuditHtml(projectPath, options = {}) {
 }
 
 async function generateAgencyCertificateHtml(completeScan, options = {}) {
-  const { buildCertificateModel, renderCertificateHtml } = require('./code-hygiene-certificate');
+  const { buildCertificateModel, renderCertificateHtml } = require('./code-hygiene-certificate.cjs');
   const { normalized, results } = extractCompleteResults(completeScan);
   const gateReport = results.simplebeacon || normalized?.results?.simplebeacon || normalized;
   if (!gateReport?.gate) {
@@ -625,7 +625,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
           warnings.push(`Unknown artifact id: ${artifact.id}`);
       }
     } catch (err) {
-      warnings.push(`${artifact.id}: ${err.message}`);
+      warnings.push(`${artifact.id}: ${String(err.message || err).replace(/[\r\n]+/g, ' ').slice(0, 240)}`);
     }
   }
 

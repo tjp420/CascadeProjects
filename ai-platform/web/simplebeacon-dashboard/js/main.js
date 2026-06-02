@@ -10,7 +10,7 @@ import { DashboardView } from './views/DashboardView.js';
 import { ResultsView } from './views/ResultsView.js';
 import { SettingsView } from './views/SettingsView.js?v=20260525aikeysguard1';
 import { ToolsView } from './views/ToolsView.js';
-import { PlatformView } from './views/PlatformView.js';
+import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1';
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js';
@@ -21,6 +21,7 @@ import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js';
 import { OutreachView } from './views/OutreachView.js?v=20260601outreachv2';
 import { SignInView } from './views/SignInView.js';
+import { ChatbotView } from './views/ChatbotView.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
 import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js';
@@ -31,7 +32,14 @@ import { fetchAnalyzeProviders } from './services/analyzeService.js';
 function vaultUnlockUrl(returnPath = '/app') {
   const returnTo = encodeURIComponent(returnPath);
   if (isLocalDevHost()) {
-    return `/private-dashboard-vault?password=admin&returnTo=${returnTo}`;
+    // Use server-injected vault password from environment variable
+    // Server should inject window.SIMPLEBEACON_VAULT_PASSWORD from process.env.VAULT_PASSWORD
+    const vaultPassword = window.SIMPLEBEACON_VAULT_PASSWORD || '';
+    if (!vaultPassword) {
+      console.warn('Vault password not configured. Set VAULT_PASSWORD environment variable on the server.');
+      return `/private-dashboard-vault?returnTo=${returnTo}`;
+    }
+    return `/private-dashboard-vault?password=${encodeURIComponent(vaultPassword)}&returnTo=${returnTo}`;
   }
   return `/private-dashboard-vault?returnTo=${returnTo}`;
 }
@@ -116,7 +124,8 @@ class SimplebeaconDashboard {
       about: new AboutView(this),
       trust: new TrustView(this),
       'repository-health': new RepositoryHealthView(this),
-      signin: new SignInView(this)
+      signin: new SignInView(this),
+      chatbot: new ChatbotView(this)
     };
 
     this.currentView = null;

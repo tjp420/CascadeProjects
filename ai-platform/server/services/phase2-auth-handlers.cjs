@@ -8,8 +8,8 @@ const {
     trustLevels,
     auditAuth,
     handleLogin
-} = require('../middleware/auth');
-const { authenticateUser } = require('./user-service');
+} = require('../middleware/auth.cjs');
+const { authenticateUser } = require('./user-service.cjs');
 
 async function handlePhase2Login(req, res, next) {
     try {

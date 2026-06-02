@@ -19,10 +19,10 @@ function normalizeStaticTrustPayload(data) {
 }
 
 async function fetchStaticTrustFallback() {
-  const res = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
-  if (!res || !res.ok) return null;
-  const data = await res.json().catch(() => null);
-  return normalizeStaticTrustPayload(data);
+  const trustHttpResponse = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
+  if (!trustHttpResponse || !trustHttpResponse.ok) return null;
+  const trustVerificationDocument = await trustHttpResponse.json().catch(() => null);
+  return normalizeStaticTrustPayload(trustVerificationDocument);
 }
 
 function normalizeTrustApiPayload(data) {

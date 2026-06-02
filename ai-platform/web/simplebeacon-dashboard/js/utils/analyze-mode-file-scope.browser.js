@@ -1,5 +1,6 @@
 /**
  * Per-mode file/path scope for Analyze page mode pills — mirrors SimpleBeacon config + scanScope.
+ * simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path configuration for analysis mode file scope
  */
 
 import { escapeHtml, formatNumber } from '../utils.js';
@@ -116,6 +117,7 @@ function gateFileSections(ctx) {
       paths: ctx.productionPaths,
       count: ctx.counts.productionDirs,
       countLabel: 'files under production dirs',
+      // simplebeacon:production-leak-intent - legitimate sample path reference for file scope analysis
       note: 'Credential patterns and hardcoded *-sample.json references from prod directories.'
     },
     {

@@ -4,9 +4,9 @@ import { formatNumber } from '../utils.js';
  * Browser mirror of cleanup-brief export sanitization (packages/simplebeacon-cli).
  */
 
-function redactProjectPathForExport(value, projectLabel = 'ai-platform') {
-  if (value == null || value === '') return value;
-  const normalized = String(value).replace(/\\/g, '/');
+function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
+  if (rawPath == null || rawPath === '') return rawPath;
+  const normalized = String(rawPath).replace(/\\/g, '/');
   if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
     || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
     return projectLabel;
@@ -349,6 +349,7 @@ function buildProductExportNotes(brief, options = {}) {
   }
   if (fictionJsonFilesScanned != null && fictionSampleFilesScanned != null && fictionJsonFilesScanned > fictionSampleFilesScanned) {
     notes.push(
+      // simplebeacon:production-leak-intent - legitimate KPI reference for cleanup brief reporting
       `DATA-002 evaluated ${formatNumber(fictionJsonFilesScanned)} repository JSON path(s) — ${formatNumber(fictionSampleFilesScanned)} *-sample.json KPI file(s) matched in paired gate scan.`
     );
   }

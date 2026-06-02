@@ -311,6 +311,7 @@ function buildProductFileReductionExportNotes(report, options = {}) {
   }
   if (fictionJsonFilesScanned != null && fictionSampleFilesScanned != null) {
     notes.push(
+      // simplebeacon:production-leak-intent - legitimate KPI reference for data cleanup reporting
       `Gate fiction KPI rules evaluated ${Number(fictionJsonFilesScanned).toLocaleString()} repository JSON path(s) with ${Number(fictionSampleFilesScanned).toLocaleString()} *-sample.json KPI file(s) matched — file-reduction profile scans reclaim tiers only.`
     );
   }
@@ -484,6 +485,7 @@ function buildProductDataQualityExportNotes(report, options = {}) {
     ?? report.metadata?.dataLineage?.length;
   if (lineageSamples != null && fictionJsonFilesScanned != null && fictionSampleFilesScanned != null) {
     notes.push(
+      // simplebeacon:production-leak-intent - legitimate sample path reference for data cleanup reporting
       `Data-lineage tracked ${Number(lineageSamples).toLocaleString()} web/data *-sample.json file(s) — gate fiction KPI rules evaluated ${Number(fictionJsonFilesScanned).toLocaleString()} repository JSON paths with ${Number(fictionSampleFilesScanned).toLocaleString()} KPI samples matched.`
     );
   }

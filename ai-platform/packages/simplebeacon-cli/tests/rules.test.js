@@ -51,9 +51,9 @@ test('production-leak ignores dev-tools page-spec metadata descriptions', () => 
 test('production-leak ignores cross-line template-sample false positives in roadmap generator', () => {
     const fs = require('fs');
     const path = require('path');
-    const filePath = path.join(__dirname, '../../../server/lib/code-roadmap-generator.js');
+    const filePath = path.join(__dirname, '../../../server/lib/code-roadmap-generator.cjs');
     const content = fs.readFileSync(filePath, 'utf8');
-    const result = scanFileContent('server/lib/code-roadmap-generator.js', content);
+    const result = scanFileContent('server/lib/code-roadmap-generator.cjs', content);
     assert.equal(result.findings.length, 0);
 });
 

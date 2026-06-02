@@ -3,8 +3,8 @@
  */
 
 const { createClient } = require('redis');
-const { getRedisConfig, isRedisEnabled } = require('../config/redis');
-const logger = require('./app-logger');
+const { getRedisConfig, isRedisEnabled } = require('../config/redis.cjs');
+const logger = require('./app-logger.cjs');
 
 const SNAPSHOT_PREFIX = 'dashboard:snapshot:';
 

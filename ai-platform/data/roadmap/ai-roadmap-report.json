@@ -1,0 +1,162 @@
+{
+  "type": "ai-roadmap-report-model",
+  "dataSource": "repository-audit",
+  "generatedAt": "2026-06-01T11:01:04.868Z",
+  "projectOverview": {
+    "projectName": "simplebeacon-platform",
+    "projectType": "Scanned Codebase",
+    "totalFeatures": 4,
+    "completedFeatures": 3,
+    "inProgressFeatures": 0,
+    "plannedFeatures": 1,
+    "completionRate": 67,
+    "overallProgress": "In Progress",
+    "projectHealth": "Fair",
+    "developmentVelocity": "Measured",
+    "teamProductivity": "Filesystem scan"
+  },
+  "developmentPhases": [
+    {
+      "phase": "Sprint 1: Server & Auth",
+      "status": "completed",
+      "progress": 100,
+      "description": "Canonical server entry and optional JWT auth",
+      "features": [
+        "Root server delegate",
+        "Phase 2 JWT auth"
+      ],
+      "milestones": [
+        "Single server entry",
+        "Auth routes live"
+      ]
+    },
+    {
+      "phase": "Sprint 2: Stub APIs & Tests",
+      "status": "completed",
+      "progress": 100,
+      "description": "Stub API routes (64 detected) and null Jest tests (null suites)",
+      "features": [
+        "Tier-1 stub API routes",
+        "139 test files on disk (run Jest for live suite count)"
+      ],
+      "milestones": [
+        "dashboard-stub-api.js",
+        "139 tests"
+      ]
+    },
+    {
+      "phase": "Sprint 3: Honest Dashboard Data",
+      "status": "completed",
+      "progress": 100,
+      "description": "9/50 page samples with repository-audit analyzers",
+      "features": [
+        "9/50 PAGE_SAMPLE_SPECS samples",
+        "SEC-004 npm audit wired to Security page",
+        "Mock-data scanner with schema validation",
+        "File merger reduction scanner"
+      ],
+      "milestones": [
+        "Repository-audit samples",
+        "Mock-data + merger scanners"
+      ]
+    },
+    {
+      "phase": "Sprint 4: Production Profile",
+      "status": "planned",
+      "progress": 0,
+      "description": "Docker Phase2, CI smoke test, Istanbul coverage, production profile",
+      "features": [
+        "Docker compose pending",
+        "Istanbul pending",
+        "GGUF inference (LLAMA_CPP_BIN/Ollama) — optional",
+        "REQUIRE_AUTH production profile ready"
+      ],
+      "milestones": [
+        "phase2-smoke CI job",
+        "Production runbook"
+      ]
+    }
+  ],
+  "recommendations": {
+    "immediate": [
+      "Add docker-compose.phase2.yml smoke test to CI",
+      "Enable Istanbul coverage in CI (npm run test:coverage)"
+    ],
+    "shortTerm": [
+      "Complete remaining sprint deliverables",
+      "Wire null deploy gate before production profile",
+      "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)",
+      "Improve documentation coverage"
+    ],
+    "longTerm": [
+      "Define enterprise scope only after v1.0-internal"
+    ],
+    "priorities": {
+      "high": [
+        "Add docker-compose.phase2.yml smoke test to CI",
+        "Enable Istanbul coverage in CI (npm run test:coverage)"
+      ],
+      "medium": [
+        "Complete remaining sprint deliverables",
+        "Wire null deploy gate before production profile",
+        "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)"
+      ],
+      "low": [
+        "Optional GGUF semantic feature extraction"
+      ]
+    }
+  },
+  "predictions": [],
+  "risks": [
+    {
+      "category": "maintainability",
+      "severity": "medium",
+      "description": "Test coverage requires live Jest/Istanbul — not inferred by roadmap LLM."
+    }
+  ],
+  "actionPlan": [
+    {
+      "priority": "HIGH",
+      "action": "Add docker-compose.phase2.yml smoke test to CI",
+      "category": "delivery"
+    },
+    {
+      "priority": "HIGH",
+      "action": "Enable Istanbul coverage in CI (npm run test:coverage)",
+      "category": "delivery"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Complete remaining sprint deliverables",
+      "category": "maintainability"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Wire null deploy gate before production profile",
+      "category": "maintainability"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)",
+      "category": "maintainability"
+    }
+  ],
+  "performanceMetrics": [],
+  "hygieneSummary": {
+    "roadmapAuditFiles": 756,
+    "gateRepositoryFilesTotal": null,
+    "sprintCompletionRate": 67,
+    "coverageEvidenceSource": "omitted-stale-prior",
+    "apiRouteCount": 64,
+    "jestFilesOnDisk": 139,
+    "roadmapHealthStatus": "product-advisory",
+    "attestationNote": "Filesystem roadmap + LLM advisory — gate JSON is source of truth for vendor handoff."
+  },
+  "roadmapScanMeta": {
+    "exportProfile": "filtered-v3.1",
+    "sprintCompletionRate": 67,
+    "apiRouteCount": 64,
+    "jestFilesOnDisk": 139,
+    "appliedAt": "2026-06-01T11:06:15.595Z"
+  }
+}

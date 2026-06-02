@@ -12,7 +12,8 @@ const {
     countExcludedFuzzyPairs,
     isBrowserBuildMirrorPair,
     isIntentionalMcpExamplePair,
-    isMonorepoPlatformAliasPair
+    isMonorepoPlatformAliasPair,
+    countIntentionalPairExclusions
 } = require('./consolidation-path-exclusions');
 
 const PRODUCT_PATH_MARKERS = [
@@ -257,37 +258,6 @@ function shouldExcludeConsolidationCandidate(candidate, benchmarkScan) {
     if (consolidationCandidateTouchesExcluded(candidate)) return true;
     if (benchmarkScan) return false;
     return consolidationCandidateTouchesExcludedExport(candidate);
-}
-
-function countIntentionalPairExclusions(candidates = []) {
-    let browserMirrorPairsExcluded = 0;
-    let mcpExamplePairsExcluded = 0;
-    let monorepoAliasPairsExcluded = 0;
-    let ephemeralPathsExcluded = 0;
-    for (const candidate of candidates) {
-        const paths = (candidate?.files || []).map((file) =>
-            file.path || file.relativePath || file.name).filter(Boolean);
-        if (paths.some(isEphemeralConsolidationPath)) {
-            ephemeralPathsExcluded += 1;
-            continue;
-        }
-        if (paths.length !== 2) continue;
-        if (isBrowserBuildMirrorPair(paths[0], paths[1])) {
-            browserMirrorPairsExcluded += 1;
-        } else if (isIntentionalMcpExamplePair(paths[0], paths[1])) {
-            mcpExamplePairsExcluded += 1;
-        } else if (isMonorepoPlatformAliasPair(paths[0], paths[1])) {
-            monorepoAliasPairsExcluded += 1;
-        }
-    }
-    return {
-        browserMirrorPairsExcluded,
-        mcpExamplePairsExcluded,
-        monorepoAliasPairsExcluded,
-        ephemeralPathsExcluded,
-        intentionalPairsExcluded: browserMirrorPairsExcluded + mcpExamplePairsExcluded
-            + monorepoAliasPairsExcluded + ephemeralPathsExcluded
-    };
 }
 
 function filterAdvancedAnalysis(analysis, benchmarkScan) {

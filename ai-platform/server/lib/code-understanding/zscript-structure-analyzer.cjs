@@ -63,7 +63,7 @@ async function collectZscriptFiles(rootDir, options = {}) {
     return results;
 }
 
-const { ZScriptParser } = require('../parsers/zscript-parser');
+const { ZScriptParser } = require('../parsers/zscript-parser.cjs');
 const zscriptParser = new ZScriptParser();
 
 function parseZscriptFile(content, relativePath) {

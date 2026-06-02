@@ -122,7 +122,7 @@ cd ai-platform && npm run simplebeacon:report
 node -e "require('./packages/simplebeacon-cli/src/rules/production-leak').scanProductionLeaks('.', {productionPaths:['server/'], severity:'medium', allowlistFiles:[]}).then(r=>console.log(r.findings))"
 
 # Extended src/ scan (46 hits expected)
-node -e "require('./packages/simplebeacon-cli/src/rules/production-leak').scanProductionLeaks('.', {productionPaths:['server/','src/'], severity:'medium', allowlistFiles:['server/lib/snapshot-seeds.js','server/lib/snapshot-resolver.js','server/lib/code-roadmap-generator.js','server/services/model-inference-service.js']}).then(r=>console.log(r.findings))"
+node -e "require('./packages/simplebeacon-cli/src/rules/production-leak').scanProductionLeaks('.', {productionPaths:['server/','src/'], severity:'medium', allowlistFiles:['server/lib/snapshot-seeds.js','server/lib/snapshot-resolver.js','server/lib/code-roadmap-generator.cjs','server/services/model-inference-service.js']}).then(r=>console.log(r.findings))"
 ```
 
 ---

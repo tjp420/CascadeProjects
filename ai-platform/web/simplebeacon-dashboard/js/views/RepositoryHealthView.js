@@ -26,10 +26,10 @@ function normalizeStaticRepositoryHealthPayload(payload) {
 }
 
 async function fetchStaticRepositoryHealthFallback() {
-  const res = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
-  if (!res || !res.ok) return null;
-  const data = await res.json().catch(() => null);
-  return normalizeStaticRepositoryHealthPayload(data);
+  const trustHttpResponse = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
+  if (!trustHttpResponse || !trustHttpResponse.ok) return null;
+  const trustVerificationDocument = await trustHttpResponse.json().catch(() => null);
+  return normalizeStaticRepositoryHealthPayload(trustVerificationDocument);
 }
 
 async function readJsonOrDefault(res, defaultValue = {}) {
@@ -223,7 +223,7 @@ export class RepositoryHealthView {
         ${this.candidates.length ? `
           <div class="card mb-4">
             <h3 class="mb-2" style="font-size:var(--font-size-base);">Merge candidates (preview only)</h3>
-            <p class="text-muted text-sm">Phase 3 safety: preview → confirm → quarantine. No auto-delete.</p>
+            <p class="text-muted text-sm">Phase 3 safety: preview → confirm → quarantine. No auto-delete. Pairs under <code>ai-platform/packages/simplebeacon-cli</code> ↔ <code>packages/simplebeacon-cli</code> are intentional npm mirrors and are not shown.</p>
             <div class="consolidation-list">
               ${this.candidates.slice(0, 5).map((item) => `
                 <div class="consolidation-card card">

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SimpleBeacon Pricing — Audits & Agency Packs</title>
+  <meta name="description" content="SimpleBeacon pricing: optional $499 clearance PDF from your local gate report, $999 Agency Project Pack, $1,499 Growth Pack. Free CLI + MCP for local scans.">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://simplebeacon.ai/pricing">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="sales-gate-wrap">
+    <div class="sales-gate">
+      <p class="sales-gate-brand"><a href="landing.html">SimpleBeacon</a></p>
+      <h1>Pricing for agencies</h1>
+      <p class="hero-shield-note">Four ways to buy — same scan engine, different artifact. Client deliverables first; internal dev tooling and retention below.</p>
+      <p class="pitch-text hero-solution">
+        <strong>Free CLI + MCP</strong> — local gate on your machine (<a href="community.html">install</a>).
+        <strong>$499+</strong> — optional formatted PDF from your gate report for the client room.
+        <strong>Cloud Teams ($49/mo)</strong> is your agency&rsquo;s internal scan cockpit — <em>not</em> a replacement for clearance.
+      </p>
+
+      <p class="shield-callout" style="margin-bottom:1.25rem;"><strong>Product ladder:</strong> CLI + MCP (free) → optional $499 PDF from your report → $999–$1,499 milestone certificates → optional Teams MRR.</p>
+
+      <h2 class="market-heading" id="free-tier" style="font-size:1.05rem;margin:0 0 0.75rem;">Free — local CLI + MCP</h2>
+      <article class="pricing-card" style="max-width:none;margin-bottom:1.5rem;">
+        <p class="pricing-label">Community · $0</p>
+        <h3>Release hygiene gate on your machine</h3>
+        <p class="pricing-note">MCP while coding · full-repo <code>--gate</code> in CI · nothing uploads by default</p>
+        <ul class="pricing-features">
+          <li><code>npx --yes simplebeacon init --starter</code></li>
+          <li>Cursor MCP, GitHub Action, config, and agent scan rule</li>
+          <li>Report <strong>blocking issues</strong> — not raw finding counts</li>
+        </ul>
+        <a href="community.html" class="cta-billing-btn">Install guide →</a>
+      </article>
+
+      <h2 class="market-heading" id="client-deliverables" style="font-size:1.05rem;margin:0 0 0.75rem;">Client deliverables — forward to the CTO</h2>
+      <div class="pricing-grid pricing-grid-pricing-page">
+        <article class="pricing-card featured">
+          <p class="pricing-label">Client deliverable · wedge</p>
+          <h3>Executive clearance PDF</h3>
+          <p class="pricing-price">$499 <small>flat / project</small></p>
+          <p class="pricing-note">Formatted PDF from your local gate report — optional client deliverable</p>
+          <ul class="pricing-features">
+            <li>Run <code>scan --gate --offline</code> locally, send JSON — no source zip required</li>
+            <li>48-hour executive PDF · gate verdict + developer remediations</li>
+            <li>Operator review of your gate report</li>
+            <li>Credential, <code>*-sample.json</code> / <code>web/data</code> prod-leak &amp; AI-fiction KPI scan</li>
+            <li>Does <strong>not</strong> include hosted dashboard or milestone certificates</li>
+          </ul>
+          <a href="https://buy.stripe.com/fZu28qesn6fB1ODftceEo06" class="cta-billing-btn checkout-audit" target="_blank" rel="noopener noreferrer">Request clearance PDF — $499</a>
+        </article>
+
+        <article class="pricing-card">
+          <p class="pricing-label">Client deliverable · agencies</p>
+          <h3>Agency Project Pack</h3>
+          <p class="pricing-price">$999 <small>per project</small></p>
+          <p class="pricing-note">Three milestone certificates — co-branded handoff proof</p>
+          <ul class="pricing-features">
+            <li>Complete scan + gate attestation per milestone</li>
+            <li>Co-branded hygiene certificate exports (your logo)</li>
+            <li>Operator-run analyze + certificate export each milestone</li>
+            <li>48-hour operator review window per milestone</li>
+          </ul>
+          <a href="https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05" class="cta-billing-btn checkout-agency-project" target="_blank" rel="noopener noreferrer">Buy Project Pack — $999</a>
+        </article>
+
+        <article class="pricing-card">
+          <p class="pricing-label">Client deliverable · complex launches</p>
+          <h3>Agency Growth Pack</h3>
+          <p class="pricing-price">$1,499 <small>per project</small></p>
+          <p class="pricing-note">Priority launch support + warranty re-scan included</p>
+          <ul class="pricing-features">
+            <li>Everything in Project Pack</li>
+            <li>24-hour priority operator review</li>
+            <li>Private Slack channel during launch</li>
+            <li>One warranty re-scan ($199 value)</li>
+          </ul>
+          <a href="https://buy.stripe.com/cNi6oGfwr9rNeBp94OeEo04" class="cta-billing-btn checkout-agency-growth" target="_blank" rel="noopener noreferrer">Buy Growth Pack — $1,499</a>
+        </article>
+
+        <article class="pricing-card featured" id="eu-ai-act">
+          <p class="pricing-label">EU regulatory · agencies with EU clients</p>
+          <h3>EU AI Act Readiness Sprint</h3>
+          <p class="pricing-price">$2,499 <small>flat / repo</small></p>
+          <p class="pricing-note">Technical readiness audit before August 2026 deadline</p>
+          <ul class="pricing-features">
+            <li>Annex III high-risk AI pattern scan + classification signals</li>
+            <li>Article 50 transparency gap detection in user-facing code</li>
+            <li>Documentation completeness (model cards, risk assessments)</li>
+            <li>Human oversight &amp; AI logging accountability checks</li>
+            <li>Executive PDF + 30-day remediation sprint support</li>
+            <li><em>Static technical review — not legal conformity certification</em></li>
+          </ul>
+          <a href="https://buy.stripe.com/3cI28qckfcDZ2SH94OeEo03" class="cta-billing-btn checkout-eu-ai-act" target="_blank" rel="noopener noreferrer">Book EU AI Act sprint — $2,499</a>
+          <p class="pricing-note" style="margin-top:0.75rem"><a href="eu-ai-act-sample-report.html">View sample report</a> · real scan from our codebase</p>
+        </article>
+      </div>
+
+      <h2 class="market-heading" id="dev-tools" style="font-size:1.05rem;margin:1.5rem 0 0.75rem;">Retention &amp; internal dev tooling</h2>
+      <div class="pricing-grid pricing-grid-pricing-page" style="max-width:none;">
+        <article class="pricing-card">
+          <p class="pricing-label">Retention · client deliverable</p>
+          <h3>Post-handoff re-scan</h3>
+          <p class="pricing-price">$199 <small>one-time</small></p>
+          <p class="pricing-note">Formal 30-day re-attestation after release</p>
+          <ul class="pricing-features">
+            <li>Operator-reviewed follow-up gate — not the same as re-running the free CLI</li>
+            <li>Second attestation on the same project</li>
+            <li>Included in Growth Pack ($1,499)</li>
+          </ul>
+          <a href="contact.html?topic=warranty" class="cta-billing-btn" data-contact-link data-contact-topic="warranty">Contact for re-scan</a>
+        </article>
+      </div>
+
+      <p class="shield-callout" style="margin-top:1.25rem;"><strong>Enterprise Integration:</strong> Running a large development team? <a href="contact.html?topic=enterprise">Contact us</a> for custom on-premise deployment and enterprise seat orchestration.</p>
+
+      <form id="auditBookingForm" class="audit-booking-form pricing-booking-form" style="display:none;">
+        <input type="text" name="website" class="audit-booking-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <input type="hidden" name="source" value="pricing-page">
+
+        <div class="booking-header">
+          <h2 class="audit-booking-heading">Request $499 executive clearance PDF</h2>
+          <p class="shield-callout"><strong>Run the gate locally first:</strong> <code>npx simplebeacon scan --gate --offline</code> — then we format your JSON. <a href="community.html">Free CLI &amp; MCP setup</a>.</p>
+          <p class="audit-booking-intro">Submit below — we email you within one business day with payment link and <a href="downloads/repo-handoff.html">clearance delivery guide</a> (JSON report upload). Agency pack buttons above use instant Stripe checkout. <strong>Not for hobby repos or general security pen-tests.</strong></p>
+        </div>
+
+        <label class="audit-booking-field">
+          <span>Work email</span>
+          <input type="email" name="contactEmail" required autocomplete="email" placeholder="you@agency.com">
+          <span class="validation-message" id="contactEmailValidation"></span>
+        </label>
+        <label class="audit-booking-field">
+          <span>Agency / company</span>
+          <input type="text" name="company" required autocomplete="organization" placeholder="Agency name">
+          <span class="validation-message" id="companyValidation"></span>
+        </label>
+        <label class="audit-booking-field">
+          <span>Your role</span>
+          <select name="buyerRole" required>
+            <option value="">Select one…</option>
+            <option value="agency_owner">Agency owner / founder</option>
+            <option value="cto">CTO / Head of Engineering</option>
+            <option value="tech_director">Technical director / delivery lead</option>
+            <option value="pm">Product / program manager</option>
+            <option value="other">Other</option>
+          </select>
+          <span class="validation-message" id="buyerRoleValidation"></span>
+        </label>
+        <label class="audit-booking-field">
+          <span>Project / repository name (for PDF cover)</span>
+          <input type="text" name="repository" required placeholder="github.com/org/client-repo or client-project-name">
+          <span class="validation-message" id="repositoryValidation"></span>
+        </label>
+        <label class="audit-booking-field">
+          <span>Branch scanned locally</span>
+          <input type="text" name="branch" value="main" autocomplete="off">
+        </label>
+        <label class="audit-booking-field">
+          <span>Client delivery date (required for priority)</span>
+          <input type="date" name="handoffDate" required>
+          <span class="validation-message" id="handoffDateValidation"></span>
+        </label>
+        <label class="audit-booking-field">
+          <span>Client name &amp; context (optional)</span>
+          <textarea name="notes" rows="3" placeholder="Client name, retainer value, what is at stake if hygiene issues surface at handoff…"></textarea>
+        </label>
+        <button type="submit" class="audit-booking-submit">Request $499 clearance — send</button>
+        <p class="audit-booking-status" role="status" aria-live="polite" hidden></p>
+      </form>
+
+      <p class="sample-report-cta" style="margin-top:1.25rem;">
+        <a href="sample-report.html" class="sample-report-link" data-sample-report>Sample $499 clearance PDF</a>
+        · <a href="sample-certificate.html">Sample $999+ certificate</a>
+        · <a href="community.html">Free CLI install</a>
+      </p>
+
+      <p class="sales-gate-foot">
+        <a href="landing.html">← Home</a>
+        · <a href="landing.html">Free scan</a>
+        · <a href="sample-report.html" data-sample-report>Sample report</a>
+        · <a href="contact.html?topic=audit" data-audit-email-link data-audit-email-topic="audit">Contact us</a>
+        · <a href="terms.html">Terms</a>
+        · <a href="privacy.html">Privacy</a>
+        · <a href="refund.html">Refunds</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="site-config.js"></script>
+  <script src="app-links.js"></script>
+  <script src="audit-booking.js"></script>
+  <script>
+    // Only load Cloudflare analytics in production, not on localhost or file:// protocol
+    if (window.location.protocol !== 'file:' && !window.location.hostname.match(/^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/)) {
+      (function() {
+        var script = document.createElement('script');
+        script.defer = true;
+        script.src = 'https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447';
+        script.integrity = 'sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==';
+        script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"YOUR_CLOUDFLARE_TOKEN","r":1}');
+        script.crossOrigin = 'anonymous';
+        document.body.appendChild(script);
+      })();
+    }
+  </script>
+</body>
+</html>

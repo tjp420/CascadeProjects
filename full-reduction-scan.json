@@ -1,0 +1,341 @@
+{
+  "type": "data-cleanup-report",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+  "dryRun": true,
+  "generatedAt": "2026-06-01T11:43:22.150Z",
+  "durationMs": 95,
+  "inventory": {
+    "totalFiles": 811,
+    "totalDirectories": 111
+  },
+  "scanners": {},
+  "findings": {
+    "buildArtifacts": [],
+    "assetConsolidation": [],
+    "unusedFiles": [],
+    "configManagement": [],
+    "dependencyHealth": [],
+    "environmentVariables": [],
+    "dataFreshness": [],
+    "dataAccessPatterns": [],
+    "dataPrivacy": [],
+    "dataLineage": [],
+    "dataConsistency": []
+  },
+  "aggregation": {
+    "bySeverity": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "byCategory": {},
+    "topFiles": []
+  },
+  "allFindings": [],
+  "summary": {
+    "totalFindings": 0,
+    "buildArtifactFindings": 0,
+    "duplicateAssetGroups": 0,
+    "unusedFileCandidates": 0,
+    "configFindings": 0,
+    "dependencyFindings": 0,
+    "environmentFindings": 0,
+    "dataFreshnessFindings": 0,
+    "dataAccessFindings": 0,
+    "dataPrivacyFindings": 0,
+    "dataLineageFindings": 0,
+    "dataConsistencyFindings": 0,
+    "reclaimableBytes": 0,
+    "estimatedReductionPct": 0
+  },
+  "metadata": {
+    "entryPoints": [],
+    "dataLineage": []
+  },
+  "fileReductionPlan": {
+    "scopeNote": "Directory totals exclude nested artifact paths to avoid double-counting reclaimable space.",
+    "totals": {
+      "reclaimableBytes": 0,
+      "safeToDeleteBytes": 0,
+      "reviewBeforeDeleteBytes": 0,
+      "duplicateAssetBytes": 0,
+      "estimatedImmediateSavingsBytes": 0
+    },
+    "safeToDelete": {
+      "bytes": 0,
+      "directories": 0,
+      "files": 0,
+      "topDirectories": [],
+      "byCategory": []
+    },
+    "reviewBeforeDelete": {
+      "bytes": 0,
+      "files": 0,
+      "logs": [],
+      "binaries": [],
+      "sourceMaps": {
+        "files": 0,
+        "bytes": 0
+      }
+    },
+    "duplicateAssets": {
+      "groups": 0,
+      "reclaimableBytes": 0,
+      "topGroups": []
+    },
+    "unusedFiles": {
+      "candidates": 0,
+      "sourceFilesScanned": 0,
+      "entryPoints": 0,
+      "note": "Static analysis only — verify dynamic imports, runtime loaders, and config references before deleting."
+    },
+    "summaryTable": [
+      {
+        "category": "Build artifacts (safe)",
+        "files": 0,
+        "bytes": 0,
+        "action": "Safe to delete"
+      },
+      {
+        "category": "Build artifacts (review)",
+        "files": 0,
+        "bytes": 0,
+        "action": "Review first"
+      },
+      {
+        "category": "Duplicate assets",
+        "files": 0,
+        "bytes": 0,
+        "action": "Consolidate"
+      },
+      {
+        "category": "Unused source files",
+        "files": 0,
+        "bytes": null,
+        "action": "Investigate"
+      }
+    ],
+    "recommendations": [
+      "Delete top-level artifact directories first (`node_modules`, `coverage`, `__pycache__`) — highest confidence and largest savings.",
+      "Regenerate dependencies with `npm install` after removing `node_modules`.",
+      "Review log files before deletion — they may contain audit history.",
+      "Consolidate duplicate assets by keeping the canonical copy and updating references.",
+      "Treat unused file candidates as an investigation list, not a bulk delete list."
+    ]
+  },
+  "executiveSummary": {
+    "profile": "all",
+    "generatedAt": "2026-06-01T11:43:22.150Z",
+    "priorityActions": [],
+    "security": {
+      "credentialHits": 0,
+      "credentialsNeedingReview": 0,
+      "piiHits": 0,
+      "piiNeedingReview": 0,
+      "credentials": [],
+      "piiByCategory": [],
+      "piiSamples": []
+    },
+    "workspace": {
+      "packageJsonFiles": 0,
+      "unusedDependencies": 0,
+      "versionDrift": 0,
+      "duplicateDependencies": 0,
+      "envFiles": 0,
+      "envInconsistencies": 0,
+      "unusedEnvKeys": 0,
+      "missingEnvKeys": 0
+    },
+    "data": {
+      "orphanedDataFiles": 0,
+      "shapeDriftGroups": 0,
+      "staleDataFiles": 0,
+      "syncIoPatterns": 0
+    },
+    "fileReduction": {
+      "reclaimableBytes": 0,
+      "safeToDeleteBytes": 0,
+      "reviewBeforeDeleteBytes": 0,
+      "duplicateAssetBytes": 0,
+      "estimatedImmediateSavingsBytes": 0,
+      "buildArtifactFindings": 0,
+      "unusedFileCandidates": 0,
+      "duplicateAssetGroups": 0
+    },
+    "notes": [
+      "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
+      "Unused dependencies are based on static imports only — verify CLI, test, and config usage before removal.",
+      "Unused env keys may still be supplied by Docker, CI, or runtime injection.",
+      "PII hits in docs, reports, and sample data are common — review production paths first."
+    ]
+  },
+  "scannerStatistics": {
+    "scope": "workspace",
+    "scopeNote": "Config, dependency, and environment scanner counts exclude node_modules and other vendor trees.",
+    "project": {
+      "totalFiles": 811,
+      "totalDirectories": 111,
+      "durationMs": 95,
+      "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform"
+    },
+    "scanners": {
+      "config-management": {
+        "label": "Config Management",
+        "stats": {
+          "configFiles": 0,
+          "envFiles": 0,
+          "packageJsonFiles": 0,
+          "sprawlFindings": 0,
+          "inconsistentEnvKeys": 0
+        },
+        "findings": {
+          "total": 0,
+          "configSprawl": 0,
+          "duplicateConfigTypes": 0,
+          "envInconsistencies": 0,
+          "obsoleteConfig": 0
+        }
+      },
+      "dependency-health": {
+        "label": "Dependency Health",
+        "stats": {
+          "packageJsonFiles": 0,
+          "uniqueDependencies": 0,
+          "unusedDependencies": 0,
+          "versionDrift": 0,
+          "duplicateDependencies": 0
+        },
+        "findings": {
+          "total": 0,
+          "unusedDependencies": 0,
+          "duplicateDependencies": 0,
+          "versionDrift": 0,
+          "invalidPackageJson": 0
+        }
+      },
+      "environment-variables": {
+        "label": "Environment Variables",
+        "stats": {
+          "envFiles": 0,
+          "envKeys": 0,
+          "referencedKeys": 0,
+          "secretFindings": 0,
+          "missingKeys": 0,
+          "unusedKeys": 0
+        },
+        "findings": {
+          "total": 0,
+          "missingKeys": 0,
+          "unusedKeys": 0,
+          "envSecrets": 0,
+          "envInconsistencies": 0
+        }
+      },
+      "data-freshness": {
+        "label": "Data Freshness",
+        "stats": {
+          "dataFilesScanned": 0,
+          "staleFiles": 0,
+          "criticalStale": 0
+        },
+        "findings": {
+          "total": 0,
+          "staleData": 0
+        }
+      },
+      "data-access-patterns": {
+        "label": "Data Access Patterns",
+        "stats": {
+          "sourceFilesScanned": 0,
+          "patternFindings": 0
+        },
+        "findings": {
+          "total": 0,
+          "patternIssues": 0
+        }
+      },
+      "data-privacy": {
+        "label": "Data Privacy",
+        "stats": {
+          "dataFilesScanned": 0,
+          "privacyFindings": 0,
+          "credentialHits": 0,
+          "piiHits": 0
+        },
+        "findings": {
+          "total": 0,
+          "credentialHits": 0,
+          "piiHits": 0
+        }
+      },
+      "data-lineage": {
+        "label": "Data Lineage",
+        "stats": {
+          "dataFilesTracked": 0,
+          "orphanedDataFiles": 0,
+          "connectedDataFiles": 0
+        },
+        "findings": {
+          "total": 0,
+          "orphanedDataFiles": 0
+        }
+      },
+      "data-consistency": {
+        "label": "Data Consistency",
+        "stats": {
+          "jsonDataFiles": 0,
+          "directoriesCompared": 0,
+          "shapeDriftGroups": 0
+        },
+        "findings": {
+          "total": 0,
+          "shapeDriftGroups": 0
+        }
+      }
+    },
+    "findingsBreakdown": {
+      "configManagement": {
+        "total": 0,
+        "configSprawl": 0,
+        "duplicateConfigTypes": 0,
+        "envInconsistencies": 0
+      },
+      "dependencyHealth": {
+        "total": 0,
+        "unusedDependencies": 0,
+        "duplicateDependencies": 0,
+        "versionDrift": 0
+      },
+      "environmentVariables": {
+        "total": 0,
+        "missingKeys": 0,
+        "unusedKeys": 0
+      },
+      "dataPrivacy": {
+        "total": 0,
+        "credentialHits": 0,
+        "piiHits": 0
+      },
+      "dataAccessPatterns": {
+        "total": 0,
+        "patternIssues": 0
+      },
+      "dataLineage": {
+        "total": 0,
+        "orphanedDataFiles": 0
+      },
+      "dataConsistency": {
+        "total": 0,
+        "shapeDriftGroups": 0
+      }
+    }
+  },
+  "scanScope": {
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false,
+    "benchmarkCacheFindingsExcluded": 0,
+    "inventoryMetricsStale": false
+  }
+}

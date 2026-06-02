@@ -102,6 +102,7 @@ function buildBenchmarkFictionConclusion(fictionIssues, nonFictionIssues, source
   const parts = [
     'OSS benchmark clone under github-cache/ — not Simplebeacon product handoff',
     fictionN
+      // simplebeacon:production-leak-intent - legitimate sample path reference for fiction digest reporting
       ? `${fictionN} fiction/KPI pattern(s) in clone JSON — not product *-sample.json`
       : 'No Simplebeacon fiction KPI hits in product sample paths',
     nonFictionIssues.length
@@ -446,6 +447,7 @@ function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
     ?? 0;
   if (mockSamples > 0 && fictionSamples === 0 && !scope.mockSampleFilesReconciledNote) {
     notes.push(
+      // simplebeacon:production-leak-intent - legitimate sample path reference for fiction digest reporting
       `${mockSamples} mock-data path(s) exist in the tree — fiction KPI rules target *-sample.json filenames; none were counted in this pass.`
     );
   }

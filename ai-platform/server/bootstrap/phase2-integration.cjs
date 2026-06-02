@@ -5,28 +5,28 @@
 
 const fs = require('fs');
 const path = require('path');
-const logger = require('../lib/app-logger');
-const { readJsonFileCached, readTextFileCached } = require('../lib/json-file-cache');
+const logger = require('../lib/app-logger.cjs');
+const { readJsonFileCached, readTextFileCached } = require('../lib/json-file-cache.cjs');
 const rateLimit = require('express-rate-limit');
-const DatabaseAdapter = require('../lib/database-adapter');
+const DatabaseAdapter = require('../lib/database-adapter.cjs');
 const {
     authenticate,
     _optionalAuthenticate,
     handleTokenRefresh
-} = require('../middleware/auth');
-const { handlePhase2Login } = require('../services/phase2-auth-handlers');
-const { seedDemoUsers } = require('../services/user-service');
-const { getDatabaseConfig, isDatabaseEnabled } = require('../config/database');
-const { isRedisEnabled } = require('../config/redis');
+} = require('../middleware/auth.cjs');
+const { handlePhase2Login } = require('../services/phase2-auth-handlers.cjs');
+const { seedDemoUsers } = require('../services/user-service.cjs');
+const { getDatabaseConfig, isDatabaseEnabled } = require('../config/database.cjs');
+const { isRedisEnabled } = require('../config/redis.cjs');
 const {
     createRedisConnection,
     invalidateSnapshotCache,
     invalidateAllSnapshotCaches,
     redisHealthCheck,
     closeRedis
-} = require('../lib/redis-cache');
-const { SNAPSHOT_SEEDS, REAL_API_PATH_PREFIXES } = require('../lib/snapshot-seeds');
-const { PUBLIC_API_PATHS, _isPublicApiRoute, isPublicApiRequest } = require('./public-api-routes');
+} = require('../lib/redis-cache.cjs');
+const { SNAPSHOT_SEEDS, REAL_API_PATH_PREFIXES } = require('../lib/snapshot-seeds.cjs');
+const { PUBLIC_API_PATHS, _isPublicApiRoute, isPublicApiRequest } = require('./public-api-routes.cjs');
 
 function applyApiSecurityHeaders(req, res, next) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -46,7 +46,7 @@ function shouldLogRuntimeInfo() {
 const {
     assertAuthConfiguration,
     assertProductionAuthSafety
-} = require('../lib/secret-config');
+} = require('../lib/secret-config.cjs');
 
 function validatePhase2LoginRequest(req, res, next) {
     const { email, password } = req.body || {};

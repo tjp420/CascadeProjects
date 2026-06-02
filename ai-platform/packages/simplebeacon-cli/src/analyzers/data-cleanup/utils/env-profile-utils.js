@@ -115,12 +115,17 @@ const PLANNED_ENV_KEYS = new Set([
     'SIMPLEBEACON_DASHBOARD_BUILD',
     'STRIPE_CHECKOUT_MODE_TEAMS_MONTHLY',
     'SIMPLEBEACON_OFFLINE',
-    'SIMPLEBEACON_PROJECT_ROOT'
+    'SIMPLEBEACON_PROJECT_ROOT',
+    'SIMPLEBEACON_TOKEN',
+    'SIMPLEBEACON_API_KEY',
+    'SIMPLEBEACON_API_URL'
 ]);
 
 /** Keys with in-code defaults — optional in .env.example */
 const OPTIONAL_ENV_KEYS_WITH_CODE_DEFAULTS = new Set([
-    'SIMPLEBEACON_SALES_COMMISSIONS_STORE'
+    'SIMPLEBEACON_SALES_COMMISSIONS_STORE',
+    'SIMPLEBEACON_AGENCY_PROJECTS_STORE',
+    'AUTH_REFRESH_RATE_LIMIT_MAX'
 ]);
 
 function isPhase2ExampleEnvFile(relativePath) {
@@ -136,7 +141,7 @@ function isPlannedEnvKey(key) {
 }
 
 function isRuntimeInjectedEnvKey(key) {
-    return /^(CI|NODE_ENV|FORCE_COLOR|NO_COLOR|DOTENV_CONFIG_PATH|npm_lifecycle_event|npm_node_execpath)$/i.test(key)
+    return /^(CI|NODE_ENV|FORCE_COLOR|NO_COLOR|DOTENV_CONFIG_PATH|npm_lifecycle_event|npm_node_execpath|PR_NUMBER|USER)$/i.test(key)
         || /^GITHUB_/i.test(key)
         || /^npm_config_/i.test(key)
         || /^(USERPROFILE|HOME|HOMEDRIVE|HOMEPATH|APPDATA|LOCALAPPDATA|TEMP|TMP|PATH|PATHEXT|OS|COMPUTERNAME|USERNAME)$/i.test(key);

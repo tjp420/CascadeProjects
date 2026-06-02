@@ -12,6 +12,11 @@ function isExternalBenchmarkCachePath(filePath) {
         || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
 }
 
+/** Scan target root is a benchmark clone (github-cache or java-ai-vulnerable), not product code. */
+function isBenchmarkScanTargetRoot(projectPath) {
+    return isExternalBenchmarkCachePath(projectPath);
+}
+
 function isExcludedCredentialScanPath(filePath) {
     const rel = normalizeRel(filePath);
     if (isExternalBenchmarkCachePath(rel)) return true;
@@ -88,6 +93,7 @@ const MOCK_WALK_SKIP_DIRS = new Set([
 
 module.exports = {
     isExternalBenchmarkCachePath,
+    isBenchmarkScanTargetRoot,
     isExcludedCredentialScanPath,
     isJestBaselineIssue,
     issueTouchesBenchmarkCache,

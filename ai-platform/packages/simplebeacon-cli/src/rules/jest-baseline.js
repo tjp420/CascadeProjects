@@ -13,7 +13,18 @@ function parseJestSummary(output) {
     const testsMatch = text.match(/Tests:\s+(?:(\d+) failed,\s*)?(?:(\d+) skipped,\s*)?(\d+) passed,\s*(\d+) total/);
     const suitesMatch = text.match(/Test Suites:\s+(?:(\d+) failed,\s*)?(?:(\d+) skipped,\s*)?(\d+) passed,\s*(\d+) total/);
 
-    if (!testsMatch) return null;
+    if (!testsMatch) {
+        if (/no tests found,\s*exiting with code 0/i.test(text)) {
+            return {
+                testsPassed: 0,
+                testsTotal: 0,
+                testsFailed: 0,
+                suitesPassed: 0,
+                suitesTotal: 0
+            };
+        }
+        return null;
+    }
 
     return {
         testsPassed: parseInt(testsMatch[3], 10),

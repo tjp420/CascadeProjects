@@ -18,6 +18,7 @@ test('shouldExcludePath allows normal source files', () => {
     assert.equal(shouldExcludePath('src/components/Button.jsx'), false);
     assert.equal(shouldExcludePath('lib/utils.js'), false);
     assert.equal(shouldExcludePath('packages/cli/index.js'), false);
+    assert.equal(shouldExcludePath('server/lib/jest-coverage-reader.js'), false);
 });
 
 test('shouldExcludePath respects user exclusions', () => {

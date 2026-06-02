@@ -78,11 +78,11 @@ export function resolveSectionProvenance(section) {
 
 
 
-export function redactProjectPathForExport(value, projectLabel = 'ai-platform') {
+export function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
 
-  if (value == null || value === '') return value;
+  if (rawPath == null || rawPath === '') return rawPath;
 
-  const normalized = String(value).replace(/\\/g, '/');
+  const normalized = String(rawPath).replace(/\\/g, '/');
 
   if (normalized.endsWith('/package.json') || normalized.endsWith('package.json')) {
 

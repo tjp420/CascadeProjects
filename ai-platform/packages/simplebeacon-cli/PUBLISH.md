@@ -77,6 +77,20 @@ npm view simplebeacon version
 
 ---
 
+## GitHub Actions (monorepo)
+
+Workflow: `CascadeProjects/.github/workflows/simplebeacon-npm-publish.yml`
+
+1. Add repo secret **`NPM_TOKEN`** (granular token with publish + bypass 2FA — see above).
+2. Bump version in `package.json`, commit, tag release **`simplebeacon-v1.0.1`** (must match version).
+3. Publish GitHub Release from that tag — workflow runs test + `npm publish`.
+
+Manual run: Actions → **Publish simplebeacon to npm** → **Run workflow**.
+
+Standalone `simplebeacon` repo: use `packages/simplebeacon-cli/.github/workflows/npm-publish.yml` when that package is the git root.
+
+---
+
 ## Option B — interactive 2FA (no token)
 
 1. Delete or comment out `_authToken` in `C:\Users\Trevor\.npmrc`

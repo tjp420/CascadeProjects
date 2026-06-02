@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnostic Prep Tool — Bundle Files for SimpleBeacon</title>
+  <meta name="description" content="Bundle local files into a single JSON for the SimpleBeacon diagnostic scanner. Runs 100% locally in your browser.">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .prep-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .prep-header {
+      margin-bottom: 2rem;
+    }
+    .prep-header h1 {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .prep-header p {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .prep-dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 3rem 2rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      background: var(--bg-elevated);
+      transition: all 0.2s ease;
+    }
+    .prep-dropzone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .prep-dropzone p {
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    .prep-dropzone input[type="file"] {
+      display: none;
+    }
+    .prep-dropzone-btn {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: var(--accent);
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s ease;
+    }
+    .prep-dropzone-btn:hover {
+      background: #79c0ff;
+    }
+    .prep-file-list {
+      margin-bottom: 1.5rem;
+    }
+    .prep-file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+    .prep-file-item-name {
+      flex: 1;
+      font-size: 0.9rem;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .prep-file-item-size {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-left: 1rem;
+    }
+    .prep-file-item-remove {
+      background: none;
+      border: none;
+      color: var(--blocked);
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.85rem;
+      margin-left: 0.5rem;
+    }
+    .prep-file-item-remove:hover {
+      text-decoration: underline;
+    }
+    .prep-actions {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .prep-btn {
+      flex: 1;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .prep-btn-primary {
+      background: var(--accent);
+      color: white;
+      border: none;
+    }
+    .prep-btn-primary:hover {
+      background: #79c0ff;
+    }
+    .prep-btn-primary:disabled {
+      background: var(--dim);
+      cursor: not-allowed;
+    }
+    .prep-btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .prep-btn-secondary:hover {
+      background: var(--bg-panel);
+    }
+    .prep-status {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .prep-status.success {
+      background: var(--pass-bg);
+      color: var(--pass);
+      border: 1px solid var(--pass);
+    }
+    .prep-status.error {
+      background: var(--blocked-bg);
+      color: var(--blocked);
+      border: 1px solid var(--blocked);
+    }
+    .prep-status.warning {
+      background: var(--warn-bg);
+      color: var(--warn);
+      border: 1px solid var(--warn);
+    }
+    .prep-output {
+      margin-top: 1.5rem;
+    }
+    .prep-output textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 1rem;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 0.85rem;
+      resize: vertical;
+    }
+    .prep-nav {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .prep-nav a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .prep-nav a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <main class="sales-gate-wrap">
+    <div class="sales-gate">
+      <p class="sales-gate-brand"><a href="../landing.html">SimpleBeacon</a></p>
+      
+      <div class="prep-container">
+        <div class="prep-header">
+          <h1>Diagnostic Prep Tool</h1>
+          <p>Bundle local files into a single JSON for the SimpleBeacon diagnostic scanner. Runs 100% locally in your browser — nothing uploads.</p>
+          <p><strong>Max bundle size:</strong> 256 KB · <strong>Privacy:</strong> All processing happens in your browser</p>
+        </div>
+
+        <div class="prep-dropzone" id="prepDropzone">
+          <p>Drag & drop files here or</p>
+          <label class="prep-dropzone-btn">
+            Select files
+            <input type="file" id="prepFileInput" multiple>
+          </label>
+          <p style="font-size: 0.85rem; margin-top: 1rem;">Supported: .json, .js, .ts, .tsx, .jsx, .env, .config files</p>
+        </div>
+
+        <div class="prep-file-list" id="prepFileList"></div>
+
+        <div class="prep-actions">
+          <button class="prep-btn prep-btn-secondary" id="prepClearBtn">Clear all</button>
+          <button class="prep-btn prep-btn-primary" id="prepBundleBtn" disabled>Bundle files</button>
+        </div>
+
+        <div class="prep-status" id="prepStatus"></div>
+
+        <div class="prep-output" id="prepOutput" style="display: none;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Bundle output (copy this):</label>
+          <textarea id="prepOutputText" readonly></textarea>
+          <button class="prep-btn prep-btn-primary" id="prepCopyBtn" style="margin-top: 0.5rem;">Copy to clipboard</button>
+        </div>
+
+        <div class="prep-nav">
+          <p>
+            <a href="../landing.html">← Back to diagnostic tool</a> ·
+            <a href="../community.html">Install CLI & MCP</a> ·
+            <a href="../sample-report.html">View sample report</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function() {
+      const dropzone = document.getElementById('prepDropzone');
+      const fileInput = document.getElementById('prepFileInput');
+      const fileList = document.getElementById('prepFileList');
+      const bundleBtn = document.getElementById('prepBundleBtn');
+      const clearBtn = document.getElementById('prepClearBtn');
+      const status = document.getElementById('prepStatus');
+      const output = document.getElementById('prepOutput');
+      const outputText = document.getElementById('prepOutputText');
+      const copyBtn = document.getElementById('prepCopyBtn');
+
+      let files = [];
+      const MAX_SIZE = 256 * 1024; // 256 KB
+
+      // Drag and drop handlers
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+      });
+
+      // File input handler
+      fileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+      });
+
+      // Handle files
+      function handleFiles(newFiles) {
+        for (const file of newFiles) {
+          if (files.some(f => f.name === file.name)) {
+            showStatus(`File "${file.name}" already added`, 'warning');
+            continue;
+          }
+          files.push(file);
+        }
+        renderFileList();
+        updateBundleButton();
+      }
+
+      // Render file list
+      function renderFileList() {
+        fileList.innerHTML = '';
+        files.forEach((file, index) => {
+          const item = document.createElement('div');
+          item.className = 'prep-file-item';
+          item.innerHTML = `
+            <span class="prep-file-item-name">${file.name}</span>
+            <span class="prep-file-item-size">${formatSize(file.size)}</span>
+            <button class="prep-file-item-remove" data-index="${index}">Remove</button>
+          `;
+          fileList.appendChild(item);
+        });
+
+        // Add remove handlers
+        document.querySelectorAll('.prep-file-item-remove').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            files.splice(index, 1);
+            renderFileList();
+            updateBundleButton();
+          });
+        });
+      }
+
+      // Update bundle button state
+      function updateBundleButton() {
+        const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+        bundleBtn.disabled = files.length === 0 || totalSize > MAX_SIZE;
+        
+        if (totalSize > MAX_SIZE) {
+          showStatus(`Total size (${formatSize(totalSize)}) exceeds 256 KB limit`, 'error');
+        } else {
+          hideStatus();
+        }
+      }
+
+      // Bundle files
+      bundleBtn.addEventListener('click', async () => {
+        const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+        
+        if (totalSize > MAX_SIZE) {
+          showStatus(`Total size (${formatSize(totalSize)}) exceeds 256 KB limit`, 'error');
+          return;
+        }
+
+        try {
+          const bundle = {
+            version: '1.0',
+            created: new Date().toISOString(),
+            files: {}
+          };
+
+          for (const file of files) {
+            const content = await readFile(file);
+            bundle.files[file.name] = {
+              size: file.size,
+              type: file.type,
+              content: content
+            };
+          }
+
+          const bundleString = JSON.stringify(bundle, null, 2);
+          outputText.value = bundleString;
+          output.style.display = 'block';
+          showStatus(`Successfully bundled ${files.length} file(s) (${formatSize(totalSize)})`, 'success');
+        } catch (error) {
+          showStatus(`Error bundling files: ${error.message}`, 'error');
+        }
+      });
+
+      // Read file
+      function readFile(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+          reader.readAsText(file);
+        });
+      }
+
+      // Clear all
+      clearBtn.addEventListener('click', () => {
+        files = [];
+        renderFileList();
+        updateBundleButton();
+        output.style.display = 'none';
+        outputText.value = '';
+        hideStatus();
+      });
+
+      // Copy to clipboard
+      copyBtn.addEventListener('click', () => {
+        outputText.select();
+        document.execCommand('copy');
+        showStatus('Copied to clipboard!', 'success');
+        setTimeout(hideStatus, 2000);
+      });
+
+      // Show status
+      function showStatus(message, type) {
+        status.textContent = message;
+        status.className = `prep-status ${type}`;
+        status.style.display = 'block';
+      }
+
+      // Hide status
+      function hideStatus() {
+        status.style.display = 'none';
+      }
+
+      // Format size
+      function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+      }
+    })();
+  </script>
+
+  <script src="../site-config.js"></script>
+  <script src="../app-links.js"></script>
+  <script>
+    // Only load Cloudflare analytics in production, not on localhost or file:// protocol
+    if (window.location.protocol !== 'file:' && !window.location.hostname.match(/^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/)) {
+      (function() {
+        var script = document.createElement('script');
+        script.defer = true;
+        script.src = 'https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447';
+        script.integrity = 'sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==';
+        script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"YOUR_CLOUDFLARE_TOKEN","r":1}');
+        script.crossOrigin = 'anonymous';
+        document.body.appendChild(script);
+      })();
+    }
+  </script>
+</body>
+</html>

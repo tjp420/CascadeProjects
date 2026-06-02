@@ -70,6 +70,21 @@ function severityBandForPattern(patternId) {
     return 'medium';
 }
 
+function shouldIgnoreScanFile(file, options = {}) {
+    const ignoreGlobs = options.ignoreGlobs || [];
+    if (!ignoreGlobs.length) return false;
+
+    const candidates = [];
+    if (file.relativePath) {
+        candidates.push(String(file.relativePath).replace(/\\/g, '/'));
+    }
+    if (options.baseDir && file.path) {
+        candidates.push(path.relative(options.baseDir, file.path).split(path.sep).join('/'));
+    }
+
+    return candidates.some((rel) => ignoreGlobs.some((pattern) => globMatch(rel, pattern)));
+}
+
 function isAllowlisted(match, content, fileName = '') {
     const snippet = content.slice(Math.max(0, match.index - 24), match.index + match[0].length + 24);
     const lower = snippet.toLowerCase();
@@ -142,6 +157,7 @@ async function scanCredentialPatterns(files, options = {}) {
     let scanned = 0;
 
     for (const file of files) {
+        if (shouldIgnoreScanFile(file, options)) continue;
         if (!SCANNABLE_EXTENSIONS.has(file.ext)) continue;
         if (file.size > MAX_SCAN_BYTES) continue;
 

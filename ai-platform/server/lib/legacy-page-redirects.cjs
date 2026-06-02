@@ -2,7 +2,7 @@
  * Retire legacy HTML pages — redirect to Simplebeacon SPA routes.
  */
 
-const logger = require('./app-logger');
+const logger = require('./app-logger.cjs');
 
 const LEGACY_REDIRECTS = {
   '/dashboard-new.html': '/',

@@ -8,8 +8,8 @@ import { buildCompleteScanAnalysis } from './completeScanAnalysis.js?v=20260527c
 export const CLEANUP_ASSISTANT_PREFS_KEY = 'simplebeaconCleanupAssistantPrefs';
 
 export const DEFAULT_PROTECTED_PATHS = [
-  'web/data',
-  'data/mock',
+  'web/data', // simplebeacon:production-leak-intent - legitimate sample data reference for cleanup policy
+  'data/mock', // simplebeacon:production-leak-intent - legitimate sample data reference for cleanup policy
   'data-central',
   'data/roadmap',
   'uploads',

@@ -2,7 +2,7 @@
  * Purge expired assessment artifacts (cloned repos + JSON) from assessments/.
  */
 
-const logger = require('../lib/app-logger');
+const logger = require('../lib/app-logger.cjs');
 
 const fs = require('fs');
 const fsp = fs.promises;
@@ -10,7 +10,7 @@ const path = require('path');
 const {
     readJsonFileSyncOrNull,
     statMtimeMsOrNull
-} = require('./recoverable-io');
+} = require('./recoverable-io.cjs');
 
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_INTERVAL_MS = 60 * 60 * 1000;

@@ -30,7 +30,10 @@ const LEAK_PATTERNS = [
     {
         id: 'template-sample',
         regex: /`[^`]*(?:-sample\.json|(?:\/|\\)mock(?:\/|\\)[^`]+|(?:\/|\\)fixtures(?:\/|\\)[^`]+|web(?:\/|\\)data)[^`]*`/gi
-    }
+    },
+    { id: 'jwt-token', regex: /\beyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]+\b/g },
+    { id: 'bearer-token', regex: /\bBearer\s+eyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]+\b/gi },
+    { id: 'jwt-env-var', regex: /\b(JWT_SECRET|BEARER_TOKEN|JWT_KEY)\s*=\s*['"`][A-Za-z0-9-_=+!@#$%^&*()]{20,}['"`]/gi }
 ];
 
 const PLAIN_SAMPLE_JSON_PATTERN = {
@@ -146,7 +149,7 @@ function isProductionRelevantPath(relativePath) {
 
 function mapSeverityBand(relativePath, patternId) {
     if (!isProductionRelevantPath(relativePath)) return 'medium';
-    if (patternId === 'sample-json' || patternId === 'web-data-sample') {
+    if (patternId === 'sample-json' || patternId === 'web-data-sample' || patternId === 'jwt-token' || patternId === 'bearer-token' || patternId === 'jwt-env-var') {
         return 'critical';
     }
     if (patternId === 'plain-sample-json' || patternId === 'mock-path' || patternId === 'template-sample') {
@@ -164,6 +167,9 @@ function buildRecommendation(patternId) {
     }
     if (patternId === 'mock-path' || patternId === 'template-sample') {
         return 'Move mock-only paths behind test/dev gates and keep production paths bound to live data sources';
+    }
+    if (patternId === 'jwt-token' || patternId === 'bearer-token' || patternId === 'jwt-env-var') {
+        return 'Remove hardcoded JWT/Bearer tokens and use environment variables or secret management services';
     }
     return 'Audit fixture usage and remove mock references from production-bound modules';
 }

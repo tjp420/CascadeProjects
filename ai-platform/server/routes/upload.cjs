@@ -8,7 +8,7 @@
  * - API integrations
  */
 
-const logger = require('../lib/app-logger');
+const logger = require('../lib/app-logger.cjs');
 
 const express = require('express');
 const multer = require('multer');

@@ -1,0 +1,52 @@
+{
+  "_note": "This is a sample/test data file for dashboard display. Contains placeholder values.",
+  "type": "quality-dashboard-model",
+  "dataSource": "repository-audit",
+  "overview": {
+    "issuesFound": 0,
+    "overallScore": 78,
+    "qualityScore": 78,
+    "gateStatus": "unknown",
+    "measuredBaselines": "partial",
+    "notes": "Quality score blends engineering checklist and gate posture — run a Complete scan for live gate status."
+  },
+  "metrics": [
+    {
+      "name": "Gate blocking issues",
+      "value": null,
+      "unit": "count",
+      "status": "pending",
+      "notes": "From last Simplebeacon scan report"
+    },
+    {
+      "name": "Page sample schema",
+      "value": null,
+      "unit": "pass rate",
+      "status": "pending",
+      "notes": "Validated under web/data/*.json against PAGE_SAMPLE_SPECS"
+    },
+    {
+      "name": "Istanbul line coverage",
+      "value": null,
+      "unit": "percent",
+      "status": "pending",
+      "notes": "Requires coverage/dashboard/coverage-summary.json"
+    }
+  ],
+  "alerts": [
+    {
+      "severity": "info",
+      "title": "Istanbul not collected locally",
+      "message": "Run npm run test:coverage — default npm test uses --no-coverage.",
+      "time": "2026-06-01",
+      "resolved": false
+    }
+  ],
+  "reports": [],
+  "performance": {
+    "lineCoverage": null,
+    "branchCoverage": null,
+    "testCoverage": null,
+    "coverageCollection": "pending"
+  }
+}

@@ -13,6 +13,17 @@ export function filterPlatformArtifactPaths(entries = []) {
   return entries.filter((entry) => !isBenchmarkCachePath(entry.path || entry));
 }
 
+export function partitionArtifactDirectoryEntries(entries = []) {
+  const filtered = filterPlatformArtifactPaths(entries);
+  const measurable = filtered.filter(
+    (entry) => (Number(entry.bytes) || 0) > 0 || (Number(entry.files) || 0) > 0
+  );
+  const skippedShells = filtered.filter(
+    (entry) => (Number(entry.bytes) || 0) === 0 && (Number(entry.files) || 0) === 0
+  );
+  return { measurable, skippedShells };
+}
+
 const REGENERABLE_CATEGORIES = new Set([
   'node_modules',
   'coverage',
@@ -43,14 +54,19 @@ export function classifyRegenerableArtifacts(analysis = {}) {
   const safeBytes = Number(fr.safeToDeleteBytes) || 0;
   const reviewBytes = Number(fr.reviewBeforeDeleteBytes) || 0;
   const unusedCandidates = Number(fr.unusedFileCandidates) || 0;
-  const topDirs = fr.topSafeDirectories || [];
+  const dupBytes = Number(fr.duplicateAssetBytes) || Number(fr.immediateSavingsBytes) || 0;
+  const topDirs = filterPlatformArtifactPaths(fr.topSafeDirectories || []);
+  const priorityN = (analysis.priorityActions || []).length;
+
+  if (reviewBytes > 0 || unusedCandidates > 0 || dupBytes > 0 || priorityN > 0) {
+    if (safeBytes <= 0 && topDirs.length === 0) {
+      return 'mixed-no-safe-delete';
+    }
+    return 'mixed';
+  }
 
   if (safeBytes <= 0 && topDirs.length === 0) {
     return 'empty';
-  }
-
-  if (reviewBytes > 0 || unusedCandidates > 0) {
-    return 'mixed';
   }
 
   if (topDirs.length > 0 && topDirs.every(isRegenerableDirectoryEntry)) {

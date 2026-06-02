@@ -1,0 +1,1898 @@
+{
+  "type": "simplebeacon-assessment-report",
+  "title": "Simplebeacon EU AI Act Readiness — CascadeProjects",
+  "generatedAt": "2026-06-02T05:46:13.407Z",
+  "generatedBy": "Simplebeacon",
+  "assessor": "SimpleBeacon Operator",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "assessmentProfile": "eu-ai-act",
+  "deadline": "2026-08-02",
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 59,
+    "transparencyGaps": 4,
+    "documentationArtifacts": 35,
+    "documentationFound": [
+      "file-reduction-analysis.json",
+      "parent-scan-test-report.json",
+      "parent-verify.json",
+      "report-updated.json",
+      "report-with-jest.json",
+      "report.json",
+      "unused-files.json",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/parent-scan-test-report.json",
+      ".simplebeacon/parent-verify.json",
+      ".simplebeacon/report.json"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "executiveSummary": {
+    "gateResult": "FAIL",
+    "qualityScore": 15,
+    "filesScanned": 1069,
+    "criticalIssues": 1,
+    "highIssues": 172,
+    "mediumIssues": 65,
+    "lowIssues": 24,
+    "warningCount": 65,
+    "blockingCount": 172,
+    "headline": "63 EU AI Act signal(s); 170 production-path leak(s); 4 credential pattern(s). Gate would fail — these issues block merge when --gate is enabled.",
+    "complianceScore": 50,
+    "complianceReady": false
+  },
+  "complianceChecklist": {
+    "type": "simplebeacon-compliance-checklist",
+    "version": "1.0.0",
+    "title": "Simplebeacon EU AI Act Readiness Checklist",
+    "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
+    "evaluatedAt": "2026-06-02T05:46:13.407Z",
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "summary": {
+      "passed": 4,
+      "failed": 4,
+      "skipped": 1,
+      "total": 9,
+      "score": 50,
+      "readyForAutomation": false,
+      "checklistProfile": "eu-ai-act",
+      "headline": "4 EU AI Act rule(s) fail — address before August 2026 deadline"
+    },
+    "rules": [
+      {
+        "id": "GATE-001",
+        "title": "Merge gate passes on configured severities",
+        "category": "Automation",
+        "severity": "critical",
+        "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
+        "status": "fail",
+        "evidence": "Gate fail — 172 blocking issue(s)"
+      },
+      {
+        "id": "CRED-001",
+        "title": "No credential or secret patterns in scanned paths",
+        "category": "Security",
+        "severity": "critical",
+        "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
+        "status": "fail",
+        "evidence": "4 credential pattern(s) detected"
+      },
+      {
+        "id": "LEAK-001",
+        "title": "No mock/sample JSON paths referenced from production directories",
+        "category": "Data integrity",
+        "severity": "high",
+        "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
+        "status": "fail",
+        "evidence": "170 production leak(s) — mock/sample paths in prod code"
+      },
+      {
+        "id": "EUAI-001",
+        "title": "High-risk AI indicators documented or absent",
+        "category": "EU AI Act — Classification",
+        "severity": "critical",
+        "remediation": "Conduct Annex III classification review; add risk-assessment.md and conformity documentation for high-risk systems",
+        "status": "pass",
+        "evidence": "No Annex III high-risk AI patterns detected in scanned paths"
+      },
+      {
+        "id": "EUAI-002",
+        "title": "Article 50 transparency — AI outputs disclosed to users",
+        "category": "EU AI Act — Transparency",
+        "severity": "high",
+        "remediation": "Add user-facing disclosure that content is AI-generated or that users interact with an AI system",
+        "status": "fail",
+        "evidence": "4 transparency gap(s) — add AI-generated / AI interaction disclosure in UI"
+      },
+      {
+        "id": "EUAI-003",
+        "title": "AI system documentation present when AI integrations detected",
+        "category": "EU AI Act — Documentation",
+        "severity": "high",
+        "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
+        "status": "pass",
+        "evidence": "35 documentation artifact(s) found for 59 AI indicator(s)"
+      },
+      {
+        "id": "EUAI-004",
+        "title": "Human oversight signals for high-risk AI decision paths",
+        "category": "EU AI Act — Human oversight",
+        "severity": "high",
+        "remediation": "Implement human-in-the-loop review, manual override, or appeal mechanism for automated decisions",
+        "status": "pass",
+        "evidence": "No high-risk AI patterns — human oversight rule not applicable"
+      },
+      {
+        "id": "EUAI-005",
+        "title": "AI decision logging for accountability",
+        "category": "EU AI Act — Record-keeping",
+        "severity": "medium",
+        "remediation": "Log AI system inputs, outputs, and decision rationale for audit trails",
+        "status": "pass",
+        "evidence": "AI decision paths include audit/logging signals"
+      },
+      {
+        "id": "SUPPLY-001",
+        "title": "No critical or high npm audit vulnerabilities",
+        "category": "Supply chain",
+        "severity": "critical",
+        "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
+        "status": "skip",
+        "evidence": "No package.json — npm audit not applicable"
+      }
+    ]
+  },
+  "findings": {
+    "credentials": {
+      "scanned": 996,
+      "findings": 4,
+      "severity": "high",
+      "items": [
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs",
+          "description": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs:24 possible database url",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs",
+          "description": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs:25 possible generic api key",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js",
+          "description": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js:8 possible stripe key",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Immediately remove and rotate this credential; store only via environment/secret manager bindings"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js",
+          "description": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js:8 possible generic api key",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret"
+        }
+      ],
+      "summary": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs: C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs:24 possible database url; C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs: C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\negative-test-1\\server\\lib\\mock-snapshot-seeds.cjs:25 possible generic api key; C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js: C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js:8 possible stripe key; C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js: C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-rule-tests\\positive-test\\src\\services\\auth.js:8 possible generic api key"
+    },
+    "fictionKpis": {
+      "scanned": 55,
+      "findings": 0,
+      "severity": "high",
+      "items": [],
+      "summary": "No fiction KPI or consistency drift detected."
+    },
+    "productionLeaks": {
+      "scanned": 521,
+      "findings": 170,
+      "severity": "medium",
+      "items": [
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:11 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:12 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:13 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:14 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:15 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:16 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:17 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:18 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:19 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:20 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:21 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:22 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:23 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:24 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:25 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:26 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:27 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:28 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:29 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:30 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:31 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:32 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:33 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:34 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:35 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:36 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:37 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:38 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:39 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:40 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:41 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:42 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:43 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:44 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:45 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:46 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:47 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:48 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:49 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:50 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:51 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:52 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:53 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:54 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:55 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:56 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:57 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:58 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:59 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:60 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:61 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:62 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:63 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:64 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:65 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:66 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:67 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:68 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:69 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:70 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:71 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:72 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:73 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:74 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:75 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:76 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:77 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:78 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:79 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:80 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:81 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:82 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:83 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:84 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:85 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:86 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:87 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:88 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:89 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:90 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:91 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:92 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:93 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/server/lib/snapshot-seeds.cjs",
+          "description": "ai-platform/server/lib/snapshot-seeds.cjs:94 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:75 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:87 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:99 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:111 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:123 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:135 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:147 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:159 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:171 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:183 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:195 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:207 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:220 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:232 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:244 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:256 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:267 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:286 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:301 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:314 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:326 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:338 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:350 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:362 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:374 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:386 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/src/api/dashboard-stub-api.cjs",
+          "description": "ai-platform/src/api/dashboard-stub-api.cjs:398 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/test-server-start.cjs",
+          "description": "ai-platform/test-server-start.cjs:6 references mock/sample path (jwt-env-var)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Remove hardcoded JWT/Bearer tokens and use environment variables or secret management services"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js:1620 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js:1661 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js:1578 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js:1597 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js:1659 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js:1727 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/services/platformService.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/services/platformService.js:218 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/analyze-mode-file-scope.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/analyze-mode-file-scope.browser.js:9 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/analyze-mode-file-scope.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/analyze-mode-file-scope.browser.js:286 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/analyze-mode-file-scope.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/analyze-mode-file-scope.browser.js:228 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/cleanup-brief-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/cleanup-brief-export.browser.js:175 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/cleanup-brief-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/cleanup-brief-export.browser.js:173 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/cleanup-brief-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/cleanup-brief-export.browser.js:353 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/cleanupAssistant.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/cleanupAssistant.js:11 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/codebase-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/codebase-export.browser.js:384 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/completeScanAnalysis.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/completeScanAnalysis.js:656 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/compliance-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/compliance-export.browser.js:324 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js:364 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js:545 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js:613 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js:775 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js:838 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js:347 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js:545 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js:570 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/consolidation-export.browser.js:611 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/data-cleanup-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/data-cleanup-export.browser.js:489 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/data-cleanup-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/data-cleanup-export.browser.js:315 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/data-cleanup-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/data-cleanup-export.browser.js:489 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/eu-ai-act-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/eu-ai-act-export.browser.js:791 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/fiction-digest-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/fiction-digest-export.browser.js:106 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/fiction-digest-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/fiction-digest-export.browser.js:106 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/fiction-digest-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/fiction-digest-export.browser.js:451 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/npm-audit-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/npm-audit-export.browser.js:206 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/roadmap-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/roadmap-export.browser.js:505 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js:25 references mock/sample path (mock-path)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js:25 references mock/sample path (fixtures-path)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Audit fixture usage and remove mock references from production-bound modules"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js:663 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js:564 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js:620 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js:653 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/simplebeacon-report-export.browser.js:799 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/snippetDiagnostic.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/utils/snippetDiagnostic.js:21 references mock/sample path (mock-path)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/AboutView.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/views/AboutView.js:67 references mock/sample path (mock-path)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js:1168 references mock/sample path (sample-json)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js:1168 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js:4875 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js:5239 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/HelpView.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/views/HelpView.js:176 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/HelpView.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/views/HelpView.js:261 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/HelpView.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/views/HelpView.js:144 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/ToolsView.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/views/ToolsView.js:268 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/ToolsView.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/views/ToolsView.js:227 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/ToolsView.js",
+          "description": "ai-platform/web/simplebeacon-dashboard/js/views/ToolsView.js:283 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "coming-soon/diagnostic-scanner.js",
+          "description": "coming-soon/diagnostic-scanner.js:72 references mock/sample path (web-data-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        },
+        {
+          "file": "coming-soon/diagnostic-scanner.js",
+          "description": "coming-soon/diagnostic-scanner.js:66 references mock/sample path (template-sample)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "simplebeacon-frameworkless/app.js",
+          "description": "simplebeacon-frameworkless/app.js:125 references mock/sample path (mock-path)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        },
+        {
+          "file": "simplebeacon-frameworkless/app.js",
+          "description": "simplebeacon-frameworkless/app.js:125 references mock/sample path (fixtures-path)",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Audit fixture usage and remove mock references from production-bound modules"
+        }
+      ],
+      "summary": "ai-platform/server/lib/snapshot-seeds.cjs: ai-platform/server/lib/snapshot-seeds.cjs:11 references mock/sample path (sample-json); ai-platform/server/lib/snapshot-seeds.cjs: ai-platform/server/lib/snapshot-seeds.cjs:12 references mock/sample path (sample-json); ai-platform/server/lib/snapshot-seeds.cjs: ai-platform/server/lib/snapshot-seeds.cjs:13 references mock/sample path (sample-json); ai-platform/server/lib/snapshot-seeds.cjs: ai-platform/server/lib/snapshot-seeds.cjs:14 references mock/sample path (sample-json); ai-platform/server/lib/snapshot-seeds.cjs: ai-platform/server/lib/snapshot-seeds.cjs:15 references mock/sample path (sample-json)"
+    },
+    "schemaDrift": {
+      "checked": 9,
+      "passed": 9,
+      "severity": "high",
+      "items": [],
+      "summary": "All registered page samples match schema specs."
+    },
+    "euAiAct": {
+      "scanned": 592,
+      "findings": 63,
+      "severity": "high",
+      "items": [
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/bin/simplebeacon-mcp.js",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/bin/simplebeacon.js",
+          "description": "Generative AI or LLM integration detected (8 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/README.md",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/src/compliance-checklist.js",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/src/config.js",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/src/lib/cleanup-brief-export-sanitize.js",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/src/lib/credential-pattern-scanner.js",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/src/lib/data-cleanup-export-sanitize.js",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/src/lib/javascript-ast-scanner.js",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/src/lib/roadmap-export-sanitize.js",
+          "description": "Generative AI or LLM integration detected (3 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/src/mcp/rule-catalog.js",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.github-sync/simplebeacon/src/mcp/stdio-server.js",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/data/roadmap/ai-roadmap-report.json",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/data/roadmap/dynamic-roadmap-last-scan.json",
+          "description": "Generative AI or LLM integration detected (4 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/ai-proxy-gateway.cjs",
+          "description": "Generative AI or LLM integration detected (5 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/dlp-dashboard.cjs",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/lib/code-understanding/code-understanding-engine.cjs",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/lib/eu-ai-act-audit-report.cjs",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/lib/strategic-insights-engine.cjs",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/lib/user-ai-keys-store.cjs",
+          "description": "Generative AI or LLM integration detected (4 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/README-DLP.md",
+          "description": "Generative AI or LLM integration detected (3 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/routes/chatbot-api.cjs",
+          "description": "Generative AI or LLM integration detected (27 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/routes/flexible-analyze-api.cjs",
+          "description": "Generative AI or LLM integration detected (6 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/services/cloud-inference-service.cjs",
+          "description": "Generative AI or LLM integration detected (45 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/test-gateway.cjs",
+          "description": "Generative AI or LLM integration detected (7 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/src/core/RoadmapDataAnalyzer.cjs",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/roadmap-export.browser.js",
+          "description": "Generative AI or LLM integration detected (3 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils/snippetDiagnostic.js",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/utils.js",
+          "description": "Generative AI or LLM integration detected (4 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/AboutView.js",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js",
+          "description": "Generative AI or LLM integration detected (8 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/ChatbotView.js",
+          "description": "Generative AI or LLM integration detected (4 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/HelpView.js",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/HelpView.js",
+          "description": "AI system integration in user-facing code without transparency/disclosure markers",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Add Article 50 disclosure — inform users they interact with AI or that content is AI-generated"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/SettingsView.js",
+          "description": "Generative AI or LLM integration detected (4 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/web/simplebeacon-dashboard/js/views/SettingsView.js",
+          "description": "AI system integration in user-facing code without transparency/disclosure markers",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Add Article 50 disclosure — inform users they interact with AI or that content is AI-generated"
+        },
+        {
+          "file": "coming-soon/diagnostic-scanner.js",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "parent-verify.json",
+          "description": "Generative AI or LLM integration detected (60 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "simplebeacon-frameworkless/app.js",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        }
+      ],
+      "summary": "ai-platform/.github-sync/simplebeacon/bin/simplebeacon-mcp.js: Generative AI or LLM integration detected; ai-platform/.github-sync/simplebeacon/bin/simplebeacon.js: Generative AI or LLM integration detected (8 matches in file); ai-platform/.github-sync/simplebeacon/README.md: Generative AI or LLM integration detected (2 matches in file); ai-platform/.github-sync/simplebeacon/src/compliance-checklist.js: Generative AI or LLM integration detected; ai-platform/.github-sync/simplebeacon/src/config.js: Generative AI or LLM integration detected"
+    },
+    "other": {
+      "items": [
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\docs\\examples\\eu-ai-act-assessment-template.json",
+          "description": "3 files share identical JSON content",
+          "severity": "low",
+          "count": 3,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\examples\\ai-hygiene-enterprise-config.json",
+          "description": "2 files share identical JSON content",
+          "severity": "low",
+          "count": 2,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\examples\\enterprise-config.json",
+          "description": "2 files share identical JSON content",
+          "severity": "low",
+          "count": 2,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\examples\\mcp\\cursor.mcp.json",
+          "description": "3 files share identical JSON content",
+          "severity": "low",
+          "count": 3,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\examples\\mcp\\cursor.monorepo.mcp.json",
+          "description": "3 files share identical JSON content",
+          "severity": "low",
+          "count": 3,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\examples\\mcp\\cursor.npx-github.mcp.json",
+          "description": "3 files share identical JSON content",
+          "severity": "low",
+          "count": 3,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\src\\compliance-checklist.defaults.json",
+          "description": "3 files share identical JSON content",
+          "severity": "low",
+          "count": 3,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\src\\compliance-checklist.eu-ai-act.defaults.json",
+          "description": "3 files share identical JSON content",
+          "severity": "low",
+          "count": 3,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
+        },
+        {
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\docs\\examples\\assessment-report-template.json",
+          "description": "2 files share identical JSON content",
+          "severity": "low",
+          "count": 2,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
+        },
+        {
+          "file": "coming-soon/privacy.html",
+          "description": "coming-soon/privacy.html:59 Hardcoded AI-default UI metric or placeholder Latin filler copy",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Replace placeholder copy with production-ready values before client handoff"
+        },
+        {
+          "file": "ai-platform/simplebeacon-server.cjs",
+          "description": "ai-platform/simplebeacon-server.cjs:576 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "ai-platform/simplebeacon-server.cjs",
+          "description": "ai-platform/simplebeacon-server.cjs:577 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "ai-platform/simplebeacon-server.cjs",
+          "description": "ai-platform/simplebeacon-server.cjs:589 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "ai-platform/simplebeacon-server.cjs",
+          "description": "ai-platform/simplebeacon-server.cjs:590 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "ai-platform/simplebeacon-server.cjs",
+          "description": "ai-platform/simplebeacon-server.cjs:592 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "ai-platform/simplebeacon-server.cjs",
+          "description": "ai-platform/simplebeacon-server.cjs:593 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "ai-platform/simplebeacon-server.cjs",
+          "description": "ai-platform/simplebeacon-server.cjs:594 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "ai-platform/simplebeacon-server.cjs",
+          "description": "ai-platform/simplebeacon-server.cjs:595 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "ai-platform/simplebeacon-server.cjs",
+          "description": "ai-platform/simplebeacon-server.cjs:599 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "ai-platform/simplebeacon-server.cjs",
+          "description": "ai-platform/simplebeacon-server.cjs:602 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "ai-platform/simplebeacon-server.cjs",
+          "description": "ai-platform/simplebeacon-server.cjs:608 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "ai-platform/tools/apply-roadmap-export.js",
+          "description": "ai-platform/tools/apply-roadmap-export.js:113 — Console logging of AI prompts or completions in production path",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Remove prompt/completion logging from production paths or redact before emit."
+        },
+        {
+          "file": "coming-soon/server.cjs",
+          "description": "coming-soon/server.cjs:65 — Staging or dev hostname referenced in source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "simplebeacon-rule-tests/negative-test-1/server/lib/mock-snapshot-seeds.cjs",
+          "description": "simplebeacon-rule-tests/negative-test-1/server/lib/mock-snapshot-seeds.cjs:24 — Localhost or loopback URL with port in production-eligible code",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        }
+      ],
+      "summary": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\docs\\examples\\eu-ai-act-assessment-template.json: 3 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\examples\\ai-hygiene-enterprise-config.json: 2 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\examples\\enterprise-config.json: 2 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\examples\\mcp\\cursor.mcp.json: 3 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.github-sync\\simplebeacon\\examples\\mcp\\cursor.monorepo.mcp.json: 3 files share identical JSON content"
+    }
+  },
+  "recommendedActions": {
+    "immediate": [
+      "Fix high-severity findings before enabling --gate on main",
+      "Address EU AI Act transparency and documentation gaps before August 2026",
+      "Remove hardcoded -sample.json paths from production code",
+      "Add docs/model-card.md and docs/risk-assessment.md for AI integrations",
+      "Add simplebeacon scan --gate to PR workflow (see docs/GITHUB-ACTION-QUICKSTART.md)"
+    ],
+    "next30Days": [
+      "Conduct formal Annex III classification with legal counsel",
+      "Implement human-in-the-loop review for high-risk automated decisions",
+      "Wire simplebeacon compliance --checklist eu-ai-act into CI",
+      "Sync .simplebeacon/baseline.json after green test runs"
+    ]
+  },
+  "complementaryStack": {
+    "keepUsing": [
+      "Legal counsel for formal conformity assessment",
+      "Snyk or GitHub Advanced Security for CVEs"
+    ],
+    "addSimplebeaconFor": [
+      "Annex III high-risk pattern detection in source code",
+      "Article 50 transparency gap detection in user-facing surfaces",
+      "Documentation completeness signals before August 2026"
+    ]
+  },
+  "pilotProposal": {
+    "offer": "EU AI Act readiness audit + 30-day remediation sprint",
+    "pricePlaceholder": "$2,499–9,999 depending on AI system scope",
+    "ask": "Will you run simplebeacon scan --gate with --checklist eu-ai-act on every PR until August 2026?"
+  },
+  "disclaimer": "Static technical pattern review — not legal advice or formal conformity assessment under Regulation (EU) 2024/1689.",
+  "commandsRun": [
+    "npx simplebeacon scan --format json --output .simplebeacon/report.json",
+    "npx simplebeacon scan --gate",
+    "npx simplebeacon assess --report .simplebeacon/report.json"
+  ],
+  "sourceReport": {
+    "generatedAt": "2026-06-02T05:46:13.383Z",
+    "scanPaths": [
+      "C:\\Users\\Trevor\\CascadeProjects"
+    ],
+    "duplicateGroups": 9
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-06-02T05:46:13.409Z"
+}
