@@ -107,8 +107,8 @@ function computeFilesAnalyzed(mockCount, credentialScan, productionLeakScan, sou
     );
 }
 
-async function walkFiles(dir, results = [], depth = 0, rootDir = null) {
-    if (depth > 6) return results;
+async function walkFiles(dir, results = [], depth = 0, rootDir = null, maxDepth = 6) {
+    if (depth > maxDepth) return results;
     const walkRoot = rootDir || dir;
     let entries;
     try {
@@ -121,7 +121,7 @@ async function walkFiles(dir, results = [], depth = 0, rootDir = null) {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
             if (MOCK_WALK_SKIP_DIRS.has(entry.name)) continue;
-            await walkFiles(fullPath, results, depth + 1, walkRoot);
+            await walkFiles(fullPath, results, depth + 1, walkRoot, maxDepth);
             continue;
         }
         if (!entry.isFile()) continue;
@@ -279,6 +279,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             config,
             productionLeakOptions: leakOpts,
             euAiActSeverity: euOpts.severity || 'medium',
+            universal: options.universal,
             rules: {
                 productionLeak: isRuleEnabled(config, 'production-leak'),
                 agencyHandoff: isRuleEnabled(config, 'agency-handoff-patterns'),
@@ -310,9 +311,10 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         }
     } else {
         const files = [];
+        const maxDepth = options.universal ? 64 : 6;
         for (const scanPath of scanPaths) {
             if (fs.existsSync(scanPath)) {
-                await walkFiles(scanPath, files);
+                await walkFiles(scanPath, files, 0, null, maxDepth);
             }
         }
         uniqueFiles = dedupeScannedFiles(files);
@@ -674,6 +676,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         } else {
             const euOpts = getRuleOptions(config, 'eu-ai-act-patterns');
             euAiActScan = await scanEuAiActPatterns(ruleWalkRoot, {
+                fileList: uniqueFiles,
                 sourcePaths: euOpts.sourcePaths || config.sourceCodeScanPaths,
                 productionPaths: euOpts.productionPaths || config.productionPaths,
                 ignoreGlobs: euOpts.ignoreGlobs || config.ignore,
@@ -872,7 +875,10 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         configPath: config.configPath,
         scanPaths,
         repositoryInventory,
-        mockSampleFiles: uniqueFiles.length,
+        mockSampleFiles: uniqueFiles.filter((f) =>
+            /(?:web\/data|data\/mock|data-central|fixtures?|sample)/i.test(f.relativePath)
+            || /-sample\.json$/i.test(f.name)
+        ).length,
         totalFiles: uniqueFiles.length,
         ruleScopedFilesAnalyzed,
         repositoryFilesTotal,

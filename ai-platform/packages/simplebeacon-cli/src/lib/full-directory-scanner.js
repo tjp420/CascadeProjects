@@ -25,7 +25,10 @@ const DEFAULT_SKIP_DIRS = new Set([
     'build',
     'temp',
     'logs',
-    '.simplebeacon-backup'
+    '.simplebeacon-backup',
+    'simplebeacon-rule-tests',
+    'simplebeacon-frameworkless',
+    'marketing-content-test'
 ]);
 const DEFAULT_MAX_FILES = Number(process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES) || 2_000_000;
 const BATCH_LOG_EVERY = Number(process.env.SIMPLEBEACON_FULL_SCAN_LOG_EVERY) || 5000;
@@ -163,6 +166,7 @@ async function hashFileStream(filePath) {
 }
 
 async function analyzeFullDirectory(rootDir, options = {}) {
+    const isUniversal = options.universal === true;
     const maxContentBytes = resolveMaxContentBytes(options);
     const walkResult = await walkAllFiles(rootDir, options);
     const issues = [];
@@ -281,7 +285,7 @@ async function analyzeFullDirectory(rootDir, options = {}) {
                 tokenBleed: rules.tokenBleed !== false,
                 architectureDrift: rules.architectureDrift !== false,
                 euAiActSeverity: options.euAiActSeverity || 'medium',
-                productionPathsOnly: true,
+                productionPathsOnly: !isUniversal,
                 productionPaths: config.productionPaths || ['server/', 'src/', 'app/', 'lib/'],
                 productionLeakOptions: {
                     allowlistFiles: leakOpts.allowlistFiles || [],

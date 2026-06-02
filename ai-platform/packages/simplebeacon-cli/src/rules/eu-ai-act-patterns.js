@@ -17,7 +17,11 @@ const SCANNABLE_EXTENSIONS = new Set([
 ]);
 const SKIP_DIRS = new Set([
     'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'examples'
+    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'examples',
+    'simplebeacon-rule-tests', 'marketing-content-test',
+    'coming-soon', 'reports', 'security-reports', 'templates', 'data-central',
+    'deployments', 'public', 'functions', 'cloudflare-deploy', 'temp', 'tests-legacy',
+    '.github-sync', '.cursor', '.vscode', 'downloads', 'findings'
 ]);
 const MAX_SCAN_BYTES = 512000;
 
@@ -162,6 +166,22 @@ function isExcludedPath(relativePath) {
     const normalized = String(relativePath || '').replace(/\\/g, '/').toLowerCase();
     if (/(?:^|\/)src\/(?:rules|reporters|analyzers|proxy)(?:\/|$)/.test(normalized)) return true;
     if (/\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|proxy|lib)\//.test(normalized)) return true;
+    if (/(?:^|\/)coming-soon\//.test(normalized)) return true;
+    if (/(?:^|\/)reports\//.test(normalized)) return true;
+    if (/(?:^|\/)security-reports\//.test(normalized)) return true;
+    if (/(?:^|\/)templates\//.test(normalized)) return true;
+    if (/(?:^|\/)data-central\//.test(normalized)) return true;
+    if (/(?:^|\/)deployments\//.test(normalized)) return true;
+    if (/(?:^|\/)public\//.test(normalized)) return true;
+    if (/(?:^|\/)functions\//.test(normalized)) return true;
+    if (/(?:^|\/)cloudflare-deploy\//.test(normalized)) return true;
+    if (/(?:^|\/)archive\//.test(normalized)) return true;
+    if (/(?:^|\/)temp\//.test(normalized)) return true;
+    if (/(?:^|\/)tests-legacy\//.test(normalized)) return true;
+    if (/(?:^|\/)downloads\//.test(normalized)) return true;
+    if (/(?:^|\/)web\/(?:data|findings|simplebeacon-findings)\//.test(normalized)) return true;
+    if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
+    if (/(?:^|\/)marketing-content-test\//.test(normalized)) return true;
     return false;
 }
 
@@ -417,28 +437,58 @@ function filterDocumentedAiInventoryIssues(issues, documentation, summary) {
     });
 }
 
+
+function scanEuAiActFileContent(relativePath, content, severityDefault = 'medium') {
+    const issues = [];
+    let highRiskHits = 0;
+    let aiSystemHits = 0;
+    let transparencyGaps = 0;
+
+    const highRiskIssues = scanCatalogPatterns(relativePath, content, HIGH_RISK_CATALOG, 'high');
+    const aiIssues = scanCatalogPatterns(relativePath, content, AI_SYSTEM_INDICATORS, severityDefault);
+    highRiskHits += highRiskIssues.length > 0 ? 1 : 0;
+    aiSystemHits += aiIssues.length > 0 ? 1 : 0;
+    issues.push(...collapsePatternIssuesByFile(highRiskIssues, relativePath));
+    issues.push(...collapsePatternIssuesByFile(aiIssues, relativePath));
+
+    const transparencyIssues = scanTransparencyGaps(relativePath, content, severityDefault);
+    transparencyGaps += transparencyIssues.length;
+    issues.push(...transparencyIssues);
+
+    const hasHighRisk = highRiskIssues.length > 0;
+    const hasAi = aiIssues.length > 0 || hasHighRisk;
+    issues.push(...scanHumanOversightGaps(relativePath, content, hasHighRisk, severityDefault));
+    issues.push(...scanLoggingGaps(relativePath, content, hasAi, severityDefault));
+
+    return { issues, highRiskHits, aiSystemHits, transparencyGaps };
+}
+
 async function scanEuAiActPatterns(baseDir, options = {}) {
-    const sourcePaths = options.sourcePaths || DEFAULT_SOURCE_PATHS;
-    const productionPaths = options.productionPaths || DEFAULT_PRODUCTION_PATHS;
     const ignoreGlobs = options.ignoreGlobs || [];
     const severityDefault = options.severity || 'medium';
 
-    const files = [];
-    await walkSourceFiles(baseDir, sourcePaths, files);
-    for (const rel of productionPaths) {
-        const abs = path.join(baseDir, ...rel.replace(/\/$/, '').split('/'));
-        if (fs.existsSync(abs)) {
-            await walkProductionFiles(abs, files);
+    let uniqueFiles = [];
+    if (Array.isArray(options.fileList) && options.fileList.length > 0) {
+        uniqueFiles = options.fileList;
+    } else {
+        const sourcePaths = options.sourcePaths || DEFAULT_SOURCE_PATHS;
+        const productionPaths = options.productionPaths || DEFAULT_PRODUCTION_PATHS;
+        const files = [];
+        await walkSourceFiles(baseDir, sourcePaths, files);
+        for (const rel of productionPaths) {
+            const abs = path.join(baseDir, ...rel.replace(/\/$/, '').split('/'));
+            if (fs.existsSync(abs)) {
+                await walkProductionFiles(abs, files);
+            }
         }
-    }
 
-    const seen = new Set();
-    const uniqueFiles = [];
-    for (const file of files) {
-        const key = file.path;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        uniqueFiles.push(file);
+        const seen = new Set();
+        for (const file of files) {
+            const key = file.path;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            uniqueFiles.push(file);
+        }
     }
 
     const issues = [];
@@ -504,6 +554,27 @@ async function scanEuAiActPatterns(baseDir, options = {}) {
     };
 }
 
+function buildEuAiActSummaryFromScan(baseDir, issues, euActStats = {}) {
+    const highRiskHits = euActStats.highRiskHits ?? 0;
+    const aiSystemHits = euActStats.aiSystemHits ?? 0;
+    const transparencyGaps = euActStats.transparencyGaps ?? 0;
+
+    const documentation = detectDocumentationArtifacts(baseDir);
+    const filteredIssues = filterDocumentedAiInventoryIssues(issues, documentation, {
+        highRiskIndicators: highRiskHits,
+        transparencyGaps
+    });
+
+    return {
+        highRiskIndicators: highRiskHits,
+        aiSystemIndicators: aiSystemHits,
+        transparencyGaps,
+        documentationArtifacts: documentation.artifacts.length,
+        documentationFound: documentation.paths,
+        deadlineNote: 'High-risk AI systems must comply with EU AI Act requirements by August 2026'
+    };
+}
+
 module.exports = {
     HIGH_RISK_CATALOG,
     AI_SYSTEM_INDICATORS,
@@ -511,9 +582,12 @@ module.exports = {
     DOCUMENTATION_FILE_NAMES,
     detectDocumentationArtifacts,
     scanEuAiActPatterns,
+    scanEuAiActFileContent,
     hasTransparencyDisclosure,
     hasDocumentedAiInventory,
     filterDocumentedAiInventoryIssues,
+    isExcludedPath,
+    buildEuAiActSummaryFromScan,
     DEFAULT_SOURCE_PATHS,
     DEFAULT_PRODUCTION_PATHS
 };

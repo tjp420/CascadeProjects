@@ -54,6 +54,12 @@ const ALLOWLIST_SNIPPETS = [
 ];
 
 const SCANNABLE_EXTENSIONS = new Set(['.json', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.env', '.yaml', '.yml', '.txt', '.md']);
+const UNIVERSAL_TEXT_EXTENSIONS = new Set([
+    '.json', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.env', '.yaml', '.yml', '.toml',
+    '.txt', '.md', '.html', '.css', '.scss', '.sass', '.less', '.vue', '.svelte', '.astro',
+    '.py', '.rb', '.go', '.rs', '.java', '.kt', '.cs', '.php', '.swift', '.c', '.cpp', '.h',
+    '.sh', '.bash', '.zsh', '.ps1', '.bat', '.cmd', '.sql', '.graphql', '.xml', '.csv'
+]);
 const MAX_SCAN_BYTES = 256000;
 
 function lineNumberAt(content, index) {
@@ -157,9 +163,12 @@ async function scanCredentialPatterns(files, options = {}) {
     const issues = [];
     let scanned = 0;
 
+    const allowedExts = options.universal
+        ? UNIVERSAL_TEXT_EXTENSIONS
+        : SCANNABLE_EXTENSIONS;
     for (const file of files) {
         if (shouldIgnoreScanFile(file, options)) continue;
-        if (!SCANNABLE_EXTENSIONS.has(file.ext)) continue;
+        if (!allowedExts.has(file.ext)) continue;
         if (file.size > MAX_SCAN_BYTES) continue;
 
         let content;
@@ -189,7 +198,7 @@ async function scanCredentialPatterns(files, options = {}) {
             const relativePath = path.relative(options.baseDir, file.path).split(path.sep).join('/');
             if (shouldIgnoreScanFile({ relativePath, path: file.path }, options)) continue;
             if (ignoreGlobs.some((pattern) => globMatch(relativePath, pattern))) continue;
-            if (!SCANNABLE_EXTENSIONS.has(file.ext)) continue;
+            if (!allowedExts.has(file.ext)) continue;
             if (file.size > MAX_SCAN_BYTES) continue;
 
             let content;

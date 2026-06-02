@@ -45,7 +45,8 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status']);
+const { runAndRecordAccuracyTracker } = require('../src/lib/scanner-accuracy-tracker');
+const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'accuracy']);
 
 function writeStdoutLine(message = '') {
     process.stdout.write(`${message}\n`);
@@ -107,7 +108,9 @@ function parseArgs(argv) {
         withMcp: false,
         mcpMode: 'npx-local',
         withCi: false,
-        starter: false
+        starter: false,
+        fullDirectoryScan: null,
+        universal: false
     };
 
     for (let i = flagStart; i < args.length; i += 1) {
@@ -180,6 +183,11 @@ function parseArgs(argv) {
             options.starter = true;
             options.withMcp = true;
             options.withCi = true;
+        } else if (arg === '--full') {
+            options.fullDirectoryScan = true;
+        } else if (arg === '--universal') {
+            options.universal = true;
+            options.fullDirectoryScan = true;
         } else if (arg === '--mcp-mode' && args[i + 1]) {
             options.mcpMode = args[++i];
         } else if (arg === '--help' || arg === '-h') {
@@ -201,7 +209,8 @@ function applyCliPathSafety(options) {
         'assess',
         'compliance',
         'report',
-        'hook-install'
+        'hook-install',
+        'accuracy'
     ]);
 
     if (pathRequiredCommands.has(options.command)) {
@@ -236,6 +245,7 @@ Usage:
   simplebeacon hook install         Install pre-commit or pre-push git hook
   simplebeacon gate status            Print gate pass/fail from .simplebeacon/report.json
   simplebeacon reduce [options]     Analyze repo for file-reduction opportunities (dry-run)
+  simplebeacon accuracy [options]   Run scanner accuracy tracker against golden corpus
 
 Init options:
   --path <dir>        Project root (default: cwd)
@@ -257,6 +267,7 @@ Scan options:
   --with-jest         Run npm test and compare to baseline (slow)
   --verbose, -v       Print config warnings and scan paths
   --offline           Fail if any outbound network activity occurs during scan
+  --full              Full directory scan — walk entire repo, not just production paths
   --no-trust-banner   Suppress read-only / local-only trust confirmation lines
   --api-token <tok>   Paid tier API token (required with --upload)
   --upload <url>      POST JSON report to Simplebeacon cloud (paid tier)
@@ -319,6 +330,7 @@ Examples:
   npx simplebeacon scan --gate
   npx simplebeacon scan --offline --gate
   npx simplebeacon scan --format json --output .simplebeacon/report.json --gate
+  npx simplebeacon scan --full --format json --output .simplebeacon/full-report.json --gate
   npx simplebeacon scan --format json --api-token sb_xxx --upload https://simplebeacon.ai/api/simplebeacon/cloud-scan
   npx simplebeacon assess --company "Acme" --assessor "Jane" --checklist eu-ai-act
   npx simplebeacon report --company "Acme LLC" --client "Acme Dashboard" --assessor "Jane"
@@ -388,7 +400,8 @@ async function runScanCommand(options) {
         const report = await runScan(sanitizedScanRoot, {
             config,
             configPath: options.config,
-            withJest: options.withJest
+            withJest: options.withJest,
+            fullDirectoryScan: options.fullDirectoryScan
         });
         networkGuard.assertOfflineClean();
         printTrustCompletion({
@@ -793,6 +806,24 @@ async function runReduceCommand(options) {
     }
 }
 
+async function runAccuracyCommand(options) {
+    const root = resolveCliProjectRoot(options.path);
+    const { record, report, regression } = await runAndRecordAccuracyTracker(root, {
+        corpusRoot: options.corpusRoot,
+        dryRun: options.dryRun
+    });
+
+    if (options.format === 'json') {
+        writeStdoutLine(JSON.stringify(record, null, 2));
+        process.exit(regression ? 1 : 0);
+    }
+
+    writeStdoutLine(report);
+    writeStdoutLine('');
+    writeStdoutLine(`History: ${root}/.simplebeacon/scanner-accuracy.json`);
+    process.exit(regression ? 1 : 0);
+}
+
 function runGateStatusCommand(options) {
     const root = resolveCliProjectRoot(options.path);
     const status = readGateStatus(root, {
@@ -882,6 +913,11 @@ async function main() {
 
     if (options.command === 'gate-status') {
         runGateStatusCommand(options);
+        return;
+    }
+
+    if (options.command === 'accuracy') {
+        await runAccuracyCommand(options);
         return;
     }
 

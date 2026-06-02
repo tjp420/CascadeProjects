@@ -83,7 +83,8 @@ function runTextRulePasses(relativePath, content, ext, options = {}) {
         };
     }
 
-    const prodOnly = options.productionPathsOnly === true;
+    const isUniversal = options.universal === true;
+    const prodOnly = !isUniversal && options.productionPathsOnly === true;
     const prodPaths = options.productionPaths || ['server/', 'src/', 'app/', 'lib/'];
 
     if (options.tokenBleed !== false) {
