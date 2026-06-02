@@ -813,7 +813,7 @@ class RoadmapDataAnalyzer {
                 features: ['AI Platform Setup', 'Basic Processing', 'Core Architecture'],
                 duration: '8 weeks',
                 teamSize: 8,
-                aiConfidence: 98.5
+                aiConfidence: null  // populated from measured inference metrics, not hardcoded
             },
             {
                 phase: 'Phase 2: AI Integration',
@@ -825,7 +825,7 @@ class RoadmapDataAnalyzer {
                 features: ['AI Analysis Tools', 'Smart Processing', 'Automation'],
                 duration: '10 weeks',
                 teamSize: 10,
-                aiConfidence: 98.5
+                aiConfidence: null  // populated from measured inference metrics, not hardcoded
             },
             {
                 phase: 'Phase 3: Advanced Features',
@@ -837,7 +837,7 @@ class RoadmapDataAnalyzer {
                 features: ['Analytics Dashboard', 'Reporting System', 'Performance Optimization'],
                 duration: '12 weeks',
                 teamSize: 12,
-                aiConfidence: 95.2
+                aiConfidence: null  // populated from measured inference metrics, not hardcoded
             },
             {
                 phase: 'Phase 4: Production Ready',
@@ -849,7 +849,7 @@ class RoadmapDataAnalyzer {
                 features: ['Enterprise Features', 'Scaling Solutions', 'Production Deployment'],
                 duration: '16 weeks',
                 teamSize: 15,
-                aiConfidence: 96.0
+                aiConfidence: null  // populated from measured inference metrics, not hardcoded
             }
         ];
     }
@@ -899,7 +899,7 @@ class RoadmapDataAnalyzer {
                 features: ['AI Platform Setup', 'Basic Processing', 'Core Architecture'],
                 duration: '8 weeks',
                 teamSize: 8,
-                aiConfidence: 98.5
+                aiConfidence: null  // populated from measured inference metrics, not hardcoded
             },
             {
                 phase: 'Phase 2: AI Integration',
@@ -911,7 +911,7 @@ class RoadmapDataAnalyzer {
                 features: ['AI Analysis Tools', 'Smart Processing', 'Automation'],
                 duration: '10 weeks',
                 teamSize: 10,
-                aiConfidence: 98.5
+                aiConfidence: null  // populated from measured inference metrics, not hardcoded
             },
             {
                 phase: 'Phase 3: Advanced Features',
@@ -923,7 +923,7 @@ class RoadmapDataAnalyzer {
                 features: ['Analytics Dashboard', 'Reporting System', 'Performance Optimization'],
                 duration: '12 weeks',
                 teamSize: 12,
-                aiConfidence: 95.2
+                aiConfidence: null  // populated from measured inference metrics, not hardcoded
             },
             {
                 phase: 'Phase 4: Production Ready',
@@ -935,7 +935,7 @@ class RoadmapDataAnalyzer {
                 features: ['Enterprise Features', 'Scaling Solutions', 'Production Deployment'],
                 duration: '16 weeks',
                 teamSize: 15,
-                aiConfidence: 96.0
+                aiConfidence: null  // populated from measured inference metrics, not hardcoded
             }
         ];
     }
