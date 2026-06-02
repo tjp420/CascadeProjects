@@ -137,11 +137,18 @@ function scanTextContent(fileName, content, filePath = fileName) {
     return findings;
 }
 
+function isCredentialScanExcludedPath(file) {
+    const rel = String(file.relativePath || '').replace(/\\/g, '/');
+    return /simplebeacon-rule-tests\//.test(rel)
+        || /packages\/simplebeacon-cli\/tests\//.test(rel);
+}
+
 async function scanCredentialPatterns(files, options = {}) {
     const issues = [];
     let scanned = 0;
 
     for (const file of files) {
+        if (isCredentialScanExcludedPath(file)) continue;
         if (!SCANNABLE_EXTENSIONS.has(file.ext)) continue;
         if (file.size > MAX_SCAN_BYTES) continue;
 

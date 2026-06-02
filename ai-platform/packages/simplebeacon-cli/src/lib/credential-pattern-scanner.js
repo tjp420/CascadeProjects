@@ -71,18 +71,19 @@ function severityBandForPattern(patternId) {
 }
 
 function shouldIgnoreScanFile(file, options = {}) {
+    const rel = String(file.relativePath || '').replace(/\\/g, '/');
+    if (/simplebeacon-rule-tests\//.test(rel)) return true;
+    if (/packages\/simplebeacon-cli\/tests\//.test(rel)) return true;
+
     const ignoreGlobs = options.ignoreGlobs || [];
     if (!ignoreGlobs.length) return false;
 
-    const candidates = [];
-    if (file.relativePath) {
-        candidates.push(String(file.relativePath).replace(/\\/g, '/'));
-    }
+    const candidates = [rel];
     if (options.baseDir && file.path) {
         candidates.push(path.relative(options.baseDir, file.path).split(path.sep).join('/'));
     }
 
-    return candidates.some((rel) => ignoreGlobs.some((pattern) => globMatch(rel, pattern)));
+    return candidates.some((r) => ignoreGlobs.some((pattern) => globMatch(r, pattern)));
 }
 
 function isAllowlisted(match, content, fileName = '') {

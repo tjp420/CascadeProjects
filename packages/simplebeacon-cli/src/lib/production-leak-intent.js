@@ -142,6 +142,29 @@ function classifyProductionLeakMatch({
     const line = (content || '').split('\n')[lineIndex] || '';
     const rel = normalizeRel(relativePath);
 
+    // Check for inline intent marker on the same line or previous line
+    const intentMarkerPattern = /simplebeacon:production-leak-intent:\s*(\S+)\s*-\s*(.+)/;
+    const lineMatch = line.match(intentMarkerPattern);
+    const prevLine = lineIndex > 0 ? (content || '').split('\n')[lineIndex - 1] : '';
+    const prevLineMatch = prevLine.match(intentMarkerPattern);
+
+    if (lineMatch || prevLineMatch) {
+        const match = lineMatch || prevLineMatch;
+        return {
+            intent: match[1],
+            suppress: true,
+            reason: `Explicit intent marker: ${match[2].trim()}`
+        };
+    }
+
+    if (/simplebeacon-rule-tests\//.test(rel)) {
+        return {
+            intent: 'test-negative-case',
+            suppress: true,
+            reason: 'Intentional negative test fixture — fake credentials used for scanner validation'
+        };
+    }
+
     if (isDemoToolSamplePath(rel)) {
         return {
             intent: 'demo-tool-sample',

@@ -5,10 +5,11 @@
 
 const fs = require('fs');
 const path = require('path');
-const traverse = require('@babel/traverse').default;
 const { globMatch } = require('../rules/production-leak');
 const { isExcludedPath, isUnderProductionPaths } = require('../rules/ai-runtime-scan-common');
 
+let _traverse = null;
+function getTraverse() { if (!_traverse) { try { _traverse = require('@babel/traverse').default; } catch { return null; } } return _traverse; }
 const MAX_SCAN_BYTES = 512000;
 const JS_AST_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx']);
 
@@ -183,7 +184,7 @@ function scanSourceAst(relativePath, content, ext) {
         findings.push(makeFinding(relativePath, line, rule, details));
     };
 
-    traverse(ast, {
+    getTraverse()(ast, {
         StringLiteral(pathNode) {
             const val = pathNode.node.value;
             if (SLOP_PATTERN.test(val)) {

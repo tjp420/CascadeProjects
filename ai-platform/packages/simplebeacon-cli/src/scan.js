@@ -23,8 +23,6 @@ const { scanTokenBleedPatterns } = require('./rules/token-bleed-patterns');
 const { scanEnterpriseGuardrailPatterns } = require('./rules/enterprise-guardrail-patterns');
 const { scanStructuralIntentPatterns } = require('./rules/structural-intent-patterns');
 const { scanArchitectureDriftPatterns } = require('./rules/architecture-drift-patterns');
-const { scanPythonAstPatterns } = require('./lib/python-ast-scanner');
-const { scanJavascriptAstPatterns } = require('./lib/javascript-ast-scanner');
 const { checkJestBaseline } = require('./rules/jest-baseline');
 const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions, resolveFullTreeSkipDirs, isIntelligenceEnabled, getIntelligenceOptions } = require('./config');
 const { resolvePlatformRoot, isIsolatedScanRoot } = require('./project-detect');
@@ -636,6 +634,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
 
     let pythonAstScan = { scanned: 0, findings: 0, issues: [], patterns: [], ok: true };
     if (isRuleEnabled(config, 'python-ast-patterns') && !benchmarkScanTarget) {
+        const { scanPythonAstPatterns } = require('./lib/python-ast-scanner');
         const pyOpts = getRuleOptions(config, 'python-ast-patterns');
         pythonAstScan = await scanPythonAstPatterns(ruleWalkRoot, {
             productionPaths: pyOpts.productionPaths || config.productionPaths,
@@ -650,6 +649,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
 
     let javascriptAstScan = { scanned: 0, findings: 0, issues: [], patterns: [], ok: true };
     if (isRuleEnabled(config, 'javascript-ast-patterns') && !benchmarkScanTarget) {
+        const { scanJavascriptAstPatterns } = require('./lib/javascript-ast-scanner');
         const jsOpts = getRuleOptions(config, 'javascript-ast-patterns');
         javascriptAstScan = await scanJavascriptAstPatterns(ruleWalkRoot, {
             productionPaths: jsOpts.productionPaths || config.productionPaths,

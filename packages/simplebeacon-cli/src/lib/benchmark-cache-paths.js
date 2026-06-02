@@ -22,6 +22,7 @@ function isExcludedCredentialScanPath(filePath) {
     if (rel.includes('/complete-scan-latest.json') || rel.includes('/complete-scan-post-')) return true;
     if (/\/deliverables\//.test(rel) || rel.startsWith('deliverables/')) return true;
     if (/\/docs\//.test(rel) && rel.endsWith('.md')) return true;
+    if (rel.includes('/simplebeacon-rule-tests/') || rel.startsWith('simplebeacon-rule-tests/')) return true;
     return false;
 }
 
@@ -83,7 +84,8 @@ const MOCK_WALK_SKIP_DIRS = new Set([
     'java-ai-vulnerable',
     '.simplebeacon',
     'data-central',
-    'security-reports'
+    'security-reports',
+    'simplebeacon-rule-tests'
 ]);
 
 module.exports = {
