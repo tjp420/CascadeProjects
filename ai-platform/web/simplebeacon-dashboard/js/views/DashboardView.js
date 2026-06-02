@@ -12,6 +12,7 @@ import { renderIssueList } from '../components/IssueCard.js';
 import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
 import { fetchRepositoryHealth, renderRepositoryHealthSection } from './RepositoryHealthView.js';
+import { renderPathHealthDashboard, cleanupPathHealthDashboard } from '../components/PathHealthDashboard.js';
 
 export function renderInsights(report, baseline, dashboardHome) {
   const sev = report?.severityCounts || {};
@@ -124,6 +125,12 @@ export class DashboardView {
         </div>
         <p class="text-muted"><span class="loading-spinner"></span> Loading optimization metrics…</p>
       </div>
+      <div class="section-block" id="slot-path-health">
+        <div class="section-heading">
+          <h2>System Path Health</h2>
+        </div>
+        <p class="text-muted"><span class="loading-spinner"></span> Loading path health metrics…</p>
+      </div>
       <div class="section-block">
         <div class="section-heading">
           <h2>Scan Metrics</h2>
@@ -209,6 +216,7 @@ export class DashboardView {
 
     this.ensureReportEnriched();
     this.loadRepositoryHealth(view);
+    this.loadPathHealth(view);
 
     requestAnimationFrame(() => {
       const trendSlot = view.querySelector('#slot-trend');
@@ -241,7 +249,21 @@ export class DashboardView {
     }
   }
 
+  loadPathHealth(view) {
+    const slot = view.querySelector('#slot-path-health');
+    if (!slot) return;
+    try {
+      slot.innerHTML = '';
+      const pathHealthComponent = renderPathHealthDashboard();
+      slot.appendChild(pathHealthComponent);
+    } catch (error) {
+      console.error('Error loading path health dashboard:', error);
+      slot.innerHTML = '<p class="text-muted">Path health metrics unavailable.</p>';
+    }
+  }
+
   destroy() {
     if (this._trendCleanup) this._trendCleanup();
+    cleanupPathHealthDashboard();
   }
 }

@@ -4,9 +4,9 @@ const path = require('path');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
-const logger = require('./lib/app-logger');
-const { resolveCorsOptions } = require('./lib/cors-config');
-const { calculateFileQuality, contentNeedsValidation } = require('./lib/file-quality-heuristics');
+const logger = require('./lib/app-logger.cjs');
+const { resolveCorsOptions } = require('./lib/cors-config.cjs');
+const { calculateFileQuality, contentNeedsValidation } = require('./lib/file-quality-heuristics.cjs');
 
 // Import enhanced security middleware
 const { 
@@ -16,13 +16,13 @@ const {
   ipProtection, 
   securityErrorHandler,
   validateInput 
-} = require('./middleware/security');
+} = require('./middleware/security.cjs');
 const { 
   authenticate,
   optionalAuthenticate,
   handleLogin, 
   handleTokenRefresh
-} = require('./middleware/auth');
+} = require('./middleware/auth.cjs');
 const { 
   initializeAudit, 
   auditAIOperation, 
@@ -30,14 +30,15 @@ const {
   auditDataAccess,
   logSystemEvent,
   logSecurityEvent
-} = require('./middleware/audit');
-
-const assessmentRoutes = require('./api/assessment/index');
+} = require('./middleware/audit.cjs');
 
 // Import upload routes and security
-const uploadRoutes = require('./routes/upload');
-const { uploadSecurity, contentValidation } = require('./middleware/upload-security');
-const { setupFlexibleAnalyzeAPI } = require('./routes/flexible-analyze-api');
+const uploadRoutes = require('./routes/upload.cjs');
+const { uploadSecurity, contentValidation } = require('./middleware/upload-security.cjs');
+const { setupFlexibleAnalyzeAPI } = require('./routes/flexible-analyze-api.cjs');
+const { setupChatbotAPI } = require('./routes/chatbot-api.cjs');
+const setupLocalModelsAPI = require('./routes/local-models-api.cjs');
+const pathHealthRouter = require('./api/metrics/path-health.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -79,7 +80,7 @@ const authLoginRateLimit = rateLimit({
   }
 });
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 const comingSoonRoot = path.join(__dirname, '../coming-soon');
@@ -89,7 +90,7 @@ const {
   isVaultAuthenticated: checkVaultAuthenticated,
   isProtectedDashboardPath,
   setVaultSessionCookie
-} = require('./lib/dashboard-vault-auth');
+} = require('./lib/dashboard-vault-auth.cjs');
 
 function isVaultAuthenticated(req) {
   return checkVaultAuthenticated(req, {
@@ -105,10 +106,7 @@ function sendComingSoonIndex(res) {
 // Public storefront — same paywall as simplebeacon.ai (coming-soon/)
 app.get('/', (req, res) => sendComingSoonIndex(res));
 app.get(['/landing', '/landing/'], (req, res) => sendComingSoonIndex(res));
-app.get(['/sample-report', '/sample-report/'], (req, res) => {
-  res.sendFile(path.join(comingSoonRoot, 'sample-report.html'));
-});
-app.get('/sample-report.html', (req, res) => {
+app.get('/sample-report', (req, res) => {
   res.sendFile(path.join(comingSoonRoot, 'sample-report.html'));
 });
 
@@ -946,15 +944,23 @@ app.get('/api/status', authenticate, (req, res) => {
   });
 });
 
-// Assessment API (Simplebeacon scan + compliance checklist deliverable)
-app.use('/api/assessment', assessmentRoutes);
-
 // Flexible analyze API — codebase scan and inventory (shared path-safety with simplebeacon-server)
 const platformRoot = path.join(__dirname, '..');
 setupFlexibleAnalyzeAPI(app, {
     baseDir: platformRoot,
     monorepoRoot: path.join(platformRoot, '..')
 });
+
+// Chatbot API — AI-powered code assistance
+setupChatbotAPI(app);
+
+// Local models API — Ollama and local model management
+setupLocalModelsAPI(app, {
+    baseDir: platformRoot
+});
+
+// Path health metrics API
+app.use('/api/metrics/path-health', pathHealthRouter);
 
 // Upload API: optional JWT (anonymous allowed unless REQUIRE_AUTH=true in upload-security)
 app.use('/api/upload', optionalAuthenticate, uploadSecurity, contentValidation, uploadRoutes);
