@@ -45,14 +45,14 @@ const FIXTURES = [
         description: 'EU AI Act high-risk indicators — must trigger findings',
         expectedFindings: true,
         minFindings: 2,
-        rules: ['eu-aiactpatterns', 'euaiaactpatterns']
+        rules: ['eu-ai-act', 'euaiaact']
     },
     {
         id: 'eu-ai-act-negative-test',
         path: 'eu-ai-act-negative-test',
         description: 'Benign utility code — must NOT trigger EU AI Act findings',
         expectedFindings: false,
-        rules: ['eu-aiactpatterns', 'euaiaactpatterns']
+        rules: ['eu-ai-act', 'euaiaact']
     },
     {
         id: 'fiction-positive-test',
