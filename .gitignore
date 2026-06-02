@@ -1,0 +1,27 @@
+# Embedded git repositories (tracked separately)
+ai-platform/.github-sync/simplebeacon/
+java-ai-vulnerable/
+
+# Simplebeacon scan artifacts
+.simplebeacon/*.json
+.simplebeacon/*.md
+.simplebeacon/*.bak
+!ai-platform/.simplebeacon/config.json
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Build artifacts
+dist/
+build/
+coverage/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
