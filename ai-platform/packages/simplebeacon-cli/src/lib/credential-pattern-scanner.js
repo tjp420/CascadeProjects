@@ -187,6 +187,7 @@ async function scanCredentialPatterns(files, options = {}) {
         const ignoreGlobs = options.ignoreGlobs || [];
         for (const file of prodFiles) {
             const relativePath = path.relative(options.baseDir, file.path).split(path.sep).join('/');
+            if (shouldIgnoreScanFile({ relativePath, path: file.path }, options)) continue;
             if (ignoreGlobs.some((pattern) => globMatch(relativePath, pattern))) continue;
             if (!SCANNABLE_EXTENSIONS.has(file.ext)) continue;
             if (file.size > MAX_SCAN_BYTES) continue;

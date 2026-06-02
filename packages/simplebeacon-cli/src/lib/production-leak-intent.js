@@ -165,6 +165,14 @@ function classifyProductionLeakMatch({
         };
     }
 
+    if (/\.github-sync\//.test(rel) || /\/github-cache\//.test(rel)) {
+        return {
+            intent: 'scanner-mirror',
+            suppress: true,
+            reason: 'Scanner code mirror or cache — not production code'
+        };
+    }
+
     if (isDemoToolSamplePath(rel)) {
         return {
             intent: 'demo-tool-sample',

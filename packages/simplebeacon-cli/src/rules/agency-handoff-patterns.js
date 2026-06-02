@@ -437,6 +437,7 @@ async function scanAgencyHandoffPatterns(baseDir, options = {}) {
     for (const file of uniqueFiles) {
         const relativePath = normalizeRel(baseDir, file.path);
         if (ignoreGlobs.some((g) => globMatch(relativePath, g))) continue;
+        if (/simplebeacon-rule-tests\//.test(relativePath)) continue;
         if (isExcludedPath(relativePath)) continue;
 
         let content;

@@ -88,7 +88,9 @@ const MOCK_WALK_SKIP_DIRS = new Set([
     'java-ai-vulnerable',
     '.simplebeacon',
     'data-central',
-    'security-reports'
+    'security-reports',
+    'simplebeacon-rule-tests',
+    '.github-sync'
 ]);
 
 module.exports = {

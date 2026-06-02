@@ -19,7 +19,9 @@ const DEFAULT_IGNORE_GLOBS = [
     '**/*.test.tsx',
     '**/*.spec.tsx',
     'tests/**',
-    'test/**'
+    'test/**',
+    '.github-sync/**',
+    'github-cache/**'
 ];
 
 const LEAK_PATTERNS = [

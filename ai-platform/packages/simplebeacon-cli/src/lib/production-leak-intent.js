@@ -266,6 +266,14 @@ function classifyProductionLeakMatch({
         };
     }
 
+    if (/\.github-sync\//.test(rel) || /\/github-cache\//.test(rel)) {
+        return {
+            intent: 'scanner-mirror',
+            suppress: true,
+            reason: 'Scanner code mirror or cache — not production code'
+        };
+    }
+
     if (isDocumentationPath(rel) && !isAccidentalLoadPattern(line, matchText)) {
         return {
             intent: 'documentation-metadata',

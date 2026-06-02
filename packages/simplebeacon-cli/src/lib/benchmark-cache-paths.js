@@ -85,7 +85,8 @@ const MOCK_WALK_SKIP_DIRS = new Set([
     '.simplebeacon',
     'data-central',
     'security-reports',
-    'simplebeacon-rule-tests'
+    'simplebeacon-rule-tests',
+    '.github-sync'
 ]);
 
 module.exports = {
