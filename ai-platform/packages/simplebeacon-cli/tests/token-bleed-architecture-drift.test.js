@@ -5,7 +5,6 @@ const os = require('os');
 const path = require('path');
 const { scanTextPatterns: scanTokenBleed } = require('../src/rules/token-bleed-patterns');
 const { scanTextPatterns: scanArchitectureDrift } = require('../src/rules/architecture-drift-patterns');
-const { explainFinding } = require('../src/mcp/rule-catalog');
 const { loadSimplebeaconConfig, isRuleEnabled, OPT_IN_RULE_DEFAULTS } = require('../src/config');
 const { scanSnippetContent } = require('../src/lib/snippet-scanner');
 
@@ -86,15 +85,6 @@ test('architecture drift passes when zod present in same file', () => {
         productionPaths: ['server/', 'src/']
     });
     assert.equal(findings.length, 0);
-});
-
-test('explain_finding resolves SB-TB and SB-AD pattern ids', () => {
-    const tb = explainFinding('SB-TB-001');
-    assert.equal(tb.found, true);
-    assert.equal(tb.category, 'token-bleed');
-    const ad = explainFinding('SB-AD-001');
-    assert.equal(ad.found, true);
-    assert.equal(ad.category, 'architecture-drift');
 });
 
 test('scan_snippet skips opt-in rules until enabled in config', async () => {

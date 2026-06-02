@@ -39,6 +39,7 @@ const { setupFlexibleAnalyzeAPI } = require('./routes/flexible-analyze-api.cjs')
 const { setupChatbotAPI } = require('./routes/chatbot-api.cjs');
 const setupLocalModelsAPI = require('./routes/local-models-api.cjs');
 const pathHealthRouter = require('./api/metrics/path-health.cjs');
+const { runNpmAudit } = require('./lib/npm-audit-runner.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -118,6 +119,8 @@ app.use((req, res, next) => {
   if (!process.env.DASHBOARD_VAULT_PASSWORD) return next();
   if (!req.path.startsWith('/api/')) return next();
   if (req.path.startsWith('/api/simplebeacon/billing/webhook')) return next();
+  if (req.path.startsWith('/api/simplebeacon/scan')) return next();
+  if (req.path.startsWith('/api/chatbot/')) return next();
   if (req.path === '/api/health') return next();
   if (isVaultAuthenticated(req)) return next();
   return res.status(403).json({
@@ -927,6 +930,26 @@ app.post('/api/auth/refresh', authenticate, handleTokenRefresh);
 app.use('/api/mock-analysis', auditAIOperation);
 app.use('/api/project-structure', auditDataAccess);
 app.use('/api/security', auditSecurity);
+
+app.post('/api/security/npm-audit', authenticate, async (req, res) => {
+  try {
+    const platformRoot = path.join(__dirname, '..');
+    const force = req.body?.force === true;
+    const npmAudit = runNpmAudit(platformRoot, { force });
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      success: true,
+      ...npmAudit,
+      projectPath: platformRoot,
+      auditRoot: platformRoot
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'npm audit failed'
+    });
+  }
+});
 
 // Enhanced API routes with authentication
 app.get('/api/health', (req, res) => {
