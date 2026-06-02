@@ -1,5 +1,6 @@
 import { escapeHtml, formatNumber, formatPercent } from '../utils.js';
 import { FEATURE_CATALOG } from '../services/platformService.js';
+// EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
 import {
   getScanFileMetrics,
   resolveDisplayScore,

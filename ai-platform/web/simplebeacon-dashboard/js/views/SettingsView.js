@@ -1,5 +1,6 @@
 import { escapeHtml, showToast, downloadJson } from '../utils.js';
 import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js';
+// EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
 import { scanService } from '../services/scanService.js';
 import { platformService } from '../services/platformService.js';
 import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels } from '../services/aiKeysService.js?v=20260525aikeysguard1';
