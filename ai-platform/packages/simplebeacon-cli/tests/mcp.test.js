@@ -51,13 +51,14 @@ test('MCP tool handlers return JSON content blocks', () => {
     assert.ok(Array.isArray(parsed.findings));
 });
 
-test('MCP stdio server exposes six tools', () => {
+test('MCP stdio server exposes four tools', () => {
     const server = createMcpStdioServer({ offline: true });
     const list = server.toolListResult();
-    assert.equal(list.tools.length, 6);
+    assert.equal(list.tools.length, 4);
     assert.ok(list.tools.some((t) => t.name === 'gate_status'));
-    assert.ok(list.tools.some((t) => t.name === 'scan_project'));
-    assert.ok(list.tools.some((t) => t.name === 'suggest_fixes'));
+    assert.ok(list.tools.some((t) => t.name === 'scan_snippet'));
+    assert.ok(list.tools.some((t) => t.name === 'scan_file'));
+    assert.ok(list.tools.some((t) => t.name === 'explain_finding'));
 });
 
 test('readGateStatus handles missing report gracefully', () => {

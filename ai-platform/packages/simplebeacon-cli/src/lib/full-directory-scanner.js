@@ -285,22 +285,25 @@ async function analyzeFullDirectory(rootDir, options = {}) {
         });
 
         if (file.ext === '.json' || file.name.endsWith('.json')) {
-            try {
-                JSON.parse(content);
-                jsonValid += 1;
-            } catch (error) {
-                jsonInvalid += 1;
-                bucket.issues += 1;
-                issues.push({
-                    id: `invalid-json-${file.relativePath}`,
-                    severity: 'high',
-                    type: 'Invalid JSON',
-                    filePath: file.path,
-                    count: 1,
-                    description: `${file.relativePath}: ${error.message}`,
-                    recommendedAction: 'Fix JSON syntax errors',
-                    affectedFiles: [file.relativePath]
-                });
+            const isNodeModules = file.relativePath.includes('node_modules');
+            if (!isNodeModules) {
+                try {
+                    JSON.parse(content);
+                    jsonValid += 1;
+                } catch (error) {
+                    jsonInvalid += 1;
+                    bucket.issues += 1;
+                    issues.push({
+                        id: `invalid-json-${file.relativePath}`,
+                        severity: 'high',
+                        type: 'Invalid JSON',
+                        filePath: file.path,
+                        count: 1,
+                        description: `${file.relativePath}: ${error.message}`,
+                        recommendedAction: 'Fix JSON syntax errors',
+                        affectedFiles: [file.relativePath]
+                    });
+                }
             }
         }
     }
