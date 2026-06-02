@@ -35,6 +35,7 @@ const ALLOWLIST_SNIPPETS = [
     'example.com',
     'xxxxxxxx',
     'replace_me',
+    'replace-me',
     'changeme',
     'dummy',
     'test-only',

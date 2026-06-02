@@ -137,10 +137,11 @@ function isLlmCall(node) {
         return true;
     }
     if (node.type !== 'MemberExpression') return false;
-    const prop = node.property.type === 'Identifier' ? node.property.name : '';
-    if (LLM_CALLEE_TAIL.has(prop)) return true;
     const label = calleeLabel(node);
-    return /openai\.chat\.completions\.create|anthropic\.messages\.create|\.chat\.completions\.create|\.responses\.create/i.test(label);
+    if (/openai\.chat\.completions\.create|anthropic\.messages\.create|\.chat\.completions\.create|\.responses\.create/i.test(label)) return true;
+    if (!/(?:openai|anthropic|claude|gpt|llm|chat\.completion|completion|embedding|streamtext|generatetext|ai\.)/i.test(label)) return false;
+    const prop = node.property.type === 'Identifier' ? node.property.name : '';
+    return LLM_CALLEE_TAIL.has(prop);
 }
 
 function hasTokenLimit(args) {

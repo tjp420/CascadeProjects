@@ -44,13 +44,13 @@ function isScannerImplementationPath(relativePath) {
 /** Platform scanner / sample API modules — not greenfield customer application code. */
 function isPlatformScannerMetaPath(relativePath) {
     const normalized = String(relativePath || '').replace(/\\/g, '/').toLowerCase();
-    if (/(?:^|\/)src\/api\/(?:dashboard-stub-api|simplebeacon-api|simplebeacon-billing-api)\.js$/.test(normalized)) {
+    if (/(?:^|\/)src\/api\/(?:dashboard-stub-api|simplebeacon-api|simplebeacon-billing-api)\.(?:js|cjs)$/.test(normalized)) {
         return true;
     }
-    if (/(?:^|\/)server\/services\/model-inference-service\.js$/.test(normalized)) {
+    if (/(?:^|\/)server\/services\/model-inference-service\.(?:js|cjs)$/.test(normalized)) {
         return true;
     }
-    if (/(?:^|\/)server\/routes\/flexible-analyze-api\.js$/.test(normalized)) {
+    if (/(?:^|\/)server\/routes\/flexible-analyze-api\.(?:js|cjs)$/.test(normalized)) {
         return true;
     }
     if (!/(?:^|\/)server\/lib\//.test(normalized)) return false;

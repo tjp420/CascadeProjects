@@ -106,6 +106,9 @@ function isExcludedPath(relativePath, options = {}) {
         'sample-consistency-checker.js'
     ];
     if (scannerFiles.some(file => normalized.includes(file))) return true;
+
+    // Known intentional stub/demo files
+    if (normalized.includes('dashboard-stub-api.cjs')) return true;
     
     // Apply dynamic user exclusions from config
     if (shouldExcludePath(normalized, options.userExclusions || [])) return true;
