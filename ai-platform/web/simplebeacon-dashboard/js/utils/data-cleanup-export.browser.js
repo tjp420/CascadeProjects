@@ -419,7 +419,10 @@ function enrichProductFileReductionExecutiveSummary(executiveSummary, _report) {
       detail: `${fr.duplicateAssetGroups || 1} group(s), ~${fr.duplicateAssetBytes} B — keeper paths listed in fileReductionPlan`
     });
   }
-  if ((fr.safeToDeleteBytes || 0) === 0 && (fr.buildArtifactFindings || 0) > 0
+  const safeArtifacts = (_report?.findings?.buildArtifacts || []).filter(
+    (f) => f.action === 'safe-to-delete' && !String(f.reason || '').includes('contents not walked')
+  );
+  if ((fr.safeToDeleteBytes || 0) === 0 && safeArtifacts.length > 0
     && !actions.some((a) => /shell/i.test(a.title))) {
     actions.push({
       priority: 'low',

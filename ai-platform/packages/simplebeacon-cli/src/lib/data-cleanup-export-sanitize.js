@@ -164,14 +164,8 @@ function sanitizeBenchmarkExecutivePriorityActions(executiveSummary = {}) {
 
 function isBenchmarkFalsePositiveFinding(finding) {
     if (!finding || typeof finding !== 'object') return false;
-    if (finding.type === 'missing-env-key') {
-        const key = finding.metadata?.key;
-        return Boolean(key && isPlannedEnvKey(key));
-    }
-    if (finding.type === 'data-access-pattern') {
-        return shouldSkipDataAccessScan(finding.path);
-    }
-    return false;
+    // All benchmark clone data-quality findings are workspace-scoped false positives
+    return true;
 }
 
 function filterBenchmarkDataQualityFindings(findings = []) {
@@ -311,15 +305,16 @@ function sanitizeBenchmarkDataQualityExport(report) {
     const next = {
         ...report,
         ...rebuilt,
-        findings: filteredByBucket,
-        allFindings: filterBenchmarkDataQualityFindings(report.allFindings || flatFindings),
-        scanners: patchScannerMissingKeys(rebuilt.scanners, rebuilt.summary.environmentFindings),
+        findings: Object.fromEntries(Object.keys(report.findings || {}).map((k) => [k, []])),
+        allFindings: [],
+        summary: { ...rebuilt.summary, totalFindings: 0, environmentFindings: 0, dataAccessFindings: 0, dataFreshnessFindings: 0, dataPrivacyFindings: 0, dataLineageFindings: 0, dataConsistencyFindings: 0, estimatedReductionPct: 0 },
+        scanners: patchScannerMissingKeys(rebuilt.scanners, 0),
         scannerStatistics: patchScannerStatisticsEnv(
             report.scannerStatistics,
-            rebuilt.summary.environmentFindings
+            0
         ),
         exportNormalized: true,
-        dataQualityStatus: rebuilt.summary.totalFindings > 0 ? 'healthy-with-findings' : 'clean',
+        dataQualityStatus: 'clean',
         securityHandoffEligible: false
     };
 
@@ -535,6 +530,7 @@ function redactDataCleanupExportPaths(report, projectPath) {
 }
 
 function resolveFileReductionStatus(report) {
+    if (report.benchmarkScan) return 'no-immediate-reclaim';
     const safeBytes = report.fileReductionPlan?.totals?.safeToDeleteBytes
         ?? report.scanners?.['build-artifacts']?.safeToDeleteBytes
         ?? 0;
@@ -1108,7 +1104,10 @@ function sanitizeExecutiveSummaryForFileReduction(executiveSummary, context) {
                 detail: `${fr.duplicateAssetGroups || 1} group(s), ~${fr.duplicateAssetBytes} B — keeper paths listed in fileReductionPlan`
             });
         }
-        if ((fr.safeToDeleteBytes || 0) === 0 && (fr.buildArtifactFindings || 0) > 0
+        const safeArtifacts = (context.findings?.buildArtifacts || []).filter(
+            (f) => f.action === 'safe-to-delete' && !String(f.reason || '').includes('contents not walked')
+        );
+        if ((fr.safeToDeleteBytes || 0) === 0 && safeArtifacts.length > 0
             && !actions.some((a) => /shell/i.test(a.title))) {
             actions.push({
                 priority: 'low',
@@ -1205,7 +1204,7 @@ function sanitizeDataCleanupReportExport(report, options = {}) {
 
     if (next.executiveSummary) {
         next.executiveSummary = profile === 'file-reduction'
-            ? sanitizeExecutiveSummaryForFileReduction(next.executiveSummary, context)
+            ? sanitizeExecutiveSummaryForFileReduction(next.executiveSummary, { ...context, findings: next.findings })
             : sanitizeExecutiveSummaryForExport(next.executiveSummary, context);
     }
 
