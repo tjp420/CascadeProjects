@@ -26,7 +26,7 @@ const WebSocket = require('ws');
 
 const setupBuildFromPathRoute = require('./src/api/build-from-path-route.cjs');
 const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');
-const setupSimplebeaconAPI = require('./src/api/simplebeacon-api.cjs');
+const { setupSimplebeaconAPI } = require('./src/api/simplebeacon-api.cjs');
 const {
   setupSimplebeaconBillingWebhook,
   setupSimplebeaconBillingRoutes
@@ -76,15 +76,15 @@ function sendSampleReport(res) {
   return sendLandingFile(res, 'sample-report.html', 'text/html');
 }
 
+const internalDashboard = String(process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || '').trim().toLowerCase() === 'true';
+
 function storefrontAssetsEnabled() {
   return landingEnabled || internalDashboard;
 }
-const internalDashboard = String(process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || '').trim().toLowerCase() === 'true';
 
-// Set default vault password for local development if not configured
-if (internalDashboard && !process.env.DASHBOARD_VAULT_PASSWORD) {
-  process.env.DASHBOARD_VAULT_PASSWORD = 'dev-vault-password';
-  console.warn('[Simplebeacon] Using default vault password for local development: "dev-vault-password"');
+// Refuse to start internal dashboard without a vault password in non-dev environments
+if (internalDashboard && !process.env.DASHBOARD_VAULT_PASSWORD && process.env.NODE_ENV !== 'development') {
+  throw new Error('DASHBOARD_VAULT_PASSWORD is required when SIMPLEBEACON_INTERNAL_DASHBOARD=true in non-development environments');
 }
 const verboseRuntimeLogs = process.env.DEBUG_LOGS === 'true' || process.env.NODE_ENV === 'development';
 const debugLog = (...args) => {
@@ -165,10 +165,12 @@ if (process.env.NODE_ENV !== 'test') {
 function sendSimplebeaconDashboard(res) {
   const dashboardPath = path.join(webRoot, 'simplebeacon-dashboard/index.html');
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-  if (fs.existsSync(dashboardPath)) {
-    return res.sendFile(dashboardPath);
+  if (!fs.existsSync(dashboardPath)) {
+    return res.status(404).send('Simplebeacon dashboard not found');
   }
-  return res.status(404).send('Simplebeacon dashboard not found');
+  let html = fs.readFileSync(dashboardPath, 'utf8');
+  // Do not inject vault password into HTML — use vault endpoint instead
+  return res.send(html);
 }
 
 function sendLandingIndex(res) {
@@ -224,11 +226,8 @@ app.get('/landing.html', (req, res) => {
 
 // Private dashboard — unlocks vault session; optional returnTo redirects back to /app
 app.get('/private-dashboard-vault', (req, res) => {
-  // Disable vault authentication for local development
-  const vaultPassword = process.env.DASHBOARD_VAULT_PASSWORD || 'dev-vault-password';
-  
-  // For local development, accept any password or skip authentication
-  const isLocalDev = process.env.NODE_ENV === 'development' || !process.env.DASHBOARD_VAULT_PASSWORD;
+  const vaultPassword = process.env.DASHBOARD_VAULT_PASSWORD;
+  const isLocalDev = process.env.NODE_ENV === 'development' && !vaultPassword;
   
   if (!isLocalDev && req.query.password !== vaultPassword) {
     return res.status(403).send('Unauthorized Access: Private Vault is Locked.');

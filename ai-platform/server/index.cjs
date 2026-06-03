@@ -40,6 +40,8 @@ const { setupChatbotAPI } = require('./routes/chatbot-api.cjs');
 const setupLocalModelsAPI = require('./routes/local-models-api.cjs');
 const { setupSimplebeaconAPI } = require('../src/api/simplebeacon-api.cjs');
 const setupDashboardStubAPIs = require('../src/api/dashboard-stub-api.cjs');
+const { setupTrustAPI } = require('../src/api/trust-api.cjs');
+const { runLocalAgent } = require('../ai-agent/orchestrator.js');
 const pathHealthRouter = require('./api/metrics/path-health.cjs');
 const { runNpmAudit } = require('./lib/npm-audit-runner.cjs');
 const { registerEuAiActSprintRoute } = require('./lib/eu-ai-act-sprint-route.cjs');
@@ -102,10 +104,12 @@ const comingSoonRoot = path.join(__dirname, '../coming-soon');
 const webRoot = path.join(__dirname, '../web');
 const internalDashboard = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true';
 
-// Set default vault password for local development if not configured
-if (internalDashboard && !process.env.DASHBOARD_VAULT_PASSWORD) {
-  process.env.DASHBOARD_VAULT_PASSWORD = 'dev-vault-password';
-  console.warn('[Simplebeacon] Using default vault password for local development: "dev-vault-password"');
+// Agent execution status (in-memory, no castles)
+let currentAgentStatus = { status: 'idle', goal: null, startedAt: null, completedAt: null, error: null };
+
+// Refuse to start internal dashboard without a vault password in non-dev environments
+if (internalDashboard && !process.env.DASHBOARD_VAULT_PASSWORD && process.env.NODE_ENV !== 'development') {
+  throw new Error('DASHBOARD_VAULT_PASSWORD is required when SIMPLEBEACON_INTERNAL_DASHBOARD=true in non-development environments');
 }
 
 const {
@@ -131,12 +135,7 @@ function sendSimplebeaconDashboard(res) {
   if (!fs.existsSync(dashboardPath)) {
     return res.status(404).send('Simplebeacon dashboard not found');
   }
-  let html = fs.readFileSync(dashboardPath, 'utf8');
-  // Inject vault password as window global for local dev auto-unlock
-  if (process.env.DASHBOARD_VAULT_PASSWORD) {
-    const injectScript = `<script>window.SIMPLEBEACON_VAULT_PASSWORD = "${process.env.DASHBOARD_VAULT_PASSWORD}";</script>`;
-    html = html.replace('</head>', `${injectScript}</head>`);
-  }
+  const html = fs.readFileSync(dashboardPath, 'utf8');
   res.send(html);
   return true;
 }
@@ -1116,12 +1115,55 @@ try {
     console.warn('[Simplebeacon] optimization-api setup skipped:', e.message);
 }
 
+// Trust verification API
+// Public trust endpoints served without auth for badge/verify/verification
+// Gate-protected endpoints require authenticate middleware
+try {
+    setupTrustAPI(app, { platformRoot: path.join(__dirname, '..'), monorepoRoot: path.join(__dirname, '../..') });
+} catch (e) {
+    console.warn('[Simplebeacon] trust-api setup skipped:', e.message);
+}
+
 // EU AI Act sprint route
 try {
     registerEuAiActSprintRoute(app, { projectRoot: path.join(__dirname, '..') });
 } catch (e) {
     console.warn('[Simplebeacon] EU AI Act sprint route setup skipped:', e.message);
 }
+
+// Local AI Agent API routes (Step 3 — deterministic state machine loop)
+app.post('/api/agent/execute', (req, res) => {
+    const { goal } = req.body || {};
+    if (!goal || typeof goal !== 'string') {
+        return res.status(400).json({ success: false, error: 'goal (string) is required in request body' });
+    }
+    currentAgentStatus = { status: 'running', goal, startedAt: new Date().toISOString(), completedAt: null, error: null };
+    res.status(202).json({ success: true, message: 'Agent execution started', goal });
+
+    runLocalAgent(goal)
+        .then((result) => {
+            currentAgentStatus = {
+                status: result.success ? 'completed' : 'failed',
+                goal,
+                startedAt: currentAgentStatus.startedAt,
+                completedAt: new Date().toISOString(),
+                error: result.error || null
+            };
+        })
+        .catch((err) => {
+            currentAgentStatus = {
+                status: 'failed',
+                goal,
+                startedAt: currentAgentStatus.startedAt,
+                completedAt: new Date().toISOString(),
+                error: err.message
+            };
+        });
+});
+
+app.get('/api/agent/status', (_req, res) => {
+    res.json(currentAgentStatus);
+});
 
 // Path health metrics API
 app.use('/api/metrics/path-health', pathHealthRouter);

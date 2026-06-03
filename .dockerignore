@@ -1,0 +1,39 @@
+# Test fixtures containing intentional fake secrets (must never ship in production images)
+simplebeacon-rule-tests/
+marketing-content-test/
+marketing-content-test2/
+
+# Test output logs
+test-output-*.txt
+test-debug.txt
+test-failures.txt
+
+# Scan artifacts
+.simplebeacon/*.json
+.simplebeacon/*.md
+.simplebeacon/*.bak
+.simplebeacon/*.simplebeacon-backup.*
+report.json
+consolidation-report.json
+env-audit.json
+*.jsonl
+
+# Build artifacts
+dist/
+build/
+coverage/
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Git metadata
+.git/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Package tarballs
+simplebeacon-*.tgz

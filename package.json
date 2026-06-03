@@ -1,0 +1,8 @@
+{
+  "name": "cascade-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "ai:check": "node -e \"const { verifyFileSyntax } = require('./ai-tools/index.js'); console.log(JSON.stringify(verifyFileSyntax('ai-platform/src/api/dashboard-stub-api.cjs'), null, 2));\""
+  }
+}

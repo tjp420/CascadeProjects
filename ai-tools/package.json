@@ -1,0 +1,8 @@
+{
+  "name": "simplebeacon-ai-tools",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "commonjs",
+  "private": true,
+  "description": "Deterministic local AI command execution wrapper for syntax and test validation."
+}
