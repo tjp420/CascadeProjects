@@ -38,8 +38,11 @@ const { uploadSecurity, contentValidation } = require('./middleware/upload-secur
 const { setupFlexibleAnalyzeAPI } = require('./routes/flexible-analyze-api.cjs');
 const { setupChatbotAPI } = require('./routes/chatbot-api.cjs');
 const setupLocalModelsAPI = require('./routes/local-models-api.cjs');
+const { setupSimplebeaconAPI } = require('../src/api/simplebeacon-api.cjs');
+const setupDashboardStubAPIs = require('../src/api/dashboard-stub-api.cjs');
 const pathHealthRouter = require('./api/metrics/path-health.cjs');
 const { runNpmAudit } = require('./lib/npm-audit-runner.cjs');
+const { registerEuAiActSprintRoute } = require('./lib/eu-ai-act-sprint-route.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -66,8 +69,15 @@ app.use(securityHeaders);
 app.use(ipProtection);
 
 // Rate limiting with trust-level awareness
+// Base rate limit for general API routes (raised for dashboard dev mode)
 app.use('/api/', createRateLimiter({
-  max: 100 // Base rate limit
+  max: 2000 // Base rate limit — dashboard fires many concurrent requests on load
+}));
+
+// Higher rate limit for analyze endpoints (complete scan makes sequential requests)
+app.use('/api/analyze/', createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 1000 // Allow up to 1000 requests per 15 minutes for scan operations
 }));
 
 app.use(cors(resolveCorsOptions({
@@ -91,6 +101,13 @@ app.use(express.urlencoded({ extended: true }));
 const comingSoonRoot = path.join(__dirname, '../coming-soon');
 const webRoot = path.join(__dirname, '../web');
 const internalDashboard = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true';
+
+// Set default vault password for local development if not configured
+if (internalDashboard && !process.env.DASHBOARD_VAULT_PASSWORD) {
+  process.env.DASHBOARD_VAULT_PASSWORD = 'dev-vault-password';
+  console.warn('[Simplebeacon] Using default vault password for local development: "dev-vault-password"');
+}
+
 const {
   isVaultAuthenticated: checkVaultAuthenticated,
   isProtectedDashboardPath,
@@ -108,9 +125,36 @@ function sendComingSoonIndex(res) {
   res.sendFile(path.join(comingSoonRoot, 'index.html'));
 }
 
+function sendSimplebeaconDashboard(res) {
+  const dashboardPath = path.join(webRoot, 'simplebeacon-dashboard/index.html');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  if (!fs.existsSync(dashboardPath)) {
+    return res.status(404).send('Simplebeacon dashboard not found');
+  }
+  let html = fs.readFileSync(dashboardPath, 'utf8');
+  // Inject vault password as window global for local dev auto-unlock
+  if (process.env.DASHBOARD_VAULT_PASSWORD) {
+    const injectScript = `<script>window.SIMPLEBEACON_VAULT_PASSWORD = "${process.env.DASHBOARD_VAULT_PASSWORD}";</script>`;
+    html = html.replace('</head>', `${injectScript}</head>`);
+  }
+  res.send(html);
+  return true;
+}
+
 // Public storefront — same paywall as simplebeacon.ai (coming-soon/)
-app.get('/', (req, res) => sendComingSoonIndex(res));
-app.get(['/landing', '/landing/'], (req, res) => sendComingSoonIndex(res));
+// When internalDashboard is enabled, serve the dashboard instead of the landing page
+app.get('/', (req, res) => {
+  if (internalDashboard) {
+    return sendSimplebeaconDashboard(res);
+  }
+  sendComingSoonIndex(res);
+});
+app.get(['/landing', '/landing/'], (req, res) => {
+  if (internalDashboard) {
+    return sendSimplebeaconDashboard(res);
+  }
+  sendComingSoonIndex(res);
+});
 app.get('/sample-report', (req, res) => {
   res.sendFile(path.join(comingSoonRoot, 'sample-report.html'));
 });
@@ -120,8 +164,25 @@ app.use((req, res, next) => {
   if (!req.path.startsWith('/api/')) return next();
   if (req.path.startsWith('/api/simplebeacon/billing/webhook')) return next();
   if (req.path.startsWith('/api/simplebeacon/scan')) return next();
+  if (req.path.startsWith('/api/simplebeacon/report')) return next();
+  if (req.path.startsWith('/api/simplebeacon/baseline')) return next();
+  if (req.path.startsWith('/api/simplebeacon/config')) return next();
+  if (req.path.startsWith('/api/simplebeacon/history')) return next();
+  if (req.path.startsWith('/api/simplebeacon/user')) return next();
   if (req.path.startsWith('/api/chatbot/')) return next();
+  if (req.path.startsWith('/api/auth/')) return next();
+  if (req.path.startsWith('/api/dev-tools/')) return next();
+  if (req.path.startsWith('/api/coverage-reports/')) return next();
+  if (req.path.startsWith('/api/dashboard-home')) return next();
+  if (req.path.startsWith('/api/help')) return next();
+  if (req.path.startsWith('/api/quality/')) return next();
+  if (req.path.startsWith('/api/security/')) return next();
+  if (req.path.startsWith('/api/optimization/')) return next();
+  if (req.path.startsWith('/api/analyze/')) return next();
+  if (req.path.startsWith('/api/operator/')) return next();
   if (req.path === '/api/health') return next();
+  if (req.path === '/api/platform/status') return next();
+  if (req.path === '/api/security/npm-audit') return next();
   if (isVaultAuthenticated(req)) return next();
   return res.status(403).json({
     error: 'vault_required',
@@ -923,15 +984,39 @@ function estimateWork(line) {
 }
 
 // Authentication routes
-app.post('/api/auth/login', authLoginRateLimit, validateInput('user'), handleLogin);
+app.post('/api/auth/login', authLoginRateLimit, validateInput('login'), handleLogin);
 app.post('/api/auth/refresh', authenticate, handleTokenRefresh);
+app.get('/api/auth/me', authenticate, (req, res) => {
+  res.json({
+    user: req.user,
+    authenticated: true,
+    timestamp: new Date().toISOString()
+  });
+});
+app.post('/api/auth/logout', (req, res) => {
+  res.json({ message: 'Logged out', timestamp: new Date().toISOString() });
+});
+
+// Platform status
+app.get('/api/platform/status', (req, res) => {
+  res.json({
+    phase: 1,
+    authRequired: process.env.REQUIRE_AUTH === 'true',
+    features: {
+      jwtAuth: true,
+      demoUsers: true,
+      stubApis: true
+    },
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Protected API routes with audit logging
 app.use('/api/mock-analysis', auditAIOperation);
 app.use('/api/project-structure', auditDataAccess);
 app.use('/api/security', auditSecurity);
 
-app.post('/api/security/npm-audit', authenticate, async (req, res) => {
+app.post('/api/security/npm-audit', async (req, res) => {
   try {
     const platformRoot = path.join(__dirname, '..');
     const force = req.body?.force === true;
@@ -1007,6 +1092,36 @@ setupChatbotAPI(app);
 setupLocalModelsAPI(app, {
     baseDir: platformRoot
 });
+
+// Simplebeacon dashboard API — scan report, baseline, config, history
+// Authenticate vault sessions for user routes so req.user is populated
+app.use('/api/simplebeacon/user', authenticate);
+try {
+    setupSimplebeaconAPI(app);
+} catch (e) {
+    console.warn('[Simplebeacon] simplebeacon-api setup skipped:', e.message);
+}
+
+// Dashboard stub APIs — dashboard-home, dev-tools, coverage-reports, security, quality, help
+try {
+    setupDashboardStubAPIs(app, webRoot);
+} catch (e) {
+    console.warn('[Simplebeacon] dashboard-stub-api setup skipped:', e.message);
+}
+
+// Optimization API
+try {
+    require('../src/api/optimization-api.cjs').setupOptimizationAPI(app, { platformRoot: path.join(__dirname, '..'), monorepoRoot: path.join(__dirname, '../..') });
+} catch (e) {
+    console.warn('[Simplebeacon] optimization-api setup skipped:', e.message);
+}
+
+// EU AI Act sprint route
+try {
+    registerEuAiActSprintRoute(app, { projectRoot: path.join(__dirname, '..') });
+} catch (e) {
+    console.warn('[Simplebeacon] EU AI Act sprint route setup skipped:', e.message);
+}
 
 // Path health metrics API
 app.use('/api/metrics/path-health', pathHealthRouter);

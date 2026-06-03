@@ -131,6 +131,9 @@ class SimplebeaconDashboard {
     this.currentView = null;
     this.router = new Router((view, params) => this.onRoute(view, params));
     this._refreshScheduled = false;
+    this._bgScanPollTimer = null;
+    this._bgScanPollStart = 0;
+    this._lastKnownScanId = null;
   }
 
   async init() {
@@ -218,7 +221,9 @@ class SimplebeaconDashboard {
       return;
     }
 
-    this.loadDataInBackground();
+    this.loadDataInBackground().then(() => {
+      this.startBackgroundScanWatcher();
+    });
     if (!readOnlyPreview) {
       this.loadPlatformData();
       this.loadBillingContext();
@@ -284,6 +289,9 @@ class SimplebeaconDashboard {
     this.refreshCurrentView();
     try {
       await this.loadData();
+      if (this.router?.currentView === 'dashboard') {
+        this.startBackgroundScanWatcher();
+      }
     } catch (err) {
       if (err.code === 'vault_required') {
         this.showVaultBanner();
@@ -440,6 +448,12 @@ class SimplebeaconDashboard {
       this.currentView = viewInstance;
       viewInstance.mount(main);
     }
+
+    if (view === 'dashboard') {
+      this.startBackgroundScanWatcher();
+    } else {
+      this.stopBackgroundScanWatcher();
+    }
   }
 
   async runScan(projectPath) {
@@ -474,6 +488,7 @@ class SimplebeaconDashboard {
     }
 
     this.refreshCurrentView();
+    this.startBackgroundScanWatcher();
   }
 
   refreshCurrentView() {
@@ -486,6 +501,42 @@ class SimplebeaconDashboard {
         this.currentView.mount(main);
       }
     });
+  }
+
+  stopBackgroundScanWatcher() {
+    if (this._bgScanPollTimer) {
+      clearInterval(this._bgScanPollTimer);
+      this._bgScanPollTimer = null;
+    }
+    this._bgScanPollStart = 0;
+  }
+
+  startBackgroundScanWatcher() {
+    this.stopBackgroundScanWatcher();
+    const currentScanId = this.state.report?.scanId || this.state.report?.generatedAt || null;
+    this._lastKnownScanId = currentScanId;
+    this._bgScanPollStart = Date.now();
+
+    const poll = async () => {
+      if (Date.now() - this._bgScanPollStart > 120000) {
+        this.stopBackgroundScanWatcher();
+        return;
+      }
+      try {
+        const report = await this.scanService.fetchReport();
+        const newScanId = report?.scanId || report?.generatedAt || null;
+        if (newScanId && newScanId !== this._lastKnownScanId) {
+          this.stopBackgroundScanWatcher();
+          await this.loadDataInBackground();
+          showToast('New scan results available', 'success');
+        }
+      } catch {
+        // Silently ignore transient fetch errors
+      }
+    };
+
+    void poll();
+    this._bgScanPollTimer = setInterval(poll, 5000);
   }
 
   maybeShowOnboarding() {

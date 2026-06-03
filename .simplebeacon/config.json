@@ -19,7 +19,9 @@
     "**/*.spec.ts",
     "tests/**",
     "test/**",
-    "packages/simplebeacon-cli/**"
+    "packages/simplebeacon-cli",
+    "packages/**",
+    "**/*.log"
   ],
   "rules": {
     "credentials": {

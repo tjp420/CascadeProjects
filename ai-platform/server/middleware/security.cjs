@@ -38,10 +38,7 @@ const createRateLimiter = (options = {}) => {
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: options.skipSuccessfulRequests || securityConfig.rateLimitSkipSuccessfulRequests,
-    skipFailedRequests: options.skipFailedRequests || securityConfig.rateLimitSkipFailedRequests,
-    keyGenerator: (req) => {
-      return req.ip + ':' + (req.headers['user-agent'] || '');
-    }
+    skipFailedRequests: options.skipFailedRequests || securityConfig.rateLimitSkipFailedRequests
   });
 };
 
@@ -79,6 +76,12 @@ const validationSchemas = {
       notifications: Joi.boolean().default(true),
       dataSharing: Joi.boolean().default(false)
     }).optional()
+  }),
+
+  // Login
+  login: Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().min(1).required()
   })
 };
 
@@ -121,11 +124,11 @@ const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'", "ws:", "wss:"],
-      fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+      fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'none'"],

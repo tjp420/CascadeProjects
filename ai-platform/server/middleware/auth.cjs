@@ -431,18 +431,20 @@ const handleLogin = async (req, res, next) => {
       throw createError(400, 'Email and password required');
     }
 
-    // Authenticate user (this would connect to your user database)
-    // For now, we'll create a mock user for demonstration
+    // Admin/dev credentials get gold trust; everyone else gets bronze
+    const isAdmin = email === 'admin@simplebeacon.ai' || email === 'dev@simplebeacon.ai';
+    const trustLevel = isAdmin ? 'gold' : 'bronze';
+
     const user = {
-      id: 'demo-user-' + Date.now(),
+      id: isAdmin ? 'admin-' + Date.now() : 'demo-user-' + Date.now(),
       email: email,
-      name: email.split('@')[0],
-      trustLevel: 'bronze',
+      name: isAdmin ? 'Admin User' : email.split('@')[0],
+      trustLevel,
       createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
-      successfulAnalyses: 5,
+      successfulAnalyses: isAdmin ? 100 : 5,
       securityIncidents: 0,
-      communityContributions: 0,
-      verificationStatus: 'email'
+      communityContributions: isAdmin ? 50 : 0,
+      verificationStatus: isAdmin ? 'verified' : 'email'
     };
 
     // Generate token
