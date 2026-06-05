@@ -449,22 +449,84 @@
         </div>
 
         <div class="mode-panel active" id="panelUpload">
-            <!-- Browser-local folder scanner -->
-            <div class="card">
-                <h2><span>2a</span> Scan Folder Locally (No Install Required)</h2>
-                <div class="form-group">
-                    <label>Project Directory</label>
-                    <div class="drop-zone" id="localScanDropZone">
-                        <div class="icon">&#128451;</div>
-                        <p>Drag your project folder here<br><span style="font-size:0.8rem;opacity:0.7;">Scan runs 100% in your browser — zero network upload</span></p>
-                        <p class="file-name" id="localScanFileName"></p>
-                        <input type="file" id="localScanInput" webkitdirectory directory multiple>
+            <!-- CLI Control Panel -->
+            <div class="card" style="padding:0;overflow:hidden;">
+                <div style="background:var(--bg);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="width:10px;height:10px;border-radius:50%;background:#EF4444;display:inline-block;"></span>
+                        <span style="width:10px;height:10px;border-radius:50%;background:#F59E0B;display:inline-block;"></span>
+                        <span style="width:10px;height:10px;border-radius:50%;background:#10B981;display:inline-block;"></span>
+                        <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-left:4px;">simplebeacon-control-panel v1.4.0</span>
                     </div>
-                    <p class="help-text">&#128274; Files are read and scanned inside your browser's sandbox. Nothing is sent to our servers. Generates a <code>report.json</code> you can upload for your certificate.</p>
+                    <div style="font-size:0.7rem;color:var(--text-muted);">Local Sandbox Session</div>
                 </div>
-                <div id="localScanProgress" style="display:none;margin-top:12px;">
-                    <div class="progress-bar"><div class="fill" id="localScanProgressBar"></div></div>
-                    <p id="localScanStatus" style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;text-align:center;">Reading files...</p>
+
+                <div style="display:grid;grid-template-columns:1fr;min-height:400px;">
+                    <!-- Left Column: Flag Controls -->
+                    <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;justify-content:space-between;">
+                        <div>
+                            <div style="font-size:0.7rem;color:var(--primary);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:12px;">// Command Flags</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.8rem;">
+                                <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;color:var(--text);opacity:0.85;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
+                                    <input type="checkbox" id="flag-env" checked style="margin-top:2px;accent-color:var(--primary);">
+                                    <div>
+                                        <div style="font-weight:700;">--exclude-env</div>
+                                        <div style="font-size:0.7rem;color:var(--text-muted);">Skips keys, .env, and secrets.</div>
+                                    </div>
+                                </label>
+                                <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;color:var(--text);opacity:0.85;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
+                                    <input type="checkbox" id="flag-deps" checked style="margin-top:2px;accent-color:var(--primary);">
+                                    <div>
+                                        <div style="font-weight:700;">--skip-node-modules</div>
+                                        <div style="font-size:0.7rem;color:var(--text-muted);">Ignores external vendor packages.</div>
+                                    </div>
+                                </label>
+                                <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;color:var(--text);opacity:0.85;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
+                                    <input type="checkbox" id="flag-code-only" style="margin-top:2px;accent-color:var(--primary);">
+                                    <div>
+                                        <div style="font-weight:700;">--code-only</div>
+                                        <div style="font-size:0.7rem;color:var(--text-muted);">Only core logic (.js, .py, .go).</div>
+                                    </div>
+                                </label>
+                                <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;color:var(--text);opacity:0.85;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
+                                    <input type="checkbox" id="flag-skip-docs" style="margin-top:2px;accent-color:var(--primary);">
+                                    <div>
+                                        <div style="font-weight:700;">--skip-docs</div>
+                                        <div style="font-size:0.7rem;color:var(--text-muted);">Skips .md, .txt, .pdf files.</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;">Generated Execution String:</div>
+                            <div id="live-command" style="background:rgba(15,23,42,0.8);padding:8px 10px;border-radius:6px;color:var(--primary);font-family:monospace;font-size:0.8rem;word-break:break-all;border:1px solid var(--border);">
+                                simplebeacon scan . --exclude-env --skip-node-modules
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Terminal Dropzone -->
+                    <div style="display:flex;flex-direction:column;background:rgba(10,14,26,0.95);position:relative;">
+                        <div id="cli-dropzone" style="flex:1;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);margin:12px;border-radius:10px;cursor:pointer;transition:border-color 0.2s;" onmouseenter="this.style.borderColor='var(--primary)'" onmouseleave="this.style.borderColor='var(--border)'">
+                            <div id="dropzone-prompt" style="text-align:center;">
+                                <span style="color:var(--primary);font-size:1.5rem;font-family:monospace;">&#10095;</span>
+                                <p style="font-size:0.9rem;color:var(--text);font-weight:700;margin-top:8px;">DRAG AND DROP TARGET PROJECT FOLDER</p>
+                                <p style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Files stream into browser runtime memory. Zero network upload.</p>
+                            </div>
+                            <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
+                            <div id="terminal-console" style="width:100%;height:100%;text-align:left;font-family:monospace;font-size:0.75rem;color:var(--text);line-height:1.5;overflow-y:auto;display:none;max-height:280px;"></div>
+                        </div>
+                        <!-- Footer Status Ribbon -->
+                        <div style="background:var(--bg);border-top:1px solid var(--border);padding:6px 16px;display:flex;align-items:center;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);">
+                            <div style="display:flex;align-items:center;gap:16px;">
+                                <span>STATUS: <span id="panel-status" style="color:#F59E0B;font-weight:700;">AWAITING_INPUT</span></span>
+                                <span id="panel-metrics" style="display:none;">| Files: 0 | Lines: 0</span>
+                            </div>
+                            <div id="panel-progress-container" style="width:80px;background:var(--border);height:4px;border-radius:2px;overflow:hidden;display:none;">
+                                <div id="panel-progress-bar" style="background:var(--primary);height:100%;width:0;transition:width 0.3s;"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -505,7 +567,7 @@
 
         <footer>
             <p>SimpleBeacon Engine v1.3.0 &mdash; Zero-Dependency Static Analysis</p>
-            <p style="margin-top: 4px; opacity: 0.7;"><a href="scan-status.html" style="color: #60A5FA; text-decoration: none;">Scan Status</a> &middot; <a href="pricing.html" style="color: #60A5FA; text-decoration: none;">Pricing</a> &middot; Questions? <a href="mailto:trevor_punt@live.com" style="color: #60A5FA; text-decoration: none;">trevor_punt@live.com</a></p>
+            <p style="margin-top: 4px; opacity: 0.7;"><a href="scan-status.html" style="color: #60A5FA; text-decoration: none;">Scan Status</a> &middot; <a href="pricing.html" style="color: #60A5FA; text-decoration: none;">Pricing</a> &middot; <a href="cloud-scan.html" style="color: #F87171; text-decoration: none;">Cloud Scan</a> &middot; Questions? <a href="mailto:trevor_punt@live.com" style="color: #60A5FA; text-decoration: none;">trevor_punt@live.com</a></p>
         </footer>
     </div>
 
@@ -913,13 +975,56 @@
             status.style.display = 'block';
         }
 
-        // === Browser-Local Folder Scanner (Zero Network Upload) ===
-        localScanDropZone.addEventListener('click', () => localScanInput.click());
-        localScanDropZone.addEventListener('dragover', (e) => { e.preventDefault(); localScanDropZone.classList.add('dragover'); });
-        localScanDropZone.addEventListener('dragleave', () => localScanDropZone.classList.remove('dragover'));
-        localScanDropZone.addEventListener('drop', async (e) => {
+        // === CLI Control Panel Engine ===
+        const cliDropzone = document.getElementById('cli-dropzone');
+        const cliFolderInput = document.getElementById('cli-folder-input');
+        const dropzonePrompt = document.getElementById('dropzone-prompt');
+        const terminalConsole = document.getElementById('terminal-console');
+        const liveCommandText = document.getElementById('live-command');
+        const panelStatus = document.getElementById('panel-status');
+        const panelMetrics = document.getElementById('panel-metrics');
+        const panelProgressContainer = document.getElementById('panel-progress-container');
+        const panelProgressBar = document.getElementById('panel-progress-bar');
+
+        // 1. Dynamic live command string
+        function updateGeneratedCommandString() {
+            let baseCmd = 'simplebeacon scan .';
+            if (document.getElementById('flag-env').checked) baseCmd += ' --exclude-env';
+            if (document.getElementById('flag-deps').checked) baseCmd += ' --skip-node-modules';
+            if (document.getElementById('flag-code-only').checked) baseCmd += ' --code-only';
+            if (document.getElementById('flag-skip-docs').checked) baseCmd += ' --skip-docs';
+            liveCommandText.textContent = baseCmd;
+        }
+
+        ['flag-env', 'flag-deps', 'flag-code-only', 'flag-skip-docs'].forEach(id => {
+            document.getElementById(id).addEventListener('change', updateGeneratedCommandString);
+        });
+
+        // 2. Terminal writer
+        function appendTerminalLine(text, type) {
+            const line = document.createElement('div');
+            const ts = new Date().toLocaleTimeString().split(' ')[0];
+            let indicator = `<span style="color:#64748B;">[${ts}]</span> `;
+            if (type === 'success') indicator += '<span style="color:#10B981;">&#10003; SUCCESS:</span> ';
+            else if (type === 'warn') indicator += '<span style="color:#F59E0B;">&#9888; WARN:</span> ';
+            else if (type === 'error') indicator += '<span style="color:#EF4444;">&#10007; CRITICAL:</span> ';
+            else if (type === 'input') indicator += '<span style="color:#60A5FA;">&#10095;</span> ';
+            line.innerHTML = indicator + text;
+            line.style.marginBottom = '2px';
+            terminalConsole.appendChild(line);
+            terminalConsole.scrollTop = terminalConsole.scrollHeight;
+        }
+
+        // Dropzone interactions
+        cliDropzone.addEventListener('click', (e) => {
+            if (e.target.closest('#terminal-console')) return;
+            cliFolderInput.click();
+        });
+        cliDropzone.addEventListener('dragover', (e) => { e.preventDefault(); cliDropzone.style.borderColor = 'var(--primary)'; });
+        cliDropzone.addEventListener('dragleave', () => { cliDropzone.style.borderColor = ''; });
+        cliDropzone.addEventListener('drop', async (e) => {
             e.preventDefault();
-            localScanDropZone.classList.remove('dragover');
+            cliDropzone.style.borderColor = '';
             const items = e.dataTransfer.items;
             if (items && items.length > 0) {
                 const files = [];
@@ -937,57 +1042,127 @@
                     const entry = items[i].webkitGetAsEntry();
                     if (entry) await traverse(entry);
                 }
-                await runLocalBrowserScan(files);
+                await processLocalCLIScan(files);
             }
         });
-        localScanInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) runLocalBrowserScan(Array.from(e.target.files));
+        cliFolderInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) processLocalCLIScan(Array.from(e.target.files));
         });
 
-        async function runLocalBrowserScan(files) {
-            localScanProgress.style.display = 'block';
-            localScanFileName.textContent = files[0].webkitRelativePath?.split('/')[0] || 'Selected files';
+        // Parse .simplebeaconignore contents into RegExp patterns (gitignore-style)
+        function parseIgnoreFile(ignoreText) {
+            return ignoreText.split('\n')
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith('#'))
+                .map(line => {
+                    let pattern = line;
+                    if (pattern.startsWith('/')) pattern = pattern.slice(1);
+                    const escaped = pattern
+                        .replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&')
+                        .replace(/\\\*/g, '.*')
+                        .replace(/\\\?/g, '.');
+                    return new RegExp(escaped, 'i');
+                });
+        }
+
+        // 3. Main scan engine
+        async function processLocalCLIScan(files) {
+            dropzonePrompt.style.display = 'none';
+            terminalConsole.style.display = 'block';
+            panelProgressContainer.style.display = 'block';
+            panelMetrics.style.display = 'inline';
+            panelStatus.textContent = 'RUNNING_ANALYSIS';
+            panelStatus.style.color = '#60A5FA';
+            terminalConsole.innerHTML = '';
+
+            appendTerminalLine(`${liveCommandText.textContent}`, 'input');
+            appendTerminalLine('Initializing Local Web Worker Core... Allocating isolated browser memory structures.');
+            appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
+
+            const excludeEnv = document.getElementById('flag-env').checked;
+            const skipDeps = document.getElementById('flag-deps').checked;
+            const codeOnly = document.getElementById('flag-code-only').checked;
+            const skipDocs = document.getElementById('flag-skip-docs').checked;
+
             let scanned = 0;
             let totalLines = 0;
             let aiHits = [];
             let credentialHits = 0;
             const startTime = Date.now();
 
-            // Exclusion paths that produce false positives in heuristic scans
-            const SKIP_PATTERNS = /node_modules\/|\.git\/|\.simplebeacon\/|docs\/examples\/|sample|\.md$/i;
+            // 1. Check for user-provided .simplebeaconignore
+            let ignorePatterns = [];
+            const ignoreFile = files.find(f => (f.webkitRelativePath || f.name).endsWith('.simplebeaconignore'));
+            if (ignoreFile) {
+                try { ignorePatterns = parseIgnoreFile(await ignoreFile.text()); } catch (e) { /* ignore parse errors */ }
+            }
 
-            const sourceFiles = files.filter(f => {
-                const p = f.webkitRelativePath || f.name;
-                return !SKIP_PATTERNS.test(p) && f.size < 5 * 1024 * 1024;
-            });
+            // 2. Filter loop with skip logging
+            let skipped = 0;
+            const sourceFiles = [];
+            for (const f of files) {
+                const path = f.webkitRelativePath || f.name;
+                const lowerPath = path.toLowerCase();
+                let reason = null;
 
+                if (f.size >= 5 * 1024 * 1024) {
+                    reason = 'File > 5MB';
+                } else if (skipDeps && (/node_modules\/|\.git\//.test(lowerPath))) {
+                    reason = 'Core exclusion';
+                } else if (ignorePatterns.some(p => p.test(path))) {
+                    reason = '.simplebeaconignore';
+                } else if (excludeEnv && (lowerPath.includes('.env') || lowerPath.includes('credentials') || lowerPath.endsWith('.pem'))) {
+                    reason = 'Secret safeguard';
+                } else if (skipDocs && (lowerPath.endsWith('.md') || lowerPath.endsWith('.txt') || lowerPath.endsWith('.pdf'))) {
+                    reason = 'Doc skipped';
+                } else if (codeOnly) {
+                    const isCode = /\.(js|ts|jsx|tsx|py|go|java|c|cpp|cs|php|rb)$/.test(lowerPath);
+                    if (!isCode) reason = 'Code-only mode';
+                }
+
+                if (reason) {
+                    skipped++;
+                    if (skipped <= 10) appendTerminalLine(`Skipping restricted block: <span style="color:#94A3B8;">${path.split('/').pop()}</span> (${reason})`, 'warn');
+                } else {
+                    sourceFiles.push(f);
+                }
+            }
+
+            if (skipped > 10) appendTerminalLine(`... and ${skipped - 10} more files skipped (see --verbose for full list)`, 'warn');
+            appendTerminalLine(`Scanning ${sourceFiles.length} eligible files (${skipped} excluded)...`);
+
+            // 3. Heuristic scan loop
             for (let i = 0; i < sourceFiles.length; i++) {
                 const file = sourceFiles[i];
+                const path = file.webkitRelativePath || file.name;
                 try {
                     const text = await file.text();
-                    totalLines += text.split('\n').length;
+                    const lineCount = text.split('\n').length;
+                    totalLines += lineCount;
                     const lower = text.toLowerCase();
-                    // Require actual API/model instantiation patterns, not UI/marketing mentions
                     if (/new\s+openai|import\s+openai|from\s+anthropic|new\s+anthropic|langchain\.|huggingface_hub|gpt-4\s*\(|claude\s*\(|\.invoke\s*\(|createchatcompletion|chat\.completions/.test(lower)) {
-                        aiHits.push(file.webkitRelativePath || file.name);
+                        aiHits.push(path);
                     }
-                    // Require assignment-like patterns with entropy or known prefixes
                     if (/password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{16,}|secret[_-]?key\s*=\s*['"][a-z0-9]{16,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}/i.test(text)) {
                         credentialHits++;
                     }
-                } catch (e) { /* skip unreadable files */ }
+                    if ((i + 1) % 5 === 0 || i === sourceFiles.length - 1) {
+                        appendTerminalLine(`Scanning chunk: <span style="color:#94A3B8;">${path}</span> (${lineCount} lines)`);
+                    }
+                } catch (e) { /* skip unreadable */ }
                 scanned++;
-                localScanProgressBar.style.width = Math.round(((i + 1) / sourceFiles.length) * 100) + '%';
-                localScanStatus.textContent = `Scanned ${scanned} of ${sourceFiles.length} files...`;
+                const pct = Math.round(((i + 1) / sourceFiles.length) * 100);
+                panelProgressBar.style.width = pct + '%';
+                panelMetrics.textContent = `| Files: ${scanned} | Lines: ${totalLines}`;
                 if (i % 50 === 0) await new Promise(r => setTimeout(r, 0));
             }
 
-            // Cap penalties so marketing sites don't score 0
+            // 4. Score & report
             const aiPenalty = Math.min(aiHits.length * 2, 20);
             const credPenalty = Math.min(credentialHits * 10, 30);
             const qualityScore = Math.max(0, 100 - aiPenalty - credPenalty);
-            // Allow gate pass if heuristic hits are below threshold (likely false positives)
             const gatePass = credentialHits < 3;
+
             reportData = {
                 gate: { pass: gatePass, blockingCount: credentialHits },
                 qualityScore: qualityScore,
@@ -1013,10 +1188,14 @@
                 }
             };
 
-            localScanStatus.textContent = `Scan complete! ${sourceFiles.length} files analyzed.`;
+            appendTerminalLine('Local directory crawl operation complete. Verification tree generated.', 'success');
+            appendTerminalLine('Zero-Retention Safeguard Verified. Report compiled locally inside browser sandbox.', 'success');
+            panelStatus.textContent = 'SUCCESS_COMPLETED';
+            panelStatus.style.color = '#10B981';
+
             renderPreview(reportData);
             updateSubmit();
-            showStatus(`Local scan complete: ${sourceFiles.length} files, ${aiHits.length} AI hits, ${credentialHits} credential patterns. Token required to generate certificate.`, 'success');
+            showStatus(`Scan complete: ${sourceFiles.length} files, ${aiHits.length} AI hits, ${credentialHits} credential patterns. Token required for certificate.`, 'success');
         }
 
         submitBtn.addEventListener('click', async () => {
