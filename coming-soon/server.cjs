@@ -1,12 +1,5 @@
-const path = require('path');
-// Allow ai-platform backend modules to resolve dependencies from coming-soon/node_modules
-const Module = require('module');
-const comingSoonNodeModules = path.join(__dirname, 'node_modules');
-if (!Module.globalPaths.includes(comingSoonNodeModules)) {
-    Module.globalPaths.unshift(comingSoonNodeModules);
-}
-
 const express = require('express');
+const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
 const app = express();
