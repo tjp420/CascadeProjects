@@ -78,6 +78,36 @@ function validateLicenseToken(token, secret) {
     }
 
     const parts = token.split('.');
+
+    // Support 2-part legacy tokens (data.sig) from generate-license-token.cjs
+    if (parts.length === 2) {
+        const [dataB64, signature] = parts;
+        if (!dataB64 || !signature) {
+            return { valid: false, error: 'Malformed 2-part token' };
+        }
+        const expected = base64UrlEncode(crypto.createHmac('sha256', secret).update(dataB64).digest());
+        try {
+            if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+                return { valid: false, error: 'Invalid signature' };
+            }
+        } catch {
+            return { valid: false, error: 'Invalid signature' };
+        }
+        let payload;
+        try {
+            payload = JSON.parse(base64UrlDecode(dataB64).toString('utf8'));
+        } catch {
+            return { valid: false, error: 'Malformed payload' };
+        }
+        const now = Math.floor(Date.now() / 1000);
+        // 2-part tokens use milliseconds for exp
+        const expMs = payload.exp;
+        if (expMs && Date.now() > expMs) {
+            return { valid: false, error: 'Token expired', claims: payload };
+        }
+        return { valid: true, claims: payload };
+    }
+
     if (parts.length !== 3) {
         return { valid: false, error: 'Malformed token' };
     }
