@@ -621,9 +621,11 @@
             </div>
             <div style="padding:20px 24px;background:var(--bg-input);">
                 <div id="cli-dropzone" class="drop-zone" style="margin-bottom:12px;">
-                    <div class="icon">&#128451;</div>
-                    <p>Drag your project folder here<br><span style="font-size:0.8rem;opacity:0.7;">Scan runs in browser sandbox — zero network upload</span></p>
-                    <p class="file-name" id="localScanFileName"></p>
+                    <div id="dropzone-prompt">
+                        <div class="icon">&#128451;</div>
+                        <p>Drag your project folder here<br><span style="font-size:0.8rem;opacity:0.7;">Scan runs in browser sandbox — zero network upload</span></p>
+                        <p class="file-name" id="localScanFileName"></p>
+                    </div>
                     <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
                 </div>
                 <div id="terminal-console" class="preview" style="display:none;max-height:200px;margin-bottom:12px;"></div>
@@ -1192,7 +1194,7 @@
 
         // 3. Main scan engine
         async function processLocalCLIScan(files) {
-            dropzonePrompt.style.display = 'none';
+            if (dropzonePrompt) dropzonePrompt.style.display = 'none';
             terminalConsole.style.display = 'block';
             panelProgressContainer.style.display = 'block';
             panelMetrics.style.display = 'inline';
@@ -1247,14 +1249,14 @@
 
                 if (reason) {
                     skipped++;
-                    if (skipped <= 10) appendTerminalLine(`Skipping restricted block: <span style="color:#94A3B8;">${path.split('/').pop()}</span> (${reason})`, 'warn');
+                    const isNodeModule = /node_modules\/|\.git\//.test(lowerPath);
+                    if (!isNodeModule && skipped <= 5) appendTerminalLine(`Excluding: <span style="color:#94A3B8;">${path.split('/').pop()}</span> (${reason})`, 'warn');
                 } else {
                     sourceFiles.push(f);
                 }
             }
 
-            if (skipped > 10) appendTerminalLine(`... and ${skipped - 10} more files skipped (see --verbose for full list)`, 'warn');
-            appendTerminalLine(`Scanning ${sourceFiles.length} eligible files (${skipped} excluded)...`);
+            appendTerminalLine(`Found ${sourceFiles.length} source files in your project. (${skipped} dependency/docs/secret files excluded — this is expected.)`, 'success');
 
             // 3. Heuristic scan loop
             for (let i = 0; i < sourceFiles.length; i++) {
