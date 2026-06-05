@@ -448,105 +448,92 @@
             </div>
         </div>
 
-        <div class="mode-panel active" id="panelUpload">
-            <!-- CLI Control Panel -->
-            <div class="card" style="padding:0;overflow:hidden;">
-                <div style="background:var(--bg);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <span style="width:10px;height:10px;border-radius:50%;background:#EF4444;display:inline-block;"></span>
-                        <span style="width:10px;height:10px;border-radius:50%;background:#F59E0B;display:inline-block;"></span>
-                        <span style="width:10px;height:10px;border-radius:50%;background:#10B981;display:inline-block;"></span>
-                        <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-left:4px;">simplebeacon-control-panel v1.4.0</span>
-                    </div>
-                    <div style="font-size:0.7rem;color:var(--text-muted);">Local Sandbox Session</div>
+        <!-- STEP 1: Install CLI -->
+        <div class="card" style="padding:0;overflow:hidden;">
+            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                    <span style="background:var(--accent);color:white;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
+                    <h2 style="margin:0;font-size:1rem;">Install the Audit Engine</h2>
                 </div>
-
-                <div style="display:grid;grid-template-columns:1fr;min-height:400px;">
-                    <!-- Left Column: Flag Controls -->
-                    <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;justify-content:space-between;">
-                        <div>
-                            <div style="font-size:0.7rem;color:var(--primary);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:12px;">// Command Flags</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.8rem;">
-                                <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;color:var(--text);opacity:0.85;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
-                                    <input type="checkbox" id="flag-env" checked style="margin-top:2px;accent-color:var(--primary);">
-                                    <div>
-                                        <div style="font-weight:700;">--exclude-env</div>
-                                        <div style="font-size:0.7rem;color:var(--text-muted);">Skips keys, .env, and secrets.</div>
-                                    </div>
-                                </label>
-                                <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;color:var(--text);opacity:0.85;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
-                                    <input type="checkbox" id="flag-deps" checked style="margin-top:2px;accent-color:var(--primary);">
-                                    <div>
-                                        <div style="font-weight:700;">--skip-node-modules</div>
-                                        <div style="font-size:0.7rem;color:var(--text-muted);">Ignores external vendor packages.</div>
-                                    </div>
-                                </label>
-                                <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;color:var(--text);opacity:0.85;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
-                                    <input type="checkbox" id="flag-code-only" style="margin-top:2px;accent-color:var(--primary);">
-                                    <div>
-                                        <div style="font-weight:700;">--code-only</div>
-                                        <div style="font-size:0.7rem;color:var(--text-muted);">Only core logic (.js, .py, .go).</div>
-                                    </div>
-                                </label>
-                                <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;color:var(--text);opacity:0.85;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
-                                    <input type="checkbox" id="flag-skip-docs" style="margin-top:2px;accent-color:var(--primary);">
-                                    <div>
-                                        <div style="font-weight:700;">--skip-docs</div>
-                                        <div style="font-size:0.7rem;color:var(--text-muted);">Skips .md, .txt, .pdf files.</div>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                        <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
-                            <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;">Generated Execution String:</div>
-                            <div id="live-command" style="background:rgba(15,23,42,0.8);padding:8px 10px;border-radius:6px;color:var(--primary);font-family:monospace;font-size:0.8rem;word-break:break-all;border:1px solid var(--border);">
-                                simplebeacon scan . --exclude-env --skip-node-modules
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Column: Terminal Dropzone -->
-                    <div style="display:flex;flex-direction:column;background:rgba(10,14,26,0.95);position:relative;">
-                        <div id="cli-dropzone" style="flex:1;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);margin:12px;border-radius:10px;cursor:pointer;transition:border-color 0.2s;" onmouseenter="this.style.borderColor='var(--primary)'" onmouseleave="this.style.borderColor='var(--border)'">
-                            <div id="dropzone-prompt" style="text-align:center;">
-                                <span style="color:var(--primary);font-size:1.5rem;font-family:monospace;">&#10095;</span>
-                                <p style="font-size:0.9rem;color:var(--text);font-weight:700;margin-top:8px;">DRAG AND DROP TARGET PROJECT FOLDER</p>
-                                <p style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Files stream into browser runtime memory. Zero network upload.</p>
-                            </div>
-                            <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
-                            <div id="terminal-console" style="width:100%;height:100%;text-align:left;font-family:monospace;font-size:0.75rem;color:var(--text);line-height:1.5;overflow-y:auto;display:none;max-height:280px;"></div>
-                        </div>
-                        <!-- Footer Status Ribbon -->
-                        <div style="background:var(--bg);border-top:1px solid var(--border);padding:6px 16px;display:flex;align-items:center;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);">
-                            <div style="display:flex;align-items:center;gap:16px;">
-                                <span>STATUS: <span id="panel-status" style="color:#F59E0B;font-weight:700;">AWAITING_INPUT</span></span>
-                                <span id="panel-metrics" style="display:none;">| Files: 0 | Lines: 0</span>
-                            </div>
-                            <div id="panel-progress-container" style="width:80px;background:var(--border);height:4px;border-radius:2px;overflow:hidden;display:none;">
-                                <div id="panel-progress-bar" style="background:var(--primary);height:100%;width:0;transition:width 0.3s;"></div>
-                            </div>
-                        </div>
-                    </div>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Install our open-source scanner via npm. One command, runs everywhere.</p>
+            </div>
+            <div style="padding:20px 24px;background:var(--bg-input);">
+                <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#60A5FA;">
+                    <code id="installCmd">npm install -g @simplebeacon/cli</code>
+                    <button onclick="copyToClipboard('installCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
                 </div>
             </div>
+        </div>
 
-            <div style="text-align:center;margin:16px 0;color:var(--text-muted);font-size:0.85rem;">— or —</div>
+        <!-- STEP 2: Scan Locally -->
+        <div class="card" style="padding:0;overflow:hidden;">
+            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                    <span style="background:var(--accent);color:white;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
+                    <h2 style="margin:0;font-size:1rem;">Execute Local Compliance Scan</h2>
+                </div>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Run the scan inside your project folder. Output is a metadata JSON — no source code included.</p>
+            </div>
+            <div style="padding:20px 24px;background:var(--bg-input);">
+                <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#34D399;margin-bottom:12px;">
+                    <code id="scanCmd">simplebeacon scan . --output=simplebeacon_report.json</code>
+                    <button onclick="copyToClipboard('scanCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
+                </div>
+                <div style="font-size:0.75rem;color:#F59E0B;display:flex;align-items:center;gap:6px;">
+                    <span>&#128737;</span>
+                    <span>Zero-Trust: The generated file contains audit score matrices only — no source code rows are tracked.</span>
+                </div>
+            </div>
+            <div style="padding:12px 24px;border-top:1px solid var(--border);text-align:center;">
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">No Node.js installed? Use the <a href="#browser-scan" style="color:#60A5FA;text-decoration:none;">Browser Sandbox Scanner</a> instead.</p>
+            </div>
+        </div>
 
-            <!-- Existing report.json upload -->
-            <div class="card">
-                <h2><span>2b</span> Upload Existing Report JSON</h2>
-                <div class="form-group">
-                    <label>Report File</label>
-                    <div class="drop-zone" id="dropZone">
-                        <div class="icon">&#128193;</div>
-                        <p>Drag your <code>.simplebeacon/report.json</code> here<br>or click to browse</p>
-                        <p class="file-name" id="fileName"></p>
-                        <input type="file" id="fileInput" accept=".json,application/json">
-                    </div>
-                    <p class="help-text">Already ran <code>npx simplebeacon scan</code> locally? Upload the JSON here.</p>
+        <!-- Browser Sandbox Scanner (hidden anchor target) -->
+        <div id="browser-scan" class="card" style="padding:0;overflow:hidden;">
+            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                    <span style="background:rgba(16,185,129,0.2);color:#34D399;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#9889;</span>
+                    <h2 style="margin:0;font-size:1rem;">Browser Sandbox Scanner (No Install)</h2>
+                </div>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Scan runs 100% in your browser. Nothing is uploaded to our servers.</p>
+            </div>
+            <div style="padding:20px 24px;background:var(--bg-input);">
+                <div id="cli-dropzone" class="drop-zone" style="margin-bottom:12px;">
+                    <div class="icon">&#128451;</div>
+                    <p>Drag your project folder here<br><span style="font-size:0.8rem;opacity:0.7;">Scan runs in browser sandbox — zero network upload</span></p>
+                    <p class="file-name" id="localScanFileName"></p>
+                    <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
+                </div>
+                <div id="terminal-console" class="preview" style="display:none;max-height:200px;margin-bottom:12px;"></div>
+                <div id="panel-progress-container" style="display:none;margin-bottom:12px;">
+                    <div class="progress-bar"><div class="fill" id="panel-progress-bar"></div></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);">
+                    <span>ENGINE: <span id="panel-status" style="color:#F59E0B;font-weight:700;">READY</span></span>
+                    <span id="panel-metrics" style="display:none;">Files: 0 | Lines: 0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Upload JSON -->
+        <div class="card" style="padding:0;overflow:hidden;">
+            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                    <span style="background:var(--accent);color:white;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">3</span>
+                    <h2 style="margin:0;font-size:1rem;">Upload Metadata to Generate Certificate</h2>
+                </div>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Drop your generated JSON report. We only read compliance metadata — your source code never leaves your network.</p>
+            </div>
+            <div style="padding:20px 24px;background:var(--bg-input);">
+                <div class="drop-zone" id="dropZone">
+                    <div class="icon">&#128229;</div>
+                    <p>Drag your <code>simplebeacon_report.json</code> here<br>or click to browse</p>
+                    <p class="file-name" id="fileName"></p>
+                    <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
                 </div>
 
-                <div id="scanPreview" style="display: none;">
+                <div id="scanPreview" style="display: none; margin-top:16px;">
                     <label>Scan Preview</label>
                     <div class="scan-meta" id="scanMeta"></div>
                     <div class="preview" id="previewContent"></div>
@@ -555,7 +542,7 @@
         </div>
 
         <div class="card">
-            <h2><span>3</span> Generate Certificate</h2>
+            <h2>Generate Certificate</h2>
             <button class="btn btn-primary" id="submitBtn" disabled>
                 <span>&#128229;</span> Generate Certificate
             </button>
@@ -572,43 +559,34 @@
     </div>
 
     <script>
+        // Copy-to-clipboard helper
+        window.copyToClipboard = function(elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            navigator.clipboard.writeText(el.textContent).then(() => {
+                const btn = el.nextElementSibling;
+                if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); }
+            });
+        };
+
         // API base URL — same origin so requests route through the coming-soon server proxy
         const API_BASE = '';
 
-        // Original DOM element declarations
+        // DOM element declarations
         const licenseInput = document.getElementById('licenseToken');
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileName = document.getElementById('fileName');
         const submitBtn = document.getElementById('submitBtn');
-        const analyzeBtn = document.getElementById('analyzeBtn');
         const status = document.getElementById('status');
         const scanPreview = document.getElementById('scanPreview');
         const scanMeta = document.getElementById('scanMeta');
         const previewContent = document.getElementById('previewContent');
-        const tabUpload = document.getElementById('tabUpload');
-        const tabAnalyze = document.getElementById('tabAnalyze');
-        const panelUpload = document.getElementById('panelUpload');
-        const panelAnalyze = document.getElementById('panelAnalyze');
-        const dirDropZone = document.getElementById('dirDropZone');
-        const dirInput = document.getElementById('dirInput');
-        const dirName = document.getElementById('dirName');
-        const dirTreeContainer = document.getElementById('dirTreeContainer');
-        const dirTree = document.getElementById('dirTree');
-        const uploadProgress = document.getElementById('uploadProgress');
-        const localScanDropZone = document.getElementById('localScanDropZone');
-        const localScanInput = document.getElementById('localScanInput');
+
+        // Browser-local scanner elements
         const localScanFileName = document.getElementById('localScanFileName');
-        const localScanProgress = document.getElementById('localScanProgress');
-        const localScanProgressBar = document.getElementById('localScanProgressBar');
-        const localScanStatus = document.getElementById('localScanStatus');
-        const dirScanPreview = document.getElementById('dirScanPreview');
-        const dirScanMeta = document.getElementById('dirScanMeta');
-        const dirPreviewContent = document.getElementById('dirPreviewContent');
 
         let reportData = null;
-        let currentMode = 'upload';
-        let collectedFiles = [];
 
         // Product-aware configuration — prices match pricing.html
         const PRODUCT_CONFIG = {
@@ -733,11 +711,7 @@
                 document.getElementById('tokenHelp').textContent = config.tokenHelp;
                 populateAnalysisTypes(tier);
                 if (!config.showUpload) {
-                    document.querySelector('.mode-tabs').style.display = 'none';
-                    document.getElementById('panelUpload').style.display = 'none';
-                    document.getElementById('panelAnalyze').style.display = 'none';
                     document.getElementById('submitBtn').style.display = 'none';
-                    document.getElementById('analyzeBtn').style.display = 'none';
                 }
                 if (config.scanCommand) {
                     const helpTexts = document.querySelectorAll('.help-text');
@@ -992,11 +966,11 @@
             if (document.getElementById('flag-env').checked) baseCmd += ' --exclude-env';
             if (document.getElementById('flag-deps').checked) baseCmd += ' --skip-node-modules';
             if (document.getElementById('flag-code-only').checked) baseCmd += ' --code-only';
-            if (document.getElementById('flag-skip-docs').checked) baseCmd += ' --skip-docs';
+            if (document.getElementById('flag-docs').checked) baseCmd += ' --skip-docs';
             liveCommandText.textContent = baseCmd;
         }
 
-        ['flag-env', 'flag-deps', 'flag-code-only', 'flag-skip-docs'].forEach(id => {
+        ['flag-env', 'flag-deps', 'flag-code-only', 'flag-docs'].forEach(id => {
             document.getElementById(id).addEventListener('change', updateGeneratedCommandString);
         });
 
@@ -1082,7 +1056,7 @@
             const excludeEnv = document.getElementById('flag-env').checked;
             const skipDeps = document.getElementById('flag-deps').checked;
             const codeOnly = document.getElementById('flag-code-only').checked;
-            const skipDocs = document.getElementById('flag-skip-docs').checked;
+            const skipDocs = document.getElementById('flag-docs').checked;
 
             let scanned = 0;
             let totalLines = 0;
