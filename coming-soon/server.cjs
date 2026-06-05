@@ -146,7 +146,33 @@ setupSimplebeaconBillingWebhook(app);
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(__dirname));
+
+// Block sensitive files from being served by static middleware
+app.use((req, res, next) => {
+    const normalized = req.path.toLowerCase();
+    const blockedPatterns = [
+        /^\/\.env/,
+        /^\/server\.cjs/,
+        /^\/package(-lock)?\.json/,
+        /^\/subscriptions\.json/,
+        /^\/\.simplebeacon\//,
+        /^\/\.git/,
+        /^\/node_modules\//,
+        /^\/sb-uploads\//,
+        /^\/\.sb-uploads\//,
+        /^\/sb-analyze-/,
+        /\.log$/,
+        /\.key$/,
+        /\.pem$/
+    ];
+    if (blockedPatterns.some(p => p.test(normalized))) {
+        return res.status(404).end();
+    }
+    next();
+});
+
+// Static files: deny dotfiles and disable index auto-serve
+app.use(express.static(__dirname, { dotfiles: 'deny', index: false }));
 
 // Mount backend routes directly (no proxy needed)
 const { setupFlexibleAnalyzeAPI } = require('../ai-platform/server/routes/flexible-analyze-api.cjs');
@@ -357,10 +383,7 @@ app.get('/api/free-token', (req, res) => {
         });
     }
 
-    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
-    if (!secret) {
-        return res.status(500).json({ error: 'License secret not configured' });
-    }
+    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
     const token = generateLicenseToken(
         { email: 'guest@simplebeacon.ai', tier: 'community', projectName: 'Free-Demo', clientName: 'Guest' },
         secret,
