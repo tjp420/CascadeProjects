@@ -191,6 +191,127 @@
             color: var(--text-muted);
         }
 
+        /* Certificate Preview Styles */
+        .cert-preview {
+            position: relative;
+            background: linear-gradient(145deg, #0F1626, #1a2845);
+            border: 2px solid rgba(37, 99, 235, 0.3);
+            border-radius: 16px;
+            padding: 28px;
+            margin-top: 16px;
+            overflow: hidden;
+        }
+        .cert-preview.watermarked::after {
+            content: 'PREVIEW';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 4rem;
+            font-weight: 900;
+            color: rgba(239, 68, 68, 0.15);
+            border: 4px solid rgba(239, 68, 68, 0.2);
+            padding: 8px 32px;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 1;
+            letter-spacing: 0.15em;
+        }
+        .cert-header {
+            text-align: center;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 2;
+        }
+        .cert-header h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+        .cert-header .cert-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .score-ring {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            position: relative;
+            z-index: 2;
+        }
+        .score-ring svg { transform: rotate(-90deg); }
+        .score-ring .score-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+        .score-ring .score-label {
+            position: absolute;
+            top: 65%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .issue-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 16px;
+            position: relative;
+            z-index: 2;
+        }
+        .issue-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+        .issue-item .severity {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .issue-item .severity.high { background: var(--error); }
+        .issue-item .severity.medium { background: var(--warning); }
+        .issue-item .severity.low { background: #60A5FA; }
+        .issue-item .issue-text { color: var(--text-muted); }
+        .cert-footer {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        .cert-footer .unlock-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+        .cert-footer .unlock-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #2563EB, #1D4ED8);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -459,7 +580,7 @@
             </div>
             <div style="padding:20px 24px;background:var(--bg-input);">
                 <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#60A5FA;">
-                    <code id="installCmd">npm install -g @simplebeacon/cli</code>
+                    <code id="installCmd">npm install -g simplebeacon</code>
                     <button onclick="copyToClipboard('installCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
                 </div>
             </div>
@@ -911,36 +1032,65 @@
             const gatePass = gate.pass ?? false;
             const detectedIssues = data.detectedIssues || data.rawIssues || [];
             const rawIssues = data.rawIssues || detectedIssues || [];
-            const quality = data.qualityScore ?? data.results?.simplebeacon?.qualityScore ?? (rawIssues.length ? Math.max(0, 100 - rawIssues.length * 2) : '—');
-            const files = data.totalFiles ?? data.filesAnalyzed ?? data.repositoryFilesTotal ?? data.summary?.files ?? '—';
-            const issues = data.issueCount ?? gate.blockingCount ?? detectedIssues.length ?? rawIssues.length ?? '—';
-            const project = data.projectRoot || data.scanTargetRoot || (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) || '—';
+            const quality = data.qualityScore ?? data.results?.simplebeacon?.qualityScore ?? (rawIssues.length ? Math.max(0, 100 - rawIssues.length * 2) : 0);
+            const files = data.totalFiles ?? data.filesAnalyzed ?? data.repositoryFilesTotal ?? data.summary?.files ?? 0;
+            const issues = data.issueCount ?? gate.blockingCount ?? detectedIssues.length ?? rawIssues.length ?? 0;
+            const project = data.projectRoot || data.scanTargetRoot || (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) || 'Unknown Project';
+            const grade = quality >= 90 ? 'A' : quality >= 80 ? 'B' : quality >= 70 ? 'C' : quality >= 60 ? 'D' : 'F';
+            const gradeColor = quality >= 80 ? '#10B981' : quality >= 60 ? '#F59E0B' : '#EF4444';
 
-            scanMeta.innerHTML = `
-                <div class="meta-item">
-                    <div class="value ${gatePass ? 'gate-pass' : 'gate-fail'}">${gatePass ? 'PASS' : 'REVIEW'}</div>
-                    <div class="label">Gate</div>
-                </div>
-                <div class="meta-item">
-                    <div class="value">${quality}%</div>
-                    <div class="label">Quality</div>
-                </div>
-                <div class="meta-item">
-                    <div class="value">${files}</div>
-                    <div class="label">Files</div>
-                </div>
-                <div class="meta-item">
-                    <div class="value">${issues}</div>
-                    <div class="label">Issues</div>
-                </div>
-                <div class="meta-item">
-                    <div class="value" style="font-size: 0.9rem; word-break: break-all;">${project}</div>
-                    <div class="label">Project</div>
+            // Build issue list HTML
+            const issueItems = detectedIssues.slice(0, 5).map(issue => {
+                const sev = (issue.severity || 'low').toLowerCase();
+                const type = issue.type || 'Issue';
+                const desc = issue.description || `${type} detected`;
+                return `<div class="issue-item"><span class="severity ${sev}"></span><span class="issue-text">${desc}</span></div>`;
+            }).join('');
+            const moreIssues = detectedIssues.length > 5 ? `<div class="issue-item" style="justify-content:center;"><span class="issue-text">+ ${detectedIssues.length - 5} more issues in full report</span></div>` : '';
+
+            // SVG score ring
+            const circumference = 2 * Math.PI * 52;
+            const offset = circumference - (quality / 100) * circumference;
+
+            scanPreview.innerHTML = `
+                <div class="cert-preview watermarked">
+                    <div class="cert-header">
+                        <h3>Executive Risk Certificate</h3>
+                        <div class="cert-subtitle">${project} &mdash; ${new Date().toLocaleDateString()}</div>
+                    </div>
+                    <div class="score-ring">
+                        <svg width="120" height="120" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(30, 41, 59, 0.8)" stroke-width="8"/>
+                            <circle cx="60" cy="60" r="52" fill="none" stroke="${gradeColor}" stroke-width="8"
+                                stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"/>
+                        </svg>
+                        <div class="score-value">${grade}</div>
+                        <div class="score-label">${quality}% Quality</div>
+                    </div>
+                    <div class="scan-meta" style="margin-top:0;">
+                        <div class="meta-item">
+                            <div class="value ${gatePass ? 'gate-pass' : 'gate-fail'}">${gatePass ? 'PASS' : 'REVIEW'}</div>
+                            <div class="label">Gate</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="value">${files}</div>
+                            <div class="label">Files</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="value">${issues}</div>
+                            <div class="label">Issues</div>
+                        </div>
+                    </div>
+                    <div class="issue-list">
+                        ${issueItems}
+                        ${moreIssues}
+                    </div>
+                    <div class="cert-footer">
+                        <div class="unlock-text">&#128274; Paste a license token above to unlock the official PDF certificate</div>
+                        <button class="unlock-btn" onclick="document.getElementById('licenseToken').focus(); document.getElementById('licenseToken').scrollIntoView({behavior:'smooth', block:'center'});">Unlock Certificate &rarr;</button>
+                    </div>
                 </div>
             `;
-
-            const snippet = JSON.stringify(data, null, 2).slice(0, 1200);
-            previewContent.textContent = snippet + (snippet.length >= 1200 ? '\n\n... (truncated for preview)' : '');
         }
 
         function showStatus(message, type) {
