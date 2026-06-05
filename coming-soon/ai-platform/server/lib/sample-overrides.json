@@ -1,0 +1,5 @@
+{
+  "ai-roadmap-sample.json": "data/roadmap/ai-roadmap-report.json",
+  "issue-resolution-sample.json": "web/data/issue-resolution-sample.json",
+  "simplebeacon-cli-dashboard-sample.json": "web/data/simplebeacon-cli-sample.json"
+}

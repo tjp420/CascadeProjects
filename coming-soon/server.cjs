@@ -141,7 +141,7 @@ app.use((req, res, next) => {
 });
 
 // Billing webhook must use raw body before JSON parser
-const { setupSimplebeaconBillingWebhook } = require('../ai-platform/src/api/simplebeacon-billing-api.cjs');
+const { setupSimplebeaconBillingWebhook } = require('./ai-platform/src/api/simplebeacon-billing-api.cjs');
 setupSimplebeaconBillingWebhook(app);
 
 // Middleware
@@ -149,14 +149,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname));
 
 // Mount backend routes directly (no proxy needed)
-const { setupFlexibleAnalyzeAPI } = require('../ai-platform/server/routes/flexible-analyze-api.cjs');
-const platformRoot = path.join(__dirname, '../ai-platform');
+const { setupFlexibleAnalyzeAPI } = require('./ai-platform/server/routes/flexible-analyze-api.cjs');
+const platformRoot = path.join(__dirname, './ai-platform');
 setupFlexibleAnalyzeAPI(app, {
     baseDir: platformRoot,
     monorepoRoot: path.join(platformRoot, '..')
 });
 
-const { setupSimplebeaconBillingRoutes } = require('../ai-platform/src/api/simplebeacon-billing-api.cjs');
+const { setupSimplebeaconBillingRoutes } = require('./ai-platform/src/api/simplebeacon-billing-api.cjs');
 setupSimplebeaconBillingRoutes(app);
 
 // Pricing config endpoint

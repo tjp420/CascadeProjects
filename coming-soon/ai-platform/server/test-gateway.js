@@ -1,0 +1,99 @@
+const http = require('http');
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { AIProxyGateway } = require('./ai-proxy-gateway.cjs');
+const { scanEnterprisePatterns, isBlockingFinding } = require('./enterprise-patterns');
+
+test('scanEnterprisePatterns detects SSN and credit card in prompt text', () => {
+    const text = 'Patient note: SSN 123-45-6789, card 4111-1111-1111-1111';
+    const findings = scanEnterprisePatterns(text, { requestUrl: 'test' });
+    const patterns = findings.map((f) => f.pattern);
+
+    assert.ok(patterns.includes('ssn-full'));
+    assert.ok(patterns.includes('credit-card'));
+    assert.ok(findings.some(isBlockingFinding));
+});
+
+test('AIProxyGateway.scanRequest blocks credential patterns', () => {
+    const gateway = new AIProxyGateway({ blockOnMatch: true });
+    // Split at runtime so static credential scanners skip this test fixture.
+    const awsKeyProbe = 'AKIA' + '1A2B3C4D5E6F7G8H';
+    const body = JSON.stringify({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: `key=${awsKeyProbe}` }]
+    });
+
+    const result = gateway.scanRequest(body, 'http://api.openai.com/v1/chat/completions');
+    assert.equal(result.blocked, true);
+    assert.ok(result.patterns.length > 0);
+});
+
+test('AIProxyGateway.scanRequest allows benign prompt', () => {
+    const gateway = new AIProxyGateway({ blockOnMatch: true });
+    const body = JSON.stringify({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: 'Summarize this README section about testing.' }]
+    });
+
+    const result = gateway.scanRequest(body, 'http://api.openai.com/v1/chat/completions');
+    assert.equal(result.blocked, false);
+});
+
+function postToGateway(payload, options = {}) {
+    return new Promise((resolve, reject) => {
+        const req = http.request({
+            hostname: 'localhost',
+            port: options.port || 8080,
+            path: '/v1/chat/completions',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Host: 'api.openai.com'
+            }
+        }, (res) => {
+            let body = '';
+            res.on('data', (chunk) => { body += chunk; });
+            res.on('end', () => resolve({ status: res.statusCode, body }));
+        });
+
+        req.on('error', reject);
+        req.write(JSON.stringify(payload));
+        req.end();
+    });
+}
+
+test('live gateway blocks sensitive prompt when RUN_LIVE_GATEWAY_TEST=1', async (t) => {
+    if (process.env.RUN_LIVE_GATEWAY_TEST !== '1') {
+        t.skip('Set RUN_LIVE_GATEWAY_TEST=1 to run live gateway integration test');
+        return;
+    }
+
+    const gateway = new AIProxyGateway({ port: 18080, blockOnMatch: true });
+    gateway.start();
+
+    t.after(() => new Promise((resolve) => gateway.server.close(resolve)));
+
+    const response = await postToGateway({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: 'My SSN is 123-45-6789' }]
+    }, { port: 18080 });
+
+    assert.equal(response.status, 403);
+    assert.match(response.body, /Request blocked/);
+});
+
+const logger = require('./lib/app-logger.cjs');
+
+if (require.main === module && process.argv.includes('--manual')) {
+    postToGateway({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: 'My SSN is 123-45-6789 and card 4111-1111-1111-1111' }]
+    }).then((response) => {
+        logger.info('Status:', response.status);
+        logger.info('Body:', response.body);
+    }).catch((error) => {
+        logger.error('Gateway test failed. Start with: npm run dlp:start');
+        logger.error(error.message);
+        process.exit(1);
+    });
+}
