@@ -1,6 +1,12 @@
 # Subscription data
 subscriptions.json
 
+# Temp upload data (scan files, user uploads)
+.sb-uploads/
+sb-uploads/
+sb-analyze-*/
+.simplebeacon/email-queue/
+
 # Node modules
 node_modules/
 
