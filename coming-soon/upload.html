@@ -399,7 +399,7 @@
                 <span id="productLabel">Certificate Generation</span>
             </div>
             <h1 id="pageTitle">Upload Your Scan Report</h1>
-            <p id="pageSubtitle">Zero-trust static analysis. Scan runs entirely on your machine — no cloud, no leaks, no limits. Your source code never leaves this machine.</p>
+            <p id="pageSubtitle">Two ways to certify your code. <strong style="color:#60A5FA;">Option 1:</strong> Run the scan locally on your machine (100% private), then upload the report JSON. <strong style="color:#F59E0B;">Option 2:</strong> Upload your project folder for a server-side scan — code is processed in memory and deleted immediately after.</p>
         </header>
 
         <div class="local-note">
@@ -449,8 +449,8 @@
         </div>
 
         <div class="mode-tabs">
-            <button class="mode-tab active" data-mode="upload" id="tabUpload">Upload Report JSON</button>
-            <button class="mode-tab" data-mode="analyze" id="tabAnalyze">Analyze Directory</button>
+            <button class="mode-tab active" data-mode="upload" id="tabUpload">&#128274; 100% Private — Local Report</button>
+            <button class="mode-tab" data-mode="analyze" id="tabAnalyze">&#9729; Cloud Evaluation Scan</button>
         </div>
 
         <div class="mode-panel active" id="panelUpload">
@@ -478,6 +478,9 @@
         <div class="mode-panel" id="panelAnalyze">
             <div class="card">
                 <h2><span>2</span> Analyze a Directory</h2>
+                <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:0.85rem;color:var(--text-muted);">
+                    <strong style="color:#F87171;">&#9888; Server-side processing:</strong> Your source code is uploaded to our servers for scanning. It is processed in memory and deleted immediately after. If you require 100% privacy, use the <strong>Local Report</strong> option instead.
+                </div>
                 <div class="form-group">
                     <label>Project Directory</label>
                     <div class="drop-zone" id="dirDropZone">
@@ -486,7 +489,7 @@
                         <p class="file-name" id="dirName"></p>
                         <input type="file" id="dirInput" webkitdirectory directory multiple>
                     </div>
-                    <p class="help-text">Drop your project folder. We will walk the files and run a SimpleBeacon scan server-side. Your source code is deleted from our servers immediately after the scan completes.</p>
+                    <p class="help-text">Your source code is uploaded to our servers, scanned in memory, and deleted immediately after. For fully private scans, use the <strong>Local Report</strong> option instead.</p>
                 </div>
 
                 <div class="form-group" style="margin-top: 16px;">
