@@ -21,8 +21,8 @@ const mockSnapshotSeeds = {
   },
   templateSample: {
     // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case credentials for SimpleBeacon rule validation
-    databaseUrl: 'postgresql://sample-user:sample-pass@localhost:5432/sampledb', // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case database URL
-    apiKey: 'sk_test_sample_key_for_template_only', // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case API key
+    databaseUrl: 'postgresql://user:placeholder@localhost:5432/db', // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case database URL
+    apiKey: 'sk_test_your_api_key_here', // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case API key
     secret: 'sample-secret-for-template-rendering'
   },
   sampleJson: {

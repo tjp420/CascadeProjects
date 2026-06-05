@@ -54,9 +54,19 @@ function saveAgencyBranding(projectRoot, orgId, branding) {
     return store[key];
 }
 
+function resolveLogoSrc(branding = {}) {
+    const url = branding.logo_url || branding.logoUrl || '';
+    if (!url) return null;
+    if (url.startsWith('data:')) return url;
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return url;
+    return null;
+}
+
 module.exports = {
     loadAgencyBranding,
     saveAgencyBranding,
     loadAgencyBrandingStore,
-    brandingStorePath
+    brandingStorePath,
+    resolveLogoSrc
 };

@@ -3,6 +3,13 @@
  *
  * Usage: point clients at http://localhost:8080 with Host header set to api.openai.com
  * (or configure HTTP_PROXY). This is an application-layer forward proxy, not TLS MITM.
+ *
+ * EU AI Act Documentation Marker:
+ * - Classification: Annex III AI system indicator (Generative AI / LLM integration)
+ * - Article 50: Transparency — upstream consumers (chatbot, analyze) disclose AI-generated content
+ *   This component interacts with artificial intelligence providers (OpenAI, Anthropic, Cohere, Google).
+ * - Purpose: Data-loss-prevention proxy for AI provider traffic; no autonomous decisions
+ * - Risk Level: Limited risk
  */
 
 const http = require('http');

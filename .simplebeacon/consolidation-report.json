@@ -3,24 +3,15 @@
   "reportVersion": 2,
   "title": "File Merger & Reduction Scan (Measured Baseline)",
   "dataSource": "repository-audit",
-  "generatedAt": "2026-06-02T06:14:42.151Z",
+  "generatedAt": "2026-06-04T17:56:35.808Z",
   "generatedBy": "file-merger-reduction-scanner",
   "scanEngine": "file-merger-reduction-scanner",
   "inferenceMode": "filesystem + fuzzy-match",
   "advancedAnalysis": {
     "fuzzyNearDuplicates": {
       "threshold": 0.85,
-      "pairsFound": 2,
+      "pairsFound": 1,
       "pairs": [
-        {
-          "fileA": "ai-platform/packages/simplebeacon-cli/src/lib/complete-scan-artifact-profile.browser.js",
-          "fileB": "ai-platform/packages/simplebeacon-cli/src/lib/complete-scan-artifact-profile.js",
-          "similarity": 0.965,
-          "tokenJaccard": 0.965,
-          "lineHashJaccard": 0.707,
-          "method": "token-jaccard",
-          "recommendation": "Near-duplicate content — review before merge"
-        },
         {
           "fileA": "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-github.mcp.json",
           "fileB": "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-standard.mcp.json",
@@ -56,34 +47,34 @@
       "data/roadmap"
     ],
     "sampleDataFilesAnalyzed": 0,
-    "jsonFilesAnalyzed": 56,
-    "repositoryFilesAudited": 833,
+    "jsonFilesAnalyzed": 90,
+    "repositoryFilesAudited": 1085,
     "repositoryInventoryProfile": "audit",
     "repositoryInventoryIncluded": true,
-    "repositoryFilesTotal": 834,
-    "repositoryFoldersTotal": 131,
+    "repositoryFilesTotal": 1086,
+    "repositoryFoldersTotal": 161,
     "limitations": [
-      "repositoryFilesTotal uses audit inventory (834 files).",
-      "Merge/dedup logic walked 833 audit-scoped files and hashed 56 JSON files.",
+      "repositoryFilesTotal uses audit inventory (1,086 files).",
+      "Merge/dedup logic walked 1,085 audit-scoped files and hashed 90 JSON files.",
       "Structure similarity pairs are limited to configured sample paths.",
       "node_modules, .git, coverage, archive, dist, build, github-cache/, and deliverables/ are excluded from merge walks."
     ]
   },
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-    "totalFiles": 834,
-    "totalFolders": 131,
+    "totalFiles": 1086,
+    "totalFolders": 161,
     "profile": "audit"
   },
   "summary": {
-    "filesAnalyzed": 834,
+    "filesAnalyzed": 1086,
     "sampleDataFilesAnalyzed": 0,
-    "jsonFilesAnalyzed": 56,
-    "repositoryFilesTotal": 834,
-    "repositoryFilesAudited": 833,
-    "repositoryFoldersTotal": 131,
-    "totalSizeBytes": 9259286,
-    "totalSizeLabel": "8.8MB",
+    "jsonFilesAnalyzed": 90,
+    "repositoryFilesTotal": 1086,
+    "repositoryFilesAudited": 1085,
+    "repositoryFoldersTotal": 161,
+    "totalSizeBytes": 12543756,
+    "totalSizeLabel": "12.0MB",
     "mergeCandidates": 0,
     "reductionOpportunities": 0,
     "potentialSavingsBytes": 0,
@@ -91,7 +82,7 @@
     "exactDuplicateGroups": 0,
     "benchmarkCacheCandidatesExcluded": 0,
     "structureSimilarPairs": 0,
-    "fuzzyNearDuplicatePairs": 2,
+    "fuzzyNearDuplicatePairs": 1,
     "patternConsolidationGroups": 0,
     "oversizedFiles": 0
   },

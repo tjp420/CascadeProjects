@@ -1,6 +1,13 @@
 /**
  * Optional cloud LLM providers for scan summarization (OpenAI, Anthropic, Ollama).
  * Filesystem scan always runs first; cloud calls are best-effort enhancements.
+ *
+ * EU AI Act Documentation Marker:
+ * - Classification: Annex III AI system indicator (Generative AI / LLM integration)
+ * - Article 50: Transparency — outputs are disclosed via upstream consumer (chatbot API)
+ * - Article 12: Record-keeping — inference events logged via ai-inference-audit-logger
+ * - Risk Level: Limited risk (user-facing assistant with disclosure)
+ * - Human Oversight: Implemented at chatbot route layer
  */
 
 const logger = require('../../src/lib/app-logger.cjs');
@@ -9,22 +16,125 @@ const { logInferenceEvent } = require('../lib/ai-inference-audit-logger.cjs');
 const DEFAULTS = {
     openai: {
         baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini'
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        timeoutMs: 30000 // 30 second default
     },
     anthropic: {
         baseUrl: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com/v1',
-        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022'
+        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
+        timeoutMs: 30000 // 30 second default
     },
     ollama: {
         baseUrl: process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434',
-        model: process.env.OLLAMA_MODEL || null
+        model: process.env.OLLAMA_MODEL || 'llama3.2',
+        timeoutMs: 60000 // 60 second default
     }
 };
+
+// Circuit breaker state to prevent cascading failures
+const circuitBreakerState = {
+    openai: { failures: 0, lastFailure: 0, isOpen: false },
+    anthropic: { failures: 0, lastFailure: 0, isOpen: false },
+    ollama: { failures: 0, lastFailure: 0, isOpen: false }
+};
+
+const CIRCUIT_BREAKER_THRESHOLD = 5; // Open circuit after 5 failures
+const CIRCUIT_BREAKER_TIMEOUT = 60000; // Reset after 60 seconds
 
 function resolveCredential(userCredentials, providerId, envKey) {
     const userValue = userCredentials?.[providerId];
     if (userValue) return userValue;
     return process.env[envKey] || '';
+}
+
+function checkCircuitBreaker(providerId) {
+    const state = circuitBreakerState[providerId];
+    if (!state) return false;
+
+    if (state.isOpen) {
+        const timeSinceFailure = Date.now() - state.lastFailure;
+        if (timeSinceFailure > CIRCUIT_BREAKER_TIMEOUT) {
+            // Reset circuit breaker
+            state.isOpen = false;
+            state.failures = 0;
+            logger.info(`[Circuit Breaker] ${providerId} circuit reset`);
+            return false;
+        }
+        return true; // Circuit is still open
+    }
+    return false;
+}
+
+function recordFailure(providerId) {
+    const state = circuitBreakerState[providerId];
+    if (!state) return;
+
+    state.failures++;
+    state.lastFailure = Date.now();
+
+    if (state.failures >= CIRCUIT_BREAKER_THRESHOLD) {
+        state.isOpen = true;
+        logger.warn(`[Circuit Breaker] ${providerId} circuit opened after ${state.failures} failures`);
+    }
+}
+
+function recordSuccess(providerId) {
+    const state = circuitBreakerState[providerId];
+    if (!state) return;
+
+    state.failures = 0;
+    state.isOpen = false;
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error(`Request timeout after ${timeoutMs}ms`);
+        }
+        throw error;
+    }
+}
+
+async function retryWithBackoff(fn, maxRetries = 3, baseDelayMs = 1000) {
+    let lastError;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error) {
+            lastError = error;
+
+            // Critical Client Errors: Authentication issues or invalid requests should drop early
+            if (error.message.includes('401') ||
+                error.message.includes('403') ||
+                error.message.includes('400') ||
+                error.message.includes('authentication') ||
+                error.message.includes('configured')) {
+                throw error;
+            }
+
+            if (attempt === maxRetries) {
+                throw error;
+            }
+
+            const delayMs = baseDelayMs * Math.pow(2, attempt);
+            logger.warn(`[Retry] Attempt ${attempt + 1}/${maxRetries + 1} failed, retrying in ${delayMs}ms: ${error.message}`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+    }
+
+    throw lastError;
 }
 
 function resolveOllamaBaseUrl(registry = null, userCredentials = null) {
@@ -386,25 +496,53 @@ function sanitizeSummaryText(text, providerId = '') {
 }
 
 async function callProvider(providerId, prompt, options = {}) {
-    switch (providerId) {
-        case 'openai':
-            return callOpenAI(prompt, options);
-        case 'anthropic':
-            return callAnthropic(prompt, options);
-        case 'ollama':
-            return callOllama(prompt, options);
-        default:
-            throw new Error(`Unsupported cloud provider: ${providerId}`);
+    // Check circuit breaker before attempting request
+    if (checkCircuitBreaker(providerId)) {
+        throw new Error(`503: The circuit breaker for provider '${providerId}' is currently open due to high error frequencies. Try again later.`);
     }
+
+    try {
+        const result = await retryWithBackoff(async () => {
+            switch (providerId) {
+                case 'openai':
+                    return callOpenAI(prompt, options);
+                case 'anthropic':
+                    return callAnthropic(prompt, options);
+                case 'ollama':
+                    return callOllama(prompt, options);
+                default:
+                    throw new Error(`Unsupported cloud provider: ${providerId}`);
+            }
+        }, 3, 1000);
+
+        recordSuccess(providerId);
+        return result;
+    } catch (error) {
+        recordFailure(providerId);
+        throw error;
+    }
+}
+
+function normalizeMessages(input, options = {}) {
+    if (Array.isArray(input) && input.length > 0 && typeof input[0] === 'object' && 'role' in input[0]) {
+        return input;
+    }
+    return [
+        { role: 'system', content: options.systemPrompt || 'You are a helpful assistant.' },
+        { role: 'user', content: input }
+    ];
 }
 
 async function callOpenAI(prompt, options = {}) {
     const cfg = DEFAULTS.openai;
     const apiKey = resolveCredential(options.userCredentials, 'openai', 'OPENAI_API_KEY');
     if (!apiKey) {
-        throw new Error(`openai is not configured — ${providerConfigHint('openai')}`);
+        throw new Error(`401: OpenAI API key is missing or not configured`);
     }
-    const response = await fetch(`${cfg.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+    const messages = normalizeMessages(prompt, options);
+    const timeoutMs = options.timeoutMs || cfg.timeoutMs;
+
+    const response = await fetchWithTimeout(`${cfg.baseUrl.replace(/\/$/, '')}/chat/completions`, {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${apiKey}`,
@@ -412,18 +550,17 @@ async function callOpenAI(prompt, options = {}) {
         },
         body: JSON.stringify({
             model: options.model || cfg.model,
-            messages: [
-                { role: 'system', content: options.systemPrompt || 'You summarize repository scan results concisely.' },
-                { role: 'user', content: prompt }
-            ],
+            messages: messages,
             temperature: 0.2,
             max_tokens: 400
         })
-    });
-    const data = await response.json();
+    }, timeoutMs);
+
     if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.error?.message || `OpenAI request failed (${response.status})`);
     }
+    const data = await response.json();
     return {
         text: data.choices?.[0]?.message?.content?.trim() || '',
         provider: 'openai',
@@ -435,9 +572,16 @@ async function callAnthropic(prompt, options = {}) {
     const cfg = DEFAULTS.anthropic;
     const apiKey = resolveCredential(options.userCredentials, 'anthropic', 'ANTHROPIC_API_KEY');
     if (!apiKey) {
-        throw new Error(`anthropic is not configured — ${providerConfigHint('anthropic')}`);
+        throw new Error(`401: Anthropic API key is missing or not configured`);
     }
-    const response = await fetch(`${cfg.baseUrl.replace(/\/$/, '')}/messages`, {
+    const messages = normalizeMessages(prompt, options);
+    const timeoutMs = options.timeoutMs || cfg.timeoutMs;
+
+    // Convert system/user/assistant context array format to Anthropic structure cleanly
+    const systemMessage = messages.find(m => m.role === 'system')?.content || '';
+    const filteredMessages = messages.filter(m => m.role !== 'system');
+
+    const response = await fetchWithTimeout(`${cfg.baseUrl.replace(/\/$/, '')}/messages`, {
         method: 'POST',
         headers: {
             'x-api-key': apiKey,
@@ -447,13 +591,16 @@ async function callAnthropic(prompt, options = {}) {
         body: JSON.stringify({
             model: options.model || cfg.model,
             max_tokens: 400,
-            messages: [{ role: 'user', content: prompt }]
+            system: systemMessage,
+            messages: filteredMessages
         })
-    });
-    const data = await response.json();
+    }, timeoutMs);
+
     if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.error?.message || `Anthropic request failed (${response.status})`);
     }
+    const data = await response.json();
     const block = (data.content || []).find((item) => item.type === 'text');
     return {
         text: block?.text?.trim() || '',
@@ -470,9 +617,29 @@ async function callOllama(prompt, options = {}) {
         options.userCredentials || null,
         options
     );
-    const generated = await ollamaGenerate(baseUrl, model, prompt, {
-        timeoutMs: options.timeoutMs,
-        system: options.systemPrompt || OLLAMA_SUMMARY_SYSTEM_PROMPT,
+    const messages = normalizeMessages(prompt, options);
+    const timeoutMs = options.timeoutMs || DEFAULTS.ollama.timeoutMs;
+
+    let conversationalPrompt = '';
+    let systemPrompt = options.systemPrompt || OLLAMA_SUMMARY_SYSTEM_PROMPT;
+    if (Array.isArray(messages)) {
+        const hasSystem = messages.some(m => m.role === 'system');
+        const nonSystem = hasSystem ? messages.filter(m => m.role !== 'system') : messages;
+        if (hasSystem) {
+            const systemMsg = messages.find(m => m.role === 'system');
+            systemPrompt = systemMsg.content;
+        }
+        conversationalPrompt = nonSystem.map(m => {
+            if (m.role === 'user') return `User: ${m.content}`;
+            if (m.role === 'assistant') return `Assistant: ${m.content}`;
+            return `${m.role}: ${m.content}`;
+        }).join('\n\n') + '\n\nAssistant:';
+    } else {
+        conversationalPrompt = String(prompt);
+    }
+    const generated = await ollamaGenerate(baseUrl, model, conversationalPrompt, {
+        timeoutMs: timeoutMs,
+        system: systemPrompt,
         includeMeta: true
     });
     if (generated?.timing) {
@@ -493,9 +660,11 @@ function buildCodeUnderstandingPrompt(payload = {}) {
         .map((f) => `- ${f.category}/${f.type}: ${f.description}`)
         .join('\n') || 'none listed';
 
+    const safeFileLabel = redactPathForSummary(payload.filePath) || 'snippet';
+
     return `Explain this code for an engineering team.
 
-File: ${payload.filePath || 'snippet'}
+File: ${safeFileLabel}
 Language: ${payload.language || 'unknown'}
 Deterministic purpose guess: ${payload.purpose || 'unknown'}
 Business domains detected: ${(payload.businessDomains || []).join(', ') || 'none'}

@@ -258,13 +258,30 @@ function sanitizeFrozenAuditDeliverableHtml(html) {
     return next;
 }
 
+function isEmailLike(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(String(value || '').trim());
+}
+
 function resolveAuditClientName(options = {}, projectPath = '') {
     const raw = String(options.client || options.company || '').trim();
-    if (raw && raw.toLowerCase() !== 'client project') {
+    const isEmail = isEmailLike(raw);
+
+    // If a project name was explicitly supplied, use it in preference to raw client/company
+    const projectName = String(options.projectName || '').trim();
+    if (projectName && projectName.toLowerCase() !== 'client project') {
+        return projectName;
+    }
+
+    // If raw is an email, prefer the path label; fall back to email only when nothing better exists
+    if (raw && raw.toLowerCase() !== 'client project' && !isEmail) {
         return normalizeClientPathLabel(raw) || raw;
     }
+
     const pathLabel = normalizeClientPathLabel(projectPath);
     if (pathLabel) return pathLabel;
+
+    // Email is the only data we have — keep it
+    if (raw) return raw;
     return 'Repository audit';
 }
 

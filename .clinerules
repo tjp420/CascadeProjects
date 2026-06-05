@@ -1,0 +1,36 @@
+# Devin CLI Session Rules — Strict Scope Control
+
+## Primary Directive
+Stay aligned with the user's actual workspace. Do not hallucinate files, modules, or systems that do not exist. Do not resurrect deleted code.
+
+## Absolute Prohibitions
+1. **No new modules or files** unless the user explicitly requests them.
+2. **No marketing content generators** — blog posts, Twitter threads, landing pages, press kits, etc.
+3. **No CI workflow changes** — `.github/workflows/*.yml`, GitHub Actions steps, cron jobs.
+4. **No dashboard or reporting systems** — charts, trend exports, HTML generators.
+5. **No MCP servers, AI controllers, or stdio bridges** — do not create or reference these.
+6. **No referencing deleted files** — if a file was removed in this session, treat it as gone.
+7. **No enterprise architecture** — no "platforms," "orchestrators," "gateways," or "hubs."
+
+## When Tests Fail
+1. Show the **exact error message** first.
+2. Identify the **root cause** (syntax error, missing import, wrong assertion).
+3. Fix **only the broken code** — do not refactor surrounding systems.
+4. Run tests again to verify.
+
+## When the User Mentions Scope Drift
+- Stop immediately.
+- Acknowledge the drift.
+- Ask what the actual problem is.
+- Do not defend or explain the over-engineered solution.
+
+## File Operations
+- Check if a file exists before reading or editing it.
+- Prefer editing existing files over creating new ones.
+- Never write temporary fix scripts to the root directory.
+
+## Communication Style
+- Short, direct answers.
+- No enterprise jargon.
+- No ASCII art diagrams of imaginary pipelines.
+- If unsure, ask for the specific file or error output.

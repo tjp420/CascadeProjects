@@ -52,6 +52,7 @@ jobs:
             --path . \
             --format json \
             --output .simplebeacon/report.json \
+            --anonymize \
             --gate \
             --offline \
             --verbose
@@ -67,6 +68,9 @@ jobs:
           echo "## ${TITLE}" >> "$GITHUB_STEP_SUMMARY"
           node packages/simplebeacon-cli/bin/simplebeacon.js comment \
             --report .simplebeacon/report.json --print-only >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "---" >> "$GITHUB_STEP_SUMMARY"
+          echo "**💡 Stale compliance on every push?** Upgrade to [Continuous Shield](https://simplebeacon.ai/pricing) ($149/mo) for automated PR blocking + 3 compliance certifications per month." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload gate report
         if: always()

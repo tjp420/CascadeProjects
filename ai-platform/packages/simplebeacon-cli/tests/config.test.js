@@ -41,10 +41,12 @@ test('detectProjectProfile finds cascade layout in ai-platform', () => {
 });
 
 function parentIsOwnCascadeMonorepo(parentDir) {
+    // Mirror isCascadeMonorepo logic from project-detect.js exactly:
+    // Any ONE of these three signals indicates a cascade monorepo.
     if (fs.existsSync(path.join(parentDir, 'web/dashboard-new.html'))) return true;
+    if (fs.existsSync(path.join(parentDir, 'packages/simplebeacon-cli'))) return true;
     if (fs.existsSync(path.join(parentDir, 'server/lib/mock-data-scanner.js'))) return true;
-    return fs.existsSync(path.join(parentDir, 'packages/simplebeacon-cli'))
-        && fs.existsSync(path.join(parentDir, 'web/data'));
+    return false;
 }
 
 function parentWorkspaceIsIsolatedScanRoot(parentDir) {

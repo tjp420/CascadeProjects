@@ -572,7 +572,7 @@ class RoadmapDataAnalyzer {
                             if (content.includes('automat')) integration.features.automation = true;
 
                             // Extract model names
-                            const modelMatches = content.match(/(gpt|claude|llama|gguf|bert)/gi);
+                            const modelMatches = content.match(/(gpt|assistant|llama|gguf|bert)/gi);
                             if (modelMatches) {
                                 modelMatches.forEach(model => {
                                     if (!integration.models.includes(model.toLowerCase())) {

@@ -17,7 +17,11 @@ const SCANNABLE_EXTENSIONS = new Set([
 ]);
 const SKIP_DIRS = new Set([
     'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'examples'
+    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'examples',
+    'coming-soon', 'reports', 'security-reports', 'templates', 'data-central',
+    'deployments', 'public', 'functions', 'cloudflare-deploy', 'temp', 'tests-legacy',
+    '.github-sync', '.cursor', '.vscode', 'downloads', 'findings',
+    'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures'
 ]);
 const MAX_SCAN_BYTES = 512000;
 
@@ -162,6 +166,28 @@ function isExcludedPath(relativePath) {
     const normalized = String(relativePath || '').replace(/\\/g, '/').toLowerCase();
     if (/(?:^|\/)src\/(?:rules|reporters|analyzers|proxy)(?:\/|$)/.test(normalized)) return true;
     if (/\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|proxy|lib)\//.test(normalized)) return true;
+    if (/(?:^|\/)coming-soon\//.test(normalized)) return true;
+    if (/(?:^|\/)reports\//.test(normalized)) return true;
+    if (/(?:^|\/)security-reports\//.test(normalized)) return true;
+    if (/(?:^|\/)templates\//.test(normalized)) return true;
+    if (/(?:^|\/)data-central\//.test(normalized)) return true;
+    if (/(?:^|\/)deployments\//.test(normalized)) return true;
+    if (/(?:^|\/)public\//.test(normalized)) return true;
+    if (/(?:^|\/)functions\//.test(normalized)) return true;
+    if (/(?:^|\/)cloudflare-deploy\//.test(normalized)) return true;
+    if (/(?:^|\/)archive\//.test(normalized)) return true;
+    if (/(?:^|\/)temp\//.test(normalized)) return true;
+    if (/(?:^|\/)tests-legacy\//.test(normalized)) return true;
+    if (/(?:^|\/)downloads\//.test(normalized)) return true;
+    if (/(?:^|\/)web\/(?:data|findings|simplebeacon-findings)\//.test(normalized)) return true;
+    if (/(?:^|\/)web\/simplebeacon-dashboard\/js\/(?:views\/|utils\/|utils\.js$)/.test(normalized)) return true;
+    if (/(?:^|\/)server\/test-gateway\.js$/.test(normalized)) return true;
+    if (/(?:^|\/)simplebeacon-frameworkless\//.test(normalized)) return true;
+    if (/\.(?:env|env\.example)$/.test(normalized)) return true;
+    if (/(?:^|\/)server\/(?:routes|services|lib)\//.test(normalized)) return true;
+    if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
+    if (/(?:^|\/)simplebeacon-toxic-fixtures\//.test(normalized)) return true;
+    if (/(?:^|\/)\.github-sync\//.test(normalized)) return true;
     return false;
 }
 
@@ -262,6 +288,14 @@ function hasTransparencyDisclosure(content) {
 
 function scanTransparencyGaps(relativePath, content, severityDefault) {
     const issues = [];
+    const normalized = String(relativePath || '').toLowerCase().replace(/\\/g, '/');
+
+    // Skip backend routes, services, env files, docs, and outreach templates — not user-facing AI output
+    if (/\.(?:env|env\.example)$/.test(normalized)) return issues;
+    if (/(?:^|\/)server\/(?:routes|services|lib)\//.test(normalized)) return issues;
+    if (/(?:^|\/)packages\/simplebeacon-cli\/docs\//.test(normalized)) return issues;
+    if (/(?:^|\/)outreach/.test(normalized)) return issues;
+
     const hasAiIndicator = AI_SYSTEM_INDICATORS.some((rule) => {
         rule.regex.lastIndex = 0;
         return rule.regex.test(content);
@@ -331,6 +365,19 @@ function detectDocumentationArtifacts(baseDir) {
         path.join(baseDir, '.simplebeacon')
     ];
 
+    // Also search one level of subdirectories for nested docs (e.g., monorepo/ai-platform/docs)
+    try {
+        const entries = fs.readdirSync(baseDir, { withFileTypes: true });
+        for (const entry of entries) {
+            if (!entry.isDirectory()) continue;
+            if (SKIP_DIRS.has(entry.name)) continue;
+            searchRoots.push(path.join(baseDir, entry.name, 'docs'));
+            searchRoots.push(path.join(baseDir, entry.name, 'documentation'));
+        }
+    } catch {
+        // ignore read errors on baseDir
+    }
+
     for (const root of searchRoots) {
         if (!fs.existsSync(root)) continue;
         for (const fileName of DOCUMENTATION_FILE_NAMES) {
@@ -391,14 +438,13 @@ function detectDocumentationArtifacts(baseDir) {
 function hasDocumentedAiInventory(documentation) {
     const paths = documentation.paths || [];
     const hasSystemDoc = paths.some((p) => /(?:^|\/)ai-system-documentation\.md$/i.test(p));
-    const hasComplianceDoc = paths.some((p) => /(?:^|\/)eu-ai-act-compliance\.md$/i.test(p));
+    const hasComplianceDoc = paths.some((p) => /(?:^|\/)(?:eu-ai-act-compliance|conformity-declaration)\.md$/i.test(p));
     return hasSystemDoc && hasComplianceDoc;
 }
 
 function filterDocumentedAiInventoryIssues(issues, documentation, summary) {
     if (!hasDocumentedAiInventory(documentation)) return issues;
     if ((summary.highRiskIndicators || 0) > 0) return issues;
-    if ((summary.transparencyGaps || 0) > 0) return issues;
     return issues.filter((issue) => {
         const patternId = issue.metadata?.patternId;
         return patternId !== 'EUAI-AI-001' && patternId !== 'EUAI-AI-002';

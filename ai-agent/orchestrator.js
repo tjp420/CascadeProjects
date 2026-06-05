@@ -46,8 +46,8 @@ async function runLocalAgent(userGoal) {
 
     let plan;
     try {
-        // Strip markdown fences if the model wrapped JSON in ```json blocks
-        const cleaned = planResponse.replace(/```json|```/g, '').trim();
+        // Strip markdown fences if the model wrapped JSON in code blocks
+        const cleaned = planResponse.replace(/```[a-z]*|```/g, '').trim();
         plan = JSON.parse(cleaned);
         if (!Array.isArray(plan)) {
             throw new Error('Plan is not a JSON array');

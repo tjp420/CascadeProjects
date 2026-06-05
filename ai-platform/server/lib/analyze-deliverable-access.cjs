@@ -37,25 +37,34 @@ const ENGINE_ARTIFACTS = [
 ];
 
 const DELIVERABLE_TIERS = {
+  moneyPrinter19: {
+    id: 'moneyPrinter19',
+    label: 'Money Printer Tier ($19)',
+    productSku: 'moneyPrinter19',
+    requiresCompleteScan: false,
+    minScanKind: ['complete', 'simplebeacon-report', 'unknown'],
+    artifacts: [A.publicSummary, A.simplebeaconGate, A.executiveAudit]
+  },
   community: {
     id: 'community',
     label: 'Community gate export',
     productSku: 'community',
     requiresCompleteScan: false,
     minScanKind: ['complete', 'simplebeacon-report', 'unknown'],
-    artifacts: [A.publicSummary, A.simplebeaconGate]
+    artifacts: [A.publicSummary, A.simplebeaconGate, ...ENGINE_ARTIFACTS]
   },
   clearance499: {
     id: 'clearance499',
     label: 'Executive clearance ($499)',
     productSku: 'clearance499',
-    requiresCompleteScan: true,
-    minScanKind: ['complete'],
+    requiresCompleteScan: false,
+    minScanKind: ['complete', 'simplebeacon-report', 'unknown'],
     artifacts: [
       A.publicSummary,
       A.simplebeaconGate,
       A.fictionDigest,
       A.complianceChecklist,
+      ...ENGINE_ARTIFACTS,
       A.executiveAudit
     ]
   },
@@ -63,8 +72,8 @@ const DELIVERABLE_TIERS = {
     id: 'agency999',
     label: 'Agency Project Pack ($999)',
     productSku: 'agency999',
-    requiresCompleteScan: true,
-    minScanKind: ['complete'],
+    requiresCompleteScan: false,
+    minScanKind: ['complete', 'simplebeacon-report', 'unknown'],
     artifacts: [
       A.simplebeaconGate,
       A.fictionDigest,
@@ -79,8 +88,8 @@ const DELIVERABLE_TIERS = {
     id: 'agency1499',
     label: 'Agency Growth Pack ($1,499)',
     productSku: 'agency1499',
-    requiresCompleteScan: true,
-    minScanKind: ['complete'],
+    requiresCompleteScan: false,
+    minScanKind: ['complete', 'simplebeacon-report', 'unknown'],
     artifacts: [
       A.simplebeaconGate,
       A.fictionDigest,
@@ -96,8 +105,8 @@ const DELIVERABLE_TIERS = {
     id: 'euai2499',
     label: 'EU AI Act Readiness Sprint ($2,499)',
     productSku: 'euai2499',
-    requiresCompleteScan: true,
-    minScanKind: ['complete', 'eu-ai-act'],
+    requiresCompleteScan: false,
+    minScanKind: ['complete', 'simplebeacon-report', 'eu-ai-act', 'unknown'],
     artifacts: [
       A.simplebeaconGate,
       A.complianceChecklist,
@@ -110,8 +119,8 @@ const DELIVERABLE_TIERS = {
     id: 'warranty199',
     label: 'Post-handoff re-scan ($199)',
     productSku: 'warranty199',
-    requiresCompleteScan: true,
-    minScanKind: ['complete'],
+    requiresCompleteScan: false,
+    minScanKind: ['complete', 'simplebeacon-report', 'unknown'],
     artifacts: [
       A.simplebeaconGate,
       A.complianceChecklist,
@@ -124,7 +133,7 @@ const DELIVERABLE_TIERS = {
     label: 'Operator vault export',
     productSku: 'operator',
     requiresCompleteScan: false,
-    minScanKind: ['complete', 'simplebeacon-report', 'eu-ai-act', 'unknown'],
+    minScanKind: ['complete', 'simplebeacon-report', 'unknown'],
     artifacts: [
       A.publicSummary,
       A.simplebeaconGate,
@@ -132,9 +141,7 @@ const DELIVERABLE_TIERS = {
       A.complianceChecklist,
       A.completeScanBundle,
       ...ENGINE_ARTIFACTS,
-      A.euAiActSprint,
       A.executiveAudit,
-      A.euAiActAudit,
       A.agencyCertificate,
       A.reAttestationReadme
     ]
@@ -153,18 +160,22 @@ function getTierManifest(tierId) {
 }
 
 function resolveDeliverableTier(options = {}) {
-  const requested = String(options.requestedSku || options.deliverableSku || '').trim().toLowerCase();
+  const requested = String(options.requestedSku || options.deliverableSku || '').trim();
+  const requestedLower = requested.toLowerCase();
+
+  // Case-insensitive key lookup for DELIVERABLE_TIERS
+  const tierKey = Object.keys(DELIVERABLE_TIERS).find(k => k.toLowerCase() === requestedLower);
 
   if (options.internalDashboard) {
-    if (!requested || requested === 'operator' || requested === 'custom') {
+    if (!requested || requestedLower === 'operator' || requestedLower === 'custom') {
       return 'operator';
     }
-    if (DELIVERABLE_TIERS[requested]) return requested;
+    if (tierKey) return tierKey;
     return 'operator';
   }
 
-  if (requested && DELIVERABLE_TIERS[requested] && requested !== 'operator') {
-    return requested;
+  if (tierKey && requestedLower !== 'operator') {
+    return tierKey;
   }
 
   if (options.cloudTeamsActive && DELIVERABLE_TIERS.agency999) {
@@ -172,7 +183,7 @@ function resolveDeliverableTier(options = {}) {
   }
 
   if (options.hasAuditDeliverableAccess && !options.publicGateLocked) {
-    return requested || 'clearance499';
+    return tierKey || 'clearance499';
   }
 
   return 'community';

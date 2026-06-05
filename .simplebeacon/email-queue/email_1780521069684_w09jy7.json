@@ -1,0 +1,8 @@
+{
+  "id": "email_1780521069684_w09jy7",
+  "to": "Trevor_punt@live.com",
+  "subject": "Your SimpleBeacon Agency Project Pack — Upload Instructions",
+  "text": "Thank you for your Agency Project Pack purchase ($999).\n\nYour license token: eyJlbWFpbCI6IlRyZXZvcl9wdW50QGxpdmUuY29tIiwidGllciI6ImFnZW5jeSIsImZlYXR1cmVzIjpbInBkZi1nZW5lcmF0aW9uIiwiY2VydGlmaWNhdGUiLCJjby1icmFuZGluZyJdLCJpYXQiOjE3ODA1MjEwNjk2ODQsImV4cCI6MTc4MDUyNDY2OTY4NH0.FpyQonYTIIsdxDuSAvc8Ai54aF-OAeoiKyJ-lYbzSmc\n\nNext steps:\n1. Run scans for each milestone locally: npx simplebeacon scan --gate --offline\n2. Upload each report JSON at: https://simplebeacon.ai/coming-soon/certificate-upload.html\n3. We will generate co-branded milestone certificates within 48 hours each.\n\n---\nToken tier: agency\nToken expires: 60 minutes from generation (for testing)\nProduct: agency_project\nFeatures: pdf-generation, certificate, co-branding\n\nKeep this token safe — you'll need it to upload your scan report.",
+  "attachments": [],
+  "queuedAt": "2026-06-03T21:11:09.684Z"
+}

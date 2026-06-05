@@ -75,7 +75,8 @@ function isExcludedPath(relativePath) {
     if (/\/tests?\//.test(normalized)) return true;
     if (/\/fixtures?\//.test(normalized)) return true;
     if (/\.example\.[a-z0-9]+$/i.test(normalized)) return true;
-    if (/\.md$/i.test(normalized)) return true;
+    if (/\.(md|markdown)$/i.test(normalized)) return true;
+    if (/\.simplebeacon-backup\./i.test(normalized)) return true;
     if (/(?:^|\/)coming-soon\//.test(normalized)) return true;
     if (/(?:^|\/)reports\//.test(normalized)) return true;
     if (/(?:^|\/)security-reports\//.test(normalized)) return true;
@@ -92,6 +93,11 @@ function isExcludedPath(relativePath) {
     if (/(?:^|\/)web\/(?:data|findings|simplebeacon-findings)\//.test(normalized)) return true;
     if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
     if (/(?:^|\/)simplebeacon-toxic-fixtures\//.test(normalized)) return true;
+    if (/(?:^|\/)node_modules\//.test(normalized)) return true;
+    if (/(?:^|\/)java-ai-vulnerable\//.test(normalized)) return true;
+    if (/(?:^|\/)\.gitkeep$/.test(normalized)) return true;
+    if (/^delivery_\d+_[a-z0-9]+\.json$/.test(normalized)) return true;
+    if (/(?:^|\/)test-output/.test(normalized)) return true;
     return false;
 }
 
@@ -161,6 +167,7 @@ async function walkFiles(dir, results = [], options = {}, depth = 0) {
 }
 
 function scanTextPatterns(relativePath, content, ext) {
+    if (isExcludedPath(relativePath)) return [];
     const findings = [];
     const lines = content.split('\n');
 

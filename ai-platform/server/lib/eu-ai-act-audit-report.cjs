@@ -77,7 +77,7 @@ function collectEuFindingItems(report, assessment) {
   const raw = report?.rawIssues || report?.detectedIssues || [];
   return uniqueEuItems(
     raw
-      .filter((issue) => /eu ai act|generative ai|llm integration/i.test(String(issue.type || issue.description || '')))
+      .filter((issue) => /eu ai act|ai system|semantic integration/i.test(String(issue.type || issue.description || '')))
       .map((issue) => ({
         file: issue.file || issue.filePath || (issue.affectedFiles || [])[0] || '—',
         description: issue.description || issue.type || 'EU AI Act signal',
@@ -102,17 +102,41 @@ function resolveClientLabel(options = {}, report, assessment) {
 
 function buildEuAiActAuditHtml(input = {}) {
   const { compliance, assessment, report, clientName, reportId } = input;
-  const summary = compliance?.summary || assessment?.complianceChecklist?.summary || {};
+  const rawSummary = compliance?.summary || assessment?.complianceChecklist?.summary || null;
   const euSummary = report?.euAiActSummary || assessment?.euAiActSummary || {};
   const euItems = collectEuFindingItems(report, assessment);
-  const rules = compliance?.rules || assessment?.complianceChecklist?.rules || [];
+  const rawRules = compliance?.rules || assessment?.complianceChecklist?.rules || null;
   const generatedAt = new Date(
     compliance?.evaluatedAt || assessment?.generatedAt || report?.generatedAt || Date.now()
   ).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const title = resolveClientLabel({ clientName }, report, assessment);
   const id = reportId || buildReportId();
   const gatePass = report?.gate?.pass === true;
-  const score = summary.score ?? '—';
+
+  // Derive checklist from gate report when dedicated compliance artifact is absent
+  const gateBlocking = report?.gate?.blockingCount ?? 0;
+  const gateWarnings = report?.gate?.warningCount ?? 0;
+  const docCount = euSummary.documentationArtifacts ?? 0;
+  const qualityScore = report?.qualityScore ?? null;
+
+  let rules = rawRules || [];
+  let summary = rawSummary || {};
+
+  if (!rawSummary || !rawRules) {
+    const syntheticRules = [
+      { id: 'GATE-01', title: 'SimpleBeacon gate pass', status: gatePass ? 'pass' : 'fail', evidence: gatePass ? 'Gate passed with no blocking issues' : `Gate failed — ${gateBlocking} blocking, ${gateWarnings} warnings` },
+      { id: 'EUAI-01', title: 'EU AI Act scan executed', status: (report?.euAiActScanned ?? 0) > 0 ? 'pass' : 'skip', evidence: `${report?.euAiActScanned ?? 0} files scanned for EU AI Act patterns` },
+      { id: 'EUAI-02', title: 'Documentation artifacts present', status: docCount > 0 ? 'pass' : 'warn', evidence: `${docCount} documentation artifact(s) detected` },
+      { id: 'EUAI-03', title: 'No critical/high security findings', status: gateBlocking === 0 ? 'pass' : 'fail', evidence: gateBlocking === 0 ? 'Zero blocking findings in gate' : `${gateBlocking} blocking issue(s) require remediation` }
+    ];
+    const passed = syntheticRules.filter(r => r.status === 'pass').length;
+    const failed = syntheticRules.filter(r => r.status === 'fail').length;
+    const total = syntheticRules.length;
+    summary = { score: qualityScore ?? Math.round((passed / total) * 100), passed, failed, total, headline: `Gate ${gatePass ? 'PASS' : 'FAIL'} · ${gateBlocking} blocking · ${gateWarnings} warning(s)` };
+    rules = syntheticRules;
+  }
+
+  const score = summary.score ?? qualityScore ?? '—';
 
   const ruleRows = rules.map((rule) => {
     const statusClass = rule.status === 'pass' ? 'badge-pass' : rule.status === 'fail' ? 'badge-blocked' : 'badge-warn';
@@ -243,7 +267,18 @@ npx simplebeacon compliance --checklist eu-ai-act --gate</pre>
 }
 
 async function buildEuAiActAuditReport(options = {}) {
-  const artifacts = await loadEuAiActArtifacts(options);
+  let artifacts;
+  if (options.artifacts) {
+    const platformRoot = options.artifacts.platformRoot || options.projectPath || process.cwd();
+    artifacts = {
+      platformRoot,
+      report: options.artifacts.report || null,
+      compliance: options.artifacts.complianceChecklist || options.artifacts.compliance || null,
+      assessment: options.artifacts.assessment || null
+    };
+  } else {
+    artifacts = await loadEuAiActArtifacts(options);
+  }
   const reportId = buildReportId();
   const html = buildEuAiActAuditHtml({
     ...artifacts,

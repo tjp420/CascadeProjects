@@ -2694,6 +2694,11 @@ button.tool-card.help-page-card:hover {
   color: var(--danger);
 }
 
+.badge-info {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--info);
+}
+
 .chatbot-copy-btn.copied {
   opacity: 1;
   color: var(--success);

@@ -9,11 +9,12 @@
   var submitBtn = form.querySelector('.contact-form-submit');
 
   var TOPIC_LABELS = {
-    general: 'General question',
-    audit: '$499 pre-launch audit',
-    agency: 'Agency pack ($999+)',
-    warranty: 'Warranty re-scan ($199)',
-    technical: 'Technical / integration'
+    'free-audit': 'Free AI Slop Audit request',
+    certificate: 'Executive Risk Certificate ($499)',
+    'eu-ai-act': 'EU AI Act Readiness Sprint ($2,499)',
+    enterprise: 'Enterprise contract ($50,000+ annual)',
+    quarterly: 'Quarterly / Annual Protection Pack',
+    general: 'General compliance question'
   };
 
   function setStatus(message, kind) {
@@ -43,6 +44,8 @@
     var payload = {
       contactEmail: String(data.get('contactEmail') || '').trim(),
       name: String(data.get('name') || '').trim(),
+      company: String(data.get('company') || '').trim(),
+      title: String(data.get('title') || '').trim(),
       topic: String(data.get('topic') || 'general').trim(),
       message: String(data.get('message') || '').trim(),
       source: String(data.get('source') || 'contact-page').trim()

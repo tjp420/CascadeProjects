@@ -121,7 +121,8 @@ function registerEuAiActAuditRoute(app, options = {}) {
       const report = await buildEuAiActAuditReport({
         projectPath,
         clientName: body.client || body.company || undefined,
-        deliverableSku: body.deliverableSku || body.productSku || 'euai2499'
+        deliverableSku: body.deliverableSku || body.productSku || 'euai2499',
+        artifacts: body.sprintArtifacts || undefined
       });
       res.set('Cache-Control', 'no-store');
       return res.json({

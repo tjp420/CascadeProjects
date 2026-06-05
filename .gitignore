@@ -6,7 +6,18 @@ java-ai-vulnerable/
 .simplebeacon/*.json
 .simplebeacon/*.md
 .simplebeacon/*.bak
+.simplebeacon/*.simplebeacon-backup.*
 !ai-platform/.simplebeacon/config.json
+
+# Simplebeacon test output
+test-output-*.txt
+
+# Simplebeacon fixture configs (auto-generated)
+simplebeacon-rule-tests/*/.simplebeacon/
+
+# Marketing content test output
+marketing-content-test/
+marketing-content-test2/
 
 # Root-level generated scan reports
 consolidation-report.json
@@ -37,6 +48,10 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# Temp fix scripts
+/temp-edit*.js
+/fix-*.js
 
 # OS files
 .DS_Store

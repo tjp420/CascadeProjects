@@ -1,4 +1,8 @@
 import { authService } from './authService.js';
+
+function isAuthenticated() {
+    return authService.isAuthenticated();
+}
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 
 const BASE = '/api/simplebeacon/user/ai-keys';
@@ -23,6 +27,9 @@ export function normalizeAiKeysRecord(keysRecord = null) {
 }
 
 export async function fetchUserAiKeys() {
+  if (!isAuthenticated()) {
+    return normalizeAiKeysRecord(null);
+  }
   const keysHttpResponse = await fetch(BASE, { headers: authService.getAuthHeaders() });
   const keysPayload = await readJsonResponseBody(keysHttpResponse, {});
   if (!keysHttpResponse.ok || !keysPayload.success) {

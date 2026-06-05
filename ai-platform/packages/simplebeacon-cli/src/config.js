@@ -4,7 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { detectProjectProfile, IGNORE_DEFAULTS, CASCADE_ANCHORS, isCascadeMonorepo } = require('./project-detect');
+const { detectProjectProfile, IGNORE_DEFAULTS, CASCADE_ANCHORS, isCascadeMonorepo, resolvePlatformRoot } = require('./project-detect');
 const { validateConfig } = require('./config-schema');
 const { ConfigError } = require('./lib/errors');
 const { normalizePathKey, assertPathWithinRoot, resolveSafeRelativePath } = require('./lib/path-utils');
@@ -72,6 +72,7 @@ const PROFILE_RULES = {
         'architecture-drift-patterns': { enabled: false },
         'python-ast-patterns': { enabled: false },
         'javascript-ast-patterns': { enabled: false },
+        'file-naming-patterns': { enabled: false },
         'jest-baseline': { enabled: false, runTests: false },
         'enterprise-guardrail-patterns': {
             enabled: true,
@@ -89,7 +90,8 @@ const PROFILE_RULES = {
         'jest-baseline': { enabled: false, runTests: false },
         'fiction-kpi-patterns': { enabled: true, severity: 'medium' },
         'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
-        'agency-handoff-patterns': { enabled: true, severity: 'medium' }
+        'agency-handoff-patterns': { enabled: true, severity: 'medium' },
+        'file-naming-patterns': { enabled: true, severity: 'medium' }
     },
     'eu-ai-act': {
         credentials: { enabled: true, scanProduction: true },
@@ -101,6 +103,7 @@ const PROFILE_RULES = {
         'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
         'agency-handoff-patterns': { enabled: true, severity: 'medium' },
         'eu-ai-act-patterns': { enabled: true, severity: 'medium' },
+        'file-naming-patterns': { enabled: true, severity: 'medium' },
         'jest-baseline': { enabled: false, runTests: false }
     },
     cascade: {
@@ -128,7 +131,8 @@ const PROFILE_RULES = {
             testCommand: 'npm test -- --no-coverage --passWithNoTests'
         },
         'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
-        'agency-handoff-patterns': { enabled: true, severity: 'medium' }
+        'agency-handoff-patterns': { enabled: true, severity: 'medium' },
+        'file-naming-patterns': { enabled: true, severity: 'medium' }
     }
 };
 
@@ -137,7 +141,8 @@ const OPT_IN_RULE_DEFAULTS = {
     'token-bleed-patterns': { enabled: false, severity: 'medium' },
     'architecture-drift-patterns': { enabled: false, severity: 'high' },
     'python-ast-patterns': { enabled: false, severity: 'medium' },
-    'javascript-ast-patterns': { enabled: false, severity: 'medium' }
+    'javascript-ast-patterns': { enabled: false, severity: 'medium' },
+    'file-naming-patterns': { enabled: false, severity: 'medium' }
 };
 
 const DEFAULT_INTELLIGENCE = {
@@ -170,6 +175,7 @@ const DEFAULT_FULL_TREE_SKIP_DIRS = [
     'build',
     'temp',
     'logs',
+    '.simplebeacon',
     '.simplebeacon-backup'
 ];
 
@@ -343,9 +349,32 @@ function filterExistingRelativePaths(baseDir, relativePaths) {
 function ensureEuAiActScanScope(baseDir, config) {
     const root = path.resolve(baseDir);
     const existingProd = filterExistingRelativePaths(root, config.productionPaths);
-    config.productionPaths = existingProd.length ? existingProd : ['.'];
+    let productionPaths = existingProd.length ? existingProd : null;
+
     const existingScan = filterExistingRelativePaths(root, config.scanPaths);
-    config.scanPaths = existingScan.length ? existingScan : ['.'];
+    let scanPaths = existingScan.length ? existingScan : null;
+
+    if (!productionPaths || !scanPaths) {
+        const { platformRoot } = resolvePlatformRoot(root);
+        if (platformRoot && platformRoot !== root) {
+            const platformRel = path.relative(root, platformRoot).split(path.sep).join('/');
+            if (!productionPaths) {
+                const prefixedProd = (config.productionPaths || DEFAULT_CONFIG.productionPaths)
+                    .map((p) => `${platformRel}/${p.replace(/^\//, '')}`)
+                    .filter((p) => relativePathExists(root, p));
+                if (prefixedProd.length) productionPaths = prefixedProd;
+            }
+            if (!scanPaths) {
+                const prefixedScan = (config.scanPaths || DEFAULT_CONFIG.scanPaths)
+                    .map((p) => `${platformRel}/${p.replace(/^\//, '')}`)
+                    .filter((p) => relativePathExists(root, p));
+                if (prefixedScan.length) scanPaths = prefixedScan;
+            }
+        }
+    }
+
+    config.productionPaths = productionPaths || ['.'];
+    config.scanPaths = scanPaths || ['.'];
     config.sourceCodeScanPaths = config.productionPaths.includes('.')
         ? ['.']
         : [...config.productionPaths];

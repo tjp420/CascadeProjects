@@ -36,7 +36,12 @@ function buildCompleteScanAnalysis(completeScan) {
             immediateSavingsBytes: frPlan.totals?.estimatedImmediateSavingsBytes ?? null,
             duplicateAssetBytes: frPlan.totals?.duplicateAssetBytes ?? null,
             unusedFileCandidates: frPlan.unusedFiles?.candidates ?? null,
-            topSafeDirectories: frPlan.safeToDelete?.topDirectories?.slice(0, 8) || [],
+            topSafeDirectories: (frPlan.safeToDelete?.topDirectories || [])
+                .filter((entry) => (Number(entry.bytes) || 0) > 0 || (Number(entry.files) || 0) > 0)
+                .slice(0, 8),
+            skippedArtifactDirectories: (frPlan.safeToDelete?.topDirectories || [])
+                .filter((entry) => (Number(entry.bytes) || 0) === 0 && (Number(entry.files) || 0) === 0)
+                .slice(0, 8),
             reviewLogs: frPlan.reviewBeforeDelete?.logs?.slice(0, 8) || [],
             summaryTable: frPlan.summaryTable || []
         } : null,

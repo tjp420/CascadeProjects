@@ -31,7 +31,7 @@ test('normalizeFileReductionReport treats large OSS clone inventory as benchmark
     assert.equal(normalized.scanScope.resultsViewScope, 'benchmark-clone');
     assert.equal(normalized.scanScope.rescanRecommended, false);
     assert.equal(normalized.scanScope.inventoryMetricsStale, false);
-    assert.match(normalized.scanScope.limitations[0], /workspace scanners/i);
+    assert.match(normalized.scanScope.limitations[0], /github-cache/i);
     assert.ok(!normalized.inventory.note.includes('stale full-tree'));
 });
 

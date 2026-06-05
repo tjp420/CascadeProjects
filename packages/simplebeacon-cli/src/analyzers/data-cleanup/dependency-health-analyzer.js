@@ -21,7 +21,8 @@ const PLANNED_RUNTIME_DEPENDENCIES = new Set([
     'qrcode',
     'axios',
     'compromise',
-    'natural'
+    'natural',
+    '@simplebeacon/intelligence'
 ]);
 
 function prioritizeDependencyScanFiles(files, maxFiles = 1500) {

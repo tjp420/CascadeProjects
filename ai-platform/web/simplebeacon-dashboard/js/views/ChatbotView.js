@@ -72,6 +72,7 @@ export class ChatbotView {
 
     clearBtn.addEventListener('click', () => {
       this.conversationHistory = [];
+      this.saveConversationHistory();
       this.renderMessages();
     });
 
@@ -88,6 +89,11 @@ export class ChatbotView {
       const select = document.getElementById('chatbot-provider');
       select.innerHTML = '';
       
+      if (!Array.isArray(data.providers)) {
+        console.warn('No providers available or unauthorized');
+        return;
+      }
+
       data.providers.forEach(provider => {
         const option = document.createElement('option');
         option.value = provider.id;

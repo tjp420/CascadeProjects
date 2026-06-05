@@ -1,0 +1,470 @@
+name: Simplebeacon AI Hygiene Gate
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  # AI Hygiene Gate - Core security and quality checks
+  hygiene-gate:
+    name: AI Hygiene Gate
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better analysis
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run Simplebeacon scan with gate
+      run: |
+        npm run simplebeacon:hygiene-gate
+    
+    - name: Upload Simplebeacon report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: simplebeacon-report
+        path: .simplebeacon/
+        retention-days: 30
+    
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = './.simplebeacon/report.json';
+          
+          if (fs.existsSync(path)) {
+            const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const gatePass = report.gate?.pass || false;
+            const blockingCount = report.gate?.blockingCount || 0;
+            const warningCount = report.gate?.warningCount || 0;
+            const qualityScore = report.qualityScore || 0;
+            
+            const comment = `
+            ## 🔍 Simplebeacon AI Hygiene Gate Results
+            
+            **Status**: ${gatePass ? '✅ PASS' : '❌ FAIL'}
+            **Quality Score**: ${qualityScore}/100
+            **Blocking Issues**: ${blockingCount}
+            **Warning Issues**: ${warningCount}
+            
+            ${gatePass ? 
+              '✅ This PR passes the AI hygiene gate and can proceed.' : 
+              '❌ This PR fails the AI hygiene gate. Please address blocking issues before merging.'
+            }
+            
+            [📊 View Full Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          }
+
+  # Test Coverage with Istanbul
+  test-coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run tests with coverage
+      run: npm run test:coverage
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+    
+    - name: Check coverage thresholds
+      run: |
+        COVERAGE=$(npm run test:coverage:json 2>/dev/null | grep -o '"total":{"lines":{"pct":[0-9.]*' | grep -o '[0-9]*' || echo "0")
+        echo "Coverage: ${COVERAGE}%"
+        
+        if [ "${COVERAGE}" -lt "80" ]; then
+          echo "❌ Coverage ${COVERAGE}% is below threshold 80%"
+          exit 1
+        else
+          echo "✅ Coverage ${COVERAGE}% meets threshold"
+        fi
+
+  # Phase 2 Docker Smoke Test
+  phase2-smoke:
+    name: Phase 2 Docker Smoke Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Verify docker-compose.phase2.yml exists
+      run: |
+        if [ ! -f "docker-compose.phase2.yml" ]; then
+          echo "❌ docker-compose.phase2.yml not found"
+          exit 1
+        fi
+        echo "✅ docker-compose.phase2.yml found"
+    
+    - name: Validate Docker Compose syntax
+      run: docker compose -f docker-compose.phase2.yml config
+    
+    - name: Start Phase 2 infrastructure
+      run: |
+        docker compose -f docker-compose.phase2.yml up -d
+        sleep 10
+    
+    - name: Test PostgreSQL connectivity
+      run: |
+        docker exec simplebeacon-postgres pg_isready -U simplebeacon_user
+    
+    - name: Test Redis connectivity
+      run: |
+        docker exec simplebeacon-redis redis-cli ping
+    
+    - name: Stop Phase 2 infrastructure
+      run: docker compose -f docker-compose.phase2.yml down
+
+  # Phase 2 Infrastructure Tests
+  phase2-tests:
+    name: Phase 2 Infrastructure Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_USER: test-user
+          POSTGRES_DB: test-db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Configure test environment
+      run: |
+        echo "POSTGRES_HOST=localhost" >> .env.test
+        echo "POSTGRES_PORT=5432" >> .env.test
+        echo "POSTGRES_DB=test-db" >> .env.test
+        echo "POSTGRES_USER=test-user" >> .env.test
+        echo "POSTGRES_PASSWORD=test-password" >> .env.test
+        echo "REDIS_HOST=localhost" >> .env.test
+        echo "REDIS_PORT=6379" >> .env.test
+        echo "REQUIRE_AUTH=true" >> .env.test
+        echo "JWT_SECRET=test-jwt-secret-key-for-ci-testing-32chars-min" >> .env.test
+        echo "JWT_REFRESH_SECRET=test-jwt-refresh-secret-key-for-ci-32chars-min" >> .env.test
+    
+    - name: Run Phase 2 integration tests
+      run: |
+        npm run verify:v1-internal
+        npm run test:integration
+      env:
+        NODE_ENV: test
+    
+    - name: Test database connectivity
+      run: |
+        node -e "
+        const { Client } = require('pg');
+        const client = new Client({
+          host: process.env.POSTGRES_HOST || 'localhost',
+          port: process.env.POSTGRES_PORT || 5432,
+          database: process.env.POSTGRES_DB || 'test-db',
+          user: process.env.POSTGRES_USER || 'test-user',
+          password: process.env.POSTGRES_PASSWORD || 'test-password'
+        });
+        client.connect()
+          .then(() => console.log('✅ PostgreSQL connection successful'))
+          .then(() => client.query('SELECT NOW()'))
+          .then(() => client.end())
+          .catch(err => {
+            console.error('❌ PostgreSQL connection failed:', err.message);
+            process.exit(1);
+          });
+        "
+    
+    - name: Test Redis connectivity
+      run: |
+        node -e "
+        const redis = require('redis');
+        const client = redis.createClient({
+          host: process.env.REDIS_HOST || 'localhost',
+          port: process.env.REDIS_PORT || 6379
+        });
+        client.connect()
+          .then(() => console.log('✅ Redis connection successful'))
+          .then(() => client.ping())
+          .then(() => client.quit())
+          .catch(err => {
+            console.error('❌ Redis connection failed:', err.message);
+            process.exit(1);
+          });
+        "
+
+  # Security Audit
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run npm audit
+      run: npm audit --audit-level=high
+    
+    - name: Run Simplebeacon security scan
+      run: npm run security:scan
+    
+    - name: Check for hardcoded secrets
+      run: |
+        # Check for common secret patterns
+        if grep -r -i "password.*=.*['\"][^'\"]{8,}['\"]" --include="*.js" --include="*.json" --include="*.cjs" --exclude-dir=node_modules --exclude-dir=.git .; then
+          echo "❌ Potential hardcoded passwords found"
+          exit 1
+        fi
+        
+        if grep -r -i "secret.*=.*['\"][^'\"]{8,}['\"]" --include="*.js" --include="*.json" --include="*.cjs" --exclude-dir=node_modules --exclude-dir=.git .; then
+          echo "❌ Potential hardcoded secrets found"
+          exit 1
+        fi
+        
+        echo "✅ No obvious hardcoded secrets found"
+
+  # Performance Tests
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Start application
+      run: |
+        npm start &
+        sleep 10
+    
+    - name: Run smoke tests
+      run: npm run smoke:test
+    
+    - name: Check API response times
+      run: |
+        # Test critical endpoints
+        ENDPOINTS=(
+          "http://localhost:54355/api/health"
+          "http://localhost:54355/api/platform/status"
+          "http://localhost:54355/api/simplebeacon/entitlements"
+        )
+        
+        for endpoint in "${ENDPOINTS[@]}"; do
+          echo "Testing $endpoint..."
+          response_time=$(curl -o /dev/null -s -w '%{time_total}' "$endpoint" || echo "999")
+          echo "Response time: ${response_time}s"
+          
+          if (( $(echo "$response_time > 2.0" | bc -l) )); then
+            echo "❌ Slow response time for $endpoint: ${response_time}s"
+            exit 1
+          fi
+        done
+        
+        echo "✅ All API endpoints respond within acceptable time limits"
+
+  # Build and Deploy Test
+  build-test:
+    name: Build Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run build
+      run: npm run build
+    
+    - name: Verify build artifacts
+      run: |
+        if [ ! -d "dist" ]; then
+          echo "❌ Build directory not found"
+          exit 1
+        fi
+        
+        if [ ! -s "dist" ]; then
+          echo "❌ Build directory is empty"
+          exit 1
+        fi
+        
+        echo "✅ Build completed successfully"
+
+  # Gate Status Summary
+  gate-summary:
+    name: Gate Summary
+    runs-on: ubuntu-latest
+    needs: [hygiene-gate, test-coverage, phase2-tests, security-audit, performance-tests, build-test]
+    if: always()
+    
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: simplebeacon-report
+        path: .simplebeacon/
+    
+    - name: Generate summary
+      run: |
+        echo "# 🚪 Simplebeacon Gate Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Job | Status | Details |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----|--------|---------|" >> $GITHUB_STEP_SUMMARY
+        
+        # Check each job status
+        JOBS=("hygiene-gate" "test-coverage" "phase2-tests" "security-audit" "performance-tests" "build-test")
+        
+        for job in "${JOBS[@]}"; do
+          status="${{ needs.${job}.result }}"
+          case $status in
+            "success")
+              echo "| $job | ✅ Success | All checks passed |" >> $GITHUB_STEP_SUMMARY
+              ;;
+            "failure")
+              echo "| $job | ❌ Failed | Check job logs for details |" >> $GITHUB_STEP_SUMMARY
+              ;;
+            "skipped")
+              echo "| $job | ⏭️ Skipped | Job was skipped |" >> $GITHUB_STEP_SUMMARY
+              ;;
+            *)
+              echo "| $job | ❓ Unknown | Status: $status |" >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
+        done
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Add Simplebeacon report summary if available
+        if [ -f ".simplebeacon/report.json" ]; then
+          echo "## 📊 Simplebeacon Report Summary" >> $GITHUB_STEP_SUMMARY
+          node -e "
+          const report = JSON.parse(require('fs').readFileSync('.simplebeacon/report.json', 'utf8'));
+          const gatePass = report.gate?.pass || false;
+          const blockingCount = report.gate?.blockingCount || 0;
+          const warningCount = report.gate?.warningCount || 0;
+          const qualityScore = report.qualityScore || 0;
+          
+          console.log('- **Gate Status**: ' + (gatePass ? '✅ PASS' : '❌ FAIL'));
+          console.log('- **Quality Score**: ' + qualityScore + '/100');
+          console.log('- **Blocking Issues**: ' + blockingCount);
+          console.log('- **Warning Issues**: ' + warningCount);
+          " >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Overall gate status
+        failed_jobs=0
+        for job in "${JOBS[@]}"; do
+          if [ "${{ needs.${job}.result }}" != "success" ]; then
+            ((failed_jobs++))
+          fi
+        done
+        
+        if [ $failed_jobs -eq 0 ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎉 Overall Status: ✅ ALL CHECKS PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "This change is ready for merge! 🚀" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚫 Overall Status: ❌ $failed_jobs CHECKS FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "Please address the failing jobs before merging." >> $GITHUB_STEP_SUMMARY
+        fi

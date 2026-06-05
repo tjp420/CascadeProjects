@@ -1,0 +1,9 @@
+{
+  "type": "database-model",
+  "overview": {
+    "connectedDatabases": 2
+  },
+  "databases": [
+    {}
+  ]
+}

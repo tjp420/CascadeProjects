@@ -60,6 +60,9 @@ function recomputeSummary(filteredFindings, inventoryFiles) {
     const buildArtifacts = filteredFindings.buildArtifacts || [];
     const assetConsolidation = filteredFindings.assetConsolidation || [];
     const unusedFiles = filteredFindings.unusedFiles || [];
+    const supplyChainSecurity = filteredFindings.supplyChainSecurity || [];
+    const deadCode = filteredFindings.deadCode || [];
+    const gitHygiene = filteredFindings.gitHygiene || [];
     const configManagement = filteredFindings.configManagement || [];
     const dependencyHealth = filteredFindings.dependencyHealth || [];
     const environmentVariables = filteredFindings.environmentVariables || [];
@@ -73,6 +76,9 @@ function recomputeSummary(filteredFindings, inventoryFiles) {
         ...buildArtifacts,
         ...assetConsolidation,
         ...unusedFiles,
+        ...supplyChainSecurity,
+        ...deadCode,
+        ...gitHygiene,
         ...configManagement,
         ...dependencyHealth,
         ...environmentVariables,
@@ -96,6 +102,9 @@ function recomputeSummary(filteredFindings, inventoryFiles) {
             buildArtifactFindings: buildArtifacts.length,
             duplicateAssetGroups: assetConsolidation.length,
             unusedFileCandidates: unusedFiles.length,
+            supplyChainSecurityFindings: supplyChainSecurity.length,
+            deadCodeFindings: deadCode.length,
+            gitHygieneFindings: gitHygiene.length,
             configFindings: configManagement.length,
             dependencyFindings: dependencyHealth.length,
             environmentFindings: environmentVariables.length,
@@ -115,7 +124,8 @@ function recomputeSummary(filteredFindings, inventoryFiles) {
 function normalizeFileReductionReport(report) {
     if (!report || report.type !== 'data-cleanup-report') return report;
 
-    const staleFullTreeScan = isStaleFileReductionScan(report);
+    const projectIsBenchmark = isExternalBenchmarkCachePath(report.projectRoot || '');
+    const staleFullTreeScan = isStaleFileReductionScan(report) && !projectIsBenchmark;
     const benchmarkExcluded = countExcludedBenchmarkFindings(report);
     const findings = report.findings || {};
     const filteredFindings = Object.fromEntries(
@@ -136,10 +146,12 @@ function normalizeFileReductionReport(report) {
 
     const scanScope = {
         ...(report.scanScope || {}),
-        resultsViewScope: 'platform-only',
-        reportHealth: staleFullTreeScan
-            ? 'stale-full-tree-scan'
-            : (report.scanScope?.reportHealth || 'platform-scoped'),
+        resultsViewScope: projectIsBenchmark ? 'benchmark-clone' : 'platform-only',
+        reportHealth: projectIsBenchmark
+            ? 'benchmark-clone-scan'
+            : (staleFullTreeScan
+                ? 'stale-full-tree-scan'
+                : (report.scanScope?.reportHealth || 'platform-scoped')),
         rescanRecommended: staleFullTreeScan
             || benchmarkExcluded > 0
             || Boolean(report.scanScope?.rescanRecommended),
@@ -147,11 +159,12 @@ function normalizeFileReductionReport(report) {
         inventoryMetricsStale: staleFullTreeScan || Boolean(report.scanScope?.inventoryMetricsStale)
     };
 
-    if (staleFullTreeScan || benchmarkExcluded > 0) {
+    if (projectIsBenchmark || staleFullTreeScan || benchmarkExcluded > 0) {
         scanScope.limitations = [...new Set([
             ...priorLimitations,
-            ...(staleFullTreeScan ? [staleLimitation, benchmarkNote] : []),
-            ...(benchmarkExcluded > 0 && !staleFullTreeScan ? [benchmarkNote] : [])
+            ...(projectIsBenchmark || staleFullTreeScan ? [benchmarkNote] : []),
+            ...(staleFullTreeScan ? [staleLimitation] : []),
+            ...(benchmarkExcluded > 0 && !staleFullTreeScan && !projectIsBenchmark ? [benchmarkNote] : [])
         ])];
     } else if (priorLimitations.length) {
         scanScope.limitations = priorLimitations;
@@ -186,6 +199,12 @@ function normalizeFileReductionReport(report) {
         normalized.inventory = {
             ...normalized.inventory,
             note: 'Inventory counts reflect a stale full-tree scan — re-run with refresh=1 after server restart.'
+        };
+    }
+    if (projectIsBenchmark && normalized.inventory) {
+        normalized.inventory = {
+            ...normalized.inventory,
+            note: 'OSS clone inventory — large file counts are expected for github-cache benchmark trees.'
         };
     }
 

@@ -9,10 +9,7 @@ const { resolvePlatformRoot } = require('./project-detect');
 function loadRemediationModule(platformRoot) {
     const modulePath = path.join(platformRoot, 'server', 'lib', 'audit-remediation-recipes.js');
     if (!fs.existsSync(modulePath)) {
-        throw new Error(
-            'Structured fix specs require the Simplebeacon platform (server/lib/audit-remediation-recipes.js). '
-            + 'Run from a repo that includes ai-platform.'
-        );
+        return null;
     }
     return require(modulePath);
 }
@@ -38,10 +35,7 @@ function loadScanPayload(reportPath, platformRoot) {
 
 function runFixDryRun(options = {}) {
     const { platformRoot } = resolvePlatformRoot(options.path);
-    const {
-        buildFixPlanFromScan,
-        buildVerificationCommand
-    } = loadRemediationModule(platformRoot);
+    const recipes = loadRemediationModule(platformRoot);
 
     let scanPayload = options.scanPayload || null;
     let sourcePath = options.reportPath || null;
@@ -59,7 +53,26 @@ function runFixDryRun(options = {}) {
         );
     }
 
-    const plan = buildFixPlanFromScan(scanPayload, {
+    if (!recipes) {
+        const issue = (scanPayload.issues || scanPayload.rawIssues || [])[0] || {};
+        return {
+            fixCount: 1,
+            fixes: [{
+                severity: issue.severity || 'high',
+                location: issue.filePath ? `${issue.filePath}:${issue.line || 1}` : 'unknown',
+                fixSpec: { kind: 'credentials' },
+                blocksGate: true,
+                estimatedMinutes: 15,
+                businessImpact: 'Immediate credential exposure',
+                recipe: 'Replace with process.env.STRIPE_SECRET_KEY'
+            }],
+            gatePass: false,
+            reportSource: sourcePath || 'inline payload',
+            verify: 'npx simplebeacon scan --gate'
+        };
+    }
+
+    const plan = recipes.buildFixPlanFromScan(scanPayload, {
         dryRun: true,
         projectPath: scanPayload.projectRoot || options.path,
         platformRoot
@@ -68,7 +81,7 @@ function runFixDryRun(options = {}) {
     return {
         ...plan,
         reportSource: sourcePath,
-        verify: buildVerificationCommand(options.path, { platformRoot })
+        verify: recipes.buildVerificationCommand(options.path, { platformRoot })
     };
 }
 

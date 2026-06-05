@@ -48,13 +48,8 @@
   "engines": {
     "node": ">=16.0.0"
   },
-  "dependencies": {
-    "@babel/parser": "^7.26.9",
-    "@babel/traverse": "^7.26.9"
-  },
-  "optionalDependencies": {
-    "@simplebeacon/intelligence": "1.0.0"
-  },
+  "dependencies": {},
+  "optionalDependencies": {},
   "publishConfig": {
     "access": "public"
   },

@@ -20,6 +20,9 @@ const {
 const { formatGithubComment, postGithubComment } = require('../src/reporters/github-comment');
 const { buildAssessmentReport } = require('../src/assessment');
 const { sanitizeReportForCloudUpload } = require('../src/lib/report-sanitizer');
+const { buildAnonymizedExport, signAnonymizedExport } = require('../src/lib/anonymized-export');
+const { runLocalRemediation } = require('../src/lib/local-remediation');
+const { generateExecutivePdf } = require('../src/lib/pdf-generator');
 const { evaluateComplianceChecklist } = require('../src/compliance-checklist');
 const { installSimplebeaconHook } = require('../src/hook-install');
 const { paint } = require('../src/reporters/text');
@@ -45,7 +48,7 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status']);
+const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance']);
 
 function writeStdoutLine(message = '') {
     process.stdout.write(`${message}\n`);
@@ -107,7 +110,13 @@ function parseArgs(argv) {
         withMcp: false,
         mcpMode: 'npx-local',
         withCi: false,
-        starter: false
+        starter: false,
+        anonymize: false,
+        fix: false,
+        fixProvider: null,
+        fixDryRun: false,
+        maxFixes: 10,
+        withAnalyzerSuite: false
     };
 
     for (let i = flagStart; i < args.length; i += 1) {
@@ -180,6 +189,28 @@ function parseArgs(argv) {
             options.starter = true;
             options.withMcp = true;
             options.withCi = true;
+        } else if (arg === '--anonymize') {
+            options.anonymize = true;
+        } else if (arg === '--fix') {
+            options.fix = true;
+        } else if (arg === '--fix-provider' && args[i + 1]) {
+            options.fixProvider = args[++i];
+        } else if (arg === '--fix-dry-run') {
+            options.fixDryRun = true;
+        } else if (arg === '--with-analyzer-suite') {
+            options.withAnalyzerSuite = true;
+        } else if (arg === '--fullDirectoryScan' || arg === '--full') {
+            options.fullDirectoryScan = true;
+        } else if (arg === '--email' && args[i + 1]) {
+            options.email = args[++i];
+        } else if (arg === '--server' && args[i + 1]) {
+            options.server = args[++i];
+        } else if (arg === '--poll-seconds' && args[i + 1]) {
+            options.pollSeconds = Number(args[++i]) || 5;
+        } else if (arg === '--max-polls' && args[i + 1]) {
+            options.maxPolls = Number(args[++i]) || 60;
+        } else if (arg === '--max-fixes' && args[i + 1]) {
+            options.maxFixes = Number(args[++i]) || 10;
         } else if (arg === '--mcp-mode' && args[i + 1]) {
             options.mcpMode = args[++i];
         } else if (arg === '--help' || arg === '-h') {
@@ -236,6 +267,19 @@ Usage:
   simplebeacon hook install         Install pre-commit or pre-push git hook
   simplebeacon gate status            Print gate pass/fail from .simplebeacon/report.json
   simplebeacon reduce [options]     Analyze repo for file-reduction opportunities (dry-run)
+  simplebeacon pdf [options]        Generate Executive Risk Certificate (requires license token)
+  simplebeacon buy-clearance        Purchase executive clearance and receive license token
+
+buy-clearance options:
+  --email <addr>      Email address for checkout (required)
+  --server <url>    Simplebeacon server URL (default: https://simplebeacon.ai)
+  --poll-seconds <n> Seconds between poll attempts (default: 5)
+  --max-polls <n>   Maximum poll attempts (default: 60)
+
+PDF options:
+  --report <file>     Scan report JSON (default: .simplebeacon/report.json)
+  --output <file>     Output HTML path (default: simplebeacon-executive-risk-certificate.html)
+  Requires SIMPLEBEACON_LICENSE_TOKEN env var or ~/.simplebeacon/license.jwt
 
 Init options:
   --path <dir>        Project root (default: cwd)
@@ -256,6 +300,12 @@ Scan options:
   --fail-on a,b,c     Override gate fail severities (default: high)
   --with-jest         Run npm test and compare to baseline (slow)
   --verbose, -v       Print config warnings and scan paths
+  --anonymize         Strip all file paths, descriptions, and code snippets from JSON output
+                        Output contains only abstract error codes and compliance metrics.
+  --fix               Run local remediation agent against blocking findings (requires Ollama)
+  --fix-provider <p>  Override remediation LLM: ollama (default) | openai | anthropic
+  --fix-dry-run       Show diffs without applying patches
+  --max-fixes <n>     Limit number of auto-fix attempts (default: 10)
   --offline           Fail if any outbound network activity occurs during scan
   --no-trust-banner   Suppress read-only / local-only trust confirmation lines
   --api-token <tok>   Paid tier API token (required with --upload)
@@ -274,6 +324,7 @@ Assess options:
   --company <name>    Customer / repo name for report title
   --assessor <name>   Your name on the deliverable
   --checklist <id>    Checklist profile: default | eu-ai-act (default: default)
+  --with-analyzer-suite  Run 48-analyzer AI risk assessment and export JSON
 
 Report options:
   --path <dir>        Project root (default: cwd)
@@ -400,14 +451,29 @@ async function runScanCommand(options) {
         const gateResult = evaluateGate(report, config.gate);
         const jsonReport = formatJsonReport(report, gateResult);
 
+        if (options.anonymize) {
+            options.format = 'json';
+        }
+
+        if (options.fix && options.format !== 'json') {
+            options.format = 'text';
+        }
+
         if (options.upload) {
             const uploadResult = await uploadReportToCloud(options.upload, options.apiToken, jsonReport);
             console.error(`Cloud upload complete${uploadResult.scanId ? `: ${uploadResult.scanId}` : ''}`);
         }
 
-        const payload = options.format === 'json'
-            ? JSON.stringify(jsonReport, null, 2)
-            : formatTextReport(report, gateResult);
+        let payload;
+        if (options.anonymize) {
+            const anon = buildAnonymizedExport(report);
+            const signed = signAnonymizedExport(anon);
+            payload = JSON.stringify(signed, null, 2);
+        } else {
+            payload = options.format === 'json'
+                ? JSON.stringify(jsonReport, null, 2)
+                : formatTextReport(report, gateResult);
+        }
 
         if (options.output) {
             writeManagedFileSync(path.resolve(options.output), `${payload}\n`, {
@@ -420,6 +486,29 @@ async function runScanCommand(options) {
             }
         } else {
             writeStdoutLine(payload);
+        }
+
+        if (options.fix) {
+            const fixableIssues = gateResult.blockingIssues.length > 0
+                ? gateResult.blockingIssues
+                : (report.rawIssues || []).filter((i) => i.severity === 'high' || i.severity === 'critical');
+            if (fixableIssues.length > 0) {
+                console.error(`\n🔧 [Local Remediation] Running local agent on ${fixableIssues.length} finding(s)...`);
+                const remediation = await runLocalRemediation(fixableIssues, {
+                    dryRun: options.fixDryRun,
+                    maxFixes: options.maxFixes,
+                    model: options.fixProvider === 'ollama' || !options.fixProvider
+                        ? process.env.SIMPLEBEACON_FIX_MODEL || 'llama3.2:latest'
+                        : null
+                });
+                console.error(`   Applied: ${remediation.applied} | Failed: ${remediation.failed} | Total: ${remediation.total}`);
+                for (const r of remediation.results) {
+                    const icon = r.applied ? '✅' : '❌';
+                    console.error(`   ${icon} ${r.issue}${r.diff ? '\n      ' + r.diff.split('\n').slice(0, 3).join('\n      ') : ''}`);
+                }
+            } else {
+                console.error('🔧 [Local Remediation] No high-severity findings to fix.');
+            }
         }
 
         if (options.gate && !gateResult.pass) {
@@ -522,6 +611,33 @@ async function runAssessCommand(options) {
     writeStdoutLine(`Gate: ${assessment.executiveSummary.gateResult}`);
     writeStdoutLine(`Compliance: ${assessment.complianceChecklist.summary.passed}/${assessment.complianceChecklist.summary.passed + assessment.complianceChecklist.summary.failed} rules pass (score ${assessment.executiveSummary.complianceScore ?? '—'})`);
     writeStdoutLine(`Headline: ${assessment.executiveSummary.headline}`);
+
+    if (options.withAnalyzerSuite) {
+        const { buildAiSystemsIssueAnalysis } = require('../src/lib/ai-problem-analyzer-suite');
+        const { getCachedAnalysis, setCachedAnalysis } = require('../src/lib/ai-problem-analyzer-cache');
+        const { sanitizeAiProblemAnalyzerExport } = require('../src/lib/ai-problem-analyzer-export-sanitize');
+
+        const cached = getCachedAnalysis(root, report);
+        let analysisResult;
+        if (cached) {
+            analysisResult = cached;
+            writeStdoutLine('[Analyzer Suite] Using cached analysis (report unchanged).');
+        } else {
+            const allIssueIds = Array.from({ length: 48 }, (_, i) => `A-${String(i + 1).padStart(2, '0')}`);
+            analysisResult = buildAiSystemsIssueAnalysis(allIssueIds, { context: { scanReport: report } });
+            setCachedAnalysis(root, report, analysisResult);
+        }
+
+        const exportPayload = sanitizeAiProblemAnalyzerExport(analysisResult, { projectPath: root, context: { healthScore: report.qualityScore } });
+        const suitePath = path.resolve(options.output ? options.output.replace(/\.json$/, '-analyzer-suite.json') : '.simplebeacon/analyzer-suite.json');
+        writeManagedFileSync(suitePath, `${JSON.stringify(exportPayload, null, 2)}\n`, {
+            force: true,
+            validators: [validateJSON, validateNotEmpty]
+        });
+        writeStdoutLine(`Analyzer suite written to ${suitePath}`);
+        writeStdoutLine(`Measured: ${analysisResult.riskSummary.executionStatus.measured} | Insufficient Data: ${analysisResult.riskSummary.executionStatus.insufficientData} | Stubs: ${analysisResult.riskSummary.executionStatus.stub}`);
+        writeStdoutLine(`Overall Risk Level: ${analysisResult.riskSummary.overallRiskLevel}`);
+    }
 }
 
 async function runReportCommand(options) {
@@ -643,11 +759,41 @@ function runInitCommand(options) {
     });
     const detected = created.detected || detectProjectProfile(root);
 
+    const onboarding = options.withMcp || options.withCi || options.starter;
+    let stack = null;
+    if (onboarding) {
+        stack = installDeveloperStack(root, {
+            mode: options.mcpMode,
+            force: options.force,
+            dryRun: options.dryRun,
+            withMcp: options.withMcp || options.starter,
+            withCursorRule: options.withMcp || options.starter,
+            withCi: options.withCi || options.starter
+        });
+    }
+
     if (created.dryRun) {
         writeStdoutLine('DRY RUN — no files were modified');
         writeStdoutLine('');
         for (const action of created.plannedActions || []) {
             writeStdoutLine(`Would ${action.action}: ${action.path}`);
+        }
+        if (stack) {
+            if (stack.mcp?.dryRun) {
+                writeStdoutLine(`Would create: ${stack.mcp.configPath}`);
+            } else if (stack.mcp?.skipped) {
+                writeStdoutLine(`Would skip: ${stack.mcp.configPath}`);
+            }
+            if (stack.cursorRule?.dryRun) {
+                writeStdoutLine(`Would create: ${stack.cursorRule.path}`);
+            } else if (stack.cursorRule?.skipped) {
+                writeStdoutLine(`Would skip: ${stack.cursorRule.path}`);
+            }
+            if (stack.ciWorkflow?.dryRun) {
+                writeStdoutLine(`Would create: ${stack.ciWorkflow.path}`);
+            } else if (stack.ciWorkflow?.skipped) {
+                writeStdoutLine(`Would skip: ${stack.ciWorkflow.path}`);
+            }
         }
         writeStdoutLine('');
         writeStdoutLine(`Profile: ${created.profile}`);
@@ -677,17 +823,7 @@ function runInitCommand(options) {
     writeStdoutLine('  npx simplebeacon hook install');
     writeStdoutLine('  npx simplebeacon baseline sync   # after a green test run');
 
-    const onboarding = options.withMcp || options.withCi || options.starter;
-    if (onboarding) {
-        const stack = installDeveloperStack(root, {
-            mode: options.mcpMode,
-            force: options.force,
-            dryRun: options.dryRun,
-            withMcp: options.withMcp || options.starter,
-            withCursorRule: options.withMcp || options.starter,
-            withCi: options.withCi || options.starter
-        });
-
+    if (stack) {
         writeStdoutLine('');
         if (stack.mcp?.created) {
             writeStdoutLine(`Created ${stack.mcp.configPath} (MCP mode: ${stack.mcp.mode})`);
@@ -814,6 +950,79 @@ function runGateStatusCommand(options) {
     process.exit(status.gatePass ? 0 : 1);
 }
 
+async function runPdfCommand(options) {
+    const reportPath = path.resolve(options.report || '.simplebeacon/report.json');
+    const outputPath = options.output || 'simplebeacon-executive-risk-certificate.html';
+    const result = await generateExecutivePdf(reportPath, outputPath);
+    if (!result.ok) {
+        throw new Error(result.error);
+    }
+    writeStdoutLine(result.message);
+}
+
+async function runBuyClearanceCommand(options) {
+    const email = options.email;
+    if (!email) {
+        throw new Error('--email is required for buy-clearance');
+    }
+    const server = options.server || 'https://simplebeacon.ai';
+    const checkoutUrl = `${server}/api/simplebeacon/billing/checkout`;
+
+    console.error(`[buy-clearance] Initiating checkout for ${email}...`);
+    const response = await fetch(checkoutUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, product: 'executive_clearance' })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(data.message || data.error || `Checkout failed (${response.status})`);
+    }
+    if (!data.url) {
+        throw new Error('Checkout URL not returned from server');
+    }
+
+    console.error(`[buy-clearance] Opening browser: ${data.url}`);
+    const { exec } = require('child_process');
+    const platform = process.platform;
+    const cmd = platform === 'win32' ? `start "" "${data.url}"`
+        : platform === 'darwin' ? `open "${data.url}"`
+        : `xdg-open "${data.url}"`;
+    exec(cmd, (err) => {
+        if (err) console.error('[buy-clearance] Could not open browser automatically. Please open the URL manually.');
+    });
+
+    const sessionUrl = `${server}/api/simplebeacon/billing/session?session_id=${data.sessionId}`;
+    const pollSeconds = options.pollSeconds || 5;
+    const maxPolls = options.maxPolls || 60;
+
+    console.error(`[buy-clearance] Polling for payment completion (max ${maxPolls} attempts, ${pollSeconds}s interval)...`);
+    for (let i = 0; i < maxPolls; i++) {
+        await new Promise((r) => setTimeout(r, pollSeconds * 1000));
+        try {
+            const poll = await fetch(sessionUrl);
+            const pollData = await poll.json().catch(() => ({}));
+            if (pollData.paymentStatus === 'paid') {
+                if (pollData.licenseToken) {
+                    const os = require('os');
+                    const licenseDir = path.join(os.homedir(), '.simplebeacon');
+                    fs.mkdirSync(licenseDir, { recursive: true });
+                    const licensePath = path.join(licenseDir, 'license.jwt');
+                    fs.writeFileSync(licensePath, `${pollData.licenseToken}\n`, 'utf8');
+                    console.error(`[buy-clearance] License token saved to ${licensePath}`);
+                    writeStdoutLine(JSON.stringify({ success: true, licensePath, email: pollData.email }, null, 2));
+                    return;
+                }
+                console.error('[buy-clearance] Payment confirmed but license token not yet available. Retrying...');
+            }
+        } catch (err) {
+            console.error(`[buy-clearance] Poll error: ${err.message}`);
+        }
+    }
+
+    throw new Error('Payment confirmation timed out. Run `npx simplebeacon buy-clearance --email <addr>` again to retry, or check your email for the license token.');
+}
+
 async function main() {
     const options = parseArgs(process.argv);
 
@@ -877,6 +1086,16 @@ async function main() {
 
     if (options.command === 'scan') {
         await runScanCommand(options);
+        return;
+    }
+
+    if (options.command === 'pdf') {
+        await runPdfCommand(options);
+        return;
+    }
+
+    if (options.command === 'buy-clearance') {
+        await runBuyClearanceCommand(options);
         return;
     }
 }

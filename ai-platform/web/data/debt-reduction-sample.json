@@ -1,0 +1,12 @@
+{
+  "type": "debt-reduction-model",
+  "overview": {
+    "debtReduction": 35
+  },
+  "strategies": [
+    {}
+  ],
+  "activeTasks": [
+    {}
+  ]
+}

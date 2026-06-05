@@ -1,0 +1,6 @@
+cp936.json->C:\Users\Trevor\AppData\Local\Temp\sb-upload-1780613348749\cp936.json
+eucjp.json->C:\Users\Trevor\AppData\Local\Temp\sb-upload-1780613348749\eucjp.json
+gbk-added.json->C:\Users\Trevor\AppData\Local\Temp\sb-upload-1780613348749\gbk-added.json
+shiftjis.json->C:\Users\Trevor\AppData\Local\Temp\sb-upload-1780613348749\shiftjis.json
+package.json->C:\Users\Trevor\AppData\Local\Temp\sb-upload-1780613348749\package.json
+tsconfig.json->C:\Users\Trevor\AppData\Local\Temp\sb-upload-1780613348749\tsconfig.json

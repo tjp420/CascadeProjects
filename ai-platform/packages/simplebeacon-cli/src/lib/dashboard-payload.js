@@ -8,6 +8,7 @@ const {
     mapFictionIssuesForResults
 } = require('../rules/ai-fiction-detection');
 const { resolveHistoryEntryForReport, repairHistoryEntries } = require('./scan-history');
+const { loadAccuracyHistory } = require('./scanner-accuracy-tracker');
 
 function formatRelativeTime(isoString) {
     if (!isoString) return 'Never';
@@ -168,13 +169,48 @@ function overlayAuditPageSamples(samples = {}, report = {}, baseline = {}) {
     };
 }
 
-function buildDashboardPayload({ report, baseline, history, fictionCatalog }) {
+function buildAccuracyTrends(platformRoot) {
+    const accuracyHistory = loadAccuracyHistory(platformRoot);
+    const latest = accuracyHistory[accuracyHistory.length - 1];
+    return {
+        precisionTrend: buildTrendSeries(
+            accuracyHistory.map((entry) => ({ value: entry.aggregate.precision * 100 })),
+            'value',
+            5
+        ),
+        recallTrend: buildTrendSeries(
+            accuracyHistory.map((entry) => ({ value: entry.aggregate.recall * 100 })),
+            'value',
+            5
+        ),
+        f1Trend: buildTrendSeries(
+            accuracyHistory.map((entry) => ({ value: entry.aggregate.f1 * 100 })),
+            'value',
+            5
+        ),
+        latest: latest
+            ? {
+                precision: latest.aggregate.precision,
+                recall: latest.aggregate.recall,
+                f1: latest.aggregate.f1,
+                truePositives: latest.aggregate.truePositives,
+                falsePositives: latest.aggregate.falsePositives,
+                falseNegatives: latest.aggregate.falseNegatives,
+                generatedAt: latest.generatedAt
+            }
+            : null,
+        totalRuns: accuracyHistory.length
+    };
+}
+
+function buildDashboardPayload({ report, baseline, history, fictionCatalog, platformRoot }) {
     const catalog = fictionCatalog || buildFictionPatternCatalog(baseline);
     const entries = repairHistoryEntries(Array.isArray(history) ? history : []);
     const historyEntry = resolveHistoryEntryForReport(entries, report) || {};
     const fictionFound = countFictionIssues(report);
 
     const adoptionTrend = entries.slice(-5).map((entry) => entry.totalFilesScanned ?? resolveFilesAnalyzed(report));
+    const accuracyTrends = platformRoot ? buildAccuracyTrends(platformRoot) : null;
 
     return {
         type: 'simplebeacon-dashboard',
@@ -200,8 +236,14 @@ function buildDashboardPayload({ report, baseline, history, fictionCatalog }) {
         trends: {
             fictionalPatternsTrend: buildTrendSeries(entries, 'fictionPatternsFound', 5),
             qualityScoreTrend: buildTrendSeries(entries, 'qualityScore', 5),
-            aiAdoptionTrend: adoptionTrend
+            aiAdoptionTrend: adoptionTrend,
+            ...(accuracyTrends ? {
+                scannerPrecisionTrend: accuracyTrends.precisionTrend,
+                scannerRecallTrend: accuracyTrends.recallTrend,
+                scannerF1Trend: accuracyTrends.f1Trend
+            } : {})
         },
+        accuracy: accuracyTrends,
         baselineStatus: resolveBaselineStatus(report, baseline),
         fictionCatalog: catalog
     };

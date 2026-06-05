@@ -15,7 +15,11 @@ const SCANNABLE_EXTENSIONS = new Set([
 ]);
 const SKIP_DIRS = new Set([
     'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'docs', 'deliverables'
+    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'docs', 'deliverables',
+    'coming-soon', 'reports', 'security-reports', 'templates', 'data-central',
+    'deployments', 'public', 'functions', 'cloudflare-deploy', 'temp', 'tests-legacy',
+    '.github-sync', '.cursor', '.vscode', 'downloads', 'findings',
+    'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures'
 ]);
 const MAX_SCAN_BYTES = 512000;
 
@@ -72,6 +76,22 @@ function isExcludedPath(relativePath) {
     if (/\/fixtures?\//.test(normalized)) return true;
     if (/\.example\.[a-z0-9]+$/i.test(normalized)) return true;
     if (/\.md$/i.test(normalized)) return true;
+    if (/(?:^|\/)coming-soon\//.test(normalized)) return true;
+    if (/(?:^|\/)reports\//.test(normalized)) return true;
+    if (/(?:^|\/)security-reports\//.test(normalized)) return true;
+    if (/(?:^|\/)templates\//.test(normalized)) return true;
+    if (/(?:^|\/)data-central\//.test(normalized)) return true;
+    if (/(?:^|\/)deployments\//.test(normalized)) return true;
+    if (/(?:^|\/)public\//.test(normalized)) return true;
+    if (/(?:^|\/)functions\//.test(normalized)) return true;
+    if (/(?:^|\/)cloudflare-deploy\//.test(normalized)) return true;
+    if (/(?:^|\/)archive\//.test(normalized)) return true;
+    if (/(?:^|\/)temp\//.test(normalized)) return true;
+    if (/(?:^|\/)tests-legacy\//.test(normalized)) return true;
+    if (/(?:^|\/)downloads\//.test(normalized)) return true;
+    if (/(?:^|\/)web\/(?:data|findings|simplebeacon-findings)\//.test(normalized)) return true;
+    if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
+    if (/(?:^|\/)simplebeacon-toxic-fixtures\//.test(normalized)) return true;
     return false;
 }
 

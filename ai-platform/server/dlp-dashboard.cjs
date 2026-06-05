@@ -1,3 +1,13 @@
+/**
+ * DLP Dashboard — monitors AI API traffic for data-loss-prevention violations.
+ *
+ * EU AI Act Documentation Marker:
+ * - Classification: Supporting infrastructure (Annex III AI system indicator)
+ * - Purpose: Real-time monitoring and logging of artificial intelligence provider request/response payloads
+ * - Article 12: Violations logged for audit trail and accountability
+ * - Risk Level: Minimal (observability/monitoring component)
+ */
+
 const fs = require('fs');
 const http = require('http');
 const logger = require('./lib/app-logger');

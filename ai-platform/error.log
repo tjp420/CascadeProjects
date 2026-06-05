@@ -1,0 +1,18 @@
+file:///C:/Users/Trevor/CascadeProjects/ai-platform/server/utils/data-processor.js:13
+const fs = require('fs');
+           ^
+
+ReferenceError: require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and 'C:\Users\Trevor\CascadeProjects\ai-platform\package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+    at file:///C:/Users/Trevor/CascadeProjects/ai-platform/server/utils/data-processor.js:13:12
+    at ModuleJobSync.runSync (node:internal/modules/esm/module_job:514:37)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:449:47)
+    at loadESMFromCJS (node:internal/modules/cjs/loader:1577:24)
+    at Module._compile (node:internal/modules/cjs/loader:1742:5)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module._load (node:internal/modules/cjs/loader:1299:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)
+
+Node.js v24.9.0

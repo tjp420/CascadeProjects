@@ -179,7 +179,9 @@ test('sanitizeCompleteScanExport normalizes Simplebeacon benchmark complete-scan
         return;
     }
     const raw = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
-    const out = sanitizeCompleteScanExport(raw);
+    const out = sanitizeCompleteScanExport(raw, {
+        exportFilename: 'complete-scan-c-users-trevor-cascadeprojects-ai-platform-github-cache-tjp420-simplebeacon-2026-05-31.json'
+    });
 
     assert.equal(out.exportNormalized, true);
     assert.equal(out.benchmarkScan, true);

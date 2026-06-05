@@ -92,6 +92,7 @@ export function invalidateAnalyzeProvidersCache() {
 /** Merge Settings → AI providers into the Ollama row when the server probe omits credentials. */
 export async function patchProvidersFromSavedAiKeys(data) {
   if (!data?.providers?.length) return data;
+  if (!authService.isAuthenticated()) return data;
   let keys;
   try {
     keys = await fetchUserAiKeys();
@@ -928,8 +929,13 @@ export async function fetchZscriptModReport(projectPath, options = {}) {
 }
 
 export async function fetchRepositoryInventory(projectPath, options = {}) {
+  const path = String(projectPath || '').trim();
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path) && !isRemoteRepoUrl(path)) {
+    throw new Error('Enter a folder path (not a file like .bat or .json) or a supported public repo URL');
+  }
   const params = new URLSearchParams({
-    projectPath: projectPath || '',
+    projectPath: path,
     profile: options.profile || 'explorer'
   });
   const data = await fetchJsonWithGuidance(`/api/analyze/inventory?${params}`, {
@@ -999,7 +1005,12 @@ export function mergeReportInventory(report, inventory) {
 }
 
 export async function fetchScanReport(projectPath) {
-  const params = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
+  const path = String(projectPath || '').trim();
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path) && !isRemoteRepoUrl(path)) {
+    throw new Error('Enter a folder path (not a file like .bat or .json) or a supported public repo URL');
+  }
+  const params = `?projectPath=${encodeURIComponent(path)}`;
   const res = await fetch(`/api/simplebeacon/report${params}`, {
     headers: authService.getAuthHeaders()
   });

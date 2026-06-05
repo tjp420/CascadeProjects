@@ -1,6 +1,12 @@
 /**
  * Per-user AI provider credentials (encrypted at rest).
  * Used for optional Analyze narrative summaries — not required for gate scans.
+ *
+ * EU AI Act Documentation Marker:
+ * - Supporting component for artificial intelligence system integrations (Annex III indicator)
+ * - No autonomous decisions; credentials enable user-controlled AI provider access
+ * - Data protection: AES-256-GCM encryption at rest with user-derived key
+ * - Risk Level: Minimal (infrastructure component)
  */
 
 const crypto = require('crypto');

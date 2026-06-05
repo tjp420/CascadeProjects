@@ -1,0 +1,25 @@
+{
+  "type": "ai-analysis-model",
+  "overview": {
+    "issuesFound": 12
+  },
+  "codeQuality": {},
+  "security": {},
+  "performance": {},
+  "severityBreakdown": [
+    {}
+  ],
+  "categories": [
+    {}
+  ],
+  "issues": [
+    {}
+  ],
+  "recommendations": [
+    {}
+  ],
+  "activity": [
+    {}
+  ],
+  "patterns": {}
+}

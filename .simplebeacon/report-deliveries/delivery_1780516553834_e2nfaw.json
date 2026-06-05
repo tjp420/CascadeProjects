@@ -1,0 +1,741 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-03T19:55:53.765Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\temp-chalk",
+  "scanTargetRoot": "C:\\Users\\Trevor\\temp-chalk",
+  "configPath": "C:\\Users\\Trevor\\temp-chalk\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\temp-chalk\\web\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\temp-chalk",
+    "totalFiles": 36,
+    "totalFolders": 10,
+    "profile": "full-tree"
+  },
+  "mockSampleFiles": 1,
+  "totalFiles": 36,
+  "ruleScopedFilesAnalyzed": 36,
+  "repositoryFilesTotal": 36,
+  "repositoryFoldersTotal": 10,
+  "filesAnalyzed": 36,
+  "totalSizeBytes": 407289,
+  "totalSizeLabel": "397.7KB",
+  "issueCount": 12,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 28,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 3,
+  "consistencyPassed": 3,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 3,
+  "fictionSampleFilesScanned": 0,
+  "fictionScope": "repository-json",
+  "credentialScanned": 34,
+  "credentialFindings": 0,
+  "productionLeakScanned": 34,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 34,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 34,
+  "llmSlopPatternHits": 12,
+  "euAiActScanned": 34,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "enterpriseGuardrailScanned": 0,
+  "enterpriseGuardrailFindings": 0,
+  "fileNamingScanned": 0,
+  "fileNamingFindings": 0,
+  "structuralIntentScanned": 0,
+  "structuralIntentFindings": 0,
+  "structuralIntentEnabled": false,
+  "structuralIntentEngine": null,
+  "structuralIntentSlmReviewCount": 0,
+  "structuralIntentSlmReviews": [],
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 12,
+    "medium": 0,
+    "low": 0
+  },
+  "mockDataCategories": [
+    {
+      "category": "Other Files",
+      "fileCount": 10,
+      "totalSize": "333.8KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Other Files discovered during filesystem scan"
+    },
+    {
+      "category": "Documentation",
+      "fileCount": 4,
+      "totalSize": "14.9KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Documentation discovered during filesystem scan"
+    },
+    {
+      "category": "JSON Files",
+      "fileCount": 3,
+      "totalSize": "2.6KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "JSON Files discovered during filesystem scan"
+    },
+    {
+      "category": "JavaScript",
+      "fileCount": 14,
+      "totalSize": "27.5KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "JavaScript discovered during filesystem scan"
+    },
+    {
+      "category": "TypeScript",
+      "fileCount": 5,
+      "totalSize": "18.9KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "TypeScript discovered during filesystem scan"
+    }
+  ],
+  "detectedIssues": [
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:52 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 52,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:56 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 56,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:66 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 66,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:70 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 70,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:78 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 78,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:82 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 82,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:90 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 90,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:94 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 94,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:104 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 104,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:108 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 108,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:116 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 116,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "LLM Slop Pattern",
+      "count": 1,
+      "description": "source/index.d.ts:120 Raw markdown code fence leaked into source/config",
+      "pattern": "SB-FICTION-002",
+      "line": 120,
+      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "filePaths": [
+        "source/index.d.ts"
+      ],
+      "file": "source/index.d.ts"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-1325",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 52,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:52 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    },
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-1386",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 56,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:56 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    },
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-1571",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 66,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:66 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    },
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-1628",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 70,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:70 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    },
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-1790",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 78,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:78 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    },
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-1845",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 82,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:82 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    },
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-1947",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 90,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:90 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    },
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-2010",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 94,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:94 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    },
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-2203",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 104,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:104 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    },
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-2262",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 108,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:108 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    },
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-2431",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 116,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:116 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    },
+    {
+      "id": "llm-slop-SB-FICTION-002-source/index.d.ts-2488",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "source/index.d.ts",
+      "file": "source/index.d.ts",
+      "line": 120,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "source/index.d.ts:120 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "index.d.ts"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```"
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [
+    ".editorconfig",
+    ".gitattributes",
+    "funding.yml",
+    "security.md",
+    "main.yml",
+    ".gitignore",
+    ".npmrc",
+    "history.json",
+    "scan-progress.json",
+    "benchmark.js",
+    "code-of-conduct.md",
+    "contributing.md",
+    "rainbow.js",
+    "screenshot.js",
+    "license",
+    "logo.png",
+    "logo.svg",
+    "screenshot.png",
+    "package.json",
+    "readme.md",
+    "index.d.ts",
+    "index.js",
+    "index.test-d.ts",
+    "utilities.js",
+    "index.d.ts",
+    "index.js",
+    "browser.d.ts",
+    "browser.js",
+    "index.d.ts",
+    "index.js",
+    "chalk.js",
+    "instance.js",
+    "level.js",
+    "no-color-support.js",
+    "visible.js",
+    "_fixture.js"
+  ],
+  "scanScope": {
+    "profile": "standard",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 36,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 34,
+    "productionPaths": [
+      "server/",
+      "src/",
+      "app/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 34,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 34,
+    "llmSlopPatternHits": 12,
+    "euAiActFilesScanned": 34,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "enterpriseGuardrailFilesScanned": 0,
+    "enterpriseGuardrailHits": 0,
+    "fileNamingFilesScanned": 0,
+    "fileNamingHits": 0,
+    "structuralIntentEnabled": false,
+    "structuralIntentAvailable": false,
+    "structuralIntentFilesScanned": 0,
+    "structuralIntentHits": 0,
+    "structuralIntentEngine": null,
+    "structuralIntentSlmReviewCount": 0,
+    "tokenBleedFilesScanned": 0,
+    "tokenBleedPatternHits": 0,
+    "architectureDriftFilesScanned": 0,
+    "architectureDriftPatternHits": 0,
+    "pythonAstFilesScanned": 0,
+    "pythonAstPatternHits": 0,
+    "pythonAstScanOk": true,
+    "javascriptAstFilesScanned": 0,
+    "javascriptAstPatternHits": 0,
+    "javascriptAstScanOk": true,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 3,
+    "fictionSampleFilesScanned": 0,
+    "ruleScopedFilesAnalyzed": 36,
+    "repositoryFilesTotal": 36,
+    "repositoryFoldersTotal": 10,
+    "fullDirectoryScan": true,
+    "fullDirectoryStats": {
+      "filesAnalyzed": 36,
+      "filesHashed": 36,
+      "contentScanned": 34,
+      "filesContentScanned": 34,
+      "filesBinaryHashed": 2,
+      "filesLargeHashed": 0,
+      "metadataOnlyFiles": 0,
+      "emptyFiles": 0,
+      "unreadableFiles": 0,
+      "jsonValid": 3,
+      "jsonInvalid": 0,
+      "truncated": false,
+      "maxFiles": 2000000,
+      "maxContentBytes": null,
+      "ruleHitTotals": {
+        "credentials": 0,
+        "productionLeak": 0,
+        "llmSlop": 12,
+        "agencyHandoff": 0,
+        "fictionKpi": 0,
+        "euAiAct": 0,
+        "tokenBleed": 0,
+        "architectureDrift": 0,
+        "fileNaming": 0
+      },
+      "parallelTextRuleWorkers": 0,
+      "textRuleJobs": 28
+    },
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (3) plus source code (34 files in configured paths).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
+  },
+  "gate": {
+    "pass": false,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 12,
+    "warningCount": 0
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-06-03T19:55:53.770Z"
+}

@@ -1,6 +1,6 @@
-const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'security', 'outreach', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot'];
+const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'security', 'outreach', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot', 'upload'];
 
-export const PUBLIC_VIEWS = new Set(['signin', 'pricing', 'about', 'help', 'features', 'trust', 'repository-health']);
+export const PUBLIC_VIEWS = new Set(['signin', 'pricing', 'about', 'help', 'features', 'trust', 'repository-health', 'upload']);
 
 export class Router {
   constructor(onNavigate) {

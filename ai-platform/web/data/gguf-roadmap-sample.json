@@ -1,0 +1,23 @@
+{
+  "type": "ai-roadmap-report-model",
+  "_id": "gguf-roadmap-001",
+  "projectOverview": {
+    "projectName": "simplebeacon-gguf-enhanced"
+  },
+  "developmentPhases": [
+    {"phase": "Phase 3 — Optional GGUF", "status": "planned"}
+  ],
+  "predictions": [
+    {"metric": "accuracy", "value": 85}
+  ],
+  "risks": [
+    {"factor": "model availability", "level": "low"}
+  ],
+  "actionPlan": [
+    {"step": "Configure LLAMA_CPP_BIN", "priority": "medium"}
+  ],
+  "performanceMetrics": [
+    {"latency": 120, "throughput": 50}
+  ],
+  "recommendations": {"semanticHints": "enabled"}
+}

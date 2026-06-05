@@ -201,6 +201,16 @@ function defaultSelectedEngines() {
 /** Client deliverable SKUs — scans preset per row; price is list/reference (checkout is separate). */
 const CLIENT_DELIVERABLE_PLANS = [
   {
+    sku: 'moneyPrinter19',
+    label: 'Money Printer Tier',
+    price: '$19',
+    category: 'Instant audit',
+    tagline: 'Website Security Report — instant audit · zero-retention · delivered in 60 seconds',
+    engines: ['simplebeacon'],
+    analysisType: 'simplebeacon',
+    scans: ['SEO', 'SSL', 'Mobile responsiveness', 'Speed', 'Accessibility', 'Headers']
+  },
+  {
     sku: 'community',
     label: 'Community',
     price: '$0',
@@ -269,7 +279,7 @@ const CLIENT_DELIVERABLE_PLANS = [
     engines: null,
     analysisType: 'complete',
     allowManual: true,
-    scans: ['Manual engine toggles — no fixed price']
+    scans: ['Manual engine toggles — no fixed list price']
   }
 ];
 
@@ -368,6 +378,7 @@ const SIMPLEBEACON_GATE_RULES = [
   { id: 'fiction-kpi-patterns', label: 'Fiction KPI placeholders across repository JSON' },
   { id: 'llm-slop-patterns', label: 'LLM slop — unresolved placeholders, code fences, filler metrics' },
   { id: 'agency-handoff-patterns', label: 'Agency handoff — localhost deploy leaks, auth misconfig, webhooks' },
+  { id: 'file-naming-patterns', label: 'File naming — AI-generated or low-quality file names that degrade code readability' },
   { id: 'roadmap', label: 'Roadmap completeness signal (standard profile)' }
 ];
 
@@ -1001,6 +1012,7 @@ export class AnalyzeView {
       if (select) void this.loadProviders(select, { refresh: true });
     };
     this._pathUiTimer = null;
+    this.websiteMode = false;
   }
 
   render() {
@@ -1017,34 +1029,42 @@ export class AnalyzeView {
 
       <div class="card mb-6 analyze-path-card">
         <div class="card-header">
-          <span class="card-title">Project path or repo URL</span>
+          <span class="card-title">${this.websiteMode ? 'Website URL' : 'Project path or repo URL'}</span>
           <div class="analyze-path-header-actions">
-            <button type="button" class="btn btn-ghost btn-sm" id="use-default-path-btn" ${defaultPath ? '' : 'disabled'}>Use server default</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="use-default-path-btn" ${defaultPath && !this.websiteMode ? '' : 'hidden'}>Use server default</button>
             <button type="button" class="btn btn-ghost btn-sm" id="clear-path-btn">Clear</button>
           </div>
         </div>
 
-        <p class="text-muted analyze-path-intro">Enter a <strong>folder path</strong> on the machine running <code>npm run dashboard</code>, or paste a public repo URL (<strong>HTTPS</strong>, <code>git@host:org/repo</code>, or <code>ssh://</code>) from GitHub, GitLab, Bitbucket, or Codeberg. Use <strong>Test sources</strong> below for one-click paths. Then click <strong>Run analysis</strong>.</p>
+        <div class="analyze-mode-tabs" style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+          <button type="button" class="btn btn-sm ${this.websiteMode ? 'btn-ghost' : 'btn-primary'}" id="analyze-tab-local">Local / Repo</button>
+          <button type="button" class="btn btn-sm ${this.websiteMode ? 'btn-primary' : 'btn-ghost'}" id="analyze-tab-website">Website URL</button>
+        </div>
+
+        <p class="text-muted analyze-path-intro">${this.websiteMode
+    ? 'Enter a <strong>public website URL</strong>. The dashboard will download the page source and linked CSS/JS assets, then run Simplebeacon gate rules (credentials, fiction KPIs, token leaks) against the downloaded files. No server-side project path required.'
+    : 'Enter a <strong>folder path</strong> on the machine running <code>npm run dashboard</code>, or paste a public repo URL (<strong>HTTPS</strong>, <code>git@host:org/repo</code>, or <code>ssh://</code>) from GitHub, GitLab, Bitbucket, or Codeberg. Use <strong>Test sources</strong> below for one-click paths. Then click <strong>Run analysis</strong>.'}</p>
 
         <div class="analyze-path-input-wrap">
           <input type="text" id="project-path-input" class="analyze-path-input"
-            placeholder="C:\\dev\\my-app · data/mock · git@github.com:org/repo · https://codeberg.org/org/repo"
+            placeholder="${this.websiteMode ? 'https://example.com' : 'C:\\\\dev\\\\my-app · data/mock · git@github.com:org/repo · https://codeberg.org/org/repo'}"
             value="${escapeHtml(formatPathInputValue(displayPath))}"
-            list="${pathInputListAttr()}"
+            list="${this.websiteMode ? '' : pathInputListAttr()}"
             spellcheck="false"
             autocomplete="list"
-            aria-label="Project path on server">
-          ${renderPathSuggestionsDatalistElement(collectPathSuggestions(this.app, this.testSources))}
+            aria-label="${this.websiteMode ? 'Website URL' : 'Project path on server'}">
+          ${this.websiteMode ? '' : renderPathSuggestionsDatalistElement(collectPathSuggestions(this.app, this.testSources))}
         </div>
         <div id="analyze-inventory-provenance" class="analyze-inventory-provenance-slot">
           ${this.renderInventoryProvenanceLine(displayPath)}
         </div>
+        ${this.websiteMode ? '' : `
         <label class="analyze-full-tree-toggle text-muted" style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);margin:0 0 var(--space-3);">
           <input type="checkbox" id="analyze-full-directory" ${this.fullDirectoryScan ? 'checked' : ''}>
           Analyze <strong>every file</strong> in the selected folder (full tree — SHA-256 every file, content-scan all text files with no size cap, all gate rules on every text file; includes <code>node_modules</code>; skips <code>.github-sync</code> mirror and <code>github-cache</code> clones)
         </label>
 
-        ${this.renderPathSourceSections(defaultPath, displayPath)}
+        ${this.renderPathSourceSections(defaultPath, displayPath)}`}
 
         <p class="text-muted mb-2" style="font-size: var(--font-size-xs);">Select a <strong>client deliverable SKU</strong> — the table sets which scans run and which artifacts export. Use <strong>custom</strong> to toggle engines in the scan queue below. Checkout is separate from this page. <a href="${PRICING_DELIVERABLES_URL}" target="_blank" rel="noopener">Public pricing →</a></p>
         ${this.renderClientDeliverablePicker()}
@@ -2702,6 +2722,10 @@ export class AnalyzeView {
       this.syncAnalyzeModeUi(root);
       return;
     }
+    if (/^https?:\/\//i.test(projectPath)) {
+      this.syncAnalyzeModeUi(root);
+      return;
+    }
     try {
       const live = await this.app.scanService.fetchReport(projectPath);
       if (live && reportMatchesPagePath(live, projectPath)) {
@@ -2768,6 +2792,19 @@ export class AnalyzeView {
       this.syncAnalyzeModeUi(el);
     });
 
+    el.querySelector('#analyze-tab-local')?.addEventListener('click', () => {
+      if (this.websiteMode) {
+        this.websiteMode = false;
+        this.refresh();
+      }
+    });
+    el.querySelector('#analyze-tab-website')?.addEventListener('click', () => {
+      if (!this.websiteMode) {
+        this.websiteMode = true;
+        this.refresh();
+      }
+    });
+
     el.querySelector('#use-default-path-btn')?.addEventListener('click', () => {
       const path = this.app.state.defaultProjectPath;
       if (path && pathInput) {
@@ -2784,29 +2821,29 @@ export class AnalyzeView {
       this.syncAnalyzeModeUi(el);
     });
 
-    el.querySelectorAll('.analyze-path-chip').forEach((chip) => {
-      chip.addEventListener('click', () => {
+    el.addEventListener('click', (event) => {
+      const chip = event.target.closest('.analyze-path-chip');
+      if (chip) {
         const path = chip.dataset.path;
         if (pathInput) this.setPathInputDisplay(pathInput, path);
         this.app.state.pathInputDraft = '';
         this.app.state.lastProjectPath = path;
         this.syncAnalyzeModeUi(el);
         void this.refreshReportForActivePath(el);
-      });
-    });
-
-    el.querySelectorAll('.analyze-path-chip-dismiss').forEach((btn) => {
-      btn.addEventListener('click', (event) => {
+        return;
+      }
+      const dismissBtn = event.target.closest('.analyze-path-chip-dismiss');
+      if (dismissBtn) {
         event.preventDefault();
         event.stopPropagation();
-        const path = btn.dataset.path;
+        const path = dismissBtn.dataset.path;
         removeRecentPath(path);
         if (this.app.state.lastProjectPath === path) {
           this.app.state.lastProjectPath = '';
           if (pathInput) pathInput.value = '';
         }
         this.refresh();
-      });
+      }
     });
 
     el.querySelector('#run-analyze-btn')?.addEventListener('click', () => {

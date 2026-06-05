@@ -1,0 +1,25 @@
+{
+  "type": "roadmap-comparison-report",
+  "mockReport": {
+    "status": "complete",
+    "completionRate": 100
+  },
+  "aiReport": {
+    "status": "complete",
+    "completionRate": 100
+  },
+  "differences": {
+    "status": "complete",
+    "completionRate": 100
+  },
+  "insights": [
+    {}
+  ],
+  "recommendations": [
+    {}
+  ],
+  "visualComparison": {
+    "summary": "Good match",
+    "details": []
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "type": "ai-tools-model",
+  "overview": {
+    "totalTools": 5
+  },
+  "tools": [
+    {}
+  ],
+  "usageByCategory": [
+    {}
+  ],
+  "performanceMetrics": [
+    {}
+  ],
+  "insights": [
+    {}
+  ],
+  "activity": [
+    {}
+  ]
+}

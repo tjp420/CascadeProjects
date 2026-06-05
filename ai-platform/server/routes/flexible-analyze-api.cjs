@@ -1,11 +1,24 @@
 /**
  * Flexible directory analysis — any path + AI provider + analysis mode.
+ *
+ * EU AI Act Article 50 Disclosure: This endpoint may use AI models to generate analysis summaries.
+ * AI-generated narratives are flagged in the response payload for transparency.
+ * Article 12: Inference events are logged via ai-inference-audit-logger.
  */
 
 const logger = require('../../src/lib/app-logger.cjs');
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const crypto = require('crypto');
+const util = require('util');
+const { exec } = require('child_process');
+const execAsync = util.promisify(exec);
+const multer = require('multer');
+const tmp = require('tmp');
+const rateLimit = require('express-rate-limit');
+const unzipper = require('unzipper');
 const { countRepositoryInventory } = require('../../packages/simplebeacon-cli/src/lib/repository-inventory');
 const { resolvePlatformRoot } = require('../../packages/simplebeacon-cli/src/project-detect');
 const { analyzeCodebase } = require('../lib/codebase-analyzer.cjs');
@@ -36,7 +49,11 @@ const {
 } = require('../services/cloud-inference-service.cjs');
 const { analyzeStrategicInsights } = require('../lib/strategic-insights-engine.cjs');
 const { evaluateComplianceChecklist } = require('../../packages/simplebeacon-cli/src/compliance-checklist');
-const { runNpmAudit } = require('../lib/npm-audit-runner.cjs');
+const { runNpmAuditAsync } = require('../lib/npm-audit-runner.cjs');
+const { scanFileMergerReduction } = require('../lib/file-merger-reduction-scanner.cjs');
+const { generateCodeRoadmap } = require('../lib/code-roadmap-generator.cjs');
+const { runDataCleanupScan } = require('../lib/data-cleanup-scan.cjs');
+const { buildCompleteAuditModel } = require('../lib/complete-scan-audit-report.cjs');
 const { sanitizeComplianceBundleExport } = require('../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize');
 const {
     understandCodeSnippet,
@@ -47,13 +64,48 @@ const {
     generateZscriptModReport
 } = require('../lib/code-understanding/index.cjs');
 const { listAnalyzeTestSources } = require('../lib/analyze-test-sources.cjs');
+const { scanMockFiles } = require('../routes/repository-scanner-api.cjs');
+
+// In-memory async scan jobs for /api/analyze/upload-directory polling
+const scanJobs = new Map();
+const SCAN_JOB_TTL_MS = 20 * 60 * 1000; // 20 minutes (covers CLI 15m + analyses timeout)
+setInterval(() => {
+    const now = Date.now();
+    for (const [id, job] of scanJobs) {
+        if (now - job.createdAt > SCAN_JOB_TTL_MS) {
+            if (job.status === 'scanning') {
+                scanJobs.set(id, { ...job, status: 'error', error: 'Scan timed out after 20 minutes' });
+            }
+            try { fs.rmSync(job.tmpDir, { recursive: true, force: true }); } catch { /* ignore cleanup errors */ }
+            scanJobs.delete(id);
+        }
+    }
+}, 60 * 1000);
 const {
     loadAgencyBranding,
     saveAgencyBranding
 } = require('../lib/agency-branding-store.cjs');
+const { sendEmail } = require('../lib/email-service.cjs');
+const {
+    buildCertificateModel,
+    renderCertificateHtml
+} = require('../lib/code-hygiene-certificate.cjs');
+const { buildAnalyzeExportZipStream } = require('../lib/analyze-export-bundle.cjs');
+const { generateAutomatedVerdict, emailAutomatedVerdict } = require('../lib/ai-analyst.cjs');
+const { evaluateHumanOversightCompliance } = require('../lib/compliance-rules.cjs');
 
 function shouldLogRuntimeInfo() {
     return process.env.LOG_RUNTIME_INFO === 'true' || process.env.RUNTIME_DEBUG === 'true';
+}
+
+function withTimeout(promise, ms, label) {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+        Promise.resolve(promise).then(
+            (val) => { clearTimeout(timer); resolve(val); },
+            (err) => { clearTimeout(timer); reject(err); }
+        );
+    });
 }
 
 async function loadUserCredentials(req) {
@@ -74,6 +126,13 @@ function normalizeStringList(value) {
 function resolveProjectPath(baseDir, rawPath) {
     const trimmedPath = String(rawPath || '').trim();
     if (!trimmedPath) return null;
+    if (/^https?:\/\//i.test(trimmedPath)) {
+        throw new Error(
+            'projectPath must be a local folder path, not a web URL. '
+            + 'If you want to analyze a remote repository, use a git clone URL from GitHub, GitLab, Bitbucket, or Codeberg. '
+            + `Received: ${trimmedPath.slice(0, 120)}`
+        );
+    }
     if (path.isAbsolute(trimmedPath)) return path.normalize(trimmedPath);
     return path.normalize(path.join(baseDir, trimmedPath));
 }
@@ -120,7 +179,12 @@ async function pathLooksLikeMockScan(targetPath) {
 
 async function resolveAnalysisType(requestedType, targetPath) {
     const type = String(requestedType || 'auto').toLowerCase();
-    if (type === 'roadmap' || type === 'mock-scan' || type === 'codebase') return type;
+    const knownTypes = [
+        'roadmap', 'mock-scan', 'codebase', 'complete',
+        'npm-audit', 'compliance', 'data-cleanup', 'data-quality',
+        'cleanup-assistant', 'file-reduction', 'consolidation', 'eu-ai-act'
+    ];
+    if (knownTypes.includes(type)) return type;
     return (await pathLooksLikeMockScan(targetPath)) ? 'mock-scan' : 'roadmap';
 }
 
@@ -216,7 +280,17 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 
     function sendAnalyzeJson(res, payload, statusCode = 200) {
-        const body = publicGateEnabled ? applyPublicGateToAnalyzeResponse(payload) : payload;
+        const stripped = { ...payload };
+        delete stripped.projectPath;
+        if (stripped.data && typeof stripped.data === 'object') {
+            delete stripped.data.projectPath;
+            delete stripped.data.sourceProjectPath;
+        }
+        if (stripped.report && typeof stripped.report === 'object') {
+            delete stripped.report.projectPath;
+            delete stripped.report.sourceProjectPath;
+        }
+        const body = publicGateEnabled ? applyPublicGateToAnalyzeResponse(stripped) : stripped;
         return res.status(statusCode).json(body);
     }
 
@@ -256,8 +330,13 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     }
 
     if (process.env.REQUIRE_AUTH === 'true') {
-        const { authenticate } = require('../middleware/auth.cjs');
-        app.use('/api/analyze', authenticate);
+        const { authenticate, optionalAuthenticate } = require('../middleware/auth.cjs');
+        app.use('/api/analyze/upload-directory', optionalAuthenticate);
+        app.use('/api/analyze/progress', optionalAuthenticate);
+        app.use('/api/analyze', (req, res, next) => {
+            if (req.path === '/upload-directory' || req.path === '/progress') return next();
+            return authenticate(req, res, next);
+        });
     }
 
     function getAllowedRoots() {
@@ -299,7 +378,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 understandingModes: [
                     { id: 'off', label: 'Static only', description: 'Pattern-based static analysis without semantic/context layers' },
                     { id: 'deterministic', label: 'Semantic + context', description: 'Business logic heuristics, intent, git/doc context — no LLM' },
-                    { id: 'llm', label: 'AI-enhanced understanding', description: 'Adds LLM explanation when Ollama/OpenAI/Anthropic is configured' }
+                    { id: 'llm', label: 'AI-enhanced understanding', description: 'Adds AI narrative when a provider is configured' }
                 ],
                 zscriptReport: {
                     endpoint: '/api/analyze/zscript-report',
@@ -354,21 +433,125 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         }
     });
 
+    async function fetchWebsiteToTemp(rawUrl) {
+        const url = String(rawUrl || '').trim();
+        if (!url) throw new Error('URL is required');
+        const https = require('https');
+        const http = require('http');
+        const { URL } = require('url');
+        const parsed = new URL(url);
+
+        const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'sb-web-'));
+        const domain = parsed.hostname.replace(/[^a-z0-9.-]/gi, '_');
+        const fetchDir = path.join(tempDir, domain);
+        await fs.promises.mkdir(fetchDir, { recursive: true });
+
+        const indexPath = path.join(fetchDir, 'index.html');
+        await new Promise((resolve, reject) => {
+            const client = parsed.protocol === 'https:' ? https : http;
+            const request = client.get(url, { timeout: 30000, headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' } }, (response) => {
+                if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+                    const redirectUrl = response.headers.location.startsWith('http')
+                        ? response.headers.location
+                        : new URL(response.headers.location, url).href;
+                    return fetchWebsiteToTemp(redirectUrl).then(resolve).catch(reject);
+                }
+                if (response.statusCode !== 200) {
+                    return reject(new Error(`HTTP ${response.statusCode}`));
+                }
+                const stream = fs.createWriteStream(indexPath);
+                response.pipe(stream);
+                stream.on('finish', () => resolve(fetchDir));
+                stream.on('error', reject);
+            });
+            request.on('error', reject);
+            request.on('timeout', () => {
+                request.destroy();
+                reject(new Error('Request timeout'));
+            });
+        });
+
+        // Extract and fetch linked CSS/JS assets
+        try {
+            const html = await fs.promises.readFile(indexPath, 'utf8');
+            const assetMatches = html.matchAll(/(href|src)="([^"]+\.(css|js))"/gi);
+            const seen = new Set();
+            for (const match of assetMatches) {
+                const asset = match[2];
+                if (seen.has(asset)) continue;
+                seen.add(asset);
+                if (asset.startsWith('data:') || asset.startsWith('//')) continue;
+                let assetUrl;
+                try {
+                    assetUrl = new URL(asset, url).href;
+                } catch {
+                    continue;
+                }
+                const assetFile = path.basename(asset.replace(/[?#].*$/, ''));
+                if (!assetFile) continue;
+                const outPath = path.join(fetchDir, assetFile);
+                try {
+                    const client2 = new URL(assetUrl).protocol === 'https:' ? https : http;
+                    await new Promise((res2) => {
+                        const req2 = client2.get(assetUrl, { timeout: 15000, headers: { 'User-Agent': 'Mozilla/5.0' } }, (resp2) => {
+                            if (resp2.statusCode !== 200) return res2();
+                            const s2 = fs.createWriteStream(outPath);
+                            resp2.pipe(s2);
+                            s2.on('finish', res2);
+                            s2.on('error', () => res2());
+                        });
+                        req2.on('error', () => res2());
+                        req2.on('timeout', () => { req2.destroy(); res2(); });
+                    });
+                } catch {
+                    // ignore asset fetch failures
+                }
+            }
+        } catch {
+            // ignore parse failures
+        }
+
+        return fetchDir;
+    }
+
+    async function cleanupWebsiteTemp(tempDir) {
+        try {
+            await fs.promises.rm(tempDir, { recursive: true, force: true });
+        } catch {
+            // ignore cleanup failures
+        }
+    }
+
     app.post('/api/analyze/flexible', async (req, res) => {
+        let tempFetchDir = null;
         try {
             const body = req.body || {};
+            const rawPath = String(body.projectPath || body.path || '').trim();
             let projectPath;
-            try {
-                projectPath = resolveSafeProjectPath(body.projectPath || body.path);
-            } catch (error) {
-                return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
+            let isWebsite = false;
+
+            // Detect website URL
+            if (/^https?:\/\//i.test(rawPath)) {
+                isWebsite = true;
+                try {
+                    tempFetchDir = await fetchWebsiteToTemp(rawPath);
+                    projectPath = tempFetchDir;
+                } catch (error) {
+                    return res.status(400).json({ success: false, error: toClientError(error, 'Failed to fetch website') });
+                }
+            } else {
+                try {
+                    projectPath = resolveSafeProjectPath(rawPath);
+                } catch (error) {
+                    return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
+                }
             }
             if (!projectPath) {
                 return res.status(400).json({ success: false, error: 'projectPath is required' });
             }
 
             const aiProvider = String(body.aiProvider || 'active').toLowerCase();
-            const analysisType = await resolveAnalysisType(body.analysisType, projectPath);
+            const analysisType = isWebsite ? 'mock-scan' : await resolveAnalysisType(body.analysisType, projectPath);
             const registry = await ensureRegistry(baseDir);
 
             if (analysisType === 'roadmap') {
@@ -383,7 +566,6 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     analysisType: 'roadmap',
                     aiProvider,
                     roadmapInsightsMode: String(body.roadmapInsightsMode || 'off').toLowerCase(),
-                    projectPath: result.projectPath,
                     roadmap: result.roadmap,
                     historyEntry: result.historyEntry
                 });
@@ -416,7 +598,6 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     aiProvider,
                     understandingMode,
                     scanProfile,
-                    projectPath,
                     report
                 });
             }
@@ -474,13 +655,509 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 success: true,
                 analysisType: 'mock-scan',
                 aiProvider,
-                projectPath,
                 cloudSummary,
                 ...scanResult
             });
         } catch (error) {
             res.status(400).json({ success: false, error: toClientError(error, 'Analysis request failed') });
+        } finally {
+            if (tempFetchDir) {
+                await cleanupWebsiteTemp(tempFetchDir);
+            }
         }
+    });
+
+    // ── Directory Upload Analysis ──
+
+    const uploadMulter = multer({
+        dest: path.join(os.tmpdir(), 'sb-uploads'),
+        limits: { files: 100000, fileSize: 5 * 1024 * 1024 * 1024, fieldSize: 50 * 1024 * 1024 }
+    });
+
+    function sanitizeUploadPath(rawPath) {
+        return String(rawPath || '')
+            .replace(/^[/\\]+/, '')
+            .replace(/\.\.[/\\]/g, '')
+            .replace(/[^a-zA-Z0-9_\-./\\]/g, '_');
+    }
+
+    /**
+     * Sanitize scan report JSON before sending to AI analyst APIs.
+     * Strips local system paths, email addresses, and user-identifying metadata
+     * to enforce zero-retention privacy (Pillar 3 of privacy architecture).
+     */
+    function sanitizeReportForAi(report) {
+        if (!report || typeof report !== 'object') return report;
+        const clone = JSON.parse(JSON.stringify(report));
+        const pathRegex = /[A-Z]:\\Users\\[^\\]+|\\home\\[^/]+|C:\\\\Users\\\\[^\\\\]+/gi;
+        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+
+        function scrub(obj) {
+            if (typeof obj === 'string') {
+                return obj
+                    .replace(pathRegex, '<local-path-redacted>')
+                    .replace(emailRegex, '<email-redacted>');
+            }
+            if (Array.isArray(obj)) {
+                return obj.map(scrub);
+            }
+            if (obj && typeof obj === 'object') {
+                const out = {};
+                for (const key of Object.keys(obj)) {
+                    if (['projectRoot', 'scanTargetRoot', 'configPath'].includes(key)) {
+                        out[key] = '<path-redacted>';
+                    } else {
+                        out[key] = scrub(obj[key]);
+                    }
+                }
+                return out;
+            }
+            return obj;
+        }
+        return scrub(clone);
+    }
+
+    async function validateLicenseToken(token) {
+        const { readStore } = require('../../server/lib/simplebeacon-subscription-store.cjs');
+        const { verifyLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token.js');
+        const store = await readStore();
+        const record = Object.values(store.subscriptions || {}).find(
+            (s) => s.licenseToken === token
+        );
+        const VALID_TIERS = ['community', 'clearance499', 'agency999', 'agency1499', 'euai2499', 'warranty199', 'operator', 'moneyPrinter19', 'executive', 'agency', 'euai', 'universal', 'instant'];
+        if (record) {
+            if (!VALID_TIERS.includes(record.licenseTier)) return null;
+            return record;
+        }
+        // Fallback: cryptographically verify tokens not in store
+        const payload = verifyLicenseToken(token);
+        if (!payload) return null;
+        const tier = payload.tier || 'executive';
+        if (!VALID_TIERS.includes(tier)) return null;
+        return {
+            licenseToken: token,
+            licenseTier: tier,
+            email: payload.email || '',
+            features: payload.features || [],
+            projectName: payload.projectName || 'default-project',
+            clientName: payload.clientName || ''
+        };
+    }
+
+    app.post('/api/analyze/upload-directory', uploadMulter.array('files', 100000), async (req, res) => {
+        let projectDir = null;
+        let multerFiles = [];
+        try {
+            const authHeader = String(req.headers.authorization || '');
+            const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+            const licenseToken = bearerToken || String(req.body?.licenseToken || '').trim();
+            const analysisType = String(req.body?.analysisType || 'simplebeacon').toLowerCase();
+            logger.info(`[Upload Directory] Received analysisType="${analysisType}" from req.body keys=[${Object.keys(req.body || {}).join(',')}]`);
+
+            if (!licenseToken) {
+                return res.status(400).json({ success: false, error: 'licenseToken is required' });
+            }
+
+            const record = await validateLicenseToken(licenseToken);
+            if (!record) {
+                return res.status(401).json({ success: false, error: 'Invalid license token' });
+            }
+            const licenseTier = record.licenseTier || 'executive';
+
+            if (!req.files || req.files.length === 0) {
+                return res.status(400).json({ success: false, error: 'No files uploaded' });
+            }
+            multerFiles = req.files;
+
+            // Build project tree in a secure temp directory with auto-cleanup
+            const tmpDirObj = tmp.dirSync({ prefix: 'sb-analyze-', unsafeCleanup: true });
+            projectDir = tmpDirObj.name;
+
+            // Reconstruct directory structure using filePaths from frontend
+            let filePaths = [];
+            try { filePaths = JSON.parse(req.body?.filePaths || '[]'); } catch (e) { filePaths = []; }
+            for (let i = 0; i < req.files.length; i++) {
+                const relPath = filePaths[i] || req.files[i].originalname || req.files[i].fieldname;
+                const safePath = sanitizeUploadPath(relPath);
+                const destPath = path.join(projectDir, safePath);
+                fs.mkdirSync(path.dirname(destPath), { recursive: true });
+                fs.copyFileSync(req.files[i].path, destPath);
+            }
+
+            // If a single ZIP file was uploaded, stream-extract it to bypass browser webkitdirectory limits
+            if (req.files.length === 1 && req.files[0].originalname.toLowerCase().endsWith('.zip')) {
+                const zipPath = req.files[0].path;
+                logger.info(`[Upload Directory] Detected ZIP archive. Streaming extract to ${projectDir}...`);
+                try {
+                    await new Promise((resolve, reject) => {
+                        fs.createReadStream(zipPath)
+                            .pipe(unzipper.Extract({ path: projectDir }))
+                            .on('close', resolve)
+                            .on('error', reject);
+                    });
+                    logger.info(`[Upload Directory] ZIP streamed to ${projectDir}`);
+                    // Remove the raw ZIP so the scan only sees extracted source files
+                    try {
+                        const safeRel = sanitizeUploadPath(filePaths[0] || req.files[0].originalname);
+                        const copiedZip = path.join(projectDir, safeRel);
+                        if (fs.existsSync(copiedZip)) fs.unlinkSync(copiedZip);
+                    } catch (cleanupErr) {
+                        logger.warn(`[Upload Directory] ZIP cleanup skipped: ${cleanupErr.message}`);
+                    }
+                } catch (zipErr) {
+                    logger.warn(`[Upload Directory] ZIP extraction failed: ${zipErr.message}. Proceeding with raw upload.`);
+                }
+            }
+
+            // Write a temp config so the CLI scans everything in the uploaded directory,
+            // instead of inheriting ai-platform's default scanPaths (web/data, tests/fixtures, data)
+            const tempConfigDir = path.join(projectDir, '.simplebeacon');
+            fs.mkdirSync(tempConfigDir, { recursive: true });
+            const tempConfigPath = path.join(tempConfigDir, 'config.json');
+            fs.writeFileSync(
+                tempConfigPath,
+                JSON.stringify({
+                    scanPaths: ['.'],
+                    productionPaths: ['.'],
+                    fullDirectoryScan: true,
+                    ignore: [
+                        '*.log', '*.backup.*', '*.tmp',
+                        'node_modules/**', '.git/**', 'coverage/**',
+                        'dist/**', 'build/**', '.github/**',
+                        '**/*.test.js', '**/*.spec.js',
+                        '**/*.test.ts', '**/*.spec.ts',
+                        '**/*.map', '**/*.min.js', '**/*.min.css',
+                        '**/*.d.ts', '**/*.lock', '**/*.lockb',
+                        'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+                        '.DS_Store', 'Thumbs.db',
+                        '*.woff', '*.woff2', '*.ttf', '*.eot',
+                        '*.png', '*.jpg', '*.jpeg', '*.gif', '*.svg', '*.ico',
+                        '*.mp4', '*.webm', '*.mp3', '*.wav',
+                        '*.pdf', '*.doc', '*.docx', '*.zip', '*.tar', '*.gz',
+                        '**/cp*.json', '**/euc*.json', '**/gbk*.json',
+                        '**/shiftjis.json', '**/big5*.json', '**/encoding*.json',
+                        '**/codes.json', '**/dbcs*.js', '**/dbcs*.json'
+                    ],
+                    fullDirectoryScanSkipDirs: [
+                        '.git', 'node_modules', 'coverage', 'dist', 'build',
+                        '.simplebeacon', 'tmp', '.github', '.github-sync',
+                        'backups', 'deployments', 'logs', 'ai-agent', 'ai-tools',
+                        'simplebeacon-rule-tests', 'simplebeacon-frameworkless',
+                        'packages/simplebeacon-cli'
+                    ]
+                }, null, 2)
+            );
+
+            const scanId = crypto.randomUUID();
+            scanJobs.set(scanId, {
+                status: 'scanning',
+                current: 0,
+                total: req.files.length,
+                percent: 0,
+                filename: '',
+                reportJson: null,
+                error: null,
+                tmpDir: projectDir,
+                createdAt: Date.now()
+            });
+
+            // Fire-and-forget background scan
+            (async () => {
+                const scanStart = Date.now();
+                logger.info(`[Upload Directory] Starting scan ${scanId} for ${analysisType}, ${req.files.length} files`);
+                const scanTimeoutMs = 18 * 60 * 1000; // 18 min hard cap for entire scan + analyses
+                const scanTimer = setTimeout(() => {
+                    const job = scanJobs.get(scanId);
+                    if (job && job.status === 'scanning') {
+                        logger.error(`[Upload Directory] Scan ${scanId} timed out after ${scanTimeoutMs}ms`);
+                        scanJobs.set(scanId, { ...job, status: 'error', error: `Scan timed out after ${scanTimeoutMs / 1000}s` });
+                    }
+                }, scanTimeoutMs);
+                let report = null;
+                let cliFailed = false;
+                try {
+                    const cliPath = path.join(baseDir, 'packages/simplebeacon-cli/bin/simplebeacon.js');
+                    const cmd = `node "${cliPath}" scan --path "${projectDir}" --config "${tempConfigPath}" --format json --gate --offline --fullDirectoryScan`;
+                    logger.info(`[Upload Directory] Running CLI scan for ${scanId}...`);
+                    const { stdout } = await execAsync(cmd, {
+                        cwd: baseDir,
+                        maxBuffer: 1024 * 1024 * 1024,
+                        timeout: 900000
+                    });
+                    logger.info(`[Upload Directory] CLI scan completed for ${scanId} in ${(Date.now() - scanStart) / 1000}s`);
+                    try {
+                        report = JSON.parse(stdout);
+                    } catch (parseErr) {
+                        logger.error('[Upload Directory] Failed to parse scan output:', parseErr.message);
+                        scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: 'Scan completed but output parsing failed' });
+                        return;
+                    }
+                } catch (err) {
+                    cliFailed = true;
+                    logger.warn(`[Upload Directory] CLI scan exited non-zero for ${scanId}:`, err.message);
+                    if (err.stdout) {
+                        try {
+                            report = JSON.parse(err.stdout);
+                            logger.info(`[Upload Directory] Parsed gate-fail report for ${scanId}, issues=${report.issueCount || report.gate?.blockingCount || 'n/a'}`);
+                        } catch (parseErr) {
+                            logger.error('[Upload Directory] Failed to parse gate-fail output:', parseErr.message);
+                        }
+                    }
+                    if (!report) {
+                        scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: err.message || 'Analysis failed' });
+                        return;
+                    }
+                }
+
+                // Run additional analyses based on selected analysis type (regardless of gate pass/fail)
+                const results = { simplebeacon: report };
+                const runComplete = analysisType === 'complete';
+                // Tier-aware limits: $19 instant tier does not get executive-tier analyzers
+                const instantTierLimited = licenseTier === 'instant';
+                const tierAllowed = (analyzer) => !instantTierLimited || ['simplebeacon', 'mock-scan', 'codebase'].includes(analyzer);
+                const ANALYZER_TIMEOUT = 600000; // 10 min per analyzer (codebase can be slow)
+                const ANALYZER_TIMEOUT_FAST = 60000; // 1 min for lightweight analyzers
+                const runAnalyzer = async (label, fn, timeoutMs = ANALYZER_TIMEOUT) => {
+                    const t0 = Date.now();
+                    logger.info(`[Upload Directory] Starting analyzer: ${label} (timeout ${timeoutMs}ms)`);
+                    try {
+                        const result = await withTimeout(fn(), timeoutMs, label);
+                        logger.info(`[Upload Directory] Finished analyzer: ${label} in ${Date.now() - t0}ms`);
+                        return result;
+                    } catch (e) {
+                        logger.warn(`[Upload Directory] Analyzer ${label} failed after ${Date.now() - t0}ms:`, e.message);
+                        return { error: e.message };
+                    }
+                };
+
+                if ((analysisType === 'codebase' || runComplete) && tierAllowed('codebase')) {
+                    results.codebase = await runAnalyzer('codebase', () => analyzeCodebase(projectDir, { context: 'dashboard', scanProfile: 'default' }));
+                }
+                if ((analysisType === 'npm-audit' || runComplete) && tierAllowed('npm-audit')) {
+                    results.npmAudit = await runAnalyzer('npm-audit', () => runNpmAuditAsync(projectDir, { force: false }));
+                }
+                if ((analysisType === 'compliance' || runComplete) && tierAllowed('compliance')) {
+                    results.compliance = await runAnalyzer('compliance', () => Promise.resolve(evaluateComplianceChecklist(report)));
+                }
+                if (analysisType === 'data-cleanup' && tierAllowed('data-cleanup')) {
+                    results.dataCleanup = await runAnalyzer('data-cleanup', () => runDataCleanupScan(projectDir, { profile: 'all' }));
+                }
+                if ((analysisType === 'file-reduction' || runComplete) && tierAllowed('file-reduction')) {
+                    results.fileReduction = await runAnalyzer('file-reduction', () => scanFileMergerReduction(projectDir, { includeRepositoryInventory: true }));
+                }
+                if ((analysisType === 'roadmap' || runComplete) && tierAllowed('roadmap')) {
+                    results.roadmap = await runAnalyzer('roadmap', () => generateCodeRoadmap(projectDir, {}, { scanReport: report, includeFiles: true }));
+                }
+                if ((analysisType === 'data-quality' || runComplete) && tierAllowed('data-quality')) {
+                    const profile = analysisType === 'data-quality' ? 'data-quality' : 'all';
+                    results.dataQuality = await runAnalyzer('data-quality', () => runDataCleanupScan(projectDir, { profile }));
+                }
+                if ((analysisType === 'cleanup-assistant' || runComplete) && tierAllowed('cleanup-assistant')) {
+                    results.cleanupAssistant = await runAnalyzer('cleanup-assistant', async () => {
+                        const fileReduction = await runDataCleanupScan(projectDir, { profile: 'file-reduction' });
+                        const dataQuality = await runDataCleanupScan(projectDir, { profile: 'data-quality' });
+                        const inventory = fileReduction?.inventory || dataQuality?.inventory || null;
+                        const plan = fileReduction?.fileReductionPlan || fileReduction?.plan || null;
+                        const safeDirs = plan?.safeToDelete?.topDirectories || [];
+                        const reviewDirs = plan?.reviewBeforeDelete?.logs || [];
+                        const brief = {
+                            projectPath: projectDir,
+                            inventory: {
+                                totalFiles: inventory?.totalFiles ?? null,
+                                totalFolders: inventory?.totalDirectories ?? null
+                            },
+                            tiers: {
+                                safeNow: { files: 0, bytes: 0, directories: safeDirs },
+                                reviewFirst: { files: reviewDirs.length, bytes: 0, items: reviewDirs },
+                                protected: { files: 0, bytes: 0, directories: [] },
+                                investigate: { files: plan?.unusedFiles?.candidates ?? 0, note: plan?.unusedFiles?.note || null }
+                            },
+                            analysis: {
+                                fileReductionSummary: fileReduction?.summary || null,
+                                dataQualitySummary: dataQuality?.summary || null
+                            }
+                        };
+                        return { brief, fileReduction, dataQuality, repositoryInventory: inventory };
+                    });
+                }
+                if ((analysisType === 'consolidation' || runComplete) && tierAllowed('consolidation')) {
+                    results.consolidation = await runAnalyzer('consolidation', () => buildCompleteAuditModel({ results }));
+                }
+                if ((analysisType === 'mock-scan' || runComplete) && tierAllowed('mock-scan')) {
+                    results.mockScan = await runAnalyzer('mock-scan', async () => {
+                        const { mockFiles, issues } = await scanMockFiles(projectDir);
+                        return { type: 'mock-data-analysis', filesFound: mockFiles.length, issuesDetected: issues.length, dataQualityScore: mockFiles.length > 0 ? `${((mockFiles.length - issues.length) / mockFiles.length * 100).toFixed(1)}%` : '0%', files: mockFiles.map(({ content, ...rest }) => rest), issues };
+                    });
+                }
+                if ((analysisType === 'eu-ai-act' || runComplete) && tierAllowed('eu-ai-act')) {
+                    results.euAiAct = await runAnalyzer('eu-ai-act', async () => {
+                        try {
+                            const reportModulePath = require.resolve('../lib/eu-ai-act-audit-report.cjs');
+                            if (process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true') delete require.cache[reportModulePath];
+                            const { buildEuAiActAuditReport } = require('../lib/eu-ai-act-audit-report.cjs');
+                            return await buildEuAiActAuditReport({
+                                projectPath: projectDir,
+                                artifacts: {
+                                    platformRoot: projectDir,
+                                    report: report,
+                                    compliance: null,
+                                    assessment: null
+                                }
+                            });
+                        } catch (e) {
+                            if (e.code === 'eu_ai_act_artifacts_missing') {
+                                return {
+                                    type: 'eu-ai-act-audit',
+                                    status: 'no-artifacts',
+                                    message: e.message,
+                                    html: null,
+                                    filename: null,
+                                    reportId: null,
+                                    exportTier: 'eu-ai-act',
+                                    exportTierLabel: 'EU AI Act readiness (reference)',
+                                    platformRoot: null
+                                };
+                            }
+                            throw e;
+                        }
+                    });
+                }
+
+                let reportJson = report;
+                const typeMap = {
+                    'codebase': results.codebase, 'npm-audit': results.npmAudit, 'compliance': results.compliance,
+                    'data-cleanup': results.dataCleanup, 'data-quality': results.dataQuality, 'cleanup-assistant': results.cleanupAssistant,
+                    'file-reduction': results.fileReduction, 'roadmap': results.roadmap,
+                    'consolidation': results.consolidation, 'mock-scan': results.mockScan, 'eu-ai-act': results.euAiAct
+                };
+                if (analysisType !== 'simplebeacon' && analysisType !== 'complete' && typeMap[analysisType]) {
+                    const specific = typeMap[analysisType];
+                    if (specific && !specific.error) {
+                        // Merge analysis result into simplebeacon report so frontend gate/quality fields remain available
+                        const analysisKeyMap = {
+                            'codebase': '_codebaseAnalysis',
+                            'npm-audit': '_npmAuditAnalysis',
+                            'compliance': '_complianceAnalysis',
+                            'data-cleanup': '_dataCleanupAnalysis',
+                            'data-quality': '_dataQualityAnalysis',
+                            'cleanup-assistant': '_cleanupAssistantAnalysis',
+                            'file-reduction': '_fileReductionAnalysis',
+                            'roadmap': '_roadmapAnalysis',
+                            'consolidation': '_consolidationAnalysis',
+                            'mock-scan': '_mockScanAnalysis',
+                            'eu-ai-act': '_euAiActAnalysis'
+                        };
+                        const analysisKey = analysisKeyMap[analysisType] || `_${analysisType.replace(/-/g, '')}Analysis`;
+                        reportJson = { ...report, [analysisKey]: specific };
+                    } else if (specific?.error) {
+                        reportJson = { ...report, _analysisError: specific.error };
+                    }
+                }
+                if (analysisType === 'complete') {
+                    reportJson = { ...report, _completeResults: results };
+                }
+
+                // Override temp directory path with original project name from upload
+                const originalDirName = (filePaths[0] && String(filePaths[0]).includes('/'))
+                    ? String(filePaths[0]).split('/')[0]
+                    : (filePaths[0] && String(filePaths[0]).includes('\\'))
+                        ? String(filePaths[0]).split('\\')[0]
+                        : (req.body?.projectName || 'project');
+                if (reportJson && typeof reportJson === 'object') {
+                    if (reportJson.projectRoot) reportJson.projectRoot = originalDirName;
+                    if (reportJson.projectPath) reportJson.projectPath = originalDirName;
+                    if (reportJson.scanTargetRoot) reportJson.scanTargetRoot = originalDirName;
+                }
+
+                clearTimeout(scanTimer);
+                logger.info(`[Upload Directory] Scan ${scanId} completed successfully in ${(Date.now() - scanStart) / 1000}s`);
+                scanJobs.set(scanId, {
+                    ...scanJobs.get(scanId),
+                    status: 'complete',
+                    percent: 100,
+                    current: req.files.length,
+                    reportJson: reportJson
+                });
+
+                // --- AI Analyst Autopilot (fire-and-forget) ---
+                (async () => {
+                    try {
+                        const aiVerdict = await generateAutomatedVerdict(sanitizeReportForAi(report), { projectPath: '<redacted>' });
+                        const jobMeta = scanJobs.get(scanId) || {};
+                        scanJobs.set(scanId, { ...jobMeta, aiVerdict });
+
+                        // If clientEmail was provided (e.g., via token or checkout), auto-email
+                        const recipient = req.projectContext?.clientEmail || req.projectContext?.email || req.body?.clientEmail;
+                        if (recipient) {
+                            await emailAutomatedVerdict({
+                                to: recipient,
+                                subject: `Your Automated Compliance Report — ${req.projectContext?.projectName || 'Project'}`,
+                                reportData: {
+                                    project: req.projectContext?.projectName || 'Project',
+                                    ...aiVerdict
+                                }
+                            });
+                        }
+                    } catch (aiErr) {
+                        logger.warn('[Upload Directory] AI Analyst autopilot error:', aiErr.message);
+                    }
+                })();
+
+                // --- EU AI Act Article 14 Human Oversight Evaluator (fire-and-forget) ---
+                (async () => {
+                    try {
+                        const euCompliance = await evaluateHumanOversightCompliance(report, { projectPath: projectDir });
+                        const jobMeta = scanJobs.get(scanId) || {};
+                        scanJobs.set(scanId, { ...jobMeta, euCompliance });
+                    } catch (euErr) {
+                        logger.warn('[Upload Directory] EU Article 14 evaluator error:', euErr.message);
+                    }
+                })();
+            })();
+
+            res.json({ success: true, scanId });
+        } catch (err) {
+            logger.error('[Upload Directory] Error:', err.message);
+            res.status(500).json({ success: false, error: err.message || 'Analysis failed' });
+            // Clean up on immediate error — Privacy Guard: zero data retention
+            try {
+                if (projectDir && fs.existsSync(projectDir)) {
+                    fs.rmSync(projectDir, { recursive: true, force: true });
+                    logger.info('[Privacy Guard] Purged repository assets from server memory:', projectDir);
+                }
+                for (const file of multerFiles) {
+                    if (file.path && fs.existsSync(file.path)) {
+                        fs.unlinkSync(file.path);
+                    }
+                }
+            } catch (cleanupErr) {
+                logger.warn('[Upload Directory] Cleanup error:', cleanupErr.message);
+            }
+        }
+    });
+
+    app.get('/api/analyze/progress', (req, res) => {
+        // Prevent any caching / 304 behavior — progress must always return fresh data
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.set('etag', false);
+        const scanId = String(req.query.scanId || '');
+        const job = scanJobs.get(scanId);
+        if (!job) {
+            return res.status(404).json({ success: false, error: 'Scan not found' });
+        }
+        // If complete, include reportJson; client will consume it
+        res.json({
+            success: true,
+            status: job.status,
+            current: job.current,
+            total: job.total,
+            percent: job.percent,
+            filename: job.filename || '',
+            reportJson: job.status === 'complete' ? job.reportJson : undefined,
+            error: job.status === 'error' ? job.error : undefined
+        });
     });
 
     app.get('/api/analyze/codebase', async (req, res) => {
@@ -522,7 +1199,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 });
             }
             res.set('Cache-Control', 'no-store');
-            return sendAnalyzeJson(res, { success: true, data: report, projectPath, scanProfile, scanContext, understandingMode });
+            return sendAnalyzeJson(res, { success: true, data: report, scanProfile, scanContext, understandingMode });
         } catch (error) {
             return res.status(400).json({ success: false, error: toClientError(error, 'Codebase analysis failed') });
         }
@@ -773,6 +1450,133 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         }
     });
 
+    /**
+     * POST /api/simplebeacon/export/certificate
+     * Generate a co-branded agency certificate from the certificate-export-panel fields.
+     * Formats: html (standalone), zip (bundled with reports), email (sent to billing email).
+     */
+    app.post('/api/simplebeacon/export/certificate', async (req, res) => {
+        try {
+            const body = req.body || {};
+            const report = body.report || body.completeScan || null;
+            const format = String(body.format || 'html').toLowerCase();
+
+            // Load stored certificate profile defaults from subscription
+            let storedProfile = null;
+            if (req.user?.email) {
+                try {
+                    const { getSubscriptionByEmail } = require('../lib/simplebeacon-subscription-store.cjs');
+                    const sub = await getSubscriptionByEmail(req.user.email);
+                    if (sub) {
+                        storedProfile = {
+                            milestone: sub.certMilestone,
+                            clientName: sub.certClientName,
+                            projectName: sub.certProjectName,
+                            orgId: sub.certOrgId
+                        };
+                    }
+                } catch {
+                    storedProfile = null;
+                }
+            }
+
+            const milestone = String(body.milestone || storedProfile?.milestone || 'release').toLowerCase();
+            const clientName = String(body.client_name || body.clientName || storedProfile?.clientName || '').trim() || 'Client';
+            const projectName = String(body.project_name || body.projectName || storedProfile?.projectName || '').trim() || 'Project';
+            const projectId = String(body.project_id || body.projectId || '').trim();
+            const orgId = String(body.org_id || body.orgId || storedProfile?.orgId || 'default').trim();
+            const emailTo = String(body.email || body.emailTo || '').trim();
+
+            if (!report || typeof report !== 'object') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'report is required — run a Simplebeacon gate scan first.'
+                });
+            }
+
+            // Load agency branding if org_id is provided
+            let branding = null;
+            try {
+                branding = await loadAgencyBranding(orgId);
+            } catch {
+                branding = null;
+            }
+
+            // Build certificate model using the panel fields
+            const certificateModel = buildCertificateModel({
+                report,
+                milestone,
+                project_name: projectName,
+                client_name: clientName,
+                agency_name: branding?.branding?.agency_name || branding?.agency_name || 'SimpleBeacon',
+                branding: branding?.branding || branding || null
+            });
+            const certificateHtml = renderCertificateHtml(certificateModel);
+
+            if (format === 'html') {
+                res.set('Cache-Control', 'no-store');
+                res.set('Content-Type', 'text/html; charset=utf-8');
+                return res.send(certificateHtml);
+            }
+
+            if (format === 'zip') {
+                const { normalizeCompleteScanInput } = require('../lib/complete-scan-audit-report.cjs');
+                const completeScan = normalizeCompleteScanInput(body.completeScan) || body.completeScan || report;
+                const zipResult = await buildAnalyzeExportZipStream(completeScan, {
+                    deliverableSku: body.deliverableSku || 'clearance499',
+                    internalDashboard: process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true',
+                    publicGateLocked: publicGateEnabled,
+                    hasAuditDeliverableAccess: !publicGateEnabled && !closedVaultMode,
+                    milestone,
+                    client: clientName,
+                    projectName,
+                    agencyName: branding?.branding?.agency_name || 'SimpleBeacon',
+                    aiProvider: body.aiProvider || 'demo'
+                });
+                res.set('Cache-Control', 'no-store');
+                res.set('Content-Type', 'application/zip');
+                res.set('Content-Disposition', `attachment; filename="${zipResult.filename}"`);
+                res.set('X-Simplebeacon-Export-Tier', zipResult.tierId || '');
+                zipResult.stream.pipe(res);
+                return;
+            }
+
+            if (format === 'email') {
+                const recipient = emailTo || req.user?.email;
+                if (!recipient) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'email is required for format=email. Provide body.email or sign in.'
+                    });
+                }
+                const emailResult = await sendEmail({
+                    to: recipient,
+                    subject: `SimpleBeacon Code Hygiene Certificate — ${projectName}`,
+                    text: `Your ${milestone} milestone certificate is attached as HTML.\n\nOpen it in any browser and print to PDF (Ctrl+P / Cmd+P → Save as PDF).\n\nCertificate ID: ${certificateModel.certificateId}\nClient: ${clientName}\nProject: ${projectName}`,
+                    html: certificateHtml
+                });
+                return res.json({
+                    success: true,
+                    certificateId: certificateModel.certificateId,
+                    format: 'email',
+                    emailSent: emailResult.sent,
+                    emailQueued: emailResult.queued,
+                    message: emailResult.sent
+                        ? 'Certificate emailed successfully.'
+                        : 'Certificate queued for email delivery (SMTP not configured).'
+                });
+            }
+
+            return res.status(400).json({
+                success: false,
+                error: `Unsupported format: ${format}. Use html, zip, or email.`
+            });
+        } catch (error) {
+            logger.warn('[certificate-export] failed', { error: error.message });
+            return res.status(400).json({ success: false, error: toClientError(error, 'Certificate export failed') });
+        }
+    });
+
     app.post('/api/analyze/complete-audit-report', async (req, res) => {
         try {
             const body = req.body || {};
@@ -808,13 +1612,14 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
             const projectPath = completeScan.projectPath || completeScan.projectRoot || '';
             const clientName = resolveAuditClientName(
-                { client: body.client, company: body.company },
+                { client: body.client, company: body.company, projectName: body.projectName },
                 projectPath
             );
 
             const report = await buildCompleteAuditReport(completeScan, {
                 client: clientName,
                 company: clientName,
+                projectName: body.projectName,
                 assessor: body.assessor,
                 aiProvider: providerOpts?.providerId || aiProvider,
                 summarizeFn: providerOpts
@@ -892,7 +1697,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     success: true,
                     enhanced: false,
                     aiProvider,
-                    message: 'Filesystem scan only — select Ollama, OpenAI, or Anthropic for an AI narrative summary.'
+                    message: 'Filesystem scan only — select a configured provider for an AI narrative summary.'
                 });
             }
 
@@ -953,7 +1758,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             let npmAudit = body.npmAudit || null;
             if (!npmAudit) {
                 try {
-                    npmAudit = runNpmAudit(resolvedRoot, { force: body.forceNpmAudit === true });
+                    npmAudit = await runNpmAuditAsync(resolvedRoot, { force: body.forceNpmAudit === true });
                 } catch {
                     npmAudit = null;
                 }
@@ -1005,7 +1810,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             }
 
             const force = req.query.force === '1' || req.query.force === 'true';
-            const npmAudit = runNpmAudit(projectPath, { force });
+            const npmAudit = await runNpmAuditAsync(projectPath, { force });
             res.set('Cache-Control', 'no-store');
             return sendAnalyzeJson(res, {
                 success: true,
@@ -1021,11 +1826,411 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         }
     });
 
-    const { registerDataCleanupAnalyzeRoute } = require('../lib/data-cleanup-scan.cjs');
+    const { registerDataCleanupAnalyzeRoute, runDataCleanupScan } = require('../lib/data-cleanup-scan.cjs');
     registerDataCleanupAnalyzeRoute(app, {
         baseDir,
         monorepoRoot,
         sendJson: sendAnalyzeJson
+    });
+
+    /**
+     * POST /api/analyze/upload-directory
+     * Accepts a directory of source files via multipart upload, runs a Simplebeacon scan,
+     * and returns the report JSON. Files are saved to a temp directory then cleaned up.
+     */
+    // Graceful multer error handler for this route
+    app.use('/api/analyze/upload-directory', (err, req, res, next) => {
+        if (err && err instanceof multer.MulterError) {
+            logger.warn(`[Upload Directory] Multer error: ${err.code} - ${err.message}`);
+            if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+                return res.status(413).json({ success: false, error: 'Too many files. Maximum 100,000 files allowed per upload.' });
+            }
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({ success: false, error: 'One or more files exceed the 5 GB size limit.' });
+            }
+            return res.status(413).json({ success: false, error: `Upload rejected: ${err.message} (${err.code})` });
+        }
+        next(err);
+    });
+    const uploadDirLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 5,
+        message: { success: false, error: 'Too many upload requests. Please try again in 15 minutes.' },
+        standardHeaders: true,
+        legacyHeaders: false
+    });
+    const uploadDirMulter = multer({
+        storage: multer.memoryStorage(),
+        limits: { files: 100000, fileSize: 5 * 1024 * 1024 * 1024, fieldSize: 50 * 1024 * 1024 },
+        fileFilter: (req, file, cb) => {
+            // Accept all file types for directory uploads
+            cb(null, true);
+        }
+    });
+    app.post('/api/analyze/upload-directory', uploadDirLimiter, uploadDirMulter.array('files', 100000), async (req, res) => {
+        const tmpDir = path.join(os.tmpdir(), 'sb-upload-' + Date.now());
+        const analysisType = String(req.body?.analysisType || 'simplebeacon').toLowerCase();
+        try {
+            if (!req.files || req.files.length === 0) {
+                return res.status(400).json({ success: false, error: 'No files uploaded' });
+            }
+
+            // Write uploaded files to temp directory preserving paths
+            fs.mkdirSync(tmpDir, { recursive: true });
+            let filePaths2 = [];
+            try { filePaths2 = JSON.parse(req.body?.filePaths || '[]'); } catch (e) { filePaths2 = []; }
+            for (let i = 0; i < req.files.length; i++) {
+                const relPath = filePaths2[i] || req.files[i].originalname || req.files[i].fieldname;
+                const outPath = path.join(tmpDir, relPath);
+                fs.mkdirSync(path.dirname(outPath), { recursive: true });
+                fs.writeFileSync(outPath, req.files[i].buffer);
+            }
+
+            // If a single ZIP file was uploaded, stream-extract it to get all files past browser webkitdirectory limits
+            if (req.files.length === 1 && req.files[0].originalname.toLowerCase().endsWith('.zip')) {
+                const zipRel = filePaths2[0] || req.files[0].originalname || req.files[0].fieldname;
+                const zipPath = path.join(tmpDir, zipRel);
+                logger.info(`[Upload Directory] Detected ZIP archive. Streaming extract to ${tmpDir}...`);
+                try {
+                    await new Promise((resolve, reject) => {
+                        fs.createReadStream(zipPath)
+                            .pipe(unzipper.Extract({ path: tmpDir }))
+                            .on('close', resolve)
+                            .on('error', reject);
+                    });
+                    logger.info(`[Upload Directory] ZIP streamed to ${tmpDir}`);
+                    // Remove the raw ZIP so the scan only sees extracted source files
+                    try {
+                        if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+                    } catch (cleanupErr) {
+                        logger.warn(`[Upload Directory] ZIP cleanup skipped: ${cleanupErr.message}`);
+                    }
+                } catch (zipErr) {
+                    logger.warn(`[Upload Directory] ZIP extraction failed: ${zipErr.message}. Proceeding with raw upload.`);
+                }
+            }
+
+            logger.info(`[Upload Directory] Received ${req.files.length} files, wrote to ${tmpDir}`);
+
+            // Run Simplebeacon scan on the temp directory (always run as baseline)
+            const cliBin = path.join(baseDir, 'packages/simplebeacon-cli/bin/simplebeacon.js');
+            const reportOut = path.join(tmpDir, '.simplebeacon', 'report.json'); // simplebeacon:production-leak-intent: scan-output - Defines temp scan report output path
+            fs.mkdirSync(path.dirname(reportOut), { recursive: true });
+
+            // simplebeacon:production-leak-intent: config-comment - Explains temp scan config override behavior
+            // Write a temp config so scanPaths points to the root, not default web/data
+            const tempConfigPath = path.join(tmpDir, '.simplebeacon', 'config.json');
+            fs.writeFileSync(tempConfigPath, JSON.stringify({
+                scanPaths: ['.'],
+                productionPaths: ['.'],
+                fullDirectoryScan: true,
+                ignore: [
+                    '*.log', '*.backup.*', '*.tmp',
+                    'node_modules/**', '.git/**', 'coverage/**',
+                    'dist/**', 'build/**', '.github/**',
+                    '**/*.test.js', '**/*.spec.js',
+                    '**/*.test.ts', '**/*.spec.ts',
+                    '**/*.map', '**/*.min.js', '**/*.min.css',
+                    '**/*.d.ts', '**/*.lock', '**/*.lockb',
+                    'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+                    '.DS_Store', 'Thumbs.db',
+                    '*.woff', '*.woff2', '*.ttf', '*.eot',
+                    '*.png', '*.jpg', '*.jpeg', '*.gif', '*.svg', '*.ico',
+                    '*.mp4', '*.webm', '*.mp3', '*.wav',
+                    '*.pdf', '*.doc', '*.docx', '*.zip', '*.tar', '*.gz',
+                    '**/cp*.json', '**/euc*.json', '**/gbk*.json',
+                    '**/shiftjis.json', '**/big5*.json', '**/encoding*.json',
+                    '**/codes.json', '**/dbcs*.js', '**/dbcs*.json'
+                ],
+                fullDirectoryScanSkipDirs: ['.git', 'node_modules', 'coverage', 'dist', 'build', '.simplebeacon', 'tmp']
+            }, null, 2));
+
+            const scanCmd = `node "${cliBin}" scan --path "${tmpDir}" --config "${tempConfigPath}" --format json --output "${reportOut}" --offline --full`;
+            let stdout = '';
+            let stderr = '';
+            try {
+                const result = await execAsync(scanCmd, { cwd: baseDir, timeout: 300000, env: { ...process.env, FORCE_COLOR: '0' } });
+                stdout = result.stdout || '';
+                stderr = result.stderr || '';
+            } catch (err) {
+                stdout = err.stdout || '';
+                stderr = err.stderr || '';
+                if (!fs.existsSync(reportOut)) {
+                    throw err;
+                }
+            }
+
+            const report = JSON.parse(fs.readFileSync(reportOut, 'utf8'));
+            logger.info(`[Upload Directory] Scan found: totalFiles=${report.totalFiles || report.repositoryFilesTotal || 'n/a'}, scanned=${report.ruleScopedFilesAnalyzed || 'n/a'}, issues=${report.issueCount || report.gate?.blockingCount || 'n/a'}`);
+            const results = { simplebeacon: report };
+
+            // Run additional analyses based on selected analysis type
+            const runComplete = analysisType === 'complete';
+            const ANALYZER_TIMEOUT = 600000; // 10 min per analyzer
+            const runAnalyzer = async (label, fn, timeoutMs = ANALYZER_TIMEOUT) => {
+                const t0 = Date.now();
+                logger.info(`[Upload Directory] Starting analyzer: ${label} (timeout ${timeoutMs}ms)`);
+                try {
+                    const result = await withTimeout(fn(), timeoutMs, label);
+                    logger.info(`[Upload Directory] Finished analyzer: ${label} in ${Date.now() - t0}ms`);
+                    return result;
+                } catch (e) {
+                    logger.warn(`[Upload Directory] Analyzer ${label} failed after ${Date.now() - t0}ms:`, e.message);
+                    return { error: e.message };
+                }
+            };
+
+            if (analysisType === 'codebase' || runComplete) {
+                results.codebase = await runAnalyzer('codebase', () => analyzeCodebase(tmpDir, { context: 'dashboard', scanProfile: 'default' }));
+            }
+            if (analysisType === 'npm-audit' || runComplete) {
+                results.npmAudit = await runAnalyzer('npm-audit', () => runNpmAuditAsync(tmpDir, { force: false }));
+            }
+            if (analysisType === 'compliance' || runComplete) {
+                results.compliance = await runAnalyzer('compliance', () => Promise.resolve(evaluateComplianceChecklist(report)));
+            }
+            if (analysisType === 'data-cleanup') {
+                results.dataCleanup = await runAnalyzer('data-cleanup', () => runDataCleanupScan(tmpDir, { profile: 'all' }));
+            }
+            if (analysisType === 'file-reduction' || runComplete) {
+                results.fileReduction = await runAnalyzer('file-reduction', () => scanFileMergerReduction(tmpDir, { includeRepositoryInventory: true }));
+            }
+            if (analysisType === 'roadmap' || runComplete) {
+                results.roadmap = await runAnalyzer('roadmap', () => generateCodeRoadmap(tmpDir, {}, { scanReport: report, includeFiles: true }));
+            }
+            if (analysisType === 'data-quality' || runComplete) {
+                const profile = analysisType === 'data-quality' ? 'data-quality' : 'all';
+                results.dataQuality = await runAnalyzer('data-quality', () => runDataCleanupScan(tmpDir, { profile }));
+            }
+            if (analysisType === 'cleanup-assistant' || runComplete) {
+                results.cleanupAssistant = await runAnalyzer('cleanup-assistant', async () => {
+                    const fileReduction = await runDataCleanupScan(tmpDir, { profile: 'file-reduction' });
+                    const dataQuality = await runDataCleanupScan(tmpDir, { profile: 'data-quality' });
+                    const inventory = fileReduction?.inventory || dataQuality?.inventory || null;
+                    const plan = fileReduction?.fileReductionPlan || fileReduction?.plan || null;
+                    const safeDirs = plan?.safeToDelete?.topDirectories || [];
+                    const reviewDirs = plan?.reviewBeforeDelete?.logs || [];
+                    const brief = {
+                        projectPath: tmpDir,
+                        inventory: {
+                            totalFiles: inventory?.totalFiles ?? null,
+                            totalFolders: inventory?.totalDirectories ?? null
+                        },
+                        tiers: {
+                            safeNow: { files: 0, bytes: 0, directories: safeDirs },
+                            reviewFirst: { files: reviewDirs.length, bytes: 0, items: reviewDirs },
+                            protected: { files: 0, bytes: 0, directories: [] },
+                            investigate: { files: plan?.unusedFiles?.candidates ?? 0, note: plan?.unusedFiles?.note || null }
+                        },
+                        analysis: {
+                            fileReductionSummary: fileReduction?.summary || null,
+                            dataQualitySummary: dataQuality?.summary || null
+                        }
+                    };
+                    return { brief, fileReduction, dataQuality, repositoryInventory: inventory };
+                });
+            }
+            if (analysisType === 'consolidation' || runComplete) {
+                results.consolidation = await runAnalyzer('consolidation', () => buildCompleteAuditModel({ results }));
+            }
+            if (analysisType === 'mock-scan' || runComplete) {
+                results.mockScan = await runAnalyzer('mock-scan', async () => {
+                    const { mockFiles, issues } = await scanMockFiles(tmpDir);
+                    return {
+                        type: 'mock-data-analysis',
+                        filesFound: mockFiles.length,
+                        issuesDetected: issues.length,
+                        dataQualityScore: mockFiles.length > 0 ? `${((mockFiles.length - issues.length) / mockFiles.length * 100).toFixed(1)}%` : '0%',
+                        files: mockFiles.map(({ content, ...rest }) => rest),
+                        issues
+                    };
+                });
+            }
+            if (analysisType === 'eu-ai-act' || runComplete) {
+                results.euAiAct = await runAnalyzer('eu-ai-act', async () => {
+                    try {
+                        const reportModulePath = require.resolve('../lib/eu-ai-act-audit-report.cjs');
+                        if (process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true') delete require.cache[reportModulePath];
+                        const { buildEuAiActAuditReport } = require('../lib/eu-ai-act-audit-report.cjs');
+                        return await buildEuAiActAuditReport({
+                            projectPath: tmpDir,
+                            artifacts: {
+                                platformRoot: tmpDir,
+                                report: report,
+                                compliance: null,
+                                assessment: null
+                            }
+                        });
+                    } catch (e) {
+                        if (e.code === 'eu_ai_act_artifacts_missing') {
+                            return {
+                                type: 'eu-ai-act-audit',
+                                status: 'no-artifacts',
+                                message: e.message,
+                                html: null,
+                                filename: null,
+                                reportId: null,
+                                exportTier: 'eu-ai-act',
+                                exportTierLabel: 'EU AI Act readiness (reference)',
+                                platformRoot: null
+                            };
+                        }
+                        throw e;
+                    }
+                });
+            }
+
+            // Select the primary report based on analysis type
+            let reportJson = report;
+            const typeMap = {
+                'codebase': results.codebase,
+                'npm-audit': results.npmAudit,
+                'compliance': results.compliance,
+                'data-cleanup': results.dataCleanup,
+                'data-quality': results.dataQuality,
+                'cleanup-assistant': results.cleanupAssistant,
+                'file-reduction': results.fileReduction,
+                'roadmap': results.roadmap,
+                'consolidation': results.consolidation,
+                'mock-scan': results.mockScan,
+                'eu-ai-act': results.euAiAct
+            };
+            if (analysisType !== 'simplebeacon' && analysisType !== 'complete' && typeMap[analysisType]) {
+                const specific = typeMap[analysisType];
+                if (specific && !specific.error) {
+                    if (analysisType === 'codebase') {
+                        reportJson = {
+                            ...report,
+                            _codebaseAnalysis: specific,
+                            qualityScore: specific.summary?.healthScore ?? report.qualityScore,
+                            totalFiles: specific.summary?.codeFilesAnalyzed ?? report.totalFiles,
+                            issueCount: specific.summary?.findingsTotal ?? report.issueCount
+                        };
+                    } else if (analysisType === 'data-quality' || analysisType === 'data-cleanup') {
+                        reportJson = {
+                            ...report,
+                            _dataQualityAnalysis: specific,
+                            qualityScore: specific.summary?.score ?? report.qualityScore,
+                            totalFiles: specific.inventory?.totalFiles ?? report.totalFiles,
+                            issueCount: specific.summary?.totalFindings ?? report.issueCount
+                        };
+                    } else if (analysisType === 'file-reduction') {
+                        reportJson = {
+                            ...report,
+                            _fileReductionAnalysis: specific,
+                            qualityScore: specific.summary?.score ?? report.qualityScore,
+                            totalFiles: specific.inventory?.totalFiles ?? report.totalFiles,
+                            issueCount: specific.summary?.totalFindings ?? report.issueCount
+                        };
+                    } else if (analysisType === 'cleanup-assistant') {
+                        reportJson = {
+                            ...report,
+                            _cleanupAssistantAnalysis: specific,
+                            qualityScore: report.qualityScore,
+                            totalFiles: specific.brief?.inventory?.totalFiles ?? report.totalFiles,
+                            issueCount: specific.brief?.tiers?.safeNow?.directories?.length ?? report.issueCount
+                        };
+                    } else if (analysisType === 'mock-scan') {
+                        reportJson = {
+                            ...report,
+                            _mockScanAnalysis: specific,
+                            qualityScore: specific.dataQualityScore ? parseFloat(specific.dataQualityScore) : report.qualityScore,
+                            totalFiles: specific.filesFound ?? report.totalFiles,
+                            issueCount: specific.issuesDetected ?? report.issueCount
+                        };
+                    } else if (analysisType === 'roadmap') {
+                        reportJson = {
+                            ...report,
+                            _roadmapAnalysis: specific,
+                            qualityScore: specific.executiveSummary?.completionRate ?? report.qualityScore,
+                            totalFiles: specific.totalFiles ?? report.totalFiles,
+                            issueCount: report.issueCount
+                        };
+                    } else if (analysisType === 'consolidation') {
+                        reportJson = {
+                            ...report,
+                            _consolidationAnalysis: specific,
+                            qualityScore: report.qualityScore,
+                            totalFiles: report.totalFiles,
+                            issueCount: report.issueCount
+                        };
+                    } else if (analysisType === 'npm-audit') {
+                        reportJson = {
+                            ...report,
+                            _npmAuditAnalysis: specific,
+                            qualityScore: report.qualityScore,
+                            totalFiles: report.totalFiles,
+                            issueCount: specific.vulnerabilities?.length ?? report.issueCount
+                        };
+                    } else if (analysisType === 'compliance') {
+                        reportJson = {
+                            ...report,
+                            _complianceAnalysis: specific,
+                            qualityScore: specific.summary?.score ?? report.qualityScore,
+                            totalFiles: report.totalFiles,
+                            issueCount: specific.summary?.failed ?? report.issueCount
+                        };
+                    } else if (analysisType === 'eu-ai-act') {
+                        reportJson = {
+                            ...report,
+                            _euAiActAnalysis: specific,
+                            qualityScore: specific.summary?.readinessScore ?? report.qualityScore,
+                            totalFiles: report.totalFiles,
+                            issueCount: specific.summary?.failed ?? report.issueCount
+                        };
+                    } else {
+                        reportJson = specific;
+                    }
+                } else if (specific?.error) {
+                    reportJson = { ...report, _analysisError: specific.error };
+                }
+            }
+            if (analysisType === 'complete') {
+                reportJson = {
+                    ...report,
+                    _completeResults: results
+                };
+            }
+
+            // Override temp directory path with original project name from upload
+            const originalDirName2 = (filePaths2[0] && String(filePaths2[0]).includes('/'))
+                ? String(filePaths2[0]).split('/')[0]
+                : (filePaths2[0] && String(filePaths2[0]).includes('\\'))
+                    ? String(filePaths2[0]).split('\\')[0]
+                    : (req.body?.projectName || 'project');
+            if (reportJson && typeof reportJson === 'object') {
+                if (reportJson.projectRoot) reportJson.projectRoot = originalDirName2;
+                if (reportJson.projectPath) reportJson.projectPath = originalDirName2;
+                if (reportJson.scanTargetRoot) reportJson.scanTargetRoot = originalDirName2;
+            }
+
+            res.json({
+                success: true,
+                reportJson: reportJson,
+                analysisType: analysisType,
+                results: results,
+                filesReceived: req.files.length,
+                scanTarget: originalDirName2,
+                privacy: {
+                    mode: 'air-gapped',
+                    networkActivity: false,
+                    dataRemainsLocal: true,
+                    description: 'Scan ran entirely on this machine. No files or data were transmitted to external services.'
+                }
+            });
+        } catch (error) {
+            logger.error('[Upload Directory] Scan failed:', error.message);
+            res.status(500).json({ success: false, error: toClientError(error, 'scan failed') });
+        } finally {
+            // Clean up temp directory after a short delay
+            setTimeout(() => {
+                try {
+                    fs.rmSync(tmpDir, { recursive: true, force: true });
+                } catch (e) {
+                    logger.warn('[Upload Directory] Cleanup failed:', e.message);
+                }
+            }, 5000);
+        }
     });
 
     if (shouldLogRuntimeInfo()) {

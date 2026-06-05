@@ -64,6 +64,43 @@
     });
   }
 
+  function applyDataTierCheckoutLinks() {
+    var pricing = cfg.pricing || {};
+    var isStaging = cfg.stagingMode === true || cfg.env !== 'production';
+
+    document.querySelectorAll('.checkout-btn[data-tier]').forEach(function (el) {
+      var tierKey = el.getAttribute('data-tier');
+      var tierData = pricing[tierKey];
+      if (!tierData) return;
+
+      // For anchor tags, set href directly
+      if (el.tagName === 'A') {
+        var url = isStaging ? (tierData.testStripeLink || tierData.stripeLink) : tierData.stripeLink;
+        if (isStripeUrl(url)) {
+          wireStripe(el, url);
+        } else if (tierKey === 'free') {
+          el.href = 'index.html#audit';
+        } else {
+          el.href = contactPageHref(tierKey);
+        }
+        return;
+      }
+
+      // For buttons, attach click handler
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        var url = isStaging ? (tierData.testStripeLink || tierData.stripeLink) : tierData.stripeLink;
+        if (isStripeUrl(url)) {
+          window.location.href = url;
+        } else if (tierKey === 'free') {
+          window.location.href = 'index.html#audit';
+        } else {
+          window.location.href = contactPageHref(tierKey);
+        }
+      });
+    });
+  }
+
   function applyStagingCheckoutSwap() {
     if (!cfg.stagingMode) return;
     var testStripe = String(cfg.stripePaymentLink || '').trim();
@@ -83,15 +120,17 @@
       el.href = sampleUrl;
       clearLinkHandlers(el);
     });
-    var euSampleUrl = String(cfg.sampleEuAiActReportUrl || 'eu-ai-act-sample-report.html').trim();
-    // Don't force leading slash for file:// protocol (local development)
-    if (!euSampleUrl.startsWith('/') && window.location.protocol !== 'file:') {
-      euSampleUrl = '/' + euSampleUrl.replace(/^\/+/, '');
+    var euSampleUrl = cfg.sampleEuAiActReportUrl ? String(cfg.sampleEuAiActReportUrl).trim() : '';
+    if (euSampleUrl) {
+      // Don't force leading slash for file:// protocol (local development)
+      if (!euSampleUrl.startsWith('/') && window.location.protocol !== 'file:') {
+        euSampleUrl = '/' + euSampleUrl.replace(/^\/+/, '');
+      }
+      document.querySelectorAll('[data-eu-ai-sample-report]').forEach(function (el) {
+        el.href = euSampleUrl;
+        clearLinkHandlers(el);
+      });
     }
-    document.querySelectorAll('[data-eu-ai-sample-report]').forEach(function (el) {
-      el.href = euSampleUrl;
-      clearLinkHandlers(el);
-    });
   }
 
   function contactPageHref(topic) {
@@ -132,11 +171,7 @@
     if (cfg.stagingMode) return;
     if (document.getElementById('auditBookingForm')) return;
 
-    var projectLink = String(cfg.agencyProjectPackLink || '').trim();
-    var growthLink = String(cfg.agencyGrowthPackLink || '').trim();
-    var needsBanner = cfg.paymentsEnabled !== false
-      && (!isStripeUrl(projectLink) || !isStripeUrl(growthLink));
-
+    var needsBanner = cfg.paymentsEnabled !== false && !cfg.stagingMode;
     if (!needsBanner) return;
 
     var banner = document.createElement('div');
@@ -144,8 +179,8 @@
     banner.className = 'staging-banner';
     banner.setAttribute('role', 'status');
     banner.innerHTML =
-      '<strong>Agency pack checkout refreshing</strong> — email ' +
-      '<a href="mailto:' + auditEmail() + '">' + auditEmail() + '</a> to purchase.';
+      '<strong>Payments enabled</strong> — email ' +
+      '<a href="mailto:' + auditEmail() + '">' + auditEmail() + '</a> for support.';
     document.body.insertBefore(banner, document.body.firstChild);
     document.documentElement.setAttribute('data-payments-pending', 'true');
   }
@@ -165,6 +200,7 @@
   }
 
   applyCheckoutLinks();
+  applyDataTierCheckoutLinks();
   applyStagingCheckoutSwap();
   applySampleReportLinks();
   applyAuditEmailLinks();

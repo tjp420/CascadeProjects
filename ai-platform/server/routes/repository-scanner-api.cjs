@@ -392,4 +392,4 @@ function setupRepositoryScannerAPIs(app, options = {}) {
     });
 }
 
-module.exports = { setupRepositoryScannerAPIs };
+module.exports = { setupRepositoryScannerAPIs, scanMockFiles };

@@ -1,0 +1,14 @@
+{
+  "type": "baseline-comparison-report",
+  "overview": {
+    "compliance": 92
+  },
+  "baselineType": "filesystem",
+  "baselineValue": "100",
+  "currentValue": "100",
+  "variance": "100",
+  "status": "complete",
+  "comparisons": [
+    {}
+  ]
+}

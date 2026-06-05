@@ -9,9 +9,12 @@ const { globMatch } = require('./production-leak');
 const { shouldExcludePath } = require('../lib/path-exclusion-filter');
 
 const DEFAULT_SOURCE_PATHS = ['server', 'src', 'web', 'lib', 'packages'];
-const SCANNABLE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.json', '.yaml', '.yml', '.xml', '.csv', '.sql', '.md', '.txt', '.html', '.css', '.scss']);
-const SKIP_DIRS = new Set([]);
-const MAX_SCAN_BYTES = 10485760;
+const SCANNABLE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py']);
+const SKIP_DIRS = new Set([
+    'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
+    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'docs'
+]);
+const MAX_SCAN_BYTES = 512000;
 
 const EXCLUSION_SUBSTRINGS = [
     '_example_only_placeholder',
@@ -83,13 +86,8 @@ function isIgnored(relativePath, ignoreGlobs) {
     return ignoreGlobs.some((pattern) => globMatch(relativePath, pattern));
 }
 
-function isExcludedPath(relativePath, options = {}) {
+function isExcludedPath(relativePath, userExclusions = []) {
     const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
-    if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
-    if (/(?:^|\/)marketing-content-test\//.test(normalized)) return true;
-    if (options.universal) {
-        return false;
-    }
     
     // Test and fixture exclusions (always applied)
     if (/\.(test|spec)\.[jt]sx?$/.test(normalized)) return true;
@@ -107,12 +105,20 @@ function isExcludedPath(relativePath, options = {}) {
     ];
     if (scannerFiles.some(file => normalized.includes(file))) return true;
 
-    // Known intentional stub/demo files
-    if (normalized.includes('dashboard-stub-api.cjs')) return true;
-    
+    // Encoding table JSON files (iconv-lite, etc.) — numeric mappings trigger false KPI positives
+    if (/\b(cp936|eucjp|euckr|gb2312|gbk|shiftjis|big5|iso2022|macroman)\b.*\.json$/i.test(normalized)) return true;
+
+    // Simplebeacon backup reports — scanning old reports creates recursive false positives
+    if (/\.simplebeacon-backup\./i.test(normalized)) return true;
+    if (/(?:^|\/)node_modules\//.test(normalized)) return true;
+    if (/(?:^|\/)java-ai-vulnerable\//.test(normalized)) return true;
+    if (/(?:^|\/)\.gitkeep$/.test(normalized)) return true;
+    if (/^delivery_\d+_[a-z0-9]+\.json$/.test(normalized)) return true;
+    if (/(?:^|\/)test-output/.test(normalized)) return true;
+
     // Apply dynamic user exclusions from config
-    if (shouldExcludePath(normalized, options.userExclusions || [])) return true;
-    
+    if (shouldExcludePath(normalized, userExclusions)) return true;
+
     return false;
 }
 
@@ -168,6 +174,7 @@ async function walkSourceFiles(dir, results = [], options = {}, depth = 0) {
 }
 
 function scanFileContent(relativePath, content, patterns, ext) {
+    if (isExcludedPath(relativePath)) return [];
     const findings = [];
     const lines = content.split('\n');
 

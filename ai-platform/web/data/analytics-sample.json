@@ -1,0 +1,9 @@
+{
+  "type": "analytics-model",
+  "overview": {
+    "apiCalls": 1500
+  },
+  "usageByCategory": [
+    {}
+  ]
+}

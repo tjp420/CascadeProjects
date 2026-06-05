@@ -2,7 +2,12 @@
  * GitHub pull-request comment formatter for simplebeacon reports.
  */
 
+function isAnonymizedReport(report) {
+    return report.schemaVersion === 'anonymized-v1' || report.repoFingerprint != null;
+}
+
 function formatGithubComment(report, gateResult = null) {
+    const anonymized = isAnonymizedReport(report);
     const counts = report.severityCounts || { critical: 0, high: 0, medium: 0, low: 0 };
     const gate = gateResult || report.gate || null;
     const gateLine = gate
@@ -22,30 +27,41 @@ function formatGithubComment(report, gateResult = null) {
         `| 🟡 Medium | ${counts.medium || 0} |`,
         `| 🟢 Low | ${counts.low || 0} |`,
         '',
-        `- **Files scanned:** ${report.totalFiles ?? 0}`,
-        `- **Quality score:** ${report.qualityScore ?? '—'}/100`,
-        `- **Schema compliance:** ${report.schemaCompliance ?? '—'}%`,
-        `- **Duplicate groups:** ${report.duplicateGroups ?? 0}`
+        `- **Files scanned:** ${report.totalFiles ?? report.metrics?.ruleScopedFilesAnalyzed ?? 0}`,
+        `- **Quality score:** ${report.qualityScore ?? report.metrics?.qualityScore ?? '—'}/100`,
+        `- **Schema compliance:** ${report.schemaCompliance ?? report.metrics?.schemaCompliance ?? '—'}%`,
+        `- **Duplicate groups:** ${report.duplicateGroups ?? report.metrics?.duplicateGroups ?? 0}`
     ].filter(Boolean);
 
-    if (report.scanPaths?.length) {
+    if (!anonymized && report.scanPaths?.length) {
         lines.push('', '**Scan paths:**', ...report.scanPaths.map((p) => `- \`${p}\``));
     }
 
-    const blocking = gate?.blockingIssues
-        || report.rawIssues?.filter((i) => i.severity === 'high') || [];
-    if (blocking.length) {
-        lines.push('', '### Blocking issues');
-        for (const issue of blocking.slice(0, 10)) {
-            const file = issue.filePath ? ` (\`${issue.filePath.split(/[/\\]/).pop()}\`)` : '';
-            lines.push(`- **${issue.type}**${file} — ${issue.description}`);
+    if (anonymized) {
+        lines.push('', '🔒 **Privacy-blind scan** — no source code, file paths, or descriptions were transmitted to this CI runner.');
+        const agg = report.aggregate || {};
+        if (agg.byType && Object.keys(agg.byType).length) {
+            lines.push('', '### Error codes detected');
+            for (const [code, count] of Object.entries(agg.byType).slice(0, 12)) {
+                lines.push(`- \`${code}\`: ${count}`);
+            }
         }
-        if (blocking.length > 10) {
-            lines.push(`- …and ${blocking.length - 10} more`);
-        }
-        lines.push('', '**Suggested fixes:** fiction KPIs → baseline values; production leaks → API/scanner; credentials → rotate + env vars.');
     } else {
-        lines.push('', 'No blocking issues detected.');
+        const blocking = gate?.blockingIssues
+            || report.rawIssues?.filter((i) => i.severity === 'high') || [];
+        if (blocking.length) {
+            lines.push('', '### Blocking issues');
+            for (const issue of blocking.slice(0, 10)) {
+                const file = issue.filePath ? ` (\`${issue.filePath.split(/[/\\]/).pop()}\`)` : '';
+                lines.push(`- **${issue.type}**${file} — ${issue.description}`);
+            }
+            if (blocking.length > 10) {
+                lines.push(`- …and ${blocking.length - 10} more`);
+            }
+            lines.push('', '**Suggested fixes:** fiction KPIs → baseline values; production leaks → API/scanner; credentials → rotate + env vars.');
+        } else {
+            lines.push('', 'No blocking issues detected.');
+        }
     }
 
     lines.push(

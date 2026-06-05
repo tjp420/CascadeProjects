@@ -1,0 +1,10 @@
+{
+  "roadmap": {
+    "executiveSummary": {
+      "completionRate": 100,
+      "projectHealth": "Healthy"
+    },
+    "developmentPhases": []
+  },
+  "dataSource": "filesystem-scan"
+}

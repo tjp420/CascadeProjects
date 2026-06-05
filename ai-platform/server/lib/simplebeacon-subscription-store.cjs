@@ -60,10 +60,19 @@ function subscriptionRecord(email, overrides = {}) {
     subscriptionActive: false,
     stripeCustomerId: null,
     subscriptionId: null,
+    product: null,
     apiToken: createApiToken(),
     apiCallsThisPeriod: 0,
     periodStart: now,
     updatedAt: now,
+    licenseToken: null,
+    licenseTier: null,
+    complianceCertsThisPeriod: 0,
+    complianceCertLimit: 0,
+    certClientName: null,
+    certProjectName: null,
+    certMilestone: 'release',
+    certOrgId: 'default',
     ...overrides
   };
 }
@@ -168,6 +177,35 @@ async function consumeApiCall(token) {
   };
 }
 
+async function consumeComplianceCert(email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return { allowed: false, reason: 'email_required' };
+
+  const store = await readStore();
+  let record = store.subscriptions[normalized];
+  if (!record?.subscriptionActive) {
+    return { allowed: false, reason: 'subscription_inactive' };
+  }
+  if (record.product !== 'continuous_shield') {
+    return { allowed: false, reason: 'tier_not_continuous_shield' };
+  }
+
+  record = resetPeriodIfNeeded(record);
+  const limit = record.complianceCertLimit || 3;
+  if (record.complianceCertsThisPeriod >= limit) {
+    store.subscriptions[normalized] = record;
+    await writeStore(store);
+    return { allowed: false, reason: 'cert_limit_reached', limit, remaining: 0, periodStart: record.periodStart };
+  }
+
+  record.complianceCertsThisPeriod += 1;
+  record.updatedAt = new Date().toISOString();
+  store.subscriptions[normalized] = record;
+  await writeStore(store);
+
+  return { allowed: true, remaining: limit - record.complianceCertsThisPeriod, limit, periodStart: record.periodStart };
+}
+
 async function syncSubscriptionToDb(db, record) {
   if (!db || !record?.email) return;
   try {
@@ -201,15 +239,24 @@ function publicSubscriptionStatus(record) {
   }
 
   const reset = resetPeriodIfNeeded(record);
+  const certLimit = reset.complianceCertLimit || 0;
   return {
-    tier: reset.subscriptionActive ? 'paid' : 'free',
+    tier: reset.subscriptionActive ? (reset.product || 'paid') : 'free',
     email: reset.email,
     subscriptionActive: Boolean(reset.subscriptionActive),
     apiToken: reset.subscriptionActive ? reset.apiToken : null,
     apiLimit: PAID_API_LIMIT,
     apiCallsThisPeriod: reset.apiCallsThisPeriod,
     apiRemaining: Math.max(0, PAID_API_LIMIT - reset.apiCallsThisPeriod),
-    periodStart: reset.periodStart
+    periodStart: reset.periodStart,
+    product: reset.product || null,
+    complianceCertLimit: certLimit,
+    complianceCertsThisPeriod: reset.complianceCertsThisPeriod || 0,
+    complianceCertsRemaining: Math.max(0, certLimit - (reset.complianceCertsThisPeriod || 0)),
+    certClientName: reset.certClientName || null,
+    certProjectName: reset.certProjectName || null,
+    certMilestone: reset.certMilestone || 'release',
+    certOrgId: reset.certOrgId || 'default'
   };
 }
 
@@ -224,6 +271,7 @@ module.exports = {
   upsertSubscription,
   setSubscriptionActive,
   consumeApiCall,
+  consumeComplianceCert,
   syncSubscriptionToDb,
   publicSubscriptionStatus,
   normalizeEmail

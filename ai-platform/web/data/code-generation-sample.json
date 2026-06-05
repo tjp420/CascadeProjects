@@ -1,0 +1,18 @@
+{
+  "type": "code-generation-model",
+  "stats": {
+    "totalGenerated": "value"
+  },
+  "templates": [
+    {}
+  ],
+  "history": [
+    {}
+  ],
+  "languages": [
+    {}
+  ],
+  "insights": [
+    {}
+  ]
+}

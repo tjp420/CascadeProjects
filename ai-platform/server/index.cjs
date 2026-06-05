@@ -41,13 +41,19 @@ const setupLocalModelsAPI = require('./routes/local-models-api.cjs');
 const { setupSimplebeaconAPI } = require('../src/api/simplebeacon-api.cjs');
 const setupDashboardStubAPIs = require('../src/api/dashboard-stub-api.cjs');
 const { setupTrustAPI } = require('../src/api/trust-api.cjs');
-const { runLocalAgent } = require('../ai-agent/orchestrator.js');
+const {
+  setupSimplebeaconBillingWebhook,
+  setupSimplebeaconBillingRoutes
+} = require('../src/api/simplebeacon-billing-api.cjs');
+// const { runLocalAgent } = require('../../ai-agent/orchestrator.js');
 const pathHealthRouter = require('./api/metrics/path-health.cjs');
-const { runNpmAudit } = require('./lib/npm-audit-runner.cjs');
+const { runNpmAuditAsync } = require('./lib/npm-audit-runner.cjs');
 const { registerEuAiActSprintRoute } = require('./lib/eu-ai-act-sprint-route.cjs');
+const { registerComplianceSchemaRoute } = require('./routes/compliance-schema-api.cjs');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.set('trust proxy', 1); // Trust first proxy hop for rate-limit IP accuracy
+let PORT = process.env.PORT || 3000;
 
 // Preload package.json at startup to avoid sync reads in route handlers
 const packageJsonPath = path.join(__dirname, '..', 'package.json');
@@ -64,6 +70,16 @@ function getPackageJson() {
 
 // Initialize audit system
 initializeAudit().catch(console.error);
+
+// HTTPS redirect for production — respect health checks and local development
+app.use((req, res, next) => {
+  const isLocalhost = /^(localhost|127\.0\.0\.1|::1|0\.0\.0\.0)$/i.test(req.hostname);
+  const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  if (!isLocalhost && !isSecure && process.env.NODE_ENV === 'production') {
+    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
 
 // Enhanced security middleware stack
 app.use(requestLogger);
@@ -97,10 +113,13 @@ const authLoginRateLimit = rateLimit({
   }
 });
 
+// Billing webhook must use raw body before JSON parser
+setupSimplebeaconBillingWebhook(app);
+
 app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-const comingSoonRoot = path.join(__dirname, '../coming-soon');
+const comingSoonRoot = path.join(__dirname, '../../coming-soon');
 const webRoot = path.join(__dirname, '../web');
 const internalDashboard = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true';
 
@@ -129,13 +148,31 @@ function sendComingSoonIndex(res) {
   res.sendFile(path.join(comingSoonRoot, 'index.html'));
 }
 
+const dashboardPath = path.join(webRoot, 'simplebeacon-dashboard/index.html');
+let cachedDashboardHtml = null;
+try {
+  cachedDashboardHtml = fs.readFileSync(dashboardPath, 'utf8');
+} catch {
+  cachedDashboardHtml = null;
+}
+
+function loadDashboardHtml() {
+  return cachedDashboardHtml;
+}
+
 function sendSimplebeaconDashboard(res) {
-  const dashboardPath = path.join(webRoot, 'simplebeacon-dashboard/index.html');
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-  if (!fs.existsSync(dashboardPath)) {
+  const html = loadDashboardHtml();
+  if (html === null) {
     return res.status(404).send('Simplebeacon dashboard not found');
   }
-  const html = fs.readFileSync(dashboardPath, 'utf8');
+
+  // Automatically set vault cookie for smooth dev experience
+  if (process.env.DASHBOARD_VAULT_PASSWORD) {
+    const { setVaultSessionCookie } = require('./lib/dashboard-vault-auth.cjs');
+    setVaultSessionCookie(res, process.env.DASHBOARD_VAULT_PASSWORD);
+  }
+
   res.send(html);
   return true;
 }
@@ -162,12 +199,14 @@ app.use((req, res, next) => {
   if (!process.env.DASHBOARD_VAULT_PASSWORD) return next();
   if (!req.path.startsWith('/api/')) return next();
   if (req.path.startsWith('/api/simplebeacon/billing/webhook')) return next();
+  if (req.path.startsWith('/api/simplebeacon/billing')) return next();
   if (req.path.startsWith('/api/simplebeacon/scan')) return next();
   if (req.path.startsWith('/api/simplebeacon/report')) return next();
   if (req.path.startsWith('/api/simplebeacon/baseline')) return next();
   if (req.path.startsWith('/api/simplebeacon/config')) return next();
   if (req.path.startsWith('/api/simplebeacon/history')) return next();
   if (req.path.startsWith('/api/simplebeacon/user')) return next();
+  if (req.path.startsWith('/api/simplebeacon/entitlements')) return next();
   if (req.path.startsWith('/api/chatbot/')) return next();
   if (req.path.startsWith('/api/auth/')) return next();
   if (req.path.startsWith('/api/dev-tools/')) return next();
@@ -182,6 +221,8 @@ app.use((req, res, next) => {
   if (req.path === '/api/health') return next();
   if (req.path === '/api/platform/status') return next();
   if (req.path === '/api/security/npm-audit') return next();
+  if (req.path === '/api/reports/upload') return next();
+  if (req.path.startsWith('/api/reports/status/')) return next();
   if (isVaultAuthenticated(req)) return next();
   return res.status(403).json({
     error: 'vault_required',
@@ -213,7 +254,7 @@ app.get('/private-dashboard-vault', async (req, res) => {
 });
 
 // Storefront static assets (site-config.js, styles.css, legal pages)
-app.use(express.static(comingSoonRoot, { index: false }));
+app.use('/coming-soon', express.static(comingSoonRoot, { index: false }));
 
 // Dashboard / web assets (vault-gated when DASHBOARD_VAULT_PASSWORD is set)
 app.use((req, res, next) => {
@@ -1019,7 +1060,7 @@ app.post('/api/security/npm-audit', async (req, res) => {
   try {
     const platformRoot = path.join(__dirname, '..');
     const force = req.body?.force === true;
-    const npmAudit = runNpmAudit(platformRoot, { force });
+    const npmAudit = await runNpmAuditAsync(platformRoot, { force });
     res.set('Cache-Control', 'no-store');
     res.json({
       success: true,
@@ -1084,6 +1125,24 @@ setupFlexibleAnalyzeAPI(app, {
     monorepoRoot: path.join(platformRoot, '..')
 });
 
+// Pricing config endpoint — serves Stripe URLs from environment variables
+app.get('/api/config/pricing', (_req, res) => {
+    res.json({
+        success: true,
+        pricing: {
+            instant: {
+                stripeLink: process.env.STRIPE_LINK_INSTANT || 'https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07'
+            },
+            executive: {
+                stripeLink: process.env.STRIPE_LINK_EXECUTIVE || 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05'
+            },
+            euSprint: {
+                stripeLink: process.env.STRIPE_LINK_EU_SPRINT || 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06'
+            }
+        }
+    });
+});
+
 // Chatbot API — AI-powered code assistance
 setupChatbotAPI(app);
 
@@ -1103,7 +1162,7 @@ try {
 
 // Dashboard stub APIs — dashboard-home, dev-tools, coverage-reports, security, quality, help
 try {
-    setupDashboardStubAPIs(app, webRoot);
+    setupDashboardStubAPIs(app, webRoot, { authMiddleware: optionalAuthenticate });
 } catch (e) {
     console.warn('[Simplebeacon] dashboard-stub-api setup skipped:', e.message);
 }
@@ -1131,12 +1190,31 @@ try {
     console.warn('[Simplebeacon] EU AI Act sprint route setup skipped:', e.message);
 }
 
+// Simplebeacon billing — checkout, subscription status, license tokens
+try {
+    setupSimplebeaconBillingRoutes(app);
+} catch (e) {
+    console.warn('[Simplebeacon] billing routes setup skipped:', e.message);
+}
+
+// Public compliance schema endpoint — no auth, no project access, no code upload
+try {
+    registerComplianceSchemaRoute(app);
+} catch (e) {
+    console.warn('[Simplebeacon] Compliance schema route setup skipped:', e.message);
+}
+
 // Local AI Agent API routes (Step 3 — deterministic state machine loop)
 app.post('/api/agent/execute', (req, res) => {
     const { goal } = req.body || {};
     if (!goal || typeof goal !== 'string') {
         return res.status(400).json({ success: false, error: 'goal (string) is required in request body' });
     }
+    // Agent execution not currently available - orchestrator.js not implemented
+    return res.status(501).json({ success: false, error: 'Agent execution not implemented' });
+
+    // Agent execution temporarily disabled
+    /*
     currentAgentStatus = { status: 'running', goal, startedAt: new Date().toISOString(), completedAt: null, error: null };
     res.status(202).json({ success: true, message: 'Agent execution started', goal });
 
@@ -1159,6 +1237,7 @@ app.post('/api/agent/execute', (req, res) => {
                 error: err.message
             };
         });
+    */
 });
 
 app.get('/api/agent/status', (_req, res) => {
@@ -1168,8 +1247,9 @@ app.get('/api/agent/status', (_req, res) => {
 // Path health metrics API
 app.use('/api/metrics/path-health', pathHealthRouter);
 
-// Upload API: optional JWT (anonymous allowed unless REQUIRE_AUTH=true in upload-security)
-app.use('/api/upload', optionalAuthenticate, uploadSecurity, contentValidation, uploadRoutes);
+// Upload API disabled — source code never leaves your machine per privacy promise.
+// To re-enable: uncomment the next line.
+// app.use('/api/upload', optionalAuthenticate, uploadSecurity, contentValidation, uploadRoutes);
 
 // Static file serving for JavaScript files
 app.use('/src', express.static(path.join(__dirname, '../src'), {
@@ -1217,24 +1297,40 @@ app.use('*', (req, res) => {
   });
 });
 
-// Start server with enhanced logging
-app.listen(PORT, () => {
-  logger.info(`Simplebeacon server running on port ${PORT}`);
-  logger.info(`Dashboard listening on port ${PORT} (set PUBLIC_BASE_URL for absolute links)`);
-  logger.info(`API Health: /api/health`);
-  logger.info(`Status: /api/status`);
-  logger.info('Security: Enhanced security features enabled');
-  logger.info('Audit: Comprehensive audit logging active');
-  
-  logSystemEvent('server_start', {
-    port: PORT,
-    environment: process.env.NODE_ENV || 'development',
-    security: {
-      rateLimiting: true,
-      authentication: true,
-      auditLogging: true
+// Start server with enhanced logging — auto-increment port on EADDRINUSE
+function startServer(attemptPort, maxRetries = 10) {
+  const server = app.listen(attemptPort, () => {
+    PORT = attemptPort;
+    logger.info(`Simplebeacon server running on port ${PORT}`);
+    logger.info(`Dashboard listening on port ${PORT} (set PUBLIC_BASE_URL for absolute links)`);
+    logger.info(`API Health: /api/health`);
+    logger.info(`Status: /api/status`);
+    logger.info('Security: Enhanced security features enabled');
+    logger.info('Audit: Comprehensive audit logging active');
+
+    logSystemEvent('server_start', {
+      port: PORT,
+      environment: process.env.NODE_ENV || 'development',
+      security: {
+        rateLimiting: true,
+        authentication: true,
+        auditLogging: true
+      }
+    });
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE' && maxRetries > 0) {
+      logger.warn(`Port ${attemptPort} in use — trying ${attemptPort + 1}`);
+      server.close();
+      startServer(attemptPort + 1, maxRetries - 1);
+    } else {
+      logger.error(`Server failed to start: ${err.message}`);
+      process.exit(1);
     }
   });
-});
+}
+
+startServer(Number(PORT));
 
 module.exports = app;

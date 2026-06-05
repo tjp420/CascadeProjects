@@ -1,11 +1,8 @@
 {
-  "_note": "This is a sample/test data file for dashboard display. Contains placeholder values.",
   "type": "dashboard-home-model",
   "overview": {
-    "totalFiles": 1284
+    "total": 100,
+    "totalFiles": "value"
   },
-  "chart": {
-    "labels": ["Mon", "Tue", "Wed"],
-    "values": [12, 18, 15]
-  }
+  "chart": {}
 }

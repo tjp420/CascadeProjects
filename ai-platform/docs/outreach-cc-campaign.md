@@ -1,0 +1,132 @@
+# SimpleBeacon Corporate Outreach Campaign — CCO / VP Risk Management
+
+## Target Profile
+- **Title**: Chief Compliance Officer, VP Risk Management, Head of AI Governance
+- **Industries**: Financial Services, HR Tech, Healthcare AI, Insurance, Legal Tech
+- **Pain Points**: EU AI Act August 2026 deadline, shadow AI systems, data leaks, AI-generated slop in production code, unapproved third-party models
+- **Buying Trigger**: Regulatory deadline pressure + board-level risk exposure
+
+## The Lead Magnet: "Free AI Slop Audit"
+A complimentary 48-hour scan of the prospect's codebase that produces:
+1. Anonymized slop/hallucination count
+2. Shadow AI dependency map
+3. A 1-page Executive Risk Certificate (A-F grade with estimated financial liability)
+
+---
+
+## Touch 1 — The Hook (LinkedIn Connection Request / Email Subject: EU AI Act deadline)
+
+**Subject**: August 2026 is closer than it looks — [Company] AI compliance
+
+Hi {{FirstName}},
+
+CCOs in {{Industry}} are starting to ask a hard question: *How much AI-generated code is already in production that we don't know about?*
+
+With the EU AI Act enforcement deadline in August 2026, boards are now demanding proof that every AI integration is documented, disclosed, and compliant — not just the ones the engineering team volunteered.
+
+We run a 48-hour "AI Slop Audit" that maps four specific risk areas:
+1. Undocumented AI-generated placeholders in production code
+2. Exposed API keys and credential leaks
+3. Shadow AI models and unapproved third-party integrations
+4. Open-source licensing conflicts from copy-pasted AI code
+
+Zero source code leaves the machine. You get a one-page Executive Risk Certificate with an A-F grade and estimated financial liability per finding.
+
+Worth a 12-minute call to see what it surfaces?
+
+Best,  
+Trevor  
+Founder, SimpleBeacon
+
+P.S. — We just finished one for a Series B HR tech company. They found 47 AI-generated placeholder strings, 2 exposed OpenAI keys, and one unapproved Anthropic integration the CISO didn't know about. Cost to fix: $14,000. Cost if a regulator found it first: $350,000+.
+
+---
+
+## Touch 2 — The Follow-Up (3 days later, if no reply)
+
+**Subject**: Re: Your AI compliance grade — we can check it
+
+Hi {{FirstName}},
+
+Quick follow-up on the AI Slop Audit.
+
+Most compliance teams we talk to assume their codebase is "clean enough." The problem is that AI-generated slop doesn't look like a bug — it looks like a comment, a placeholder URL, or a hardcoded metric that nobody questioned.
+
+Here's what a real audit surfaced last month for a fintech client:
+
+| Finding | Count | Est. Liability |
+|---------|-------|----------------|
+| Hardcoded placeholder diagnostics | 23 | $150,000 |
+| Exposed staging API keys | 4 | $250,000 |
+| Unapproved Claude integration | 1 | $350,000 |
+| Copy-pasted GPL code block | 2 | $500,000 |
+| **Total estimated exposure** | | **$1.25M** |
+
+The fix took 3 days. The certificate bought the CCO board credibility.
+
+If you're curious where {{Company}} sits, I can run the audit this week. No commitment, no code leaves your machine, and you keep the report.
+
+Let me know.
+
+Trevor
+
+---
+
+## Touch 3 — The Value Bridge (7 days later, if still no reply)
+
+**Subject**: One question about your AI governance posture
+
+Hi {{FirstName}},
+
+Last outreach — I promise.
+
+One question: Does your current vendor security review process catch AI-generated code that ships to production?
+
+Most DLP and SAST tools don't. They look for secrets and vulnerabilities, not for *"Lorem Ipsum"* placeholders that an AI assistant quietly inserted into a config file, or a hallucinated npm package that doesn't exist.
+
+SimpleBeacon is a deterministic scanner built specifically for AI compliance. It runs offline, produces a board-ready risk certificate, and costs less than one hour of outside counsel.
+
+If now isn't the right time, no problem. If it is, reply "audit" and I'll send you the self-service link.
+
+Either way, good luck with the August deadline.
+
+Trevor  
+Founder, SimpleBeacon
+
+---
+
+## LinkedIn Connection Note (150 chars)
+
+Hi {{FirstName}}, I help CCOs find AI-generated slop and shadow models in production code before regulators do. Worth connecting?
+
+---
+
+## Call-to-Action Buttons / Links
+- **Primary CTA**: "Request Free AI Slop Audit" → links to Calendly booking
+- **Secondary CTA**: "See Sample Risk Certificate" → links to `sample-clearance-pdf.html`
+- **Tertiary CTA**: "Buy Executive Clearance — $499" → Stripe checkout
+
+## Follow-Up Sequence Cadence
+| Day | Action |
+|-----|--------|
+| 0 | Send Touch 1 (email) + LinkedIn connection |
+| 1 | View LinkedIn profile (triggers notification) |
+| 3 | Send Touch 2 (email reply thread) |
+| 5 | Like a LinkedIn post from prospect |
+| 7 | Send Touch 3 (final email) |
+| 14 | Add to nurture list (monthly compliance digest) |
+
+## Success Metrics
+- **Target**: 50 outreach attempts / week
+- **Goal**: 10 audits requested / month → 3 convert to paid ($499–$1,499)
+- **Break-even**: 6 paid conversions / month = ~$3,000 MRR
+
+## Industries to Prioritize (EU AI Act High-Risk)
+1. **Financial Services** — credit scoring, fraud detection (Annex III, Section 5)
+2. **HR Tech** — resume screening, hiring algorithms (Annex III, Section 4)
+3. **Healthcare AI** — diagnostics, patient triage (Annex III, Section 1)
+4. **Insurance** — risk assessment, claims processing (Annex III, Section 5)
+5. **Legal Tech** — contract analysis, case prediction (Annex III, Section 8)
+
+---
+*Generated for SimpleBeacon go-to-market execution. Tailor {{FirstName}}, {{Company}}, and {{Industry}} per prospect.*

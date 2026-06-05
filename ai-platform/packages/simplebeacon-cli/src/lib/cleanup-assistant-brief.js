@@ -3,6 +3,7 @@
  */
 
 const { buildCompleteScanAnalysis } = require('./enrich-complete-scan');
+const { isDirectoryArtifact } = require('./file-reduction-plan');
 
 const DEFAULT_PROTECTED_PATHS = [
     'web/data',
@@ -61,11 +62,6 @@ function classifyDirectory(entry, policy) {
     if (isSimplebeaconCachePath(entryPath) && !policy.allowSimplebeaconCache) return 'review';
     if (isNodeModulesPath(entryPath) && !policy.allowNodeModules) return 'review';
     return 'safe';
-}
-
-function isDirectoryArtifact(finding) {
-    return finding?.action === 'safe-to-delete'
-        && (finding.kind === 'directory' || / directory$/i.test(String(finding.reason || '')));
 }
 
 function resolveFileReductionPlan(fileReduction) {
@@ -187,6 +183,7 @@ function buildCleanupAssistantBrief({
         projectPath,
         results: { fileReduction: enrichedFileReduction, dataQuality }
     });
+
     const inventory = {
         totalFiles: repositoryInventory?.totalFiles ?? fileReduction?.inventory?.totalFiles ?? null,
         totalFolders: repositoryInventory?.totalFolders ?? fileReduction?.inventory?.totalDirectories ?? null
@@ -198,6 +195,7 @@ function buildCleanupAssistantBrief({
         protected: { files: 0, bytes: 0, directories: [] },
         investigate: { files: plan.unusedFiles?.candidates ?? 0, note: plan.unusedFiles?.note || null }
     };
+    const skippedArtifactDirectories = [];
 
     for (const entry of plan.safeToDelete?.topDirectories || []) {
         const tier = classifyDirectory(entry, policy);
@@ -207,6 +205,10 @@ function buildCleanupAssistantBrief({
             files: entry.files || 0,
             category: entry.category || null
         };
+        if (payload.bytes === 0 && payload.files === 0 && !entry.skipped) {
+            skippedArtifactDirectories.push(payload);
+            continue;
+        }
         if (tier === 'protected') {
             tiers.protected.files += payload.files;
             tiers.protected.bytes += payload.bytes;
@@ -234,6 +236,10 @@ function buildCleanupAssistantBrief({
             files: 1,
             reason: 'log file — review before delete'
         });
+    }
+
+    if (analysis.fileReduction && skippedArtifactDirectories.length && !analysis.fileReduction.skippedArtifactDirectories) {
+        analysis.fileReduction.skippedArtifactDirectories = skippedArtifactDirectories.slice(0, 8);
     }
 
     const estimatedReduction = {

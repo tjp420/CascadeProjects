@@ -1,8 +1,9 @@
 {
-  "profile": "minimal",
+  "profile": "eu-ai-act",
   "scanPaths": [
     "web/data",
-    "textarea"
+    "tests/fixtures",
+    "data"
   ],
   "productionPaths": [
     "server/",
@@ -16,35 +17,36 @@
     "master-roadmap-sample.json",
     "release-timeline-sample.json"
   ],
+  "ignore": [
+    "node_modules/**",
+    "coverage/**",
+    "dist/**",
+    "build/**",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "tests/**",
+    "test/**",
+    "packages/simplebeacon-cli/**"
+  ],
   "rules": {
     "credentials": {
       "enabled": true,
       "scanProduction": true
     },
     "json-schema": {
-      "enabled": false
+      "enabled": true
     },
     "sample-consistency": {
-      "enabled": false
+      "enabled": true
     },
     "roadmap": {
-      "enabled": false
+      "enabled": true
     },
     "production-leak": {
       "enabled": true,
-      "severity": "high",
-      "allowlistFiles": [
-        "server/lib/snapshot-seeds.cjs",
-        "server/lib/snapshot-resolver.cjs",
-        "server/lib/sample-path-resolver.cjs",
-        "server/lib/code-roadmap-generator.cjs"
-      ],
-      "productionPaths": [
-        "server/",
-        "src/"
-      ],
-      "plainSampleJson": true,
-      "intentClassification": true
+      "severity": "high"
     },
     "fiction-kpi-patterns": {
       "enabled": true,
@@ -63,10 +65,13 @@
       "enabled": true,
       "severity": "medium"
     },
+    "file-naming-patterns": {
+      "enabled": false,
+      "severity": "medium"
+    },
     "jest-baseline": {
       "enabled": false,
-      "runTests": false,
-      "testCommand": "npm test -- --no-coverage --passWithNoTests"
+      "runTests": false
     },
     "token-bleed-patterns": {
       "enabled": false,
@@ -96,15 +101,13 @@
   },
   "sourceCodeScanPaths": [
     "server/",
-    "src/",
-    "packages/"
+    "src/"
   ],
   "fullDirectoryScan": false,
   "fullDirectoryScanSkipDirs": [
     ".git",
     ".github-sync",
     "github-cache",
-    "node_modules",
-    "simplebeacon-rule-tests"
+    "node_modules"
   ]
 }

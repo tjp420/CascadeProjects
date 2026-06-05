@@ -56,10 +56,17 @@ jobs:
             --path . \
             --format json \
             --output .simplebeacon/report.json \
+            --anonymize \
             --gate \
             --offline \
             --verbose
           node packages/simplebeacon-cli/bin/simplebeacon.js gate status
+
+      - name: Upsell reminder
+        if: github.event_name == 'pull_request' && always()
+        run: |
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**💡 Stale compliance on every push?** Upgrade to [Continuous Shield](https://simplebeacon.ai/pricing) ($149/mo) for automated PR blocking + 3 compliance certifications per month." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload gate report
         if: always()

@@ -62,13 +62,12 @@ function applyVaultOperatorUser(req) {
 }
 
 function vaultOperatorSessionActive(req) {
-  return (
-    process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true'
-    && isVaultAuthenticated(req, {
-      internalDashboard: true,
-      vaultPassword: process.env.DASHBOARD_VAULT_PASSWORD
-    })
-  );
+  const vaultPassword = process.env.DASHBOARD_VAULT_PASSWORD;
+  if (!vaultPassword) return false;
+  return isVaultAuthenticated(req, {
+    internalDashboard: true,
+    vaultPassword
+  });
 }
 
 // Device tracking
@@ -243,7 +242,7 @@ const verifyMFA = (req, res, next) => {
   const trustConfig = trustLevels[user.trustLevel || 'bronze'];
   
   // Check if MFA is required for this trust level
-  if (trustConfig.mfaRequired && !req.session.mfaVerified) {
+  if (trustConfig.mfaRequired && !req.session?.mfaVerified) {
     return res.status(403).json({
       error: 'MFA Required',
       message: 'Multi-factor authentication required for this access level',

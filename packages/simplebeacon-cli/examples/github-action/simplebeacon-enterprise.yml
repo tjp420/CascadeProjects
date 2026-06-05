@@ -1,0 +1,52 @@
+# Enterprise guardrail CI — local gate only (no cloud ledger).
+# Copy via: npx simplebeacon init --profile enterprise --with-ci
+# Config: examples/enterprise-config.json or ai-hygiene-enterprise-config.json (adds intelligence.enabled)
+# Monorepo with packages/simplebeacon-intelligence: use simplebeacon-enterprise-monorepo.yml at repo root instead.
+
+name: Simplebeacon Enterprise Guardrail
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  enterprise-guardrail:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run enterprise guardrail gate (offline)
+        env:
+          SIMPLEBEACON_PARALLEL: '1'
+          SIMPLEBEACON_OFFLINE: '1'
+        run: |
+          npx --yes simplebeacon scan \
+            --format json \
+            --output .simplebeacon/report.json \
+            --gate \
+            --offline \
+            --verbose
+          npx --yes simplebeacon gate status
+
+      - name: Post PR summary
+        if: github.event_name == 'pull_request' && always()
+        run: |
+          npx --yes simplebeacon comment \
+            --report .simplebeacon/report.json --print-only >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-enterprise-report
+          path: .simplebeacon/report.json
+          if-no-files-found: ignore

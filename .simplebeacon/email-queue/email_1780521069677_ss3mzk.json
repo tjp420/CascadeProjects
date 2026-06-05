@@ -1,0 +1,8 @@
+{
+  "id": "email_1780521069677_ss3mzk",
+  "to": "Trevor_punt@live.com",
+  "subject": "Your SimpleBeacon Instant Report",
+  "text": "Thank you for your Instant Report purchase ($19).\n\nYour license token: eyJlbWFpbCI6IlRyZXZvcl9wdW50QGxpdmUuY29tIiwidGllciI6Imluc3RhbnQiLCJmZWF0dXJlcyI6WyJpbnN0YW50LXJlcG9ydCJdLCJpYXQiOjE3ODA1MjEwNjk2NzUsImV4cCI6MTc4MDUyNDY2OTY3NX0.FuVvG63xFp8OMo8L0Owu72t_g7DCfr8GrSS2sGQn30o\n\nYour instant report is being generated and will be delivered to your inbox within 60 seconds.\n\n---\nToken tier: instant\nToken expires: 60 minutes from generation (for testing)\nProduct: instant_report\nFeatures: instant-report\n\nKeep this token safe — you'll need it to upload your scan report.",
+  "attachments": [],
+  "queuedAt": "2026-06-03T21:11:09.677Z"
+}

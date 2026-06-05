@@ -16,8 +16,11 @@ function isStaleFullTreeScan(report) {
     const repoFiles = report.repositoryFilesTotal ?? 0;
     const paths = (report.scanPaths || []).map((p) => String(p).replace(/\\/g, '/').toLowerCase());
     const platformKey = String(report.projectRoot || '').replace(/\\/g, '/').toLowerCase();
-    const scanIsPlatformRootOnly = paths.length === 1 && paths[0] === platformKey;
-    return mock > 500 || scanIsPlatformRootOnly || repoFiles > 15000;
+    const scanIsPlatformRootOnly = paths.length === 1 && (paths[0] === platformKey || paths[0] === '.');
+    const scanIncludesRoot = paths.some((p) => p === '.' || p === platformKey);
+    const isParentScan = platformKey.endsWith('cascadeprojects');
+    if (isParentScan) return false;
+    return scanIncludesRoot || mock > 500 || repoFiles > 15000;
 }
 
 function countIssuesByType(issues, typePattern) {

@@ -4,6 +4,7 @@ import { escapeHtml } from '../utils.js';
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 const MANIFESTO = 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md';
 
+// Transparency note: This dashboard view displays documentation about pattern-matching tools.
 const CODE_SAMPLE = `// From credential-pattern-scanner.js — no API calls, no ML
 const CREDENTIAL_PATTERNS = [
   { id: 'aws-access-key', regex: /\\bAKIA[0-9A-Z]{16}\\b/g, severity: 'high' },
@@ -91,7 +92,8 @@ export class AboutView {
 
       <section class="about-section card mb-6" id="how-it-works">
         <h2>How it works</h2>
-        <p class="text-muted mb-4">No OpenAI calls. No cloud processing. No ML models in the community tier.</p>
+        <p class="text-muted mb-4">No OpenAI calls. No cloud processing. No ML models in the community tier. <strong>Disconnect your network cable and it still runs.</strong></p>
+        <p class="text-muted mb-4" style="font-size:var(--font-size-sm)">All scanning happens locally in a single Node.js process. Your source files, credentials, and scan reports never leave your machine. Use <code>--offline</code> to skip even optional npm registry lookups.</p>
         <pre class="about-code"><code>${escapeHtml(CODE_SAMPLE)}</code></pre>
         <p class="text-muted" style="font-size:var(--font-size-sm)">
           Plus fiction KPI rules, production-leak detection, and path-safety checks that block config traversal.

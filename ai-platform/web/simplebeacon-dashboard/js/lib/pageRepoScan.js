@@ -2,11 +2,12 @@ import { formatPathLabel, redactPathForDisplay, showToast, escapeHtml } from '..
 import { refreshLiveReport, normalizeProjectPath, shouldPreferLiveReport } from '../services/analyzeService.js';
 import { isDemoMode, demoReadOnlyMessage } from '../demoMode.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
+import { isRemoteRepoUrl } from './analyzePathSources.js';
 
 function isPlausibleProjectPath(value) {
   const raw = String(value || '').trim();
   if (!raw || raw.length > 280) return false;
-  if (/^https?:\/\//i.test(raw) || /^git@/.test(raw)) return true;
+  if (isRemoteRepoUrl(raw)) return true;
   if (/outside allowed analysis roots|projectPath is required|projectPath is outside/i.test(raw)) {
     return false;
   }

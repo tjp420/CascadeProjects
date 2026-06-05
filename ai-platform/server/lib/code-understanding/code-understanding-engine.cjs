@@ -101,7 +101,7 @@ async function understandCodeSnippet(content, context = {}, options = {}) {
         summary: synthesizeSummary(layers),
         overallConfidence: assessOverallConfidence(layers),
         limitations: [
-            'Semantic layer uses heuristics — LLM mode optional via understandingMode=llm.',
+            'Semantic layer uses heuristics — analysis mode optional via understandingMode=semantic.',
             'Runtime behavior (Layer 3) not included in this release.',
             'Expert reviews are local-only until a shared review service is configured.'
         ]

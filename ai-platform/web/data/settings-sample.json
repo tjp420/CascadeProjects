@@ -1,0 +1,24 @@
+{
+  "type": "settings-model",
+  "overview": {
+    "totalUsers": 45
+  },
+  "userSettings": {
+    "theme": "dark",
+    "notifications": true
+  },
+  "systemSettings": {
+    "theme": "dark",
+    "notifications": true
+  },
+  "adminSettings": {
+    "theme": "dark",
+    "notifications": true
+  },
+  "systemHealth": [
+    {}
+  ],
+  "recentActivity": [
+    {}
+  ]
+}

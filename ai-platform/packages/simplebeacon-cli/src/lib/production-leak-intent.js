@@ -63,13 +63,21 @@ const REPOSITORY_AUDIT_INFRA_FILES = new Set([
     'eu-ai-act-export.cjs'
 ]);
 
-const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
+const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)ai-platform\/packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
 
 const OSS_SCANNER_ROOT_FILES = new Set([
     'src/scan.js',
     'src/config.js',
     'src/project-detect.js',
-    'src/index.js'
+    'src/index.js',
+    'src/compliance-checklist.js',
+    'src/compliance-checklist.cjs',
+    'src/gate.js',
+    'src/gate.cjs',
+    'src/assessment.js',
+    'src/assessment.cjs',
+    'src/baseline-sync.js',
+    'src/baseline-sync.cjs'
 ]);
 
 const REPOSITORY_AUDIT_MARKERS = [
@@ -98,11 +106,18 @@ function isRepositoryAuditInfraFile(relativePath) {
 
 function isScannerImplementationPath(relativePath) {
     const rel = normalizeRel(relativePath);
-    if (SCANNER_IMPL_PATH_RE.test(rel.toLowerCase())) {
+    const lowerRel = rel.toLowerCase();
+    if (SCANNER_IMPL_PATH_RE.test(lowerRel)) {
         return true;
     }
     if (OSS_SCANNER_ROOT_FILES.has(rel)) {
         return true;
+    }
+    // Suffix match so prefixed paths (e.g. ai-platform/packages/...) still hit
+    for (const rootFile of OSS_SCANNER_ROOT_FILES) {
+        if (lowerRel.endsWith('/' + rootFile.toLowerCase())) {
+            return true;
+        }
     }
     return REPOSITORY_AUDIT_INFRA_FILES.has(basename(relativePath));
 }
@@ -360,6 +375,14 @@ function classifyProductionLeakMatch({
                 reason: 'Export sanitizer module — sample-path prose is operator-facing metadata'
             };
         }
+    }
+
+    if (fileDeclaresRepositoryAudit(content) && isSnapshotSeedEntry(line)) {
+        return {
+            intent: 'repository-audit-loader',
+            suppress: true,
+            reason: 'Repository-audit seed/resolver catalog'
+        };
     }
 
     if (isCatalogSampleReference(line)) {

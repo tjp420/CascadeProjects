@@ -1,0 +1,239 @@
+{
+  "type": "simplebeacon-assessment-report",
+  "title": "Simplebeacon EU AI Act Readiness — coming-soon",
+  "generatedAt": "2026-06-05T16:11:12.156Z",
+  "generatedBy": "Simplebeacon",
+  "assessor": "SimpleBeacon Operator",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "assessmentProfile": "eu-ai-act",
+  "deadline": "2026-08-02",
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 30,
+    "documentationFound": [
+      "app-links.js",
+      "certificate-upload.html",
+      "contact.html",
+      "contact.js",
+      "pricing.html",
+      "refund.html",
+      "sample-certificate.html",
+      "server.cjs",
+      "site-config.js",
+      "styles.css",
+      "terms.html",
+      "upload.html",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/verify-final.json",
+      ".simplebeacon/verify-scan.json",
+      ".simplebeacon/verify-scan2.json",
+      ".simplebeacon/verify-scan3.json"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "executiveSummary": {
+    "gateResult": "PASS",
+    "qualityScore": 100,
+    "filesScanned": 33,
+    "criticalIssues": 0,
+    "highIssues": 0,
+    "mediumIssues": 0,
+    "lowIssues": 0,
+    "warningCount": 0,
+    "blockingCount": 0,
+    "headline": "Clean scan — no blocking mock/fiction findings in configured paths.",
+    "complianceScore": 100,
+    "complianceReady": true
+  },
+  "complianceChecklist": {
+    "type": "simplebeacon-compliance-checklist",
+    "version": "1.0.0",
+    "title": "Simplebeacon EU AI Act Readiness Checklist",
+    "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
+    "evaluatedAt": "2026-06-05T16:11:12.156Z",
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+    "summary": {
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "total": 9,
+      "score": 100,
+      "readyForAutomation": true,
+      "checklistProfile": "eu-ai-act",
+      "headline": "9/9 EU AI Act readiness rules pass — review legal classification before August 2026"
+    },
+    "rules": [
+      {
+        "id": "GATE-001",
+        "title": "Merge gate passes on configured severities",
+        "category": "Automation",
+        "severity": "critical",
+        "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
+        "status": "pass",
+        "evidence": "Gate pass — no blocking issues at configured severities"
+      },
+      {
+        "id": "CRED-001",
+        "title": "No credential or secret patterns in scanned paths",
+        "category": "Security",
+        "severity": "critical",
+        "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
+        "status": "pass",
+        "evidence": "Scanned 12 path(s) — no credential patterns"
+      },
+      {
+        "id": "LEAK-001",
+        "title": "No mock/sample JSON paths referenced from production directories",
+        "category": "Data integrity",
+        "severity": "high",
+        "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
+        "status": "pass",
+        "evidence": "Scanned 4 production file(s) — no sample-path leaks"
+      },
+      {
+        "id": "EUAI-001",
+        "title": "High-risk AI indicators documented or absent",
+        "category": "EU AI Act — Classification",
+        "severity": "critical",
+        "remediation": "Conduct Annex III classification review; add risk-assessment.md and conformity documentation for high-risk systems",
+        "status": "pass",
+        "evidence": "No Annex III high-risk AI patterns detected in scanned paths"
+      },
+      {
+        "id": "EUAI-002",
+        "title": "Article 50 transparency — AI outputs disclosed to users",
+        "category": "EU AI Act — Transparency",
+        "severity": "high",
+        "remediation": "Add user-facing disclosure that content is AI-generated or that users interact with an AI system",
+        "status": "pass",
+        "evidence": "No generative AI integrations detected in user-facing paths"
+      },
+      {
+        "id": "EUAI-003",
+        "title": "AI system documentation present when AI integrations detected",
+        "category": "EU AI Act — Documentation",
+        "severity": "high",
+        "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
+        "status": "pass",
+        "evidence": "No AI system indicators — documentation not required by scan"
+      },
+      {
+        "id": "EUAI-004",
+        "title": "Human oversight signals for high-risk AI decision paths",
+        "category": "EU AI Act — Human oversight",
+        "severity": "high",
+        "remediation": "Implement human-in-the-loop review, manual override, or appeal mechanism for automated decisions",
+        "status": "pass",
+        "evidence": "No high-risk AI patterns — human oversight rule not applicable"
+      },
+      {
+        "id": "EUAI-005",
+        "title": "AI decision logging for accountability",
+        "category": "EU AI Act — Record-keeping",
+        "severity": "medium",
+        "remediation": "Log AI system inputs, outputs, and decision rationale for audit trails",
+        "status": "pass",
+        "evidence": "No AI decision paths detected"
+      },
+      {
+        "id": "SUPPLY-001",
+        "title": "No critical or high npm audit vulnerabilities",
+        "category": "Supply chain",
+        "severity": "critical",
+        "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
+        "status": "pass",
+        "evidence": "npm audit: 0 critical, 0 high (lockfile-heuristic)"
+      }
+    ]
+  },
+  "findings": {
+    "credentials": {
+      "scanned": 12,
+      "findings": 0,
+      "severity": "high",
+      "items": [],
+      "summary": "No credential patterns detected in scanned paths."
+    },
+    "fictionKpis": {
+      "scanned": 3,
+      "findings": 0,
+      "severity": "high",
+      "items": [],
+      "summary": "No fiction KPI or consistency drift detected."
+    },
+    "productionLeaks": {
+      "scanned": 4,
+      "findings": 0,
+      "severity": "medium",
+      "items": [],
+      "summary": "No mock/sample path references in production directories."
+    },
+    "schemaDrift": {
+      "checked": 0,
+      "passed": 0,
+      "severity": "high",
+      "items": [],
+      "summary": "All registered page samples match schema specs."
+    },
+    "euAiAct": {
+      "scanned": 31,
+      "findings": 0,
+      "severity": "high",
+      "items": [],
+      "summary": "No EU AI Act high-risk or transparency gaps detected."
+    },
+    "other": {
+      "items": [],
+      "summary": "No other findings."
+    }
+  },
+  "recommendedActions": {
+    "immediate": [
+      "Add docs/model-card.md and docs/risk-assessment.md for AI integrations",
+      "Add simplebeacon scan --gate to PR workflow (see docs/GITHUB-ACTION-QUICKSTART.md)"
+    ],
+    "next30Days": [
+      "Conduct formal Annex III classification with legal counsel",
+      "Implement human-in-the-loop review for high-risk automated decisions",
+      "Wire simplebeacon compliance --checklist eu-ai-act into CI",
+      "Sync .simplebeacon/baseline.json after green test runs"
+    ]
+  },
+  "complementaryStack": {
+    "keepUsing": [
+      "Legal counsel for formal conformity assessment",
+      "Snyk or GitHub Advanced Security for CVEs"
+    ],
+    "addSimplebeaconFor": [
+      "Annex III high-risk pattern detection in source code",
+      "Article 50 transparency gap detection in user-facing surfaces",
+      "Documentation completeness signals before August 2026"
+    ]
+  },
+  "pilotProposal": {
+    "offer": "EU AI Act readiness audit + 30-day remediation sprint",
+    "pricePlaceholder": "$2,499–9,999 depending on AI system scope",
+    "ask": "Will you run simplebeacon scan --gate with --checklist eu-ai-act on every PR until August 2026?"
+  },
+  "disclaimer": "Static technical pattern review — not legal advice or formal conformity assessment under Regulation (EU) 2024/1689.",
+  "commandsRun": [
+    "npx simplebeacon scan --format json --output .simplebeacon/report.json",
+    "npx simplebeacon scan --gate",
+    "npx simplebeacon assess --report .simplebeacon/report.json"
+  ],
+  "sourceReport": {
+    "generatedAt": "2026-06-05T16:11:12.143Z",
+    "scanPaths": [
+      "C:\\Users\\Trevor\\CascadeProjects\\coming-soon"
+    ],
+    "duplicateGroups": 0
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-06-05T16:11:12.157Z"
+}

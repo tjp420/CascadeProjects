@@ -1,0 +1,687 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-04T04:05:50.283Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "scanTargetRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "platformRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\coming-soon"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "totalFiles": 1059,
+    "totalFolders": 135,
+    "profile": "audit"
+  },
+  "mockSampleFiles": 3,
+  "totalFiles": 36,
+  "ruleScopedFilesAnalyzed": 551,
+  "repositoryFilesTotal": 1059,
+  "repositoryFoldersTotal": 135,
+  "filesAnalyzed": 1059,
+  "totalSizeBytes": 416055,
+  "totalSizeLabel": "406.3KB",
+  "issueCount": 10,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 70,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 89,
+  "consistencyPassed": 89,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 89,
+  "fictionSampleFilesScanned": 50,
+  "fictionScope": "repository-json",
+  "credentialScanned": 551,
+  "credentialFindings": 0,
+  "productionLeakScanned": 550,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 434,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 468,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 84,
+    "documentationFound": [
+      "AGENTS.md",
+      "ZORIN-LINUX-SETUP.md",
+      ".simplebeacon/codebase-current.json",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/final-gate.json",
+      ".simplebeacon/gate-current.json",
+      ".simplebeacon/gate-test-report.json",
+      ".simplebeacon/gate-workspace-fresh.json",
+      ".simplebeacon/latest-scan.json",
+      ".simplebeacon/latest-scan2.json",
+      ".simplebeacon/latest-scan3.json",
+      ".simplebeacon/latest-scan4.json",
+      ".simplebeacon/parent-scan-test-report.json",
+      ".simplebeacon/parent-verify.json",
+      ".simplebeacon/reduce-current.json",
+      ".simplebeacon/reduce-final.json",
+      ".simplebeacon/reduce-fresh.json",
+      ".simplebeacon/reduce-latest.json",
+      ".simplebeacon/reduce-report.json",
+      ".simplebeacon/reduce-verify.json",
+      ".simplebeacon/report-fresh.json",
+      ".simplebeacon/report-test.json",
+      ".simplebeacon/report-test2.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/verify-current.json"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "enterpriseGuardrailScanned": 546,
+  "enterpriseGuardrailFindings": 0,
+  "fileNamingScanned": 0,
+  "fileNamingFindings": 0,
+  "structuralIntentScanned": 0,
+  "structuralIntentFindings": 0,
+  "structuralIntentEnabled": false,
+  "structuralIntentEngine": null,
+  "structuralIntentSlmReviewCount": 0,
+  "structuralIntentSlmReviews": [],
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 5,
+    "medium": 5,
+    "low": 0
+  },
+  "mockDataCategories": [
+    {
+      "category": "Stale inventory (full-tree scan)",
+      "fileCount": 3,
+      "totalSize": "406.3KB",
+      "qualityScore": null,
+      "issues": null,
+      "confidence": null,
+      "description": "Re-run scan to refresh — current categories reflect an outdated full-repo walk, not web/data samples."
+    }
+  ],
+  "detectedIssues": [
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:9 — Localhost or loopback URL with port in production-eligible code",
+      "pattern": "SB-DEPLOY-001",
+      "line": 9,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "filePaths": [
+        "ai-platform/tools/send-all-tier-emails.cjs"
+      ],
+      "file": "ai-platform/tools/send-all-tier-emails.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:10 — Localhost or loopback URL with port in production-eligible code",
+      "pattern": "SB-DEPLOY-001",
+      "line": 10,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "filePaths": [
+        "ai-platform/tools/send-all-tier-emails.cjs"
+      ],
+      "file": "ai-platform/tools/send-all-tier-emails.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:70 — Localhost or loopback URL with port in production-eligible code",
+      "pattern": "SB-DEPLOY-001",
+      "line": 70,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "filePaths": [
+        "ai-platform/tools/send-all-tier-emails.cjs"
+      ],
+      "file": "ai-platform/tools/send-all-tier-emails.cjs"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:9 — Staging or dev hostname referenced in source",
+      "pattern": "SB-DEPLOY-005",
+      "line": 9,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "filePaths": [
+        "ai-platform/tools/send-all-tier-emails.cjs"
+      ],
+      "file": "ai-platform/tools/send-all-tier-emails.cjs"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:10 — Staging or dev hostname referenced in source",
+      "pattern": "SB-DEPLOY-005",
+      "line": 10,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "filePaths": [
+        "ai-platform/tools/send-all-tier-emails.cjs"
+      ],
+      "file": "ai-platform/tools/send-all-tier-emails.cjs"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:70 — Staging or dev hostname referenced in source",
+      "pattern": "SB-DEPLOY-005",
+      "line": 70,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "filePaths": [
+        "ai-platform/tools/send-all-tier-emails.cjs"
+      ],
+      "file": "ai-platform/tools/send-all-tier-emails.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "ai-platform/tools/send-certificate-email.cjs:20 — Localhost or loopback URL with port in production-eligible code",
+      "pattern": "SB-DEPLOY-001",
+      "line": 20,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-certificate-email.cjs"
+      ],
+      "filePaths": [
+        "ai-platform/tools/send-certificate-email.cjs"
+      ],
+      "file": "ai-platform/tools/send-certificate-email.cjs"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "ai-platform/tools/send-certificate-email.cjs:20 — Staging or dev hostname referenced in source",
+      "pattern": "SB-DEPLOY-005",
+      "line": 20,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-certificate-email.cjs"
+      ],
+      "filePaths": [
+        "ai-platform/tools/send-certificate-email.cjs"
+      ],
+      "file": "ai-platform/tools/send-certificate-email.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "ai-platform/tools/send-payment-tier-emails.cjs:9 — Localhost or loopback URL with port in production-eligible code",
+      "pattern": "SB-DEPLOY-001",
+      "line": 9,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-payment-tier-emails.cjs"
+      ],
+      "filePaths": [
+        "ai-platform/tools/send-payment-tier-emails.cjs"
+      ],
+      "file": "ai-platform/tools/send-payment-tier-emails.cjs"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "ai-platform/tools/send-payment-tier-emails.cjs:9 — Staging or dev hostname referenced in source",
+      "pattern": "SB-DEPLOY-005",
+      "line": 9,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-payment-tier-emails.cjs"
+      ],
+      "filePaths": [
+        "ai-platform/tools/send-payment-tier-emails.cjs"
+      ],
+      "file": "ai-platform/tools/send-payment-tier-emails.cjs"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "agency-handoff-SB-DEPLOY-001-ai-platform/tools/send-all-tier-emails.cjs-399",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "ai-platform/tools/send-all-tier-emails.cjs",
+      "file": "ai-platform/tools/send-all-tier-emails.cjs",
+      "line": 9,
+      "pattern": "SB-DEPLOY-001",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:9 — Localhost or loopback URL with port in production-eligible code",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-001",
+        "category": "deploy-leak",
+        "offset": 399,
+        "match": "localhost:3001"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-001-ai-platform/tools/send-all-tier-emails.cjs-482",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "ai-platform/tools/send-all-tier-emails.cjs",
+      "file": "ai-platform/tools/send-all-tier-emails.cjs",
+      "line": 10,
+      "pattern": "SB-DEPLOY-001",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:10 — Localhost or loopback URL with port in production-eligible code",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-001",
+        "category": "deploy-leak",
+        "offset": 482,
+        "match": "localhost:3001"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-001-ai-platform/tools/send-all-tier-emails.cjs-3062",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "ai-platform/tools/send-all-tier-emails.cjs",
+      "file": "ai-platform/tools/send-all-tier-emails.cjs",
+      "line": 70,
+      "pattern": "SB-DEPLOY-001",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:70 — Localhost or loopback URL with port in production-eligible code",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-001",
+        "category": "deploy-leak",
+        "offset": 3062,
+        "match": "localhost:3001"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-005-ai-platform/tools/send-all-tier-emails.cjs-392",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "ai-platform/tools/send-all-tier-emails.cjs",
+      "file": "ai-platform/tools/send-all-tier-emails.cjs",
+      "line": 9,
+      "pattern": "SB-DEPLOY-005",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:9 — Staging or dev hostname referenced in source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-005",
+        "category": "deploy-leak",
+        "offset": 392,
+        "match": "http://localhost"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-005-ai-platform/tools/send-all-tier-emails.cjs-475",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "ai-platform/tools/send-all-tier-emails.cjs",
+      "file": "ai-platform/tools/send-all-tier-emails.cjs",
+      "line": 10,
+      "pattern": "SB-DEPLOY-005",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:10 — Staging or dev hostname referenced in source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-005",
+        "category": "deploy-leak",
+        "offset": 475,
+        "match": "http://localhost"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-005-ai-platform/tools/send-all-tier-emails.cjs-3055",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "ai-platform/tools/send-all-tier-emails.cjs",
+      "file": "ai-platform/tools/send-all-tier-emails.cjs",
+      "line": 70,
+      "pattern": "SB-DEPLOY-005",
+      "count": 1,
+      "description": "ai-platform/tools/send-all-tier-emails.cjs:70 — Staging or dev hostname referenced in source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-all-tier-emails.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-005",
+        "category": "deploy-leak",
+        "offset": 3055,
+        "match": "http://localhost"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-001-ai-platform/tools/send-certificate-email.cjs-763",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "ai-platform/tools/send-certificate-email.cjs",
+      "file": "ai-platform/tools/send-certificate-email.cjs",
+      "line": 20,
+      "pattern": "SB-DEPLOY-001",
+      "count": 1,
+      "description": "ai-platform/tools/send-certificate-email.cjs:20 — Localhost or loopback URL with port in production-eligible code",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-certificate-email.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-001",
+        "category": "deploy-leak",
+        "offset": 763,
+        "match": "localhost:3001"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-005-ai-platform/tools/send-certificate-email.cjs-756",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "ai-platform/tools/send-certificate-email.cjs",
+      "file": "ai-platform/tools/send-certificate-email.cjs",
+      "line": 20,
+      "pattern": "SB-DEPLOY-005",
+      "count": 1,
+      "description": "ai-platform/tools/send-certificate-email.cjs:20 — Staging or dev hostname referenced in source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-certificate-email.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-005",
+        "category": "deploy-leak",
+        "offset": 756,
+        "match": "http://localhost"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-001-ai-platform/tools/send-payment-tier-emails.cjs-399",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "ai-platform/tools/send-payment-tier-emails.cjs",
+      "file": "ai-platform/tools/send-payment-tier-emails.cjs",
+      "line": 9,
+      "pattern": "SB-DEPLOY-001",
+      "count": 1,
+      "description": "ai-platform/tools/send-payment-tier-emails.cjs:9 — Localhost or loopback URL with port in production-eligible code",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-payment-tier-emails.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-001",
+        "category": "deploy-leak",
+        "offset": 399,
+        "match": "localhost:3001"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-005-ai-platform/tools/send-payment-tier-emails.cjs-392",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "ai-platform/tools/send-payment-tier-emails.cjs",
+      "file": "ai-platform/tools/send-payment-tier-emails.cjs",
+      "line": 9,
+      "pattern": "SB-DEPLOY-005",
+      "count": 1,
+      "description": "ai-platform/tools/send-payment-tier-emails.cjs:9 — Staging or dev hostname referenced in source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "send-payment-tier-emails.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-005",
+        "category": "deploy-leak",
+        "offset": 392,
+        "match": "http://localhost"
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [
+    ".gitignore",
+    "app-links.js",
+    "audit-booking.js",
+    "certificate-upload.html",
+    "community.html",
+    "contact.html",
+    "contact.js",
+    "dashboard.html",
+    "demo.html",
+    "diagnostic-bundle-lib.js",
+    "diagnostic-scanner.js",
+    "diagnostic-prep.html",
+    "repo-handoff.html",
+    "email-template-certificate-upload.html",
+    "email-template-universal.html",
+    "favicon.svg",
+    "index.html",
+    "landing.html",
+    "package-lock.json",
+    "package.json",
+    "pricing.html",
+    "pricing.html.backup",
+    "privacy.html",
+    "refund.html",
+    "sample-certificate.html",
+    "sample-clearance-pdf.html",
+    "sample-report.html",
+    "server.cjs",
+    "site-config.js",
+    "styles.css",
+    "subscriptions.json",
+    "terms.html",
+    "test-token.txt",
+    "test.html",
+    "thank-you.html",
+    "update_index.py"
+  ],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 36,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 550,
+    "productionPaths": [
+      "."
+    ],
+    "sourceCodeScanPaths": [
+      "."
+    ],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 468,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "enterpriseGuardrailFilesScanned": 546,
+    "enterpriseGuardrailHits": 0,
+    "fileNamingFilesScanned": 0,
+    "fileNamingHits": 0,
+    "structuralIntentEnabled": false,
+    "structuralIntentAvailable": false,
+    "structuralIntentFilesScanned": 0,
+    "structuralIntentHits": 0,
+    "structuralIntentEngine": null,
+    "structuralIntentSlmReviewCount": 0,
+    "tokenBleedFilesScanned": 0,
+    "tokenBleedPatternHits": 0,
+    "architectureDriftFilesScanned": 0,
+    "architectureDriftPatternHits": 0,
+    "pythonAstFilesScanned": 0,
+    "pythonAstPatternHits": 0,
+    "pythonAstScanOk": true,
+    "javascriptAstFilesScanned": 0,
+    "javascriptAstPatternHits": 0,
+    "javascriptAstScanOk": true,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 89,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 551,
+    "repositoryFilesTotal": 1059,
+    "repositoryFoldersTotal": 135,
+    "fullDirectoryScan": false,
+    "fullDirectoryStats": null,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": "11 issue(s) from github-cache/ clones and .github-sync/ CLI mirror excluded from gate scores — scan clones with github-cache/.simplebeacon/config.json (profile: benchmark).",
+    "limitations": [
+      "Repository inventory: 1,059 files — gate rules checked 551 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (89) plus source code (0 files in .).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
+      "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
+      "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "stale-full-tree-scan",
+    "rescanRecommended": true,
+    "inventoryMetricsStale": true
+  },
+  "gate": {
+    "pass": false,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 5,
+    "warningCount": 5
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-06-04T04:05:50.288Z"
+}

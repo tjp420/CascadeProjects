@@ -23,6 +23,7 @@ if (fs.existsSync(envPath)) {
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
+const cors = require('cors');
 
 const setupBuildFromPathRoute = require('./src/api/build-from-path-route.cjs');
 const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');
@@ -45,6 +46,22 @@ const { authenticate, optionalAuthenticate } = require('./server/middleware/auth
 const app = express();
 const PORT = 54355;
 const WS_PORT = 8081;
+
+// CORS for dev — allow any origin when not in production
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production' ? false : true,
+    credentials: true
+}));
+
+// HTTPS redirect for production — respect health checks and local development
+app.use((req, res, next) => {
+  const isLocalhost = /^(localhost|127\.0\.0\.1|::1|0\.0\.0\.0)$/i.test(req.hostname);
+  const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  if (!isLocalhost && !isSecure && process.env.NODE_ENV === 'production') {
+    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
 if (
   process.env.SIMPLEBEACON_INTERNAL_DASHBOARD !== 'true'
   && Number(process.env.PORT || PORT) === PORT
@@ -162,13 +179,21 @@ if (process.env.NODE_ENV !== 'test') {
   console.log('[Simplebeacon] Registered GET /api/analyze/data-cleanup');
 }
 
+const dashboardPath = path.join(webRoot, 'simplebeacon-dashboard/index.html');
+let cachedDashboardHtml = null;
+function loadDashboardHtml() {
+  if (cachedDashboardHtml !== null) return cachedDashboardHtml;
+  if (!fs.existsSync(dashboardPath)) return null;
+  cachedDashboardHtml = fs.readFileSync(dashboardPath, 'utf8');
+  return cachedDashboardHtml;
+}
+
 function sendSimplebeaconDashboard(res) {
-  const dashboardPath = path.join(webRoot, 'simplebeacon-dashboard/index.html');
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-  if (!fs.existsSync(dashboardPath)) {
+  const html = loadDashboardHtml();
+  if (html === null) {
     return res.status(404).send('Simplebeacon dashboard not found');
   }
-  let html = fs.readFileSync(dashboardPath, 'utf8');
   // Do not inject vault password into HTML — use vault endpoint instead
   return res.send(html);
 }
@@ -339,7 +364,7 @@ if (landingRootExists) {
     next();
   });
 
-  app.post('/api/waitlist', (req, res) => {
+  app.post('/api/waitlist', async (req, res) => {
     if (!landingEnabled) return res.status(404).json({ error: 'not_found' });
     const email = String(req.body?.email || '').trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -354,32 +379,33 @@ if (landingRootExists) {
     const waitlistDir = path.join(__dirname, 'data');
     const waitlistFile = path.join(waitlistDir, 'waitlist-signups.json');
     try {
-      fs.mkdirSync(waitlistDir, { recursive: true });
+      await fs.promises.mkdir(waitlistDir, { recursive: true });
       let rows = [];
-      if (fs.existsSync(waitlistFile)) {
-        rows = JSON.parse(fs.readFileSync(waitlistFile, 'utf8'));
-      }
+      try {
+        const data = await fs.promises.readFile(waitlistFile, 'utf8');
+        rows = JSON.parse(data);
+      } catch { /* file does not exist yet */ }
       if (!rows.some((r) => r.email === email)) rows.push(entry);
-      fs.writeFileSync(waitlistFile, JSON.stringify(rows, null, 2));
+      await fs.promises.writeFile(waitlistFile, JSON.stringify(rows, null, 2));
     } catch (err) {
       console.warn('[waitlist] persist failed:', err.message);
     }
     return res.json({ ok: true, email });
   });
 
-  app.get('/api/waitlist/count', (req, res) => {
+  app.get('/api/waitlist/count', async (req, res) => {
     if (!landingEnabled) return res.status(404).json({ error: 'not_found' });
     const waitlistFile = path.join(__dirname, 'data', 'waitlist-signups.json');
     try {
-      if (!fs.existsSync(waitlistFile)) return res.json({ count: 0 });
-      const rows = JSON.parse(fs.readFileSync(waitlistFile, 'utf8'));
+      const data = await fs.promises.readFile(waitlistFile, 'utf8');
+      const rows = JSON.parse(data);
       return res.json({ count: Array.isArray(rows) ? rows.length : 0 });
     } catch {
       return res.json({ count: 0 });
     }
   });
 
-  app.post('/api/waitlist/event', (req, res) => {
+  app.post('/api/waitlist/event', async (req, res) => {
     if (!landingEnabled) return res.status(404).json({ error: 'not_found' });
     const event = {
       event: req.body?.event || 'unknown',
@@ -389,12 +415,15 @@ if (landingRootExists) {
     };
     const eventsFile = path.join(__dirname, 'data', 'waitlist-events.json');
     try {
-      fs.mkdirSync(path.dirname(eventsFile), { recursive: true });
+      await fs.promises.mkdir(path.dirname(eventsFile), { recursive: true });
       let rows = [];
-      if (fs.existsSync(eventsFile)) rows = JSON.parse(fs.readFileSync(eventsFile, 'utf8'));
+      try {
+        const data = await fs.promises.readFile(eventsFile, 'utf8');
+        rows = JSON.parse(data);
+      } catch { /* file does not exist yet */ }
       rows.push(event);
       if (rows.length > 5000) rows = rows.slice(-5000);
-      fs.writeFileSync(eventsFile, JSON.stringify(rows, null, 2));
+      await fs.promises.writeFile(eventsFile, JSON.stringify(rows, null, 2));
     } catch (err) {
       console.warn('[waitlist] event persist failed:', err.message);
     }
@@ -446,6 +475,8 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/auth/')) return next();
   if (req.path === '/api/platform/status') return next();
   if (req.path === '/api/health' || req.path === '/health') return next();
+  if (req.path.startsWith('/api/analyze/')) return next();
+  if (req.path === '/api/reports/download') return next();
   if (
     req.path === '/api/waitlist'
     || req.path === '/api/waitlist/count'
@@ -531,12 +562,16 @@ async function bootstrapPhase2Routes() {
         app.use('/api/upload', uploadAuth, uploadSecurity, contentValidation, uploadRoutes);
         setupDashboardStubAPIs(app, webRoot, {
             db: app.locals.db,
-            redis: app.locals.redis
+            redis: app.locals.redis,
+            authMiddleware: optionalAuthenticate
         });
 
     } catch (error) {
         console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message);
-        setupDashboardStubAPIs(app, webRoot);
+        console.error('Stack:', error.stack);
+        setupDashboardStubAPIs(app, webRoot, {
+            authMiddleware: optionalAuthenticate
+        });
         require('./src/api/trust-api.cjs').setupTrustAPI(app, { platformRoot: __dirname, monorepoRoot: path.join(__dirname, '..') });
         require('./src/api/optimization-api.cjs').setupOptimizationAPI(app, { platformRoot: __dirname, monorepoRoot: path.join(__dirname, '..') });
     }

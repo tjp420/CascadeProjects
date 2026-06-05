@@ -289,7 +289,7 @@ async function analyzeStrategicInsights(options = {}) {
     const userCredentials = options.userCredentials || null;
 
     if (aiProvider === 'demo' || aiProvider === 'active') {
-        deterministic.llmNote = 'Select Ollama, OpenAI, or Anthropic for LLM strategic layer.';
+        deterministic.llmNote = 'Select a local or cloud provider for the strategic analysis layer.';
         return deterministic;
     }
 

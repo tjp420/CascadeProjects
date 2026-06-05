@@ -79,6 +79,9 @@ export class ScanService {
   }
 
   async fetchReport(projectPath) {
+    if (projectPath && /^https?:\/\//i.test(projectPath)) {
+      return null;
+    }
     const params = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
     const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report${params}`);
     if (!res.ok) throw new Error('Failed to load scan report — is the dashboard server running?');
@@ -91,8 +94,12 @@ export class ScanService {
   }
 
   async fetchRepositoryInventory(projectPath) {
-    if (!projectPath) return null;
-    const params = new URLSearchParams({ projectPath, profile: 'explorer' });
+    const path = String(projectPath || '').trim();
+    if (!path) return null;
+    if (/^https?:\/\//i.test(path) && !/^(git@|ssh:\/\/|https:\/\/(github|gitlab|bitbucket|codeberg)\.)/i.test(path)) {
+      return null;
+    }
+    const params = new URLSearchParams({ projectPath: path, profile: 'explorer' });
     const inventoryHttpResponse = await fetchWithTimeout(`/api/analyze/inventory?${params}`, { headers: mergeAuthHeaders() });
     const inventoryPayload = await readJsonResponseBody(inventoryHttpResponse, {});
     if (!inventoryHttpResponse.ok || !inventoryPayload.success) return null;

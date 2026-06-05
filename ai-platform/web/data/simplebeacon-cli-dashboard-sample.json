@@ -1,0 +1,15 @@
+{
+  "type": "simplebeacon-cli-model",
+  "overview": {
+    "totalItems": 25
+  },
+  "items": [
+    {}
+  ],
+  "commands": [
+    {}
+  ],
+  "rules": [
+    {}
+  ]
+}

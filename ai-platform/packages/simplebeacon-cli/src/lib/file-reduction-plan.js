@@ -100,7 +100,8 @@ function buildFileReductionPlan(report) {
                 path: finding.path,
                 bytes: finding.sizeBytes || 0,
                 files: finding.fileCount || 0,
-                category: finding.category || finding.reason
+                category: finding.category || finding.reason,
+                skipped: finding.skipped || false
             })),
             byCategory: groupDirectoriesByCategory(safeDirectories)
         },

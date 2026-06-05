@@ -1,5 +1,12 @@
 /**
  * Operator deliverable workspaces — shared by CLI and /api/operator/deliverable.
+ *
+ * EU AI Act Documentation Marker:
+ * - This service integrates with artificial intelligence providers for report generation (OpenAI API).
+ * - Article 50: Transparency — users are informed when AI-generated content is included in deliverables.
+ * - Article 12: Audit logging — AI inference decisions and model outputs are logged via the
+ *   ai-inference-audit-logger module for accountability and traceability.
+ * - Risk Level: Limited risk (human-reviewed deliverables)
  */
 
 const fs = require('fs');
@@ -7,6 +14,20 @@ const path = require('path');
 const { readJsonFileCached } = require('./json-file-cache.cjs');
 
 const PRODUCTS = {
+  moneyPrinter19: {
+    label: 'Money Printer Tier ($19)',
+    sku: 'moneyPrinter19',
+    price: 19,
+    clock: '60 seconds — instant delivery',
+    clientSends: 'Domain name only — no source code upload',
+    vaultSteps: [
+      'Receive domain via Stripe checkout webhook',
+      'Run instant security audit (SEO, SSL, speed, accessibility, headers)',
+      'Generate PDF report via OpenAI API',
+      'Download instantly — data wiped from RAM after download'
+    ],
+    notIncluded: 'Source code scan, gate attestation, milestone certificates'
+  },
   clearance499: {
     label: 'Executive clearance PDF ($499)',
     sku: 'clearance499',
@@ -96,6 +117,7 @@ function inferProductFromBooking(booking = {}) {
   const notes = String(booking.notes || '').toLowerCase();
   const combined = `${source} ${notes}`;
 
+  if (/money.?printer|instant.?audit|19/.test(combined)) return 'moneyPrinter19';
   if (/eu[\s-]?ai|euai|2499|readiness sprint/.test(combined)) return 'euai2499';
   if (/growth|1499|priority slack/.test(combined)) return 'agency1499';
   if (/project pack|agency pack|999|milestone certificate/.test(combined)) return 'agency999';

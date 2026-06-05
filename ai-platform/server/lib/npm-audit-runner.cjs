@@ -2,8 +2,33 @@
  * Run npm audit and normalize results for the Security dashboard.
  */
 
-const { execSync } = require('child_process');
+const { execSync, execFile } = require('child_process');
+const util = require('util');
 const path = require('path');
+
+const execFileAsync = util.promisify(execFile);
+
+function resolveNpmPath() {
+    if (process.platform === 'win32') {
+        try {
+            const safeCwd = process.env.SystemRoot || 'C:\\Windows';
+            const output = execSync('where npm.cmd', { encoding: 'utf8', cwd: safeCwd }).trim();
+            const first = output.split(/\r?\n/)[0];
+            if (first) return first;
+        } catch {
+            // fall through
+        }
+    }
+    try {
+        const output = execSync('which npm', { encoding: 'utf8' }).trim();
+        if (output) return output;
+    } catch {
+        // fall through
+    }
+    return 'npm';
+}
+
+const NPM_PATH = resolveNpmPath();
 
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;
 const SEVERITY_RANK = { critical: 4, high: 3, moderate: 2, medium: 2, low: 1, info: 0 };
@@ -76,7 +101,7 @@ function runNpmAudit(projectRoot, options = {}) {
 
     let stdout = '';
     try {
-        stdout = execSync('npm audit --json', {
+        stdout = execSync(`"${NPM_PATH}" audit --json`, {
             cwd: root,
             encoding: 'utf8',
             maxBuffer: 10 * 1024 * 1024,
@@ -88,7 +113,52 @@ function runNpmAudit(projectRoot, options = {}) {
             const result = {
                 generatedAt: new Date().toISOString(),
                 dataSource: 'npm-audit',
-                error: error.message,
+                error: `No package.json found in ${root}. Upload a Node.js project to run npm audit.`,
+                metadata: {},
+                vulnerabilities: [],
+                summary: {}
+            };
+            cache = { root, at: now, result };
+            return result;
+        }
+    }
+
+    const parsed = parseNpmAuditJson(stdout);
+    const result = {
+        generatedAt: new Date().toISOString(),
+        dataSource: 'npm-audit',
+        ...parsed
+    };
+
+    cache = { root, at: now, result };
+    return result;
+}
+
+// Async wrapper for server-side non-blocking usage
+async function runNpmAuditAsync(projectRoot, options = {}) {
+    const root = path.resolve(projectRoot || process.cwd());
+    const cacheTtl = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
+    const now = Date.now();
+
+    if (!options.force && cache && cache.root === root && (now - cache.at) < cacheTtl) {
+        return cache.result;
+    }
+
+    let stdout = '';
+    try {
+        const result = await execFileAsync(NPM_PATH, ['audit', '--json'], {
+            cwd: root,
+            encoding: 'utf8',
+            maxBuffer: 10 * 1024 * 1024
+        });
+        stdout = result.stdout || '';
+    } catch (error) {
+        stdout = error.stdout || '';
+        if (!stdout.trim()) {
+            const result = {
+                generatedAt: new Date().toISOString(),
+                dataSource: 'npm-audit',
+                error: `No package.json found in ${root}. Upload a Node.js project to run npm audit.`,
                 metadata: {},
                 vulnerabilities: [],
                 summary: {}
@@ -116,5 +186,6 @@ function clearNpmAuditCache() {
 module.exports = {
     parseNpmAuditJson,
     runNpmAudit,
+    runNpmAuditAsync,
     clearNpmAuditCache
 };

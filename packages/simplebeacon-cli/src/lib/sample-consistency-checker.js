@@ -10,6 +10,32 @@ const REPO_SKIP_DIRS = new Set([
     'node_modules', '.git', 'uploads', 'coverage', 'archive', 'dist', 'build',
     'github-cache', 'deliverables', '.simplebeacon', 'data-central', 'security-reports'
 ]);
+
+/** Known data-file paths that trigger false positives in fiction scanning. */
+const SKIP_PATH_SUBSTRINGS = [
+    'iconv-lite/encodings/tables',
+    'iconv-lite/encodings/dbcs-codec',
+    'iconv-lite/encodings/sbcs-codec',
+    '/encodings/tables/'
+];
+
+/** Encoding-table basenames that are false positives regardless of path (uploaded ZIPs lose directory context). */
+const SKIP_FILE_NAMES = new Set([
+    'cp936.json',
+    'cp950.json',
+    'cp932.json',
+    'eucjp.json',
+    'euckr.json',
+    'gb2312.json',
+    'gbk.json',
+    'gbk-added.json',
+    'gb18030.json',
+    'big5.json',
+    'shiftjis.json',
+    'iso2022jp.json',
+    'iso2022kr.json',
+    'iso2022cn.json'
+]);
 const REPO_WALK_MAX_DEPTH = 24;
 const JSON_MAX_BYTES = 512000;
 
@@ -367,6 +393,8 @@ async function walkRepositoryJsonFiles(rootDir, options = {}) {
                 if (stat.size > maxBytes) continue;
                 const relativePath = path.relative(root, fullPath).replace(/\\/g, '/');
                 if (isIgnored(relativePath)) continue;
+                if (SKIP_PATH_SUBSTRINGS.some((sub) => relativePath.includes(sub))) continue;
+                if (SKIP_FILE_NAMES.has(entry.name.toLowerCase())) continue;
                 seen.add(key);
                 results.push({
                     path: fullPath,
@@ -489,7 +517,10 @@ async function checkSampleConsistency(baseDir, options = {}) {
             .filter((file) => {
                 const rel = String(file.relativePath || '').replace(/\\/g, '/');
                 const ignoreGlobs = Array.isArray(options.ignoreGlobs) ? options.ignoreGlobs : [];
-                return !ignoreGlobs.some((pattern) => globMatch(rel, pattern));
+                if (ignoreGlobs.some((pattern) => globMatch(rel, pattern))) return false;
+                if (SKIP_PATH_SUBSTRINGS.some((sub) => rel.includes(sub))) return false;
+                if (SKIP_FILE_NAMES.has(path.basename(file.path).toLowerCase())) return false;
+                return true;
             });
         fictionFileRefs = dedupeFileRefs([...fictionFileRefs, ...extras]);
     }

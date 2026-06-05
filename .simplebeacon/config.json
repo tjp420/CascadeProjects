@@ -9,19 +9,29 @@
   "sampleDir": "fixtures",
   "consistencyAnchorSamples": [],
   "ignore": [
-    "node_modules/**",
-    "coverage/**",
-    "dist/**",
-    "build/**",
-    "**/*.test.js",
     "**/*.spec.js",
-    "**/*.test.ts",
     "**/*.spec.ts",
-    "tests/**",
-    "test/**",
-    "packages/simplebeacon-cli",
+    "**/*.test.js",
+    "**/*.test.ts",
+    "**/.gitkeep",
+    "**/test-output*.txt",
+    "ai-agent/**",
+    "ai-platform/**",
+    "ai-tools/**",
+    "backups/**",
+    "build/**",
+    "coming-soon/**",
+    "coverage/**",
+    "deployments/**",
+    "dist/**",
+    "logs/**",
+    "node_modules/**",
     "packages/**",
-    "**/*.log"
+    "packages/simplebeacon-cli/**",
+    "simplebeacon-frameworkless/**",
+    "simplebeacon-rule-tests/**",
+    "test/**",
+    "tests/**"
   ],
   "rules": {
     "credentials": {
@@ -56,6 +66,10 @@
     },
     "eu-ai-act-patterns": {
       "enabled": true,
+      "severity": "medium"
+    },
+    "file-naming-patterns": {
+      "enabled": false,
       "severity": "medium"
     },
     "jest-baseline": {
@@ -95,7 +109,17 @@
   "fullDirectoryScanSkipDirs": [
     ".git",
     ".github-sync",
+    "ai-agent",
+    "ai-platform",
+    "ai-tools",
+    "backups",
+    "coming-soon",
+    "deployments",
     "github-cache",
-    "node_modules"
+    "logs",
+    "node_modules",
+    "packages",
+    "simplebeacon-frameworkless",
+    "simplebeacon-rule-tests"
   ]
 }

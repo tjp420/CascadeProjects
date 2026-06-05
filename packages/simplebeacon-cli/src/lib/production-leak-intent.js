@@ -17,7 +17,22 @@ const REPOSITORY_AUDIT_INFRA_FILES = new Set([
     'dev-tools-workflows.js'
 ]);
 
-const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy)(?:\/|$)/;
+const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)ai-platform\/packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
+
+const OSS_SCANNER_ROOT_FILES = new Set([
+    'src/scan.js',
+    'src/config.js',
+    'src/project-detect.js',
+    'src/index.js',
+    'src/compliance-checklist.js',
+    'src/compliance-checklist.cjs',
+    'src/gate.js',
+    'src/gate.cjs',
+    'src/assessment.js',
+    'src/assessment.cjs',
+    'src/baseline-sync.js',
+    'src/baseline-sync.cjs'
+]);
 
 const REPOSITORY_AUDIT_MARKERS = [
     /repository-audit/i,
@@ -44,7 +59,20 @@ function isRepositoryAuditInfraFile(relativePath) {
 }
 
 function isScannerImplementationPath(relativePath) {
-    return SCANNER_IMPL_PATH_RE.test(normalizeRel(relativePath).toLowerCase());
+    const rel = normalizeRel(relativePath);
+    const lowerRel = rel.toLowerCase();
+    if (SCANNER_IMPL_PATH_RE.test(lowerRel)) {
+        return true;
+    }
+    if (OSS_SCANNER_ROOT_FILES.has(rel)) {
+        return true;
+    }
+    for (const rootFile of OSS_SCANNER_ROOT_FILES) {
+        if (lowerRel.endsWith('/' + rootFile.toLowerCase())) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function fileDeclaresRepositoryAudit(content) {
@@ -204,6 +232,14 @@ function classifyProductionLeakMatch({
                 reason: 'Repository-audit infrastructure module'
             };
         }
+    }
+
+    if (fileDeclaresRepositoryAudit(content) && isSnapshotSeedEntry(line)) {
+        return {
+            intent: 'repository-audit-loader',
+            suppress: true,
+            reason: 'Repository-audit seed/resolver catalog'
+        };
     }
 
     if (isCatalogSampleReference(line)) {

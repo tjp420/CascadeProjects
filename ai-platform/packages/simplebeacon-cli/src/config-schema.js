@@ -17,7 +17,8 @@ const VALID_RULES = new Set([
     'architecture-drift-patterns',
     'python-ast-patterns',
     'javascript-ast-patterns',
-    'enterprise-guardrail-patterns'
+    'enterprise-guardrail-patterns',
+    'file-naming-patterns'
 ]);
 
 const VALID_SEVERITIES = new Set(['critical', 'high', 'medium', 'low']);

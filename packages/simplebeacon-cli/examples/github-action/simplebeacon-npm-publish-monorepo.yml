@@ -1,0 +1,51 @@
+# Monorepo npm publish — copy to REPO ROOT .github/workflows/simplebeacon-npm-publish.yml
+# Live reference: CascadeProjects/.github/workflows/simplebeacon-npm-publish.yml
+#
+# Release tag convention: simplebeacon-v1.0.1 (must match package.json version in packages/simplebeacon-cli)
+# Secret: NPM_TOKEN (granular publish token with bypass 2FA — see PUBLISH.md)
+
+name: Publish simplebeacon to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      otp:
+        description: '6-digit npm 2FA code (only if NPM_TOKEN lacks bypass-2fa)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: ai-platform
+
+jobs:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.release.tag_name, 'simplebeacon-') ||
+      startsWith(github.event.release.tag_name, 'simplebeacon@')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci --ignore-scripts
+      - name: Test CLI package
+        working-directory: ai-platform/packages/simplebeacon-cli
+        run: |
+          npm test
+          npm run pack:check
+          node bin/simplebeacon-mcp.js --smoke-test
+      - name: Publish to npm
+        working-directory: ai-platform/packages/simplebeacon-cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_OTP: ${{ inputs.otp }}
+        run: npm publish --access public

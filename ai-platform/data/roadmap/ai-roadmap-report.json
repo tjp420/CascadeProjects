@@ -111,7 +111,7 @@
     {
       "category": "maintainability",
       "severity": "medium",
-      "description": "Test coverage requires live Jest/Istanbul — not inferred by roadmap LLM."
+      "description": "Test coverage requires live Jest/Istanbul — not inferred by roadmap analysis engine."
     }
   ],
   "actionPlan": [

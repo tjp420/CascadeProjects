@@ -1,0 +1,21 @@
+{
+  "type": "billing-system-model",
+  "overview": {
+    "totalRevenue": 15000
+  },
+  "subscriptions": [
+    {}
+  ],
+  "recentTransactions": [
+    {}
+  ],
+  "invoices": [
+    {}
+  ],
+  "metrics": [
+    {}
+  ],
+  "alerts": [
+    {}
+  ]
+}

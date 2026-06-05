@@ -1,0 +1,10 @@
+{
+  "type": "status-model",
+  "overview": {
+    "gatePass": true,
+    "qualityScore": 85
+  },
+  "checks": [
+    {}
+  ]
+}

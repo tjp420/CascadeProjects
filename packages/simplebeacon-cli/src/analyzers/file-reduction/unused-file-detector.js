@@ -5,8 +5,8 @@
 const fs = require('fs');
 const path = require('path');
 const { walkProjectFiles } = require('./utils/project-walker');
-const { parseImports, JS_SOURCE_EXTENSIONS } = require('./utils/import-parser');
-const { parseNonCodeReferences, addReference } = require('./utils/file-reference-tracker');
+const { parseImports, JS_SOURCE_EXTENSIONS, parseRuntimeReferences } = require('./utils/import-parser');
+const { parseNonCodeReferences, addReference, parseWorkerScriptReferences } = require('./utils/file-reference-tracker');
 const { buildDependencyGraph, findUnreferencedNodes } = require('./utils/dependency-graph-builder');
 const { globMatch } = require('../../rules/production-leak');
 
@@ -172,6 +172,16 @@ class UnusedFileDetector {
             imports.push(...parseImports(file.path, content, inventory.root));
             for (const ref of parseNonCodeReferences(file.path, content, inventory.root)) {
                 if (ref.resolvedPath) {
+                    addReference(referenceMap, ref.resolvedPath, ref.source);
+                }
+            }
+            for (const ref of parseWorkerScriptReferences(file.path, content, inventory.root)) {
+                if (ref.resolvedPath) {
+                    addReference(referenceMap, ref.resolvedPath, ref.source);
+                }
+            }
+            for (const ref of parseRuntimeReferences(file.path, content, inventory.root)) {
+                if (ref.resolvedPath && fs.existsSync(ref.resolvedPath)) {
                     addReference(referenceMap, ref.resolvedPath, ref.source);
                 }
             }

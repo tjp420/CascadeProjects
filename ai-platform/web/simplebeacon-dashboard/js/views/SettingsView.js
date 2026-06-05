@@ -16,7 +16,9 @@ const RULE_ORDER = [
   'sample-consistency',
   'roadmap',
   'production-leak',
-  'jest-baseline'
+  'jest-baseline',
+  'javascript-ast-patterns',
+  'python-ast-patterns'
 ];
 
 const SEVERITIES = ['high', 'medium', 'low'];

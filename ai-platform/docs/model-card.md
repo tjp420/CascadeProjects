@@ -32,11 +32,14 @@ SimpleBeacon is a developer tool designed to:
 ## Model Architecture
 
 ### Components
-1. **Static Analysis Engine**: Pattern-based code scanning
+1. **Static Analysis Engine**: Pattern-based code scanning (deterministic, no ML)
 2. **Credential Scanner**: Regex-based secret detection
 3. **Production Leak Detector**: Path analysis for sample data references
 4. **AI Fiction Detector**: Pattern matching for AI-generated KPIs
 5. **Compliance Reporter**: EU AI Act checklist automation
+6. **Anonymized Export Engine**: Privacy-blind tokenization — strips all source code before transmission
+7. **Local Remediation Agent**: Ollama-based `--fix` with zero cloud by default
+8. **MCP Rule Catalog**: Exposes deterministic rule schemas to Cursor/Claude via Model Context Protocol
 
 ### Data Processing
 - All processing occurs locally on user machines

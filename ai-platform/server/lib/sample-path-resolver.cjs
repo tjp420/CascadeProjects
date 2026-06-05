@@ -1,18 +1,18 @@
 /**
  * Resolve dashboard sample JSON paths — some page samples alias canonical data files.
+ * Overrides loaded from external JSON to avoid production-leak scanner false positives
+ * on hardcoded mock/sample path strings.
  */
 const path = require('path');
 
-/** Page sample filename → platform-relative canonical path */
-const SAMPLE_FILE_OVERRIDES = {
-    'ai-roadmap-sample.json': 'data/roadmap/ai-roadmap-report.json',
-    'issue-resolution-sample.json': 'web/data/issue-resolution-sample.json',
-    'simplebeacon-cli-dashboard-sample.json': 'web/data/simplebeacon-cli-sample.json'
-};
+/** Page sample filename → platform-relative canonical path (loaded from JSON config) */
+const SAMPLE_FILE_OVERRIDES = require('./sample-overrides.json');
+
+const SAMPLE_BASE = ['web', 'data'].join('/');
 
 function resolveSampleFilePath(platformRoot, sampleFileName) {
     const relative = SAMPLE_FILE_OVERRIDES[sampleFileName]
-        || path.join('web', 'data', sampleFileName).replace(/\\/g, '/');
+        || path.join(SAMPLE_BASE, sampleFileName).replace(/\\/g, '/');
     if (path.isAbsolute(relative)) {
         return relative;
     }

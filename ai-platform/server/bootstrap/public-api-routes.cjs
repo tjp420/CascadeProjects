@@ -29,6 +29,8 @@ const PUBLIC_API_PATHS = new Set([
     'optimization/health',
     'optimization/compliance',
     'optimization/candidates',
+    'analyze/upload-directory',
+    'reports/download',
     // Legacy dashboard.html scanner wiring (read-only repository scans)
     'project-structure',
     'backlog',

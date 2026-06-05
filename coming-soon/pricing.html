@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SimpleBeacon Pricing — Audits & Agency Packs</title>
-  <meta name="description" content="SimpleBeacon pricing: optional $499 clearance PDF from your local gate report, $999 Agency Project Pack, $1,499 Growth Pack. Free CLI + MCP for local scans.">
+  <title>SimpleBeacon Pricing — Enterprise AI Compliance Auditing</title>
+  <meta name="description" content="SimpleBeacon enterprise pricing: complimentary AI Slop Audit, $499 Executive Risk Certificate, $2,499 EU AI Act Sprint, and $1,499/mo Continuous Shield. Offline scanning, board-ready compliance reports.">
   <meta name="theme-color" content="#0d1117">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://simplebeacon.ai/pricing">
@@ -13,190 +13,523 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Redesigned Pricing Page Styles */
+    .pricing-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 60px; position: relative; }
+    .pricing-gate { position: relative; z-index: 2; }
+
+    /* Floating orbs */
+    .orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.15; pointer-events: none; z-index: 0; animation: orbFloat 20s ease-in-out infinite; }
+    .orb-1 { width: 400px; height: 400px; background: #2563EB; top: -100px; left: -100px; animation-delay: 0s; }
+    .orb-2 { width: 300px; height: 300px; background: #10B981; top: 40%; right: -80px; animation-delay: -7s; }
+    .orb-3 { width: 250px; height: 250px; background: #60A5FA; bottom: 10%; left: 10%; animation-delay: -14s; }
+    @keyframes orbFloat { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(30px,-20px) scale(1.05); } 66% { transform: translate(-20px,15px) scale(0.95); } }
+
+    /* Nav */
+    .pricing-nav { display: flex; align-items: center; justify-content: space-between; padding: 24px 0; margin-bottom: 20px; }
+    .pricing-brand { font-size: 1.1rem; font-weight: 700; color: #F3F4F6; text-decoration: none; letter-spacing: -0.3px; }
+    .pricing-brand:hover { color: #60A5FA; }
+    .pricing-nav-link { font-size: 0.85rem; color: #9CA3AF; text-decoration: none; padding: 6px 14px; border: 1px solid #1E293B; border-radius: 20px; transition: all 0.2s; }
+    .pricing-nav-link:hover { color: #F3F4F6; border-color: #3B82F6; }
+
+    /* Hero */
+    .pricing-hero { text-align: center; padding: 40px 0 32px; }
+    .hero-badge { display: inline-block; background: rgba(37,99,235,0.12); color: #60A5FA; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding: 6px 16px; border-radius: 20px; margin-bottom: 20px; border: 1px solid rgba(37,99,235,0.2); }
+    .pricing-hero h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 16px; line-height: 1.15; background: linear-gradient(135deg, #F3F4F6 0%, #9CA3AF 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero-sub { color: #9CA3AF; font-size: 1.05rem; max-width: 520px; margin: 0 auto; line-height: 1.6; }
+
+    /* Trust pills */
+    .trust-pills { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 40px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.04); border: 1px solid #1E293B; color: #9CA3AF; font-size: 0.8rem; padding: 7px 14px; border-radius: 20px; transition: all 0.2s; }
+    .pill:hover { border-color: #3B82F6; color: #F3F4F6; transform: translateY(-1px); }
+    .pill-icon { font-size: 0.9rem; }
+
+    /* How it works */
+    .how-it-works { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 48px; flex-wrap: wrap; }
+    .step { text-align: center; min-width: 100px; }
+    .step-num { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #2563EB, #1D4ED8); color: #fff; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; box-shadow: 0 0 12px rgba(37,99,235,0.3); }
+    .step-title { font-size: 0.85rem; font-weight: 600; color: #F3F4F6; margin-bottom: 2px; }
+    .step-desc { font-size: 0.75rem; color: #9CA3AF; }
+    .step-arrow { color: #374151; font-size: 1.2rem; }
+
+    /* Section titles */
+    .section-title { font-size: 1.1rem; font-weight: 600; margin: 48px 0 24px; color: #F3F4F6; text-align: center; }
+
+    /* Pricing grid & cards */
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 48px; }
+    .price-card { background: linear-gradient(145deg, rgba(21,29,48,0.9), rgba(15,22,38,0.95)); border: 1px solid #1E293B; border-radius: 16px; padding: 28px; position: relative; transition: all 0.3s ease; backdrop-filter: blur(10px); }
+    .price-card:hover { transform: translateY(-4px); border-color: #374151; box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
+    .price-card-popular { border: 1px solid rgba(16,185,129,0.4); box-shadow: 0 0 30px rgba(16,185,129,0.08); }
+    .price-card-popular:hover { border-color: rgba(16,185,129,0.6); box-shadow: 0 12px 32px rgba(16,185,129,0.15); }
+    .price-card-premium { border: 1px solid rgba(37,99,235,0.4); box-shadow: 0 0 30px rgba(37,99,235,0.08); }
+    .price-card-premium:hover { border-color: rgba(37,99,235,0.6); box-shadow: 0 12px 32px rgba(37,99,235,0.15); }
+    .popular-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #10B981, #059669); color: #fff; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 14px; border-radius: 20px; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+    .price-card-header { margin-bottom: 16px; }
+    .price-tag { display: inline-block; background: rgba(255,255,255,0.05); color: #9CA3AF; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; margin-bottom: 10px; }
+    .price-card h3 { font-size: 1.05rem; font-weight: 600; color: #F3F4F6; margin-bottom: 6px; }
+    .price-amount { font-size: 1.8rem; font-weight: 700; color: #F3F4F6; margin-bottom: 8px; }
+    .price-unit { font-size: 0.75rem; font-weight: 500; color: #9CA3AF; margin-left: 4px; }
+    .price-desc { font-size: 0.85rem; color: #9CA3AF; line-height: 1.5; margin-bottom: 16px; }
+    .price-features { list-style: none; padding: 0; margin: 0 0 20px; }
+    .price-features li { font-size: 0.82rem; color: #D1D5DB; padding: 6px 0; padding-left: 18px; position: relative; border-bottom: 1px solid rgba(30,41,59,0.5); }
+    .price-features li:last-child { border-bottom: none; }
+    .price-features li::before { content: ""; position: absolute; left: 0; top: 13px; width: 5px; height: 5px; border-radius: 50%; background: #3B82F6; }
+    .price-card-popular .price-features li::before { background: #10B981; }
+    .price-card-premium .price-features li::before { background: #60A5FA; }
+    .price-btn { display: block; width: 100%; padding: 12px; border-radius: 10px; border: none; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; transition: all 0.2s; }
+    .price-btn:not(.price-btn-secondary) { background: linear-gradient(135deg, #2563EB, #1D4ED8); color: #fff; box-shadow: 0 4px 16px rgba(37,99,235,0.3); }
+    .price-btn:not(.price-btn-secondary):hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,0.4); }
+    .price-btn-secondary { background: transparent; border: 1px solid #374151; color: #9CA3AF; }
+    .price-btn-secondary:hover { border-color: #60A5FA; color: #60A5FA; }
+    .price-sample { text-align: center; margin-top: 10px; font-size: 0.8rem; }
+    .price-sample a { color: #60A5FA; text-decoration: none; }
+    .price-sample a:hover { text-decoration: underline; }
+
+    /* Comparison table */
+    .compare-wrap { border: 1px solid #1E293B; border-radius: 14px; overflow: hidden; margin-bottom: 16px; background: rgba(15,22,38,0.5); backdrop-filter: blur(10px); }
+    .compare-row { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1fr 1fr; border-bottom: 1px solid rgba(30,41,59,0.5); transition: background 0.15s; }
+    .compare-row:last-child { border-bottom: none; }
+    .compare-row:not(.compare-head):hover { background: rgba(37,99,235,0.04); }
+    .compare-head { background: rgba(21,29,48,0.8); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #9CA3AF; }
+    .compare-cell { padding: 14px 16px; font-size: 0.82rem; color: #D1D5DB; display: flex; align-items: center; }
+    .compare-feature { color: #F3F4F6; font-weight: 500; }
+    .compare-highlight { background: rgba(16,185,129,0.06); }
+    .compare-premium { background: rgba(37,99,235,0.06); }
+    .check { color: #10B981; font-weight: 700; }
+    .cross { color: #6B7280; }
+
+    /* FAQ */
+    .faq-wrap { margin-bottom: 40px; }
+    .faq-item { margin-bottom: 10px; border: 1px solid #1E293B; border-radius: 12px; overflow: hidden; background: rgba(15,22,38,0.4); backdrop-filter: blur(10px); transition: all 0.2s; }
+    .faq-item:hover { border-color: #374151; }
+    .faq-item summary { padding: 16px 20px; font-weight: 600; font-size: 0.9rem; color: #F3F4F6; cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+    .faq-item summary::after { content: "+"; color: #60A5FA; font-size: 1.1rem; transition: transform 0.2s; }
+    .faq-item[open] summary::after { transform: rotate(45deg); }
+    .faq-item p { padding: 0 20px 16px; margin: 0; color: #9CA3AF; font-size: 0.85rem; line-height: 1.6; }
+
+    /* Email pricing */
+    .email-pricing { max-width: 480px; margin: 0 auto 32px; padding: 24px; border-radius: 14px; border: 1px solid #1E293B; background: rgba(15,22,38,0.5); backdrop-filter: blur(10px); }
+    .email-pricing input:focus { border-color: #3B82F6; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+
+    /* Guarantee */
+    .guarantee { text-align: center; padding: 28px; border-radius: 14px; border: 1px solid rgba(37,99,235,0.2); background: linear-gradient(145deg, rgba(37,99,235,0.08), rgba(37,99,235,0.03)); margin: 32px 0; }
+    .guarantee-icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .guarantee-title { font-size: 1rem; font-weight: 600; color: #60A5FA; margin-bottom: 6px; }
+    .guarantee-text { font-size: 0.85rem; color: #9CA3AF; }
+
+    /* Footer */
+    .pricing-foot { text-align: center; padding-top: 24px; border-top: 1px solid #1E293B; }
+    .pricing-foot a { color: #9CA3AF; text-decoration: none; font-size: 0.8rem; margin: 0 8px; transition: color 0.2s; }
+    .pricing-foot a:hover { color: #60A5FA; }
+
+    /* Animations */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    [data-animate="fade-up"] { opacity: 0; animation: fadeUp 0.6s ease forwards; }
+    [data-animate="fade-down"] { opacity: 0; animation: fadeDown 0.5s ease forwards; }
+    [data-delay="100"] { animation-delay: 0.1s; }
+    [data-delay="200"] { animation-delay: 0.2s; }
+    [data-delay="300"] { animation-delay: 0.3s; }
+    [data-delay="400"] { animation-delay: 0.4s; }
+
+    @media (max-width: 700px) {
+      .pricing-hero h1 { font-size: 1.7rem; }
+      .how-it-works { gap: 8px; }
+      .step-arrow { display: none; }
+      .compare-row { grid-template-columns: 1.5fr 1fr 1fr; }
+      .compare-cell:nth-child(4), .compare-cell:nth-child(5) { display: none; }
+    }
+  </style>
 </head>
 <body>
-  <main class="sales-gate-wrap">
-    <div class="sales-gate">
-      <p class="sales-gate-brand"><a href="landing.html">SimpleBeacon</a></p>
-      <h1>Pricing for agencies</h1>
-      <p class="hero-shield-note">Four ways to buy — same scan engine, different artifact. Client deliverables first; internal dev tooling and retention below.</p>
-      <p class="pitch-text hero-solution">
-        <strong>Free CLI + MCP</strong> — local gate on your machine (<a href="community.html">install</a>).
-        <strong>$499+</strong> — optional formatted PDF from your gate report for the client room.
-        <strong>Cloud Teams ($49/mo)</strong> is your agency&rsquo;s internal scan cockpit — <em>not</em> a replacement for clearance.
-      </p>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
 
-      <p class="shield-callout" style="margin-bottom:1.25rem;"><strong>Product ladder:</strong> CLI + MCP (free) → optional $499 PDF from your report → $999–$1,499 milestone certificates → optional Teams MRR.</p>
+  <main class="pricing-wrap">
+    <div class="pricing-gate">
+      <nav class="pricing-nav" data-animate="fade-down">
+        <a href="index.html" class="pricing-brand">SimpleBeacon</a>
+        <a href="upload.html" class="pricing-nav-link">Free Audit</a>
+      </nav>
 
-      <h2 class="market-heading" id="free-tier" style="font-size:1.05rem;margin:0 0 0.75rem;">Free — local CLI + MCP</h2>
-      <article class="pricing-card" style="max-width:none;margin-bottom:1.5rem;">
-        <p class="pricing-label">Community · $0</p>
-        <h3>Release hygiene gate on your machine</h3>
-        <p class="pricing-note">MCP while coding · full-repo <code>--gate</code> in CI · nothing uploads by default</p>
-        <ul class="pricing-features">
-          <li><code>npx --yes simplebeacon init --starter</code></li>
-          <li>Cursor MCP, GitHub Action, config, and agent scan rule</li>
-          <li>Report <strong>blocking issues</strong> — not raw finding counts</li>
-        </ul>
-        <a href="community.html" class="cta-billing-btn">Install guide →</a>
-      </article>
+      <div class="pricing-hero" data-animate="fade-up">
+        <span class="hero-badge">Enterprise AI Compliance</span>
+        <h1>Board-ready compliance, priced for action</h1>
+        <p class="hero-sub">Deterministic scans run entirely offline. No source code ever leaves your machine. Optional AI summaries use redacted paths only.</p>
+      </div>
 
-      <h2 class="market-heading" id="client-deliverables" style="font-size:1.05rem;margin:0 0 0.75rem;">Client deliverables — forward to the CTO</h2>
-      <div class="pricing-grid pricing-grid-pricing-page">
-        <article class="pricing-card featured">
-          <p class="pricing-label">Client deliverable · wedge</p>
-          <h3>Executive clearance PDF</h3>
-          <p class="pricing-price">$499 <small>flat / project</small></p>
-          <p class="pricing-note">Formatted PDF from your local gate report — optional client deliverable</p>
-          <ul class="pricing-features">
-            <li>Run <code>scan --gate --offline</code> locally, send JSON — no source zip required</li>
-            <li>48-hour executive PDF · gate verdict + developer remediations</li>
-            <li>Operator review of your gate report</li>
-            <li>Credential, <code>*-sample.json</code> / <code>web/data</code> prod-leak &amp; AI-fiction KPI scan</li>
-            <li>Does <strong>not</strong> include hosted dashboard or milestone certificates</li>
+      <div class="trust-pills" data-animate="fade-up" data-delay="100">
+        <span class="pill"><span class="pill-icon">&#128274;</span> Offline Scanning</span>
+        <span class="pill"><span class="pill-icon">&#128221;</span> Signed PDFs</span>
+        <span class="pill"><span class="pill-icon">&#9989;</span> 48h Turnaround</span>
+        <span class="pill"><span class="pill-icon">&#128273;</span> License Tokens</span>
+        <span class="pill"><span class="pill-icon">&#128483;</span> EU AI Act Ready</span>
+      </div>
+
+      <div class="how-it-works" data-animate="fade-up" data-delay="200">
+        <div class="step"><div class="step-num">1</div><div class="step-title">Purchase</div><div class="step-desc">Select tier and checkout via Stripe</div></div>
+        <div class="step-arrow">&#8594;</div>
+        <div class="step"><div class="step-num">2</div><div class="step-title">Receive Token</div><div class="step-desc">License token unlocks instantly</div></div>
+        <div class="step-arrow">&#8594;</div>
+        <div class="step"><div class="step-num">3</div><div class="step-title">Run Scan</div><div class="step-desc">Upload or scan locally — offline</div></div>
+        <div class="step-arrow">&#8594;</div>
+        <div class="step"><div class="step-num">4</div><div class="step-title">Download</div><div class="step-desc">Get your PDF instantly</div></div>
+      </div>
+
+      <h2 class="section-title" data-animate="fade-up">Choose your tier</h2>
+      <div class="pricing-grid">
+        <article class="price-card" data-animate="fade-up" data-delay="0">
+          <div class="price-card-header">
+            <span class="price-tag">Open Source</span>
+            <h3>Free AI Slop Audit</h3>
+            <div class="price-amount">$0</div>
+          </div>
+          <p class="price-desc">Run lightweight privacy scans on your machine. No code upload.</p>
+          <ul class="price-features">
+            <li>Local CLI scan for AI slop and leaks</li>
+            <li>Unlimited open-source repo scanning</li>
+            <li>A–F grade + remediation checklist</li>
           </ul>
-          <a href="https://buy.stripe.com/fZu28qesn6fB1ODftceEo06" class="cta-billing-btn checkout-audit" target="_blank" rel="noopener noreferrer">Request clearance PDF — $499</a>
+          <a href="upload.html#audit" class="price-btn price-btn-secondary" data-tier="free">Download CLI</a>
         </article>
 
-        <article class="pricing-card">
-          <p class="pricing-label">Client deliverable · agencies</p>
-          <h3>Agency Project Pack</h3>
-          <p class="pricing-price">$999 <small>per project</small></p>
-          <p class="pricing-note">Three milestone certificates — co-branded handoff proof</p>
-          <ul class="pricing-features">
-            <li>Complete scan + gate attestation per milestone</li>
-            <li>Co-branded hygiene certificate exports (your logo)</li>
-            <li>Operator-run analyze + certificate export each milestone</li>
-            <li>48-hour operator review window per milestone</li>
+        <article class="price-card" data-animate="fade-up" data-delay="100">
+          <div class="price-card-header">
+            <span class="price-tag">Instant Audit</span>
+            <h3>Instant Website Report</h3>
+            <div class="price-amount">$19<span class="price-unit">/domain</span></div>
+          </div>
+          <p class="price-desc">Automated public domain audit. PDF in 60 seconds.</p>
+          <ul class="price-features">
+            <li>SEO, SSL, mobile, speed, headers</li>
+            <li>60-second processing</li>
+            <li>Downloadable PDF report</li>
+            <li>Zero-retention: wiped from RAM</li>
           </ul>
-          <a href="https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05" class="cta-billing-btn checkout-agency-project" target="_blank" rel="noopener noreferrer">Buy Project Pack — $999</a>
+          <button class="price-btn checkout-btn" data-tier="instant">Buy Instant Report — $19</button>
         </article>
 
-        <article class="pricing-card">
-          <p class="pricing-label">Client deliverable · complex launches</p>
-          <h3>Agency Growth Pack</h3>
-          <p class="pricing-price">$1,499 <small>per project</small></p>
-          <p class="pricing-note">Priority launch support + warranty re-scan included</p>
-          <ul class="pricing-features">
-            <li>Everything in Project Pack</li>
-            <li>24-hour priority operator review</li>
-            <li>Private Slack channel during launch</li>
-            <li>One warranty re-scan ($199 value)</li>
+        <article class="price-card price-card-popular" data-animate="fade-up" data-delay="200">
+          <div class="popular-badge">Most Popular</div>
+          <div class="price-card-header">
+            <span class="price-tag">Board Deliverable</span>
+            <h3>Executive Risk Certificate</h3>
+            <div class="price-amount">$499<span class="price-unit">/project</span></div>
+          </div>
+          <p class="price-desc">AI-powered technical review for boardrooms and regulatory filings.</p>
+          <ul class="price-features">
+            <li>Cryptographically signed PDF</li>
+            <li>A–F grade + financial liability</li>
+            <li>AI-powered algorithmic verdict + automated cryptographic signature</li>
+            <li>48-hour turnaround</li>
           </ul>
-          <a href="https://buy.stripe.com/cNi6oGfwr9rNeBp94OeEo04" class="cta-billing-btn checkout-agency-growth" target="_blank" rel="noopener noreferrer">Buy Growth Pack — $1,499</a>
+          <button class="price-btn checkout-btn" data-tier="executive">Get Certified — $499</button>
+          <p class="price-sample"><a href="sample-report.html">View sample report</a></p>
         </article>
 
-        <article class="pricing-card featured" id="eu-ai-act">
-          <p class="pricing-label">EU regulatory · agencies with EU clients</p>
-          <h3>EU AI Act Readiness Sprint</h3>
-          <p class="pricing-price">$2,499 <small>flat / repo</small></p>
-          <p class="pricing-note">Technical readiness audit before August 2026 deadline</p>
-          <ul class="pricing-features">
-            <li>Annex III high-risk AI pattern scan + classification signals</li>
-            <li>Article 50 transparency gap detection in user-facing code</li>
-            <li>Documentation completeness (model cards, risk assessments)</li>
-            <li>Human oversight &amp; AI logging accountability checks</li>
-            <li>Executive PDF + 30-day remediation sprint support</li>
-            <li><em>Static technical review — not legal conformity certification</em></li>
+        <article class="price-card price-card-premium" data-animate="fade-up" data-delay="300">
+          <div class="price-card-header">
+            <span class="price-tag">EU Regulatory</span>
+            <h3>EU AI Act Sprint</h3>
+            <div class="price-amount">$2,499<span class="price-unit">/repo</span></div>
+          </div>
+          <p class="price-desc">Self-service technical readiness audit with license token.</p>
+          <ul class="price-features">
+            <li>Annex III high-risk AI scan</li>
+            <li>Article 14 Human Oversight evaluator</li>
+            <li>Article 50 transparency checks</li>
+            <li>Documentation completeness</li>
+            <li>30-day remediation support</li>
           </ul>
-          <a href="https://buy.stripe.com/3cI28qckfcDZ2SH94OeEo03" class="cta-billing-btn checkout-eu-ai-act" target="_blank" rel="noopener noreferrer">Book EU AI Act sprint — $2,499</a>
-          <p class="pricing-note" style="margin-top:0.75rem"><a href="eu-ai-act-sample-report.html">View sample report</a> · real scan from our codebase</p>
+          <button class="price-btn checkout-btn" data-tier="euSprint">Unlock Sprint — $2,499</button>
+          <p class="price-sample"><a href="sample-report.html">View sample report</a></p>
         </article>
       </div>
 
-      <h2 class="market-heading" id="dev-tools" style="font-size:1.05rem;margin:1.5rem 0 0.75rem;">Retention &amp; internal dev tooling</h2>
-      <div class="pricing-grid pricing-grid-pricing-page" style="max-width:none;">
-        <article class="pricing-card">
-          <p class="pricing-label">Retention · client deliverable</p>
-          <h3>Post-handoff re-scan</h3>
-          <p class="pricing-price">$199 <small>one-time</small></p>
-          <p class="pricing-note">Formal 30-day re-attestation after release</p>
-          <ul class="pricing-features">
-            <li>Operator-reviewed follow-up gate — not the same as re-running the free CLI</li>
-            <li>Second attestation on the same project</li>
-            <li>Included in Growth Pack ($1,499)</li>
-          </ul>
-          <a href="contact.html?topic=warranty" class="cta-billing-btn" data-contact-link data-contact-topic="warranty">Contact for re-scan</a>
-        </article>
-      </div>
-
-      <p class="shield-callout" style="margin-top:1.25rem;"><strong>Enterprise Integration:</strong> Running a large development team? <a href="contact.html?topic=enterprise">Contact us</a> for custom on-premise deployment and enterprise seat orchestration.</p>
-
-      <form id="auditBookingForm" class="audit-booking-form pricing-booking-form" style="display:none;">
-        <input type="text" name="website" class="audit-booking-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <input type="hidden" name="source" value="pricing-page">
-
-        <div class="booking-header">
-          <h2 class="audit-booking-heading">Request $499 executive clearance PDF</h2>
-          <p class="shield-callout"><strong>Run the gate locally first:</strong> <code>npx simplebeacon scan --gate --offline</code> — then we format your JSON. <a href="community.html">Free CLI &amp; MCP setup</a>.</p>
-          <p class="audit-booking-intro">Submit below — we email you within one business day with payment link and <a href="downloads/repo-handoff.html">clearance delivery guide</a> (JSON report upload). Agency pack buttons above use instant Stripe checkout. <strong>Not for hobby repos or general security pen-tests.</strong></p>
+      <h2 class="section-title" data-animate="fade-up">Compare everything</h2>
+      <div class="compare-wrap" data-animate="fade-up">
+        <div class="compare-row compare-head">
+          <div class="compare-cell compare-feature">Feature</div>
+          <div class="compare-cell">Free Audit</div>
+          <div class="compare-cell">$19 Instant</div>
+          <div class="compare-cell compare-highlight">$499 Exec Cert</div>
+          <div class="compare-cell compare-premium">$2,499 Sprint</div>
         </div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Price</div><div class="compare-cell">$0</div><div class="compare-cell">$19</div><div class="compare-cell compare-highlight"><strong>$499</strong></div><div class="compare-cell compare-premium"><strong>$2,499</strong></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Zero-retention</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="check">&#10003;</span></div><div class="compare-cell compare-highlight"><span class="cross">&mdash;</span></div><div class="compare-cell compare-premium"><span class="cross">&mdash;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Gate attestation</div><div class="compare-cell"><span class="check">&#10003;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Signed PDF</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">EU AI Act scan</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="cross">&mdash;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Analyst access</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="cross">&mdash;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span> (30 days)</div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Article 14 oversight</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="cross">&mdash;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Token validity</div><div class="compare-cell">7 days</div><div class="compare-cell">7 days</div><div class="compare-cell compare-highlight">90 days</div><div class="compare-cell compare-premium">30 days</div></div>
+      </div>
+      <p style="text-align:center;font-size:0.8rem;color:#6B7280;margin-bottom:40px;">The $19 Instant Report and $2,499 EU AI Act Sprint are fully automated self-service. No source code is uploaded to our servers. <strong>Continuous Shield</strong> ($1,499/mo) adds CI/CD gate monitoring, quarterly analyst reviews, and recurring certificates — <a href="contact.html?topic=enterprise">contact us</a> for enterprise setup.</p>
 
-        <label class="audit-booking-field">
-          <span>Work email</span>
-          <input type="email" name="contactEmail" required autocomplete="email" placeholder="you@agency.com">
-          <span class="validation-message" id="contactEmailValidation"></span>
-        </label>
-        <label class="audit-booking-field">
-          <span>Agency / company</span>
-          <input type="text" name="company" required autocomplete="organization" placeholder="Agency name">
-          <span class="validation-message" id="companyValidation"></span>
-        </label>
-        <label class="audit-booking-field">
-          <span>Your role</span>
-          <select name="buyerRole" required>
-            <option value="">Select one…</option>
-            <option value="agency_owner">Agency owner / founder</option>
-            <option value="cto">CTO / Head of Engineering</option>
-            <option value="tech_director">Technical director / delivery lead</option>
-            <option value="pm">Product / program manager</option>
-            <option value="other">Other</option>
-          </select>
-          <span class="validation-message" id="buyerRoleValidation"></span>
-        </label>
-        <label class="audit-booking-field">
-          <span>Project / repository name (for PDF cover)</span>
-          <input type="text" name="repository" required placeholder="github.com/org/client-repo or client-project-name">
-          <span class="validation-message" id="repositoryValidation"></span>
-        </label>
-        <label class="audit-booking-field">
-          <span>Branch scanned locally</span>
-          <input type="text" name="branch" value="main" autocomplete="off">
-        </label>
-        <label class="audit-booking-field">
-          <span>Client delivery date (required for priority)</span>
-          <input type="date" name="handoffDate" required>
-          <span class="validation-message" id="handoffDateValidation"></span>
-        </label>
-        <label class="audit-booking-field">
-          <span>Client name &amp; context (optional)</span>
-          <textarea name="notes" rows="3" placeholder="Client name, retainer value, what is at stake if hygiene issues surface at handoff…"></textarea>
-        </label>
-        <button type="submit" class="audit-booking-submit">Request $499 clearance — send</button>
-        <p class="audit-booking-status" role="status" aria-live="polite" hidden></p>
-      </form>
+      <h2 class="section-title" data-animate="fade-up">Enterprise</h2>
+      <div class="pricing-grid" style="max-width:340px;margin:0 auto 48px;">
+        <article class="price-card" data-animate="fade-up">
+          <div class="price-card-header">
+            <span class="price-tag">Recurring</span>
+            <h3>Continuous Shield</h3>
+            <div class="price-amount">$1,499<span class="price-unit">/mo</span></div>
+          </div>
+          <p class="price-desc">Automated EU AI Act gate in your CI/CD pipeline.</p>
+          <ul class="price-features">
+            <li>Every PR scanned for compliance drift</li>
+            <li>Block AI slop before merge</li>
+            <li>Monthly executive dashboard</li>
+            <li>Quarterly analyst review + cert</li>
+          </ul>
+          <a href="contact.html?topic=enterprise" class="price-btn price-btn-secondary" data-contact-link data-contact-topic="enterprise">Contact for enterprise setup</a>
+        </article>
+      </div>
 
-      <p class="sample-report-cta" style="margin-top:1.25rem;">
-        <a href="sample-report.html" class="sample-report-link" data-sample-report>Sample $499 clearance PDF</a>
-        · <a href="sample-certificate.html">Sample $999+ certificate</a>
-        · <a href="community.html">Free CLI install</a>
+      <h2 class="section-title" data-animate="fade-up">FAQ</h2>
+      <div class="faq-wrap">
+        <details class="faq-item" data-animate="fade-up"><summary>What is the $19 Instant Report and how does zero-retention work?</summary><p>The $19 Instant Website Report is a fully automated audit. You enter your domain, pay via Stripe, and download a comprehensive security PDF report within 60 seconds. <strong>Zero-retention means your domain and report only exist in our server's RAM for the seconds it takes to process.</strong> After you download the report, the data is explicitly deleted and garbage-collected. We do not store it, we do not log it, and we cannot retrieve it. Ever.</p></details>
+        <details class="faq-item" data-animate="fade-up"><summary>What is the "free audit" and what do I get?</summary><p>The complimentary AI Slop Audit runs entirely on your machine using our open-source CLI. You get an A&ndash;F grade, a list of AI-generated slop and credential leaks, and a remediation checklist. No source code ever leaves your infrastructure.</p></details>
+        <details class="faq-item" data-animate="fade-up"><summary>How is the Executive Risk Certificate different from the free audit?</summary><p>The free audit gives you raw findings. The $499 Executive Risk Certificate converts those findings into a cryptographically signed, one-page PDF with estimated financial liability, board-ready language, and an AI-powered algorithmic verdict with automated cryptographic signature. It is designed for regulatory filings and investor due diligence.</p></details>
+        <details class="faq-item" data-animate="fade-up"><summary>Do I need a SaaS subscription to use these deliverables?</summary><p>No. The $19 Instant Report and $2,499 EU AI Act Sprint are self-service — download your PDF instantly from <a href="certificate-upload.html">certificate-upload.html</a>. Other board deliverables are one-time engagements — you run the scan locally, export anonymized JSON, and download your signed certificate within 48 hours. No recurring SaaS fees, no seat licenses, no feature gates.</p></details>
+        <details class="faq-item" data-animate="fade-up"><summary>How does the EU AI Act Sprint self-service workflow work?</summary><p>After payment, you receive a license token and dashboard URL instantly. The token unlocks the EU AI Act scanner in your dashboard where you can either upload your source code zip or select a local directory. The scan runs on your machine (no code leaves your infrastructure) and generates an executive PDF immediately. Download your report from <a href="certificate-upload.html">certificate-upload.html</a> — no operator review required.</p></details>
+        <details class="faq-item" data-animate="fade-up"><summary>Is the EU AI Act Sprint a legal conformity certification?</summary><p>No. It is a <em>technical readiness audit</em> that scans your codebase for Annex III high-risk AI patterns, Article 50 transparency gaps, and documentation completeness. It produces an executive PDF with findings and a 30-day remediation plan. For full legal conformity certification, engage a qualified EU legal firm.</p></details>
+        <details class="faq-item" data-animate="fade-up"><summary>How long are license tokens valid?</summary><p>License tokens expire based on your tier:<br><br><strong>7 days</strong> — Free AI Slop Audit &amp; $19 Instant Report<br><strong>30 days</strong> — EU AI Act Sprint ($2,499) &amp; Runtime Shield<br><strong>90 days</strong> — Executive Risk Certificate ($499)<br><br>Your token unlocks the dashboard immediately after purchase. You can run unlimited scans during the validity period. After expiry, simply purchase a new token or <a href="contact.html?topic=enterprise">contact us</a> for a Continuous Shield subscription with auto-renewal.</p></details>
+        <details class="faq-item" data-animate="fade-up"><summary>What is your refund policy?</summary><p>All sales are final. License tokens and digital deliverables are consumed immediately upon issuance and cannot be returned or revoked. The only exception is total non-delivery due to a documented infrastructure failure on our side. See our <a href="refund.html">refund policy</a> for complete terms.</p></details>
+        <details class="faq-item" data-animate="fade-up"><summary>What data does SimpleBeacon transmit during a scan?</summary><p><strong>Deterministic scan:</strong> Zero transmission. The scan runs entirely on your machine reading local files. No source code, file paths, or credentials are uploaded.<br><br><strong>Optional AI summary:</strong> Only anonymized scan statistics (issue counts, gate pass/fail, redacted path labels like "…/my-project/src") are sent to your chosen AI provider. Full file paths and source code are never included.</p></details>
+        <details class="faq-item" data-animate="fade-up"><summary>Can I pay by invoice or ACH instead of Stripe?</summary><p>For orders over $5,000 or enterprise contracts, we accept invoice, ACH, and wire transfer. <a href="contact.html?topic=enterprise">Contact us</a> for a tailored proposal and custom billing terms.</p></details>
+      </div>
+
+      <div class="email-pricing" data-animate="fade-up">
+        <h3 style="font-size:1rem;font-weight:600;color:#F3F4F6;margin-bottom:12px;text-align:center;">Email me this pricing</h3>
+        <p style="font-size:0.8rem;color:#9CA3AF;text-align:center;margin-bottom:16px;">Get the full tier breakdown sent to your inbox.</p>
+        <form id="emailPricingForm" style="display:flex;gap:8px;max-width:420px;margin:0 auto;" onsubmit="return handleEmailPricing(event)">
+          <input type="email" id="emailPricingInput" required placeholder="you@company.com" style="flex:1;padding:10px 14px;border:1px solid #1E293B;border-radius:10px;background:rgba(15,22,38,0.6);color:#F3F4F6;font-size:0.85rem;outline:none;">
+          <button type="submit" id="emailPricingBtn" style="padding:10px 18px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;border:none;border-radius:10px;font-size:0.8rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send</button>
+        </form>
+        <p id="emailPricingStatus" style="text-align:center;font-size:0.8rem;margin-top:10px;display:none;"></p>
+      </div>
+
+      <div class="guarantee" data-animate="fade-up">
+        <div class="guarantee-icon">&#128196;</div>
+        <div class="guarantee-title">All Sales Are Final</div>
+        <div class="guarantee-text">License tokens and digital deliverables are consumed immediately upon issuance. See our <a href="refund.html" style="color:#60A5FA;">refund policy</a> for complete terms.</div>
+      </div>
+
+      <!-- Checkout Modal -->
+      <div id="checkoutModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;max-width:400px;width:90%;position:relative;">
+          <button onclick="closeCheckoutModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;">&times;</button>
+          <h3 id="modalTitle" style="margin:0 0 1rem;">Complete Purchase</h3>
+          <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.5rem;">Enter your details to generate your license token.</p>
+          <form id="checkoutForm" onsubmit="return handleCheckoutSubmit(event)">
+            <input type="hidden" id="modalTier" value="">
+            <div style="margin-bottom:1rem;">
+              <label style="display:block;font-size:0.85rem;color:var(--text-muted);margin-bottom:0.25rem;">Email *</label>
+              <input type="email" id="modalEmail" required placeholder="you@company.com" style="width:100%;padding:0.6rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-panel);color:var(--text);font-family:inherit;">
+            </div>
+            <div style="margin-bottom:1rem;">
+              <label style="display:block;font-size:0.85rem;color:var(--text-muted);margin-bottom:0.25rem;">Project Name *</label>
+              <input type="text" id="modalProjectName" required placeholder="My-AI-App" style="width:100%;padding:0.6rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-panel);color:var(--text);font-family:inherit;">
+            </div>
+            <div style="margin-bottom:1.5rem;">
+              <label style="display:block;font-size:0.85rem;color:var(--text-muted);margin-bottom:0.25rem;">Client / Company Name</label>
+              <input type="text" id="modalClientName" placeholder="Your Company" style="width:100%;padding:0.6rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-panel);color:var(--text);font-family:inherit;">
+            </div>
+            <button type="submit" id="modalSubmitBtn" class="cta-billing-btn" style="width:100%;border:none;cursor:pointer;">Proceed to Payment</button>
+            <p id="modalError" style="color:var(--red);font-size:0.85rem;margin-top:0.75rem;display:none;"></p>
+          </form>
+        </div>
+      </div>
+
+      <p style="text-align:center;font-size:0.85rem;color:#9CA3AF;margin:24px 0 8px;"><strong>Custom Enterprise Contracts:</strong> Need a $50,000+ annual protection plan? <a href="contact.html?topic=enterprise" style="color:#60A5FA;">Contact us</a> for a tailored proposal.</p>
+      <p style="text-align:center;font-size:0.8rem;color:#6B7280;margin-bottom:16px;">
+        <a href="sample-report.html" style="color:#9CA3AF;">Sample Report</a> &middot;
+        <a href="sample-certificate.html" style="color:#9CA3AF;">Sample Certificate</a> &middot;
+        <a href="upload.html" style="color:#9CA3AF;">Free Audit</a>
       </p>
 
-      <p class="sales-gate-foot">
-        <a href="landing.html">← Home</a>
-        · <a href="landing.html">Free scan</a>
-        · <a href="sample-report.html" data-sample-report>Sample report</a>
-        · <a href="contact.html?topic=audit" data-audit-email-link data-audit-email-topic="audit">Contact us</a>
-        · <a href="terms.html">Terms</a>
-        · <a href="privacy.html">Privacy</a>
-        · <a href="refund.html">Refunds</a>
-      </p>
+      <div class="pricing-foot">
+        <a href="index.html">Home</a>
+        <a href="terms.html">Terms</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="privacy.html#dpa">DPA</a>
+        <a href="refund.html">Refunds</a>
+        <a href="contact.html?topic=audit">Contact</a>
+      </div>
     </div>
   </main>
 
   <script src="site-config.js"></script>
   <script src="app-links.js"></script>
   <script src="audit-booking.js"></script>
+  <script>
+    // Escape HTML for safe insertion
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Checkout modal handlers — loaded AFTER app-links.js to override direct Stripe wiring
+    function openCheckoutModal(tier) {
+      var modal = document.getElementById('checkoutModal');
+      var tierNames = { instant: 'Instant Report — $19', executive: 'Executive Risk Certificate — $499', euSprint: 'EU AI Act Sprint — $2,499', runtimeShield: 'Runtime Shield — $2,999/mo' };
+      document.getElementById('modalTitle').textContent = 'Purchase: ' + (tierNames[tier] || 'License');
+      document.getElementById('modalTier').value = tier;
+      document.getElementById('modalError').style.display = 'none';
+      modal.style.display = 'flex';
+    }
+    function closeCheckoutModal() {
+      document.getElementById('checkoutModal').style.display = 'none';
+    }
+    function handleCheckoutSubmit(e) {
+      e.preventDefault();
+      var tier = document.getElementById('modalTier').value;
+      var email = document.getElementById('modalEmail').value.trim();
+      var projectName = document.getElementById('modalProjectName').value.trim();
+      var clientName = document.getElementById('modalClientName').value.trim();
+      var errorEl = document.getElementById('modalError');
+      var btn = document.getElementById('modalSubmitBtn');
+
+      if (!email || !projectName) {
+        errorEl.textContent = 'Email and project name are required.';
+        errorEl.style.display = 'block';
+        return false;
+      }
+
+      var productMap = { instant: 'instant_report', executive: 'executive_clearance', euSprint: 'eu_ai_act_sprint', runtimeShield: 'runtime_shield' };
+      var product = productMap[tier];
+      if (!product) {
+        errorEl.textContent = 'Unknown product tier.';
+        errorEl.style.display = 'block';
+        return false;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Redirecting to Stripe…';
+      errorEl.style.display = 'none';
+
+      var payload = { email: email, projectName: projectName, clientName: clientName || email, tier: product };
+      var isLocalProxy = location.hostname === 'localhost' && location.port === '3000';
+      var apiBase = '';
+      if (location.protocol === 'file:' || !isLocalProxy) {
+        apiBase = 'http://' + 'localhost' + ':' + '3000';
+      }
+
+      fetch(apiBase + '/api/test-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success && data.certUrl) {
+          // Show success with token and email queued status
+          document.getElementById('modalTitle').textContent = 'Token Generated!';
+          var form = document.getElementById('checkoutForm');
+          form.innerHTML = '<div style="text-align:center;padding:1rem 0;">' +
+            '<p style="color:var(--green);font-weight:600;margin-bottom:1rem;">Your license token has been generated.</p>' +
+            '<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.5rem;">Project: <strong style="color:var(--text);">' + escapeHtml(data.projectName) + '</strong></p>' +
+            '<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.5rem;">Tier: <strong style="color:var(--text);">' + escapeHtml(data.tier) + '</strong></p>' +
+            '<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem;">Expires: <strong style="color:var(--text);">' + data.expiresInDays + ' days</strong></p>' +
+            '<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:6px;padding:0.75rem;margin-bottom:1rem;word-break:break-all;font-family:var(--font-mono);font-size:0.75rem;color:var(--text);">' + escapeHtml(data.token) + '</div>' +
+            '<p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:0.5rem;">' + (data.emailQueued ? 'An email has been queued to: <strong style="color:var(--text);">' + escapeHtml(data.email) + '</strong>' : 'An email has been sent to: <strong style="color:var(--text);">' + escapeHtml(data.email) + '</strong>') + '</p>' +
+            '<p style="color:var(--text-muted);font-size:0.75rem;margin-bottom:1rem;font-style:italic;">Didn\'t see it? Check your spam or junk folder.</p>' +
+            '<a href="' + data.certUrl + '" class="cta-billing-btn" style="display:inline-block;text-decoration:none;">Go to Certificate Upload</a>' +
+            '</div>';
+        } else {
+          errorEl.textContent = data.error || data.message || 'Checkout failed. Please try again.';
+          errorEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Proceed to Payment';
+        }
+      })
+      .catch(function(err) {
+        errorEl.textContent = 'Network error: ' + err.message;
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Proceed to Payment';
+      });
+
+      return false;
+    }
+
+    // Email pricing summary handler
+    function handleEmailPricing(e) {
+      e.preventDefault();
+      var email = document.getElementById('emailPricingInput').value.trim();
+      var btn = document.getElementById('emailPricingBtn');
+      var status = document.getElementById('emailPricingStatus');
+      if (!email || !email.includes('@')) {
+        status.textContent = 'Please enter a valid email.';
+        status.style.color = '#EF4444';
+        status.style.display = 'block';
+        return false;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      var body = 'SimpleBeacon Pricing Tiers\n\n' +
+        'Free AI Slop Audit — $0\n' +
+        '  • Local CLI scan for AI slop and leaks\n' +
+        '  • Unlimited open-source repo scanning\n' +
+        '  • A–F grade + remediation checklist\n\n' +
+        'Instant Website Report — $19/domain\n' +
+        '  • SEO, SSL, mobile, speed, headers\n' +
+        '  • 60-second processing\n' +
+        '  • Zero-retention: wiped from RAM\n\n' +
+        'Executive Risk Certificate — $499/project\n' +
+        '  • Cryptographically signed PDF\n' +
+        '  • A–F grade + financial liability\n' +
+        '  • 48-hour turnaround\n\n' +
+        'EU AI Act Sprint — $2,499/repo\n' +
+        '  • Annex III high-risk AI scan\n' +
+        '  • Article 50 transparency checks\n' +
+        '  • 30-day remediation support\n\n' +
+        'Enterprise: Continuous Shield — $1,499/mo\n' +
+        '  • Automated EU AI Act gate in CI/CD\n' +
+        '  • Monthly executive dashboard\n\n' +
+        'Visit: https://simplebeacon.ai/pricing';
+      fetch(apiBase + '/api/test-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, projectName: 'Pricing Summary', clientName: email, tier: 'instant_report', message: body })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        status.textContent = 'Pricing sent to ' + escapeHtml(email) + '. Check your inbox (and spam).';
+        status.style.color = '#10B981';
+        status.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Send';
+      })
+      .catch(function(err) {
+        status.textContent = 'Network error. Please email trevor_punt@live.com for help.';
+        status.style.color = '#EF4444';
+        status.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Send';
+      });
+      return false;
+    }
+
+    // Override app-links.js wiring: clone buttons to strip ALL listeners, then attach modal
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.checkout-btn[data-tier]').forEach(function(el) {
+        var tier = el.getAttribute('data-tier');
+        if (tier === 'free') return;
+
+        // Clone to wipe every addEventListener attached by app-links.js
+        var clean = el.cloneNode(true);
+        clean.removeAttribute('href');
+        clean.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openCheckoutModal(tier);
+          return false;
+        };
+        el.parentNode.replaceChild(clean, el);
+      });
+    });
+  </script>
   <script>
     // Only load Cloudflare analytics in production, not on localhost or file:// protocol
     if (window.location.protocol !== 'file:' && !window.location.hostname.match(/^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/)) {
@@ -205,7 +538,7 @@
         script.defer = true;
         script.src = 'https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447';
         script.integrity = 'sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==';
-        script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"YOUR_CLOUDFLARE_TOKEN","r":1}');
+        script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"' + (window.CF_BEACON_TOKEN || '') + '","r":1}');
         script.crossOrigin = 'anonymous';
         document.body.appendChild(script);
       })();

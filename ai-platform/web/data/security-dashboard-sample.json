@@ -1,67 +1,12 @@
 {
-  "_note": "This is a sample/test data file for dashboard display. Contains placeholder values.",
   "type": "security-dashboard-model",
-  "dataSource": "repository-audit",
   "overview": {
-    "activeThreats": 0,
-    "securityScore": 82,
-    "complianceRate": 80,
-    "openEngineeringFindings": 2,
-    "criticalVulnerabilities": 0,
-    "openVulnerabilities": 0,
-    "totalIncidents": 0,
-    "resolvedIncidents": 0
+    "activeThreats": 2
   },
-  "compliance": {
-    "overall": 80,
-    "categories": [
-      { "name": "Dependency hygiene", "score": 100 },
-      { "name": "Engineering checklist", "score": 75 },
-      { "name": "Access control", "score": 85 }
-    ]
-  },
-  "threats": [],
+  "threats": [
+    {}
+  ],
   "vulnerabilities": [
-    {
-      "id": "SEC-001",
-      "title": "Credential pattern scan enabled",
-      "status": "resolved",
-      "severity": "high",
-      "source": "repository-audit",
-      "notes": "Simplebeacon credentials rule active in enterprise profile"
-    },
-    {
-      "id": "SEC-002",
-      "title": "Internal dashboard vault gate",
-      "status": "resolved",
-      "severity": "medium",
-      "source": "repository-audit",
-      "notes": "sb_vault cookie required for /api/* on v1-internal dashboard"
-    },
-    {
-      "id": "SEC-003",
-      "title": "Jest baseline synced",
-      "status": "open",
-      "severity": "medium",
-      "source": "repository-audit",
-      "notes": "Run Tools → Baseline sync after npm test to populate .simplebeacon/baseline.json"
-    },
-    {
-      "id": "SEC-004",
-      "title": "Dependency audit wired to Security page",
-      "status": "open",
-      "severity": "low",
-      "source": "repository-audit",
-      "notes": "Live npm audit merges here when you click Run audit on Quality page"
-    }
-  ],
-  "insights": [
-    {
-      "priority": "medium",
-      "title": "Engineering checklist",
-      "description": "Two open repository-audit items remain — baseline sync and npm audit wiring confirmation.",
-      "impact": "Measured security posture"
-    }
-  ],
-  "incidents": []
+    {}
+  ]
 }

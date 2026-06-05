@@ -1,0 +1,9 @@
+{
+  "type": "simplebeacon-cli-model",
+  "overview": {
+    "total": 100
+  },
+  "items": [{"name":"scan","status":"active"}],
+  "commands": [{"name":"simplebeacon scan","usage":150}],
+  "rules": [{"id":"SEC-001","severity":"high"}]
+}

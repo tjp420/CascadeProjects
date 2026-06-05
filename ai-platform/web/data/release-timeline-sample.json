@@ -1,13 +1,12 @@
 {
-  "_note": "This is a sample/test data file for dashboard display. Contains placeholder values.",
   "type": "release-timeline-report",
   "releaseOverview": {
-    "totalReleases": 2
+    "totalReleases": "value"
   },
   "releaseSchedule": [
-    { "version": "1.0.0", "window": "2026-Q2", "status": "planned" }
+    {}
   ],
   "recommendations": [
-    { "text": "Validate release notes against repository-audit output before publish." }
+    {}
   ]
 }

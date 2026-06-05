@@ -1,0 +1,18 @@
+{
+  "type": "feature-backlog-report",
+  "featureStatistics": {
+    "totalFeatures": 4
+  },
+  "featureCategories": [
+    {}
+  ],
+  "currentSprintBacklog": [
+    {}
+  ],
+  "upcomingFeatures": [
+    {}
+  ],
+  "recommendations": [
+    {}
+  ]
+}

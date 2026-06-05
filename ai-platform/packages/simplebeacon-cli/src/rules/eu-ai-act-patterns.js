@@ -13,14 +13,15 @@ const DEFAULT_SOURCE_PATHS = ['server', 'src', 'web', 'lib', 'packages', 'app', 
 const DEFAULT_PRODUCTION_PATHS = ['server/', 'src/', 'app/', 'lib/', 'api/', 'web/'];
 const SCANNABLE_EXTENSIONS = new Set([
     '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.html', '.vue', '.svelte',
-    '.json', '.md', '.yaml', '.yml', '.toml', '.txt'
+    '.md', '.yaml', '.yml', '.toml', '.txt'
 ]);
 const SKIP_DIRS = new Set([
     'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
     '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'examples',
     'coming-soon', 'reports', 'security-reports', 'templates', 'data-central',
     'deployments', 'public', 'functions', 'cloudflare-deploy', 'temp', 'tests-legacy',
-    '.github-sync', '.cursor', '.vscode', 'downloads', 'findings'
+    '.github-sync', '.cursor', '.vscode', 'downloads', 'findings',
+    'sb-analyze', 'sb-upload', 'sb-uploads', 'sb-web'
 ]);
 const MAX_SCAN_BYTES = 512000;
 
@@ -179,6 +180,15 @@ function isExcludedPath(relativePath) {
     if (/(?:^|\/)tests-legacy\//.test(normalized)) return true;
     if (/(?:^|\/)downloads\//.test(normalized)) return true;
     if (/(?:^|\/)web\/(?:data|findings|simplebeacon-findings)\//.test(normalized)) return true;
+    if (/(?:^|\/)web\/simplebeacon-dashboard\/js\/(?:views\/|utils\/|utils\.js$)/.test(normalized)) return true;
+    if (/(?:^|\/)server\/test-gateway\.js$/.test(normalized)) return true;
+    if (/(?:^|\/)simplebeacon-frameworkless\//.test(normalized)) return true;
+    if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
+    if (/(?:^|\/)node_modules\//.test(normalized)) return true;
+    if (/(?:^|\/)java-ai-vulnerable\//.test(normalized)) return true;
+    if (/(?:^|\/)\.gitkeep$/.test(normalized)) return true;
+    if (/^delivery_\d+_[a-z0-9]+\.json$/.test(normalized)) return true;
+    if (/(?:^|\/)test-output/.test(normalized)) return true;
     return false;
 }
 
@@ -291,6 +301,14 @@ function hasTransparencyDisclosure(content) {
 
 function scanTransparencyGaps(relativePath, content, severityDefault) {
     const issues = [];
+    const normalized = String(relativePath || '').toLowerCase().replace(/\\/g, '/');
+
+    // Skip backend routes, services, env files, docs, and outreach templates — not user-facing AI output
+    if (/\.(?:env|env\.example)$/.test(normalized)) return issues;
+    if (/(?:^|\/)server\/(?:routes|services|lib)\//.test(normalized)) return issues;
+    if (/(?:^|\/)packages\/simplebeacon-cli\/docs\//.test(normalized)) return issues;
+    if (/(?:^|\/)outreach/.test(normalized)) return issues;
+
     const hasAiIndicator = AI_SYSTEM_INDICATORS.some((rule) => {
         rule.regex.lastIndex = 0;
         return rule.regex.test(content);

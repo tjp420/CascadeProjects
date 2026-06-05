@@ -84,6 +84,15 @@ class BuildArtifactScanner {
     }
 }
 
+function shouldSkipRuntimeLogFile(filePath) {
+    if (!filePath) return false;
+    const lower = String(filePath).toLowerCase();
+    return /\.(log|tmp|temp)$/.test(lower)
+        || /npm-debug|yarn-error|\.pid$/.test(lower)
+        || /\/(logs?|run|tmp)\/[^/]+\.(log|txt)$/.test(lower);
+}
+
 module.exports = {
-    BuildArtifactScanner
+    BuildArtifactScanner,
+    shouldSkipRuntimeLogFile
 };

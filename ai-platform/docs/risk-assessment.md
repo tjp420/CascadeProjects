@@ -35,24 +35,31 @@ The SimpleBeacon platform falls under the minimal risk category as it:
 - All scan results are generated locally on user machines
 - Clear documentation of scan scope and limitations
 - User controls all scan parameters and targets
+- Article 50 disclosure markers embedded in user-facing AI endpoints
+- MCP `list_rulesets` tool exposes banned patterns to external agents
 
 ### Human Oversight
 - Developers review and interpret all scan findings
 - Platform provides recommendations, not mandatory actions
 - Users maintain full control over code changes and deployments
+- Local remediation (`--fix`) presents diff for explicit approval before applying
+- Gate failures require human review; never auto-merged
 
 ### Data Protection
 - No code is transmitted to external servers unless explicitly enabled
 - Local-only scanning by default
-- Clear data handling policies in documentation
+- `--anonymize` flag strips all file paths, descriptions, and code snippets from exported reports
+- Encrypted per-user AI provider credentials (AES-256-GCM at rest)
+- AI proxy gateway screens outbound LLM API requests for credential leaks
 
 ## Compliance Status
 
-- **Article 50 Transparency**: Compliant - AI-assisted analysis is disclosed to users
+- **Article 50 Transparency**: Compliant — AI-assisted analysis disclosed in UI surfaces and API documentation
 - **Documentation**: This file serves as the risk assessment documentation
-- **Human Oversight**: Built into workflow - developers review all findings
-- **Logging**: Scan results are logged locally for audit trails
+- **Human Oversight**: Built into workflow — developers review all findings; `--fix` requires explicit approval
+- **Logging**: Scan results are logged locally for audit trails; inference calls emit structured audit events
+- **Privacy-Blind Architecture**: Compliant — anonymized export engine ensures zero IP leakage from CI pipelines
 
 ## Review Schedule
 
-Next review: 2026-12-01 or upon significant platform changes
+Next review: 2026-12-01 or upon significant platform changes (e.g., new LLM provider integration, high-risk pattern rule addition)

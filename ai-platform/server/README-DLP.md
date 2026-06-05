@@ -4,7 +4,7 @@ HTTP forward proxy + dashboard that screens outbound AI API request bodies using
 
 ## EU AI Act — Article 50 transparency
 
-This component forwards client traffic to third-party AI systems (for example OpenAI). Operators must inform end users when they interact with AI or when outputs are AI-generated, per Article 50 of Regulation (EU) 2024/1689. The DLP dashboard and proxy logs support audit review; disclosure copy belongs in client applications that initiate AI requests.
+This component forwards client traffic to third-party AI systems (for example a cloud AI provider). Operators must inform end users when they interact with AI or when outputs are AI-generated, per Article 50 of Regulation (EU) 2024/1689. The DLP dashboard and proxy logs support audit review; disclosure copy belongs in client applications that initiate AI requests.
 
 ## Quick start
 
@@ -32,13 +32,13 @@ npm run dlp:start
 
 This is an **application-layer HTTP forward proxy**, not TLS interception.
 
-Clients must send traffic to `http://localhost:8080` with the `Host` header set to the upstream AI API host (for example `api.openai.com`). Typical setups:
+Clients must send traffic to `http://localhost:8080` with the `Host` header set to the upstream AI API host (for example `api.example-ai-provider.com`). Typical setups:
 
 - SDK `baseURL` pointed at the proxy
 - `HTTP_PROXY=http://localhost:8080` with explicit host routing
 - Sidecar container in Kubernetes
 
-Direct HTTPS calls to `api.openai.com` bypass this proxy unless the enterprise terminates TLS elsewhere.
+Direct HTTPS calls to the upstream AI API host bypass this proxy unless the enterprise terminates TLS elsewhere.
 
 ## Test
 

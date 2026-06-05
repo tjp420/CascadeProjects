@@ -34,6 +34,8 @@ const IGNORE_DEFAULTS = [
     '**/*.spec.ts',
     'tests/**',
     'test/**',
+    '**/.gitkeep',
+    '**/test-output*.txt',
     'packages/simplebeacon-cli/**'
 ];
 

@@ -4,7 +4,8 @@
 
 const path = require('path');
 const { scanSnippetContent, scanFileOnDisk, readGateStatus } = require('../lib/snippet-scanner');
-const { explainFinding } = require('./rule-catalog');
+const { explainFinding, RULE_CATALOG, LEAK_PATTERNS } = require('./rule-catalog');
+const { ERROR_TYPE_CODES, SEVERITY_BANDS } = require('../lib/anonymized-export');
 const { createNetworkGuard } = require('../lib/trust-guard');
 
 function resolveProjectRoot(override) {
@@ -70,6 +71,85 @@ function createMcpToolHandlers(options = {}) {
 
         explain_finding: withGuard(({ patternId, type }) => {
             return formatToolResult(explainFinding(patternId, { type }));
+        }),
+
+        run_analyzer_suite: withGuard(({ projectRoot, selectedIssueIds }) => {
+            const { buildAiSystemsIssueAnalysis } = require('../lib/ai-problem-analyzer-suite');
+            const { getCachedAnalysis, setCachedAnalysis } = require('../lib/ai-problem-analyzer-cache');
+            const { sanitizeAiProblemAnalyzerExport } = require('../lib/ai-problem-analyzer-export-sanitize');
+            const root = resolveProjectRoot(projectRoot);
+            const reportPath = path.join(root, '.simplebeacon', 'report.json');
+            let report = null;
+            try {
+                report = JSON.parse(require('fs').readFileSync(reportPath, 'utf8'));
+            } catch {
+                return formatToolResult({ error: 'No scan report found. Run `npx simplebeacon scan --format json --output .simplebeacon/report.json` first.' });
+            }
+            const cached = getCachedAnalysis(root, report);
+            let analysisResult;
+            if (cached) {
+                analysisResult = cached;
+            } else {
+                const ids = Array.isArray(selectedIssueIds) && selectedIssueIds.length
+                    ? selectedIssueIds
+                    : Array.from({ length: 48 }, (_, i) => `A-${String(i + 1).padStart(2, '0')}`);
+                analysisResult = buildAiSystemsIssueAnalysis(ids, { context: { scanReport: report } });
+                setCachedAnalysis(root, report, analysisResult);
+            }
+            const payload = sanitizeAiProblemAnalyzerExport(analysisResult, { projectPath: root, context: { healthScore: report.qualityScore } });
+            return formatToolResult({
+                localOnly: true,
+                measured: analysisResult.riskSummary.executionStatus.measured,
+                insufficientData: analysisResult.riskSummary.executionStatus.insufficientData,
+                stub: analysisResult.riskSummary.executionStatus.stub,
+                overallRiskLevel: analysisResult.riskSummary.overallRiskLevel,
+                peakSeverity: analysisResult.riskSummary.severityCounts.critical > 0 ? 'critical' : analysisResult.riskSummary.severityCounts.high > 0 ? 'high' : 'low',
+                topPriorityIssues: payload.topPriorityIssues?.map((i) => ({ id: i.id, title: i.title, severity: i.severity, priorityScore: i.priorityScore })) || [],
+                coverageGaps: payload.coverageGaps?.map((g) => ({ id: g.id, title: g.title, missingInputPointer: g.missingInputPointer })) || [],
+                methodology: 'Deterministic local analyzer suite — no code uploaded to remote servers'
+            });
+        }),
+
+        list_rulesets: withGuard(() => {
+            const rulesets = {
+                schemaVersion: 'simplebeacon-rules-v1',
+                generatedAt: new Date().toISOString(),
+                deterministic: true,
+                usesLlm: false,
+                categories: [
+                    { id: 'schema', label: 'JSON Schema Compliance', severityDefault: 'high' },
+                    { id: 'syntax', label: 'Syntax / Structural', severityDefault: 'high' },
+                    { id: 'security', label: 'Credential & Production Leak', severityDefault: 'critical' },
+                    { id: 'ai-quality', label: 'AI-Generated Slop & Fiction KPI', severityDefault: 'medium' },
+                    { id: 'compliance', label: 'Regulatory (EU AI Act)', severityDefault: 'medium' },
+                    { id: 'testing', label: 'Test Baseline', severityDefault: 'high' },
+                    { id: 'data-quality', label: 'Data Hygiene', severityDefault: 'low' }
+                ],
+                severityBands: SEVERITY_BANDS,
+                anonymizedTypeCodes: ERROR_TYPE_CODES,
+                patterns: {
+                    llmSlop: RULE_CATALOG.map((r) => ({
+                        id: r.id,
+                        category: 'ai-quality',
+                        severity: r.severity,
+                        summary: r.description,
+                        banned: true
+                    })),
+                    productionLeak: LEAK_PATTERNS.map((r) => ({
+                        id: r.id,
+                        category: 'security',
+                        severity: 'critical',
+                        summary: r.description || `Leak pattern ${r.id}`,
+                        banned: true
+                    }))
+                },
+                mcpInstructions: {
+                    purpose: 'When writing code, avoid all banned patterns. Use runtime config or sample data fixtures instead of hardcoded metrics, credentials, or mock paths.',
+                    enforcement: 'Local deterministic scan — no code uploaded to remote servers',
+                    privacyNote: 'Rule queries are stateless; no source code leaves the developer machine'
+                }
+            };
+            return formatToolResult(rulesets);
         })
     };
 }
@@ -122,6 +202,26 @@ const TOOL_DEFINITIONS = [
                 type: { type: 'string', description: 'Optional finding type for fallback lookup' }
             },
             required: ['patternId']
+        }
+    },
+    {
+        name: 'run_analyzer_suite',
+        description: 'Run the 48-analyzer AI Problem Analyzer Suite against the latest scan report. Returns risk summary, measured/insufficient/stub counts, and top priority issues. Runs locally — no code uploaded.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root for reading .simplebeacon/report.json (default: cwd)' },
+                selectedIssueIds: { type: 'array', items: { type: 'string' }, description: 'Optional subset of A-01..A-48 issue IDs to analyze' }
+            }
+        }
+    },
+    {
+        name: 'list_rulesets',
+        description: 'Return the full Simplebeacon deterministic rule catalog — categories, severity bands, banned patterns, and anonymized type codes. Use this to learn what is forbidden before writing code.',
+        inputSchema: {
+            type: 'object',
+            properties: {},
+            required: []
         }
     }
 ];

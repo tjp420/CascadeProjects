@@ -1,0 +1,379 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-03T22:36:51.058Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-upload-1780526209171",
+  "scanTargetRoot": "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-upload-1780526209171",
+  "configPath": "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-upload-1780526209171\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-upload-1780526209171\\web\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-upload-1780526209171",
+    "totalFiles": 220,
+    "totalFolders": 0,
+    "profile": "audit"
+  },
+  "mockSampleFiles": 0,
+  "totalFiles": 0,
+  "ruleScopedFilesAnalyzed": 0,
+  "repositoryFilesTotal": 220,
+  "repositoryFoldersTotal": 0,
+  "filesAnalyzed": 220,
+  "totalSizeBytes": 0,
+  "totalSizeLabel": "0B",
+  "issueCount": 5,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 76,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 18,
+  "consistencyPassed": 14,
+  "consistencyScore": 78,
+  "fictionJsonFilesScanned": 18,
+  "fictionSampleFilesScanned": 0,
+  "fictionScope": "repository-json",
+  "credentialScanned": 0,
+  "credentialFindings": 0,
+  "productionLeakScanned": 0,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 1,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 14,
+    "documentationFound": [
+      "app-links.js",
+      "certificate-upload.html",
+      "contact.html",
+      "contact.js",
+      "index.html",
+      "pricing.html",
+      "refund.html",
+      "sample-certificate.html",
+      "site-config.js",
+      "styles.css",
+      "terms.html"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "enterpriseGuardrailScanned": 0,
+  "enterpriseGuardrailFindings": 0,
+  "fileNamingScanned": 0,
+  "fileNamingFindings": 0,
+  "structuralIntentScanned": 0,
+  "structuralIntentFindings": 0,
+  "structuralIntentEnabled": false,
+  "structuralIntentEngine": null,
+  "structuralIntentSlmReviewCount": 0,
+  "structuralIntentSlmReviews": [],
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 4,
+    "medium": 1,
+    "low": 0
+  },
+  "mockDataCategories": [],
+  "detectedIssues": [
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Fictional KPI",
+      "count": 1,
+      "description": "cp936.json: 62% completion claim",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Replace with repository-audit baseline sample values",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "cp936.json"
+      ],
+      "filePaths": [
+        "cp936.json"
+      ],
+      "file": "cp936.json"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Fictional KPI",
+      "count": 1,
+      "description": "eucjp.json: 62% completion claim",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Replace with repository-audit baseline sample values",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "eucjp.json"
+      ],
+      "filePaths": [
+        "eucjp.json"
+      ],
+      "file": "eucjp.json"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Fictional KPI",
+      "count": 1,
+      "description": "gbk-added.json: 62% completion claim",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Replace with repository-audit baseline sample values",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "gbk-added.json"
+      ],
+      "filePaths": [
+        "gbk-added.json"
+      ],
+      "file": "gbk-added.json"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Fictional KPI",
+      "count": 1,
+      "description": "shiftjis.json: 62% completion claim",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Replace with repository-audit baseline sample values",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "shiftjis.json"
+      ],
+      "filePaths": [
+        "shiftjis.json"
+      ],
+      "file": "shiftjis.json"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Handoff Integrity",
+      "count": 1,
+      "description": ".gitignore may not exclude .env files",
+      "pattern": "SB-HANDOFF-003",
+      "line": 1,
+      "recommendation": "Add .env, .env.local, and .env.production to .gitignore.",
+      "recommendedAction": "Add .env, .env.local, and .env.production to .gitignore.",
+      "affectedFiles": [
+        ".gitignore"
+      ],
+      "filePaths": [
+        ".gitignore"
+      ],
+      "file": ".gitignore"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "fiction-cp936.json",
+      "severity": "high",
+      "type": "Fictional KPI",
+      "filePath": "cp936.json",
+      "count": 1,
+      "description": "cp936.json: 62% completion claim",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "cp936.json"
+      ],
+      "metadata": {
+        "fictionHits": [
+          "62% completion claim"
+        ]
+      }
+    },
+    {
+      "id": "fiction-eucjp.json",
+      "severity": "high",
+      "type": "Fictional KPI",
+      "filePath": "eucjp.json",
+      "count": 1,
+      "description": "eucjp.json: 62% completion claim",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "eucjp.json"
+      ],
+      "metadata": {
+        "fictionHits": [
+          "62% completion claim"
+        ]
+      }
+    },
+    {
+      "id": "fiction-gbk-added.json",
+      "severity": "high",
+      "type": "Fictional KPI",
+      "filePath": "gbk-added.json",
+      "count": 1,
+      "description": "gbk-added.json: 62% completion claim",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "gbk-added.json"
+      ],
+      "metadata": {
+        "fictionHits": [
+          "62% completion claim"
+        ]
+      }
+    },
+    {
+      "id": "fiction-shiftjis.json",
+      "severity": "high",
+      "type": "Fictional KPI",
+      "filePath": "shiftjis.json",
+      "count": 1,
+      "description": "shiftjis.json: 62% completion claim",
+      "recommendedAction": "Replace with repository-audit baseline sample values",
+      "affectedFiles": [
+        "shiftjis.json"
+      ],
+      "metadata": {
+        "fictionHits": [
+          "62% completion claim"
+        ]
+      }
+    },
+    {
+      "id": "agency-handoff-gitignore-env",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Handoff Integrity",
+      "category": "handoff-integrity",
+      "filePath": ".gitignore",
+      "file": ".gitignore",
+      "line": 1,
+      "pattern": "SB-HANDOFF-003",
+      "count": 1,
+      "description": ".gitignore may not exclude .env files",
+      "recommendation": "Add .env, .env.local, and .env.production to .gitignore.",
+      "recommendedAction": "Add .env, .env.local, and .env.production to .gitignore.",
+      "affectedFiles": [
+        ".gitignore"
+      ],
+      "metadata": {
+        "patternId": "SB-HANDOFF-003",
+        "category": "handoff-integrity"
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [],
+  "scanScope": {
+    "profile": "standard",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 0,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 0,
+    "productionPaths": [
+      "server/",
+      "src/",
+      "app/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 1,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "enterpriseGuardrailFilesScanned": 0,
+    "enterpriseGuardrailHits": 0,
+    "fileNamingFilesScanned": 0,
+    "fileNamingHits": 0,
+    "structuralIntentEnabled": false,
+    "structuralIntentAvailable": false,
+    "structuralIntentFilesScanned": 0,
+    "structuralIntentHits": 0,
+    "structuralIntentEngine": null,
+    "structuralIntentSlmReviewCount": 0,
+    "tokenBleedFilesScanned": 0,
+    "tokenBleedPatternHits": 0,
+    "architectureDriftFilesScanned": 0,
+    "architectureDriftPatternHits": 0,
+    "pythonAstFilesScanned": 0,
+    "pythonAstPatternHits": 0,
+    "pythonAstScanOk": true,
+    "javascriptAstFilesScanned": 0,
+    "javascriptAstPatternHits": 0,
+    "javascriptAstScanOk": true,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 18,
+    "fictionSampleFilesScanned": 0,
+    "ruleScopedFilesAnalyzed": 0,
+    "repositoryFilesTotal": 220,
+    "repositoryFoldersTotal": 0,
+    "fullDirectoryScan": false,
+    "fullDirectoryStats": null,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 220 files — gate rules checked 0 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (18) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
+  },
+  "gate": {
+    "pass": false,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 4,
+    "warningCount": 1
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-06-03T22:36:51.062Z"
+}

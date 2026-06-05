@@ -8,7 +8,7 @@
 
 const leakedCredentials = {
   // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case credentials for SimpleBeacon rule validation
-  stripeSecretKey: 'sk_live_51MNO345PQR678STU901VWX234YZA', // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case stripe key
+  stripeSecretKey: 'sk_test_1234567890123456', // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case stripe key
   awsAccessKey: 'AKIAIOSFODNN7EXAMPLE',
   awsSecretKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
   databasePassword: 'RealProductionPassword123!',

@@ -1,0 +1,55 @@
+1/5
+We just ran @simplebeacon on {{projectName}}.
+
+{{filesScanned}} files scanned.
+Gate: {{gatePass}}.
+Score: {{qualityScore}}/100.
+
+Thread on what we found
+
+---
+
+2/5
+{{#hasCredentialFindings}}
+Credential check: {{credentialFindings}} pattern(s) detected in production paths.
+
+Simplebeacon scans JS/TS and JSON — not just config files.
+{{/hasCredentialFindings}}
+{{^hasCredentialFindings}}
+No credential patterns found in {{filesScanned}} scanned paths.
+
+One less thing to worry about before deploy.
+{{/hasCredentialFindings}}
+
+---
+
+3/5
+{{#hasProductionLeaks}}
+Production leak check: {{productionLeakFindings}} mock/sample path reference(s) in server code.
+
+Catching require('../web/data/foo-sample.json') before it ships.
+{{/hasProductionLeaks}}
+{{^hasProductionLeaks}}
+No mock data leaks detected. Sample JSON stayed in sample directories where it belongs.
+{{/hasProductionLeaks}}
+
+---
+
+4/5
+{{#hasEuAiAct}}
+EU AI Act scan: {{euAiActFindings}} AI system indicator(s).
+
+Readiness score: {{euAiActScore}}/100.
+
+{{euAiActScore}} >= 80 ? 'On track for August 2026.' : 'Work to do before the deadline.'
+{{/hasEuAiAct}}
+
+---
+
+5/5
+Run it yourself:
+npx simplebeacon scan --gate
+
+Sub-second scan. No config required for most repos.
+
+#DevOps #AIGovernance #EUAIAct #CISecurity

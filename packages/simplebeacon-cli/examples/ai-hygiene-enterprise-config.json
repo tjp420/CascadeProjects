@@ -1,0 +1,33 @@
+{
+  "profile": "enterprise",
+  "scanPaths": [],
+  "productionPaths": ["server/", "src/", "app/", "lib/"],
+  "rules": {
+    "credentials": { "enabled": true, "scanProduction": true },
+    "enterprise-guardrail-patterns": {
+      "enabled": true,
+      "severity": "critical",
+      "tokenCapSeverity": "high"
+    },
+    "token-bleed-patterns": { "enabled": false },
+    "architecture-drift-patterns": { "enabled": false },
+    "python-ast-patterns": { "enabled": false },
+    "javascript-ast-patterns": { "enabled": false },
+    "fiction-kpi-patterns": { "enabled": false },
+    "llm-slop-patterns": { "enabled": false },
+    "jest-baseline": { "enabled": false, "runTests": false }
+  },
+  "gate": { "failOn": ["critical", "high"], "warnOn": ["medium", "low"] },
+  "intelligence": {
+    "enabled": true,
+    "languages": ["javascript", "typescript", "python"],
+    "fingerprintMatch": false,
+    "severity": "medium",
+    "patternSeverity": {
+      "SB-INTENT-001": "low",
+      "SB-INTENT-004": "low"
+    },
+    "treeSitter": { "enabled": true },
+    "slm": { "enabled": false }
+  }
+}

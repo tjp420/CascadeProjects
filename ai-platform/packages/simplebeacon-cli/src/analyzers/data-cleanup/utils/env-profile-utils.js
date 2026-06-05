@@ -84,7 +84,10 @@ function shouldSkipEnvInconsistency(key, values) {
         if (values.some((entry) => isPlaceholderEnvValue(entry.value))) {
             return true;
         }
-        if (/^(ENABLE_DATABASE|ENABLE_REDIS|NODE_ENV)$/i.test(key)) {
+        if (/^(ENABLE_DATABASE|ENABLE_REDIS|NODE_ENV|SEED_DEMO_USERS)$/i.test(key)) {
+            return true;
+        }
+        if (/^(POSTGRES_|REDIS_)/i.test(key)) {
             return true;
         }
     }

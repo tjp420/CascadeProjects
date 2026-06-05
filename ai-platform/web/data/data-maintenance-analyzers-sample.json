@@ -1,0 +1,15 @@
+{
+  "type": "data-maintenance-analyzers-report",
+  "overview": {
+    "total": 100,
+    "openIssues": "value"
+  },
+  "currentCapabilities": [{"name":"pattern-matching","status":"active"}],
+  "analyzerRoadmap": [{"phase":"Q3","action":"add-ast-parser"}],
+  "implementationPhases": [
+    {}
+  ],
+  "priorityMatrix": {},
+  "expectedImpact": {},
+  "rejectedFiction": {}
+}

@@ -78,8 +78,8 @@ async function runEuAiActSprint(input = {}, options = {}) {
 
   let npmAudit = null;
   try {
-    const { runNpmAudit } = require(path.join(detectedRoot, 'server/lib/npm-audit-runner'));
-    npmAudit = runNpmAudit(scanRoot, { force: input.forceNpmAudit === true });
+    const { runNpmAuditAsync } = require(path.join(detectedRoot, 'server/lib/npm-audit-runner'));
+    npmAudit = await runNpmAuditAsync(scanRoot, { force: input.forceNpmAudit === true });
   } catch {
     npmAudit = null;
   }

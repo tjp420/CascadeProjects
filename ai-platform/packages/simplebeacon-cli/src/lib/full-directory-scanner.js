@@ -16,7 +16,7 @@ const {
 const { globMatch } = require('../rules/production-leak');
 
 const DEFAULT_SKIP_DIRS = new Set([]);
-const DEFAULT_MAX_FILES = Number(process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES) || 2_000_000;
+const DEFAULT_MAX_FILES = Number(process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES) || Number.POSITIVE_INFINITY;
 const BATCH_LOG_EVERY = Number(process.env.SIMPLEBEACON_FULL_SCAN_LOG_EVERY) || 5000;
 
 function resolveMaxContentBytes(options = {}) {
@@ -164,7 +164,8 @@ async function analyzeFullDirectory(rootDir, options = {}) {
         fictionKpi: 0,
         euAiAct: 0,
         tokenBleed: 0,
-        architectureDrift: 0
+        architectureDrift: 0,
+        fileNaming: 0
     };
     let euHighRiskHits = 0;
     let euAiSystemHits = 0;
@@ -211,7 +212,9 @@ async function analyzeFullDirectory(rootDir, options = {}) {
 
         if (file.size === 0) {
             emptyFiles += 1;
-            if (!isIgnoredRelativePath(file.relativePath, config.ignore || [])) {
+            if (file.name === '.gitkeep') {
+                // .gitkeep is intentionally empty by design
+            } else if (!isIgnoredRelativePath(file.relativePath, config.ignore || [])) {
                 bucket.issues += 1;
                 issues.push({
                     id: `empty-file-${file.relativePath}`,
@@ -270,6 +273,7 @@ async function analyzeFullDirectory(rootDir, options = {}) {
                 euAiAct: rules.euAiAct !== false,
                 tokenBleed: rules.tokenBleed !== false,
                 architectureDrift: rules.architectureDrift !== false,
+                fileNaming: rules.fileNaming !== false,
                 euAiActSeverity: options.euAiActSeverity || 'medium',
                 productionPathsOnly: !isUniversal,
                 productionPaths: config.productionPaths || ['server/', 'src/', 'app/', 'lib/'],
@@ -285,8 +289,14 @@ async function analyzeFullDirectory(rootDir, options = {}) {
         });
 
         if (file.ext === '.json' || file.name.endsWith('.json')) {
+            // Skip package.json and tsconfig.json everywhere — flattened uploads lose path context,
+            // and third-party configs frequently contain trailing commas or comments.
+            const isConfigJson = file.name === 'package.json' || file.name === 'tsconfig.json';
             const isNodeModules = file.relativePath.includes('node_modules');
-            if (!isNodeModules) {
+            const isJsonSchema = content.trimStart().startsWith('{"$schema"') ||
+                content.trimStart().startsWith('{"$id"') ||
+                file.name === 'applicator.json' || file.name === 'core.json';
+            if (!isConfigJson && !isNodeModules && !isJsonSchema) {
                 try {
                     JSON.parse(content);
                     jsonValid += 1;
@@ -324,6 +334,7 @@ async function analyzeFullDirectory(rootDir, options = {}) {
         ruleHitTotals.euAiAct += counts.euAiAct || 0;
         ruleHitTotals.tokenBleed += counts.tokenBleed || 0;
         ruleHitTotals.architectureDrift += counts.architectureDrift || 0;
+        ruleHitTotals.fileNaming += counts.fileNaming || 0;
         if (passes.euStats) {
             euHighRiskHits += passes.euStats.highRiskHits;
             euAiSystemHits += passes.euStats.aiSystemHits;

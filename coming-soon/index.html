@@ -3,7 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simplebeacon AI Platform — Coming Soon</title>
+    <title>SimpleBeacon — Release hygiene for AI-assisted code</title>
+    <meta name="description" content="SimpleBeacon: local, zero-upload scans for AI-generated slop, exposed credentials, and unapproved AI integrations. Board-ready Executive Risk Certificates with A–F grades.">
+    <meta name="theme-color" content="#0d1117">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://simplebeacon.ai/">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <meta property="og:title" content="SimpleBeacon — Release hygiene for AI-assisted code">
+    <meta property="og:description" content="Local, zero-upload scans for AI slop and credential leaks. Board-ready compliance certificates.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://simplebeacon.ai/">
+    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="SimpleBeacon — Release hygiene for AI-assisted code">
+    <meta name="twitter:description" content="Local, zero-upload scans for AI slop and credential leaks. Board-ready compliance certificates.">
     <style>
         :root {
             --bg-main: #0B0F19;
@@ -65,6 +78,7 @@
             margin-bottom: 16px;
             background: linear-gradient(to right, #FFFFFF, #9CA3AF);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -150,52 +164,26 @@
 <body>
 
     <div class="container">
-        <span class="badge">Platform Security Evolution</span>
-        <h1>Simplebeacon AI</h1>
-        <p>Next-generation automated continuous security runtime scanning infrastructure. We are currently calibrating our scanning engine rulesets. Join the queue for early sandbox access.</p>
-        
-        <form id="subscribe-form">
-            <input type="email" id="email-input" placeholder="Enter your work email address" required aria-label="Email address">
-            <button type="submit">Notify Me</button>
-        </form>
-        
-        <div id="status" class="status-message"></div>
-        
-        <div class="footer">
-            &copy; 2026 Simplebeacon. All rights reserved.
+        <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #34D399; border-color: rgba(16, 185, 129, 0.25);">Zero-Retention AI</span>
+        <h1>Certify Your Codebase Before Regulators Do</h1>
+        <p>Local, zero-upload scans for AI-generated slop, exposed credentials, and unapproved AI integrations. Get a board-ready Executive Risk Certificate with an A–F grade and estimated financial liability. Your data is never stored, never sold, and never used to train AI models.</p>
+
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:440px;margin:0 auto;">
+            <a href="pricing.html" style="display:inline-block;background:var(--accent);color:white;text-decoration:none;padding:14px 24px;border-radius:8px;font-size:15px;font-weight:600;">Get your report — from $19</a>
+            <a href="community.html" style="display:inline-block;background:transparent;color:var(--text-muted);text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;border:1px solid var(--border);">Free CLI &amp; MCP tools</a>
+        </div>
+
+        <div class="footer" style="margin-top:48px;">
+            <p style="font-size:13px;color:rgba(156,163,175,0.5);margin-bottom:8px;">&copy; 2026 SimpleBeacon. All rights reserved.</p>
+            <p style="font-size:12px;color:rgba(156,163,175,0.4);">
+                <a href="sample-report.html" style="color:rgba(156,163,175,0.5);text-decoration:none;">Sample report</a> ·
+                <a href="pricing.html" style="color:rgba(156,163,175,0.5);text-decoration:none;">Pricing</a> ·
+                <a href="contact.html" style="color:rgba(156,163,175,0.5);text-decoration:none;">Contact</a> ·
+                <a href="terms.html" style="color:rgba(156,163,175,0.5);text-decoration:none;">Terms</a> ·
+                <a href="privacy.html" style="color:rgba(156,163,175,0.5);text-decoration:none;">Privacy</a>
+            </p>
         </div>
     </div>
-
-    <script>
-        document.getElementById('subscribe-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const emailInput = document.getElementById('email-input');
-            const statusDiv = document.getElementById('status');
-            
-            statusDiv.className = 'status-message';
-            statusDiv.textContent = 'Submitting...';
-            statusDiv.style.display = 'block';
-
-            try {
-                const response = await fetch('/api/subscribe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: emailInput.value })
-                });
-
-                if (response.ok) {
-                    statusDiv.className = 'status-message status-success';
-                    statusDiv.textContent = 'Success! You have been added to the early access queue.';
-                    emailInput.value = '';
-                } else {
-                    throw new Error('Subscription failed server validation.');
-                }
-            } catch (error) {
-                statusDiv.className = 'status-message status-error';
-                statusDiv.textContent = 'Error subscribing. Please try again later.';
-            }
-        });
-    </script>
 
 </body>
 </html>

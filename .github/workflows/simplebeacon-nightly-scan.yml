@@ -45,6 +45,7 @@ jobs:
         run: |
           node packages/simplebeacon-cli/bin/simplebeacon.js scan \
             --path . \
+            --full \
             --format json \
             --output .simplebeacon/nightly-report.json \
             --gate \
@@ -68,6 +69,17 @@ jobs:
           node packages/simplebeacon-cli/bin/simplebeacon.js accuracy || true
         continue-on-error: true
 
+      - name: Generate Marketing Content
+        if: always()
+        run: |
+          if [ -f .simplebeacon/nightly-report.json ]; then
+            node packages/simplebeacon-cli/bin/generate-marketing-content.js \
+              --complete-scan .simplebeacon/nightly-report.json \
+              --all \
+              --output .simplebeacon/marketing-content
+          fi
+        continue-on-error: true
+
       - name: Upload nightly reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -77,6 +89,7 @@ jobs:
             ai-platform/.simplebeacon/nightly-report.json
             ai-platform/.simplebeacon/nightly-file-reduction.json
             ai-platform/.simplebeacon/scanner-accuracy.json
+            ai-platform/.simplebeacon/marketing-content
           if-no-files-found: ignore
 
       - name: Write step summary

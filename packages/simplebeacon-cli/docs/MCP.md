@@ -22,7 +22,7 @@ npx simplebeacon init --with-mcp
 
 Reload Cursor → enable **simplebeacon** in MCP settings. Full guide: [MCP-USER-SETUP.md](./MCP-USER-SETUP.md).
 
-**Manual config** — copy [examples/mcp/cursor.mcp.json](../examples/mcp/cursor.mcp.json) to `.cursor/mcp.json`:
+**Manual config** — copy [examples/mcp/cursor-standard.mcp.json](../examples/mcp/cursor-standard.mcp.json) to `.cursor/mcp.json`:
 
 ```json
 {

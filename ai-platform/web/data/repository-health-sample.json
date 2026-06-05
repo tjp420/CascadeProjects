@@ -1,0 +1,15 @@
+{
+  "type": "repository-health-model",
+  "overview": {
+    "repositoryHealthScore": 88,
+    "duplicateGroups": 7
+  },
+  "recommendations": [
+    {}
+  ],
+  "disclaimers": [
+    {}
+  ],
+  "platform": {},
+  "monorepo": {}
+}

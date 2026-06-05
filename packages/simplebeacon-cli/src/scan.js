@@ -101,8 +101,8 @@ function computeFilesAnalyzed(mockCount, credentialScan, productionLeakScan, sou
     );
 }
 
-async function walkFiles(dir, results = [], depth = 0, rootDir = null) {
-    if (depth > 6) return results;
+async function walkFiles(dir, results = [], depth = 0, rootDir = null, maxDepth = 6, skipDirs = MOCK_WALK_SKIP_DIRS) {
+    if (depth > maxDepth) return results;
     const walkRoot = rootDir || dir;
     let entries;
     try {
@@ -114,8 +114,8 @@ async function walkFiles(dir, results = [], depth = 0, rootDir = null) {
     for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
-            if (MOCK_WALK_SKIP_DIRS.has(entry.name)) continue;
-            await walkFiles(fullPath, results, depth + 1, walkRoot);
+            if (skipDirs && skipDirs.has(entry.name)) continue;
+            await walkFiles(fullPath, results, depth + 1, walkRoot, maxDepth, skipDirs);
             continue;
         }
         if (!entry.isFile()) continue;
@@ -227,13 +227,20 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     const schemaEnabled = isRuleEnabled(config, 'json-schema');
     const inventoryPromise = countRepositoryInventory(root, {
         profile: options.inventoryProfile || 'audit',
-        skipDirs: [...MOCK_WALK_SKIP_DIRS]
+        skipDirs: config.fullDirectoryScan
+            ? (config.fullDirectoryScanSkipDirs ? [...config.fullDirectoryScanSkipDirs] : [])
+            : [...MOCK_WALK_SKIP_DIRS]
     });
 
     const files = [];
+    const scanMaxDepth = config.fullDirectoryScan ? 100 : 6;
+    let skipDirs = MOCK_WALK_SKIP_DIRS;
+    if (config.fullDirectoryScan) {
+        skipDirs = config.fullDirectoryScanSkipDirs ? new Set(config.fullDirectoryScanSkipDirs) : null;
+    }
     for (const scanPath of scanPaths) {
         if (fs.existsSync(scanPath)) {
-            await walkFiles(scanPath, files);
+            await walkFiles(scanPath, files, 0, null, scanMaxDepth, skipDirs);
         }
     }
     const uniqueFiles = dedupeScannedFiles(files);
@@ -583,12 +590,17 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         configPath: config.configPath,
         scanPaths,
         repositoryInventory,
-        mockSampleFiles: uniqueFiles.length,
+        mockSampleFiles: uniqueFiles.filter((f) =>
+            /(?:web\/data|data\/mock|data-central|fixtures?|sample)/i.test(f.relativePath)
+            || /-sample\.json$/i.test(f.name)
+        ).length,
         totalFiles: uniqueFiles.length,
         ruleScopedFilesAnalyzed,
         repositoryFilesTotal,
         repositoryFoldersTotal,
-        filesAnalyzed: repositoryFilesTotal ?? ruleScopedFilesAnalyzed,
+        filesAnalyzed: config.fullDirectoryScan
+            ? ruleScopedFilesAnalyzed
+            : (repositoryFilesTotal ?? ruleScopedFilesAnalyzed),
         totalSizeBytes: totalSize,
         totalSizeLabel: formatBytes(totalSize),
         issueCount,

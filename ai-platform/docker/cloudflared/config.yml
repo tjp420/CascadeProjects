@@ -1,0 +1,12 @@
+# Cloudflared tunnel configuration for Simplebeacon
+# This file configures the Cloudflare tunnel for secure access
+
+tunnel: <YOUR_TUNNEL_ID>
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: simplebeacon.ai
+    service: http://localhost:54355
+  - hostname: api.simplebeacon.ai
+    service: http://localhost:54355/api
+  - service: http_status:404

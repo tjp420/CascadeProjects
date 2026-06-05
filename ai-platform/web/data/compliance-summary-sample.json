@@ -1,0 +1,10 @@
+{
+  "type": "compliance-summary-report",
+  "overview": {
+    "rulesPassed": 28,
+    "complianceScore": 92
+  },
+  "rules": [
+    {}
+  ]
+}

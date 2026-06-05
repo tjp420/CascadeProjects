@@ -27,11 +27,11 @@ const REPO_SKIP_DIRS = new Set([
 const CODE_EXTENSIONS = getCodeExtensions();
 const languagePluginManager = getBuiltinPluginManager();
 const ARTIFACT_EXTENSIONS = ['.backup', '.bak', '.tmp', '.old', '.orig'];
-const WALK_MAX_DEPTH = 28;
-const MAX_FILE_BYTES = 512000;
+const WALK_MAX_DEPTH = 128;
+const MAX_FILE_BYTES = Number(process.env.CODEBASE_MAX_FILE_BYTES) || Number.POSITIVE_INFINITY;
 const MAX_FINDINGS_DASHBOARD = 400;
 const MAX_FINDINGS_COMPLETE = Number(process.env.CODEBASE_COMPLETE_MAX_FINDINGS) || 10000;
-const MAX_DEEP_ANALYZE = 8000;
+const MAX_DEEP_ANALYZE = Number.POSITIVE_INFINITY;
 const MAX_DEEP_ANALYZE_DASHBOARD = Number(process.env.CODEBASE_DASHBOARD_MAX_FILES) || 2000;
 const MAX_DEEP_ANALYZE_COMPLETE = Number(process.env.CODEBASE_COMPLETE_MAX_FILES) || Number.POSITIVE_INFINITY;
 const ANALYZE_FILE_CONCURRENCY = Number(process.env.CODEBASE_ANALYZE_CONCURRENCY) || 24;
@@ -80,6 +80,8 @@ async function analyzeFilesInBatches(files, rootDir, options = {}) {
     const findings = [];
     const structureSamples = [];
     const concurrency = Math.max(1, options.concurrency || ANALYZE_FILE_CONCURRENCY);
+    const onProgress = options.onProgress;
+    const total = files.length;
 
     for (let offset = 0; offset < files.length; offset += concurrency) {
         const batch = files.slice(offset, offset + concurrency);
@@ -100,6 +102,15 @@ async function analyzeFilesInBatches(files, rootDir, options = {}) {
                     importOrIncludeCount: fileResult.structure.importOrIncludeCount,
                     complexity: fileResult.structure.complexity,
                     tier: fileResult.structure.tier || 'baseline'
+                });
+            }
+            if (typeof onProgress === 'function') {
+                const current = offset + i + 1;
+                onProgress({
+                    current,
+                    total,
+                    filename: file.name || file.relativePath || '',
+                    percent: Math.round((current / total) * 100)
                 });
             }
         }
@@ -1232,18 +1243,23 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     }
 
     if (file.ext === '.json') {
-        try {
-            JSON.parse(content);
-        } catch (error) {
-            pushFinding(findings, {
-                category: 'broken',
-                type: 'invalid-json',
-                severity: 'high',
-                filePath: rel,
-                line: 1,
-                description: `Invalid JSON: ${error.message}`,
-                recommendedAction: 'Fix JSON syntax or remove broken fixture'
-            });
+        // Skip package.json and tsconfig.json everywhere — tsconfig allows trailing commas,
+        // package.json may have comments, and flattened uploads can concatenate multiple configs.
+        const isConfigJson = file.name === 'package.json' || file.name === 'tsconfig.json';
+        if (!isConfigJson) {
+            try {
+                JSON.parse(content);
+            } catch (error) {
+                pushFinding(findings, {
+                    category: 'broken',
+                    type: 'invalid-json',
+                    severity: 'high',
+                    filePath: rel,
+                    line: 1,
+                    description: `Invalid JSON: ${error.message}`,
+                    recommendedAction: 'Fix JSON syntax or remove broken fixture'
+                });
+            }
         }
         if (!isNonProductionAuditContentPath(rel)) {
             findings.push(...detectPlaceholderAndFictionalData(content, rel));
@@ -1252,7 +1268,8 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     }
 
     if (['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx'].includes(file.ext)) {
-        if (!shouldSkipSyntaxCheck(rel)) {
+        const isNodeModulesFile = /(^|\/)node_modules\//.test(rel);
+        if (!isNodeModulesFile && !shouldSkipSyntaxCheck(rel)) {
             const syntaxError = checkJsSyntax(content, rel);
             if (syntaxError) {
                 pushFinding(findings, {
@@ -1313,7 +1330,8 @@ async function analyzeFileContent(file, rootDir, options = {}) {
 
 function detectDuplicateBasenames(files) {
     const skipNames = new Set([
-        'index.js', 'index.ts', 'package.json', 'readme.md', 'license', 'config.json',
+        'index.js', 'index.ts', 'index.cjs', 'index.mjs', 'index.html', 'index.jsx',
+        'package.json', 'readme.md', 'license', 'config.json',
         'utils.js', 'constants.js', 'types.ts', 'main.js', 'app.js', 'server.js'
     ]);
     const byName = new Map();
@@ -1550,7 +1568,7 @@ async function runEslint(projectRoot, platformRoot) {
         const { stdout } = await execFileAsync(
             process.execPath,
             [eslintBin, '--config', flatConfig, ...targets, '--format', 'json', '--max-warnings', '99999'],
-            { cwd: platformRoot, timeout: 90000, maxBuffer: 8 * 1024 * 1024 }
+            { cwd: platformRoot, timeout: 0, maxBuffer: 8 * 1024 * 1024 }
         );
         const reports = JSON.parse(stdout || '[]');
         const findings = [];
@@ -1652,6 +1670,7 @@ async function analyzeCodebase(baseDir, options = {}) {
 
     try {
     const filesToAnalyze = files
+        .filter((f) => !f.relativePath.includes('/node_modules/') && !f.relativePath.startsWith('node_modules/'))
         .filter((f) => !f.isArtifact || f.relativePath.includes('security-reports/fixes/'))
         .slice(0, deepAnalyzeCap);
 
@@ -1659,7 +1678,8 @@ async function analyzeCodebase(baseDir, options = {}) {
         concurrency: context === 'complete'
             ? Number(process.env.CODEBASE_COMPLETE_CONCURRENCY) || Math.max(ANALYZE_FILE_CONCURRENCY, 48)
             : options.concurrency,
-        includeLegacyExperimental: options.includeLegacyExperimental
+        includeLegacyExperimental: options.includeLegacyExperimental,
+        onProgress: options.onProgress
     });
 
     findings.push(...detectDuplicateBasenames(files));

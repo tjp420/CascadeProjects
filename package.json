@@ -4,5 +4,12 @@
   "private": true,
   "scripts": {
     "ai:check": "node -e \"const { verifyFileSyntax } = require('./ai-tools/index.js'); console.log(JSON.stringify(verifyFileSyntax('ai-platform/src/api/dashboard-stub-api.cjs'), null, 2));\""
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "nodemailer": "^8.0.10"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
   }
 }

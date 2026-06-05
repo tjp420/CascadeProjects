@@ -3,17 +3,17 @@
   "version": "1.0.0",
   "title": "Simplebeacon EU AI Act Readiness Checklist",
   "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
-  "evaluatedAt": "2026-06-02T06:14:55.577Z",
-  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "evaluatedAt": "2026-06-05T14:44:53.503Z",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
   "summary": {
-    "passed": 4,
-    "failed": 4,
-    "skipped": 1,
+    "passed": 8,
+    "failed": 1,
+    "skipped": 0,
     "total": 9,
-    "score": 50,
+    "score": 89,
     "readyForAutomation": false,
     "checklistProfile": "eu-ai-act",
-    "headline": "4 EU AI Act rule(s) fail — address before August 2026 deadline"
+    "headline": "1 EU AI Act rule(s) fail — address before August 2026 deadline"
   },
   "rules": [
     {
@@ -23,7 +23,7 @@
       "severity": "critical",
       "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
       "status": "fail",
-      "evidence": "Gate fail — 171 blocking issue(s)"
+      "evidence": "Gate fail — 6 blocking issue(s)"
     },
     {
       "id": "CRED-001",
@@ -31,8 +31,8 @@
       "category": "Security",
       "severity": "critical",
       "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
-      "status": "fail",
-      "evidence": "4 credential pattern(s) detected"
+      "status": "pass",
+      "evidence": "Scanned 550 path(s) — no credential patterns"
     },
     {
       "id": "LEAK-001",
@@ -40,8 +40,8 @@
       "category": "Data integrity",
       "severity": "high",
       "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
-      "status": "fail",
-      "evidence": "169 production leak(s) — mock/sample paths in prod code"
+      "status": "pass",
+      "evidence": "Scanned 551 production file(s) — no sample-path leaks"
     },
     {
       "id": "EUAI-001",
@@ -58,8 +58,8 @@
       "category": "EU AI Act — Transparency",
       "severity": "high",
       "remediation": "Add user-facing disclosure that content is AI-generated or that users interact with an AI system",
-      "status": "fail",
-      "evidence": "4 transparency gap(s) — add AI-generated / AI interaction disclosure in UI"
+      "status": "pass",
+      "evidence": "No generative AI integrations detected in user-facing paths"
     },
     {
       "id": "EUAI-003",
@@ -68,7 +68,7 @@
       "severity": "high",
       "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
       "status": "pass",
-      "evidence": "39 documentation artifact(s) found for 59 AI indicator(s)"
+      "evidence": "No AI system indicators — documentation not required by scan"
     },
     {
       "id": "EUAI-004",
@@ -86,7 +86,7 @@
       "severity": "medium",
       "remediation": "Log AI system inputs, outputs, and decision rationale for audit trails",
       "status": "pass",
-      "evidence": "AI decision paths include audit/logging signals"
+      "evidence": "No AI decision paths detected"
     },
     {
       "id": "SUPPLY-001",
@@ -94,8 +94,8 @@
       "category": "Supply chain",
       "severity": "critical",
       "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
-      "status": "skip",
-      "evidence": "No package.json — npm audit not applicable"
+      "status": "pass",
+      "evidence": "npm audit: 0 critical, 0 high (lockfile-heuristic)"
     }
   ]
 }

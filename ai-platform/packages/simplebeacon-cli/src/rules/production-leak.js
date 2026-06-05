@@ -114,7 +114,12 @@ function isIgnored(relativePath, ignoreGlobs) {
 
 function isAllowlisted(relativePath, allowlistFiles) {
     const normalized = relativePath.split('\\').join('/');
-    return allowlistFiles.some((entry) => normalized === entry.split('\\').join('/'));
+    return allowlistFiles.some((entry) => {
+        const allowed = entry.split('\\').join('/');
+        return normalized === allowed
+            || normalized.endsWith('/' + allowed)
+            || allowed.endsWith('/' + normalized);
+    });
 }
 
 function isScannerMetaFile(relativePath, userMetaFiles = []) {

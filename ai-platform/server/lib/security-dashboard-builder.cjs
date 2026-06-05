@@ -2,7 +2,7 @@
  * Merge repository-audit security checklist with live npm audit results.
  */
 
-const { runNpmAudit } = require('./npm-audit-runner.cjs');
+const { runNpmAuditAsync } = require('./npm-audit-runner.cjs');
 
 function isNpmAuditFinding(item) {
     return item?.source === 'npm-audit';
@@ -87,8 +87,8 @@ function mergeNpmAuditIntoSecurityModel(model, auditPayload) {
     return merged;
 }
 
-function buildSecurityDashboardModel(baseDir, sample = {}, options = {}) {
-    const audit = runNpmAudit(baseDir, options);
+async function buildSecurityDashboardModel(baseDir, sample = {}, options = {}) {
+    const audit = await runNpmAuditAsync(baseDir, options);
     return mergeNpmAuditIntoSecurityModel(
         {
             ...sample,

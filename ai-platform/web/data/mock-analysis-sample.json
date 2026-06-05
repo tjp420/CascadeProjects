@@ -1,0 +1,16 @@
+{
+  "type": "mock-data-analysis-report",
+  "analysisOverview": {
+    "issuesDetected": 12,
+    "totalFiles": 862
+  },
+  "mockDataCategories": [
+    {}
+  ],
+  "detectedIssues": [
+    {}
+  ],
+  "qualityMetrics": {},
+  "performanceMetrics": {},
+  "privacyAndSecurity": {}
+}

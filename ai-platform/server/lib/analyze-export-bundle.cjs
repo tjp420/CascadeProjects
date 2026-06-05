@@ -3,6 +3,7 @@
  */
 
 const path = require('path');
+const logger = require('./app-logger.cjs');
 const archiver = require('archiver');
 const { PassThrough } = require('stream');
 const {
@@ -27,6 +28,25 @@ const { sanitizeCleanupBriefExport } = require('../../packages/simplebeacon-cli/
 const { sanitizeCodebaseReportExport } = require('../../packages/simplebeacon-cli/src/lib/codebase-export-sanitize');
 const { sanitizeConsolidationExport } = require('../../packages/simplebeacon-cli/src/lib/consolidation-export-sanitize');
 const { redactProjectPathForExport, projectLabelFromPath } = require('../../packages/simplebeacon-cli/src/lib/assessment-export-sanitize');
+
+function safeStringify(obj, space = 2) {
+  const seen = new WeakSet();
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) return '[Circular]';
+      seen.add(value);
+    }
+    return value;
+  }, space);
+}
+
+function tryStringify(obj) {
+  try {
+    return JSON.stringify(obj, null, 2);
+  } catch (e) {
+    return safeStringify(obj, 2);
+  }
+}
 
 function enrichExportBundleManifest(manifest, { tierId, projectPath } = {}) {
   const label = projectLabelFromPath(projectPath);
@@ -131,6 +151,10 @@ function resolveSelectedEnginesForExport(payload, options = {}) {
   if (Array.isArray(options.selectedEngines) && options.selectedEngines.length) {
     return [...new Set(options.selectedEngines.filter(Boolean))];
   }
+  const fromPayload = payload?.enginesRun || payload?.analysisConfig?.selectedEngines || payload?.selectedEngines;
+  if (Array.isArray(fromPayload) && fromPayload.length) {
+    return [...new Set(fromPayload.filter(Boolean))];
+  }
   return null;
 }
 
@@ -170,9 +194,9 @@ function filterCompleteScanForEngines(completeScan, engineIds = []) {
   };
 }
 
-function artifactAllowedForEngines(artifactId, engineSet, { includeEuAiAct = false } = {}) {
+function artifactAllowedForEngines(artifactId, engineSet, { includeEuAiAct = false, scanKind = 'unknown' } = {}) {
   if (artifactId === 'complete-scan-bundle') {
-    return engineSet.size > 0;
+    return scanKind === 'complete' && engineSet.size > 0;
   }
   if (EU_AI_ACT_ARTIFACT_IDS.has(artifactId)) {
     return includeEuAiAct && engineSet.has('eu-ai-act');
@@ -203,8 +227,13 @@ function shouldIncludeEuAiActArtifacts(payload, options = {}) {
 
 function extractCompleteResults(completeScan) {
   const normalized = normalizeCompleteScanInput(completeScan) || completeScan;
-  const results = normalized?.results || {};
+  let results = normalized?.results || {};
   const kind = detectScanKind(normalized);
+  // If the payload is a raw simplebeacon-report (not a complete-scan wrapper),
+  // expose it under results.simplebeacon so artifact generators can find it.
+  if (kind === 'simplebeacon-report' && !results.simplebeacon) {
+    results = { ...results, simplebeacon: normalized };
+  }
   return { normalized, results, kind, projectPath: normalized?.projectPath || normalized?.projectRoot || '' };
 }
 
@@ -248,11 +277,20 @@ function validateScanForTier(tierId, scanKind) {
 
 async function generateExecutiveAuditHtml(completeScan, options = {}) {
   const { buildCompleteAuditReport } = require('./complete-scan-audit-report.cjs');
-  const tierPreview = assessAuditExportTier(completeScan);
+  // Wrap raw simplebeacon-report (no .results) into complete-scan shape
+  // so assessAuditExportTier and buildCompleteAuditReport can find the data.
+  const payload = completeScan && completeScan.results ? completeScan : {
+    type: 'simplebeacon-complete-scan',
+    version: '1.3.0',
+    generatedAt: completeScan?.generatedAt || new Date().toISOString(),
+    projectPath: completeScan?.projectRoot || completeScan?.projectPath || '',
+    results: { simplebeacon: completeScan }
+  };
+  const tierPreview = assessAuditExportTier(payload);
   if (tierPreview.exportBlocked) {
     return { skipped: true, reason: tierPreview.blockReason };
   }
-  const report = await buildCompleteAuditReport(completeScan, {
+  const report = await buildCompleteAuditReport(payload, {
     client: options.client || 'Client',
     company: options.company || options.client || 'Client',
     assessor: options.assessor || 'SimpleBeacon Operator',
@@ -269,7 +307,7 @@ async function generateEuAiActAuditHtml(projectPath, options = {}) {
     projectPath: options.euProjectPath || projectPath,
     clientName: options.client || options.company || undefined,
     deliverableSku: options.deliverableSku || options.productSku || 'euai2499',
-    inlineArtifacts: sprint
+    artifacts: sprint
   });
   return { html: report.html, filename: report.filename || 'eu-ai-act-audit.html' };
 }
@@ -296,11 +334,13 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
   const manifest = getTierManifest(tierId);
   const selectedEngines = resolveSelectedEnginesForExport(completeScan, options);
   const exportEngineSet = selectedEngines ? new Set(selectedEngines) : null;
+  logger.debug(`[Export Bundle] collectExportArtifacts called — tier: ${tierId}, selectedEngines: ${JSON.stringify(selectedEngines || [])}, engineSet size: ${exportEngineSet?.size ?? 0}`);
   const filteredScan = selectedEngines?.length
     ? filterCompleteScanForEngines(completeScan, selectedEngines)
     : completeScan;
   const extracted = extractCompleteResults(filteredScan);
   let { normalized, results, kind, projectPath } = extracted;
+  logger.debug(`[Export Bundle] scan kind: ${kind}, results keys: ${Object.keys(results || {}).filter(k => !!results[k]).join(', ') || 'none'}`);
   if (kind === 'complete' && normalized?.type === 'simplebeacon-complete-scan') {
     normalized = resolveCompleteScanExportBundle(normalized, projectPath);
     results = normalized.results || results;
@@ -321,7 +361,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
   });
   const artifacts = manifest.artifacts.filter((artifact) => {
     if (exportEngineSet) {
-      if (!artifactAllowedForEngines(artifact.id, exportEngineSet, { includeEuAiAct })) {
+      if (!artifactAllowedForEngines(artifact.id, exportEngineSet, { includeEuAiAct, scanKind: kind })) {
         if (EU_AI_ACT_ARTIFACT_IDS.has(artifact.id) && !includeEuAiAct) {
           warnings.push(`${artifact.id}: excluded - EU AI Act sprint was not run in this analysis session`);
         } else {
@@ -344,7 +384,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
         case 'public-summary':
           files.push({
             path: artifact.filename,
-            content: JSON.stringify(buildPublicSummary(normalized), null, 2)
+            content: tryStringify(buildPublicSummary(normalized), null, 2)
           });
           break;
         case 'simplebeacon-gate': {
@@ -355,7 +395,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
           }
           files.push({
             path: artifact.filename,
-            content: JSON.stringify(
+            content: tryStringify(
               sanitizeSimplebeaconReportExport(gate, {
                 projectPath,
                 repositoryFilesTotal: gate.repositoryFilesTotal
@@ -371,7 +411,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
           if (results.mockScan) {
             files.push({
               path: artifact.filename,
-              content: JSON.stringify(
+              content: tryStringify(
                 sanitizeFictionDigestExport(results.mockScan, {
                   projectPath,
                   repositoryFilesTotal: results.simplebeacon?.repositoryFilesTotal
@@ -395,19 +435,19 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
               repositoryFilesTotal: results.simplebeacon?.repositoryFilesTotal
                 ?? results.simplebeacon?.repositoryInventory?.totalFiles
             });
-            files.push({ path: artifact.filename, content: JSON.stringify(checklist, null, 2) });
+            files.push({ path: artifact.filename, content: tryStringify(checklist, null, 2) });
           } else {
             warnings.push('compliance-checklist: not present - run compliance step or Complete scan');
           }
           break;
         case 'complete-scan-bundle':
-          files.push({ path: artifact.filename, content: JSON.stringify(normalized, null, 2) });
+          files.push({ path: artifact.filename, content: tryStringify(normalized, null, 2) });
           break;
         case 'consolidation':
           if (results.consolidation) {
             files.push({
               path: artifact.filename,
-              content: JSON.stringify(
+              content: tryStringify(
                 sanitizeConsolidationExport(results.consolidation, {
                   projectPath,
                   repositoryFilesTotal: results.simplebeacon?.repositoryFilesTotal
@@ -426,7 +466,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
           if (results.codebase) {
             files.push({
               path: artifact.filename,
-              content: JSON.stringify(
+              content: tryStringify(
                 sanitizeCodebaseReportExport(results.codebase, {
                   projectPath,
                   requestedProjectPath: projectPath,
@@ -447,7 +487,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
           if (results.fileReduction) {
             files.push({
               path: artifact.filename,
-              content: JSON.stringify(
+              content: tryStringify(
                 sanitizeDataCleanupReportExport(results.fileReduction, {
                   projectPath,
                   repositoryFilesTotal: results.simplebeacon?.repositoryFilesTotal
@@ -466,7 +506,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
           if (results.dataQuality) {
             files.push({
               path: artifact.filename,
-              content: JSON.stringify(
+              content: tryStringify(
                 sanitizeDataCleanupReportExport(results.dataQuality, {
                   projectPath,
                   repositoryFilesTotal: results.simplebeacon?.repositoryFilesTotal
@@ -485,7 +525,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
           if (results.cleanupAssistant) {
             files.push({
               path: artifact.filename,
-              content: JSON.stringify(
+              content: tryStringify(
                 sanitizeCleanupBriefExport(results.cleanupAssistant, {
                   projectPath,
                   repositoryFilesTotal: results.simplebeacon?.repositoryFilesTotal
@@ -505,7 +545,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
           if (results.npmAudit) {
             files.push({
               path: artifact.filename,
-              content: JSON.stringify(
+              content: tryStringify(
                 sanitizeNpmAuditExport(results.npmAudit, projectPath, {
                   repositoryFilesTotal: results.simplebeacon?.repositoryFilesTotal
                     ?? results.simplebeacon?.repositoryInventory?.totalFiles,
@@ -523,7 +563,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
           if (results.roadmap) {
             files.push({
               path: artifact.filename,
-              content: JSON.stringify(
+              content: tryStringify(
                 sanitizeRoadmapExport(results.roadmap, {
                   requestedProjectPath: projectPath,
                   repositoryFilesTotal: results.simplebeacon?.repositoryFilesTotal
@@ -551,7 +591,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
             euSanitizeOptions.projectPath = raw.projectPath || projectPath || options.baseDir;
             files.push({
               path: artifact.filename,
-              content: JSON.stringify(
+              content: tryStringify(
                 sanitizeEuAiActSprintArtifactExport(raw, euSanitizeOptions),
                 null,
                 2
@@ -561,7 +601,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
             euSanitizeOptions.projectPath = normalized.sprint.projectPath || projectPath || options.baseDir;
             files.push({
               path: artifact.filename,
-              content: JSON.stringify(
+              content: tryStringify(
                 sanitizeEuAiActSprintArtifactExport(normalized.sprint, euSanitizeOptions),
                 null,
                 2
@@ -587,13 +627,22 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
             break;
           }
           const sprintPayload = results.sprint || normalized?.sprint || null;
-          const euProjectPath = sprintPayload?.projectPath || projectPath || options.baseDir;
-          const eu = await generateEuAiActAuditHtml(euProjectPath, {
-            ...options,
-            euProjectPath,
-            sprintPayload
-          });
-          files.push({ path: artifact.filename, content: sanitizeFrozenAuditDeliverableHtml(eu.html) });
+          if (sprintPayload?.html) {
+            files.push({ path: artifact.filename, content: sanitizeFrozenAuditDeliverableHtml(sprintPayload.html) });
+          } else {
+            const euProjectPath = sprintPayload?.projectPath || projectPath || options.baseDir;
+            const gateReport = results.simplebeacon || normalized;
+            const eu = await generateEuAiActAuditHtml(euProjectPath, {
+              ...options,
+              euProjectPath,
+              sprintPayload: {
+                ...sprintPayload,
+                report: sprintPayload?.report || gateReport,
+                platformRoot: sprintPayload?.platformRoot || euProjectPath
+              }
+            });
+            files.push({ path: artifact.filename, content: sanitizeFrozenAuditDeliverableHtml(eu.html) });
+          }
           break;
         }
         case 'agency-certificate': {
@@ -608,7 +657,7 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
         case 're-attestation-readme':
           files.push({
             path: artifact.filename,
-            content: JSON.stringify(
+            content: tryStringify(
               buildReAttestationNoteArtifact({
                 tierId,
                 projectPath,
@@ -629,17 +678,48 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
     }
   }
 
+  // Add a report.json that reflects the primary scan/analysis type
+  const reportJsonContent = (() => {
+    if (kind === 'complete' && normalized) return normalized;
+    if (results.simplebeacon) return results.simplebeacon;
+    if (results.codebase) return results.codebase;
+    if (results.mockScan) return results.mockScan;
+    if (results.roadmap) return results.roadmap;
+    if (results.consolidation) return results.consolidation;
+    if (results.fileReduction) return results.fileReduction;
+    if (results.dataQuality) return results.dataQuality;
+    if (results.cleanupAssistant) return results.cleanupAssistant;
+    if (results.npmAudit) return results.npmAudit;
+    if (results.compliance) return results.compliance;
+    if (results.euAiAct) return results.euAiAct;
+    return normalized || {};
+  })();
+  let reportJsonText;
+  try {
+    reportJsonText = tryStringify(reportJsonContent, null, 2);
+  } catch (stringifyErr) {
+    console.warn('[Export Bundle] Circular reference in reportJson, using safe stringify:', stringifyErr.message);
+    reportJsonText = safeStringify(reportJsonContent, 2);
+  }
+  files.unshift({
+    path: 'json/report.json',
+    content: reportJsonText
+  });
+
+  const enginesRunList = selectedEngines || resolveEnginesRun(normalized, options);
+  const manifestId = `SB-${String(kind).toUpperCase().slice(0,8)}-${enginesRunList.join('+').replace(/-/g,'').toUpperCase().slice(0,24)}-${stamp.slice(0,10).replace(/-/g,'')}`;
   const bundleManifest = enrichExportBundleManifest({
     type: 'simplebeacon-export-bundle-manifest',
     version: '1.0.0',
     generatedAt: stamp,
+    manifestNumber: manifestId,
     tierId,
     tierLabel: manifest.label,
     productSku: manifest.productSku,
     projectPath: projectPath || null,
     scanKind: kind,
-    selectedEngines: selectedEngines || resolveEnginesRun(normalized, options),
-    enginesRun: selectedEngines || resolveEnginesRun(normalized, options),
+    selectedEngines: enginesRunList,
+    enginesRun: enginesRunList,
     euAiActIncluded: includeEuAiAct,
     artifactCount: files.length,
     artifacts: files.map((f) => f.path),
@@ -650,9 +730,16 @@ async function collectExportArtifacts(completeScan, tierId, options = {}) {
     }
   }, { tierId, projectPath });
 
+  let manifestText;
+  try {
+    manifestText = tryStringify(bundleManifest, null, 2);
+  } catch (stringifyErr) {
+    console.warn('[Export Bundle] Circular reference in manifest, using safe stringify:', stringifyErr.message);
+    manifestText = safeStringify(bundleManifest, 2);
+  }
   files.unshift({
     path: 'manifest.json',
-    content: JSON.stringify(bundleManifest, null, 2)
+    content: manifestText
   });
 
   files.push({
@@ -692,6 +779,8 @@ async function buildAnalyzeExportZipStream(completeScan, options = {}) {
   }
 
   const { files, manifest, warnings } = await collectExportArtifacts(completeScan, tierId, options);
+  logger.debug(`[Export Bundle] Tier: ${tierId}, files: ${files.length}, warnings: ${warnings.length}`);
+  if (warnings.length) logger.debug('[Export Bundle] Warnings:', warnings.slice(0, 10));
 
   if (files.length <= 2) {
     const err = new Error('No export artifacts could be generated from this scan. Run Complete scan or choose a matching analysis mode.');

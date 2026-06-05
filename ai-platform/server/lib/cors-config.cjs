@@ -14,20 +14,19 @@ function resolveCorsOptions(overrides = {}) {
     const raw = process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || overrides.defaultOrigin || '';
     const origins = parseOriginList(raw);
 
-    if (origins.length === 0) {
-        if (isProduction) {
-            return {
-                origin: false,
-                credentials: false,
-                ...overrides
-            };
-        }
-        const devFallback = String(
-            process.env.CORS_DEV_FALLBACK_ORIGIN || process.env.APP_ORIGIN || overrides.devFallbackOrigin || ''
-        ).trim();
+    if (!isProduction) {
+        // Development: mirror any origin regardless of env vars
         return {
-            origin: devFallback || false,
-            credentials: Boolean(devFallback),
+            origin: true,
+            credentials: true,
+            ...overrides
+        };
+    }
+
+    if (origins.length === 0) {
+        return {
+            origin: false,
+            credentials: false,
             ...overrides
         };
     }

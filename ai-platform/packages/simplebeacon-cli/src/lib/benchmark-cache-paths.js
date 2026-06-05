@@ -17,14 +17,8 @@ function isBenchmarkScanTargetRoot(projectPath) {
     return isExternalBenchmarkCachePath(projectPath);
 }
 
-function isExcludedCredentialScanPath(filePath, options = {}) {
+function isExcludedCredentialScanPath(filePath) {
     const rel = normalizeRel(filePath);
-    if (options.universal) {
-        if (isExternalBenchmarkCachePath(rel)) return true;
-        if (rel.includes('/simplebeacon-rule-tests/') || rel.startsWith('simplebeacon-rule-tests/')) return true;
-        if (rel.includes('/marketing-content-test/') || rel.startsWith('marketing-content-test/')) return true;
-        return false;
-    }
     if (isExternalBenchmarkCachePath(rel)) return true;
     if (rel.includes('credential-incident-triage.json')) return true;
     if (/^tests\//.test(rel) || /\/tests\//.test(rel) || /^test\//.test(rel)) return true;
@@ -33,9 +27,6 @@ function isExcludedCredentialScanPath(filePath, options = {}) {
     if (rel.includes('/complete-scan-latest.json') || rel.includes('/complete-scan-post-')) return true;
     if (/\/deliverables\//.test(rel) || rel.startsWith('deliverables/')) return true;
     if (/\/docs\//.test(rel) && rel.endsWith('.md')) return true;
-    if (rel.includes('/simplebeacon-rule-tests/') || rel.startsWith('simplebeacon-rule-tests/')) return true;
-    if (rel.includes('/marketing-content-test/') || rel.startsWith('marketing-content-test/')) return true;
-    if (rel.includes('/simplebeacon-frameworkless/') || rel.startsWith('simplebeacon-frameworkless/')) return true;
     return false;
 }
 
@@ -45,7 +36,7 @@ function isJestBaselineIssue(issue) {
     return /^jest$/i.test(filePath) || /jest baseline|jest suite mismatch/i.test(type);
 }
 
-function issueTouchesExcludedPath(issue, options = {}) {
+function issueTouchesExcludedPath(issue) {
     if (isJestBaselineIssue(issue)) return false;
     const paths = [
         issue?.filePath,
@@ -53,7 +44,7 @@ function issueTouchesExcludedPath(issue, options = {}) {
         ...(issue?.filePaths || []),
         ...(issue?.affectedFiles || [])
     ].filter(Boolean);
-    return paths.some((p) => isExcludedCredentialScanPath(p, options));
+    return paths.some(isExcludedCredentialScanPath);
 }
 
 function issueTouchesBenchmarkCache(issue) {
@@ -66,14 +57,14 @@ function issueTouchesBenchmarkCache(issue) {
     return paths.some(isExternalBenchmarkCachePath);
 }
 
-function partitionBenchmarkIssues(issues = [], options = {}) {
+function partitionBenchmarkIssues(issues = []) {
     const platformIssues = [];
     const benchmarkCacheIssues = [];
     const excludedScanNoiseIssues = [];
     for (const issue of issues) {
         if (issueTouchesBenchmarkCache(issue)) {
             benchmarkCacheIssues.push(issue);
-        } else if (issueTouchesExcludedPath(issue, options)) {
+        } else if (issueTouchesExcludedPath(issue)) {
             excludedScanNoiseIssues.push(issue);
         } else {
             platformIssues.push(issue);
@@ -82,7 +73,25 @@ function partitionBenchmarkIssues(issues = [], options = {}) {
     return { platformIssues, benchmarkCacheIssues, excludedScanNoiseIssues };
 }
 
-const MOCK_WALK_SKIP_DIRS = new Set([]);
+const MOCK_WALK_SKIP_DIRS = new Set([
+    'node_modules',
+    '.git',
+    'uploads',
+    'coverage',
+    'archive',
+    'dist',
+    'build',
+    '.next',
+    '.cache',
+    'github-cache',
+    'deliverables',
+    'java-ai-vulnerable',
+    '.simplebeacon',
+    'data-central',
+    'security-reports',
+    'simplebeacon-rule-tests',
+    '.github-sync'
+]);
 
 module.exports = {
     isExternalBenchmarkCachePath,

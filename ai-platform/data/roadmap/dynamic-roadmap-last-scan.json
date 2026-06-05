@@ -148,7 +148,7 @@
         "express",
         "lodash",
         "archiver",
-        "openai",
+        "cloud-ai-sdk",
         "@",
         "zod"
       ],
@@ -763,7 +763,7 @@
       "llama",
       "gguf",
       "gpt",
-      "claude",
+      "assistant",
       "bert"
     ],
     "apis": [
@@ -828,7 +828,7 @@
     "type": "strategic-insights",
     "mode": "deterministic",
     "generatedAt": "2026-06-01T11:01:04.871Z",
-    "executiveSummary": "* Test coverage percentages require live Jest/Istanbul — not inferred by roadmap LLM.",
+    "executiveSummary": "* Test coverage percentages require live Jest/Istanbul — not inferred by roadmap analysis engine.",
     "riskAssessment": {
       "overallRisk": "MODERATE",
       "riskCategories": {
@@ -841,7 +841,7 @@
         {
           "category": "maintainability",
           "severity": "medium",
-          "description": "Test coverage requires live Jest/Istanbul — not inferred by roadmap LLM.",
+          "description": "Test coverage requires live Jest/Istanbul — not inferred by roadmap analysis engine.",
           "recommendation": "Expand Jest/Istanbul coverage on critical server paths",
           "estimatedImpact": "Lower regression risk in compliance reviews"
         }

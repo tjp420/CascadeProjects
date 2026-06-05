@@ -1,0 +1,1080 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-05T15:54:25.293Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-analyze--806316-Wb59TSNUKciU",
+  "scanTargetRoot": "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-analyze--806316-Wb59TSNUKciU",
+  "configPath": "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-analyze--806316-Wb59TSNUKciU\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-analyze--806316-Wb59TSNUKciU"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-analyze--806316-Wb59TSNUKciU",
+    "totalFiles": 239,
+    "totalFolders": 0,
+    "profile": "full-tree"
+  },
+  "mockSampleFiles": 3,
+  "totalFiles": 239,
+  "ruleScopedFilesAnalyzed": 239,
+  "repositoryFilesTotal": 239,
+  "repositoryFoldersTotal": 0,
+  "filesAnalyzed": 239,
+  "totalSizeBytes": 1597527,
+  "totalSizeLabel": "1.5MB",
+  "issueCount": 2,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 21,
+  "consistencyPassed": 21,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 21,
+  "fictionSampleFilesScanned": 0,
+  "fictionScope": "repository-json",
+  "credentialScanned": 239,
+  "credentialFindings": 0,
+  "productionLeakScanned": 239,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 239,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 239,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 239,
+  "euAiActFindings": 2,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 2,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 30,
+    "documentationFound": [
+      "app-links.js",
+      "certificate-upload.html",
+      "config.json",
+      "contact.html",
+      "contact.js",
+      "eu-ai-act-assessment.json",
+      "eu-ai-act-compliance.json",
+      "eu-ai-act-report.json",
+      "pricing.html",
+      "refund.html",
+      "report.json",
+      "sample-certificate.html",
+      "server.cjs",
+      "site-config.js",
+      "styles.css",
+      "terms.html",
+      "upload.html",
+      "verify-final.json",
+      "verify-scan.json",
+      "verify-scan2.json",
+      "verify-scan3.json"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "enterpriseGuardrailScanned": 116,
+  "enterpriseGuardrailFindings": 0,
+  "fileNamingScanned": 0,
+  "fileNamingFindings": 0,
+  "structuralIntentScanned": 0,
+  "structuralIntentFindings": 0,
+  "structuralIntentEnabled": false,
+  "structuralIntentEngine": null,
+  "structuralIntentSlmReviewCount": 0,
+  "structuralIntentSlmReviews": [],
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 2,
+    "low": 0
+  },
+  "mockDataCategories": [
+    {
+      "category": "Stale inventory (full-tree scan)",
+      "fileCount": 3,
+      "totalSize": "1.5MB",
+      "qualityScore": null,
+      "issues": null,
+      "confidence": null,
+      "description": "Re-run scan to refresh — current categories reflect an outdated full-repo walk, not web/data samples."
+    }
+  ],
+  "detectedIssues": [
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected",
+      "pattern": "EUAI-AI-001",
+      "line": null,
+      "recommendation": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "eu-ai-act-assessment.json"
+      ],
+      "filePaths": [
+        "eu-ai-act-assessment.json"
+      ],
+      "file": "eu-ai-act-assessment.json"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected",
+      "pattern": "EUAI-AI-001",
+      "line": null,
+      "recommendation": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "eu-ai-act-compliance.json"
+      ],
+      "filePaths": [
+        "eu-ai-act-compliance.json"
+      ],
+      "file": "eu-ai-act-compliance.json"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "EUAI-AI-001-eu-ai-act-assessment.json",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "eu-ai-act-assessment.json",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "eu-ai-act-assessment.json"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "generative AI",
+        "matchCount": 1,
+        "matches": [
+          "generative AI"
+        ]
+      }
+    },
+    {
+      "id": "EUAI-AI-001-eu-ai-act-compliance.json",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "eu-ai-act-compliance.json",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "eu-ai-act-compliance.json"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "generative AI",
+        "matchCount": 1,
+        "matches": [
+          "generative AI"
+        ]
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [
+    ".coveralls.yml",
+    ".editorconfig",
+    ".env.example",
+    ".eslintrc",
+    ".gitignore",
+    ".npmignore",
+    ".nycrc",
+    ".package-lock.json",
+    ".travis.yml",
+    "404.html",
+    "abs.d.ts",
+    "abs.js",
+    "actualApply.d.ts",
+    "actualApply.js",
+    "all.js",
+    "app-links.js",
+    "application.js",
+    "applyBind.d.ts",
+    "applyBind.js",
+    "array-flatten.js",
+    "baseline.json",
+    "baseline.json.simplebeacon-backup.2026-06-05T15-39-34-322Z",
+    "big5-added.json",
+    "bigint.js",
+    "bom-handling.js",
+    "browser.js",
+    "build.js",
+    "certificate-upload.html",
+    "CHANGELOG.md",
+    "charset.js",
+    "circular.js",
+    "cli.js",
+    "codes.json",
+    "community.html",
+    "component.json",
+    "config.json",
+    "config.json.simplebeacon-backup.2026-06-05T15-23-40-372Z",
+    "config.json.simplebeacon-backup.2026-06-05T15-39-34-316Z",
+    "consolidation-report.json",
+    "contact.html",
+    "contact.js",
+    "core-js.js",
+    "cp936.json",
+    "cp949.json",
+    "cp950.json",
+    "dangerous.js",
+    "db.json",
+    "dbcs-codec.js",
+    "dbcs-data.js",
+    "debug.js",
+    "deep.js",
+    "diagnostic-prep.html",
+    "dom.js",
+    "element.js",
+    "email-template-universal.html",
+    "empty-keys-cases.js",
+    "encoding.js",
+    "err.js",
+    "eslint.config.mjs",
+    "eu-ai-act-assessment.json",
+    "eu-ai-act-compliance.json",
+    "eu-ai-act-report.json",
+    "eucjp.json",
+    "eval.d.ts",
+    "eval.js",
+    "express.js",
+    "extend-node.js",
+    "fakes.js",
+    "favicon.svg",
+    "floor.d.ts",
+    "floor.js",
+    "fn.js",
+    "formats.js",
+    "functionApply.d.ts",
+    "functionApply.js",
+    "functionCall.d.ts",
+    "functionCall.js",
+    "FUNDING.yml",
+    "gb18030-ranges.json",
+    "gbk-added.json",
+    "get-own-property-symbols.js",
+    "get.d.ts",
+    "get.js",
+    "GetIntrinsic.js",
+    "global.js",
+    "gOPD.d.ts",
+    "gOPD.js",
+    "has.js",
+    "history.json",
+    "HISTORY.md",
+    "holes.js",
+    "implementation.js",
+    "indent-option.js",
+    "index.d.ts",
+    "index.html",
+    "index.js",
+    "inherits.js",
+    "inherits_browser.js",
+    "init.js",
+    "inspect.js",
+    "inspector-log.js",
+    "internal.js",
+    "ipaddr.js",
+    "ipaddr.js.d.ts",
+    "ipaddr.min.js",
+    "isFinite.d.ts",
+    "isFinite.js",
+    "isInteger.d.ts",
+    "isInteger.js",
+    "isNaN.d.ts",
+    "isNaN.js",
+    "isNegativeZero.d.ts",
+    "isNegativeZero.js",
+    "isObject.d.ts",
+    "isObject.js",
+    "json.js",
+    "karma.conf.js",
+    "landing.html",
+    "language.js",
+    "layer.js",
+    "LICENSE",
+    "license.md",
+    "list.d.ts",
+    "lowbyte.js",
+    "Makefile",
+    "max.d.ts",
+    "max.js",
+    "maxArrayLength.d.ts",
+    "maxArrayLength.js",
+    "maxSafeInteger.d.ts",
+    "maxSafeInteger.js",
+    "maxValue.d.ts",
+    "maxValue.js",
+    "mediaType.js",
+    "mime",
+    "mime.cmd",
+    "mime.js",
+    "mime.ps1",
+    "min.d.ts",
+    "min.js",
+    "mod.d.ts",
+    "mod.js",
+    "node.js",
+    "number.js",
+    "Object.getPrototypeOf.d.ts",
+    "Object.getPrototypeOf.js",
+    "package-lock.json",
+    "package-support.json",
+    "package.json",
+    "parse.js",
+    "Porting-Buffer.md",
+    "pow.d.ts",
+    "pow.js",
+    "pricing.html",
+    "privacy.html",
+    "qs.js",
+    "query.js",
+    "quoteStyle.js",
+    "range.d.ts",
+    "range.js",
+    "raw.js",
+    "read.js",
+    "readme.markdown",
+    "README.md",
+    "ref.d.ts",
+    "ref.js",
+    "Reflect.getPrototypeOf.d.ts",
+    "Reflect.getPrototypeOf.js",
+    "reflectApply.d.ts",
+    "reflectApply.js",
+    "refund.html",
+    "repo-handoff.html",
+    "report.json",
+    "report.json.simplebeacon-backup.2026-06-05T14-44-34-362Z",
+    "report.json.simplebeacon-backup.2026-06-05T15-23-23-773Z",
+    "report.json.simplebeacon-backup.2026-06-05T15-39-21-521Z",
+    "request.js",
+    "RequireObjectCoercible.d.ts",
+    "RequireObjectCoercible.js",
+    "response.js",
+    "robots.txt",
+    "round.d.ts",
+    "round.js",
+    "route.js",
+    "safer.js",
+    "sample-certificate.html",
+    "sample-clearance-pdf.html",
+    "sample-report.html",
+    "sbcs-codec.js",
+    "sbcs-data-generated.js",
+    "sbcs-data.js",
+    "scan-status.html",
+    "SECURITY.md",
+    "server.cjs",
+    "set.d.ts",
+    "set.js",
+    "shams.d.ts",
+    "shams.js",
+    "shiftjis.json",
+    "sign.d.ts",
+    "sign.js",
+    "site-config.js",
+    "sitemap.xml",
+    "start-server.bat",
+    "stop-server.bat",
+    "streams.js",
+    "stringify.js",
+    "styles.css",
+    "subscriptions.json",
+    "syntax.d.ts",
+    "syntax.js",
+    "terms.html",
+    "test-core-js.js",
+    "test.js",
+    "tests.js",
+    "text.js",
+    "THREAT_MODEL.md",
+    "ToObject.d.ts",
+    "ToObject.js",
+    "toStringTag.js",
+    "tsconfig.json",
+    "type.d.ts",
+    "type.js",
+    "types.json",
+    "undef.js",
+    "upload.html",
+    "uri.d.ts",
+    "uri.js",
+    "urlencoded.js",
+    "utf16.js",
+    "utf7.js",
+    "util.inspect.js",
+    "utils.js",
+    "values.js",
+    "verify-final.json",
+    "verify-scan.json",
+    "verify-scan2.json",
+    "verify-scan3.json",
+    "view.js"
+  ],
+  "scanScope": {
+    "profile": "standard",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 239,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 239,
+    "productionPaths": [
+      "."
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 239,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 239,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 239,
+    "euAiActPatternHits": 2,
+    "euAiActHighRiskIndicators": 0,
+    "enterpriseGuardrailFilesScanned": 116,
+    "enterpriseGuardrailHits": 0,
+    "fileNamingFilesScanned": 0,
+    "fileNamingHits": 0,
+    "structuralIntentEnabled": false,
+    "structuralIntentAvailable": false,
+    "structuralIntentFilesScanned": 0,
+    "structuralIntentHits": 0,
+    "structuralIntentEngine": null,
+    "structuralIntentSlmReviewCount": 0,
+    "tokenBleedFilesScanned": 0,
+    "tokenBleedPatternHits": 0,
+    "architectureDriftFilesScanned": 0,
+    "architectureDriftPatternHits": 0,
+    "pythonAstFilesScanned": 0,
+    "pythonAstPatternHits": 0,
+    "pythonAstScanOk": true,
+    "javascriptAstFilesScanned": 0,
+    "javascriptAstPatternHits": 0,
+    "javascriptAstScanOk": true,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 21,
+    "fictionSampleFilesScanned": 0,
+    "ruleScopedFilesAnalyzed": 239,
+    "repositoryFilesTotal": 239,
+    "repositoryFoldersTotal": 0,
+    "fullDirectoryScan": true,
+    "fullDirectoryStats": {
+      "filesAnalyzed": 239,
+      "filesHashed": 239,
+      "contentScanned": 239,
+      "filesContentScanned": 239,
+      "filesBinaryHashed": 0,
+      "filesLargeHashed": 0,
+      "metadataOnlyFiles": 0,
+      "emptyFiles": 0,
+      "unreadableFiles": 0,
+      "jsonValid": 19,
+      "jsonInvalid": 0,
+      "truncated": false,
+      "maxFiles": null,
+      "maxContentBytes": null,
+      "ruleHitTotals": {
+        "credentials": 0,
+        "productionLeak": 0,
+        "llmSlop": 0,
+        "agencyHandoff": 0,
+        "fictionKpi": 0,
+        "euAiAct": 2,
+        "tokenBleed": 0,
+        "architectureDrift": 0,
+        "fileNaming": 0
+      },
+      "parallelTextRuleWorkers": 8,
+      "textRuleJobs": 188
+    },
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (21) plus source code (239 files in configured paths).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
+      "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
+      "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "stale-full-tree-scan",
+    "rescanRecommended": true,
+    "inventoryMetricsStale": true
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 2
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-06-05T15:54:25.297Z",
+  "_roadmapAnalysis": {
+    "type": "dynamic-project-roadmap-analysis",
+    "timestamp": "2026-06-05T15:54:25.408Z",
+    "generatedAt": "2026-06-05T15:54:25.408Z",
+    "generatedBy": "code-roadmap-generator",
+    "dataSource": "filesystem-scan",
+    "version": "3.1.0",
+    "roadmapExportProfile": "filtered-v3.1",
+    "inferenceMode": "filesystem + fuzzy-match",
+    "projectTitle": "coming-soon",
+    "projectName": "coming-soon",
+    "executiveSummary": {
+      "totalFeatures": 4,
+      "completedFeatures": 0,
+      "inProgressFeatures": 0,
+      "plannedFeatures": 4,
+      "completionRate": 0,
+      "projectHealth": "Fair",
+      "aiConfidence": null,
+      "analysisDuration": null,
+      "lastUpdated": "2026-06-05T15:54:25.408Z",
+      "teamSize": 1,
+      "notes": "Sprint model from filesystem signals + repository-audit baselines — not 47-feature enterprise fiction"
+    },
+    "developmentPhases": [
+      {
+        "phase": "Sprint 1: Server & Auth",
+        "status": "planned",
+        "progress": 0,
+        "description": "Canonical server entry and optional JWT auth",
+        "features": [
+          "Server entry pending",
+          "Auth pending"
+        ],
+        "milestones": [
+          "Single server entry",
+          "Auth routes live"
+        ]
+      },
+      {
+        "phase": "Sprint 2: Stub APIs & Tests",
+        "status": "planned",
+        "progress": 0,
+        "description": "Stub API routes (0 detected) and null Jest tests (null suites)",
+        "features": [
+          "Stub API pending",
+          "Tests pending"
+        ],
+        "milestones": [
+          "dashboard-stub-api.js",
+          "0 tests"
+        ]
+      },
+      {
+        "phase": "Sprint 3: Honest Dashboard Data",
+        "status": "planned",
+        "progress": 0,
+        "description": "0/50 page samples with repository-audit analyzers",
+        "features": [
+          "0/50 PAGE_SAMPLE_SPECS samples",
+          "npm audit pending",
+          "Mock scanner pending",
+          "Merger scanner pending"
+        ],
+        "milestones": [
+          "Repository-audit samples",
+          "Mock-data + merger scanners"
+        ]
+      },
+      {
+        "phase": "Sprint 4: Production Profile",
+        "status": "planned",
+        "progress": 0,
+        "description": "Docker Phase2, CI smoke test, Istanbul coverage, production profile",
+        "features": [
+          "Docker compose pending",
+          "Istanbul pending",
+          "GGUF inference (LLAMA_CPP_BIN/Ollama) — optional",
+          "REQUIRE_AUTH production profile"
+        ],
+        "milestones": [
+          "phase2-smoke CI job",
+          "Production runbook"
+        ]
+      }
+    ],
+    "projectOverview": {
+      "projectName": "coming-soon",
+      "projectType": "Scanned Codebase",
+      "totalFeatures": 4,
+      "completedFeatures": 0,
+      "inProgressFeatures": 0,
+      "plannedFeatures": 4,
+      "completionRate": 0,
+      "overallProgress": "Early",
+      "projectHealth": "Fair",
+      "developmentVelocity": "Measured",
+      "teamProductivity": "Filesystem scan"
+    },
+    "codeAnalysis": {
+      "structure": {
+        "totalFiles": 239,
+        "codeFiles": 214,
+        "languages": {
+          ".yml": 3,
+          "other": 8,
+          ".example": 1,
+          ".json": 30,
+          ".html": 18,
+          ".ts": 38,
+          ".js": 117,
+          ".2026-06-05t15-39-34-322z": 1,
+          ".md": 7,
+          ".2026-06-05t15-23-40-372z": 1,
+          ".2026-06-05t15-39-34-316z": 1,
+          ".mjs": 1,
+          ".svg": 1,
+          ".cmd": 1,
+          ".ps1": 1,
+          ".markdown": 1,
+          ".2026-06-05t14-44-34-362z": 1,
+          ".2026-06-05t15-23-23-773z": 1,
+          ".2026-06-05t15-39-21-521z": 1,
+          ".txt": 1,
+          ".cjs": 1,
+          ".xml": 1,
+          ".bat": 2,
+          ".css": 1
+        },
+        "topDirectories": []
+      },
+      "dependencies": {
+        "internalCount": 85,
+        "externalCount": 87,
+        "externalPackages": [
+          "function-bind",
+          "safer-buffer",
+          "finalhandler",
+          "methods",
+          "debug",
+          "http",
+          "depd",
+          "array-flatten",
+          "utils-merge",
+          "path",
+          "setprototypeof",
+          "ejs",
+          "https",
+          "express",
+          "tape",
+          "has-tostringtag",
+          "fs",
+          "mime-score",
+          "mime-db",
+          "chalk",
+          "core-js",
+          "buffer",
+          "ms",
+          "error-cause"
+        ],
+        "sampleInternal": [
+          "actualApply.js -> ./functionApply",
+          "actualApply.js -> ./functionCall",
+          "actualApply.js -> ./reflectApply",
+          "all.js -> ../",
+          "application.js -> ./router",
+          "application.js -> ./middleware/init",
+          "application.js -> ./middleware/query",
+          "application.js -> ./view"
+        ]
+      },
+      "features": [],
+      "samples": {
+        "onDisk": 0,
+        "withSpecs": 0,
+        "specTotal": 50,
+        "pageSamplesLabel": "0/50"
+      },
+      "signals": {
+        "serverEntry": false,
+        "phase2Auth": false,
+        "stubApi": false,
+        "fixtureScanner": false,
+        "codeRoadmapGenerator": false,
+        "fileMergerScanner": false,
+        "npmAudit": false,
+        "dockerPhase2": false,
+        "githubCi": false,
+        "istanbulInCi": false,
+        "phase2SmokeInCi": false,
+        "pageSampleDir": false,
+        "buildFromPath": false,
+        "assessmentApi": false,
+        "npmAuditClean": false
+      },
+      "phase2": {
+        "phase": "Phase 2 — Code intelligence",
+        "status": "active",
+        "dependencyGraph": {
+          "summary": {
+            "nodes": 118,
+            "edges": 35,
+            "circularCycles": 0
+          },
+          "circularDependencies": [],
+          "sampleEdges": [
+            {
+              "from": "actualApply.js",
+              "to": "functionApply.js",
+              "type": "require"
+            },
+            {
+              "from": "actualApply.js",
+              "to": "functionCall.js",
+              "type": "require"
+            },
+            {
+              "from": "actualApply.js",
+              "to": "reflectApply.js",
+              "type": "require"
+            },
+            {
+              "from": "application.js",
+              "to": "view.js",
+              "type": "require"
+            },
+            {
+              "from": "application.js",
+              "to": "utils.js",
+              "type": "require"
+            },
+            {
+              "from": "application.js",
+              "to": "utils.js",
+              "type": "require"
+            },
+            {
+              "from": "application.js",
+              "to": "utils.js",
+              "type": "require"
+            },
+            {
+              "from": "applyBind.js",
+              "to": "functionApply.js",
+              "type": "require"
+            },
+            {
+              "from": "applyBind.js",
+              "to": "actualApply.js",
+              "type": "require"
+            },
+            {
+              "from": "browser.js",
+              "to": "debug.js",
+              "type": "require"
+            },
+            {
+              "from": "cli.js",
+              "to": "mime.js",
+              "type": "require"
+            },
+            {
+              "from": "dangerous.js",
+              "to": "safer.js",
+              "type": "require"
+            }
+          ]
+        },
+        "fuzzySimilarity": {
+          "method": "token-jaccard",
+          "threshold": 0.92,
+          "pairsFound": 0,
+          "pairs": [],
+          "gguf": {
+            "available": false,
+            "executable": false,
+            "llamaCppBin": null,
+            "mode": "filesystem-only",
+            "semanticSimilarity": "Fuzzy token match only — set LLAMA_CPP_BIN for optional hints",
+            "note": "No embedding model run during filesystem scan unless analyze uses model.path"
+          }
+        },
+        "semanticHints": {
+          "enabled": false,
+          "mode": "filesystem-only",
+          "hints": [],
+          "note": "Set LLAMA_CPP_BIN for optional semantic review hints on fuzzy pairs"
+        },
+        "resourceEstimate": {
+          "teamSize": 1,
+          "role": "Solo maintainer",
+          "remainingSprints": 4,
+          "estimatedHours": 160,
+          "hourlyRateUsd": 75,
+          "internalBudgetUsd": 12000,
+          "budgetNote": "Internal notional estimate — not $204k enterprise fiction",
+          "sprintBreakdown": [
+            {
+              "phase": "Sprint 1: Server & Auth",
+              "progress": 0,
+              "estimatedHours": 40
+            },
+            {
+              "phase": "Sprint 2: Stub APIs & Tests",
+              "progress": 0,
+              "estimatedHours": 40
+            },
+            {
+              "phase": "Sprint 3: Honest Dashboard Data",
+              "progress": 0,
+              "estimatedHours": 40
+            },
+            {
+              "phase": "Sprint 4: Production Profile",
+              "progress": 0,
+              "estimatedHours": 40
+            }
+          ]
+        },
+        "visualization": {
+          "circularDependencyGraph": {
+            "nodes": [],
+            "edges": []
+          }
+        },
+        "rejectedFiction": {
+          "claims": [
+            "85-95% roadmap accuracy guarantees",
+            "Multi-FTE team composition from GGUF",
+            "$204k budget forecasts from scan"
+          ]
+        }
+      },
+      "aiIntegration": {
+        "apis": [],
+        "apiRouteCount": 0,
+        "notes": "No route handlers found under server/ or src/"
+      }
+    },
+    "resourceEstimate": {
+      "teamSize": 1,
+      "role": "Solo maintainer",
+      "remainingSprints": 4,
+      "estimatedHours": 160,
+      "hourlyRateUsd": 75,
+      "internalBudgetUsd": 12000,
+      "budgetNote": "Internal notional estimate — not $204k enterprise fiction",
+      "sprintBreakdown": [
+        {
+          "phase": "Sprint 1: Server & Auth",
+          "progress": 0,
+          "estimatedHours": 40
+        },
+        {
+          "phase": "Sprint 2: Stub APIs & Tests",
+          "progress": 0,
+          "estimatedHours": 40
+        },
+        {
+          "phase": "Sprint 3: Honest Dashboard Data",
+          "progress": 0,
+          "estimatedHours": 40
+        },
+        {
+          "phase": "Sprint 4: Production Profile",
+          "progress": 0,
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "implementationPhases": [
+      {
+        "phase": "Phase 1 — Sprint detection",
+        "status": "complete",
+        "items": [
+          "Filesystem signals",
+          "Sprint roadmap",
+          "API route counts"
+        ]
+      },
+      {
+        "phase": "Phase 2 — Code intelligence",
+        "status": "active",
+        "items": [
+          "Circular dependency detection",
+          "Fuzzy similarity pairs",
+          "Solo resource estimate",
+          "HTML executive export"
+        ]
+      },
+      {
+        "phase": "Phase 3 — Optional GGUF",
+        "status": "planned",
+        "items": [
+          "Semantic hints when analyze endpoint wired",
+          "Not 85-95% accuracy claims"
+        ]
+      }
+    ],
+    "featureCategories": [],
+    "progressMetrics": {
+      "overall": 0,
+      "phases": {
+        "Sprint 1: Server & Auth": 0,
+        "Sprint 2: Stub APIs & Tests": 0,
+        "Sprint 3: Honest Dashboard Data": 0,
+        "Sprint 4: Production Profile": 0
+      },
+      "categories": {
+        "AI Tools": 100,
+        "Analytics": 100,
+        "Development Tools": 100,
+        "Infrastructure": 45
+      },
+      "metrics": {
+        "codebaseMaturity": 21,
+        "featureCompleteness": 0,
+        "documentationCoverage": null,
+        "testCoverage": null,
+        "lineCoverage": null,
+        "branchCoverage": null,
+        "jestTests": null,
+        "jestSuites": null,
+        "pageSamples": "0/50",
+        "apiRouteCount": 0
+      }
+    },
+    "recommendations": {
+      "immediate": [
+        "Add docker-compose.phase2.yml smoke test to CI",
+        "Enable Istanbul coverage in CI (npm run test:coverage)"
+      ],
+      "shortTerm": [
+        "Review EU AI Act pattern hits and document compliance posture",
+        "Re-run scan with updated simplebeacon config to remove stale full-tree warnings",
+        "Complete remaining sprint deliverables",
+        "Wire null deploy gate before production profile",
+        "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)"
+      ],
+      "longTerm": [
+        "Define enterprise scope only after v1.0-internal"
+      ],
+      "priorities": {
+        "high": [
+          "Add docker-compose.phase2.yml smoke test to CI",
+          "Enable Istanbul coverage in CI (npm run test:coverage)"
+        ],
+        "medium": [
+          "Review EU AI Act pattern hits and document compliance posture",
+          "Re-run scan with updated simplebeacon config to remove stale full-tree warnings",
+          "Complete remaining sprint deliverables",
+          "Wire null deploy gate before production profile",
+          "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)"
+        ],
+        "low": [
+          "Optional GGUF semantic feature extraction"
+        ]
+      }
+    },
+    "risks": [
+      {
+        "category": "compliance",
+        "severity": "medium",
+        "description": "2 EU AI Act pattern hit(s) detected"
+      },
+      {
+        "category": "maintainability",
+        "severity": "medium",
+        "description": "Scan data is stale (full-tree walk) — rescan recommended before roadmap decisions"
+      }
+    ],
+    "actionPlan": [
+      {
+        "priority": "MEDIUM",
+        "action": "Review EU AI Act pattern hits and document compliance posture",
+        "category": "compliance"
+      },
+      {
+        "priority": "MEDIUM",
+        "action": "Re-run scan with updated simplebeacon config to remove stale full-tree warnings",
+        "category": "maintainability"
+      }
+    ],
+    "v1InternalDeploy": {
+      "localStatus": "not_started",
+      "productionStatus": "pending",
+      "localEnvConfigured": false,
+      "productionEnvConfigured": false,
+      "stripeConfigured": false,
+      "gateRemaining": true,
+      "runbook": "docs/v1-internal-runbook.md",
+      "verifyLocal": "npm run verify:v1-internal-profile",
+      "verifyProduction": "npm run verify:production-deploy",
+      "deploy": "npm run simplebeacon:deploy"
+    },
+    "sourceProjectPath": "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-analyze--806316-Wb59TSNUKciU",
+    "platformRoot": "C:\\Users\\Trevor\\AppData\\Local\\Temp\\sb-analyze--806316-Wb59TSNUKciU",
+    "rejectedFiction": {
+      "warning": "Enterprise roadmap design claims not produced by this scanner",
+      "claims": [
+        "Hardcoded GGUF confidence or prediction accuracy percentages",
+        "Hardcoded feature totals or completion-rate defaults",
+        "85-95% accuracy enhancement guarantees",
+        "Multi-FTE team and budget estimation from GGUF",
+        "Auto-merge roadmap executor"
+      ],
+      "replacedBy": "Sprint deliverable detection from filesystem + package.json + API route counts"
+    },
+    "deprecatedNarrative": {
+      "warning": "RoadmapDataAnalyzer previously returned hardcoded feature totals and completion defaults.",
+      "previousTotalFeatures": null,
+      "previousCompletionRate": null
+    }
+  }
+}

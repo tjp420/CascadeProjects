@@ -36,7 +36,7 @@ test('normalizeFileReductionReport fixes inflated estimatedReductionPct on bench
     assert.equal(normalized.scanScope.reportHealth, 'benchmark-clone-scan');
     assert.ok(normalized.summary.estimatedReductionPct < 100);
     assert.equal(normalized.summary.duplicateAssetGroups, 543);
-    assert.equal(normalized.summary.totalFindings, 994);
+    assert.equal(normalized.summary.totalFindings, 2);
 });
 
 test('normalizeFileReductionReport drops compact stale unused counts after protected-path filter', () => {

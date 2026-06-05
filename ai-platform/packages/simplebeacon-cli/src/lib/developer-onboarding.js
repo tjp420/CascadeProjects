@@ -1,10 +1,9 @@
 /**
- * One-command developer onboarding: MCP config, Cursor rule, GitHub Action workflow.
+ * One-command developer onboarding: Cursor rule, GitHub Action workflow.
  */
 
 const fs = require('fs');
 const path = require('path');
-const { installCursorMcpConfig } = require('../mcp/install-cursor-config');
 
 const PACKAGE_ROOT = path.join(__dirname, '..', '..');
 const CURSOR_RULE_TEMPLATE = path.join(PACKAGE_ROOT, 'examples', 'cursor', 'simplebeacon-scan-workflow.mdc');
@@ -51,14 +50,9 @@ function installCiWorkflow(projectRoot, options = {}) {
 
 function installDeveloperStack(projectRoot, options = {}) {
     const results = {
-        mcp: null,
         cursorRule: null,
         ciWorkflow: null
     };
-
-    if (options.withMcp !== false) {
-        results.mcp = installCursorMcpConfig(projectRoot, options);
-    }
 
     if (options.withCursorRule) {
         results.cursorRule = installCursorRule(projectRoot, options);

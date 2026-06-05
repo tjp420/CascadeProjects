@@ -22,6 +22,7 @@ import { AssessmentView } from './views/AssessmentView.js';
 import { OutreachView } from './views/OutreachView.js?v=20260601outreachv2';
 import { SignInView } from './views/SignInView.js';
 import { ChatbotView } from './views/ChatbotView.js';
+import { UploadView } from './views/UploadView.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
 import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js';
@@ -125,7 +126,8 @@ class SimplebeaconDashboard {
       trust: new TrustView(this),
       'repository-health': new RepositoryHealthView(this),
       signin: new SignInView(this),
-      chatbot: new ChatbotView(this)
+      chatbot: new ChatbotView(this),
+      upload: new UploadView(this)
     };
 
     this.currentView = null;
@@ -134,6 +136,7 @@ class SimplebeaconDashboard {
     this._bgScanPollTimer = null;
     this._bgScanPollStart = 0;
     this._lastKnownScanId = null;
+    this._currentViewName = 'dashboard';
   }
 
   async init() {
@@ -289,7 +292,7 @@ class SimplebeaconDashboard {
     this.refreshCurrentView();
     try {
       await this.loadData();
-      if (this.router?.currentView === 'dashboard') {
+      if (this._currentViewName === 'dashboard') {
         this.startBackgroundScanWatcher();
       }
     } catch (err) {
@@ -411,6 +414,7 @@ class SimplebeaconDashboard {
   }
 
   onRoute(view, params) {
+    this._currentViewName = view;
     this.state.routeParams = params;
     const main = document.getElementById('app-main');
     if (!main) return;

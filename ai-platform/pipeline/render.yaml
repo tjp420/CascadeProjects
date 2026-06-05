@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: simplebeacon-pipeline
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: PORT
+        value: 8000
+    healthCheckPath: /health

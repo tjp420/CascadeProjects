@@ -1,0 +1,127 @@
+# Conductor-led Automated Compliance Lifecycle
+# Phase 1: Privacy-blind scan + anonymized PR comment
+# Phase 2: Local remediation suggestion (dry-run) on failure
+# Phase 3: Gate enforcement — blocks merge if high-severity findings exist
+#
+# This workflow demonstrates the full Conductor → Local Agent → Revenue loop.
+# No source code or file paths are ever logged in CI artifacts.
+
+name: SimpleBeacon Automated Lifecycle
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/simplebeacon-automated-lifecycle.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/simplebeacon-automated-lifecycle.yml'
+  workflow_dispatch:
+    inputs:
+      analyzer-suite:
+        description: 'Run 48-analyzer AI risk assessment after gate scan'
+        required: false
+        default: false
+        type: boolean
+
+defaults:
+  run:
+    working-directory: ai-platform
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  privacy-blind-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install SimpleBeacon CLI dependencies
+        working-directory: ai-platform/packages/simplebeacon-cli
+        run: npm install --ignore-scripts
+
+      - name: Phase 1 — Privacy-blind scan (AI-blind architecture)
+        id: scan
+        env:
+          SIMPLEBEACON_PARALLEL: '1'
+          SIMPLEBEACON_PARALLEL_MIN_FILES: '48'
+          SIMPLEBEACON_OFFLINE: '1'
+        run: |
+          node packages/simplebeacon-cli/bin/simplebeacon.js scan \
+            --path . \
+            --format json \
+            --output .simplebeacon/report.json \
+            --anonymize \
+            --gate \
+            --offline \
+            --verbose
+          node packages/simplebeacon-cli/bin/simplebeacon.js gate status
+
+      - name: Phase 2 — Local remediation dry-run (if gate failed)
+        if: failure() && steps.scan.outcome == 'failure'
+        run: |
+          echo "🔧 [Conductor] Gate failed — suggesting local remediation..."
+          node packages/simplebeacon-cli/bin/simplebeacon.js scan \
+            --path . \
+            --gate \
+            --fix \
+            --fix-dry-run \
+            --max-fixes 5 \
+            --offline || true
+
+      - name: Phase 2b — AI Analyzer Suite (optional)
+        if: always() && (github.event.inputs.analyzer-suite == 'true' || vars.SIMPLEBEACON_ANALYZER_SUITE == 'true')
+        run: |
+          REPORT=".simplebeacon/report.json"
+          if [ ! -f "$REPORT" ]; then
+            echo "No report found; skipping analyzer suite."
+            exit 0
+          fi
+          node packages/simplebeacon-cli/bin/simplebeacon.js assess \
+            --report "$REPORT" \
+            --with-analyzer-suite \
+            --offline || true
+          SUITE=".simplebeacon/analyzer-suite.json"
+          if [ -f "$SUITE" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### AI Analyzer Suite" >> "$GITHUB_STEP_SUMMARY"
+            node -e "const s=require('./$SUITE'); console.log(\`Measured: \${s.riskSummary.executionStatus.measured} | Insufficient: \${s.riskSummary.executionStatus.insufficientData} | Overall Risk: \${s.riskSummary.overallRiskLevel}\`);" >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
+          fi
+
+      - name: Phase 3 — Post anonymized PR comment + upsell
+        if: github.event_name == 'pull_request' && always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          REPORT=".simplebeacon/report.json"
+          if [ ! -f "$REPORT" ]; then
+            echo "No report found; skipping comment."
+            exit 0
+          fi
+          node packages/simplebeacon-cli/bin/simplebeacon.js comment \
+            --report "$REPORT" \
+            --repo "$GITHUB_REPOSITORY" \
+            --issue-number "$GITHUB_PR_NUMBER" || true
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**💡 Stale compliance on every push?** Upgrade to [Continuous Shield](https://simplebeacon.ai/pricing) ($149/mo) for automated PR blocking + 3 compliance certifications per month." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload privacy-blind gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-privacy-blind-report
+          path: ai-platform/.simplebeacon/report.json
+          if-no-files-found: ignore

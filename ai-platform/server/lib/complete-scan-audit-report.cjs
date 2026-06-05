@@ -813,7 +813,11 @@ function buildCompleteAuditModel(completeScan, options = {}) {
     const consolidation = results.consolidation || null;
     const mockScan = results.mockScan || null;
     const issues = collectIssues(simplebeacon || { rawIssues: [] });
-    const severityCounts = resolveSeverityCounts(simplebeacon || {}, issues);
+    const severityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
+    for (const issue of issues) {
+      const band = String(issue.severity || issue.severityBand || 'low').toLowerCase();
+      if (severityCounts[band] !== undefined) severityCounts[band] += issue.count || 1;
+    }
     const allCodeFindings = enrichFindings(codebase?.findings || []);
     const tierCounts = resolveTierCounts(codebase?.summary, allCodeFindings);
     const priorityFindings = sortBySeverity(allCodeFindings.filter((f) => f.tier === 'production')).slice(0, 15);
@@ -834,7 +838,10 @@ function buildCompleteAuditModel(completeScan, options = {}) {
 
     const normalizedSimplebeacon = normalizeSimplebeaconForCompliance(simplebeacon);
     const projectPath = normalizedScan?.projectPath || simplebeacon?.projectRoot || dataQuality?.projectRoot || '';
-    const resolvedClient = resolveAuditClientName(options, projectPath || redactPathForDisplay(projectPath));
+    const resolvedClient = resolveAuditClientName(
+        { ...options, projectName: options.projectName },
+        projectPath || redactPathForDisplay(projectPath)
+    );
 
     const model = {
         reportId: buildReportId(normalizedScan?.generatedAt),

@@ -23,6 +23,7 @@ const { scanTokenBleedPatterns } = require('./rules/token-bleed-patterns');
 const { scanEnterpriseGuardrailPatterns } = require('./rules/enterprise-guardrail-patterns');
 const { scanStructuralIntentPatterns } = require('./rules/structural-intent-patterns');
 const { scanArchitectureDriftPatterns } = require('./rules/architecture-drift-patterns');
+const { scanFileNamingPatterns } = require('./rules/file-naming-patterns');
 const { checkJestBaseline } = require('./rules/jest-baseline');
 const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions, resolveFullTreeSkipDirs, isIntelligenceEnabled, getIntelligenceOptions } = require('./config');
 const { resolvePlatformRoot, isIsolatedScanRoot } = require('./project-detect');
@@ -107,8 +108,8 @@ function computeFilesAnalyzed(mockCount, credentialScan, productionLeakScan, sou
     );
 }
 
-async function walkFiles(dir, results = [], depth = 0, rootDir = null, maxDepth = 6) {
-    if (depth > maxDepth) return results;
+async function walkFiles(dir, results = [], depth = 0, rootDir = null) {
+    if (depth > 6) return results;
     const walkRoot = rootDir || dir;
     let entries;
     try {
@@ -121,7 +122,7 @@ async function walkFiles(dir, results = [], depth = 0, rootDir = null, maxDepth 
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
             if (MOCK_WALK_SKIP_DIRS.has(entry.name)) continue;
-            await walkFiles(fullPath, results, depth + 1, walkRoot, maxDepth);
+            await walkFiles(fullPath, results, depth + 1, walkRoot);
             continue;
         }
         if (!entry.isFile()) continue;
@@ -279,14 +280,14 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             config,
             productionLeakOptions: leakOpts,
             euAiActSeverity: euOpts.severity || 'medium',
-            universal: options.universal,
             rules: {
                 productionLeak: isRuleEnabled(config, 'production-leak'),
                 agencyHandoff: isRuleEnabled(config, 'agency-handoff-patterns'),
                 fiction: isRuleEnabled(config, 'fiction-kpi-patterns'),
                 euAiAct: isRuleEnabled(config, 'eu-ai-act-patterns'),
                 tokenBleed: isRuleEnabled(config, 'token-bleed-patterns'),
-                architectureDrift: isRuleEnabled(config, 'architecture-drift-patterns')
+                architectureDrift: isRuleEnabled(config, 'architecture-drift-patterns'),
+                fileNaming: isRuleEnabled(config, 'file-naming-patterns')
             },
             onProgress: (evt) => progress.update({
                 phase: 'full-tree',
@@ -311,10 +312,9 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         }
     } else {
         const files = [];
-        const maxDepth = options.universal ? 64 : 6;
         for (const scanPath of scanPaths) {
             if (fs.existsSync(scanPath)) {
-                await walkFiles(scanPath, files, 0, null, maxDepth);
+                await walkFiles(scanPath, files);
             }
         }
         uniqueFiles = dedupeScannedFiles(files);
@@ -571,10 +571,10 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         }
     }
 
-    const benchmarkScanTarget = isExternalBenchmarkCachePath(scanRoot) && !options.universal;
+    const benchmarkScanTarget = isExternalBenchmarkCachePath(scanRoot);
 
     let agencyHandoffScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
-    if (isRuleEnabled(config, 'agency-handoff-patterns')) {
+    if (isRuleEnabled(config, 'agency-handoff-patterns') && !benchmarkScanTarget) {
         if (fullDirectoryScan && fullTreeHits) {
             agencyHandoffScan = {
                 scanned: fullTreeContentScanned,
@@ -595,7 +595,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let tokenBleedScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
-    if (isRuleEnabled(config, 'token-bleed-patterns')) {
+    if (isRuleEnabled(config, 'token-bleed-patterns') && !benchmarkScanTarget) {
         if (fullDirectoryScan && fullTreeHits) {
             tokenBleedScan = {
                 scanned: fullTreeContentScanned,
@@ -615,7 +615,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let architectureDriftScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
-    if (isRuleEnabled(config, 'architecture-drift-patterns')) {
+    if (isRuleEnabled(config, 'architecture-drift-patterns') && !benchmarkScanTarget) {
         if (fullDirectoryScan && fullTreeHits) {
             architectureDriftScan = {
                 scanned: fullTreeContentScanned,
@@ -635,7 +635,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let pythonAstScan = { scanned: 0, findings: 0, issues: [], patterns: [], ok: true };
-    if (isRuleEnabled(config, 'python-ast-patterns')) {
+    if (isRuleEnabled(config, 'python-ast-patterns') && !benchmarkScanTarget) {
         const { scanPythonAstPatterns } = require('./lib/python-ast-scanner');
         const pyOpts = getRuleOptions(config, 'python-ast-patterns');
         pythonAstScan = await scanPythonAstPatterns(ruleWalkRoot, {
@@ -650,7 +650,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let javascriptAstScan = { scanned: 0, findings: 0, issues: [], patterns: [], ok: true };
-    if (isRuleEnabled(config, 'javascript-ast-patterns')) {
+    if (isRuleEnabled(config, 'javascript-ast-patterns') && !benchmarkScanTarget) {
         const { scanJavascriptAstPatterns } = require('./lib/javascript-ast-scanner');
         const jsOpts = getRuleOptions(config, 'javascript-ast-patterns');
         javascriptAstScan = await scanJavascriptAstPatterns(ruleWalkRoot, {
@@ -664,7 +664,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let euAiActScan = { scanned: 0, findings: 0, issues: [], summary: null, patterns: [] };
-    if (isRuleEnabled(config, 'eu-ai-act-patterns')) {
+    if (isRuleEnabled(config, 'eu-ai-act-patterns') && !benchmarkScanTarget) {
         if (fullDirectoryScan && fullTreeHits) {
             euAiActScan = {
                 scanned: fullTreeContentScanned,
@@ -687,7 +687,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     let enterpriseGuardrailScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
-    if (isRuleEnabled(config, 'enterprise-guardrail-patterns')) {
+    if (isRuleEnabled(config, 'enterprise-guardrail-patterns') && !benchmarkScanTarget) {
         const entOpts = getRuleOptions(config, 'enterprise-guardrail-patterns');
         enterpriseGuardrailScan = await scanEnterpriseGuardrailPatterns(ruleWalkRoot, {
             sourcePaths: entOpts.sourcePaths || config.sourceCodeScanPaths,
@@ -698,6 +698,26 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             extraLeakTokens: entOpts.extraLeakTokens || []
         });
         issues.push(...enterpriseGuardrailScan.issues);
+    }
+
+    let fileNamingScan = { scanned: 0, findings: 0, issues: [], patterns: [] };
+    if (isRuleEnabled(config, 'file-naming-patterns') && !benchmarkScanTarget) {
+        if (fullDirectoryScan && fullTreeHits) {
+            fileNamingScan = {
+                scanned: fullTreeContentScanned,
+                findings: fullTreeHits.fileNaming || 0,
+                issues: [],
+                patterns: []
+            };
+        } else {
+            const fnOpts = getRuleOptions(config, 'file-naming-patterns');
+            fileNamingScan = await scanFileNamingPatterns(ruleWalkRoot, {
+                sourcePaths: fnOpts.sourcePaths || config.sourceCodeScanPaths,
+                ignoreGlobs: fnOpts.ignoreGlobs || config.ignore,
+                severity: fnOpts.severity || 'medium'
+            });
+            issues.push(...fileNamingScan.issues);
+        }
     }
 
     let structuralIntentScan = {
@@ -740,7 +760,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         issues.push(...jestBaseline.issues);
     }
 
-    const { platformIssues, benchmarkCacheIssues } = partitionBenchmarkIssues(issues, { universal: options.universal });
+    const { platformIssues, benchmarkCacheIssues } = partitionBenchmarkIssues(issues);
     const scoringIssues = platformIssues;
 
     const totalSize = uniqueFiles.reduce((sum, file) => sum + file.size, 0);
@@ -803,6 +823,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         euAiActHighRiskIndicators: euAiActScan.summary?.highRiskIndicators ?? 0,
         enterpriseGuardrailFilesScanned: enterpriseGuardrailScan.scanned,
         enterpriseGuardrailHits: enterpriseGuardrailScan.findings,
+        fileNamingFilesScanned: fileNamingScan.scanned,
+        fileNamingHits: fileNamingScan.findings,
         structuralIntentEnabled: structuralIntentScan.enabled === true,
         structuralIntentAvailable: structuralIntentScan.available === true,
         structuralIntentFilesScanned: structuralIntentScan.scanned,
@@ -918,6 +940,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         euAiActSummary: euAiActScan.summary,
         enterpriseGuardrailScanned: enterpriseGuardrailScan.scanned,
         enterpriseGuardrailFindings: enterpriseGuardrailScan.findings,
+        fileNamingScanned: fileNamingScan.scanned,
+        fileNamingFindings: fileNamingScan.findings,
         structuralIntentScanned: structuralIntentScan.scanned,
         structuralIntentFindings: structuralIntentScan.findings,
         structuralIntentEnabled: structuralIntentScan.enabled === true,

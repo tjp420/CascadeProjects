@@ -244,5 +244,15 @@ module.exports = {
     createMcpStdioServer: require('./mcp/stdio-server').createMcpStdioServer,
     scanSnippetContent: require('./lib/snippet-scanner').scanSnippetContent,
     scanFileOnDisk: require('./lib/snippet-scanner').scanFileOnDisk,
-    readGateStatus: require('./lib/snippet-scanner').readGateStatus
+    readGateStatus: require('./lib/snippet-scanner').readGateStatus,
+    buildAnonymizedExport: require('./lib/anonymized-export').buildAnonymizedExport,
+    signAnonymizedExport: require('./lib/anonymized-export').signAnonymizedExport,
+    verifyAnonymizedExport: require('./lib/anonymized-export').verifyAnonymizedExport,
+    validateAnonymizedSchema: require('./lib/anonymized-export').validateAnonymizedSchema,
+    attachAnalyzerSuiteToReport: require('./lib/anonymized-export').attachAnalyzerSuiteToReport,
+    buildAiSystemsIssueAnalysis: require('./lib/ai-problem-analyzer-suite').buildAiSystemsIssueAnalysis,
+    getCachedAnalysis: require('./lib/ai-problem-analyzer-cache').getCachedAnalysis,
+    setCachedAnalysis: require('./lib/ai-problem-analyzer-cache').setCachedAnalysis,
+    clearAnalyzerCache: require('./lib/ai-problem-analyzer-cache').clearCache,
+    sanitizeAiProblemAnalyzerExport: require('./lib/ai-problem-analyzer-export-sanitize').sanitizeAiProblemAnalyzerExport
 };

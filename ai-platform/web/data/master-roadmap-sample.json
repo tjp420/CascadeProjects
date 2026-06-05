@@ -1,11 +1,10 @@
 {
-  "_note": "This is a sample/test data file for dashboard display. Contains placeholder values.",
   "overview": {
-    "sampleJsonFiles": 5,
-    "dataSource": "repository-audit"
+    "total": 100,
+    "sampleJsonFiles": 50
   },
   "sources": [
-    { "name": "Simplebeacon gate", "type": "scanner" }
+    "filesystem"
   ],
   "dataSource": "repository-audit"
 }

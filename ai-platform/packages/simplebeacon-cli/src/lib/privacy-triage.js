@@ -21,7 +21,7 @@ const PII_CATEGORIES = [
     {
         id: 'test-fixture',
         label: 'Intentional test fixture',
-        test: (path) => /simplebeacon-toxic-fixtures|toxic-fixtures|tests\/fixtures/i.test(path)
+        test: (path) => /simplebeacon-toxic-fixtures|toxic-fixtures|tests\/fixtures|simplebeacon-rule-tests/i.test(path)
     }
 ];
 
@@ -29,7 +29,7 @@ const CREDENTIAL_CATEGORIES = [
     {
         id: 'test-fixture',
         label: 'Intentional test fixture',
-        test: (path) => /simplebeacon-toxic-fixtures|toxic-fixtures/i.test(path)
+        test: (path) => /simplebeacon-toxic-fixtures|toxic-fixtures|simplebeacon-rule-tests/i.test(path)
     },
     {
         id: 'documentation-example',

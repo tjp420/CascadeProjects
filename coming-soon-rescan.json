@@ -1,0 +1,346 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-05T14:47:40.980Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\coming-soon"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+    "totalFiles": 40,
+    "totalFolders": 1,
+    "profile": "audit"
+  },
+  "mockSampleFiles": 3,
+  "totalFiles": 40,
+  "ruleScopedFilesAnalyzed": 40,
+  "repositoryFilesTotal": 40,
+  "repositoryFoldersTotal": 1,
+  "filesAnalyzed": 40,
+  "totalSizeBytes": 498655,
+  "totalSizeLabel": "487.0KB",
+  "issueCount": 3,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 3,
+  "consistencyPassed": 3,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 3,
+  "fictionSampleFilesScanned": 0,
+  "fictionScope": "repository-json",
+  "credentialScanned": 14,
+  "credentialFindings": 0,
+  "productionLeakScanned": 5,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 31,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 5,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 19,
+    "documentationFound": [
+      "app-links.js",
+      "certificate-upload.html",
+      "contact.html",
+      "contact.js",
+      "email-template-certificate-upload.html",
+      "pricing.html",
+      "refund.html",
+      "sample-certificate.html",
+      "server.cjs",
+      "site-config.js",
+      "styles.css",
+      "terms.html",
+      "test-checkout.html",
+      "upload.html",
+      ".simplebeacon/config.json",
+      ".simplebeacon/report.json"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 3,
+    "low": 0
+  },
+  "mockDataCategories": [
+    {
+      "category": "Stale inventory (full-tree scan)",
+      "fileCount": 3,
+      "totalSize": "487.0KB",
+      "qualityScore": null,
+      "issues": null,
+      "confidence": null,
+      "description": "Re-run scan to refresh — current categories reflect an outdated full-repo walk, not web/data samples."
+    }
+  ],
+  "detectedIssues": [
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Handoff Integrity",
+      "count": 1,
+      "description": ".gitignore may not exclude .env files",
+      "pattern": "SB-HANDOFF-003",
+      "line": 1,
+      "recommendation": "Add .env, .env.local, and .env.production to .gitignore.",
+      "recommendedAction": "Add .env, .env.local, and .env.production to .gitignore.",
+      "affectedFiles": [
+        ".gitignore"
+      ],
+      "filePaths": [
+        ".gitignore"
+      ],
+      "file": ".gitignore"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "server.cjs:317 — Staging or dev hostname referenced in source",
+      "pattern": "SB-DEPLOY-005",
+      "line": 317,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "server.cjs"
+      ],
+      "filePaths": [
+        "server.cjs"
+      ],
+      "file": "server.cjs"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "server.cjs:442 — Staging or dev hostname referenced in source",
+      "pattern": "SB-DEPLOY-005",
+      "line": 442,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "server.cjs"
+      ],
+      "filePaths": [
+        "server.cjs"
+      ],
+      "file": "server.cjs"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "agency-handoff-gitignore-env",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Handoff Integrity",
+      "category": "handoff-integrity",
+      "filePath": ".gitignore",
+      "file": ".gitignore",
+      "line": 1,
+      "pattern": "SB-HANDOFF-003",
+      "count": 1,
+      "description": ".gitignore may not exclude .env files",
+      "recommendation": "Add .env, .env.local, and .env.production to .gitignore.",
+      "recommendedAction": "Add .env, .env.local, and .env.production to .gitignore.",
+      "affectedFiles": [
+        ".gitignore"
+      ],
+      "metadata": {
+        "patternId": "SB-HANDOFF-003",
+        "category": "handoff-integrity"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-005-server.cjs-13230",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "server.cjs",
+      "file": "server.cjs",
+      "line": 317,
+      "pattern": "SB-DEPLOY-005",
+      "count": 1,
+      "description": "server.cjs:317 — Staging or dev hostname referenced in source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "server.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-005",
+        "category": "deploy-leak",
+        "offset": 13230,
+        "match": "http://localhost"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-005-server.cjs-22294",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "server.cjs",
+      "file": "server.cjs",
+      "line": 442,
+      "pattern": "SB-DEPLOY-005",
+      "count": 1,
+      "description": "server.cjs:442 — Staging or dev hostname referenced in source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "server.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-005",
+        "category": "deploy-leak",
+        "offset": 22294,
+        "match": "http://localhost"
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [
+    ".env.example",
+    ".gitignore",
+    "404.html",
+    "app-links.js",
+    "audit-booking.js",
+    "certificate-upload.html",
+    "community.html",
+    "contact.html",
+    "contact.js",
+    "dashboard.html",
+    "demo.html",
+    "diagnostic-prep.html",
+    "repo-handoff.html",
+    "email-template-certificate-upload.html",
+    "email-template-universal.html",
+    "favicon.svg",
+    "index.html",
+    "landing.html",
+    "package-lock.json",
+    "package.json",
+    "prevent-ai-overspend.html",
+    "pricing.html",
+    "privacy.html",
+    "refund.html",
+    "robots.txt",
+    "sample-certificate.html",
+    "sample-clearance-pdf.html",
+    "sample-report.html",
+    "scan-status.html",
+    "server.cjs",
+    "site-config.js",
+    "sitemap.xml",
+    "start-server.bat",
+    "stop-server.bat",
+    "styles.css",
+    "subscriptions.json",
+    "terms.html",
+    "test-checkout.html",
+    "thank-you.html",
+    "upload.html"
+  ],
+  "scanScope": {
+    "profile": "standard",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 40,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 5,
+    "productionPaths": [
+      "."
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 31,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 5,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 3,
+    "fictionSampleFilesScanned": 0,
+    "ruleScopedFilesAnalyzed": 40,
+    "repositoryFilesTotal": 40,
+    "repositoryFoldersTotal": 1,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 40 files — gate rules checked 40 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (3) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
+      "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
+      "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "stale-full-tree-scan",
+    "rescanRecommended": true,
+    "inventoryMetricsStale": true
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 3
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-06-05T14:47:40.983Z"
+}

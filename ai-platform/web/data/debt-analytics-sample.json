@@ -1,0 +1,18 @@
+{
+  "type": "debt-analytics-model",
+  "overview": {
+    "totalDebt": 28
+  },
+  "reports": [
+    {}
+  ],
+  "insights": [
+    {}
+  ],
+  "alerts": [
+    {}
+  ],
+  "trends": {},
+  "predictions": {},
+  "kpis": {}
+}

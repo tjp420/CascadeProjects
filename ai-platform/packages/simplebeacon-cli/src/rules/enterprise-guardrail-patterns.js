@@ -102,6 +102,12 @@ function isExcludedPath(relativePath, options = {}) {
     const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
     if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
     if (/(?:^|\/)marketing-content-test\//.test(normalized)) return true;
+    if (/(?:^|\/)node_modules\//.test(normalized)) return true;
+    if (/(?:^|\/)java-ai-vulnerable\//.test(normalized)) return true;
+    if (/(?:^|\/)\.gitkeep$/.test(normalized)) return true;
+    if (/^delivery_\d+_[a-z0-9]+\.json$/.test(normalized)) return true;
+    if (/(?:^|\/)test-output/.test(normalized)) return true;
+    if (normalized.includes('enterprise-guardrail-patterns.js')) return true;
     if (options.universal) {
         return false;
     }

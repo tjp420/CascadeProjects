@@ -1,0 +1,12 @@
+{
+  "type": "support-dashboard-model",
+  "overview": {
+    "openTickets": 15
+  },
+  "tickets": [
+    {}
+  ],
+  "agents": [
+    {}
+  ]
+}

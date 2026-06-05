@@ -7,15 +7,15 @@ const path = require('path');
 
 const SKIP_BY_PROFILE = {
     explorer: [],
-    audit: []
+    audit: [
+        'node_modules', '.git', 'coverage', 'uploads', 'dist', 'build', 'archive',
+        'github-cache', '.github-sync', 'deliverables', 'java-ai-vulnerable', '.simplebeacon', 'security-reports'
+    ]
 };
 
 async function countRepositoryInventory(rootDir, options = {}) {
     const profile = options.profile || 'explorer';
-    const isUniversal = options.universal === true;
-    const skipDirs = isUniversal
-        ? new Set(options.skipDirs || [])
-        : new Set(options.skipDirs || SKIP_BY_PROFILE[profile] || SKIP_BY_PROFILE.explorer);
+    const skipDirs = new Set(options.skipDirs || SKIP_BY_PROFILE[profile] || SKIP_BY_PROFILE.explorer);
     const maxDepth = options.maxDepth ?? 40;
     let totalFiles = 0;
     let totalFolders = 0;

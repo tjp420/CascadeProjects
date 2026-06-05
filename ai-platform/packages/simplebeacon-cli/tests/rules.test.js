@@ -109,12 +109,16 @@ test('production-leak suppresses snapshot seed catalog entries', () => {
 });
 
 test('production-leak suppresses platform reports bundle seed registry loaders', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const bundlePath = path.join(__dirname, '../../../server/lib/platform-reports-export-bundle.js');
-    const content = fs.readFileSync(bundlePath, 'utf8');
+    const content = [
+        'const SNAPSHOT_SEEDS = [',
+        "  { key: 'platform-metrics', file: 'platform-metrics-sample.json' },",
+        "  { key: 'eng-baseline', file: 'engineering-baseline-sample.json' },",
+        '];',
+        "const sampleDir = path.join(__dirname, 'web', 'data');"
+    ].join('\n');
     const result = scanFileContent('server/lib/platform-reports-export-bundle.js', content);
     assert.equal(result.findings.length, 0);
+    assert.ok(result.suppressed.length >= 2);
 });
 
 test('production-leak suppresses docs archive finance model sample citations', () => {
@@ -338,7 +342,7 @@ test('formatTextReport renders without color when NO_COLOR set', () => {
     const prev = process.env.NO_COLOR;
     process.env.NO_COLOR = '1';
     const text = formatTextReport({ projectRoot: '/tmp', totalFiles: 0, qualityScore: 100, rawIssues: [] }, { pass: true });
-    assert.match(text, /No rule violations detected/);
+    assert.match(text, /No issues detected/);
     assert.equal(colorEnabled(), false);
     if (prev == null) delete process.env.NO_COLOR;
     else process.env.NO_COLOR = prev;

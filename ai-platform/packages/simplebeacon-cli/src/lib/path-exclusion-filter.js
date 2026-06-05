@@ -15,7 +15,9 @@ const GLOBAL_DEFAULTS = [
     'build',
     'archive',
     'github-cache',
-    'deliverables'
+    'deliverables',
+    'simplebeacon-rule-tests',
+    'java-ai-vulnerable'
 ];
 
 function normalizePath(filePath) {

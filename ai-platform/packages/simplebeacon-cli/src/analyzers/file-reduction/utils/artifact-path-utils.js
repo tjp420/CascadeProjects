@@ -51,7 +51,8 @@ function selectTopLevelArtifactDirectories(directories, inventory, patterns) {
                 ? `${candidate.dir.name} directory (contents not walked)`
                 : `${candidate.dir.name} directory`,
             sizeBytes: candidate.sizeBytes,
-            fileCount: candidate.fileCount,
+            fileCount: candidate.skipped ? 1 : candidate.fileCount,
+            skipped: candidate.skipped,
             confidence: 'high',
             action: 'safe-to-delete',
             severity: 'low',
