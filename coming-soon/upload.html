@@ -450,8 +450,10 @@
 
         <div class="mode-tabs">
             <button class="mode-tab active" data-mode="upload" id="tabUpload">&#128274; 100% Private — Local Report</button>
-            <button class="mode-tab" data-mode="analyze" id="tabAnalyze">&#9729; Cloud Evaluation Scan</button>
         </div>
+        <p style="text-align:center;font-size:0.75rem;color:var(--text-muted);margin:-10px 0 16px;">
+            <a href="#" id="showAdvancedLink" style="color:#60A5FA;text-decoration:none;">Advanced: Server-side scan</a> — only if your DLP policy allows code upload
+        </p>
 
         <div class="mode-panel active" id="panelUpload">
             <div class="card">
@@ -475,7 +477,7 @@
             </div>
         </div>
 
-        <div class="mode-panel" id="panelAnalyze">
+        <div class="mode-panel" id="panelAnalyze" style="display:none;">
             <div class="card">
                 <h2><span>2</span> Analyze a Directory</h2>
                 <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:0.85rem;color:var(--text-muted);">
@@ -522,6 +524,9 @@
             <button class="btn btn-primary analyze-btn-secondary" id="analyzeBtn" style="display: none; margin-top: 12px;" disabled>
                 <span>&#9889;</span> Run Analysis &amp; Generate Certificate
             </button>
+            <div id="tokenNotice" style="display:none;margin-top:12px;padding:12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;font-size:0.85rem;color:var(--text-muted);">
+                <strong style="color:#FBBF24;">&#8505; Report loaded.</strong> Paste a license token above to generate your certificate. <a href="pricing.html" style="color:#60A5FA;">Get a token</a> or click <strong>Try for Free</strong>.
+            </div>
             <div class="status" id="status"></div>
         </div>
 
@@ -827,7 +832,7 @@
         function setMode(mode) {
             currentMode = mode;
             tabUpload.classList.toggle('active', mode === 'upload');
-            tabAnalyze.classList.toggle('active', mode === 'analyze');
+            if (tabAnalyze) tabAnalyze.classList.toggle('active', mode === 'analyze');
             panelUpload.classList.toggle('active', mode === 'upload');
             panelAnalyze.classList.toggle('active', mode === 'analyze');
             submitBtn.style.display = mode === 'upload' ? 'inline-flex' : 'none';
@@ -838,13 +843,33 @@
         }
 
         tabUpload.addEventListener('click', () => setMode('upload'));
-        tabAnalyze.addEventListener('click', () => setMode('analyze'));
 
         function updateSubmit() {
             const hasToken = licenseInput.value.trim().length > 10;
             const hasFile = reportData !== null;
             const hasDir = collectedFiles.length > 0;
-            submitBtn.disabled = !(hasToken && hasFile);
+            const tokenNotice = document.getElementById('tokenNotice');
+
+            // Upload mode: enable submit if file present (preview is free, cert needs token)
+            if (hasFile) {
+                if (hasToken) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<span>&#128229;</span> Upload &amp; Generate Certificate';
+                    submitBtn.style.opacity = '1';
+                    if (tokenNotice) tokenNotice.style.display = 'none';
+                } else {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<span>&#128064;</span> Preview Report (Free)';
+                    submitBtn.style.opacity = '0.7';
+                    if (tokenNotice) tokenNotice.style.display = 'block';
+                }
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span>&#128229;</span> Upload &amp; Generate Certificate';
+                submitBtn.style.opacity = '1';
+                if (tokenNotice) tokenNotice.style.display = 'none';
+            }
+
             analyzeBtn.disabled = !(hasToken && hasDir);
         }
 
@@ -1150,9 +1175,34 @@
             }
         });
 
+        // Show Advanced cloud scan tab when link is clicked
+        document.getElementById('showAdvancedLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabs = document.querySelector('.mode-tabs');
+            if (!document.getElementById('tabAnalyze')) {
+                const btn = document.createElement('button');
+                btn.className = 'mode-tab';
+                btn.id = 'tabAnalyze';
+                btn.dataset.mode = 'analyze';
+                btn.innerHTML = '&#9729; Cloud Evaluation Scan';
+                btn.addEventListener('click', () => setMode('analyze'));
+                tabs.appendChild(btn);
+            }
+            setMode('analyze');
+            document.getElementById('showAdvancedLink').parentElement.style.display = 'none';
+        });
+
         submitBtn.addEventListener('click', async () => {
             const token = licenseInput.value.trim();
-            if (!token || !reportData) return;
+            if (!reportData) return;
+
+            // Preview mode: no token yet, guide user
+            if (!token || token.length < 10) {
+                licenseInput.focus();
+                licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showStatus('Report loaded! Paste a license token above to generate your certificate, or click "Try for Free".', 'loading');
+                return;
+            }
 
             submitBtn.disabled = true;
             showStatus('Generating certificate ZIP...', 'loading');
