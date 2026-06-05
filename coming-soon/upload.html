@@ -1196,6 +1196,26 @@
             renderPreview(reportData);
             updateSubmit();
             showStatus(`Scan complete: ${sourceFiles.length} files, ${aiHits.length} AI hits, ${credentialHits} credential patterns. Token required for certificate.`, 'success');
+
+            // Add download button for report.json
+            const existingBtn = document.getElementById('downloadReportBtn');
+            if (existingBtn) existingBtn.remove();
+            const downloadBtn = document.createElement('button');
+            downloadBtn.id = 'downloadReportBtn';
+            downloadBtn.className = 'btn btn-primary';
+            downloadBtn.style.marginTop = '12px';
+            downloadBtn.style.background = 'linear-gradient(135deg, #059669, #047857)';
+            downloadBtn.innerHTML = '<span>&#128229;</span> Download report.json';
+            downloadBtn.addEventListener('click', () => {
+                const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(reportData, null, 2));
+                const a = document.createElement('a');
+                a.setAttribute('href', dataStr);
+                a.setAttribute('download', 'report.json');
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            });
+            status.parentNode.insertBefore(downloadBtn, status.nextSibling);
         }
 
         submitBtn.addEventListener('click', async () => {
