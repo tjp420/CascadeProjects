@@ -384,7 +384,10 @@ app.get('/api/free-token', (req, res) => {
         });
     }
 
-    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || (process.env.NODE_ENV !== 'production' ? 'simplebeacon-dev-insecure' : null);
+    if (!secret) {
+        return res.status(500).json({ error: 'License secret not configured' });
+    }
     const token = generateLicenseToken(
         { email: 'guest@simplebeacon.ai', tier: 'community', projectName: 'Free-Demo', clientName: 'Guest' },
         secret,
