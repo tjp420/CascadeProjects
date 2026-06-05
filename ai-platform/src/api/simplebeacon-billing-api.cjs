@@ -817,7 +817,8 @@ function setupSimplebeaconBillingRoutes(app) {
     let payload = null;
     if (!record) {
       // Fallback: cryptographically verify tokens not in store
-      payload = verifyLicenseToken(licenseToken);
+      const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+      payload = verifyLicenseToken(licenseToken, secret);
       if (!payload) {
         const err = new Error('Invalid license token');
         err.statusCode = 401;
@@ -834,7 +835,8 @@ function setupSimplebeaconBillingRoutes(app) {
       };
     } else {
       // Token found in store — enrich with cert fields from payload if missing
-      payload = verifyLicenseToken(licenseToken);
+      const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+      payload = verifyLicenseToken(licenseToken, secret);
       if (payload) {
         record.certClientName = record.certClientName || payload.clientName || record.clientName || 'Client';
         record.certProjectName = record.certProjectName || payload.projectName || record.projectName || 'Project';

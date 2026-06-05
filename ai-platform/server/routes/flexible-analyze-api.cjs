@@ -730,7 +730,8 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             return record;
         }
         // Fallback: cryptographically verify tokens not in store
-        const payload = verifyLicenseToken(token);
+        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+        const payload = verifyLicenseToken(token, secret);
         if (!payload) return null;
         const tier = payload.tier || 'executive';
         if (!VALID_TIERS.includes(tier)) return null;

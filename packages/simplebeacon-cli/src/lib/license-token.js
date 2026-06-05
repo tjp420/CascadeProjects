@@ -140,9 +140,15 @@ function resolveLicenseToken() {
     }
 }
 
+function verifyLicenseToken(token, secret) {
+    const result = validateLicenseToken(token, secret);
+    return result.valid ? result.claims : null;
+}
+
 module.exports = {
     generateLicenseToken,
     validateLicenseToken,
+    verifyLicenseToken,
     hasValidLicense,
     resolveLicenseToken
 };

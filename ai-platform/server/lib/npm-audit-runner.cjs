@@ -5,6 +5,7 @@
 const { execSync, execFile } = require('child_process');
 const util = require('util');
 const path = require('path');
+const fs = require('fs');
 
 const execFileAsync = util.promisify(execFile);
 
@@ -90,13 +91,33 @@ function parseNpmAuditJson(raw) {
     };
 }
 
+function findPackageJson(startDir) {
+    if (fs.existsSync(path.join(startDir, 'package.json'))) return startDir;
+    try {
+        const entries = fs.readdirSync(startDir, { withFileTypes: true });
+        for (const entry of entries) {
+            if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+                const subDir = path.join(startDir, entry.name);
+                if (fs.existsSync(path.join(subDir, 'package.json'))) return subDir;
+            }
+        }
+    } catch { /* directory read may fail on restricted paths */ }
+    return null;
+}
+
 function runNpmAudit(projectRoot, options = {}) {
-    const root = path.resolve(projectRoot || process.cwd());
+    let root = path.resolve(projectRoot || process.cwd());
     const cacheTtl = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
     const now = Date.now();
 
     if (!options.force && cache && cache.root === root && (now - cache.at) < cacheTtl) {
         return cache.result;
+    }
+
+    // Uploaded projects may have package.json in a subdirectory
+    if (!fs.existsSync(path.join(root, 'package.json'))) {
+        const found = findPackageJson(root);
+        if (found) root = found;
     }
 
     let stdout = '';

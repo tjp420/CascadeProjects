@@ -43,7 +43,7 @@ const DELIVERABLE_TIERS = {
     productSku: 'moneyPrinter19',
     requiresCompleteScan: false,
     minScanKind: ['complete', 'simplebeacon-report', 'unknown'],
-    artifacts: [A.publicSummary, A.simplebeaconGate, A.executiveAudit]
+    artifacts: [A.simplebeaconGate, A.fictionDigest, A.codebaseSummary, A.executiveAudit]
   },
   community: {
     id: 'community',

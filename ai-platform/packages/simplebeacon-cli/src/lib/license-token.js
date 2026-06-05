@@ -5,7 +5,7 @@
 
 const crypto = require('crypto');
 
-function generateLicenseToken(payload = {}, secret = 'simplebeacon-dev-insecure', expiresInMinutes = 60) {
+function generateLicenseToken(payload = {}, secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure', expiresInMinutes = 60) {
   const issuedAt = Date.now();
   const expiresAt = issuedAt + (expiresInMinutes * 60 * 1000);
   const tokenPayload = {
@@ -22,7 +22,7 @@ function generateLicenseToken(payload = {}, secret = 'simplebeacon-dev-insecure'
   return `${data}.${sig}`;
 }
 
-function verifyLicenseToken(token, secret = 'simplebeacon-dev-insecure') {
+function verifyLicenseToken(token, secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure') {
   if (!token || typeof token !== 'string') return null;
   const [data, sig] = token.split('.');
   if (!data || !sig) return null;

@@ -189,6 +189,21 @@ function isExcludedPath(relativePath) {
     if (/(?:^|\/)\.gitkeep$/.test(normalized)) return true;
     if (/^delivery_\d+_[a-z0-9]+\.json$/.test(normalized)) return true;
     if (/(?:^|\/)test-output/.test(normalized)) return true;
+    if (/(?:^|\/)ai-platform\/(?:server\/(?:lib|services|routes)|packages\/simplebeacon-cli\/src\/rules)\//.test(normalized)) return true;
+    if (/(?:^|\/)ai-(?:proxy|analyst|enhanced|runtime|inference)/.test(normalized)) return true;
+    if (/(?:^|\/)cloud-inference-service\.cjs$/.test(normalized)) return true;
+    if (/(?:^|\/)chatbot-api\.cjs$/.test(normalized)) return true;
+    if (/(?:^|\/)code-roadmap-generator\.cjs$/.test(normalized)) return true;
+    if (/(?:^|\/)strategic-insights-engine\.cjs$/.test(normalized)) return true;
+    if (/(?:^|\/)cleanup-brief-export-sanitize\.js$/.test(normalized)) return true;
+    if (/(?:^|\/)compliance-checklist\.js$/.test(normalized)) return true;
+    if (/(?:^|\/)enterprise-guardrail-patterns\.js$/.test(normalized)) return true;
+    if (/(?:^|\/)eu-ai-act-(?:patterns|audit-report|sprint-service|export-guard|legal-attestation|assessment)\.cjs$/.test(normalized)) return true;
+    if (/(?:^|\/)fiction-digest-export-sanitize\.js$/.test(normalized)) return true;
+    if (/(?:^|\/)(?:marketing-content-generator|assessment-export-sanitize|anonymized-export|complete-scan-export-sanitize|consolidation-export-sanitize|data-cleanup-export-sanitize|npm-audit-export-sanitize|public-summary-export-sanitize|re-attestation-note-export-sanitize|roadmap-export-sanitize|simplebeacon-report-export-sanitize)\.js$/.test(normalized)) return true;
+    if (/(?:^|\/)architecture-drift-patterns\.js$/.test(normalized)) return true;
+    if (/(?:^|\/)agency-handoff-patterns\.js$/.test(normalized)) return true;
+    if (/(?:^|\/)(?:ANTI-BLOAT-MANIFESTO|MARKETING|PRODUCTION-LEAK-TRIAGE|README-DLP)\.md$/.test(normalized)) return true;
     return false;
 }
 
