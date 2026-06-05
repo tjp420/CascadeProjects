@@ -548,107 +548,84 @@
             </div>
         </div>
 
-        <div class="card">
-            <h2><span>1</span> License Token</h2>
-            <div class="form-group">
-                <label for="licenseToken">License Token</label>
-                <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off">
-                <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
-                <div style="margin-top:10px;text-align:center;">
-                    <button id="tryFreeBtn" style="padding:8px 16px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Try for Free →</button>
-                    <p style="font-size:0.75rem;color:var(--text-muted);margin:6px 0 0;">No payment required. Runs the Simplebeacon Gate scan locally.</p>
-                </div>
-                <div style="margin-top:12px;padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
-                    <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>need a token?</strong></p>
-                    <div style="display:flex;gap:8px;">
-                        <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
-                        <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send a Token</button>
-                    </div>
-                    <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
-                </div>
-            </div>
-        </div>
-
-        <!-- STEP 1: Install CLI -->
+        <!-- STEP 1 & 2: CONSOLIDATED AUDIT ENGINE -->
         <div class="card" style="padding:0;overflow:hidden;">
-            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+            <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
                     <span style="background:var(--accent);color:white;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
-                    <h2 style="margin:0;font-size:1rem;">Install the Audit Engine</h2>
+                    <h2 style="margin:0;font-size:1rem;">Run Local Compliance Audit</h2>
                 </div>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Install our open-source scanner via npm. One command, runs everywhere.</p>
+                <!-- Tab Engine Switcher -->
+                <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);">
+                    <button id="tab-browser" class="mode-tab active" style="flex:none;padding:8px 16px;">Browser Sandbox</button>
+                    <button id="tab-cli" class="mode-tab" style="flex:none;padding:8px 16px;">Command Line (CLI)</button>
+                </div>
             </div>
-            <div style="padding:20px 24px;background:var(--bg-input);">
-                <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#60A5FA;">
+
+            <!-- CLI Mode -->
+            <div id="view-cli" style="padding:20px 24px;background:var(--bg-input);display:none;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                    <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
+                    <span style="font-size:0.85rem;color:var(--text-main);font-weight:600;">Install</span>
+                    <span style="font-size:0.8rem;color:var(--text-muted);">One command, runs everywhere</span>
+                </div>
+                <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#60A5FA;margin-bottom:16px;">
                     <code id="installCmd">npm install -g simplebeacon</code>
                     <button onclick="copyToClipboard('installCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
                 </div>
+
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                    <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
+                    <span style="font-size:0.85rem;color:var(--text-main);font-weight:600;">Scan</span>
+                    <span style="font-size:0.8rem;color:var(--text-muted);">Run inside your project folder</span>
+                </div>
+                <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#34D399;margin-bottom:12px;">
+                    <code id="scanCmd">simplebeacon scan . --output=report.json</code>
+                    <button onclick="copyToClipboard('scanCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
+                </div>
+
+                <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:1rem;">&#128737;</span>
+                    <span style="font-size:0.75rem;color:#34D399;"><strong>Zero-Trust:</strong> Output is audit metadata only — your source code never leaves your machine.</span>
+                </div>
+            </div>
+
+            <!-- Browser Mode -->
+            <div id="view-browser">
+                <div style="padding:20px 24px;background:var(--bg-input);border-top:1px solid var(--border);">
+                    <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">Scan runs 100% in your browser. Nothing is uploaded to our servers.</p>
+                    <div id="cli-dropzone" class="drop-zone" style="margin-bottom:12px;">
+                        <div id="dropzone-prompt">
+                            <div class="icon">&#128451;</div>
+                            <p>Drag your project folder here<br><span style="font-size:0.8rem;opacity:0.7;">Scan runs in browser sandbox — zero network upload</span></p>
+                            <p class="file-name" id="localScanFileName"></p>
+                        </div>
+                        <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
+                        <input type="file" id="cli-files-input" multiple style="display:none;">
+                    </div>
+                    <div id="terminal-console" class="preview" style="display:none;max-height:200px;margin-bottom:12px;"></div>
+                    <div id="panel-progress-container" style="display:none;margin-bottom:12px;">
+                        <div class="progress-bar"><div class="fill" id="panel-progress-bar"></div></div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);">
+                        <span>ENGINE: <span id="panel-status" style="color:#F59E0B;font-weight:700;">READY</span></span>
+                        <span id="panel-metrics" style="display:none;">Files: 0 | Lines: 0</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- STEP 2: Scan Locally -->
+        <!-- STEP 3: UPLOAD & CERTIFICATE -->
         <div class="card" style="padding:0;overflow:hidden;">
             <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
                     <span style="background:var(--accent);color:white;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
-                    <h2 style="margin:0;font-size:1rem;">Execute Local Compliance Scan</h2>
+                    <h2 style="margin:0;font-size:1rem;">Upload &amp; Generate Certificate</h2>
                 </div>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Run the scan inside your project folder. Output is a metadata JSON — no source code included.</p>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Drop your scan report. Add a license token to unlock the official PDF.</p>
             </div>
             <div style="padding:20px 24px;background:var(--bg-input);">
-                <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#34D399;margin-bottom:12px;">
-                    <code id="scanCmd">simplebeacon scan . --output=simplebeacon_report.json</code>
-                    <button onclick="copyToClipboard('scanCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
-                </div>
-                <div style="font-size:0.75rem;color:#F59E0B;display:flex;align-items:center;gap:6px;">
-                    <span>&#128737;</span>
-                    <span>Zero-Trust: The generated file contains audit score matrices only — no source code rows are tracked.</span>
-                </div>
-            </div>
-            <div style="padding:12px 24px;border-top:1px solid var(--border);text-align:center;">
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">No Node.js installed? Use the <a href="#browser-scan" style="color:#60A5FA;text-decoration:none;">Browser Sandbox Scanner</a> instead.</p>
-            </div>
-        </div>
-
-        <!-- Browser Sandbox Scanner (hidden anchor target) -->
-        <div id="browser-scan" class="card" style="padding:0;overflow:hidden;">
-            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-                    <span style="background:rgba(16,185,129,0.2);color:#34D399;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">&#9889;</span>
-                    <h2 style="margin:0;font-size:1rem;">Browser Sandbox Scanner (No Install)</h2>
-                </div>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Scan runs 100% in your browser. Nothing is uploaded to our servers.</p>
-            </div>
-            <div style="padding:20px 24px;background:var(--bg-input);">
-                <div id="cli-dropzone" class="drop-zone" style="margin-bottom:12px;">
-                    <div id="dropzone-prompt">
-                        <div class="icon">&#128451;</div>
-                        <p>Drag your project folder here<br><span style="font-size:0.8rem;opacity:0.7;">Scan runs in browser sandbox — zero network upload</span></p>
-                        <p class="file-name" id="localScanFileName"></p>
-                    </div>
-                    <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
-                </div>
-                <div id="terminal-console" class="preview" style="display:none;max-height:200px;margin-bottom:12px;"></div>
-                <div id="panel-progress-container" style="display:none;margin-bottom:12px;">
-                    <div class="progress-bar"><div class="fill" id="panel-progress-bar"></div></div>
-                </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);">
-                    <span>ENGINE: <span id="panel-status" style="color:#F59E0B;font-weight:700;">READY</span></span>
-                    <span id="panel-metrics" style="display:none;">Files: 0 | Lines: 0</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- STEP 3: Upload JSON -->
-        <div class="card" style="padding:0;overflow:hidden;">
-            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-                    <span style="background:var(--accent);color:white;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">3</span>
-                    <h2 style="margin:0;font-size:1rem;">Upload Metadata to Generate Certificate</h2>
-                </div>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Drop your generated JSON report. We only read compliance metadata — your source code never leaves your network.</p>
-            </div>
-            <div style="padding:20px 24px;background:var(--bg-input);">
+                <!-- JSON Dropzone -->
                 <div class="drop-zone" id="dropZone">
                     <div class="icon">&#128229;</div>
                     <p>Drag your <code>simplebeacon_report.json</code> here<br>or click to browse</p>
@@ -656,23 +633,40 @@
                     <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
                 </div>
 
+                <!-- Scan Preview -->
                 <div id="scanPreview" style="display: none; margin-top:16px;">
                     <label>Scan Preview</label>
                     <div class="scan-meta" id="scanMeta"></div>
                     <div class="preview" id="previewContent"></div>
                 </div>
-            </div>
-        </div>
 
-        <div class="card">
-            <h2>Generate Certificate</h2>
-            <button class="btn btn-primary" id="submitBtn" disabled>
-                <span>&#128229;</span> Generate Certificate
-            </button>
-            <div id="tokenNotice" style="display:none;margin-top:12px;padding:12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;font-size:0.85rem;color:var(--text-muted);">
-                <strong style="color:#FBBF24;">&#8505; Report loaded.</strong> Paste a license token above to generate your certificate. <a href="pricing.html" style="color:#60A5FA;">Get a token</a> or click <strong>Try for Free</strong>.
+                <!-- Token + Actions (inline) -->
+                <div id="tokenActionRow" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;">
+                        <div>
+                            <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
+                            <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
+                            <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;">
+                                <span>&#128229;</span> Generate Certificate
+                            </button>
+                            <button id="tryFreeBtn" style="padding:8px 16px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Try for Free</button>
+                        </div>
+                    </div>
+                    <div style="margin-top:12px;padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
+                        <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
+                        <div style="display:flex;gap:8px;">
+                            <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
+                            <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send a Token</button>
+                        </div>
+                        <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
+                    </div>
+                </div>
+
+                <div class="status" id="status"></div>
             </div>
-            <div class="status" id="status"></div>
         </div>
 
         <footer>
@@ -708,6 +702,30 @@
 
         // Browser-local scanner elements
         const localScanFileName = document.getElementById('localScanFileName');
+
+        // Tab engine switcher
+        const tabCli = document.getElementById('tab-cli');
+        const tabBrowser = document.getElementById('tab-browser');
+        const viewCli = document.getElementById('view-cli');
+        const viewBrowser = document.getElementById('view-browser');
+
+        if (tabCli && tabBrowser && viewCli && viewBrowser) {
+            // Default: show browser view
+            viewBrowser.style.display = 'block';
+            viewCli.style.display = 'none';
+            tabBrowser.addEventListener('click', () => {
+                tabBrowser.classList.add('active');
+                tabCli.classList.remove('active');
+                viewBrowser.style.display = 'block';
+                viewCli.style.display = 'none';
+            });
+            tabCli.addEventListener('click', () => {
+                tabCli.classList.add('active');
+                tabBrowser.classList.remove('active');
+                viewCli.style.display = 'block';
+                viewBrowser.style.display = 'none';
+            });
+        }
 
         let reportData = null;
 
@@ -970,25 +988,24 @@
         function updateSubmit() {
             const hasToken = licenseInput.value.trim().length > 10;
             const hasFile = reportData !== null;
-            const tokenNotice = document.getElementById('tokenNotice');
+            const tokenActionRow = document.getElementById('tokenActionRow');
 
             if (hasFile) {
+                if (tokenActionRow) tokenActionRow.style.display = 'block';
                 if (hasToken) {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<span>&#128229;</span> Generate Certificate';
                     submitBtn.style.opacity = '1';
-                    if (tokenNotice) tokenNotice.style.display = 'none';
                 } else {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<span>&#128064;</span> Preview Report (Free)';
                     submitBtn.style.opacity = '0.7';
-                    if (tokenNotice) tokenNotice.style.display = 'block';
                 }
             } else {
+                if (tokenActionRow) tokenActionRow.style.display = 'none';
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span>&#128229;</span> Generate Certificate';
                 submitBtn.style.opacity = '1';
-                if (tokenNotice) tokenNotice.style.display = 'none';
             }
         }
 
@@ -1143,9 +1160,15 @@
         }
 
         // Dropzone interactions
+        const cliFilesInput = document.getElementById('cli-files-input');
         cliDropzone.addEventListener('click', (e) => {
             if (e.target.closest('#terminal-console')) return;
-            cliFolderInput.click();
+            // Try folder picker first (Chrome/Edge), fall back to files (Firefox/Safari)
+            if ('webkitdirectory' in document.createElement('input')) {
+                cliFolderInput.click();
+            } else {
+                cliFilesInput.click();
+            }
         });
         cliDropzone.addEventListener('dragover', (e) => { e.preventDefault(); cliDropzone.style.borderColor = 'var(--primary)'; });
         cliDropzone.addEventListener('dragleave', () => { cliDropzone.style.borderColor = ''; });
@@ -1173,6 +1196,9 @@
             }
         });
         cliFolderInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) processLocalCLIScan(Array.from(e.target.files));
+        });
+        cliFilesInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) processLocalCLIScan(Array.from(e.target.files));
         });
 
