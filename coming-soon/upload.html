@@ -1030,11 +1030,11 @@
             scanPreview.style.display = 'block';
             const gate = data.gate || data.results?.simplebeacon?.gate || {};
             const gatePass = gate.pass ?? false;
-            const detectedIssues = data.detectedIssues || data.rawIssues || [];
-            const rawIssues = data.rawIssues || detectedIssues || [];
+            const detectedIssues = Array.isArray(data.detectedIssues) ? data.detectedIssues : (Array.isArray(data.rawIssues) ? data.rawIssues : []);
+            const rawIssues = Array.isArray(data.rawIssues) ? data.rawIssues : detectedIssues;
             const quality = data.qualityScore ?? data.results?.simplebeacon?.qualityScore ?? (rawIssues.length ? Math.max(0, 100 - rawIssues.length * 2) : 0);
             const files = data.totalFiles ?? data.filesAnalyzed ?? data.repositoryFilesTotal ?? data.summary?.files ?? 0;
-            const issues = data.issueCount ?? gate.blockingCount ?? detectedIssues.length ?? rawIssues.length ?? 0;
+            const issues = data.issueCount ?? gate.blockingCount ?? detectedIssues.length ?? 0;
             const project = data.projectRoot || data.scanTargetRoot || (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) || 'Unknown Project';
             const grade = quality >= 90 ? 'A' : quality >= 80 ? 'B' : quality >= 70 ? 'C' : quality >= 60 ? 'D' : 'F';
             const gradeColor = quality >= 80 ? '#10B981' : quality >= 60 ? '#F59E0B' : '#EF4444';
@@ -1113,15 +1113,16 @@
         // 1. Dynamic live command string
         function updateGeneratedCommandString() {
             let baseCmd = 'simplebeacon scan .';
-            if (document.getElementById('flag-env').checked) baseCmd += ' --exclude-env';
-            if (document.getElementById('flag-deps').checked) baseCmd += ' --skip-node-modules';
-            if (document.getElementById('flag-code-only').checked) baseCmd += ' --code-only';
-            if (document.getElementById('flag-docs').checked) baseCmd += ' --skip-docs';
-            liveCommandText.textContent = baseCmd;
+            if (document.getElementById('flag-env')?.checked) baseCmd += ' --exclude-env';
+            if (document.getElementById('flag-deps')?.checked) baseCmd += ' --skip-node-modules';
+            if (document.getElementById('flag-code-only')?.checked) baseCmd += ' --code-only';
+            if (document.getElementById('flag-docs')?.checked) baseCmd += ' --skip-docs';
+            if (liveCommandText) liveCommandText.textContent = baseCmd;
         }
 
         ['flag-env', 'flag-deps', 'flag-code-only', 'flag-docs'].forEach(id => {
-            document.getElementById(id).addEventListener('change', updateGeneratedCommandString);
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', updateGeneratedCommandString);
         });
 
         // 2. Terminal writer
@@ -1199,14 +1200,14 @@
             panelStatus.style.color = '#60A5FA';
             terminalConsole.innerHTML = '';
 
-            appendTerminalLine(`${liveCommandText.textContent}`, 'input');
+            appendTerminalLine(`${liveCommandText ? liveCommandText.textContent : 'simplebeacon scan .'}`, 'input');
             appendTerminalLine('Initializing Local Web Worker Core... Allocating isolated browser memory structures.');
             appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
 
-            const excludeEnv = document.getElementById('flag-env').checked;
-            const skipDeps = document.getElementById('flag-deps').checked;
-            const codeOnly = document.getElementById('flag-code-only').checked;
-            const skipDocs = document.getElementById('flag-docs').checked;
+            const excludeEnv = document.getElementById('flag-env')?.checked ?? true;
+            const skipDeps = document.getElementById('flag-deps')?.checked ?? true;
+            const codeOnly = document.getElementById('flag-code-only')?.checked ?? false;
+            const skipDocs = document.getElementById('flag-docs')?.checked ?? true;
 
             let scanned = 0;
             let totalLines = 0;
