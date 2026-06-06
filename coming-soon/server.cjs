@@ -615,8 +615,7 @@ function buildCertificateHtml(reportJson, payload) {
         <tr><td>Summary</td><td>${compliance.summary || 'No governance files detected.'}</td></tr>
       </table>` : '';
 
-    const hasEuAi = (euAiActSummary.highRiskIndicators || 0) > 0 || (euAiActSummary.aiSystemIndicators || 0) > 0 || (euAiActSummary.transparencyGaps || 0) > 0 || (euAiActSummary.documentationArtifacts || 0) > 0 || ((euAiActSummary.documentationFound || []).length > 0);
-    const secEuAi = hasEuAi ? `<h3>&#127757; 11. EU AI Act Sprint</h3>
+    const secEuAi = hasEuAiFindings ? `<h3>&#127757; 11. EU AI Act Sprint</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>High-risk indicators</td><td>${euAiActSummary.highRiskIndicators || 0}</td></tr>
