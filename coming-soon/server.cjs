@@ -433,6 +433,11 @@ function normalizeReport(reportJson) {
     // 1. Complete-scan wrapper: pull the simplebeacon sub-report up
     const sub = reportJson?.results?.simplebeacon;
     if (sub && typeof sub === 'object') {
+        // Handle double-wrapped complete scans (sub itself is another wrapper)
+        const nested = sub.results?.simplebeacon;
+        if (nested && typeof nested === 'object') {
+            return { ...reportJson, ...sub, ...nested, detectedIssues: nested.detectedIssues || sub.detectedIssues || reportJson.detectedIssues || [] };
+        }
         return { ...reportJson, ...sub, detectedIssues: sub.detectedIssues || reportJson.detectedIssues || [] };
     }
 
@@ -455,14 +460,16 @@ function normalizeReport(reportJson) {
 
     // 3. Re-attestation-note: synthesize from currentGate
     if (type === 'simplebeacon-re-attestation-note') {
+        const isReference = reportJson.workflowStatus === 'reference-only' || reportJson.currentGate === null;
         const cg = reportJson.currentGate || {};
         return {
             ...reportJson,
             gate: {
-                pass: cg.pass ?? false,
-                blockingCount: cg.blockingCount ?? 0,
+                pass: isReference ? null : (cg.pass ?? false),
+                blockingCount: isReference ? null : (cg.blockingCount ?? 0),
                 warningCount: 0
             },
+            isReferenceTemplate: isReference,
             qualityScore: cg.qualityScore ?? 0,
             totalFiles: cg.repositoryFilesTotal ?? 0,
             issueCount: 0,
@@ -520,7 +527,7 @@ function buildCertificateHtml(reportJson, payload) {
     }).join('');
 
     // Build EU AI Act section
-    const hasEuAiFindings = (euAiActSummary.highRiskIndicators || 0) > 0 || (euAiActSummary.aiSystemIndicators || 0) > 0 || (euAiActSummary.transparencyGaps || 0) > 0;
+    const hasEuAiFindings = (euAiActSummary.highRiskIndicators || 0) > 0 || (euAiActSummary.aiSystemIndicators || 0) > 0 || (euAiActSummary.transparencyGaps || 0) > 0 || (euAiActSummary.documentationArtifacts || 0) > 0 || ((euAiActSummary.documentationFound || []).length > 0);
     const euAiaHtml = hasEuAiFindings ? `
     <section class="section">
       <div class="section-num">Section 02-A</div>
