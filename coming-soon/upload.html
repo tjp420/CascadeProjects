@@ -2196,8 +2196,8 @@
                     reason = 'File > 5MB';
                 } else if (skipDeps && (/node_modules\/|\.git\//.test(lowerPath))) {
                     reason = 'Core exclusion';
-                } else if (/\.simplebeacon\/report-deliveries\//.test(lowerPath)) {
-                    reason = 'Report delivery cache';
+                } else if (/\.simplebeacon\//.test(lowerPath)) {
+                    reason = 'Simplebeacon cache';
                 } else if (lowerPath.endsWith('upload.html')) {
                     reason = 'Scanner page';
                 } else if (ignorePatterns.some(p => p.test(path))) {
