@@ -38,9 +38,51 @@
             margin: 0 auto;
         }
 
+        .top-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .top-nav .brand {
+            font-size: 1.1rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60A5FA, #2563EB);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .top-nav .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 0.8rem;
+        }
+        .top-nav .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .top-nav .nav-links a:hover { color: var(--text-main); }
+        .top-nav .github-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+        .top-nav .github-badge:hover { border-color: var(--accent); color: var(--text-main); }
+
         header {
             text-align: center;
-            padding: 40px 0 32px;
+            padding: 24px 0 32px;
         }
 
         header h1 {
@@ -151,7 +193,9 @@
         .drop-zone:hover,
         .drop-zone.dragover {
             border-color: var(--accent);
-            background: rgba(37, 99, 235, 0.05);
+            background: rgba(37, 99, 235, 0.08);
+            box-shadow: 0 0 0 4px var(--accent-glow), 0 8px 24px rgba(37,99,235,0.15);
+            transform: scale(1.01);
         }
 
         .drop-zone .icon {
@@ -405,11 +449,32 @@
         .gate-fail { color: var(--error); }
 
         footer {
-            text-align: center;
-            padding: 40px 0;
+            padding: 24px 0;
             color: var(--text-muted);
             font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+            margin-top: 20px;
         }
+        footer .footer-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        footer .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        footer .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        footer .footer-links a:hover { color: var(--text-main); }
+        footer .footer-links a.cloud-link { color: #F87171; }
+        footer .footer-links a.cloud-link:hover { color: #EF4444; }
 
         .local-note {
             background: rgba(245, 158, 11, 0.08);
@@ -513,10 +578,20 @@
     </div>
     <script>window.addEventListener('DOMContentLoaded',function(){document.body.classList.add('loaded')});setTimeout(function(){document.body.classList.add('loaded')},3000)</script>
     <div class="container">
+        <nav class="top-nav">
+            <a href="/" class="brand">&#9670; SimpleBeacon</a>
+            <div class="nav-links">
+                <a href="pricing.html">Pricing</a>
+                <a href="scan-status.html">Status</a>
+                <a href="cloud-scan.html" style="color:#F87171;">Cloud</a>
+                <a href="https://github.com/tjp420/CascadeProjects" target="_blank" rel="noopener" class="github-badge">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                    Open Source
+                </a>
+            </div>
+        </nav>
         <header>
-            <div class="step-badge">
-                <span>Step 2 of 2</span>
-                <span>&mdash;</span>
+            <div class="step-badge" id="productBadge">
                 <span id="productLabel">Certificate Generation</span>
             </div>
             <h1 id="pageTitle">Upload Your Scan Report</h1>
@@ -661,6 +736,7 @@
                             <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
                             <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
                             <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
+                            <p id="tokenError" style="display:none;font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
                         </div>
                         <div style="display:flex;gap:8px;">
                             <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;">
@@ -676,6 +752,10 @@
                             <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send a Token</button>
                         </div>
                         <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
+                        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:0.75rem;color:var(--text-muted);">Corporate buyer?</span>
+                            <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon" style="font-size:0.75rem;color:#60A5FA;text-decoration:none;font-weight:600;">Request Invoice / W-9 &rarr;</a>
+                        </div>
                     </div>
                 </div>
 
@@ -684,8 +764,15 @@
         </div>
 
         <footer>
-            <p>SimpleBeacon Engine v1.3.0 &mdash; Zero-Dependency Static Analysis</p>
-            <p style="margin-top: 4px; opacity: 0.7;"><a href="scan-status.html" style="color: #60A5FA; text-decoration: none;">Scan Status</a> &middot; <a href="pricing.html" style="color: #60A5FA; text-decoration: none;">Pricing</a> &middot; <a href="cloud-scan.html" style="color: #F87171; text-decoration: none;">Cloud Scan</a> &middot; Questions? <a href="mailto:trevor_punt@live.com" style="color: #60A5FA; text-decoration: none;">trevor_punt@live.com</a></p>
+            <div class="footer-inner">
+                <span>SimpleBeacon Engine v1.3.0 &mdash; Zero-Dependency Static Analysis</span>
+                <div class="footer-links">
+                    <a href="scan-status.html">Scan Status</a>
+                    <a href="pricing.html">Pricing</a>
+                    <a href="cloud-scan.html" class="cloud-link">Cloud Scan</a>
+                    <a href="mailto:trevor_punt@live.com">Contact</a>
+                </div>
+            </div>
         </footer>
     </div>
 
@@ -985,6 +1072,8 @@
 
         // Wire up token input to both product detection AND button state
         licenseInput.addEventListener('input', () => {
+            const tokenError = document.getElementById('tokenError');
+            if (tokenError) tokenError.style.display = 'none';
             applyProductFromToken(licenseInput.value.trim());
             updateSubmit();
         });
@@ -1412,6 +1501,8 @@
 
         submitBtn.addEventListener('click', async () => {
             const token = licenseInput.value.trim();
+            const tokenError = document.getElementById('tokenError');
+            if (tokenError) tokenError.style.display = 'none';
             if (!reportData) return;
 
             // Preview mode: no token yet, guide user
@@ -1437,7 +1528,12 @@
 
                 if (!response.ok) {
                     const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.error || `Certificate generation failed (${response.status})`);
+                    const msg = errData.error || `Certificate generation failed (${response.status})`;
+                    if (response.status === 401 || response.status === 403) {
+                        if (tokenError) tokenError.style.display = 'block';
+                        throw new Error('Invalid or expired token');
+                    }
+                    throw new Error(msg);
                 }
 
                 const blob = await response.blob();
@@ -1451,7 +1547,7 @@
                 URL.revokeObjectURL(url);
                 showStatus('Certificate ZIP downloaded! Open the ZIP and browse to reports/*.html → Print → Save as PDF.', 'success');
             } catch (err) {
-                showStatus('Network error — please check your connection and try again. (' + err.message + ')', 'error');
+                showStatus(err.message, 'error');
             } finally {
                 submitBtn.disabled = false;
             }
