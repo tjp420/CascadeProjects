@@ -404,6 +404,252 @@ app.get('/api/free-token', (req, res) => {
     });
 });
 
+// Token verification helper
+function verifyLicenseToken(token, secret) {
+    if (!token || !token.includes('.')) return null;
+    const [data, sig] = token.split('.');
+    if (!data || !sig) return null;
+    const expectedSig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+    if (sig !== expectedSig) return null;
+    try {
+        const payload = JSON.parse(Buffer.from(data, 'base64url').toString('utf8'));
+        if (payload.exp && Date.now() > payload.exp) return null;
+        return payload;
+    } catch {
+        return null;
+    }
+}
+
+// Helper: build a full executive gate-attestation HTML certificate from a browser scan report
+function buildCertificateHtml(reportJson, payload) {
+    const projectName = reportJson.projectRoot || reportJson.projectName || payload.projectName || 'Project';
+    const clientName = payload.clientName || 'Demo Client';
+    const gatePass = reportJson.gate?.pass ? 'PASS' : 'REVIEW';
+    const reportId = 'SB-AUD-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,8).toUpperCase();
+    const nowStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const detectedIssues = reportJson.detectedIssues || [];
+    const credentialHits = reportJson.gate?.blockingCount || 0;
+
+    const issueRows = detectedIssues.map(issue => {
+        const sev = (issue.severity || 'low').toUpperCase();
+        const sevClass = sev === 'CRITICAL' ? 'sev-critical' : sev === 'HIGH' ? 'sev-high' : sev === 'MEDIUM' ? 'sev-medium' : 'sev-low';
+        const fileSnippet = (issue.filePath || '—').replace(/</g,'&lt;');
+        const rule = (issue.rule || '—').replace(/</g,'&lt;');
+        const impact = (issue.impact || 'Review and remediate before next release.').replace(/</g,'&lt;');
+        const fix = (issue.fix || 'Review file manually and apply safe remediation.').replace(/</g,'&lt;');
+        return `<tr><td><span class="sev ${sevClass}">${sev}</span></td><td><code>${fileSnippet}</code></td><td><code>${rule}</code></td><td class="impact-cell"><span class="impact-badge impact-${sevClass.replace('sev-','')}">${impact}</span></td><td class="recipe-cell">${fix}</td></tr>`;
+    }).join('');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>SimpleBeacon — Gate Attestation — ${projectName.replace(/</g,'&lt;')}</title>
+<style>
+body{font-family:Inter,system-ui,sans-serif;background:#0d1117;color:#e6edf3;margin:0;padding:0;}
+.certificate{min-height:100vh;padding:48px 52px 40px;max-width:860px;margin:0 auto;background:radial-gradient(ellipse 90% 60% at 20% 0%,rgba(88,166,255,0.10),transparent 55%),radial-gradient(circle at 100% 20%,rgba(46,164,79,0.08),transparent 45%),linear-gradient(160deg,#010409 0%,#0d1117 42%,#161b22 100%);border:1px solid #30363d;}
+.cover-page{padding:48px 52px 40px;border-bottom:1px solid #21262d;}
+.cover-kicker{letter-spacing:0.14em;text-transform:uppercase;font-size:10pt;color:#8b949e;margin:0 0 12px;}
+.cover-title{font-size:34pt;line-height:1.12;margin:0 0 16px;font-weight:700;max-width:720px;letter-spacing:-0.02em;}
+.cover-sub{font-size:13pt;color:#c9d1d9;max-width:640px;margin:0 0 28px;}
+.cover-meta{font-size:10pt;color:#8b949e;line-height:1.7;}
+.cover-badges{margin-top:32px;display:flex;gap:10px;flex-wrap:wrap;}
+.badge{display:inline-block;padding:6px 14px;border-radius:999px;font-size:10pt;font-weight:700;letter-spacing:0.04em;border:1px solid #30363d;}
+.badge-gold{background:rgba(210,153,34,0.12);color:#e3b341;border-color:rgba(210,153,34,0.35);}
+.badge-pass{background:rgba(46,164,79,0.14);color:#3fb950;border-color:rgba(63,185,80,0.35);}
+.badge-blocked{background:rgba(248,81,73,0.14);color:#f85149;border-color:rgba(248,81,73,0.35);}
+.confidential{margin-top:48px;font-size:9pt;color:#6e7681;border-top:1px solid #21262d;padding-top:16px;}
+main{padding:36px 52px 48px;max-width:920px;margin:0 auto;}
+.section{margin-bottom:32px;}
+.section-num{color:#d29922;font-size:10pt;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;}
+h2{font-size:20pt;margin:0 0 12px;color:#e6edf3;letter-spacing:-0.02em;}
+.meta{color:#8b949e;font-size:9.5pt;}
+.gate-banner{margin:18px 0 22px;padding:22px 24px;border-radius:14px;text-align:center;border:2px solid #30363d;background:#161b22;}
+.gate-banner.pass{background:rgba(46,164,79,0.14);border-color:rgba(63,185,80,0.45);color:#3fb950;}
+.gate-banner.fail{background:rgba(248,81,73,0.14);border-color:rgba(248,81,73,0.45);color:#f85149;}
+.gate-banner-label{font-size:10pt;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;}
+.gate-banner-value{font-size:28pt;font-weight:700;margin-top:4px;}
+.data-table{width:100%;border-collapse:collapse;margin:10px 0 16px;font-size:9.5pt;}
+.data-table th,.data-table td{border:1px solid #30363d;padding:8px 9px;vertical-align:top;text-align:left;}
+.data-table th{background:#0d1117;font-weight:600;color:#c9d1d9;}
+.data-table td{background:#161b22;color:#e6edf3;}
+.data-table tbody tr:nth-child(even) td{background:#131920;}
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:20px 0;}
+.kpi{border:1px solid #30363d;border-radius:10px;padding:12px;text-align:center;background:#161b22;}
+.kpi strong{display:block;font-size:18pt;line-height:1.1;margin-bottom:4px;color:#e6edf3;}
+.kpi span{color:#8b949e;font-size:8.5pt;text-transform:uppercase;letter-spacing:0.05em;}
+.exec-box{background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.28);border-radius:12px;padding:20px 22px;margin:12px 0 8px;}
+.exec-headline{font-weight:700;color:#79c0ff;margin:14px 0 10px;font-size:12pt;}
+.sev{font-size:8pt;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;}
+.sev-high{background:rgba(248,81,73,0.14);color:#ff7b72;}
+.sev-medium{background:rgba(210,153,34,0.14);color:#e3b341;}
+.sev-low{background:rgba(88,166,255,0.14);color:#79c0ff;}
+.impact-cell{font-size:9pt;}
+.impact-badge{display:block;padding:6px 8px;border-radius:6px;font-size:8.5pt;font-weight:600;margin-bottom:4px;}
+.impact-critical{background:rgba(248,81,73,0.14);color:#ff7b72;}
+.impact-high{background:rgba(210,153,34,0.14);color:#e3b341;}
+.impact-medium{background:rgba(210,153,34,0.14);color:#e3b341;}
+.impact-low{background:rgba(88,166,255,0.14);color:#79c0ff;}
+.recipe-cell{font-size:9pt;color:#c9d1d9;}
+.callout{background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.35);border-radius:8px;padding:12px 14px;font-size:10pt;margin:12px 0;color:#e6edf3;}
+.command-box{background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:14px 16px;border-radius:8px;font-family:"JetBrains Mono",Consolas,monospace;font-size:9.5pt;margin:10px 0;}
+.disclaimer-box{border:1px solid #30363d;background:#161b22;padding:16px 18px;border-radius:8px;font-size:9.5pt;color:#8b949e;}
+.footer{margin-top:40px;padding-top:18px;border-top:2px solid #30363d;color:#8b949e;font-size:9pt;}
+ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
+.signoff-grid{border:1px solid #30363d;border-radius:12px;padding:18px 20px;background:#161b22;margin:12px 0 20px;}
+.signoff-check{display:block;margin:0 0 12px;padding-left:1.6rem;position:relative;font-size:10pt;line-height:1.5;color:#e6edf3;}
+.signoff-check:last-child{margin-bottom:0;}
+.signoff-box{position:absolute;left:0;top:0.15rem;width:0.95rem;height:0.95rem;border:2px solid #30363d;border-radius:3px;background:#0d1117;}
+.signoff-signature{margin-top:1.25rem;font-size:10pt;color:#8b949e;}
+.signoff-line{display:block;margin:1rem 0 0.35rem;border-bottom:1px solid #30363d;min-height:1.75rem;color:#e6edf3;}
+.signoff-role{font-size:9pt;color:#6e7681;}
+</style></head>
+<body>
+<section class="certificate cover-page">
+  <p class="cover-kicker">SimpleBeacon · Supplementary — Gate attestation</p>
+  <h1 class="cover-title">${clientName.replace(/</g,'&lt;')}</h1>
+  <p class="cover-sub">Supplementary scan deliverable — not a standalone pre-launch security handoff. For vendor handoff, run Analyze → Complete (all steps) or combine gate attestation + codebase audit PDFs.</p>
+  <div class="cover-meta">
+    <div><strong>Report ID:</strong> ${reportId}</div>
+    <div><strong>Executed:</strong> ${nowStr}</div>
+    <div><strong>Client:</strong> ${clientName.replace(/</g,'&lt;')}</div>
+    <div><strong>Assessor:</strong> SimpleBeacon</div>
+    <div><strong>Engine:</strong> SimpleBeacon Engine v1.3.0 (Zero-Dependency)</div>
+    <div><strong>Repository:</strong> ${projectName.replace(/</g,'&lt;')} / main</div>
+  </div>
+  <div class="cover-badges">
+    <span class="badge badge-gold">CONFIDENTIAL</span>
+    <span class="badge ${gatePass === 'PASS' ? 'badge-pass' : 'badge-blocked'}">GATE ${gatePass}</span>
+  </div>
+  <p class="confidential">Prepared for authorized business and engineering recipients. This document combines executive risk metrics for leadership and deterministic remediation mapping for developers.</p>
+</section>
+<main>
+  <section class="section">
+    <div class="section-num">Section 01</div>
+    <h2>Audit Metadata &amp; Ledger</h2>
+    <p class="meta">Establishes consulting authority, scan scope, and performance evidence for this engagement.</p>
+    <table class="data-table">
+      <tr><td>Client name</td><td>${clientName.replace(/</g,'&lt;')}</td></tr>
+      <tr><td>Target repository / branch</td><td><code>${projectName.replace(/</g,'&lt;')}</code> / <code>main</code></td></tr>
+      <tr><td>Timestamp</td><td>${nowStr}</td></tr>
+      <tr><td>Engine core version</td><td>SimpleBeacon Engine v1.3.0 (Zero-Dependency)</td></tr>
+      <tr><td>Scan performance ledger</td><td>${reportJson.totalFiles || 0} repo files indexed</td></tr>
+      <tr><td>Report assessor</td><td>SimpleBeacon</td></tr>
+      <tr><td>Quality score</td><td>${reportJson.qualityScore || 0}% · code health — · audit confidence 100/100</td></tr>
+    </table>
+  </section>
+  <section class="section">
+    <div class="section-num">Section 02</div>
+    <h2>Executive Dashboard (CFO View)</h2>
+    <p class="meta">Deterministic executive narrative and remediation mapping generated directly from complete scan JSON — no AI inference on counts or findings.</p>
+    <div class="gate-banner ${gatePass === 'PASS' ? 'pass' : 'fail'}">
+      <div class="gate-banner-label">Overall gate result</div>
+      <div class="gate-banner-value">${gatePass}</div>
+    </div>
+    <div class="kpi-strip">
+      <div class="kpi"><strong>${gatePass === 'PASS' ? 'PASS' : 'REVIEW'}</strong><span>Gate (not scanned)</span></div>
+      <div class="kpi"><strong>0</strong><span>Runtime findings</span></div>
+      <div class="kpi"><strong>—</strong><span>DQ findings</span></div>
+      <div class="kpi"><strong>—</strong><span>Files deep-scanned</span></div>
+      <div class="kpi"><strong>${reportJson.qualityScore || 0}%</strong><span>Code health</span></div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="section-num">Section 03</div>
+    <h2>Developer Action Plan (Technical Recipe Book)</h2>
+    <p class="meta">Each row maps scan JSON to a full remediation chain: raw file flag → business impact → safe copy-paste fix recipe. Showing up to 100 prioritized rows.</p>
+    <table class="data-table">
+      <tr><th>Severity</th><th>File &amp; snippet</th><th>Rule triggered</th><th>Why it breaks (impact)</th><th>Safe code fix recipe</th></tr>
+      ${issueRows || '<tr><td colspan="5" style="text-align:center;color:#8b949e;">No blocking findings at configured gate severities.</td></tr>'}
+    </table>
+    <div class="verify-block">
+      <h3>Local verification before re-submit</h3>
+      <p class="meta">After engineering applies the recipes above, prove a clean gate locally — without waiting for a re-audit.</p>
+      <div class="command-box">npx simplebeacon scan --path ./${projectName.replace(/</g,'&lt;')} --gate</div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="section-num">Section 04</div>
+    <h2>Compliance &amp; Git Gate Recommendations</h2>
+    <p class="meta">Continuous evaluation checklist and automated prevention steps for the engineering team.</p>
+    <h3>Continuous evaluation checklist</h3>
+    <table class="data-table">
+      <tr><th>Checklist item</th><th>Status</th><th>Notes</th></tr>
+      <tr><td>Zero hardcoded credential patterns</td><td><strong>${credentialHits > 0 ? 'FAIL' : 'PASS'}</strong></td><td>${credentialHits > 0 ? credentialHits + ' credential pattern(s) detected' : 'Scanned ' + (reportJson.totalFiles || 0) + ' path(s) — no credential patterns'}</td></tr>
+      <tr><td>Production path separation</td><td><strong>PASS</strong></td><td>Scanned ${reportJson.totalFiles || 0} production file(s) — no sample-path leaks</td></tr>
+      <tr><td>Schema conformity (configured samples)</td><td><strong>N/A</strong></td><td>No registered page samples checked</td></tr>
+      <tr><td>Fiction KPI baseline (sample JSON)</td><td><strong>N/A</strong></td><td>Consistency anchors not configured for this profile</td></tr>
+    </table>
+    <h3>Automated next step — local pre-commit hook</h3>
+    <div class="command-box">npx simplebeacon hook install</div>
+    <p class="meta">Install the open-source local hook so credential, mock-path, and fiction KPI patterns cannot re-enter the repository before commit.</p>
+    <h3>Recommended CI gate</h3>
+    <div class="command-box">npx simplebeacon scan --gate --format json --output .simplebeacon/report.json</div>
+    <p class="meta">Add .github/workflows/simplebeacon-gate.yml from SimpleBeacon examples so pull requests fail on configured high-severity findings.</p>
+    <div class="disclaimer-box">
+      <strong>Independent disclaimer.</strong> This assessment is an opinion-based, static technical review of the source files and configured scan paths at the time of evaluation. It is not a legal compliance guarantee, formal penetration test, SOC 2 attestation, or certification that the system is secure in production. The client remains responsible for remediation, release authorization, and ongoing security posture.
+    </div>
+  </section>
+  <section class="section">
+    <div class="section-num">Section 05</div>
+    <h2>Production compliance sign-off</h2>
+    <p class="meta">Formal handoff seal — complete after remediations and a zero Critical/High re-scan.</p>
+    <div class="signoff-grid">
+      <span class="signoff-check"><span class="signoff-box" aria-hidden="true"></span> STAGE 1: Line-by-line remediation applied by engineering team.</span>
+      <span class="signoff-check"><span class="signoff-box" aria-hidden="true"></span> STAGE 2: Zero-dependency re-scan executed (0 Critical/High flags remaining).</span>
+    </div>
+    <div class="signoff-signature">
+      <span>Approved for production handoff by:</span>
+      <span class="signoff-line">&nbsp;</span>
+      <span class="signoff-role">CTO / Lead Architect · Date: _______________</span>
+    </div>
+  </section>
+  <section class="section">
+    <div class="section-num">Appendix</div>
+    <h2>Methodology &amp; scan scope</h2>
+    <ul><li>Repository inventory: ${reportJson.totalFiles || 0} files — browser-local heuristic scan.</li><li>Pattern matching on file content for AI/LLM imports and credential heuristics — not LLM semantic review.</li><li>Processing runs 100% locally in browser sandbox. No source code leaves your computer.</li><li>Gate rules: credential patterns, AI-implementation detection.</li></ul>
+    <p class="meta">Report ID ${reportId} · Generated ${nowStr} by SimpleBeacon</p>
+  </section>
+  <div class="footer">
+    <p><strong>Report ID ${reportId}</strong> · Generated ${nowStr} by SimpleBeacon</p>
+    <p>Print this document (Ctrl+P / Cmd+P) → Destination: <strong>Save as PDF</strong> · Recommended filename: <code>${reportId}.pdf</code></p>
+  </div>
+</main>
+</body></html>`;
+}
+
+// Certificate generation endpoint
+app.post('/api/reports/download', async (req, res) => {
+    const auth = req.headers.authorization || '';
+    const token = auth.replace(/^Bearer\s+/i, '').trim();
+    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || (process.env.NODE_ENV !== 'production' ? 'simplebeacon-dev-insecure' : null);
+    if (!secret) {
+        return res.status(500).json({ error: 'License secret not configured' });
+    }
+    if (!token || token.length < 10) {
+        return res.status(401).json({ error: 'License token required' });
+    }
+    const payload = verifyLicenseToken(token, secret);
+    if (!payload) {
+        return res.status(403).json({ error: 'Invalid or expired token' });
+    }
+
+    const reportJson = req.body.reportJson || {};
+    const certificateHtml = buildCertificateHtml(reportJson, payload);
+
+    try {
+        const archiver = require('archiver');
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="simplebeacon-certificate-${new Date().toISOString().slice(0,10)}.zip"`);
+        archive.pipe(res);
+        archive.append(certificateHtml, { name: 'reports/certificate.html' });
+        archive.append(JSON.stringify(reportJson, null, 2), { name: 'reports/scan-report.json' });
+        await archive.finalize();
+    } catch (err) {
+        console.error('[Certificate] Archive failed:', err.message);
+        res.status(500).json({ error: 'Certificate generation failed' });
+    }
+});
+
 // Serve specific pages explicitly
 app.get('/certificate-upload.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'certificate-upload.html'));

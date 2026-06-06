@@ -1420,7 +1420,7 @@
                     const lineCount = text.split('\n').length;
                     totalLines += lineCount;
                     const lower = text.toLowerCase();
-                    if (/new\s+openai|import\s+openai|from\s+anthropic|new\s+anthropic|langchain\.|huggingface_hub|gpt-4\s*\(|claude\s*\(|\.invoke\s*\(|createchatcompletion|chat\.completions/.test(lower)) {
+                    if (/new\s+openai|import\s+openai|from\s+anthropic|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/.test(lower)) {
                         aiHits.push(path);
                     }
                     if (/password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{16,}|secret[_-]?key\s*=\s*['"][a-z0-9]{16,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}/i.test(text)) {
@@ -1466,8 +1466,8 @@
                     ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: credFiles.slice(0,3).join(', ') + (credFiles.length > 3 ? ' ...' : ''), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.' }] : [])
                 ],
                 issues: [
-                    ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length, filePath: aiHits[0] || 'unknown' }] : []),
-                    ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: 'unknown' }] : [])
+                    ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
+                    ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits }] : [])
                 ],
                 rawIssues: [
                     ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
