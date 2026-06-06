@@ -712,7 +712,7 @@
             color: var(--text-muted);
             transition: transform 0.25s ease;
         }
-        .module-dropdown.collapsed .select-all-chevron {
+        .analyzer-dropdown.collapsed .select-all-chevron {
             transform: rotate(-90deg);
         }
         .select-all-bar input[type="checkbox"] {
@@ -733,14 +733,14 @@
             color: var(--text-muted);
             margin-right: 8px;
         }
-        .module-dropdown-body {
+        .analyzer-dropdown-body {
             max-height: 800px;
             opacity: 1;
             overflow: hidden;
             transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease;
             padding: 10px;
         }
-        .module-dropdown.collapsed .module-dropdown-body {
+        .analyzer-dropdown.collapsed .analyzer-dropdown-body {
             max-height: 0;
             opacity: 0;
             padding-top: 0;
@@ -2035,14 +2035,14 @@
                             <option value="compliance">&#127775; Compliance Check — Governance + security</option>
                             <option value="hygiene">&#127775; Hygiene Sweep — Debug artifacts + cleanup</option>
                         </select>
-                        <div class="module-dropdown" id="moduleDropdown">
-                            <div class="select-all-bar" id="selectAllBar" onclick="if(event.target.tagName!=='INPUT'&&event.target.tagName!=='LABEL')toggleModuleDropdown()" role="button" tabindex="0" aria-expanded="true" aria-controls="moduleDropdownBody">
+                        <div class="analyzer-dropdown" id="analyzerDropdown">
+                            <div class="select-all-bar" id="selectAllBar" onclick="if(event.target.tagName!=='INPUT'&&event.target.tagName!=='LABEL')toggleModuleDropdown()" role="button" tabindex="0" aria-expanded="true" aria-controls="analyzerDropdownBody">
                                 <input type="checkbox" id="selectAllModules" checked>
                                 <label for="selectAllModules">Select All Available Modules</label>
                                 <span class="select-all-count" id="selectAllCount"></span>
                                 <span class="select-all-chevron" aria-hidden="true">&#9662;</span>
                             </div>
-                            <div class="module-dropdown-body" id="moduleDropdownBody">
+                            <div class="analyzer-dropdown-body" id="analyzerDropdownBody">
                                 <div id="analyzerCardGrid" class="analyzer-grid"></div>
                             </div>
                         </div>
@@ -2179,7 +2179,7 @@
                     <h4 style="margin:0 0 8px;font-size:1.05rem;color:var(--text-main);">No Scan Report Loaded</h4>
                     <p style="margin:0 0 20px;max-width:420px;">Upload a JSON report from the CLI, paste one directly, or scan a folder in the Browser Sandbox.</p>
                     <div class="quick-actions" style="justify-content:center;">
-                        <span class="quick-action-chip" onclick="document.getElementById('tab-cli').click(); document.getElementById('modePaste').click(); document.getElementById('jsonPasteInput').focus();">&#128203; Paste JSON</span>
+                        <span class="quick-action-chip" onclick="document.getElementById('modePaste').click(); document.getElementById('jsonPasteInput').focus();">&#128203; Paste JSON</span>
                         <span class="quick-action-chip" onclick="document.getElementById('tab-browser').click(); document.getElementById('browser-folder-dropzone').scrollIntoView({behavior:'smooth'});">&#128451; Scan Folder</span>
                     </div>
                 </div>
@@ -2288,6 +2288,17 @@
             const header = palette.querySelector('.terminal-header');
             if (header) {
                 const expanded = !palette.classList.contains('collapsed');
+                header.setAttribute('aria-expanded', String(expanded));
+            }
+        };
+
+        window.toggleModuleDropdown = function() {
+            const dd = document.getElementById('analyzerDropdown');
+            if (!dd) return;
+            dd.classList.toggle('collapsed');
+            const header = dd.querySelector('.select-all-bar');
+            if (header) {
+                const expanded = !dd.classList.contains('collapsed');
                 header.setAttribute('aria-expanded', String(expanded));
             }
         };
@@ -3249,7 +3260,6 @@
                     e.preventDefault();
                     const pastePanel = document.getElementById('pasteModePanel');
                     if (pastePanel) {
-                        tabCli.click();
                         document.getElementById('modePaste').click();
                         document.getElementById('jsonPasteInput').focus();
                     }
@@ -3525,7 +3535,6 @@
                 const pasteInput = document.getElementById('jsonPasteInput');
                 if (pasteInput) {
                     e.preventDefault();
-                    document.getElementById('tab-cli').click();
                     document.getElementById('modePaste').click();
                     pasteInput.focus();
                     showToast('Paste your JSON here, then press Enter to load', 'info', 3000);
