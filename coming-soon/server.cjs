@@ -853,13 +853,41 @@ app.post('/api/reports/download', async (req, res) => {
         archive.pipe(res);
         archive.append(certificateHtml, { name: 'reports/certificate.html' });
         archive.append(JSON.stringify(reportJson, null, 2), { name: 'json/report.json' });
+        // Per-analysis-module JSON files
+        archive.append(JSON.stringify(reportJson.gateReport || {}, null, 2), { name: 'json/01-simplebeacon-gate.json' });
+        archive.append(JSON.stringify(reportJson.consolidation || {}, null, 2), { name: 'json/02-consolidation.json' });
+        archive.append(JSON.stringify(reportJson.mockDataCategories || [], null, 2), { name: 'json/03-mock-data.json' });
+        archive.append(JSON.stringify(reportJson.roadmap || {}, null, 2), { name: 'json/04-roadmap.json' });
+        archive.append(JSON.stringify(reportJson.codebase || {}, null, 2), { name: 'json/05-codebase.json' });
+        archive.append(JSON.stringify(reportJson.fileReduction || {}, null, 2), { name: 'json/06-file-reduction.json' });
+        archive.append(JSON.stringify(reportJson.dataQuality || {}, null, 2), { name: 'json/07-data-quality.json' });
+        archive.append(JSON.stringify(reportJson.cleanup || {}, null, 2), { name: 'json/08-cleanup.json' });
+        archive.append(JSON.stringify(reportJson.npmAudit || {}, null, 2), { name: 'json/09-npm-audit.json' });
+        archive.append(JSON.stringify(reportJson.compliance || {}, null, 2), { name: 'json/10-compliance.json' });
+        archive.append(JSON.stringify(reportJson.euAiActSummary || {}, null, 2), { name: 'json/11-eu-ai-act.json' });
         archive.append(JSON.stringify({
             type: 'simplebeacon-export-manifest',
             version: '1.0.0',
             generatedAt: new Date().toISOString(),
             tier: tier,
             productSku: payload.productSku || tier,
-            files: ['reports/certificate.html', 'json/report.json'],
+            files: [
+                'reports/certificate.html',
+                'json/report.json',
+                'json/01-simplebeacon-gate.json',
+                'json/02-consolidation.json',
+                'json/03-mock-data.json',
+                'json/04-roadmap.json',
+                'json/05-codebase.json',
+                'json/06-file-reduction.json',
+                'json/07-data-quality.json',
+                'json/08-cleanup.json',
+                'json/09-npm-audit.json',
+                'json/10-compliance.json',
+                'json/11-eu-ai-act.json',
+                'manifest.json',
+                'README.txt'
+            ],
             certificateType: tierConfig.label,
             reportId: 'SB-AUD-' + dateStr.replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,8).toUpperCase()
         }, null, 2), { name: 'manifest.json' });
@@ -871,9 +899,23 @@ Tier: ${tier}
 Product SKU: ${payload.productSku || tier}
 
 Contents:
-  - reports/certificate.html : Printable certificate (open in browser, print to PDF)
-  - json/report.json         : Raw scan report data
-  - manifest.json            : Export manifest for verification
+  reports/
+    certificate.html                      : Printable certificate (open in browser, print to PDF)
+  json/
+    report.json                           : Raw complete scan report
+    01-simplebeacon-gate.json            : Gate scan results
+    02-consolidation.json                : Monorepo & duplicate file analysis
+    03-mock-data.json                    : Mock / fixture / sample file detection
+    04-roadmap.json                      : TODO / FIXME marker inventory
+    05-codebase.json                     : File & line count summary
+    06-file-reduction.json               : Unused asset & duplicate detection
+    07-data-quality.json                 : Empty / trivial JSON findings
+    08-cleanup.json                      : Debug artifact & hygiene sweep
+    09-npm-audit.json                    : package.json inventory
+    10-compliance.json                   : License & governance file detection
+    11-eu-ai-act.json                    : EU AI Act readiness indicators
+  manifest.json                           : Export manifest for verification
+  README.txt                              : This file
 
 For vendor handoff, run a Complete Scan via the CLI:
   npx simplebeacon scan --gate --complete
