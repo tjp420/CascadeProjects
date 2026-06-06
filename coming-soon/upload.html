@@ -4158,8 +4158,8 @@
             const reportHash = 'sha256-' + reportHashHex;
             const shortHash = reportHashHex.slice(0, 16) + '...' + reportHashHex.slice(-8);
 
-            // EU AI Act regulatory mapping (if applicable)
-            const hasEuAiAct = report.euAiActSummary || report.euAiActFindings !== undefined;
+            // EU AI Act regulatory mapping (only when profile explicitly enables it)
+            const hasEuAiAct = report.checkEuAi === true && (report.euAiActSummary || report.euAiActFindings !== undefined);
             const euAiActSection = hasEuAiAct ? `
                         <div style="margin-top:20px;padding-top:16px;border-top:1px solid #1E293B;">
                             <p style="font-size:10px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 10px;">EU AI Act Regulatory Mapping</p>
@@ -4185,8 +4185,9 @@
                     ` : '';
 
             // 1. Build certificate HTML
+            console.log('[Certificate] Building certificate HTML...');
             const certWrapper = document.createElement('div');
-            certWrapper.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:800px;background:#0B0F19;color:#F3F4F6;font-family:SF Mono,Monaco,Cascadia Code,monospace;padding:48px;border:4px solid #1E293B;box-sizing:border-box;';
+            certWrapper.style.cssText = 'position:fixed;top:0;left:0;width:800px;background:#0B0F19;color:#F3F4F6;font-family:SF Mono,Monaco,Cascadia Code,monospace;padding:48px;border:4px solid #1E293B;box-sizing:border-box;visibility:hidden;z-index:-9999;';
             certWrapper.innerHTML = `
                 <div style="border:2px solid rgba(37,99,235,0.3);padding:32px;">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #1E293B;padding-bottom:20px;margin-bottom:24px;">
@@ -4228,13 +4229,17 @@
             `;
             document.body.appendChild(certWrapper);
 
-            // 2. Rasterize to PNG
+            // 2. Rasterize to PNG with timeout guard
+            console.log('[Certificate] Rasterizing to PNG via html2canvas...');
             let canvas;
             try {
-                canvas = await html2canvas(certWrapper, { scale: 2, backgroundColor: '#0B0F19', logging: false });
+                const html2canvasPromise = html2canvas(certWrapper, { scale: 2, backgroundColor: '#0B0F19', logging: false });
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('html2canvas timed out after 15s')), 15000));
+                canvas = await Promise.race([html2canvasPromise, timeoutPromise]);
             } catch (e) {
                 certWrapper.remove();
-                throw new Error('Certificate rasterization failed — page may be too large. Try reducing the report size.');
+                console.error('[Certificate] html2canvas error:', e);
+                throw new Error('Certificate rasterization failed — ' + (e.message || 'unknown error'));
             }
             certWrapper.remove();
             if (!canvas) {
@@ -4244,8 +4249,10 @@
             if (!pngBlob) {
                 throw new Error('PNG encoding failed. Please try again.');
             }
+            console.log('[Certificate] PNG blob ready:', pngBlob.size, 'bytes');
 
             // 3. Assemble ZIP
+            console.log('[Certificate] Assembling ZIP...');
             zip.file('certificate.png', pngBlob);
             zip.file('report.json', reportStr);
             zip.file('manifest.json', JSON.stringify({
@@ -4259,14 +4266,30 @@
             }, null, 2));
 
             const zipBlob = await zip.generateAsync({ type: 'blob' });
+            console.log('[Certificate] ZIP blob ready:', zipBlob.size, 'bytes');
             const url = URL.createObjectURL(zipBlob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `simplebeacon-certificate-${isoDate.slice(0,10)}.zip`;
+            a.style.display = 'none';
             document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
+
+            // Primary: simulated click. Fallback: window.open for popup-blocker cases.
+            let downloaded = false;
+            const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+            a.dispatchEvent(clickEvent);
+            downloaded = true;
+
+            // Fallback if dispatch didn't trigger (some browsers block synthetic clicks)
+            if (!downloaded) {
+                window.open(url, '_blank');
+            }
+
+            setTimeout(() => {
+                a.remove();
+                URL.revokeObjectURL(url);
+            }, 5000);
+            console.log('[Certificate] Download triggered.');
         }
 
         submitBtn.addEventListener('click', async () => {
@@ -4293,6 +4316,8 @@
                 showToast('Certificate ZIP downloaded — generated entirely in your browser!', 'success', 6000);
                 showStatus('Certificate ZIP generated locally! Zero bytes uploaded to any server.', 'success');
             } catch (err) {
+                console.error('[Certificate] Generation failed:', err);
+                appendTerminalLine(`Certificate generation failed: ${err.message}`, 'error');
                 showToast(err.message, 'error');
                 const statusEl = document.getElementById('status');
                 if (statusEl) {
