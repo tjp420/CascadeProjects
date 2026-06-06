@@ -3772,11 +3772,11 @@
                     reason = 'File > 500MB';
                 } else if (!deepScan && skipDeps && (/node_modules\/|\.git\//.test(lowerPath))) {
                     reason = 'Core exclusion';
-                } else if (!deepScan && /\.simplebeacon\//.test(lowerPath)) {
+                } else if (/\.simplebeacon\//.test(lowerPath)) {
                     reason = 'Simplebeacon cache';
-                } else if (!deepScan && /github-cache\//.test(lowerPath)) {
+                } else if (/github-cache\//.test(lowerPath)) {
                     reason = 'Benchmark cache';
-                } else if (!deepScan && /\.github-sync\//.test(lowerPath)) {
+                } else if (/\.github-sync\//.test(lowerPath)) {
                     reason = 'Git sync cache';
                 } else if (!deepScan && /\.git\/hooks\/.*\.sample$/.test(lowerPath)) {
                     reason = 'Git hook sample';
@@ -3788,6 +3788,8 @@
                     reason = 'Secret safeguard';
                 } else if (skipDocs && (lowerPath.endsWith('.md') || lowerPath.endsWith('.txt') || lowerPath.endsWith('.pdf'))) {
                     reason = 'Doc skipped';
+                } else if (!deepScan && /\.(map|min\.js|min\.css)$/i.test(lowerPath)) {
+                    reason = 'Generated artifact';
                 }
 
                 if (reason) {
@@ -3847,8 +3849,9 @@
                     if (!isNodeModule && !isGitInternal && !isDemoSample && /mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
                         mockFiles.push(path);
                     }
-                    // 9. npm audit: package.json files (skip node_modules — count only project roots)
-                    if (!isNodeModule && lowerPath.endsWith('package.json')) {
+                    // 9. npm audit: package.json files (skip node_modules, sync caches — count only project roots)
+                    const isCacheDir = /\.github-sync\/|github-cache\//i.test(lowerPath);
+                    if (!isNodeModule && !isCacheDir && lowerPath.endsWith('package.json')) {
                         packageJsonFiles.push(path);
                         try {
                             const pkg = JSON.parse(text);
@@ -4049,7 +4052,7 @@
                 ...(allowedSections.includes('roadmap') ? {
                     roadmap: {
                         todoCount: todoFiles.length,
-                        todoFiles: todoFiles.slice(0, 5),
+                        todoFiles: todoFiles.slice(0, 20),
                         summary: todoFiles.length > 0 ? `${todoFiles.length} files contain TODO/FIXME markers.` : 'No roadmap markers found.'
                     }
                 } : {}),
@@ -4491,14 +4494,16 @@
             // 10. Compliance — enriched with license/security files
             const comp = report.compliance || {};
             const compScore = (comp.licenseCount || 0) + (comp.securityCount || 0);
+            const compSummary = comp.summary || (compScore ? `${comp.licenseCount || 0} license files, ${comp.securityCount || 0} security/governance files detected.` : 'No governance files detected.');
+            const compRemediation = comp.remediation || (compScore ? 'Verify license compatibility with your distribution model.' : 'Consider adding LICENSE and SECURITY.md.');
             addModule('compliance', 'Compliance', {
                 licenseCount: comp.licenseCount || 0,
                 securityCount: comp.securityCount || 0,
                 governanceScore: compScore,
                 licenseFiles: (comp.licenseFiles || []).slice(0, 5),
                 securityFiles: (comp.securityFiles || []).slice(0, 5),
-                summary: comp.summary || (compScore ? `${comp.licenseCount || 0} license files, ${comp.securityCount || 0} security/governance files detected.` : 'No governance files detected.'),
-                remediation: compScore ? 'Verify license compatibility with your distribution model.' : 'Consider adding LICENSE and SECURITY.md.'
+                summary: compRemediation ? compSummary + ' ' + compRemediation : compSummary,
+                remediation: compRemediation
             });
 
             // 11. EU AI Act — enriched with indicators and documentation
@@ -4702,12 +4707,24 @@ Generated entirely in-browser. Zero data uploaded.
             modulesFolder.file('index.json', JSON.stringify({
                 generatedAt: isoDate,
                 certificateId: certId,
-                modules: modules.map(m => ({
-                    id: m.id,
-                    label: m.label,
-                    status: m.data.pass === true || m.data.gatePass === true ? 'PASS' : (m.data.pass === false || m.data.gatePass === false ? 'BLOCKED' : 'REVIEW'),
-                    file: `modules/${m.id}.json`
-                }))
+                modules: modules.map(m => {
+                    const d = m.data;
+                    let status = 'REVIEW';
+                    if (d.pass === true || d.gatePass === true) status = 'PASS';
+                    else if (d.pass === false || d.gatePass === false) status = 'BLOCKED';
+                    else if (d.status === 'REVIEW') status = 'REVIEW';
+                    else {
+                        const actionable = Object.entries(d).filter(([k,v]) => typeof v === 'number' && v > 0 && !/score|total|percentage|rate/i.test(k));
+                        const arrays = Object.values(d).filter(v => Array.isArray(v) && v.length > 0);
+                        if (actionable.length === 0 && arrays.length === 0) status = 'PASS';
+                    }
+                    return {
+                        id: m.id,
+                        label: m.label,
+                        status: status,
+                        file: `modules/${m.id}.json`
+                    };
+                })
             }, null, 2));
 
             // 8. Executive Summary — board-ready markdown
@@ -4795,12 +4812,16 @@ ${report.gate?.remediation?.length ? report.gate.remediation.map(r => '- [ ] **'
 - [ ] **Standardize naming conventions** across the codebase.
 - [ ] **Document canonical file locations** in README.
 
-## Phase 4: EU AI Act Compliance (Week 3–4)
+## Phase 4: Governance & Compliance (Week 3)
+${report.compliance?.remediation ? '- [ ] **' + report.compliance.remediation + '**\n' : (report.compliance?.licenseCount || report.compliance?.securityCount ? '- [ ] **Verify license compatibility** with your distribution model.\n' : '- [ ] **Add LICENSE and SECURITY.md** to the repository root.\n')}- [ ] **Review security policies** — ${report.compliance?.securityCount || 0} security/governance file(s) detected.
+- [ ] **Audit open-source licenses** — ${report.compliance?.licenseCount || 0} license file(s) found.
+
+## Phase 5: EU AI Act Compliance (Week 3–4)
 - [ ] **Review AI system classification** (Art. 6) — ${report.euAiActSummary?.aiSystemIndicators || 0} indicator(s).
 - [ ] **Generate documentation artifacts** — ${report.euAiActSummary?.documentationArtifacts || 0} found.
 - [ ] **Schedule legal review** if high-risk indicators present.
 
-## Phase 5: Quality Optimization (Ongoing)
+## Phase 6: Quality Optimization (Ongoing)
 - [ ] **Remove debug artifacts** — ${report.cleanup?.debugArtifactCount || 0} console.log/debugger/TODO found.
 - [ ] **Address TODO/FIXME markers** — ${report.roadmap?.todoCount || 0} file(s) flagged.
 - [ ] **Add pre-commit hooks** for automated scanning.
