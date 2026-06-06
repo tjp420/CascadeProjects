@@ -59,6 +59,12 @@ function parseArgs(argv) {
     let command = args[0] || 'scan';
     let flagStart = 1;
 
+    // If first arg is a flag (starts with -), default to 'scan' command
+    if (command.startsWith('-')) {
+        command = 'scan';
+        flagStart = 0;
+    }
+
     if (command === 'baseline' && args[1] === 'sync') {
         command = 'baseline-sync';
         flagStart = 2;
@@ -116,7 +122,9 @@ function parseArgs(argv) {
         fixProvider: null,
         fixDryRun: false,
         maxFixes: 10,
-        withAnalyzerSuite: false
+        withAnalyzerSuite: false,
+        version: false,
+        complete: false
     };
 
     for (let i = flagStart; i < args.length; i += 1) {
@@ -215,6 +223,10 @@ function parseArgs(argv) {
             options.mcpMode = args[++i];
         } else if (arg === '--help' || arg === '-h') {
             options.help = true;
+        } else if (arg === '--version' || arg === '-V') {
+            options.version = true;
+        } else if (arg === '--complete') {
+            options.complete = true;
         }
     }
 
@@ -255,6 +267,7 @@ function formatCliError(error) {
 
 function printHelp() {
     writeStdoutLine(`Simplebeacon — detect mock data, fiction KPIs, and credential leaks
+  simplebeacon --version          Show version number
 
 Usage:
   simplebeacon scan [options]     Scan project and report findings
@@ -306,6 +319,7 @@ Scan options:
   --fix-provider <p>  Override remediation LLM: ollama (default) | openai | anthropic
   --fix-dry-run       Show diffs without applying patches
   --max-fixes <n>     Limit number of auto-fix attempts (default: 10)
+  --complete          Run all 11 analyzers (gate + consolidation + mock data + roadmap + codebase + file reduction + data quality + cleanup + npm audit + compliance + EU AI Act)
   --offline           Fail if any outbound network activity occurs during scan
   --no-trust-banner   Suppress read-only / local-only trust confirmation lines
   --api-token <tok>   Paid tier API token (required with --upload)
@@ -370,6 +384,7 @@ Examples:
   npx simplebeacon scan --gate
   npx simplebeacon scan --offline --gate
   npx simplebeacon scan --format json --output .simplebeacon/report.json --gate
+  npx simplebeacon scan --gate --complete
   npx simplebeacon scan --format json --api-token sb_xxx --upload https://simplebeacon.ai/api/simplebeacon/cloud-scan
   npx simplebeacon assess --company "Acme" --assessor "Jane" --checklist eu-ai-act
   npx simplebeacon report --company "Acme LLC" --client "Acme Dashboard" --assessor "Jane"
@@ -416,6 +431,10 @@ async function runScanCommand(options) {
     const scanRoot = options.path;
     const { platformRoot } = resolvePlatformRoot(scanRoot);
     const config = loadSimplebeaconConfig(platformRoot, options.config);
+    if (options.complete) {
+        config.fullDirectoryScan = true;
+        if (options.verbose) console.error('[scan] --complete enabled: full directory scan + all analyzers');
+    }
     if (options.failOn) {
         config.gate.failOn = options.failOn;
     }
@@ -1025,6 +1044,12 @@ async function runBuyClearanceCommand(options) {
 
 async function main() {
     const options = parseArgs(process.argv);
+
+    if (options.version) {
+        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+        writeStdoutLine(`simplebeacon ${pkg.version}`);
+        process.exit(0);
+    }
 
     if (options.help) {
         printHelp();

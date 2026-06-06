@@ -452,9 +452,11 @@ function normalizeReport(reportJson) {
         // Handle double-wrapped complete scans (sub itself is another wrapper)
         const nested = sub.results?.simplebeacon;
         if (nested && typeof nested === 'object') {
-            return { ...reportJson, ...sub, ...nested, detectedIssues: nested.detectedIssues || sub.detectedIssues || reportJson.detectedIssues || [] };
+            const issues = nested.detectedIssues || sub.detectedIssues || reportJson.detectedIssues || [];
+            return { ...reportJson, ...sub, ...nested, detectedIssues: issues, issueCount: nested.issueCount ?? sub.issueCount ?? reportJson.issueCount ?? issues.length };
         }
-        return { ...reportJson, ...sub, detectedIssues: sub.detectedIssues || reportJson.detectedIssues || [] };
+        const issues = sub.detectedIssues || reportJson.detectedIssues || [];
+        return { ...reportJson, ...sub, detectedIssues: issues, issueCount: sub.issueCount ?? reportJson.issueCount ?? issues.length };
     }
 
     // 2. Public-summary: synthesize gate and detectedIssues from summary/severityCounts
@@ -1187,7 +1189,6 @@ For vendor handoff, run a Complete Scan via the CLI:
 Questions? https://simplebeacon.ai
 `, { name: 'README.txt' });
         await archive.finalize();
-        console.log(`[Certificate] Archive finalized successfully for tier=${payload.tier || 'executive'} size=${reportSize}bytes ip=${clientIp}`);
     } catch (err) {
         console.error(`[Certificate] Archive failed: ${err.message} ip=${clientIp}`);
         if (!res.headersSent) {

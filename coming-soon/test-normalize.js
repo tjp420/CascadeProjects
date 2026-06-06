@@ -12,9 +12,11 @@ function normalizeReport(reportJson) {
     if (sub && typeof sub === 'object') {
         const nested = sub.results?.simplebeacon;
         if (nested && typeof nested === 'object') {
-            return { ...reportJson, ...sub, ...nested, detectedIssues: nested.detectedIssues || sub.detectedIssues || reportJson.detectedIssues || [] };
+            const issues = nested.detectedIssues || sub.detectedIssues || reportJson.detectedIssues || [];
+            return { ...reportJson, ...sub, ...nested, detectedIssues: issues, issueCount: nested.issueCount ?? sub.issueCount ?? reportJson.issueCount ?? issues.length };
         }
-        return { ...reportJson, ...sub, detectedIssues: sub.detectedIssues || reportJson.detectedIssues || [] };
+        const issues = sub.detectedIssues || reportJson.detectedIssues || [];
+        return { ...reportJson, ...sub, detectedIssues: issues, issueCount: sub.issueCount ?? reportJson.issueCount ?? issues.length };
     }
 
     // 2. Public-summary
@@ -138,7 +140,8 @@ const tests = [
     { name: 'Public summary', input: { type: 'simplebeacon-public-summary', summary: { gatePass: false, qualityScore: 60, filesScanned: 50, totalIssuesFound: 5 }, severityCounts: { critical: 1, high: 2, medium: 1, low: 1 } }, expect: { gatePass: false, qualityScore: 60, files: 50, blocking: 3, warning: 2 } },
     { name: 'Re-attestation reference', input: { type: 'simplebeacon-re-attestation-note', workflowStatus: 'reference-only', currentGate: null }, expect: { gatePass: null, isReference: true } },
     { name: 'Re-attestation with gate', input: { type: 'simplebeacon-re-attestation-note', currentGate: { pass: true, qualityScore: 90, repositoryFilesTotal: 200 } }, expect: { gatePass: true, qualityScore: 90, files: 200 } },
-    { name: 'npm-audit explicit', input: { type: 'simplebeacon-npm-audit', packageJsonCount: 245, dependencyCount: 1981, hygieneSummary: { gatePass: true, critical: 0, high: 0, moderate: 1, low: 2 } }, expect: { gatePass: true, qualityScore: 93, files: 245, pkgCount: 245, depCount: 1981 } },
+    { name: 'npm-audit explicit (gatePass=true => 100)', input: { type: 'simplebeacon-npm-audit', packageJsonCount: 245, dependencyCount: 1981, hygieneSummary: { gatePass: true, critical: 0, high: 0, moderate: 1, low: 2 } }, expect: { gatePass: true, qualityScore: 100, files: 245, pkgCount: 245, depCount: 1981 } },
+    { name: 'npm-audit explicit (gatePass=false)', input: { type: 'simplebeacon-npm-audit', packageJsonCount: 245, dependencyCount: 1981, hygieneSummary: { gatePass: false, critical: 1, high: 2, moderate: 1, low: 2 } }, expect: { gatePass: false, qualityScore: 51, files: 245, pkgCount: 245, depCount: 1981 } },
     { name: 'Generic npm-audit', input: { packageJsonCount: 10, dependencyCount: 100 }, expect: { gatePass: true, files: 10, pkgCount: 10 } },
     { name: 'Generic cleanup', input: { debugArtifactCount: 5, credentialFindings: 2 }, expect: { gatePass: false, blocking: 2, warning: 5, qualityScore: 86 } },
     { name: 'Already has gate', input: { type: 'simplebeacon-report', gate: { pass: true, blockingCount: 0, warningCount: 1 }, qualityScore: 95, totalFiles: 300 }, expect: { gatePass: true, qualityScore: 95, files: 300 } },

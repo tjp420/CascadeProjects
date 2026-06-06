@@ -2551,6 +2551,35 @@
                 data.npmAudit = { packageJsonCount: data.packageJsonCount ?? 0, dependencyCount: data.dependencyCount ?? 0, summary: `${data.packageJsonCount ?? 0} package.json files found with ${data.dependencyCount ?? 0} total dependencies.` };
             }
 
+            // Normalize public-summary (synthesize gate from summary/severityCounts)
+            if (data.type === 'simplebeacon-public-summary' && !data.gate) {
+                const s = data.summary || {};
+                data.gate = {
+                    pass: s.gatePass ?? null,
+                    blockingCount: (data.severityCounts?.critical || 0) + (data.severityCounts?.high || 0),
+                    warningCount: (data.severityCounts?.medium || 0) + (data.severityCounts?.low || 0)
+                };
+                data.qualityScore = s.qualityScore ?? 0;
+                data.totalFiles = s.filesScanned ?? 0;
+                data.issueCount = s.totalIssuesFound ?? 0;
+                data.detectedIssues = [];
+            }
+
+            // Normalize re-attestation-note (synthesize from currentGate)
+            if (data.type === 'simplebeacon-re-attestation-note' && !data.gate) {
+                const isRef = data.workflowStatus === 'reference-only' || data.currentGate === null;
+                const cg = data.currentGate || {};
+                data.gate = {
+                    pass: isRef ? null : (cg.pass ?? false),
+                    blockingCount: isRef ? null : (cg.blockingCount ?? 0),
+                    warningCount: 0
+                };
+                data.qualityScore = cg.qualityScore ?? 0;
+                data.totalFiles = cg.repositoryFilesTotal ?? 0;
+                data.issueCount = 0;
+                data.isReferenceTemplate = isRef;
+            }
+
             // Generic synthesis for partial/standalone reports without gate (cleanup, etc.)
             if (!data.gate) {
                 // npm-audit signal: packageJsonCount present without explicit type
@@ -2789,14 +2818,14 @@
             if (browserFolderDropzone) browserFolderDropzone.classList.add('scanning');
             appendTerminalLine('simplebeacon scan .', 'input');
             appendTerminalLine(`Initializing Local Web Worker Core... Profile: ${profile.label}. Allocating isolated browser memory structures.`);
-            appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
-            if (includeDeps) appendTerminalLine('Note: node_modules/.git inclusion enabled — scan will be slower and noisier.', 'warn');
-
             // Security baseline: exclude dependency trees, secrets, and docs by default (user can override via checkbox)
             const includeDeps = document.getElementById('includeDepsToggle')?.checked || false;
             const excludeEnv = !includeDeps;      // always protect secrets unless explicitly including everything
             const skipDeps = !includeDeps;        // exclude node_modules/.git by default
             const skipDocs = !includeDeps;        // exclude docs by default
+
+            appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
+            if (includeDeps) appendTerminalLine('Note: node_modules/.git inclusion enabled — scan will be slower and noisier.', 'warn');
 
             let scanned = 0;
             let totalLines = 0;

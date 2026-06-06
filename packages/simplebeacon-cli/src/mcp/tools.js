@@ -28,9 +28,9 @@ function createMcpToolHandlers(options = {}) {
     const networkGuard = offline ? createNetworkGuard({ label: 'simplebeacon-mcp' }) : null;
 
     function withGuard(fn) {
-        return (...args) => {
+        return async (...args) => {
             if (networkGuard) networkGuard.assertOfflineClean();
-            const result = fn(...args);
+            const result = await fn(...args);
             if (networkGuard) networkGuard.assertOfflineClean();
             return result;
         };
@@ -61,12 +61,68 @@ function createMcpToolHandlers(options = {}) {
             }
         }),
 
+        scan_project: withGuard(async ({ projectRoot, fullDirectoryScan, gate }) => {
+            const root = resolveProjectRoot(projectRoot);
+            const { runScan } = require('../scan');
+            try {
+                const report = await runScan(root, {
+                    fullDirectoryScan: fullDirectoryScan === true,
+                    gate: gate === true,
+                    offline: true
+                });
+                return formatToolResult({
+                    gatePass: report.gate?.pass ?? null,
+                    qualityScore: report.qualityScore ?? 0,
+                    totalFiles: report.totalFiles ?? 0,
+                    issueCount: report.issueCount ?? 0,
+                    topIssues: (report.detectedIssues || []).slice(0, 10).map(i => ({
+                        severity: i.severity,
+                        type: i.type,
+                        filePath: i.filePath,
+                        description: i.description
+                    })),
+                    localOnly: true,
+                    methodology: 'Deterministic regex + AST scan — no code uploaded'
+                });
+            } catch (err) {
+                return formatToolResult({ error: err.message, projectRoot: root });
+            }
+        }),
+
         gate_status: withGuard(({ projectRoot, reportPath, limit }) => {
             const result = readGateStatus(resolveProjectRoot(projectRoot), {
                 reportPath,
                 limit: limit ? Number(limit) : 12
             });
             return formatToolResult(result);
+        }),
+
+        suggest_fixes: withGuard(({ projectRoot, reportPath, maxFixes }) => {
+            const root = resolveProjectRoot(projectRoot);
+            const fs = require('fs');
+            const rp = reportPath ? path.resolve(root, reportPath) : path.join(root, '.simplebeacon', 'report.json');
+            let report;
+            try {
+                report = JSON.parse(fs.readFileSync(rp, 'utf8'));
+            } catch {
+                return formatToolResult({ error: 'No scan report found. Run scan_project first.' });
+            }
+            const issues = (report.detectedIssues || report.rawIssues || []).filter(i => i.severity === 'critical' || i.severity === 'high');
+            const suggestions = issues.slice(0, maxFixes ? Number(maxFixes) : 5).map((issue, idx) => ({
+                priority: idx + 1,
+                severity: issue.severity,
+                type: issue.type || issue.rule || 'unknown',
+                filePath: issue.filePath || issue.path || 'unknown',
+                description: issue.description || issue.impact || 'Review required',
+                recommendedAction: issue.fix || issue.recommendedAction || issue.recommendation || 'Manual review required',
+                effort: issue.severity === 'critical' ? 'high' : 'medium'
+            }));
+            return formatToolResult({
+                totalIssues: issues.length,
+                suggestions,
+                summary: `${suggestions.length} prioritized fixes from ${issues.length} blocking/high issues.`,
+                methodology: 'Deterministic rule mapping — no LLM inference'
+            });
         }),
 
         explain_finding: withGuard(({ patternId, type }) => {
@@ -181,6 +237,18 @@ const TOOL_DEFINITIONS = [
         }
     },
     {
+        name: 'scan_project',
+        description: 'Run a full project scan (gate or complete) on the local filesystem. Returns gate pass, quality score, top issues, and file count. No code is uploaded.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root to scan (default: cwd)' },
+                fullDirectoryScan: { type: 'boolean', description: 'Walk entire repo tree instead of selective paths (slower, more thorough)' },
+                gate: { type: 'boolean', description: 'Run gate-only scan (credentials + AI heuristics) instead of full scan' }
+            }
+        }
+    },
+    {
         name: 'gate_status',
         description: 'Read latest .simplebeacon/report.json gate pass/fail and top blocking issues from a prior full scan.',
         inputSchema: {
@@ -189,6 +257,18 @@ const TOOL_DEFINITIONS = [
                 projectRoot: { type: 'string' },
                 reportPath: { type: 'string', description: 'Override report path relative to project root' },
                 limit: { type: 'number', description: 'Max blocking issues to return (default 12)' }
+            }
+        }
+    },
+    {
+        name: 'suggest_fixes',
+        description: 'Read the latest scan report and return prioritized remediation steps for critical and high-severity issues. Deterministic — no LLM inference.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root for reading .simplebeacon/report.json (default: cwd)' },
+                reportPath: { type: 'string', description: 'Override report path relative to project root' },
+                maxFixes: { type: 'number', description: 'Max fixes to return (default 5)' }
             }
         }
     },

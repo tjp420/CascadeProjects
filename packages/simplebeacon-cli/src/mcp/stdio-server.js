@@ -7,7 +7,7 @@ const readline = require('readline');
 const { TOOL_DEFINITIONS, createMcpToolHandlers } = require('./tools');
 
 const PROTOCOL_VERSION = '2024-11-05';
-const SERVER_INFO = { name: 'simplebeacon', version: '1.0.0' };
+const SERVER_INFO = { name: 'simplebeacon', version: '1.3.0' };
 
 function createMcpStdioServer(options = {}) {
     const handlers = createMcpToolHandlers(options);
@@ -80,19 +80,21 @@ function createMcpStdioServer(options = {}) {
                 return;
             }
 
-            try {
-                const result = handler(args);
-                send({ jsonrpc: '2.0', id, result });
-            } catch (err) {
-                send({
-                    jsonrpc: '2.0',
-                    id,
-                    result: {
-                        content: [{ type: 'text', text: err.message || 'Tool failed' }],
-                        isError: true
-                    }
-                });
-            }
+            (async () => {
+                try {
+                    const result = await handler(args);
+                    send({ jsonrpc: '2.0', id, result });
+                } catch (err) {
+                    send({
+                        jsonrpc: '2.0',
+                        id,
+                        result: {
+                            content: [{ type: 'text', text: err.message || 'Tool failed' }],
+                            isError: true
+                        }
+                    });
+                }
+            })();
             return;
         }
 
