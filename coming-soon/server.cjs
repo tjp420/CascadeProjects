@@ -423,7 +423,7 @@ app.get('/api/free-token', (req, res) => {
         });
     }
 
-    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
     const token = generateLicenseToken(
         { email: 'guest@simplebeacon.ai', tier: 'community', projectName: 'Free-Demo', clientName: 'Guest' },
         secret,
@@ -1126,7 +1126,7 @@ app.post('/api/certificate/download', async (req, res) => {
 
     const auth = req.headers.authorization || '';
     const token = auth.replace(/^Bearer\s+/i, '').trim();
-    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || (process.env.NODE_ENV !== 'production' ? 'simplebeacon-dev-insecure' : null);
+    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
     if (!secret) {
         logger.error('[Certificate] License secret not configured');
         return res.status(500).json({ error: 'License secret not configured' });

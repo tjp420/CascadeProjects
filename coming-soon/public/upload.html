@@ -4362,35 +4362,73 @@
                     });
                 }
             }
-            // Auto-detect project root: if the dropped dir contains exactly one subdir
-            // with package.json or .simplebeacon/config.json, treat that as the root.
+            // Auto-detect project root: find the directory with the most files
+            // that contains package.json, .simplebeacon/, or server.cjs.
             const paths = files.map(f => f.webkitRelativePath || f.name).map(p => p.replace(/\\/g, '/'));
-            const firstSegments = paths.map(p => p.split('/')[0]);
-            const uniqueRoots = [...new Set(firstSegments)];
             let rootPrefix = '';
-            if (uniqueRoots.length === 1 && paths.some(p => p.includes('/'))) {
-                const candidate = uniqueRoots[0];
-                // Never treat .git or node_modules as project roots
-                const isValidRoot = candidate !== '.git' && candidate !== 'node_modules';
-                const hasPackageJson = paths.some(p => p === candidate + '/package.json');
-                const hasSimplebeacon = paths.some(p => p.startsWith(candidate + '/.simplebeacon/'));
-                const hasServerCjs = paths.some(p => p === candidate + '/server.cjs');
-                if (isValidRoot && (hasPackageJson || hasSimplebeacon || hasServerCjs)) {
-                    rootPrefix = candidate + '/';
-                    // Strip prefix from all paths
-                    for (const f of files) {
-                        const raw = f.webkitRelativePath || f.name;
-                        const normalized = raw.replace(/\\/g, '/');
-                        if (normalized.startsWith(rootPrefix)) {
-                            Object.defineProperty(f, 'webkitRelativePath', {
-                                value: normalized.slice(rootPrefix.length),
-                                writable: false,
-                                configurable: true
-                            });
-                        }
+            let detectedRoot = '';
+
+            // Helper: check if a prefix is a valid project root
+            function isProjectRoot(prefix) {
+                const last = prefix.split('/').pop();
+                if (last === '.git' || last === 'node_modules') return false;
+                return paths.some(p => p === prefix + '/package.json') ||
+                       paths.some(p => p.startsWith(prefix + '/.simplebeacon/')) ||
+                       paths.some(p => p === prefix + '/server.cjs');
+            }
+
+            // Try top-level directories first, then one level deeper
+            const topSegments = [...new Set(paths.map(p => p.split('/')[0]))];
+            let candidate = '';
+            for (const top of topSegments) {
+                if (isProjectRoot(top)) { candidate = top; break; }
+            }
+            // If no top-level root found, check immediate subdirectories
+            if (!candidate) {
+                const subDirs = new Set();
+                for (const p of paths) {
+                    const parts = p.split('/');
+                    if (parts.length >= 2) subDirs.add(parts[0] + '/' + parts[1]);
+                }
+                // Pick the subdirectory with the most files that is a project root
+                let bestCount = 0;
+                for (const sub of subDirs) {
+                    if (isProjectRoot(sub)) {
+                        const count = paths.filter(p => p.startsWith(sub + '/')).length;
+                        if (count > bestCount) { bestCount = count; candidate = sub; }
                     }
-                    if (localScanFileName) {
-                        appendTerminalLine(`<span style="color:#60A5FA;">&#9432;</span> Auto-detected project root: <strong>${candidate}</strong> — scanning as project root.`);
+                }
+            }
+
+            if (candidate) {
+                rootPrefix = candidate + '/';
+                detectedRoot = candidate;
+                // Strip prefix from all paths
+                for (const f of files) {
+                    const raw = f.webkitRelativePath || f.name;
+                    const normalized = raw.replace(/\\/g, '/');
+                    if (normalized.startsWith(rootPrefix)) {
+                        Object.defineProperty(f, 'webkitRelativePath', {
+                            value: normalized.slice(rootPrefix.length),
+                            writable: false,
+                            configurable: true
+                        });
+                    }
+                }
+                // Filter to only files under the detected root (drop siblings like ai-platform/, ai-agent/, backups/)
+                const beforeCount = files.length;
+                files = files.filter(f => {
+                    const raw = f.webkitRelativePath || f.name;
+                    const normalized = raw.replace(/\\/g, '/');
+                    // After stripping, files under the detected root have relative paths without any top-level dir prefix
+                    // Files from sibling dirs still start with their original top-level dir name
+                    return !topSegments.some(t => normalized.startsWith(t + '/'));
+                });
+                const droppedCount = beforeCount - files.length;
+                if (localScanFileName) {
+                    appendTerminalLine(`<span style="color:#60A5FA;">&#9432;</span> Auto-detected project root: <strong>${detectedRoot}</strong> — scanning as project root.`);
+                    if (droppedCount > 0) {
+                        appendTerminalLine(`<span style="color:#60A5FA;">&#9432;</span> Excluded ${droppedCount.toLocaleString()} files outside project root.`, 'warn');
                     }
                 }
             }
@@ -4638,8 +4676,10 @@
                     // AI indicators — collect with line-level detail (exclude test output logs, node_modules, simplebeacon cache, and scanner artifacts)
                     const isTestOutput = /test-(output|debug|failures|log|complete|auto)\.(txt|log)$/i.test(path) || /\.(txt|log)$/i.test(path) && /test|debug|output|log/i.test(path.split('/').pop());
                     if (profile.checkAi && !isNodeModule && !isTestOutput && !isSimplebeaconCache && !isScannerArtifact) {
-                        const aiPattern = /new\s+openai|require\s*\(\s*['"]openai['"]\s*\)|import\s+.*openai|from\s+['"]openai['"]|from\s+['"]@anthropic['"]|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/i;
-                        const aiMatches = extractMatches(text, aiPattern, 3);
+                        const aiPattern = /\bnew\s+openai\b|\brequire\s*\(\s*['"]openai['"]\s*\)|\bimport\s+.*\bopenai\b|\bfrom\s+['"]openai['"]|\bfrom\s+['"]@anthropic\/[^'"]+['"]|\bnew\s+anthropic\b|\bimport\s+.*\blangchain\b|\bfrom\s+['"]langchain['"]|\brequire\s*\(\s*['"]langchain['"]\s*\)|\bfrom\s+['"]huggingface_hub['"]|\bimport\s+.*\bhuggingface_hub\b|\brequire\s*\(\s*['"]huggingface_hub['"]\s*\)|\b\.create\s*\(\s*\{\s*model\s*:\s*['"]gpt|\b\.create\s*\(\s*\{\s*model\s*:\s*['"]claude|\bcreateChatCompletion\s*\(|\bopenai\.chat\.completions\b|\banthropic\.messages\.create\b|\bazure\.openai\b/i;
+                        const rawAiMatches = extractMatches(text, aiPattern, 5);
+                        // Filter out self-references: lines declaring the scanner's own aiPattern regex should not flag as AI usage
+                        const aiMatches = rawAiMatches.filter(m => !/(?:const|let|var)\s+aiPattern\b/.test(m.snippet || ''));
                         if (aiMatches.length > 0) {
                             aiHits.push(path);
                             aiFindings.push({ file: path, matches: aiMatches });
@@ -4824,7 +4864,7 @@
                         }
                     } catch (e) { /* ignore unreadable */ }
                 }
-                unusedAssetCandidates = imageFiles.filter(img => !referencedNames.has(img.name));
+                unusedAssetCandidates = imageFiles.filter(img => !referencedNames.has(img.name)).map(img => img.path);
                 if (unusedAssetCandidates.length > 0) {
                     appendTerminalLine(`${unusedAssetCandidates.length} of ${imageFiles.length} images appear unused in source code.`, 'warn');
                 } else {
