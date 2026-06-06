@@ -1696,55 +1696,6 @@
             </div>
         </div>
 
-        <!-- TOKEN GATE -->
-        <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
-            <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
-                <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
-                <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">License Token</h3>
-            </div>
-            <div style="padding:20px 24px;background:var(--bg-input);">
-                <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:12px;">
-                    <div>
-                        <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
-                        <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
-                        <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
-                        <div id="tokenValidIndicator" class="token-valid-indicator"></div>
-                        <p id="tokenError" class="hidden-display" style="font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
-                    </div>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
-                            <span>&#128229;</span> Generate Certificate
-                        </button>
-                        <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan" style="display:none;">&#10005; Clear</button>
-                    </div>
-                </div>
-
-                <!-- Developer Sandbox - Prominent Free Tier -->
-                <div style="padding:16px;background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(16,185,129,0.04));border:1px solid rgba(37,99,235,0.25);border-radius:10px;margin-bottom:12px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                        <div>
-                            <p style="font-size:0.9rem;font-weight:600;color:var(--text-main);margin:0 0 4px;">&#128161; Don't have a token?</p>
-                            <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Generate a free community token instantly. No email required.</p>
-                        </div>
-                        <button id="tryFreeBtn" style="padding:10px 20px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;box-shadow:0 0 20px rgba(37,99,235,0.2);">&#9881; Developer Sandbox</button>
-                    </div>
-                </div>
-
-                <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
-                    <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
-                    <div style="display:flex;gap:8px;">
-                        <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
-                        <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send Token</button>
-                    </div>
-                    <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
-                    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
-                        <span style="font-size:0.75rem;color:var(--text-muted);">Corporate buyer?</span>
-                        <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon" style="font-size:0.75rem;color:#60A5FA;text-decoration:none;font-weight:600;">Request Invoice / W-9 &rarr;</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- RUNTIME MODE SELECTOR -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
             <div>
@@ -1900,10 +1851,59 @@
 
         <!-- VIEW B: BROWSER SANDBOX -->
         <div id="view-browser">
+            <!-- TOKEN GATE (Browser Sandbox only) -->
+            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+                <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+                    <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
+                    <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">License Token</h3>
+                </div>
+                <div style="padding:20px 24px;background:var(--bg-input);">
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:12px;">
+                        <div>
+                            <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
+                            <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
+                            <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
+                            <div id="tokenValidIndicator" class="token-valid-indicator"></div>
+                            <p id="tokenError" class="hidden-display" style="font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
+                                <span>&#128229;</span> Generate Certificate
+                            </button>
+                            <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan" style="display:none;">&#10005; Clear</button>
+                        </div>
+                    </div>
+
+                    <!-- Developer Sandbox - Prominent Free Tier -->
+                    <div style="padding:16px;background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(16,185,129,0.04));border:1px solid rgba(37,99,235,0.25);border-radius:10px;margin-bottom:12px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                            <div>
+                                <p style="font-size:0.9rem;font-weight:600;color:var(--text-main);margin:0 0 4px;">&#128161; Don't have a token?</p>
+                                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Generate a free community token instantly. No email required.</p>
+                            </div>
+                            <button id="tryFreeBtn" style="padding:10px 20px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;box-shadow:0 0 20px rgba(37,99,235,0.2);">&#9881; Developer Sandbox</button>
+                        </div>
+                    </div>
+
+                    <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
+                        <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
+                        <div style="display:flex;gap:8px;">
+                            <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
+                            <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send Token</button>
+                        </div>
+                        <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
+                        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:0.75rem;color:var(--text-muted);">Corporate buyer?</span>
+                            <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon" style="font-size:0.75rem;color:#60A5FA;text-decoration:none;font-weight:600;">Request Invoice / W-9 &rarr;</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
                 <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                     <div style="display:flex;align-items:center;gap:10px;">
-                        <span id="browser-step-number" style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
+                        <span id="browser-step-number" style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
                         <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Direct Folder Analysis</h3>
                     </div>
                 </div>
@@ -2062,7 +2062,9 @@
                 </div>
 
                 <div id="tokenActionRow" style="display:none;">
-                    <p style="font-size:0.85rem;color:var(--text-muted);text-align:center;margin:0;">Scan loaded. Review the preview above, then click <strong>Generate Certificate</strong> to download your ZIP.</p>
+                    <button class="btn btn-primary" id="certSubmitBtn" disabled style="white-space:nowrap;width:100%;margin-bottom:12px;">
+                        <span>&#128229;</span> Generate Certificate
+                    </button>
                 </div>
 
                 <div class="status" id="status"></div>
@@ -2812,6 +2814,7 @@
             const hasFile = reportData !== null;
             const tokenActionRow = document.getElementById('tokenActionRow');
             const certEmptyState = document.getElementById('certEmptyState');
+            const certSubmitBtn = document.getElementById('certSubmitBtn');
             if (certEmptyState) certEmptyState.style.display = hasFile ? 'none' : 'block';
             if (resetBtn) resetBtn.style.display = hasFile ? 'inline-block' : 'none';
             if (hasFile) updateStepper();
@@ -2819,21 +2822,30 @@
             // Always show token row so users can change tokens freely
             if (tokenActionRow) tokenActionRow.style.display = 'block';
             if (hasFile) {
-                if (hasToken) {
+                // Certificate generation no longer requires a token (token gates browser scan only)
+                if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<span>&#128229;</span> Generate Certificate';
                     submitBtn.style.opacity = '1';
-                } else {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<span>&#128064;</span> Preview Report (Free)';
-                    submitBtn.style.opacity = '0.7';
+                }
+                if (certSubmitBtn) {
+                    certSubmitBtn.disabled = false;
+                    certSubmitBtn.innerHTML = '<span>&#128229;</span> Generate Certificate';
+                    certSubmitBtn.style.opacity = '1';
                 }
                 // Re-render preview to update watermark/unlock state
                 if (reportData) renderPreview(reportData);
             } else {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span>&#128229;</span> Generate Certificate';
-                submitBtn.style.opacity = '1';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span>&#128229;</span> Generate Certificate';
+                    submitBtn.style.opacity = '1';
+                }
+                if (certSubmitBtn) {
+                    certSubmitBtn.disabled = true;
+                    certSubmitBtn.innerHTML = '<span>&#128229;</span> Generate Certificate';
+                    certSubmitBtn.style.opacity = '1';
+                }
             }
             updateStepper();
             validateTokenVisual();
@@ -3231,15 +3243,8 @@
                         `;
                         metaDisplay.style.display = 'block';
                     }
-                    const hasToken = licenseInput.value.trim().length > 10;
-                    if (hasToken) {
-                        showToast('JSON loaded! Ready to generate certificate.', 'success');
-                        showStatus('JSON loaded. Click Generate Certificate to download your ZIP.', 'success');
-                    } else {
-                        showToast('JSON loaded! Enter a token or try Developer Sandbox.', 'warning');
-                        showStatus('JSON loaded. Paste a license token above to unlock certificate generation.', 'loading');
-                        licenseInput.focus();
-                    }
+                    showToast('JSON loaded! Ready to generate certificate.', 'success');
+                    showStatus('JSON loaded. Click Generate Certificate to download your ZIP.', 'success');
                     // Auto-scroll to certificate section
                     document.getElementById('tokenActionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } catch (err) {
@@ -3379,8 +3384,8 @@
                     <div style="font-size:0.8rem;color:var(--text-muted);">Click <strong>Generate Certificate</strong> to build your ZIP locally — zero data leaves your browser.</div>
                    </div>`
                 : `<div class="cert-footer">
-                    <div class="unlock-text">&#128274; Paste a license token to enable local certificate generation</div>
-                    <button class="unlock-btn" onclick="document.getElementById('licenseToken').focus(); document.getElementById('licenseToken').scrollIntoView({behavior:'smooth', block:'center'});">Unlock Certificate &rarr;</button>
+                    <div class="unlock-text">&#128274; Generate your local certificate</div>
+                    <button class="unlock-btn" onclick="document.getElementById('certSubmitBtn').scrollIntoView({behavior:'smooth', block:'center'}); document.getElementById('certSubmitBtn').click();">Generate Certificate &rarr;</button>
                    </div>`;
 
             // Compliance matrix rows
@@ -4274,14 +4279,11 @@
             a.style.display = 'none';
             document.body.appendChild(a);
 
-            // Primary: simulated click. Fallback: window.open for popup-blocker cases.
-            let downloaded = false;
-            const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-            a.dispatchEvent(clickEvent);
-            downloaded = true;
-
-            // Fallback if dispatch didn't trigger (some browsers block synthetic clicks)
-            if (!downloaded) {
+            // Primary: native click() is most reliable cross-browser for blob downloads
+            try {
+                a.click();
+            } catch (e) {
+                console.warn('[Certificate] a.click() failed, falling back to window.open:', e);
                 window.open(url, '_blank');
             }
 
@@ -4292,22 +4294,20 @@
             console.log('[Certificate] Download triggered.');
         }
 
-        submitBtn.addEventListener('click', async () => {
+        async function doGenerateCertificate(buttonEl) {
             const token = licenseInput.value.trim();
             const tokenError = document.getElementById('tokenError');
             if (tokenError) tokenError.classList.add('hidden-display');
-            if (!reportData) return;
-
-            // Preview mode: no token yet, guide user
-            if (!token || token.length < 10) {
-                licenseInput.focus();
-                licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                showStatus('Report loaded! Paste a license token above to generate your certificate, or click "Developer Sandbox".', 'loading');
+            if (!reportData) {
+                showToast('No scan report loaded. Upload a JSON or run a browser scan first.', 'error');
+                showStatus('No report data. Upload or scan first.', 'error');
                 return;
             }
 
-            submitBtn.disabled = true;
-            submitBtn.classList.add('btn-loading');
+            if (buttonEl) {
+                buttonEl.disabled = true;
+                buttonEl.classList.add('btn-loading');
+            }
             showStatus('Generating certificate locally in browser sandbox...', 'loading');
 
             try {
@@ -4325,14 +4325,23 @@
                     statusEl.className = 'status error';
                     statusEl.style.display = 'block';
                     document.getElementById('retryCertBtn')?.addEventListener('click', () => {
-                        submitBtn.click();
+                        doGenerateCertificate(buttonEl);
                     });
                 }
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('btn-loading');
+                if (buttonEl) {
+                    buttonEl.disabled = false;
+                    buttonEl.classList.remove('btn-loading');
+                }
             }
-        });
+        }
+
+        submitBtn.addEventListener('click', () => doGenerateCertificate(submitBtn));
+
+        const certSubmitBtn = document.getElementById('certSubmitBtn');
+        if (certSubmitBtn) {
+            certSubmitBtn.addEventListener('click', () => doGenerateCertificate(certSubmitBtn));
+        }
 
         // === Clear Session button ===
         const clearSessionBtn = document.getElementById('clearSessionBtn');
