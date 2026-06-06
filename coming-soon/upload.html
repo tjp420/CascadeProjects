@@ -2552,20 +2552,26 @@
 
         function syncModuleSelectionFromTier() {
             if (!analyzerCardGrid) return;
-            const tier = (() => {
-                const token = document.getElementById('licenseToken')?.value || '';
-                if (!token) return 'locked';
+            const token = document.getElementById('licenseToken')?.value || '';
+            let tier = 'locked';
+            let allowed = null;
+            if (token) {
                 try {
                     const parts = token.split('.');
                     const data = parts.length === 2 ? parts[0] : parts[1];
-                    if (!data) return 'locked';
-                    const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
-                    const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
-                    const json = JSON.parse(atob(padded));
-                    return json.tier || 'locked';
-                } catch (e) { return 'locked'; }
-            })();
-            const allowed = TIER_MODULE_MAP[tier] || TIER_MODULE_MAP.locked;
+                    if (data) {
+                        const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+                        const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+                        const json = JSON.parse(atob(padded));
+                        tier = json.tier || 'locked';
+                        if (Array.isArray(json.modules)) {
+                            const all = TIER_MODULE_MAP.universal || [];
+                            allowed = json.modules.filter(m => all.includes(m));
+                        }
+                    }
+                } catch (e) { tier = 'locked'; }
+            }
+            if (!allowed) allowed = TIER_MODULE_MAP[tier] || TIER_MODULE_MAP.locked;
             selectedModules.clear();
             Array.from(analyzerCardGrid.children).forEach(card => {
                 const ok = allowed.includes(card.dataset.value);
@@ -2688,6 +2694,7 @@
         function applyProductFromToken(token) {
             const banner = document.getElementById('sprintBanner');
             if (!token) {
+                window._tokenPayload = null;
                 if (banner) banner.style.display = 'none';
                 filterScanProfiles('locked');
                 syncModuleSelectionFromTier();
@@ -2710,6 +2717,7 @@
                 const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
                 const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
                 const payload = JSON.parse(atob(padded));
+                window._tokenPayload = payload;
                 const tier = payload.tier || payload.product || 'executive';
                 filterScanProfiles(tier);
                 syncModuleSelectionFromTier();

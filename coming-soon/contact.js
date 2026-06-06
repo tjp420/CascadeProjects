@@ -97,7 +97,6 @@
       })
       .catch(function (error) {
         setStatus('Could not send your message. Please try again or contact us directly at your email.', 'error');
-        console.error('Formspree error:', error);
       })
       .finally(function () {
         if (submitBtn) {

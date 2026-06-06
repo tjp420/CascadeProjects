@@ -1079,7 +1079,6 @@ app.post('/api/certificate/download', async (req, res) => {
 
         const addJson = (name, data) => {
             const str = JSON.stringify(data, null, 2);
-            console.log(`[Archive] Adding ${name} (${str.length} bytes)`);
             archive.append(str, { name });
         };
 
