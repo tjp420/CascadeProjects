@@ -2278,6 +2278,10 @@
                         <span><strong>Deep Scan</strong> — analyze <em>every</em> file (bypasses cache, docs, and scanner-page filters)</span>
                     </label>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;">No Node.js required. Grab your entire repo folder and drop it here.</p>
+                    <div class="input-mode-toggle" style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:12px;max-width:360px;">
+                        <button id="modeFolder" class="mode-btn active" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:var(--accent);color:white;transition:all 0.2s;">&#128737; Drop Folder</button>
+                        <button id="modePaste" class="mode-btn" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-muted);transition:all 0.2s;">&#128203; Paste JSON</button>
+                    </div>
                     <div id="browser-folder-dropzone" class="terminal-shell" style="margin-bottom:16px;">
                         <div class="terminal-header">
                             <div style="display:flex;align-items:center;gap:8px;">
@@ -2300,6 +2304,12 @@
                                     <p style="font-size:0.68rem;color:#64748B;margin-top:8px;">Or click to select a directory</p>
                                     <p class="file-name" id="localScanFileName"></p>
                                 </div>
+                            </div>
+                            <div id="pasteModePanel" style="display:none;padding:16px 20px;">
+                                <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Paste JSON directly</label>
+                                <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.78rem;resize:vertical;"></textarea>
+                                <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);color:white;border:none;font-weight:600;font-size:0.85rem;border-radius:8px;cursor:pointer;">Load JSON Report</button>
+                                <p style="font-size:0.7rem;color:#64748B;margin-top:8px;">Press Ctrl+Enter to submit. Only summary metadata is used for certificate generation.</p>
                             </div>
                             <div id="terminal-console" class="terminal-log"></div>
                             <div id="dropzoneGateOverlay" class="locked-gate-overlay" style="display:none;">
@@ -2493,6 +2503,12 @@
 
         // Browser sandbox dropzone
         const browserFolderDropzone = document.getElementById('browser-folder-dropzone');
+        const modeFolderBtn = document.getElementById('modeFolder');
+        const modePasteBtn = document.getElementById('modePaste');
+        const fileModePanel = document.getElementById('terminal-dropzone-prompt');
+        const pasteModePanel = document.getElementById('pasteModePanel');
+        const jsonPasteInput = document.getElementById('jsonPasteInput');
+        const jsonPasteBtn = document.getElementById('jsonPasteBtn');
 
         let reportData = null;
         let scanAbortController = null;
@@ -3839,6 +3855,68 @@
             }
             if (e.target.files.length > 0) processLocalCLIScan(Array.from(e.target.files));
         });
+
+        // === Mode Toggle (Folder Drop vs Paste JSON) ===
+        if (modeFolderBtn && modePasteBtn && fileModePanel && pasteModePanel) {
+            modeFolderBtn.addEventListener('click', () => {
+                modeFolderBtn.classList.add('active');
+                modeFolderBtn.style.background = 'var(--accent)';
+                modeFolderBtn.style.color = 'white';
+                modePasteBtn.classList.remove('active');
+                modePasteBtn.style.background = 'transparent';
+                modePasteBtn.style.color = 'var(--text-muted)';
+                fileModePanel.style.display = '';
+                pasteModePanel.style.display = 'none';
+            });
+            modePasteBtn.addEventListener('click', () => {
+                modePasteBtn.classList.add('active');
+                modePasteBtn.style.background = 'var(--accent)';
+                modePasteBtn.style.color = 'white';
+                modeFolderBtn.classList.remove('active');
+                modeFolderBtn.style.background = 'transparent';
+                modeFolderBtn.style.color = 'var(--text-muted)';
+                pasteModePanel.style.display = 'block';
+                fileModePanel.style.display = 'none';
+                if (jsonPasteInput) jsonPasteInput.focus();
+            });
+        }
+
+        // === JSON Paste Handler ===
+        if (jsonPasteInput) {
+            jsonPasteInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    if (jsonPasteBtn) jsonPasteBtn.click();
+                }
+            });
+        }
+
+        if (jsonPasteBtn && jsonPasteInput) {
+            jsonPasteBtn.addEventListener('click', async () => {
+                const text = jsonPasteInput.value.trim();
+                if (!text) {
+                    showToast('Paste JSON content first', 'warning');
+                    return;
+                }
+                try {
+                    reportData = JSON.parse(text);
+                    const hash = await computeSha256(text);
+                    if (integrityHashEl) integrityHashEl.textContent = hash;
+                    renderPreview(reportData);
+                    scanPreview.style.display = 'block';
+                    updateSubmit();
+                    showToast('JSON loaded! Ready to generate certificate.', 'success');
+                    showStatus('JSON loaded. Click Generate Certificate to download your ZIP.', 'success');
+                } catch (err) {
+                    showToast('Invalid JSON: ' + err.message, 'error');
+                    showStatus('Invalid JSON: ' + err.message, 'error');
+                    reportData = null;
+                    if (scanPreview) scanPreview.style.display = 'none';
+                    updateSubmit();
+                }
+            });
+        }
+
         function renderPreview(data) {
             scanPreview.style.display = 'block';
             const hasToken = licenseInput.value.trim().length > 10;
@@ -4543,7 +4621,7 @@
                     if (isGitInternal) continue; // safety net: never scan .git internals
                     const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)([-_][a-z]+)?(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
                     const isSimplebeaconCache = /\.simplebeacon\//i.test(lowerPath);
-                    const isScannerArtifact = /\/upload\.html$|\/report\.json$|\/report-deliveries\//i.test(path);
+                    const isScannerArtifact = /\/upload\.html$|\/report\.json$|\/report-deliveries\/|\/explainability\.md$|\/certificate\.html$|\/certificate\.png$|\/executive-summary\.md$|\/remediation-checklist\.md$|\/dev-report\.html$|\/manifest\.json$|\/findings\.md$|\/modules\/(gate|consolidation|mock-data|roadmap|codebase|file-reduction|data-quality|cleanup|npm-audit|compliance|ai-indicators|governance|dependency-vulns|build-readiness|eu-ai-act|index)\.json$/i.test(path);
                     // AI indicators — collect with line-level detail (exclude test output logs, node_modules, simplebeacon cache, and scanner artifacts)
                     const isTestOutput = /test-(output|debug|failures|log|complete|auto)\.(txt|log)$/i.test(path) || /\.(txt|log)$/i.test(path) && /test|debug|output|log/i.test(path.split('/').pop());
                     if (profile.checkAi && !isNodeModule && !isTestOutput && !isSimplebeaconCache && !isScannerArtifact) {
