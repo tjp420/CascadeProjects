@@ -239,7 +239,9 @@ function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
     const benchmarkScan = isBenchmarkCacheProjectPath(rawPath) || Boolean(audit.benchmarkScan);
     const skipped = Boolean(audit.skipped);
     const supplyChainStatus = resolveSupplyChainStatus(audit);
-    const summary = { ...(audit.summary || {}) };
+    // Handle both string summaries (browser) and object summaries (CLI)
+    const rawSummary = audit.summary || {};
+    const summary = typeof rawSummary === 'string' ? { text: rawSummary } : { ...rawSummary };
     const deps = summary.dependencies ?? audit.dependencies?.total ?? null;
 
     const next = {
