@@ -270,5 +270,39 @@
     },
     "fictionPatternsFound": 0,
     "totalFilesScanned": 63
+  },
+  {
+    "scanId": "689ee7a1-364b-48ba-904d-2e92ed602c92",
+    "date": "2026-06-06T20:56:29.290Z",
+    "issueCount": 1,
+    "warningCount": 1,
+    "blockingCount": 0,
+    "qualityScore": 100,
+    "gatePass": true,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 1,
+      "low": 0
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 68
+  },
+  {
+    "scanId": "14ff6c0a-15d7-4238-acc7-0d64aedf234e",
+    "date": "2026-06-06T21:07:50.987Z",
+    "issueCount": 0,
+    "warningCount": 0,
+    "blockingCount": 0,
+    "qualityScore": 100,
+    "gatePass": true,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 57
   }
 ]

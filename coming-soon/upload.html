@@ -2094,68 +2094,6 @@
             </div>
         </div>
 
-    <!-- SHARED: Local Report Validator -->
-    <div class="card" style="padding:0;overflow:hidden;margin-bottom:12px;">
-        <div style="padding:14px 20px;border-bottom:1px solid var(--border);">
-            <div style="display:flex;align-items:center;gap:10px;">
-                <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
-                <h3 style="margin:0;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Local Report Validator</h3>
-            </div>
-        </div>
-        <div style="padding:16px 20px;background:var(--bg-input);">
-            <div class="input-mode-toggle" style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:12px;">
-                <button id="modeFile" class="mode-btn active" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:var(--accent);color:white;transition:all 0.2s;">&#128229; Drop File</button>
-                <button id="modePaste" class="mode-btn" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-muted);transition:all 0.2s;">&#128203; Paste JSON</button>
-            </div>
-            <div id="fileModePanel">
-                <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:10px;padding:24px 20px;">
-                    <div class="icon" style="font-size:1.6rem;margin-bottom:8px;">&#128229;</div>
-                    <p style="font-size:0.82rem;margin:0;">Drop your <code>report.json</code> here<br><span style="font-size:0.75rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
-                    <p class="file-name" id="cliFileName"></p>
-                </div>
-            </div>
-            <div id="pasteModePanel" style="display:none;margin-bottom:10px;">
-                <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Paste JSON directly</label>
-                <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:72px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.78rem;resize:vertical;"></textarea>
-                <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:6px;width:100%;padding:8px;background:var(--accent);color:white;border:none;font-weight:600;font-size:0.85rem;">Load JSON</button>
-            </div>
-            <div id="cliHashRibbon" class="hash-ribbon" style="display:none;">
-                <span class="hash-label">&#128274; Local Build Integrity</span>
-                <span id="cliHashValue">--</span>
-            </div>
-            <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
-            <div class="schema-accordion" id="schemaInspector">
-                <div class="schema-header" onclick="this.parentElement.classList.toggle('open')">
-                    <span>&#128203; Payload Schema Inspector</span>
-                    <span class="schema-chevron">&#9654;</span>
-                </div>
-                <div class="schema-body">
-                    <pre>{
-  "type": "simplebeacon-report",
-  "version": "1.3.0",
-  "generatedAt": "ISO-8601 timestamp",
-  "projectRoot": "string — redacted project label",
-  "gate": { "pass": boolean, "blockingCount": number },
-  "qualityScore": 0-100,
-  "totalFiles": number,
-  "issueCount": number,
-  "detectedIssues": [
-    { "severity": "low|medium|high|critical",
-      "type": "string — rule category",
-      "count": number,
-      "filePath": "redacted relative path",
-      "rule": "string — pattern ID",
-      "impact": "string — business risk statement",
-      "fix": "string — remediation recipe" }
-  ],
-  "summary": { "gatePass": boolean, "qualityScore": number }
-}</pre>
-                    <p style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;">No source code, AST, or file contents are transmitted. Only the summary JSON above leaves your perimeter.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
         <!-- VIEW A: CLI WORKFLOW -->
         <div id="view-cli" style="display:none;">
             <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
@@ -2458,7 +2396,6 @@
                     <h4 style="margin:0 0 8px;font-size:1.05rem;color:var(--text-main);">No Scan Report Loaded</h4>
                     <p style="margin:0 0 20px;max-width:420px;">Upload a JSON report from the CLI, paste one directly, or scan a folder in the Browser Sandbox.</p>
                     <div class="quick-actions" style="justify-content:center;">
-                        <span class="quick-action-chip" onclick="document.getElementById('modePaste').click(); document.getElementById('jsonPasteInput').focus();">&#128203; Paste JSON</span>
                         <span class="quick-action-chip" onclick="document.getElementById('tab-browser').click(); document.getElementById('browser-folder-dropzone').scrollIntoView({behavior:'smooth'});">&#128451; Scan Folder</span>
                     </div>
                 </div>
@@ -2525,8 +2462,6 @@
 
         // DOM element declarations
         const licenseInput = document.getElementById('licenseToken');
-        const fileInput = document.getElementById('fileInput');
-        const cliFileName = document.getElementById('cliFileName');
         const submitBtn = document.getElementById('submitBtn');
         const status = document.getElementById('status');
         const scanPreview = document.getElementById('scanPreview');
@@ -2556,10 +2491,8 @@
         const dropzonePrompt = document.getElementById('terminal-dropzone-prompt');
         const integrityHashEl = document.getElementById('integrity-hash');
 
-        // Separate dropzones
-        const cliJsonDropzone = document.getElementById('cli-json-dropzone');
+        // Browser sandbox dropzone
         const browserFolderDropzone = document.getElementById('browser-folder-dropzone');
-        const dropZone = cliJsonDropzone; // alias for existing code
 
         let reportData = null;
         let scanAbortController = null;
@@ -3048,7 +2981,7 @@
                 label: 'Free Audit',
                 price: '$0',
                 title: 'Free Audit',
-                subtitle: 'Gate attestation only (credentials + AI slop). Unlimited scans. No payment required.',
+                subtitle: 'Gate attestation + full certificate ZIP with all reports (executive summary, findings, remediation checklist, roadmap, explainability, dev guide, and per-module JSON). Unlimited scans. No payment required.',
                 showUpload: true,
                 scanCommand: 'node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Free community token. Run the scan locally — no payment required.'
@@ -3441,9 +3374,9 @@
         if (resetBtn) {
             resetBtn.addEventListener('click', () => {
                 reportData = null;
-                cliFileName.textContent = '';
-                if (cliJsonDropzone) cliJsonDropzone.classList.remove('has-file');
-                if (fileInput) fileInput.value = '';
+                if (typeof cliFileName !== 'undefined' && cliFileName) cliFileName.textContent = '';
+                if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone) cliJsonDropzone.classList.remove('has-file');
+                if (typeof fileInput !== 'undefined' && fileInput) fileInput.value = '';
                 scanPreview.style.display = 'none';
                 // Clear secure report block
                 const secureBlock = document.getElementById('secureReportBlock');
@@ -3485,14 +3418,6 @@
             if (e.ctrlKey || e.metaKey) {
                 if (e.key === '1') { e.preventDefault(); tabCli.click(); }
                 if (e.key === '2') { e.preventDefault(); tabBrowser.click(); }
-                if (e.key === 'v' && e.shiftKey) {
-                    e.preventDefault();
-                    const pastePanel = document.getElementById('pasteModePanel');
-                    if (pastePanel) {
-                        document.getElementById('modePaste').click();
-                        document.getElementById('jsonPasteInput').focus();
-                    }
-                }
             }
             if (e.key === 'Escape') {
                 // Clear any status messages
@@ -3587,38 +3512,6 @@
                 if (stepNum) stepNum.textContent = '2';
             });
         }
-
-        // === CLI JSON Dropzone ===
-        cliJsonDropzone.addEventListener('click', () => fileInput.click());
-        cliJsonDropzone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            cliJsonDropzone.classList.add('dragover');
-            const fileCount = e.dataTransfer.items?.length || e.dataTransfer.files?.length || 0;
-            if (fileCount > 0) {
-                const prompt = cliJsonDropzone.querySelector('p');
-                if (prompt && !cliJsonDropzone.dataset.originalText) {
-                    cliJsonDropzone.dataset.originalText = prompt.innerHTML;
-                }
-                if (prompt) prompt.innerHTML = `<span style="color:#60A5FA;font-weight:600;">&#128206; ${fileCount} file${fileCount > 1 ? 's' : ''} ready to drop</span>`;
-            }
-        });
-        cliJsonDropzone.addEventListener('dragleave', () => {
-            cliJsonDropzone.classList.remove('dragover');
-            const prompt = cliJsonDropzone.querySelector('p');
-            if (prompt && cliJsonDropzone.dataset.originalText) {
-                prompt.innerHTML = cliJsonDropzone.dataset.originalText;
-            }
-        });
-        cliJsonDropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            cliJsonDropzone.classList.remove('dragover');
-            const prompt = cliJsonDropzone.querySelector('p');
-            if (prompt && cliJsonDropzone.dataset.originalText) {
-                prompt.innerHTML = cliJsonDropzone.dataset.originalText;
-            }
-            const file = e.dataTransfer.files[0];
-            if (file) handleJsonFile(file);
-        });
 
         // === Browser Folder Dropzone ===
         browserFolderDropzone.addEventListener('click', (e) => {
@@ -3758,18 +3651,6 @@
 
         // === Keyboard Shortcuts ===
         document.addEventListener('keydown', (e) => {
-            // Ctrl+V or Cmd+V anywhere -> focus JSON paste textarea
-            if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-                const active = document.activeElement;
-                if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
-                const pasteInput = document.getElementById('jsonPasteInput');
-                if (pasteInput) {
-                    e.preventDefault();
-                    document.getElementById('modePaste').click();
-                    pasteInput.focus();
-                    showToast('Paste your JSON here, then press Enter to load', 'info', 3000);
-                }
-            }
             // Escape -> clear status messages
             if (e.key === 'Escape') {
                 const statusEl = document.getElementById('status');
@@ -3902,8 +3783,8 @@
                 showStatus('Please upload a .json file', 'error');
                 return;
             }
-            cliFileName.textContent = file.name;
-            if (cliJsonDropzone) cliJsonDropzone.classList.add('has-file');
+            if (typeof cliFileName !== 'undefined' && cliFileName) cliFileName.textContent = file.name;
+            if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone) cliJsonDropzone.classList.add('has-file');
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
@@ -3958,92 +3839,6 @@
             }
             if (e.target.files.length > 0) processLocalCLIScan(Array.from(e.target.files));
         });
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files[0]) handleJsonFile(e.target.files[0]);
-        });
-
-        // JSON paste handler
-        const jsonPasteInput = document.getElementById('jsonPasteInput');
-        const jsonPasteBtn = document.getElementById('jsonPasteBtn');
-
-        // Enter in JSON paste textarea -> submit
-        if (jsonPasteInput) {
-            jsonPasteInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (jsonPasteBtn) jsonPasteBtn.click();
-                }
-            });
-        }
-
-        if (jsonPasteBtn && jsonPasteInput) {
-            jsonPasteBtn.addEventListener('click', async () => {
-                const text = jsonPasteInput.value.trim();
-                if (!text) {
-                    showStatus('Paste JSON content first', 'error');
-                    return;
-                }
-                try {
-                    reportData = JSON.parse(text);
-                    cliFileName.textContent = 'pasted-json';
-                    const hash = await computeSha256(text);
-                    showHashRibbon('cliHashRibbon', 'cliHashValue', hash);
-                    renderPreview(reportData);
-                    scanPreview.style.display = 'block';
-                    updateSubmit();
-                    if (cliJsonDropzone) cliJsonDropzone.classList.add('has-file');
-                    // Show metadata for pasted JSON
-                    const metaDisplay = document.getElementById('fileMetaDisplay');
-                    if (metaDisplay) {
-                        metaDisplay.innerHTML = `
-                            <span style="color:#60A5FA;font-weight:600;">&#128203; Pasted JSON</span>
-                            <span style="margin-left:12px;">${(text.length / 1024).toFixed(1)} KB</span>
-                            <span style="margin-left:12px;color:var(--text-muted);">Type: ${reportData.type || 'unknown'}</span>
-                        `;
-                        metaDisplay.style.display = 'block';
-                    }
-                    showToast('JSON loaded! Ready to generate certificate.', 'success');
-                    showStatus('JSON loaded. Click Generate Certificate to download your ZIP.', 'success');
-                    // Auto-scroll to certificate section
-                    document.getElementById('tokenActionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                } catch (err) {
-                    showToast('Invalid JSON: ' + err.message, 'error');
-                    showStatus('Invalid JSON: ' + err.message, 'error');
-                    reportData = null;
-                    if (scanPreview) scanPreview.style.display = 'none';
-                    updateSubmit();
-                }
-            });
-        }
-
-        // Input mode toggle (file drop vs paste JSON)
-        const modeFileBtn = document.getElementById('modeFile');
-        const modePasteBtn = document.getElementById('modePaste');
-        const fileModePanel = document.getElementById('fileModePanel');
-        const pasteModePanel = document.getElementById('pasteModePanel');
-        if (modeFileBtn && modePasteBtn && fileModePanel && pasteModePanel) {
-            modeFileBtn.addEventListener('click', () => {
-                modeFileBtn.classList.add('active');
-                modeFileBtn.style.background = 'var(--accent)';
-                modeFileBtn.style.color = 'white';
-                modePasteBtn.classList.remove('active');
-                modePasteBtn.style.background = 'transparent';
-                modePasteBtn.style.color = 'var(--text-muted)';
-                fileModePanel.style.display = 'block';
-                pasteModePanel.style.display = 'none';
-            });
-            modePasteBtn.addEventListener('click', () => {
-                modePasteBtn.classList.add('active');
-                modePasteBtn.style.background = 'var(--accent)';
-                modePasteBtn.style.color = 'white';
-                modeFileBtn.classList.remove('active');
-                modeFileBtn.style.background = 'transparent';
-                modeFileBtn.style.color = 'var(--text-muted)';
-                pasteModePanel.style.display = 'block';
-                fileModePanel.style.display = 'none';
-            });
-        }
-
         function renderPreview(data) {
             scanPreview.style.display = 'block';
             const hasToken = licenseInput.value.trim().length > 10;
@@ -4644,6 +4439,10 @@
                     reason = deepScan ? 'File > 500MB' : 'File > 2GB';
                 } else if (!deepScan && skipDeps && (/node_modules\/|\.git\//.test(lowerPath))) {
                     reason = 'Core exclusion';
+                } else if (!deepScan && /test-.*\.js$|\.test\.|\.spec\./i.test(path)) {
+                    reason = 'Test file';
+                } else if (!deepScan && /\/server\.cjs$/.test(path)) {
+                    reason = 'Server entrypoint';
                 } else if (!deepScan && /\.simplebeacon\//.test(lowerPath)) {
                     reason = 'Simplebeacon cache';
                 } else if (!deepScan && /github-cache\//.test(lowerPath)) {
@@ -4711,9 +4510,11 @@
                     const isGitInternal = /\.git\//.test(lowerPath);
                     if (isGitInternal) continue; // safety net: never scan .git internals
                     const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)([-_][a-z]+)?(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
-                    // AI indicators — collect with line-level detail (exclude test output logs and node_modules)
+                    const isSimplebeaconCache = /\.simplebeacon\//i.test(lowerPath);
+                    const isScannerArtifact = /\/upload\.html$|\/report\.json$|\/report-deliveries\//i.test(path);
+                    // AI indicators — collect with line-level detail (exclude test output logs, node_modules, simplebeacon cache, and scanner artifacts)
                     const isTestOutput = /test-(output|debug|failures|log|complete|auto)\.(txt|log)$/i.test(path) || /\.(txt|log)$/i.test(path) && /test|debug|output|log/i.test(path.split('/').pop());
-                    if (profile.checkAi && !isNodeModule && !isTestOutput) {
+                    if (profile.checkAi && !isNodeModule && !isTestOutput && !isSimplebeaconCache && !isScannerArtifact) {
                         const aiPattern = /new\s+openai|require\s*\(\s*['"]openai['"]\s*\)|import\s+.*openai|from\s+['"]openai['"]|from\s+['"]@anthropic['"]|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/i;
                         const aiMatches = extractMatches(text, aiPattern, 3);
                         if (aiMatches.length > 0) {
@@ -4737,7 +4538,9 @@
                     // Debug artifacts — collect with line-level detail (source code only)
                     const isCiWorkflow = /\.github\/workflows\//.test(lowerPath);
                     const isSourceCode = /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|c|cpp|h|hpp|cs|php|rb|swift|kt|scala|dart|vue|svelte)$/i.test(path);
-                    if (profile.checkDebug && !isNodeModule && !isCiWorkflow && isSourceCode) {
+                    const isTestFile = /test-.*\.js$|\.test\.|\.spec\./i.test(path);
+                    const isServerEntry = /\/server\.cjs$/.test(path);
+                    if (profile.checkDebug && !isNodeModule && !isCiWorkflow && !isTestFile && !isServerEntry && !isSimplebeaconCache && isSourceCode) {
                         // Runtime debug artifacts only — not TODO comments
                         const debugPattern = /console\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|alert\s*\(|prompt\s*\(|confirm\s*\(/i;
                         const debugMatches = extractMatches(text, debugPattern, 3);
@@ -4746,8 +4549,8 @@
                             debugFindings.push({ file: path, matches: debugMatches });
                         }
                     }
-                    // Governance markers — collect with line-level detail (skip node_modules — dependency licenses are not project governance)
-                    if (profile.checkGov && !isNodeModule) {
+                    // Governance markers — collect with line-level detail (skip node_modules, simplebeacon cache, and generated reports)
+                    if (profile.checkGov && !isNodeModule && !isSimplebeaconCache && !isScannerArtifact) {
                         const govPattern = /SPDX-License-Identifier|MIT License|Apache License|GNU General Public License|All rights reserved|Copyright \(c\)|License: /i;
                         const govMatches = extractMatches(text, govPattern, 3);
                         if (govMatches.length > 0) {
@@ -6108,7 +5911,7 @@ ${(eu.documentationFound || []).slice(0, 5).map(f => `- 📄 ${f}`).join('\n')}
 ${(roadmapData.todoFiles || []).length ? (roadmapData.todoFiles || []).map(f => `- ${f}`).join('\n') : '_No TODO or FIXME markers found._'}
 
 ## Action Items
-${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} TODO/FIXME marker(s) before release.
+${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} TODO/FIXME marker${(roadmapData.todoCount || 0) === 1 ? '' : 's'} before release.
 - [ ] Convert critical FIXMEs into tracked issues.
 - [ ] Schedule code review for files with HACK markers.
 - [ ] Verify BUG comments have corresponding issue tickets.` : '- [x] Clean codebase — no TODO/FIXME/HACK/BUG markers found.'}
@@ -6205,22 +6008,22 @@ ${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} TOD
                     const rm = report.roadmap || {};
                     let phaseNum = 1;
                     if ((g.blockingCount || 0) > 0) {
-                        md += `\n## Phase ${phaseNum++}: Security (Week 1)\n- [ ] **Rotate exposed credentials** — ${g.blockingCount} blocking issue(s).\n- [ ] **Add .env and .pem to .gitignore** if not already present.\n- [ ] **Re-run gate scan** to verify zero blocking findings.\n`;
+                        md += `\n## Phase ${phaseNum++}: Security (Week 1)\n- [ ] **Rotate exposed credentials** — ${g.blockingCount} blocking issue${g.blockingCount === 1 ? '' : 's'}.\n- [ ] **Add .env and .pem to .gitignore** if not already present.\n- [ ] **Re-run gate scan** to verify zero blocking findings.\n`;
                     }
                     if ((dq.invalidJsonCount || 0) > 0 || (dq.emptyJsonCount || 0) > 0) {
-                        md += `\n## Phase ${phaseNum++}: Data Integrity (Week 1–2)\n- [ ] **Validate all JSON files** for structural integrity.\n- [ ] **Remove empty files** — ${dq.emptyJsonCount || 0} empty JSON file(s) detected.\n`;
+                        md += `\n## Phase ${phaseNum++}: Data Integrity (Week 1–2)\n- [ ] **Validate all JSON files** for structural integrity.\n- [ ] **Remove empty files** — ${dq.emptyJsonCount || 0} empty JSON file${(dq.emptyJsonCount || 0) === 1 ? '' : 's'} detected.\n`;
                     }
                     if ((cons.duplicateGroups || 0) > 0) {
-                        md += `\n## Phase ${phaseNum++}: Consistency (Week 2–3)\n- [ ] **Consolidate duplicate files** — ${cons.duplicateGroups} duplicate group(s).\n`;
+                        md += `\n## Phase ${phaseNum++}: Consistency (Week 2–3)\n- [ ] **Consolidate duplicate files** — ${cons.duplicateGroups} duplicate group${cons.duplicateGroups === 1 ? '' : 's'}.\n`;
                     }
                     if ((comp.licenseCount || 0) > 0 || (comp.securityCount || 0) > 0) {
-                        md += `\n## Phase ${phaseNum++}: Governance & Compliance (Week 3)\n- [ ] **Verify license compatibility** with your distribution model.\n- [ ] **Review security policies** — ${comp.securityCount || 0} security/governance file(s) detected.\n`;
+                        md += `\n## Phase ${phaseNum++}: Governance & Compliance (Week 3)\n- [ ] **Verify license compatibility** with your distribution model.\n- [ ] **Review security policies** — ${comp.securityCount || 0} security/governance file${(comp.securityCount || 0) === 1 ? '' : 's'} detected.\n`;
                     }
                     if ((eu.aiSystemIndicators || 0) > 0 || (eu.highRiskIndicators || 0) > 0) {
-                        md += `\n## Phase ${phaseNum++}: EU AI Act Compliance (Week 3–4)\n- [ ] **Review AI system classification** (Art. 6) — ${eu.aiSystemIndicators || 0} indicator(s).\n- [ ] **Schedule legal review** if high-risk indicators present.\n`;
+                        md += `\n## Phase ${phaseNum++}: EU AI Act Compliance (Week 3–4)\n- [ ] **Review AI system classification** (Art. 6) — ${eu.aiSystemIndicators || 0} indicator${(eu.aiSystemIndicators || 0) === 1 ? '' : 's'}.\n- [ ] **Schedule legal review** if high-risk indicators present.\n`;
                     }
                     if ((cl.debugArtifactCount || 0) > 0 || (rm.todoCount || 0) > 0) {
-                        md += `\n## Phase ${phaseNum++}: Quality Optimization (Ongoing)\n- [ ] **Remove debug artifacts** — ${cl.debugArtifactCount || 0} found.\n- [ ] **Address TODO/FIXME markers** — ${rm.todoCount || 0} file(s) flagged.\n`;
+                        md += `\n## Phase ${phaseNum++}: Quality Optimization (Ongoing)\n- [ ] **Remove debug artifacts** — ${cl.debugArtifactCount || 0} found.\n- [ ] **Address TODO/FIXME markers** — ${rm.todoCount || 0} file${(rm.todoCount || 0) === 1 ? '' : 's'} flagged.\n`;
                     }
                     if (phaseNum === 1) {
                         md += `\n## All Clear\nNo actionable findings detected. Continue monitoring with monthly gate scans.\n`;
@@ -6499,8 +6302,8 @@ ${(complianceMod.licenseCount || complianceMod.securityCount) ? `<div class="sec
                 }
                 reportData = null;
                 licenseInput.value = '';
-                cliFileName.textContent = '';
-                if (cliJsonDropzone) cliJsonDropzone.classList.remove('has-file');
+                if (typeof cliFileName !== 'undefined' && cliFileName) cliFileName.textContent = '';
+                if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone) cliJsonDropzone.classList.remove('has-file');
                 scanPreview.style.display = 'none';
                 const metaDisplay = document.getElementById('fileMetaDisplay');
                 if (metaDisplay) metaDisplay.style.display = 'none';

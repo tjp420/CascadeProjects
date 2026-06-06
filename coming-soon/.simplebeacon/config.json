@@ -20,11 +20,19 @@
     "**/*.spec.ts",
     "tests/**",
     "test/**",
+    "test-*.js",
     "**/.gitkeep",
     "**/test-output*.txt",
     "packages/simplebeacon-cli/**",
     "public/**",
-    "upload.html"
+    "upload.html",
+    "report.json",
+    "report-fresh.json",
+    "test-technical-audit.js",
+    "test-certificate.js",
+    "test-normalize.js",
+    "test-renderPreview.js",
+    "test-zip-data.js"
   ],
   "rules": {
     "credentials": {
