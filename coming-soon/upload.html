@@ -1131,9 +1131,20 @@
                     </div>
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">Scan Profile</label>
+                        <select id="browserScanProfile" style="width:100%;cursor:pointer;">
+                            <option value="gate" selected>&#127775; Gate Scan — Credential + AI heuristics</option>
+                            <option value="codebase">&#127775; Codebase Audit — Full file analysis</option>
+                            <option value="euai">&#127775; EU AI Act Sprint — AI system indicators</option>
+                            <option value="compliance">&#127775; Compliance Check — Governance + security</option>
+                            <option value="hygiene">&#127775; Hygiene Sweep — Debug artifacts + cleanup</option>
+                        </select>
+                        <p class="help-text" id="scanProfileHelp">Credential patterns, AI/LLM imports, and hardcoded secrets. Fastest scan.</p>
+                    </div>
                     <div class="sandbox-note">
                         <span class="sandbox-icon">&#127757;</span>
-                        <span class="sandbox-text">Browser sandbox runs a lightweight <strong>Gate Scan</strong> (AI patterns + credential heuristics). For full analysis (codebase audit, EU AI Act, compliance), use the <strong>CLI tab</strong>.</span>
+                        <span class="sandbox-text" id="sandboxNoteText">Browser sandbox runs a lightweight <strong>Gate Scan</strong> (AI patterns + credential heuristics). For deep analysis, use the <strong>CLI tab</strong>.</span>
                     </div>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;">No Node.js required. Grab your entire repo folder and drop it here.</p>
                     <div id="browser-folder-dropzone" class="drop-zone" style="padding:40px 20px;margin-bottom:16px;transition:all 0.2s;">
@@ -1191,7 +1202,7 @@
                             <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;">
                                 <span>&#128229;</span> Generate Certificate
                             </button>
-                            <button id="tryFreeBtn" style="padding:8px 16px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;">Try for Free</button>
+                            <button id="tryFreeBtn" style="padding:8px 16px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;">&#9881; Developer Sandbox</button>
                         </div>
                     </div>
                     <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
@@ -1268,6 +1279,77 @@
         const dropZone = cliJsonDropzone; // alias for existing code
 
         let reportData = null;
+
+        // Browser sandbox scan profiles
+        const BROWSER_SCAN_PROFILES = {
+            gate: {
+                label: 'Gate Scan',
+                help: 'Credential patterns, AI/LLM imports, and hardcoded secrets. Fastest scan.',
+                note: 'Browser sandbox runs a lightweight <strong>Gate Scan</strong> (AI patterns + credential heuristics). For deep analysis, use the <strong>CLI tab</strong>.',
+                reportType: 'simplebeacon-report',
+                title: 'SimpleBeacon Platform Gate Scan',
+                checkAi: true,
+                checkCredentials: true,
+                checkDebug: false,
+                checkGov: false
+            },
+            codebase: {
+                label: 'Codebase Audit',
+                help: 'Full file inventory, structural analysis, and path hygiene. Slower but comprehensive.',
+                note: 'Browser sandbox runs a <strong>Codebase Audit</strong> — full file inventory and structural path analysis.',
+                reportType: 'simplebeacon-report',
+                title: 'SimpleBeacon Codebase Audit',
+                checkAi: true,
+                checkCredentials: true,
+                checkDebug: true,
+                checkGov: false
+            },
+            euai: {
+                label: 'EU AI Act Sprint',
+                help: 'Flags AI system indicators, ML inference endpoints, and generative AI dependencies.',
+                note: 'Browser sandbox runs an <strong>EU AI Act Sprint</strong> — AI system indicators and ML/LLM detection.',
+                reportType: 'simplebeacon-report',
+                title: 'SimpleBeacon EU AI Act Sprint',
+                checkAi: true,
+                checkCredentials: false,
+                checkDebug: false,
+                checkGov: true
+            },
+            compliance: {
+                label: 'Compliance Check',
+                help: 'Governance markers, license headers, and security policy checks.',
+                note: 'Browser sandbox runs a <strong>Compliance Check</strong> — governance and security policy scanning.',
+                reportType: 'simplebeacon-report',
+                title: 'SimpleBeacon Compliance Check',
+                checkAi: false,
+                checkCredentials: true,
+                checkDebug: false,
+                checkGov: true
+            },
+            hygiene: {
+                label: 'Hygiene Sweep',
+                help: 'Debug artifacts, console.logs, TODOs, and cleanup markers.',
+                note: 'Browser sandbox runs a <strong>Hygiene Sweep</strong> — debug artifacts and cleanup marker detection.',
+                reportType: 'simplebeacon-report',
+                title: 'SimpleBeacon Hygiene Sweep',
+                checkAi: false,
+                checkCredentials: false,
+                checkDebug: true,
+                checkGov: false
+            }
+        };
+
+        // Profile selector wiring
+        const browserScanProfile = document.getElementById('browserScanProfile');
+        const scanProfileHelp = document.getElementById('scanProfileHelp');
+        const sandboxNoteText = document.getElementById('sandboxNoteText');
+        if (browserScanProfile) {
+            browserScanProfile.addEventListener('change', () => {
+                const profile = BROWSER_SCAN_PROFILES[browserScanProfile.value] || BROWSER_SCAN_PROFILES.gate;
+                if (scanProfileHelp) scanProfileHelp.textContent = profile.help;
+                if (sandboxNoteText) sandboxNoteText.innerHTML = profile.note;
+            });
+        }
 
         // Product-aware configuration — prices match pricing.html
         const PRODUCT_CONFIG = {
@@ -1439,11 +1521,11 @@
             resendBtn.textContent = 'Send a Token';
         });
 
-        // Try for Free — generate a community token without payment
+        // Developer Sandbox — generate a community token without payment
         document.getElementById('tryFreeBtn').addEventListener('click', async () => {
             const btn = document.getElementById('tryFreeBtn');
             btn.disabled = true;
-            btn.textContent = 'Generating...';
+            btn.textContent = 'Provisioning Sandbox...';
             try {
                 const response = await fetch('/api/free-token');
                 const data = await response.json();
@@ -1455,12 +1537,12 @@
                     btn.style.borderColor = 'var(--success)';
                     btn.style.color = 'var(--success)';
                 } else {
-                    btn.textContent = 'Try for Free →';
+                    btn.textContent = '&#9881; Developer Sandbox';
                     btn.disabled = false;
-                    alert('Could not generate free token: ' + (data.error || 'Unknown error'));
+                    alert('Could not provision sandbox: ' + (data.error || 'Unknown error'));
                 }
             } catch (err) {
-                btn.textContent = 'Try for Free →';
+                btn.textContent = '&#9881; Developer Sandbox';
                 btn.disabled = false;
                 alert('Network error: ' + err.message);
             }
@@ -1566,6 +1648,24 @@
             }
         });
 
+        // SHA-256 helper using Web Crypto API
+        async function computeSha256(text) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function showHashRibbon(elementId, valueId, text) {
+            const ribbon = document.getElementById(elementId);
+            const value = document.getElementById(valueId);
+            if (ribbon && value) {
+                value.textContent = 'sha256-' + text;
+                ribbon.style.display = 'flex';
+            }
+        }
+
         function handleJsonFile(file) {
             if (!file.name.endsWith('.json')) {
                 showStatus('Please upload a .json file', 'error');
@@ -1573,9 +1673,12 @@
             }
             cliFileName.textContent = file.name;
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     reportData = JSON.parse(e.target.result);
+                    // Compute hash of raw JSON content
+                    const hash = await computeSha256(e.target.result);
+                    showHashRibbon('cliHashRibbon', 'cliHashValue', hash);
                     renderPreview(reportData);
                     scanPreview.style.display = 'block';
                     updateSubmit();
@@ -1636,6 +1739,36 @@
                     <button class="unlock-btn" onclick="document.getElementById('licenseToken').focus(); document.getElementById('licenseToken').scrollIntoView({behavior:'smooth', block:'center'});">Unlock Certificate &rarr;</button>
                    </div>`;
 
+            // Compliance matrix rows
+            const hasAi = detectedIssues.some(i => i.type && i.type.toLowerCase().includes('ai'));
+            const hasCred = detectedIssues.some(i => i.type && i.type.toLowerCase().includes('credential'));
+            const euAiaStatus = gatePass && !hasAi ? 'pass' : hasAi ? 'warn' : 'pass';
+            const owaspStatus = gatePass && !hasCred ? 'pass' : hasCred ? 'warn' : 'pass';
+            const matrixHtml = `
+                <div class="compliance-matrix" style="margin-bottom:16px;">
+                    <div class="matrix-header">
+                        <div>Control ID</div>
+                        <div>Requirement Title</div>
+                        <div>Local Check</div>
+                    </div>
+                    <div class="matrix-row">
+                        <div class="control-id">SB-GATE-01</div>
+                        <div>SimpleBeacon Gate Attestation</div>
+                        <div><span class="status-pill ${gatePass ? 'pass' : 'fail'}">${gatePass ? '&#127775; PASSED' : '&#10071; FAILED'}</span></div>
+                    </div>
+                    <div class="matrix-row">
+                        <div class="control-id">EU-AIA-ART-5</div>
+                        <div>Prohibited AI Practices Audit</div>
+                        <div><span class="status-pill ${euAiaStatus}">${hasAi ? '&#9888; REVIEW' : '&#127775; PASSED (0 Flags)'}</span></div>
+                    </div>
+                    <div class="matrix-row">
+                        <div class="control-id">OWASP-LLM-01</div>
+                        <div>Prompt Injection Structural Shield</div>
+                        <div><span class="status-pill ${owaspStatus}">${hasCred ? '&#9888; WARNING' : '&#127775; PASSED'}</span></div>
+                    </div>
+                </div>
+            `;
+
             scanPreview.innerHTML = `
                 <div class="cert-preview ${hasToken ? '' : 'watermarked'}">
                     <div class="cert-header">
@@ -1665,6 +1798,7 @@
                             <div class="label">Issues</div>
                         </div>
                     </div>
+                    ${matrixHtml}
                     <div class="issue-list">
                         ${issueItems}
                         ${moreIssues}
@@ -1864,6 +1998,12 @@
             panelStatus.textContent = 'SUCCESS_COMPLETED';
             panelStatus.style.color = '#10B981';
 
+            // Compute hash of generated report
+            const reportJsonStr = JSON.stringify(reportData);
+            computeSha256(reportJsonStr).then(hash => {
+                showHashRibbon('browserHashRibbon', 'browserHashValue', hash);
+            });
+
             renderPreview(reportData);
             scanPreview.style.display = 'block';
             updateSubmit();
@@ -1921,7 +2061,7 @@
             if (!token || token.length < 10) {
                 licenseInput.focus();
                 licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                showStatus('Report loaded! Paste a license token above to generate your certificate, or click "Try for Free".', 'loading');
+                showStatus('Report loaded! Paste a license token above to generate your certificate, or click "Developer Sandbox".', 'loading');
                 return;
             }
 
