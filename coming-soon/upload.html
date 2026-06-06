@@ -2400,7 +2400,7 @@
                 </div>
 
                 <div id="tokenActionRow" style="display:none;">
-                    <button class="btn btn-primary" id="certSubmitBtn" disabled style="white-space:nowrap;width:100%;margin-bottom:12px;">
+                    <button class="btn btn-primary" id="certSubmitBtn" disabled style="white-space:nowrap;width:100%;margin-bottom:12px;" onclick="if(window.doGenerateCertificate)doGenerateCertificate(this)">
                         <span>&#128229;</span> Generate Certificate
                     </button>
                     <a href="roadmap.html" class="btn btn-secondary" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:12px;">&#128739; View Remediation Roadmap</a>
@@ -4174,8 +4174,8 @@
             `;
 
             // Build 13 analysis module dropdown + detail panels
+            const modules = [];
             const analysisModulesHtml = (() => {
-                const modules = [];
                 const uid = 'mod' + Math.floor(Math.random() * 100000);
                 const totalFiles = (data.codebase?.totalFiles) || files || 1;
                 const totalLines = (data.codebase?.totalLines) || 0;
@@ -4206,7 +4206,7 @@
                 // 2. Consolidation
                 const cons = data.consolidation || {};
                 const dupPct = totalFiles > 0 ? ((cons.duplicateGroups || 0) / totalFiles * 100).toFixed(1) : '0.0';
-                const dupFiles = (cons.duplicateFiles || []).filter(g => g.length > 1);
+                const dupFiles = (cons.duplicateFiles || cons.duplicateGroupsDetail || []).filter(g => g.length > 1);
                 const consDetail = dupFiles.length ? `<div class="detail-label">Duplicate Groups</div><ul>${dupFiles.slice(0,3).map(g => `<li>${g.slice(0,2).join(' ↔ ')}${g.length>2?' ...':''}</li>`).join('')}</ul>${dupFiles.length>3?`<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">... and ${dupFiles.length-3} more groups</div>`:''}<div class="detail-fix">Consolidate duplicate files into shared modules or remove redundant copies.</div>` : `<div class="detail-label">No duplicates found</div><div style="font-size:0.72rem;color:var(--text-muted);">Repository is well-deduplicated.</div>`;
                 pushModule('2', '🔀', 'Consolidation', [
                     {value: cons.monorepoMarkers || 0, label: 'Monorepo'},
@@ -5425,7 +5425,7 @@
 
             // 2. Consolidation — enriched with duplicate groups
             const cons = report.consolidation || {};
-            const dupFiles = (cons.duplicateFiles || []).map(g => g.filter(p => !/\.simplebeacon\//i.test(p))).filter(g => g.length > 1);
+            const dupFiles = (cons.duplicateFiles || cons.duplicateGroupsDetail || []).map(g => g.filter(p => !/\.simplebeacon\//i.test(p))).filter(g => g.length > 1);
             addModule('consolidation', 'Consolidation', {
                 monorepoMarkers: cons.monorepoMarkers || 0,
                 duplicateGroups: cons.duplicateGroups || 0,
@@ -6013,7 +6013,7 @@ ${i.findings && i.findings.length ? i.findings.flatMap(f => f.matches ? f.matche
 
 ${cons.duplicateGroups ? `## 🔀 Consolidation Issues
 ### Duplicate File Groups (${cons.duplicateGroups})
-${(cons.duplicateFiles || []).filter(g => g.length > 1).slice(0, 5).map(g => `- ${g.slice(0, 3).join(' ↔ ')}${g.length > 3 ? ' ...' : ''}`).join('\n')}${(cons.duplicateFiles || []).length > 5 ? '\n_... and ' + ((cons.duplicateFiles || []).length - 5) + ' more groups_' : ''}
+${(cons.duplicateFiles || cons.duplicateGroupsDetail || []).filter(g => g.length > 1).slice(0, 5).map(g => `- ${g.slice(0, 3).join(' ↔ ')}${g.length > 3 ? ' ...' : ''}`).join('\n')}${(cons.duplicateFiles || cons.duplicateGroupsDetail || []).length > 5 ? '\n_... and ' + ((cons.duplicateFiles || cons.duplicateGroupsDetail || []).length - 5) + ' more groups_' : ''}
 - **Remediation:** Consolidate duplicate files into shared modules or remove redundant copies.
 
 ` : ''}${mockTotal ? `## 🔍 Mock Data / Fixture Files (${mockTotal})
@@ -6385,7 +6385,7 @@ ${(complianceMod.licenseCount || complianceMod.securityCount) ? `<div class="sec
         }
 
         async function doGenerateCertificate(buttonEl) {
-            const token = licenseInput.value.trim();
+            const token = licenseInput ? licenseInput.value.trim() : '';
             const tokenError = document.getElementById('tokenError');
             if (tokenError) tokenError.classList.add('hidden-display');
             if (!reportData) {
@@ -6432,6 +6432,9 @@ ${(complianceMod.licenseCount || complianceMod.securityCount) ? `<div class="sec
         if (certSubmitBtn) {
             certSubmitBtn.addEventListener('click', () => doGenerateCertificate(certSubmitBtn));
         }
+
+        // Ensure UI state is synchronized on load (restored scans, URL tokens, etc.)
+        updateSubmit();
 
         // === Clear Session button ===
         const clearSessionBtn = document.getElementById('clearSessionBtn');
