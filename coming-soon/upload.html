@@ -1636,9 +1636,9 @@
                 <a href="pricing.html">Pricing</a>
                 <a href="scan-status.html">Status</a>
                 <a href="cloud-scan.html" style="color:#F87171;">Cloud</a>
-                <a href="https://github.com/tjp420/CascadeProjects" target="_blank" rel="noopener" class="github-badge">
+                <a href="https://github.com/tjp420/CascadeProjects/tree/main/ai-platform/packages/simplebeacon-cli" target="_blank" rel="noopener" class="github-badge" title="SimpleBeacon CLI source code">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-                    Open Source
+                    CLI Source
                 </a>
             </div>
         </nav>
@@ -1693,6 +1693,55 @@
             <h2><span>&#8505;</span> Your Purchase</h2>
             <div class="form-group">
                 <div id="productDetails" style="font-size:0.95rem;color:var(--text-muted);"></div>
+            </div>
+        </div>
+
+        <!-- TOKEN GATE -->
+        <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+            <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+                <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
+                <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">License Token</h3>
+            </div>
+            <div style="padding:20px 24px;background:var(--bg-input);">
+                <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:12px;">
+                    <div>
+                        <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
+                        <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
+                        <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
+                        <div id="tokenValidIndicator" class="token-valid-indicator"></div>
+                        <p id="tokenError" class="hidden-display" style="font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
+                            <span>&#128229;</span> Generate Certificate
+                        </button>
+                        <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan" style="display:none;">&#10005; Clear</button>
+                    </div>
+                </div>
+
+                <!-- Developer Sandbox - Prominent Free Tier -->
+                <div style="padding:16px;background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(16,185,129,0.04));border:1px solid rgba(37,99,235,0.25);border-radius:10px;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                        <div>
+                            <p style="font-size:0.9rem;font-weight:600;color:var(--text-main);margin:0 0 4px;">&#128161; Don't have a token?</p>
+                            <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Generate a free community token instantly. No email required.</p>
+                        </div>
+                        <button id="tryFreeBtn" style="padding:10px 20px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;box-shadow:0 0 20px rgba(37,99,235,0.2);">&#9881; Developer Sandbox</button>
+                    </div>
+                </div>
+
+                <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
+                    <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
+                    <div style="display:flex;gap:8px;">
+                        <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
+                        <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send Token</button>
+                    </div>
+                    <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
+                    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:0.75rem;color:var(--text-muted);">Corporate buyer?</span>
+                        <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon" style="font-size:0.75rem;color:#60A5FA;text-decoration:none;font-weight:600;">Request Invoice / W-9 &rarr;</a>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -2013,45 +2062,7 @@
                 </div>
 
                 <div id="tokenActionRow" style="display:none;">
-                    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:12px;">
-                        <div>
-                            <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
-                            <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
-                            <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
-                            <div id="tokenValidIndicator" class="token-valid-indicator"></div>
-                            <p id="tokenError" class="hidden-display" style="font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
-                        </div>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
-                                <span>&#128229;</span> Generate Certificate
-                            </button>
-                            <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan" style="display:none;">&#10005; Clear</button>
-                        </div>
-                    </div>
-
-                    <!-- Developer Sandbox - Prominent Free Tier -->
-                    <div style="padding:16px;background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(16,185,129,0.04));border:1px solid rgba(37,99,235,0.25);border-radius:10px;margin-bottom:12px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                            <div>
-                                <p style="font-size:0.9rem;font-weight:600;color:var(--text-main);margin:0 0 4px;">&#128161; Don't have a token?</p>
-                                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Generate a free community token instantly. No email required.</p>
-                            </div>
-                            <button id="tryFreeBtn" style="padding:10px 20px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;box-shadow:0 0 20px rgba(37,99,235,0.2);">&#9881; Developer Sandbox</button>
-                        </div>
-                    </div>
-
-                    <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
-                        <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
-                        <div style="display:flex;gap:8px;">
-                            <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
-                            <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send Token</button>
-                        </div>
-                        <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
-                        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
-                            <span style="font-size:0.75rem;color:var(--text-muted);">Corporate buyer?</span>
-                            <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon" style="font-size:0.75rem;color:#60A5FA;text-decoration:none;font-weight:600;">Request Invoice / W-9 &rarr;</a>
-                        </div>
-                    </div>
+                    <p style="font-size:0.85rem;color:var(--text-muted);text-align:center;margin:0;">Scan loaded. Review the preview above, then click <strong>Generate Certificate</strong> to download your ZIP.</p>
                 </div>
 
                 <div class="status" id="status"></div>
@@ -2416,6 +2427,14 @@
                 if (banner) banner.style.display = 'none';
                 filterScanProfiles('locked');
                 updateDropzoneGate();
+                // Reset product UI so user can enter a new token cleanly
+                const infoCard = document.getElementById('productInfoCard');
+                if (infoCard) infoCard.style.display = 'none';
+                document.getElementById('productLabel').textContent = '';
+                document.getElementById('pageTitle').textContent = 'Upload Your Scan Report';
+                document.getElementById('pageSubtitle').textContent = 'Generate an Executive Risk Certificate from your local SimpleBeacon scan.';
+                document.getElementById('tokenHelp').textContent = 'Paste the license token from your payment confirmation email.';
+                document.getElementById('submitBtn').style.display = '';
                 return;
             }
             try {
@@ -2797,8 +2816,9 @@
             if (resetBtn) resetBtn.style.display = hasFile ? 'inline-block' : 'none';
             if (hasFile) updateStepper();
 
+            // Always show token row so users can change tokens freely
+            if (tokenActionRow) tokenActionRow.style.display = 'block';
             if (hasFile) {
-                if (tokenActionRow) tokenActionRow.style.display = 'block';
                 if (hasToken) {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<span>&#128229;</span> Generate Certificate';
@@ -2811,7 +2831,6 @@
                 // Re-render preview to update watermark/unlock state
                 if (reportData) renderPreview(reportData);
             } else {
-                if (tokenActionRow) tokenActionRow.style.display = 'none';
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span>&#128229;</span> Generate Certificate';
                 submitBtn.style.opacity = '1';
@@ -2924,27 +2943,43 @@
             const items = e.dataTransfer.items;
             if (items && items.length > 0) {
                 const files = [];
-                async function traverse(entry) {
+                let traverseErrors = 0;
+                async function traverse(entry, parentPath = '') {
+                    const currentPath = parentPath ? parentPath + '/' + entry.name : entry.name;
                     if (entry.isFile) {
                         try {
                             const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+                            // Manually set webkitRelativePath since drag-drop doesn't populate it
+                            Object.defineProperty(file, 'webkitRelativePath', {
+                                value: currentPath,
+                                writable: false,
+                                configurable: true
+                            });
                             files.push(file);
                         } catch (err) {
-                            console.warn('[traverse] Skipped unreadable file:', entry.name, err);
+                            traverseErrors++;
+                            console.warn('[traverse] Skipped unreadable file:', currentPath, err);
                         }
                     } else if (entry.isDirectory) {
                         const dirReader = entry.createReader();
-                        // readEntries returns batches; loop until empty
                         let batch;
+                        let batchCount = 0;
                         do {
                             batch = await new Promise(resolve => dirReader.readEntries(resolve));
-                            for (const child of batch) await traverse(child);
+                            batchCount++;
+                            for (const child of batch) await traverse(child, currentPath);
                         } while (batch.length > 0);
+                        if (batchCount > 1) {
+                            console.log('[traverse] Directory required', batchCount, 'batches:', currentPath);
+                        }
                     }
                 }
                 for (let i = 0; i < items.length; i++) {
                     const entry = items[i].webkitGetAsEntry && items[i].webkitGetAsEntry();
                     if (entry) await traverse(entry);
+                }
+                if (traverseErrors > 0) {
+                    appendTerminalLine(`Warning: ${traverseErrors} files could not be read during directory traversal.`, 'warn');
                 }
                 await processLocalCLIScan(files);
             }
@@ -3001,6 +3036,94 @@
                 integrityHashEl.textContent = 'HASH: sha256-' + text;
                 integrityHashEl.style.color = '#34D399';
             }
+        }
+
+        // ── 6-Dimension Data Quality Validator ──────────────────────────────
+        function validateReportQuality(report) {
+            const dims = [];
+            let passCount = 0;
+
+            // 1. Accuracy — counts mirror reality
+            const accChecks = [
+                report.totalFiles === report.filesAnalyzed,
+                report.totalFiles === report.repositoryFilesTotal,
+                report.issueCount === report.simplebeaconIssues,
+                (report.codebase?.totalFiles || 0) === report.totalFiles
+            ];
+            const accPass = accChecks.every(Boolean);
+            dims.push({ name: 'Accuracy', pass: accPass, note: accPass ? 'Counts align across all fields' : 'Mismatch: totalFiles/filesAnalyzed/repositoryFilesTotal inconsistent' });
+            if (accPass) passCount++;
+
+            // 2. Completeness — required modules present
+            const requiredModules = ['gateReport', 'consolidation', 'codebase', 'npmAudit', 'compliance'];
+            const missingMods = requiredModules.filter(m => !report[m] || typeof report[m] !== 'object');
+            const compPass = missingMods.length === 0;
+            dims.push({ name: 'Completeness', pass: compPass, note: compPass ? 'All core modules present' : `Missing modules: ${missingMods.join(', ')}` });
+            if (compPass) passCount++;
+
+            // 3. Consistency — cross-field arithmetic holds
+            const sevSum = (report.severityCounts?.critical || 0) + (report.severityCounts?.high || 0) + (report.severityCounts?.medium || 0) + (report.severityCounts?.low || 0);
+            const summaryFindings = report.summary?.totalFindings ?? -1;
+            const consChecks = [
+                sevSum === report.issueCount,
+                summaryFindings === report.issueCount || summaryFindings === -1,
+                (report.gateReport?.blockingCount ?? 0) === (report.gate?.blockingCount ?? 0)
+            ];
+            const consPass = consChecks.every(Boolean);
+            dims.push({ name: 'Consistency', pass: consPass, note: consPass ? 'Cross-field arithmetic verified' : `severitySum(${sevSum})≠issueCount(${report.issueCount}) or gate mismatch` });
+            if (consPass) passCount++;
+
+            // 4. Timeliness — timestamp valid and within 5 min window
+            const scanDate = new Date(report.generatedAt);
+            const nowMs = Date.now();
+            const ageMin = (nowMs - scanDate.getTime()) / 60000;
+            const timePass = !isNaN(scanDate.getTime()) && ageMin >= -2 && ageMin <= 5;
+            dims.push({ name: 'Timeliness', pass: timePass, note: timePass ? `Timestamp valid (${ageMin.toFixed(1)}m ago)` : 'Timestamp missing, future-dated, or stale' });
+            if (timePass) passCount++;
+
+            // 5. Validity — schema types and ranges
+            const qs = report.qualityScore;
+            const valChecks = [
+                Number.isFinite(qs) && qs >= 0 && qs <= 100,
+                Number.isFinite(report.totalFiles) && report.totalFiles >= 0,
+                Array.isArray(report.detectedIssues),
+                Array.isArray(report.issues),
+                typeof report.projectRoot === 'string' && report.projectRoot.length > 0
+            ];
+            const valPass = valChecks.every(Boolean);
+            dims.push({ name: 'Validity', pass: valPass, note: valPass ? 'Schema types and ranges correct' : 'qualityScore, totalFiles, or arrays have invalid types/ranges' });
+            if (valPass) passCount++;
+
+            // 6. Integrity — report is serializable (proxy for tamper-check)
+            let intPass = false;
+            let intNote = '';
+            try {
+                const copy = JSON.parse(JSON.stringify(report));
+                intPass = copy && typeof copy === 'object';
+                intNote = intPass ? 'Deep-clone serialization successful' : 'Report not serializable';
+            } catch (e) {
+                intNote = 'Serialization failed — circular reference or non-JSON data';
+            }
+            dims.push({ name: 'Integrity', pass: intPass, note: intNote });
+            if (intPass) passCount++;
+
+            const score = Math.round((passCount / 6) * 100);
+            const overall = passCount === 6 ? 'PASS' : (passCount >= 4 ? 'REVIEW' : 'FAIL');
+            return { dims, score, overall, passCount };
+        }
+
+        function renderQualityScorecard(report) {
+            const { dims, score, overall, passCount } = validateReportQuality(report);
+            const overallColor = overall === 'PASS' ? '#34D399' : (overall === 'REVIEW' ? '#F59E0B' : '#EF4444');
+            appendTerminalLine('');
+            appendTerminalLine(`Data Quality Scorecard — ${overall} (${score}/100)`, overall === 'PASS' ? 'success' : (overall === 'REVIEW' ? 'warn' : 'error'));
+            for (const d of dims) {
+                const icon = d.pass ? '✓' : '✗';
+                const color = d.pass ? '#34D399' : '#EF4444';
+                appendTerminalLine(`  ${icon} <span style="color:${color};">${d.name}</span> — ${d.note}`);
+            }
+            appendTerminalLine(`  ${passCount}/6 dimensions passed · Report is ${overall === 'PASS' ? 'ready for certificate generation' : 'flagged for review'}.`);
+            return { dims, score, overall };
         }
 
         function handleJsonFile(file) {
@@ -3577,6 +3700,7 @@
             // 2. Filter loop with skip logging
             let skipped = 0;
             const sourceFiles = [];
+            const skipReasons = {};
             for (const f of files) {
                 const path = f.webkitRelativePath || f.name;
                 const lowerPath = path.toLowerCase();
@@ -3606,11 +3730,18 @@
 
                 if (reason) {
                     skipped++;
+                    skipReasons[reason] = (skipReasons[reason] || 0) + 1;
                     const isNodeModule = /node_modules\/|\.git\//.test(lowerPath);
                     if (!isNodeModule && skipped <= 5) appendTerminalLine(`Excluding: <span style="color:#94A3B8;">${path.split('/').pop()}</span> (${reason})`, 'warn');
                 } else {
                     sourceFiles.push(f);
                 }
+            }
+
+            // Diagnostic: log exclusion breakdown
+            appendTerminalLine('Exclusion breakdown:', 'warn');
+            for (const [reason, count] of Object.entries(skipReasons).sort((a, b) => b[1] - a[1])) {
+                appendTerminalLine(`  ${reason}: ${count} files`, 'warn');
             }
 
             if (deepScan) {
@@ -3631,11 +3762,11 @@
                     const lowerPath = path.toLowerCase();
                     const isNodeModule = /node_modules\//.test(lowerPath);
                     const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)([-_][a-z]+)?(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
-                    if (profile.checkAi && /new\s+openai|import\s+openai|from\s+anthropic|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/.test(lower)) {
+                    if (profile.checkAi && /new\s+openai|require\s*\(\s*['"]openai['"]\s*\)|import\s+.*openai|from\s+['"]openai['"]|from\s+['"]@anthropic['"]|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/.test(lower)) {
                         aiHits.push(path);
                         appendTerminalLine(`AI indicator detected: <span style="color:#94A3B8;">${path}</span>`, 'warn');
                     }
-                    if (profile.checkCredentials && !isNodeModuleDoc && /password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{16,}|secret[_-]?key\s*=\s*['"][a-z0-9]{16,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}/i.test(text)) {
+                    if (profile.checkCredentials && !isNodeModuleDoc && /password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{8,}|secret[_-]?key\s*=\s*['"][a-z0-9]{8,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}|API_KEY\s*=\s*['"][^'"]{8,}|SECRET\s*=\s*['"][^'"]{8,}|TOKEN\s*=\s*['"][^'"]{8,}/i.test(text)) {
                         credentialHits++;
                         credFiles.push(path);
                     }
@@ -3892,6 +4023,17 @@
 
             appendTerminalLine('Local directory crawl operation complete. Verification tree generated.', 'success');
             appendTerminalLine('Zero-Retention Safeguard Verified. Report compiled locally inside browser sandbox.', 'success');
+
+            // 6-Dimension Data Quality validation before preview render
+            const dq = renderQualityScorecard(reportData);
+            if (dq.overall === 'FAIL') {
+                appendTerminalLine('Certificate generation blocked: Data quality validation failed. Review the scorecard above.', 'error');
+                panelStatus.textContent = 'QUALITY_FAIL';
+                panelStatus.style.color = '#EF4444';
+                if (browserFolderDropzone) browserFolderDropzone.classList.remove('scanning');
+                return; // halt certificate pipeline
+            }
+
             panelStatus.textContent = 'SUCCESS_COMPLETED';
             panelStatus.style.color = '#10B981';
 
@@ -4186,7 +4328,9 @@
                     localStorage.removeItem(LS_KEY_TOKEN);
                     localStorage.removeItem(LS_KEY_SCAN);
                 } catch (e) { /* ignore */ }
+                applyProductFromToken('');
                 updateSubmit();
+                updateDropzoneGate();
                 showToast('Session cleared. Token and scan data removed.', 'info');
             });
         }

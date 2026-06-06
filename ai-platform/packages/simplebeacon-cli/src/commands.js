@@ -128,11 +128,14 @@ async function runScanCommand(options) {
             : formatTextReport(report, gateResult);
 
         if (options.output) {
-            writeManagedFileSync(path.resolve(options.output), `${payload}\n`, {
+            const outputPath = path.isAbsolute(options.output)
+                ? options.output
+                : path.resolve(platformRoot, options.output);
+            writeManagedFileSync(outputPath, `${payload}\n`, {
                 force: true,
                 validators: options.format === 'json' ? [validateJSON, validateNotEmpty] : [validateNotEmpty]
             });
-            console.error(`Report written to ${options.output}`);
+            console.error(`Report written to ${path.relative(platformRoot, outputPath) || outputPath}`);
             if (options.format === 'json') {
                 appendScanHistory(platformRoot, jsonReport);
             }
