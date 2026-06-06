@@ -605,7 +605,7 @@
         .gate-fail { color: var(--error); }
 
         /* Step Progress Indicator */
-        .workflow-steps {
+        .stepper {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -616,7 +616,7 @@
             border: 1px solid var(--border);
             border-radius: 12px;
         }
-        .workflow-step {
+        .stepper-step {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -624,9 +624,9 @@
             color: var(--text-muted);
             font-weight: 500;
         }
-        .workflow-step.active { color: var(--text-main); }
-        .workflow-step.completed { color: var(--success); }
-        .step-num {
+        .stepper-step.active { color: var(--text-main); }
+        .stepper-step.done { color: var(--success); }
+        .stepper-bubble {
             width: 24px; height: 24px;
             border-radius: 50%;
             background: var(--border);
@@ -638,23 +638,23 @@
             justify-content: center;
             transition: all 0.3s ease;
         }
-        .workflow-step.active .step-num {
+        .stepper-step.active .stepper-bubble {
             background: var(--accent);
             color: white;
             box-shadow: 0 0 12px var(--accent-glow);
         }
-        .workflow-step.completed .step-num {
+        .stepper-step.done .stepper-bubble {
             background: var(--success);
             color: white;
         }
-        .step-connector {
+        .stepper-line {
             width: 24px;
             height: 2px;
             background: var(--border);
             border-radius: 1px;
             transition: background 0.3s ease;
         }
-        .step-connector.completed { background: var(--success); }
+        .stepper-line.done { background: var(--success); }
 
         /* Toast Notifications */
         .toast-container {
@@ -1238,6 +1238,26 @@
                 gap: 8px;
             }
             .cmd-desc { display: none; }
+            .stepper {
+                max-width: 100%;
+                padding: 0 8px;
+            }
+            .stepper-bubble {
+                width: 28px;
+                height: 28px;
+                font-size: 0.75rem;
+            }
+            .stepper-label {
+                font-size: 0.65rem;
+            }
+            .stepper-line {
+                margin: 0 4px;
+                margin-bottom: 18px;
+            }
+            header h1 { font-size: 1.6rem; }
+            header p { font-size: 0.9rem; }
+            body { padding: 12px; }
+            .card { padding: 20px; }
         }
 
         /* Sandbox capability note */
@@ -1753,21 +1773,6 @@
             }, duration);
         }
 
-        // Workflow step updates
-        function updateWorkflowStep(step) {
-            const s1 = document.getElementById('step1');
-            const s2 = document.getElementById('step2');
-            const s3 = document.getElementById('step3');
-            const c1 = document.getElementById('conn1');
-            const c2 = document.getElementById('conn2');
-            if (!s1 || !s2 || !s3) return;
-            [s1, s2, s3].forEach(s => { s.classList.remove('active', 'completed'); });
-            [c1, c2].forEach(c => { if (c) c.classList.remove('completed'); });
-            if (step >= 1) { s1.classList.add(step > 1 ? 'completed' : 'active'); }
-            if (step >= 2) { s2.classList.add(step > 2 ? 'completed' : 'active'); if (c1) c1.classList.add('completed'); }
-            if (step >= 3) { s3.classList.add('active'); if (c2) c2.classList.add('completed'); }
-        }
-
         // Browser sandbox scan profiles
         const BROWSER_SCAN_PROFILES = {
             gate: {
@@ -2148,7 +2153,7 @@
                 scanPreview.style.display = 'none';
                 updateSubmit();
                 showToast('Scan cleared. Upload a new report to continue.', 'info');
-                updateWorkflowStep(1);
+                updateStepper();
             });
         }
 
@@ -2210,7 +2215,7 @@
             const certEmptyState = document.getElementById('certEmptyState');
             if (certEmptyState) certEmptyState.style.display = hasFile ? 'none' : 'block';
             if (resetBtn) resetBtn.style.display = hasFile ? 'inline-block' : 'none';
-            if (hasFile) updateWorkflowStep(2);
+            if (hasFile) updateStepper();
 
             if (hasFile) {
                 if (tokenActionRow) tokenActionRow.style.display = 'block';
@@ -2366,16 +2371,6 @@
             }
         });
 
-        // Enter in JSON paste textarea -> submit
-        if (jsonPasteInput) {
-            jsonPasteInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (jsonPasteBtn) jsonPasteBtn.click();
-                }
-            });
-        }
-
         // Simple DJB2 hash for duplicate detection in browser sandbox
         async function simpleHash(text) {
             let hash = 5381;
@@ -2457,6 +2452,17 @@
         // JSON paste handler
         const jsonPasteInput = document.getElementById('jsonPasteInput');
         const jsonPasteBtn = document.getElementById('jsonPasteBtn');
+
+        // Enter in JSON paste textarea -> submit
+        if (jsonPasteInput) {
+            jsonPasteInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (jsonPasteBtn) jsonPasteBtn.click();
+                }
+            });
+        }
+
         if (jsonPasteBtn && jsonPasteInput) {
             jsonPasteBtn.addEventListener('click', async () => {
                 const text = jsonPasteInput.value.trim();
@@ -3127,6 +3133,10 @@
             renderPreview(reportData);
             scanPreview.style.display = 'block';
             updateSubmit();
+            // Auto-scroll to certificate section after scan
+            setTimeout(() => {
+                document.getElementById('tokenActionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
             const statusParts = [`${profile.label} complete: ${sourceFiles.length} files`];
             if (profile.checkAi) statusParts.push(`${aiHits.length} AI indicators`);
             if (profile.checkCredentials) statusParts.push(`${credentialHits} credentials`);
@@ -3225,7 +3235,7 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                updateWorkflowStep(3);
+                updateStepper();
                 showToast('Certificate ZIP downloaded successfully!', 'success', 6000);
                 showStatus('Certificate ZIP downloaded! Open the ZIP and browse to reports/*.html → Print → Save as PDF.', 'success');
             } catch (err) {
@@ -3241,6 +3251,10 @@
         const clearSessionBtn = document.getElementById('clearSessionBtn');
         if (clearSessionBtn) {
             clearSessionBtn.addEventListener('click', () => {
+                const hasData = reportData !== null || licenseInput.value.trim().length > 0;
+                if (hasData && !confirm('Clear session?\n\nThis will remove your scan data and license token from this page and browser storage.')) {
+                    return;
+                }
                 reportData = null;
                 licenseInput.value = '';
                 cliFileName.textContent = '';
