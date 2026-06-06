@@ -186,6 +186,11 @@ setupFlexibleAnalyzeAPI(app, {
 const { setupSimplebeaconBillingRoutes } = require('../ai-platform/src/api/simplebeacon-billing-api.cjs');
 setupSimplebeaconBillingRoutes(app);
 
+// Health / base route for API namespace
+app.get('/api/simplebeacon', (_req, res) => {
+    res.json({ status: 'ok', service: 'simplebeacon-api', version: '1.3.0' });
+});
+
 // Pricing config endpoint
 app.get('/api/config/pricing', (_req, res) => {
     res.json({
@@ -746,6 +751,9 @@ Questions? https://simplebeacon.ai
 });
 
 // Serve specific pages explicitly
+app.get('/upload.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'upload.html'));
+});
 app.get('/certificate-upload.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'certificate-upload.html'));
 });
