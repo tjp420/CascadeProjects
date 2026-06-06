@@ -1198,7 +1198,7 @@
                         <div class="terminal-body">
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
-                                <code id="installCmd">node packages/simplebeacon-cli/bin/simplebeacon.js --version</code>
+                                <code id="installCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan --help</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('installCmd')">Copy</button>
                                 <span class="cmd-desc">Verify CLI is ready</span>
                             </div>
@@ -1225,6 +1225,21 @@
                                 <code id="scanEuaiCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --config .simplebeacon/config-full-coverage.json --full</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('scanEuaiCmd')">Copy</button>
                                 <span class="cmd-desc">EU AI Act assessment</span>
+                            </div>
+                        </div>
+                        <p style="font-size:0.7rem;color:#94a3b8;margin:12px 0 4px;padding-top:8px;border-top:1px solid #334155;">Test this server (PowerShell)</p>
+                        <div class="terminal-body">
+                            <div class="cmd-row">
+                                <span class="cmd-prompt">$</span>
+                                <code id="testHealthCmd">curl http://localhost:PORT/api/simplebeacon</code>
+                                <button class="cmd-copy" onclick="copyToClipboard('testHealthCmd')">Copy</button>
+                                <span class="cmd-desc">Check API health (replace PORT with your server port)</span>
+                            </div>
+                            <div class="cmd-row">
+                                <span class="cmd-prompt">$</span>
+                                <code id="testCertCmd">curl -X POST http://localhost:PORT/api/certificate/download -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_TOKEN" -d '{\"reportJson\":{\"type\":\"simplebeacon-report\"}}'</code>
+                                <button class="cmd-copy" onclick="copyToClipboard('testCertCmd')">Copy</button>
+                                <span class="cmd-desc">Test certificate endpoint (replace PORT with your server port)</span>
                             </div>
                         </div>
                     </div>
