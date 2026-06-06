@@ -179,7 +179,7 @@ function formatJsonReport(report, gateResult = null) {
         documentationArtifacts: euDocs,
         documentationFound: euDocFound,
         controls: euControls.slice(0, 10),
-        deadlineNote: euNote || ((euIndicators || euHighRisk) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.'),
+        deadlineNote: euNote || (euHighRisk ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : euIndicators ? `${euIndicators} AI system indicator${euIndicators === 1 ? '' : 's'} detected; review EU AI Act applicability.` : 'Review EU AI Act requirements.'),
         summary: (euIndicators || euHighRisk)
             ? `${euIndicators} AI system indicator${euIndicators === 1 ? '' : 's'} detected; ${euHighRisk} high-risk, ${euTransparency} transparency gap${euTransparency === 1 ? '' : 's'}.`
             : 'No EU AI Act indicators found.'
@@ -255,7 +255,7 @@ function formatJsonReport(report, gateResult = null) {
     const hasConsistencyMetrics = dupes != null;
     if (hasConsistencyMetrics) {
         const allClean = dupes === 0 || dupes == null;
-        phases.push({ id: 'consistency', title: `Phase ${phases.length + 1}: Consistency & Deduplication`, severity: dupes > 5 ? 'high' : 'medium', effort: '3–5 days', description: allClean ? 'Consistency verified — no duplicates or naming drift.' : `Eliminate redundancy${dupes > 0 ? ': ' + dupes + ' duplicate group(s)' : ''}.`, tasks: [...(dupes > 0 ? [`Consolidate ${dupes} duplicate group(s)`] : []), 'Standardize naming conventions', 'Document canonical file locations'], progress: allClean ? 100 : Math.round((dupes === 0 ? 100 : 50) / 2), status: allClean ? 'completed' : 'pending' });
+        phases.push({ id: 'consistency', title: `Phase ${phases.length + 1}: Consistency & Deduplication`, severity: dupes > 5 ? 'high' : 'medium', effort: '3–5 days', description: allClean ? 'Consistency verified — no duplicates or naming drift.' : `Eliminate redundancy${dupes > 0 ? ': ' + dupes + ' duplicate group(s)' : ''}.`, tasks: [...(dupes > 0 ? [`Consolidate ${dupes} duplicate group(s)`] : []), 'Standardize naming conventions', 'Document canonical file locations'], progress: allClean ? 100 : 0, status: allClean ? 'completed' : 'pending' });
     }
     if ((licenseCount != null && licenseCount > 0) || (securityCount != null && securityCount > 0)) {
         phases.push({ id: 'compliance', title: `Phase ${phases.length + 1}: Governance & Compliance`, severity: 'medium', effort: '2–3 days', description: `${licenseCount || 0} license file(s), ${securityCount || 0} security file(s).`, tasks: [...(licenseCount > 0 ? [`Audit ${licenseCount} open-source license file(s)`] : []), ...(securityCount > 0 ? [`Review ${securityCount} security/governance file(s)`] : []), 'Verify license compatibility', 'Document governance policies'], progress: 0, status: 'pending' });

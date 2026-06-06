@@ -713,7 +713,7 @@ function buildCertificateHtml(reportJson, payload) {
         const hasConsistencyMetrics = dupes != null;
         if (hasConsistencyMetrics) {
             const allClean = dupes === 0 || dupes == null;
-            phases.push({ id: 'consistency', title: `Phase ${phases.length + 1}: Consistency & Deduplication`, severity: dupes > 5 ? 'high' : 'medium', effort: '3–5 days', description: allClean ? 'Consistency verified — no duplicates or naming drift.' : `Eliminate redundancy${dupes > 0 ? ': ' + dupes + ' duplicate group(s)' : ''}.`, tasks: [...(dupes > 0 ? [`Consolidate ${dupes} duplicate group(s)`] : []), 'Standardize naming conventions', 'Document canonical file locations'], progress: allClean ? 100 : Math.round((dupes === 0 ? 100 : 50) / 2), status: allClean ? 'completed' : 'pending' });
+            phases.push({ id: 'consistency', title: `Phase ${phases.length + 1}: Consistency & Deduplication`, severity: dupes > 5 ? 'high' : 'medium', effort: '3–5 days', description: allClean ? 'Consistency verified — no duplicates or naming drift.' : `Eliminate redundancy${dupes > 0 ? ': ' + dupes + ' duplicate group(s)' : ''}.`, tasks: [...(dupes > 0 ? [`Consolidate ${dupes} duplicate group(s)`] : []), 'Standardize naming conventions', 'Document canonical file locations'], progress: allClean ? 100 : 0, status: allClean ? 'completed' : 'pending' });
         }
         const comp = data.compliance || {};
         const licenseCount = comp.licenseCount != null ? Number(comp.licenseCount) : null;

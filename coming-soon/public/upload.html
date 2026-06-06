@@ -2724,7 +2724,9 @@
                 moduleData = { ...moduleData, metrics: { riskScore: Math.max(0, 40 - govScore * 5), priority: health === 'excellent' ? 'low' : (health === 'good' ? 'low' : (health === 'fair' ? 'medium' : 'high')) }, licenseCount: licCount, securityCount: secCount, governanceScore: govScore, complianceHealth: health, licenseFiles: licFiles.slice(0, 5), securityFiles: secFiles.slice(0, 5), missingGovernanceFiles: missing.slice(0, 5), recommendations: recs.slice(0, 4), remediation: recs[0] || 'Verify license compatibility with your distribution model.', summary: `${licCount} license file${licCount === 1 ? '' : 's'}, ${secCount} security/governance file${secCount === 1 ? '' : 's'} detected.` };
             } else if (num === '11') {
                 const eu = data.euAiActSummary || data.euAiAct || {};
-                moduleData = { ...moduleData, aiSystemIndicators: eu.aiSystemIndicators || 0, highRiskIndicators: eu.highRiskIndicators || 0, transparencyGaps: eu.transparencyGaps || 0, documentationArtifacts: eu.documentationArtifacts || 0, documentationFound: (eu.documentationFound || []).slice(0, 5), summary: eu.deadlineNote || ((eu.aiSystemIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.') };
+                const euIndicators = eu.aiSystemIndicators || 0;
+                const euHighRisk = eu.highRiskIndicators || 0;
+                moduleData = { ...moduleData, aiSystemIndicators: euIndicators, highRiskIndicators: euHighRisk, transparencyGaps: eu.transparencyGaps || 0, documentationArtifacts: eu.documentationArtifacts || 0, documentationFound: (eu.documentationFound || []).slice(0, 5), summary: eu.deadlineNote || (euHighRisk ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : euIndicators ? `${euIndicators} AI system indicator${euIndicators === 1 ? '' : 's'} detected; review EU AI Act applicability.` : 'Review EU AI Act requirements.') };
             } else if (num === '12') {
                 const depAudit = data.dependencyAudit || data.vulnerabilityAudit || {};
                 const vulnIssues = (data.detectedIssues || []).filter(i => i.type && /vulnerab|cve|npm audit|dependency|outdated/i.test(i.type));
@@ -4041,6 +4043,10 @@
             scanPreview.style.display = 'block';
             const hasToken = licenseInput.value.trim().length > 10;
 
+            // Normalize allIssues -> detectedIssues for backward compatibility with scan reports
+            if (!Array.isArray(data.detectedIssues) && Array.isArray(data.allIssues)) data.detectedIssues = data.allIssues;
+            if (!Array.isArray(data.detectedIssues)) data.detectedIssues = [];
+
             // Normalize simplebeacon-npm-audit for preview (raw report is flat)
             if (data.type === 'simplebeacon-npm-audit' && !data.gate) {
                 const h = data.hygieneSummary || {};
@@ -4564,6 +4570,7 @@
             let duplicateHashes = new Map();
             let duplicateGroups = 0;
             let todoFiles = [];
+            const todoMarkerCounts = { TODO: 0, FIXME: 0, HACK: 0, BUG: 0, NOTE: 0, XXX: 0 };
             let imageFiles = [];
             let unusedAssetCandidates = [];
             let monorepoMarkers = 0;
@@ -4805,9 +4812,18 @@
                         const isTestFile = /test[-_]|\.test\.|\.spec\./i.test(path);
                         const hasSourceExt = /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|c|cpp|h|hpp|cs|php|rb|swift|kt|scala|dart|vue|svelte|html|css|scss|sass|less|sql|sh|bash|ps1|yml|yaml|json|md|txt|xml|cfg|ini|toml|gradle|dockerfile)$/i.test(path);
                         const todoCommentPattern = /(?:\/\/\s*|\/\*\s*|#\s*)\b(TODO|FIXME|HACK|XXX|NOTE|BUG)\b/i;
-                        const hasRealTodo = text.split('\n').some(line => todoCommentPattern.test(line));
+                        const fileMarkers = { TODO: 0, FIXME: 0, HACK: 0, BUG: 0, NOTE: 0, XXX: 0 };
+                        text.split('\n').forEach(line => {
+                            const m = line.match(todoCommentPattern);
+                            if (m) {
+                                const type = m[1].toUpperCase();
+                                if (fileMarkers.hasOwnProperty(type)) fileMarkers[type]++;
+                            }
+                        });
+                        const hasRealTodo = Object.values(fileMarkers).some(c => c > 0);
                         if (!isNodeModule && !isCacheOrBinary && !isScanReport && !isTestFile && hasSourceExt && hasRealTodo) {
-                            todoFiles.push(path);
+                            todoFiles.push({ path, markers: fileMarkers });
+                            Object.keys(fileMarkers).forEach(k => { todoMarkerCounts[k] += fileMarkers[k]; });
                         }
                     }
                     // 6. File reduction: collect image paths for post-scan cross-reference
@@ -4979,7 +4995,8 @@
                 ...(allowedSections.includes('roadmap') ? {
                     roadmap: {
                         todoCount: todoFiles.length,
-                        todoFiles: todoFiles.slice(0, 20),
+                        todoFiles: todoFiles.map(f => f.path || f).slice(0, 20),
+                        markerBreakdown: { TODO: todoMarkerCounts.TODO, FIXME: todoMarkerCounts.FIXME, HACK: todoMarkerCounts.HACK, BUG: todoMarkerCounts.BUG },
                         summary: todoFiles.length > 0 ? `${todoFiles.length} files contain TODO/FIXME markers.` : 'No roadmap markers found.'
                     }
                 } : {}),
@@ -5170,13 +5187,14 @@
             status.parentNode.insertBefore(reportBlock, status.nextSibling);
 
             document.getElementById('downloadReportBtn').addEventListener('click', () => {
-                const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(reportJson);
+                const blob = new Blob([reportJson], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.setAttribute('href', dataStr);
-                a.setAttribute('download', 'report.json');
+                a.href = url;
+                a.download = 'report.json';
                 document.body.appendChild(a);
                 a.click();
-                a.remove();
+                setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 100);
             });
             } catch (err) {
                 if (err.message !== 'Scan aborted') {
@@ -5351,12 +5369,24 @@
                 throw new Error('PNG blob creation failed — ' + (blobErr && blobErr.message || 'unknown error'));
             }
             // 3. Build per-module exports from report data — enriched with computed fields
+            // Normalize allIssues -> detectedIssues for backward compatibility with scan reports
+            if (!Array.isArray(report.detectedIssues) && Array.isArray(report.allIssues)) report.detectedIssues = report.allIssues;
+            if (!Array.isArray(report.detectedIssues)) report.detectedIssues = [];
             const totalFiles = (report.codebase?.totalFiles) || report.totalFiles || report.filesAnalyzed || 1;
             const totalLines = (report.codebase?.totalLines) || report.totalLines || 0;
 
             const modules = [];
             const addModule = (id, label, data) => {
                 if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+                    // Data-quality assertions: keep counts in sync with arrays
+                    if (Array.isArray(data.affectedFiles) && data.fileCount !== undefined && data.fileCount !== data.affectedFiles.length) {
+                        console.warn(`Data quality: ${id} fileCount (${data.fileCount}) != affectedFiles.length (${data.affectedFiles.length})`);
+                        data.fileCount = data.affectedFiles.length;
+                    }
+                    if (Array.isArray(data.documentationFound) && data.documentationArtifacts !== undefined && data.documentationArtifacts !== data.documentationFound.length) {
+                        console.warn(`Data quality: ${id} documentationArtifacts (${data.documentationArtifacts}) != documentationFound.length (${data.documentationFound.length})`);
+                        data.documentationArtifacts = data.documentationFound.length;
+                    }
                     const riskScore = data.riskScore ?? (
                         data.severity === 'high' ? 80 : data.severity === 'medium' ? 50 : 20
                     );
@@ -5444,6 +5474,8 @@
             const mockCats = report.mockDataCategories || [];
             const mockTotal = report.mockSampleFiles ?? mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
             const mockPct = totalFiles > 0 ? (mockTotal / totalFiles * 100).toFixed(1) : '0.0';
+            const mockRiskScore = mockTotal > 50 ? 80 : mockTotal > 10 ? 50 : 20;
+            const mockSeverity = mockTotal > 50 ? 'high' : mockTotal > 10 ? 'medium' : 'low';
             addModule('mock-data', 'Mock Data', {
                 fileCount: mockTotal,
                 percentageOfRepo: mockPct + '%',
@@ -5452,7 +5484,9 @@
                     category: c.category, fileCount: c.fileCount || 0, confidence: c.confidence, description: c.description
                 })),
                 affectedFiles: mockCats.flatMap(c => c.affectedFiles || []).slice(0, 10),
-                productionRisk: mockTotal > 50 ? 'high' : mockTotal > 10 ? 'medium' : 'low',
+                riskScore: mockRiskScore,
+                severity: mockSeverity,
+                productionRisk: mockSeverity,
                 summary: mockTotal ? `${mockTotal} mock/fixture files detected (${mockPct}% of total).` : 'No mock data found.',
                 recommendations: [
                     ...(mockTotal > 0 ? ['Ensure mock data is excluded from production bundles.', 'Review fixture files for PII or real credentials.'] : ['No mock data detected — good hygiene.'])
@@ -5469,12 +5503,7 @@
                 todoFiles: (rm.todoFiles || []).slice(0, 10),
                 severity: (rm.todoCount || 0) > 50 ? 'high' : ((rm.todoCount || 0) > 10 ? 'medium' : 'low'),
                 severityColor: (rm.todoCount || 0) > 50 ? '#EF4444' : ((rm.todoCount || 0) > 10 ? '#F59E0B' : '#34D399'),
-                markerBreakdown: {
-                    TODO: (rm.todoFiles || []).filter(f => /TODO/i.test(f)).length,
-                    FIXME: (rm.todoFiles || []).filter(f => /FIXME/i.test(f)).length,
-                    HACK: (rm.todoFiles || []).filter(f => /HACK/i.test(f)).length,
-                    BUG: (rm.todoFiles || []).filter(f => /BUG/i.test(f)).length
-                },
+                markerBreakdown: rm.markerBreakdown || { TODO: 0, FIXME: 0, HACK: 0, BUG: 0 },
                 summary: rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} files contain TODO/FIXME markers (${todoDensity}% of repo).` : 'No roadmap markers found.'),
                 recommendations: [
                     ...(rm.todoCount > 0 ? ['Address critical TODOs before release.', 'Convert FIXMEs into tracked issues.'] : ['No roadmap markers — clean codebase.'])
@@ -5648,7 +5677,7 @@
                     documentationFound: (eu.documentationFound || []).slice(0, 5),
                     severity: (eu.aiSystemIndicators || 0) > 0 ? 'high' : 'low',
                     severityColor: (eu.aiSystemIndicators || 0) > 0 ? '#EF4444' : '#60A5FA',
-                    summary: eu.deadlineNote || ((eu.aiSystemIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.'),
+                    summary: eu.deadlineNote || ((eu.highRiskIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : (eu.aiSystemIndicators || 0) ? `${eu.aiSystemIndicators || 0} AI system indicator${(eu.aiSystemIndicators || 0) === 1 ? '' : 's'} detected; review EU AI Act applicability.` : 'Review EU AI Act requirements.'),
                     remediation: (eu.aiSystemIndicators || 0) ? 'Review AI system classification (Art. 6) and schedule legal review if high-risk.' : null
                 });
             }
