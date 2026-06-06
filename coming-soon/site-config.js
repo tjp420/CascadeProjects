@@ -48,6 +48,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   stripePaymentLink: 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
   euAiActPackLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
 
+  apiBase: (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? '' : 'https://simplebeacon.onrender.com',
   stagingMode: false,
   paymentsEnabled: true,
   closedSource: false
@@ -56,7 +57,8 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 // Override Stripe links from server environment configuration (falls back to hardcoded values above)
 (function () {
   try {
-    fetch('/api/config/pricing')
+    var apiBase = window.SIMPLEBEACON_SITE.apiBase || '';
+    fetch(apiBase + '/api/config/pricing')
       .then(function (res) { return res.json(); })
       .then(function (data) {
         if (!data || !data.success || !data.pricing) return;

@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SimpleBeacon — Privacy-first source code scanner. Analyze your repository for security, compliance, and quality issues entirely in your browser. Zero data leaves your device.">
+    <meta name="theme-color" content="#0B0F19">
     <title>SimpleBeacon — Upload Your Scan Report</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
@@ -242,6 +244,20 @@
             outline: none;
             border-color: var(--border-focus);
             box-shadow: 0 0 0 3px var(--accent-glow), 0 0 20px rgba(37, 99, 235, 0.15);
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        button:focus-visible,
+        a:focus-visible,
+        [tabindex]:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 4px;
         }
 
         input[type="text"],
@@ -1755,19 +1771,19 @@
         </header>
 
         <!-- Visual Stepper -->
-        <div class="stepper" id="mainStepper">
-            <div class="stepper-step active" id="stepper1">
-                <div class="stepper-bubble">1</div>
+        <div class="stepper" id="mainStepper" role="navigation" aria-label="Certificate generation steps">
+            <div class="stepper-step active" id="stepper1" aria-current="step">
+                <div class="stepper-bubble" aria-hidden="true">1</div>
                 <span class="stepper-label">Enter Token</span>
             </div>
-            <div class="stepper-line" id="stepperLine1"></div>
+            <div class="stepper-line" id="stepperLine1" aria-hidden="true"></div>
             <div class="stepper-step" id="stepper2">
-                <div class="stepper-bubble">2</div>
+                <div class="stepper-bubble" aria-hidden="true">2</div>
                 <span class="stepper-label">Upload / Scan</span>
             </div>
-            <div class="stepper-line" id="stepperLine2"></div>
+            <div class="stepper-line" id="stepperLine2" aria-hidden="true"></div>
             <div class="stepper-step" id="stepper3">
-                <div class="stepper-bubble">3</div>
+                <div class="stepper-bubble" aria-hidden="true">3</div>
                 <span class="stepper-label">Certificate</span>
             </div>
         </div>
@@ -1834,31 +1850,31 @@
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="installCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan --help</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('installCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('installCmd')" aria-label="Copy verify CLI command">Copy</button>
                                 <span class="cmd-desc">Verify CLI is ready</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="scanCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --format json --output=report.json</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('scanCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanCmd')" aria-label="Copy standard gate scan command">Copy</button>
                                 <span class="cmd-desc">Standard gate scan</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="scanGateCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --gate --offline</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('scanGateCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanGateCmd')" aria-label="Copy gate-only scan command">Copy</button>
                                 <span class="cmd-desc">Gate-only (no network)</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="scanFullCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --complete --gate --format json --output=report.json</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('scanFullCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanFullCmd')" aria-label="Copy full coverage scan command">Copy</button>
                                 <span class="cmd-desc">Full coverage + gate</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="scanEuaiCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --complete --gate --format json --output=eu-ai-act-report.json</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('scanEuaiCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanEuaiCmd')" aria-label="Copy EU AI Act scan command">Copy</button>
                                 <span class="cmd-desc">EU AI Act assessment</span>
                             </div>
                         </div>
@@ -1867,13 +1883,13 @@
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="testHealthCmd">curl http://localhost:PORT/api/simplebeacon</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('testHealthCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('testHealthCmd')" aria-label="Copy API health check command">Copy</button>
                                 <span class="cmd-desc">Check API health (replace PORT with your server port)</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="testCertCmd">curl -X POST http://localhost:PORT/api/certificate/download -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_TOKEN" -d '{\"reportJson\":{\"type\":\"simplebeacon-report\"}}'</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('testCertCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('testCertCmd')" aria-label="Copy test certificate endpoint command">Copy</button>
                                 <span class="cmd-desc">Test certificate endpoint (replace PORT with your server port)</span>
                             </div>
                         </div>
@@ -2084,8 +2100,8 @@
                         <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
                         <input type="file" id="cli-files-input" multiple style="display:none;">
                     </div>
-                    <div id="panel-progress-container" style="display:none;margin-bottom:12px;">
-                        <div class="progress-bar"><div class="fill" id="panel-progress-bar"></div></div>
+                    <div id="panel-progress-container" style="display:none;margin-bottom:12px;" role="status" aria-live="polite" aria-label="Scan progress">
+                        <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Scan progress"><div class="fill" id="panel-progress-bar"></div></div>
                     </div>
                     <div id="browserHashRibbon" class="hash-ribbon" style="display:none;">
                         <span class="hash-label">&#128274; Local Build Integrity</span>
@@ -4029,7 +4045,7 @@
                         ${moreIssues}
                     </div>
                     <div style="margin-top:16px;">
-                        <div style="font-size:0.8rem;font-weight:700;color:#60A5FA;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">11 Analysis Modules</div>
+                        <div style="font-size:0.8rem;font-weight:700;color:#60A5FA;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">${modules.length} Analysis Module${modules.length !== 1 ? 's' : ''}</div>
                         ${analysisModulesHtml}
                     </div>
                     ${footer}

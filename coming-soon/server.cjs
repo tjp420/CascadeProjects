@@ -102,7 +102,7 @@ function sendViaResend({ to, from, subject, text, html }) {
 async function sendViaSmtp({ to, from, subject, text, html }) {
     let nodemailer;
     try { nodemailer = require('nodemailer'); } catch { throw new Error('nodemailer not installed'); }
-    const cfg = { host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT) || 587, user: process.env.SMTP_USER, pass: process.env.SMTP_PASS, from: process.env.SMTP_FROM || from || 'trevor_punt@live.com', secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465 };
+    const cfg = { host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT) || 587, user: process.env.SMTP_USER, pass: process.env.SMTP_PASS, from: process.env.SMTP_FROM || from || 'certificates@simplebeacon.ai', secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465 };
     if (!cfg.host || !cfg.user || !cfg.pass) throw new Error('SMTP not configured');
     const transporter = nodemailer.createTransport({ host: cfg.host, port: cfg.port, secure: cfg.secure, auth: { user: cfg.user, pass: cfg.pass } });
     await transporter.sendMail({ from: cfg.from, to, subject, text: text || '', html: html || undefined });
@@ -142,15 +142,22 @@ app.use((req, res, next) => {
     next();
 });
 
-// CORS — allow any origin only in development
+// CORS — allow any origin in dev; specific origins in production
 app.use((req, res, next) => {
     const isDev = process.env.NODE_ENV !== 'production';
-    const allowedOrigin = isDev ? '*' : (process.env.ALLOWED_ORIGIN || '');
-    if (allowedOrigin) {
-        res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+    const origin = req.headers.origin || '';
+    if (isDev) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    } else {
+        const allowedOrigins = (process.env.ALLOWED_ORIGIN || '')
+            .split(',').map(s => s.trim()).filter(Boolean);
+        if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+            res.setHeader('Access-Control-Allow-Origin', origin || allowedOrigins[0] || '*');
+        }
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     if (req.method === 'OPTIONS') {
         return res.status(204).end();
     }
