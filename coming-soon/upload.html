@@ -1899,10 +1899,10 @@
                 tokenHelp: 'Paste the license token from your $2,499 EU AI Act Sprint confirmation email.'
             },
             universal: {
-                label: 'Universal License',
+                label: 'Operator License',
                 price: '',
                 title: 'Upload Your Scan Report',
-                subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your certificate.',
+                subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your Operator Vault Certificate.',
                 showUpload: true,
                 scanCommand: 'node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Paste any SimpleBeacon license token — works with any tier or custom label.'
@@ -2139,6 +2139,13 @@
                     updateSubmit();
                     showToast('Restored previous scan from browser storage', 'info');
                     showStatus('Restored previous scan from browser storage.', 'success');
+                    // Scroll user to the restored certificate section after a brief delay
+                    setTimeout(() => {
+                        const tokenRow = document.getElementById('tokenActionRow');
+                        if (tokenRow && tokenRow.style.display !== 'none') {
+                            tokenRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 400);
                 }
             } catch (e) { /* Ignore parse errors */ }
         }
@@ -3240,7 +3247,15 @@
                 showStatus('Certificate ZIP downloaded! Open the ZIP and browse to reports/*.html → Print → Save as PDF.', 'success');
             } catch (err) {
                 showToast(err.message, 'error');
-                showStatus(err.message, 'error');
+                const statusEl = document.getElementById('status');
+                if (statusEl) {
+                    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span>${err.message}</span><button id="retryCertBtn" style="padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;">&#128260; Retry</button></div>`;
+                    statusEl.className = 'status error';
+                    statusEl.style.display = 'block';
+                    document.getElementById('retryCertBtn')?.addEventListener('click', () => {
+                        submitBtn.click();
+                    });
+                }
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.classList.remove('btn-loading');

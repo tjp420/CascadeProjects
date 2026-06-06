@@ -416,7 +416,7 @@
         return false;
       }
 
-      var productMap = { instant: 'instant_report', executive: 'executive_clearance', euSprint: 'eu_ai_act_sprint', runtimeShield: 'runtime_shield' };
+      var productMap = { instant: 'instant_report', executive: 'executive_clearance', euai: 'eu_ai_act_sprint', runtimeShield: 'runtime_shield' };
       var product = productMap[tier];
       if (!product) {
         errorEl.textContent = 'Unknown product tier.';

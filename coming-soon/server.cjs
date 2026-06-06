@@ -679,7 +679,7 @@ function buildCertificateHtml(reportJson, payload) {
     // Build mock data rows
     const mockRows = (mockDataCategories || []).map(cat => {
         const files = (cat.affectedFiles || []).slice(0, 3).join(', ');
-        return `<tr><td>${cat.category || 'Mock Data'}</td><td>${cat.fileCount || 0}</td><td>${cat.confidence || 'medium'}</td><td>${cat.description || ''}</td><td>${files}</td></tr>`;
+        return `<tr><td>${escapeHtml(cat.category || 'Mock Data')}</td><td>${cat.fileCount || 0}</td><td>${escapeHtml(cat.confidence || 'medium')}</td><td>${escapeHtml(cat.description || '')}</td><td>${escapeHtml(files)}</td></tr>`;
     }).join('');
 
     // Build EU AI Act section
@@ -696,7 +696,7 @@ function buildCertificateHtml(reportJson, payload) {
         <div class="kpi"><strong>${(euAiActSummary.documentationArtifacts || 0)}</strong><span>Doc artifacts</span></div>
         <div class="kpi"><strong>${(euAiActSummary.documentationFound || []).length}</strong><span>Governance files</span></div>
       </div>
-      <p class="meta">${euAiActSummary.deadlineNote || 'Review EU AI Act compliance requirements.'}</p>
+      <p class="meta">${escapeHtml(euAiActSummary.deadlineNote || 'Review EU AI Act compliance requirements.')}</p>
     </section>` : '';
 
     // Build conditional analysis module subsections
@@ -714,7 +714,7 @@ function buildCertificateHtml(reportJson, payload) {
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Monorepo markers</td><td>${consolidation.monorepoMarkers || 0}</td></tr>
         <tr><td>Duplicate groups</td><td>${consolidation.duplicateGroups || 0}</td></tr>
-        <tr><td>Summary</td><td>${consolidation.summary || 'No consolidation issues detected.'}</td></tr>
+        <tr><td>Summary</td><td>${escapeHtml(consolidation.summary || 'No consolidation issues detected.')}</td></tr>
       </table>` : '';
 
     const secMockData = mockRows ? `<h3>&#128269; 3. Mock Data Detection</h3>
@@ -725,7 +725,7 @@ function buildCertificateHtml(reportJson, payload) {
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>TODO/FIXME files</td><td>${roadmap.todoCount || 0}</td></tr>
-        <tr><td>Summary</td><td>${roadmap.summary || 'No roadmap markers found.'}</td></tr>
+        <tr><td>Summary</td><td>${escapeHtml(roadmap.summary || 'No roadmap markers found.')}</td></tr>
       </table>` : '';
 
     const secCodebase = `<h3>&#128187; 5. Codebase Analysis</h3>
@@ -733,7 +733,7 @@ function buildCertificateHtml(reportJson, payload) {
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Total files</td><td>${codebase.totalFiles || totalFiles}</td></tr>
         <tr><td>Total lines</td><td>${(codebase.totalLines || 0).toLocaleString()}</td></tr>
-        <tr><td>Summary</td><td>${codebase.summary || `${totalFiles} files analyzed.`}</td></tr>
+        <tr><td>Summary</td><td>${escapeHtml(codebase.summary || `${totalFiles} files analyzed.`)}</td></tr>
       </table>`;
 
     const hasFileReduction = ((fileReduction.unusedAssetCandidates || []).length > 0) || (fileReduction.duplicateGroups || 0) > 0;
@@ -742,7 +742,7 @@ function buildCertificateHtml(reportJson, payload) {
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Asset candidates</td><td>${(fileReduction.unusedAssetCandidates || []).length}</td></tr>
         <tr><td>Duplicate groups</td><td>${fileReduction.duplicateGroups || 0}</td></tr>
-        <tr><td>Summary</td><td>${fileReduction.summary || 'No file reduction opportunities detected.'}</td></tr>
+        <tr><td>Summary</td><td>${escapeHtml(fileReduction.summary || 'No file reduction opportunities detected.')}</td></tr>
       </table>` : '';
 
     const hasDataQuality = (dataQuality.emptyJsonCount || 0) > 0;
@@ -750,7 +750,7 @@ function buildCertificateHtml(reportJson, payload) {
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Empty/trivial JSON</td><td>${dataQuality.emptyJsonCount || 0}</td></tr>
-        <tr><td>Summary</td><td>${dataQuality.summary || 'No data quality issues detected.'}</td></tr>
+        <tr><td>Summary</td><td>${escapeHtml(dataQuality.summary || 'No data quality issues detected.')}</td></tr>
       </table>` : '';
 
     const hasCleanup = (cleanup.debugArtifactCount || 0) > 0;
@@ -758,7 +758,7 @@ function buildCertificateHtml(reportJson, payload) {
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Debug artifacts</td><td>${cleanup.debugArtifactCount || 0}</td></tr>
-        <tr><td>Summary</td><td>${cleanup.summary || 'No cleanup items found.'}</td></tr>
+        <tr><td>Summary</td><td>${escapeHtml(cleanup.summary || 'No cleanup items found.')}</td></tr>
       </table>` : '';
 
     const hasNpm = (npmAudit.packageJsonCount || 0) > 0;
@@ -766,7 +766,7 @@ function buildCertificateHtml(reportJson, payload) {
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>package.json files</td><td>${npmAudit.packageJsonCount || 0}</td></tr>
-        <tr><td>Summary</td><td>${npmAudit.summary || 'No package.json files detected.'}</td></tr>
+        <tr><td>Summary</td><td>${escapeHtml(npmAudit.summary || 'No package.json files detected.')}</td></tr>
       </table>` : '';
 
     const hasCompliance = (compliance.licenseCount || 0) > 0 || (compliance.securityCount || 0) > 0;
@@ -775,7 +775,7 @@ function buildCertificateHtml(reportJson, payload) {
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>License files</td><td>${compliance.licenseCount || 0}</td></tr>
         <tr><td>Security/governance files</td><td>${compliance.securityCount || 0}</td></tr>
-        <tr><td>Summary</td><td>${compliance.summary || 'No governance files detected.'}</td></tr>
+        <tr><td>Summary</td><td>${escapeHtml(compliance.summary || 'No governance files detected.')}</td></tr>
       </table>` : '';
 
     const secEuAi = hasEuAiFindings ? `<h3>&#127757; 11. EU AI Act Sprint</h3>
@@ -785,7 +785,7 @@ function buildCertificateHtml(reportJson, payload) {
         <tr><td>AI system indicators</td><td>${euAiActSummary.aiSystemIndicators || 0}</td></tr>
         <tr><td>Transparency gaps</td><td>${euAiActSummary.transparencyGaps || 0}</td></tr>
         <tr><td>Documentation artifacts</td><td>${euAiActSummary.documentationArtifacts || 0}</td></tr>
-        <tr><td>Summary</td><td>${euAiActSummary.deadlineNote || 'Review EU AI Act requirements.'}</td></tr>
+        <tr><td>Summary</td><td>${escapeHtml(euAiActSummary.deadlineNote || 'Review EU AI Act requirements.')}</td></tr>
       </table>` : '';
 
     const allSubs = [secGate, secConsolidation, secMockData, secRoadmap, secCodebase, secFileReduction, secDataQuality, secCleanup, secNpm, secCompliance, secEuAi].filter(Boolean).join('\n      ');
@@ -800,16 +800,25 @@ function buildCertificateHtml(reportJson, payload) {
     const issueRows = detectedIssues.map(issue => {
         const sev = (issue.severity || 'low').toUpperCase();
         const sevClass = sev === 'CRITICAL' ? 'sev-critical' : sev === 'HIGH' ? 'sev-high' : sev === 'MEDIUM' ? 'sev-medium' : 'sev-low';
-        const fileSnippet = (issue.filePath || (Array.isArray(issue.filePaths) && issue.filePaths[0]) || (Array.isArray(issue.affectedFiles) && issue.affectedFiles[0]) || issue.file || '—').replace(/</g,'&lt;');
-        const rule = (issue.rule || issue.type || '—').replace(/</g,'&lt;');
-        const impact = (issue.impact || issue.recommendation || 'Review and remediate before next release.').replace(/</g,'&lt;');
-        const fix = (issue.fix || issue.recommendation || 'Review file manually and apply safe remediation.').replace(/</g,'&lt;');
+        const fileSnippet = escapeHtml(issue.filePath || (Array.isArray(issue.filePaths) && issue.filePaths[0]) || (Array.isArray(issue.affectedFiles) && issue.affectedFiles[0]) || issue.file || '—');
+        const rule = escapeHtml(issue.rule || issue.type || '—');
+        const impact = escapeHtml(issue.impact || issue.recommendation || 'Review and remediate before next release.');
+        const fix = escapeHtml(issue.fix || issue.recommendation || 'Review file manually and apply safe remediation.');
         return `<tr><td><span class="sev ${sevClass}">${sev}</span></td><td><code>${fileSnippet}</code></td><td><code>${rule}</code></td><td class="impact-cell"><span class="impact-badge impact-${sevClass.replace('sev-','')}">${impact}</span></td><td class="recipe-cell">${fix}</td></tr>`;
     }).join('');
 
+    const safeProjectName = escapeHtml(projectName);
+    const safeClientName = escapeHtml(clientName);
+    const safeReportId = escapeHtml(reportId);
+    const safeNowStr = escapeHtml(nowStr);
+    const safeGatePass = escapeHtml(gatePass);
+    const safeQualityScore = escapeHtml(qualityScore);
+    const safeTotalFiles = escapeHtml(totalFiles);
+    const safeCredentialHits = escapeHtml(credentialHits);
+
     return `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><title>SimpleBeacon — Gate Attestation — ${projectName.replace(/</g,'&lt;')}</title>
+<head><meta charset="UTF-8"><title>SimpleBeacon — Gate Attestation — ${safeProjectName}</title>
 <style>
 body{font-family:Inter,system-ui,sans-serif;background:#0d1117;color:#e6edf3;margin:0;padding:0;}
 .certificate{min-height:100vh;padding:48px 52px 40px;max-width:860px;margin:0 auto;background:radial-gradient(ellipse 90% 60% at 20% 0%,rgba(88,166,255,0.10),transparent 55%),radial-gradient(circle at 100% 20%,rgba(46,164,79,0.08),transparent 45%),linear-gradient(160deg,#010409 0%,#0d1117 42%,#161b22 100%);border:1px solid #30363d;}
@@ -872,19 +881,19 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
 <body>
 <section class="certificate cover-page">
   <p class="cover-kicker">${tierConfig.kicker}</p>
-  <h1 class="cover-title">${clientName.replace(/</g,'&lt;')}</h1>
+  <h1 class="cover-title">${safeClientName}</h1>
   <p class="cover-sub">${tierConfig.subtitle}</p>
   <div class="cover-meta">
-    <div><strong>Report ID:</strong> ${reportId}</div>
-    <div><strong>Executed:</strong> ${nowStr}</div>
-    <div><strong>Client:</strong> ${clientName.replace(/</g,'&lt;')}</div>
+    <div><strong>Report ID:</strong> ${safeReportId}</div>
+    <div><strong>Executed:</strong> ${safeNowStr}</div>
+    <div><strong>Client:</strong> ${safeClientName}</div>
     <div><strong>Assessor:</strong> SimpleBeacon</div>
     <div><strong>Engine:</strong> SimpleBeacon Engine v1.3.0 (Zero-Dependency)</div>
-    <div><strong>Repository:</strong> ${projectName.replace(/</g,'&lt;')} / main</div>
+    <div><strong>Repository:</strong> ${safeProjectName} / main</div>
   </div>
   <div class="cover-badges">
     <span class="badge ${tierConfig.badgeClass}">${tierConfig.badge}</span>
-    <span class="badge ${gatePass === 'PASS' ? 'badge-pass' : 'badge-blocked'}">GATE ${gatePass}</span>
+    <span class="badge ${gatePass === 'PASS' ? 'badge-pass' : 'badge-blocked'}">GATE ${safeGatePass}</span>
   </div>
   <p class="confidential">Prepared for authorized business and engineering recipients. This document combines executive risk metrics for leadership and deterministic remediation mapping for developers.</p>
 </section>
@@ -894,13 +903,13 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
     <h2>Audit Metadata &amp; Ledger</h2>
     <p class="meta">Establishes consulting authority, scan scope, and performance evidence for this engagement.</p>
     <table class="data-table">
-      <tr><td>Client name</td><td>${clientName.replace(/</g,'&lt;')}</td></tr>
-      <tr><td>Target repository / branch</td><td><code>${projectName.replace(/</g,'&lt;')}</code> / <code>main</code></td></tr>
-      <tr><td>Timestamp</td><td>${nowStr}</td></tr>
+      <tr><td>Client name</td><td>${safeClientName}</td></tr>
+      <tr><td>Target repository / branch</td><td><code>${safeProjectName}</code> / <code>main</code></td></tr>
+      <tr><td>Timestamp</td><td>${safeNowStr}</td></tr>
       <tr><td>Engine core version</td><td>SimpleBeacon Engine v1.3.0 (Zero-Dependency)</td></tr>
-      <tr><td>Scan performance ledger</td><td>${totalFiles} repo files indexed</td></tr>
+      <tr><td>Scan performance ledger</td><td>${safeTotalFiles} repo files indexed</td></tr>
       <tr><td>Report assessor</td><td>SimpleBeacon</td></tr>
-      <tr><td>Quality score</td><td>${qualityScore}% · code health — · audit confidence 100/100</td></tr>
+      <tr><td>Quality score</td><td>${safeQualityScore}% · code health — · audit confidence 100/100</td></tr>
     </table>
   </section>
   <section class="section">
@@ -909,14 +918,14 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
     <p class="meta">Deterministic executive narrative and remediation mapping generated directly from complete scan JSON — no AI inference on counts or findings.</p>
     <div class="gate-banner ${gatePass === 'PASS' ? 'pass' : 'fail'}">
       <div class="gate-banner-label">Overall gate result</div>
-      <div class="gate-banner-value">${gatePass}</div>
+      <div class="gate-banner-value">${safeGatePass}</div>
     </div>
     <div class="kpi-strip">
       <div class="kpi"><strong>${gatePass === 'PASS' ? 'PASS' : 'REVIEW'}</strong><span>Gate (not scanned)</span></div>
       <div class="kpi"><strong>${severityCounts.high || 0}</strong><span>High findings</span></div>
       <div class="kpi"><strong>${severityCounts.medium || 0}</strong><span>Medium findings</span></div>
-      <div class="kpi"><strong>${totalFiles}</strong><span>Files deep-scanned</span></div>
-      <div class="kpi"><strong>${qualityScore}%</strong><span>Code health</span></div>
+      <div class="kpi"><strong>${safeTotalFiles}</strong><span>Files deep-scanned</span></div>
+      <div class="kpi"><strong>${safeQualityScore}%</strong><span>Code health</span></div>
     </div>
   </section>
   ${euAiaHtml}
@@ -931,7 +940,7 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
     <div class="verify-block">
       <h3>Local verification before re-submit</h3>
       <p class="meta">After engineering applies the recipes above, prove a clean gate locally — without waiting for a re-audit.</p>
-      <div class="command-box">npx simplebeacon scan --path ./${projectName.replace(/</g,'&lt;')} --gate</div>
+      <div class="command-box">npx simplebeacon scan --path ./${safeProjectName} --gate</div>
     </div>
   </section>
   <section class="section">
@@ -941,8 +950,8 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
     <h3>Continuous evaluation checklist</h3>
     <table class="data-table">
       <tr><th>Checklist item</th><th>Status</th><th>Notes</th></tr>
-      <tr><td>Zero hardcoded credential patterns</td><td><strong>${credentialHits > 0 ? 'FAIL' : 'PASS'}</strong></td><td>${credentialHits > 0 ? credentialHits + ' credential pattern(s) detected' : 'Scanned ' + totalFiles + ' path(s) — no credential patterns'}</td></tr>
-      <tr><td>Production path separation</td><td><strong>PASS</strong></td><td>Scanned ${totalFiles} production file(s) — no sample-path leaks</td></tr>
+      <tr><td>Zero hardcoded credential patterns</td><td><strong>${credentialHits > 0 ? 'FAIL' : 'PASS'}</strong></td><td>${credentialHits > 0 ? safeCredentialHits + ' credential pattern(s) detected' : 'Scanned ' + safeTotalFiles + ' path(s) — no credential patterns'}</td></tr>
+      <tr><td>Production path separation</td><td><strong>PASS</strong></td><td>Scanned ${safeTotalFiles} production file(s) — no sample-path leaks</td></tr>
       <tr><td>Schema conformity (configured samples)</td><td><strong>N/A</strong></td><td>No registered page samples checked</td></tr>
       <tr><td>Fiction KPI baseline (sample JSON)</td><td><strong>N/A</strong></td><td>Consistency anchors not configured for this profile</td></tr>
     </table>
