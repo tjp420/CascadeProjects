@@ -1,11 +1,11 @@
 # Publish simplebeacon CLI to npm from the CascadeProjects monorepo.
-# Package path: ai-platform/packages/simplebeacon-cli (npm name: simplebeacon)
+# Package path: packages/simplebeacon-cli (npm name: simplebeacon)
 #
 # Triggers:
 #   - GitHub Release with tag simplebeacon-v* (e.g. simplebeacon-v1.0.1)
 #   - workflow_dispatch (manual)
 #
-# Secrets: NPM_TOKEN — granular token with publish + bypass 2FA (see packages/simplebeacon-cli/PUBLISH.md)
+# Secrets: NPM_TOKEN — granular token with publish + bypass 2FA
 
 name: Publish simplebeacon to npm
 
@@ -21,10 +21,6 @@ on:
 
 permissions:
   contents: read
-
-defaults:
-  run:
-    working-directory: ai-platform
 
 jobs:
   publish:
@@ -43,18 +39,15 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install workspace
-        run: npm ci --ignore-scripts
-
       - name: Test CLI package
-        working-directory: ai-platform/packages/simplebeacon-cli
+        working-directory: packages/simplebeacon-cli
         run: |
           npm test
           npm run pack:check
           node bin/simplebeacon-mcp.js --smoke-test
 
       - name: Publish to npm
-        working-directory: ai-platform/packages/simplebeacon-cli
+        working-directory: packages/simplebeacon-cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_OTP: ${{ inputs.otp }}

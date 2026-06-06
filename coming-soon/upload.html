@@ -2540,7 +2540,7 @@
                 });
             }
             if (firstEnabled && browserScanProfile && !allowed.includes(browserScanProfile.value)) {
-                selectAnalyzerCard(firstEnabled);
+                browserScanProfile.value = firstEnabled;
             }
         }
 
@@ -2563,6 +2563,7 @@
             if (!token) {
                 if (banner) banner.style.display = 'none';
                 filterScanProfiles('locked');
+                syncModuleSelectionFromTier();
                 updateDropzoneGate();
                 // Reset product UI so user can enter a new token cleanly
                 const infoCard = document.getElementById('productInfoCard');
@@ -2584,6 +2585,7 @@
                 const payload = JSON.parse(atob(padded));
                 const tier = payload.tier || payload.product || 'executive';
                 filterScanProfiles(tier);
+                syncModuleSelectionFromTier();
                 const config = PRODUCT_CONFIG[tier] || PRODUCT_CONFIG.universal;
                 document.getElementById('productLabel').textContent = config.label;
                 document.getElementById('pageTitle').textContent = config.title;
@@ -2652,6 +2654,7 @@
             } catch (e) {
                 // Token decode failed — lock everything
                 filterScanProfiles('locked');
+                syncModuleSelectionFromTier();
             } finally {
                 updateDropzoneGate();
             }
@@ -2668,6 +2671,7 @@
             updateDropzoneGate();
         } else {
             filterScanProfiles('locked');
+            syncModuleSelectionFromTier();
             updateDropzoneGate();
         }
         if (sessionId) {
@@ -2886,6 +2890,7 @@
                 if (panelProgressBar) panelProgressBar.style.width = '0%';
                 // Reset scan profiles
                 resetScanProfiles();
+                syncModuleSelectionFromTier();
                 // Hide status and token action row
                 status.style.display = 'none';
                 status.className = 'status';
@@ -3097,10 +3102,13 @@
                 let lastUpdate = Date.now();
                 const UPDATE_INTERVAL = 200; // ms
 
+                const MAX_DISCOVERED_FILES = 20000;
                 async function traverse(entry, parentPath = '') {
                     if (traverseAbort) return;
+                    if (files.length >= MAX_DISCOVERED_FILES) return;
                     const currentPath = parentPath ? parentPath + '/' + entry.name : entry.name;
                     if (entry.isFile) {
+                        if (files.length >= MAX_DISCOVERED_FILES) return;
                         try {
                             const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
                             Object.defineProperty(file, 'webkitRelativePath', {
@@ -3154,6 +3162,9 @@
 
                 if (traverseAbort) return;
 
+                if (files.length >= MAX_DISCOVERED_FILES) {
+                    appendTerminalLine(`<span style="color:#EF4444;font-weight:700;">&#9888; File limit reached:</span> ${MAX_DISCOVERED_FILES.toLocaleString()} files discovered. Browser memory limit — use CLI for full coverage.`, 'warn');
+                }
                 if (traverseErrors > 0) {
                     appendTerminalLine(`Warning: ${traverseErrors} files could not be read during directory traversal.`, 'warn');
                 }
@@ -3768,7 +3779,25 @@
                         <div style="font-size:0.8rem;font-weight:700;color:#60A5FA;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">11 Analysis Modules</div>
                         ${analysisModulesHtml}
                     </div>
+                    ${generateRoadmapHtml(data)}
                     ${footer}
+                </div>
+            `;
+        }
+
+        function generateRoadmapHtml(data) {
+            const rm = data.roadmap || {};
+            const todoFiles = (rm.todoFiles || []).slice(0, 10);
+            const todoCount = rm.todoCount || 0;
+            if (!todoCount && !todoFiles.length) return '';
+            const items = todoFiles.map(f => `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.75rem;color:var(--text-muted);"><span style="color:#F59E0B;">&#128204;</span> ${f}</div>`).join('');
+            const more = todoCount > todoFiles.length ? `<div style="padding:6px 0;font-size:0.7rem;color:#64748B;">... and ${todoCount - todoFiles.length} more files</div>` : '';
+            return `
+                <div style="margin-top:16px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;">
+                    <div style="font-size:0.8rem;font-weight:700;color:#60A5FA;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;">&#128204; Roadmap / TODO Markers</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">${todoCount} file(s) contain TODO, FIXME, HACK, or BUG markers.</div>
+                    <div style="max-height:200px;overflow-y:auto;">${items}${more}</div>
+                    <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04);font-size:0.72rem;color:#94A3B8;">Tip: Address critical TODOs before release. Convert FIXMEs into tracked issues.</div>
                 </div>
             `;
         }
@@ -3925,14 +3954,19 @@
             const govFindings = [];
 
             // Helper: extract regex matches with line numbers and context
-            function extractMatches(text, pattern, maxMatches = 5) {
+            function extractMatches(text, pattern, maxMatches = 5, redact = false) {
                 const matches = [];
                 const lines = text.split('\n');
                 const regex = new RegExp(pattern.source || pattern, pattern.flags || 'i');
                 for (let li = 0; li < lines.length && matches.length < maxMatches; li++) {
                     const line = lines[li];
                     if (regex.test(line)) {
-                        const snippet = line.trim().slice(0, 120);
+                        let snippet = line.trim().slice(0, 120);
+                        if (redact) {
+                            // Redact potential secret values: anything after =, :, or in quotes
+                            snippet = snippet.replace(/(=\s*['"]?)[A-Za-z0-9_\-]{8,}(['"]?)/g, '$1***REDACTED***$2')
+                                .replace(/(:\s*['"]?)[A-Za-z0-9_\-]{8,}(['"]?)/g, '$1***REDACTED***$2');
+                        }
                         matches.push({
                             line: li + 1,
                             snippet: snippet,
@@ -3967,16 +4001,16 @@
                 const lowerPath = path.toLowerCase();
                 let reason = null;
 
-                const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB — large enough for fat binaries, still protects memory
+                const MAX_FILE_SIZE = deepScan ? 500 * 1024 * 1024 : 2 * 1024 * 1024 * 1024; // 500MB in deep scan, 2GB otherwise
                 if (f.size >= MAX_FILE_SIZE) {
-                    reason = 'File > 2GB';
-                } else if (skipDeps && (/node_modules\/|\.git\//.test(lowerPath))) {
+                    reason = deepScan ? 'File > 500MB' : 'File > 2GB';
+                } else if (!deepScan && skipDeps && (/node_modules\/|\.git\//.test(lowerPath))) {
                     reason = 'Core exclusion';
-                } else if (/\.simplebeacon\//.test(lowerPath)) {
+                } else if (!deepScan && /\.simplebeacon\//.test(lowerPath)) {
                     reason = 'Simplebeacon cache';
-                } else if (/github-cache\//.test(lowerPath)) {
+                } else if (!deepScan && /github-cache\//.test(lowerPath)) {
                     reason = 'Benchmark cache';
-                } else if (/\.github-sync\//.test(lowerPath)) {
+                } else if (!deepScan && /\.github-sync\//.test(lowerPath)) {
                     reason = 'Git sync cache';
                 } else if (ignorePatterns.some(p => p.test(path))) {
                     reason = '.simplebeaconignore';
@@ -4055,7 +4089,7 @@
                     const isTypeScriptDef = lowerPath.endsWith('.d.ts');
                     if (profile.checkCredentials && !isNodeModule && !isSampleOrTest && !isTypeScriptDef) {
                         const credPattern = /password\s*=\s*['"][^'"]{6,}|api[_-]?key\s*=\s*['"][a-z0-9]{12,}|secret[_-]?key\s*=\s*['"][a-z0-9]{12,}|private_key\s*=\s*['"][^'"]{8,}|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}|API_KEY\s*=\s*['"][A-Za-z0-9_\-]{16,}|SECRET\s*=\s*['"][A-Za-z0-9_\-]{12,}|AUTH_TOKEN\s*=\s*['"][A-Za-z0-9_\-]{12,}/i;
-                        const credMatches = extractMatches(text, credPattern, 3);
+                        const credMatches = extractMatches(text, credPattern, 3, true);
                         if (credMatches.length > 0) {
                             credentialHits++;
                             credFiles.push(path);
@@ -4656,7 +4690,11 @@
                 summary: g.summary || (g.pass ? 'Gate passed — no blocking credentials found.' : 'Review blocking issues.'),
                 blockingFindings: gateIssues.slice(0, 10).map(i => ({
                     severity: i.severity, type: i.type, count: i.count || 0,
-                    filePath: i.filePath, rule: i.rule, impact: i.impact, fix: i.fix
+                    filePath: i.filePath, rule: i.rule, impact: i.impact, fix: i.fix,
+                    findings: (i.findings || []).slice(0, 3).map(f => ({
+                        file: f.file,
+                        matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet }))
+                    }))
                 })),
                 remediation: gateIssues.filter(i => i.fix).map(i => i.fix).slice(0, 3)
             });
@@ -4736,11 +4774,17 @@
                 remediation: (dq.emptyJsonCount || 0) ? 'Remove empty JSON files or add meaningful content. They bloat the repository and confuse tooling.' : null
             });
 
-            // 8. Cleanup — enriched with debug artifacts
+            // 8. Cleanup — enriched with detailed debug findings (line-level)
             const cl = report.cleanup || {};
+            const debugIssue = (report.detectedIssues || []).find(i => i.type === 'Debug Artifact');
+            const debugDetailed = (debugIssue?.findings || []).slice(0, 5).map(f => ({
+                file: f.file,
+                matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet }))
+            }));
             addModule('cleanup', 'Cleanup Assistant', {
                 debugArtifacts: (cl.debugArtifacts || []).slice(0, 10),
                 debugArtifactCount: cl.debugArtifactCount || 0,
+                findings: debugDetailed,
                 severity: (cl.debugArtifactCount || 0) > 20 ? 'high' : ((cl.debugArtifactCount || 0) > 0 ? 'medium' : 'low'),
                 severityColor: (cl.debugArtifactCount || 0) > 20 ? '#EF4444' : ((cl.debugArtifactCount || 0) > 0 ? '#F59E0B' : '#60A5FA'),
                 summary: cl.summary || ((cl.debugArtifactCount || 0) ? `${cl.debugArtifactCount} debug artifacts detected.` : 'No debug artifacts found.'),
@@ -4773,6 +4817,40 @@
                 summary: compRemediation ? compSummary + ' ' + compRemediation : compSummary,
                 remediation: compRemediation
             });
+
+            // 10b. AI Indicators — standalone module with line-level findings
+            const aiIssue = (report.detectedIssues || []).find(i => i.type === 'AI System Indicator');
+            if (aiIssue) {
+                addModule('ai-indicators', 'AI System Indicators', {
+                    aiSystemIndicators: aiIssue.count || 0,
+                    affectedFiles: (aiIssue.filePath || []).slice(0, 5),
+                    findings: (aiIssue.findings || []).slice(0, 5).map(f => ({
+                        file: f.file,
+                        matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet }))
+                    })),
+                    severity: 'low',
+                    severityColor: '#60A5FA',
+                    summary: aiIssue.impact || 'AI implementation patterns detected.',
+                    remediation: aiIssue.fix || 'Review and remediate before enabling --gate on main.'
+                });
+            }
+
+            // 10c. Governance — standalone module with line-level findings
+            const govIssue = (report.detectedIssues || []).find(i => i.type === 'License/Governance Marker');
+            if (govIssue) {
+                addModule('governance', 'License & Governance', {
+                    governanceMarkers: govIssue.count || 0,
+                    affectedFiles: (govIssue.filePath || []).slice(0, 5),
+                    findings: (govIssue.findings || []).slice(0, 5).map(f => ({
+                        file: f.file,
+                        matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet }))
+                    })),
+                    severity: 'low',
+                    severityColor: '#60A5FA',
+                    summary: govIssue.impact || 'License headers and copyright notices detected.',
+                    remediation: govIssue.fix || 'Review license compatibility with your product distribution model.'
+                });
+            }
 
             // 11. EU AI Act — enriched with indicators and documentation
             const eu = report.euAiActSummary || report.euAiAct || {};
@@ -5097,6 +5175,32 @@ ${(eu.documentationFound || []).slice(0, 5).map(f => `- 📄 ${f}`).join('\n')}
 *Generated by SimpleBeacon Sovereign Engine. Integrity hash: ${reportHash}*
 `;
             zip.file('findings.md', findingsMd);
+
+            // 9.5 Roadmap — standalone TODO/FIXME/HACK/BUG report
+            const roadmapData = report.roadmap || {};
+            const roadmapMd = `# Project Roadmap — ${escapeHtml(projectName)}
+> **Certificate ID:** ${certId} · **Issued:** ${dateStr}
+
+## TODO / FIXME / HACK / BUG Markers (${roadmapData.todoCount || 0} files)
+${(roadmapData.todoFiles || []).length ? (roadmapData.todoFiles || []).map(f => `- ${f}`).join('\n') : '_No TODO or FIXME markers found._'}
+
+## Action Items
+${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} TODO/FIXME marker(s) before release.
+- [ ] Convert critical FIXMEs into tracked issues.
+- [ ] Schedule code review for files with HACK markers.
+- [ ] Verify BUG comments have corresponding issue tickets.` : '- [x] Clean codebase — no TODO/FIXME/HACK/BUG markers found.'}
+
+## Quick Stats
+| Metric | Value |
+|--------|-------|
+| TODO/FIXME Files | ${roadmapData.todoCount || 0} |
+| Codebase Files | ${(report.codebase?.totalFiles || report.totalFiles || 0).toLocaleString()} |
+| Density | ${(report.codebase?.totalFiles || report.totalFiles || 0) > 0 ? ((roadmapData.todoCount || 0) / (report.codebase?.totalFiles || report.totalFiles || 0) * 100).toFixed(2) : '0.00'}% |
+
+---
+*Generated by SimpleBeacon Sovereign Engine.*
+`;
+            zip.file('roadmap.md', roadmapMd);
 
             // 10. Remediation Checklist — actionable checklist for compliance teams
             const checklist = `# Remediation Checklist — ${escapeHtml(projectName)}

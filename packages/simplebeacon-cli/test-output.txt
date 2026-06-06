@@ -1,0 +1,37 @@
+Γû╢ Package structure
+  Γ£ö has required entry points (1.0657ms)
+  Γ£ö package.json has valid version (0.4312ms)
+Γ£ö Package structure (2.2967ms)
+Γû╢ Core modules load without errors
+  Γ£ö src/index.js exports key functions (94.9871ms)
+  Γ£ö reporters/json.js exports formatJsonReport (0.4763ms)
+  Γ£ö lib/normalize-scan-report.js exports normalizePlatformScanReport (0.4328ms)
+Γ£ö Core modules load without errors (96.1975ms)
+Γû╢ JSON report enrichment
+  Γ£ö formatJsonReport includes gate blockingIssues and warningIssues (21.6833ms)
+  Γ£û formatJsonReport includes module summary objects (0.8658ms)
+Γ£û JSON report enrichment (22.9068ms)
+Γä╣ tests 7
+Γä╣ suites 3
+Γä╣ pass 6
+Γä╣ fail 1
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 220.9162
+
+Γ£û failing tests:
+
+test at tests\smoke.test.js:74:5
+Γ£û formatJsonReport includes module summary objects (0.8658ms)
+  TypeError: Cannot read properties of undefined (reading 'reduce')
+      at formatJsonReport (C:\Users\Trevor\CascadeProjects\packages\simplebeacon-cli\src\reporters\json.js:19:54)
+      at TestContext.<anonymous> (C:\Users\Trevor\CascadeProjects\packages\simplebeacon-cli\tests\smoke.test.js:88:24)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+      at Test.run (node:internal/test_runner/test:1163:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1516:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
