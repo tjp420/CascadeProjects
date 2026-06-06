@@ -2163,21 +2163,23 @@
                     const lineCount = text.split('\n').length;
                     totalLines += lineCount;
                     const lower = text.toLowerCase();
+                    const lowerPath = path.toLowerCase();
+                    const isNodeModule = /node_modules\//.test(lowerPath);
+                    const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
                     if (profile.checkAi && /new\s+openai|import\s+openai|from\s+anthropic|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/.test(lower)) {
                         aiHits.push(path);
                     }
-                    if (profile.checkCredentials && /password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{16,}|secret[_-]?key\s*=\s*['"][a-z0-9]{16,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}/i.test(text)) {
+                    if (profile.checkCredentials && !isNodeModuleDoc && /password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{16,}|secret[_-]?key\s*=\s*['"][a-z0-9]{16,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}/i.test(text)) {
                         credentialHits++;
                         credFiles.push(path);
                     }
-                    if (profile.checkDebug && /console\.log\(|debugger;|todo:|fixme:|hack:/i.test(text)) {
+                    if (profile.checkDebug && !(isNodeModule && /\/examples?\//i.test(lowerPath)) && /console\.log\(|debugger;|todo:|fixme:|hack:/i.test(text)) {
                         debugHits.push(path);
                     }
                     if (profile.checkGov && /SPDX-License-Identifier|MIT License|Apache License|GNU General Public License|All rights reserved|Copyright \(c\)|License: /i.test(text)) {
                         govHits.push(path);
                     }
                     // --- 11 Analysis Category Heuristics ---
-                    const lowerPath = path.toLowerCase();
                     // 3. Mock data: fixture/sample/test-data files
                     if (/mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
                         mockFiles.push(path);
@@ -2192,11 +2194,13 @@
                             if (depCount > 50) monorepoMarkers++;
                         } catch (e) { /* ignore invalid package.json */ }
                     }
-                    // 5. Codebase: track file types
+                    // 5. Codebase: track file types (skip backup timestamps and path-like extensions)
                     const extMatch = path.match(/\.([^.]+)$/);
                     if (extMatch) {
                         const ext = extMatch[1].toLowerCase();
-                        fileTypes[ext] = (fileTypes[ext] || 0) + 1;
+                        if (!/^\d{4}/.test(ext) && !ext.includes('/') && ext.length <= 20) {
+                            fileTypes[ext] = (fileTypes[ext] || 0) + 1;
+                        }
                     }
                     // 10. Compliance: governance files
                     if (/license|licence/i.test(lowerPath) && !licenseFiles.includes(path)) {
@@ -2291,6 +2295,11 @@
                     low: (profile.checkAi ? aiHits.length : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0)
                 },
                 // 1. Simplebeacon Gate
+                gate: {
+                    pass: gatePass,
+                    blockingCount: credentialHits,
+                    warningCount: 0
+                },
                 gateReport: {
                     pass: gatePass,
                     blockingCount: credentialHits,
