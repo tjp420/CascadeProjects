@@ -685,6 +685,213 @@
             box-shadow: 0 0 4px rgba(52, 211, 153, 0.4);
         }
 
+        /* Token Section Redesign */
+        .token-section {
+            padding: 20px 24px;
+            background: var(--bg-input);
+        }
+        .token-input-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+        .token-field {
+            min-width: 0;
+        }
+        .token-label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .token-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-size: 0.9rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .token-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+        }
+        .token-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            padding-top: 22px;
+        }
+        .token-actions .btn-primary {
+            white-space: nowrap;
+            min-width: 160px;
+        }
+        .token-error {
+            font-size: 0.75rem;
+            color: var(--error);
+            margin: 6px 0 0;
+        }
+        .token-error a {
+            color: #60A5FA;
+            text-decoration: none;
+        }
+        .token-options {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--bg-card);
+        }
+        .token-option-free {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, rgba(37,99,235,0.06), rgba(16,185,129,0.03));
+        }
+        .token-option-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .token-option-icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+        .token-option-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0 0 2px;
+        }
+        .token-option-desc {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+        .token-option-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+        .token-option-btn--free {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 20px rgba(37,99,235,0.2);
+        }
+        .token-option-btn--free:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 24px rgba(37,99,235,0.3);
+        }
+        .token-option-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 20px;
+            background: var(--bg-input);
+        }
+        .token-option-divider::before,
+        .token-option-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .token-option-divider span {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .token-option-resend {
+            padding: 14px 20px;
+            background: var(--bg-input);
+        }
+        .token-option-label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin: 0 0 10px;
+        }
+        .token-option-form {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .token-option-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-size: 0.85rem;
+        }
+        .token-option-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .token-option-btn--send {
+            background: var(--accent);
+            color: white;
+        }
+        .token-option-btn--send:hover {
+            background: #2563EB;
+        }
+        .token-option-status {
+            font-size: 0.8rem;
+            margin: 8px 0 0;
+            display: none;
+        }
+        .token-option-footer {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .token-option-footer span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .token-option-footer a {
+            font-size: 0.75rem;
+            color: #60A5FA;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .token-option-footer a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 640px) {
+            .token-input-row {
+                grid-template-columns: 1fr;
+            }
+            .token-actions {
+                padding-top: 0;
+                width: 100%;
+            }
+            .token-option-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+        }
+
         .analyzer-dropdown {
             border: 1px solid var(--border);
             border-radius: 10px;
@@ -1974,44 +2181,52 @@
                     <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
                     <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">License Token</h3>
                 </div>
-                <div style="padding:20px 24px;background:var(--bg-input);">
-                    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:12px;">
-                        <div>
-                            <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
-                            <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
+                <div class="token-section">
+                    <!-- Token Input Row -->
+                    <div class="token-input-row">
+                        <div class="token-field">
+                            <label for="licenseToken" class="token-label">License Token</label>
+                            <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" class="token-input">
                             <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
                             <div id="tokenValidIndicator" class="token-valid-indicator"></div>
-                            <p id="tokenError" class="hidden-display" style="font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
+                            <p id="tokenError" class="token-error hidden-display">&#9888; Token validation failed. Check expiration or <a href="pricing.html">get a new one</a>.</p>
                         </div>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <button type="button" class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
+                        <div class="token-actions">
+                            <button type="button" class="btn btn-primary" id="submitBtn" disabled>
                                 <span>&#128229;</span> Generate Certificate
                             </button>
-                            <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan" style="display:none;">&#10005; Clear</button>
+                            <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan">&#10005; Clear</button>
                         </div>
                     </div>
 
-                    <!-- Developer Sandbox - Prominent Free Tier -->
-                    <div style="padding:16px;background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(16,185,129,0.04));border:1px solid rgba(37,99,235,0.25);border-radius:10px;margin-bottom:12px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                            <div>
-                                <p style="font-size:0.9rem;font-weight:600;color:var(--text-main);margin:0 0 4px;">&#128161; Don't have a token?</p>
-                                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Generate a free community token instantly. No email required.</p>
+                    <!-- No Token? Compact Options -->
+                    <div class="token-options">
+                        <div class="token-option-free">
+                            <div class="token-option-info">
+                                <span class="token-option-icon">&#128161;</span>
+                                <div>
+                                    <p class="token-option-title">Don't have a token?</p>
+                                    <p class="token-option-desc">Generate a free community token instantly. No email required.</p>
+                                </div>
                             </div>
-                            <button type="button" id="tryFreeBtn" style="padding:10px 20px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;box-shadow:0 0 20px rgba(37,99,235,0.2);">&#9881; Developer Sandbox</button>
+                            <button type="button" id="tryFreeBtn" class="token-option-btn token-option-btn--free">&#9881; Developer Sandbox</button>
                         </div>
-                    </div>
 
-                    <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
-                        <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
-                        <div style="display:flex;gap:8px;">
-                            <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
-                            <button type="button" id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send Token</button>
+                        <div class="token-option-divider">
+                            <span>or</span>
                         </div>
-                        <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
-                        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
-                            <span style="font-size:0.75rem;color:var(--text-muted);">Corporate buyer?</span>
-                            <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon" style="font-size:0.75rem;color:#60A5FA;text-decoration:none;font-weight:600;">Request Invoice / W-9 &rarr;</a>
+
+                        <div class="token-option-resend">
+                            <p class="token-option-label"><strong>Need a token?</strong> Enter your email to resend.</p>
+                            <div class="token-option-form">
+                                <input type="email" id="resendEmail" placeholder="your@email.com" class="token-option-input">
+                                <button type="button" id="resendTokenBtn" class="token-option-btn token-option-btn--send">Send Token</button>
+                            </div>
+                            <p id="resendStatus" class="token-option-status"></p>
+                            <div class="token-option-footer">
+                                <span>Corporate buyer?</span>
+                                <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon">Request Invoice / W-9 &rarr;</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2369,18 +2584,21 @@
 
         // Download selected module's full data as JSON
         function downloadSelectedModule(btn) {
-            const container = btn.closest('[style*="display:flex;gap:8px"]') || btn.parentElement;
-            const select = container.querySelector('.module-dropdown');
-            if (!select || !select.value) {
-                showToast('Select a module first', 'warning');
-                return;
-            }
-            const mod = (window._scanPreviewModules || []).find(m => m.id === select.value);
-            const data = window._scanPreviewData || {};
-            if (!mod) {
-                showToast('Module not found', 'error');
-                return;
-            }
+            try {
+                const container = btn.closest('[style*="display:flex;gap:8px"]') || btn.parentElement;
+                if (!container) { console.error('Export: no container found'); showToast('Export button layout error', 'error'); return; }
+                const select = container.querySelector('.module-dropdown');
+                if (!select || !select.value) {
+                    showToast('Select a module first', 'warning');
+                    return;
+                }
+                const mod = (window._scanPreviewModules || []).find(m => m.id === select.value);
+                const data = window._scanPreviewData || {};
+                if (!mod) {
+                    console.error('Export: module not found for id', select.value, 'available:', (window._scanPreviewModules || []).map(m => m.id));
+                    showToast('Module not found', 'error');
+                    return;
+                }
             const num = mod.num;
             const projectName = data.projectRoot || data.projectPath || data.projectName || 'local-scan';
             const now = new Date().toISOString();
@@ -2549,6 +2767,10 @@
             a.remove();
             URL.revokeObjectURL(url);
             showToast(`Downloaded ${mod.title} module data`, 'success');
+            } catch (err) {
+                console.error('Export failed:', err);
+                showToast('Export failed: ' + (err.message || err), 'error');
+            }
         }
 
         // Toast notification system
@@ -3301,6 +3523,7 @@
             const tokenActionRow = document.getElementById('tokenActionRow');
             const certEmptyState = document.getElementById('certEmptyState');
             const certSubmitBtn = document.getElementById('certSubmitBtn');
+            if (scanPreview) scanPreview.style.display = hasFile ? 'block' : 'none';
             if (certEmptyState) certEmptyState.style.display = hasFile ? 'none' : 'block';
             if (resetBtn) resetBtn.style.display = hasFile ? 'inline-block' : 'none';
             if (hasFile) updateStepper();
@@ -3701,6 +3924,7 @@
                     showToast('Invalid JSON file', 'error');
                     showStatus('Invalid JSON file', 'error');
                     reportData = null;
+                    if (scanPreview) scanPreview.style.display = 'none';
                     updateSubmit();
                 }
             };
@@ -3779,6 +4003,7 @@
                     showToast('Invalid JSON: ' + err.message, 'error');
                     showStatus('Invalid JSON: ' + err.message, 'error');
                     reportData = null;
+                    if (scanPreview) scanPreview.style.display = 'none';
                     updateSubmit();
                 }
             });
