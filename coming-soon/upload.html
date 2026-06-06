@@ -2298,8 +2298,8 @@
             } else if (num === '2') {
                 const cons = data.consolidation || {};
                 const dupFiles = (cons.duplicateFiles || []).map(g => g.filter(p => !/\.simplebeacon\//i.test(p))).filter(g => g.length > 1);
-                const dupCount = dupFiles.length;
-                moduleData = { ...moduleData, monorepoMarkers: (cons.monorepoMarkers || []).length || cons.monorepoMarkers || 0, duplicateGroups: dupCount, duplicateGroupsDetail: dupFiles.slice(0, 5).map(g => g.slice(0, 3)), summary: dupCount ? `${dupCount} duplicate file groups detected.` : 'No duplicate files detected.' };
+                const dupCount = cons.duplicateGroups || dupFiles.length || 0;
+                moduleData = { ...moduleData, monorepoMarkers: cons.monorepoMarkers || (cons.monorepoMarkers || []).length || 0, duplicateGroups: dupCount, duplicateGroupsDetail: dupFiles.slice(0, 5).map(g => g.slice(0, 3)), summary: dupCount ? `${dupCount} duplicate file groups detected.` : 'No duplicate files detected.' };
             } else if (num === '3') {
                 const mockCats = data.mockDataCategories || [];
                 const mockTotal = data.mockSampleFiles ?? mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
@@ -2307,7 +2307,7 @@
             } else if (num === '4') {
                 const rm = data.roadmap || {};
                 const todoList = (rm.todoFiles || []).filter(Boolean);
-                const tc = todoList.length || rm.todoCount || 0;
+                const tc = rm.todoCount || todoList.length || 0;
                 moduleData = { ...moduleData, todoCount: tc, todoFiles: todoList.slice(0, 10), summary: tc ? `${tc} file${tc === 1 ? '' : 's'} ${tc === 1 ? 'contains' : 'contain'} TODO/FIXME markers.` : 'No roadmap markers found.' };
             } else if (num === '5') {
                 const cb = data.codebase || data.codeAnalysis || {};
@@ -2319,17 +2319,17 @@
             } else if (num === '7') {
                 const dq = data.dataQuality || {};
                 const emptyFiles = (dq.emptyJsonFiles || []).filter(Boolean);
-                const ec = emptyFiles.length || dq.emptyJsonCount || 0;
+                const ec = dq.emptyJsonCount || emptyFiles.length || 0;
                 moduleData = { ...moduleData, emptyJsonFiles: emptyFiles.slice(0, 10), emptyJsonCount: ec, summary: ec ? `${ec} empty JSON file${ec === 1 ? '' : 's'} detected.` : 'No data quality issues.' };
             } else if (num === '8') {
                 const cl = data.cleanup || {};
                 const debugIssue = (data.detectedIssues || []).find(i => i.type === 'Debug Artifact');
                 const artifacts = (cl.debugArtifacts || []).filter(Boolean);
-                const ac = artifacts.length || cl.debugArtifactCount || 0;
+                const ac = cl.debugArtifactCount || artifacts.length || 0;
                 moduleData = { ...moduleData, debugArtifacts: artifacts.slice(0, 10), debugArtifactCount: ac, findings: (debugIssue?.findings || []).slice(0, 5).map(f => ({ file: f.file, matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet })) })), summary: ac ? `${ac} debug artifact${ac === 1 ? '' : 's'} detected.` : 'No debug artifacts found.' };
             } else if (num === '9') {
                 const npm = data.npmAudit || {};
-                moduleData = { ...moduleData, packageJsonCount: npm.packageJsonCount || 0, dependencyCount: npm.dependencyCount || 0, packageJsonFiles: (npm.packageJsonFiles || []).slice(0, 5), summary: npm.summary || (npm.packageJsonCount ? `${npm.packageJsonCount} package.json files found with ${(npm.dependencyCount || 0).toLocaleString()} total dependencies.` : 'No package.json files found.') };
+                moduleData = { ...moduleData, packageJsonCount: npm.packageJsonCount || 0, dependencyCount: npm.dependencyCount || 0, packageJsonFiles: (npm.packageJsonFiles || []).slice(0, 5), summary: npm.summary || (npm.packageJsonCount ? `${npm.packageJsonCount} package.json file${npm.packageJsonCount === 1 ? '' : 's'} found with ${(npm.dependencyCount || 0).toLocaleString()} total dependenc${(npm.dependencyCount || 0) === 1 ? 'y' : 'ies'}.` : 'No package.json files found.') };
             } else if (num === '10') {
                 const comp = data.compliance || {};
                 const licFiles = (comp.licenseFiles || []).filter(Boolean);
