@@ -903,6 +903,146 @@
         .shield-dot.purple { background: #A78BFA; box-shadow: 0 0 4px rgba(167,139,250,0.5); }
         .shield-dot.orange { background: #F59E0B; box-shadow: 0 0 4px rgba(245,158,11,0.5); }
 
+        /* Path selector for CLI commands */
+        .path-selector {
+            margin-bottom: 16px;
+        }
+        .path-selector label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .path-input-wrap {
+            display: flex;
+            gap: 8px;
+        }
+        .path-input-wrap input {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: var(--text-main);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .path-input-wrap input:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow), 0 0 20px rgba(37, 99, 235, 0.15);
+        }
+        .path-input-wrap button {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-muted);
+        }
+        .path-input-wrap button:hover {
+            background: rgba(37, 99, 235, 0.1);
+            border-color: var(--accent);
+            color: var(--text-main);
+        }
+        .path-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        /* Terminal-style Quick Commands palette */
+        .terminal-palette {
+            background: #0B0F19;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid var(--border);
+        }
+        .term-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .term-dot.red { background: #F87171; }
+        .term-dot.yellow { background: #FBBF24; }
+        .term-dot.green { background: #34D399; }
+        .term-title {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-left: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .terminal-body {
+            padding: 8px 0;
+        }
+        .cmd-row {
+            display: grid;
+            grid-template-columns: 20px 1fr auto 140px;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            transition: background 0.15s;
+        }
+        .cmd-row:hover {
+            background: rgba(37, 99, 235, 0.06);
+        }
+        .cmd-prompt {
+            color: #34D399;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .cmd-row code {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: #60A5FA;
+            word-break: break-all;
+        }
+        .cmd-copy {
+            background: var(--border);
+            color: var(--text-muted);
+            border: none;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .cmd-copy:hover {
+            background: var(--accent);
+            color: white;
+        }
+        .cmd-desc {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-align: right;
+            white-space: nowrap;
+        }
+        @media (max-width: 640px) {
+            .cmd-row {
+                grid-template-columns: 20px 1fr auto;
+                gap: 8px;
+            }
+            .cmd-desc { display: none; }
+        }
+
         /* Sandbox capability note */
         .sandbox-note {
             display: flex;
@@ -1047,17 +1187,55 @@
                     </div>
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-                        <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#60A5FA;">
-                            <code id="installCmd">npm install -g simplebeacon</code>
-                            <button onclick="copyToClipboard('installCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
+                    <div class="path-selector">
+                        <label for="scanPathInput">&#128193; Target Directory</label>
+                        <div class="path-input-wrap">
+                            <input type="text" id="scanPathInput" placeholder="./my-project" value=".">
+                            <button id="pickFolderBtn" title="Pick folder" onclick="document.getElementById('cli-folder-input').click()">&#128451;</button>
                         </div>
-                        <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#34D399;">
-                            <code id="scanCmd">simplebeacon scan . --output=report.json</code>
-                            <button onclick="copyToClipboard('scanCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
+                        <p class="path-hint">Type your project path above, or click the folder icon. All commands below update automatically.</p>
+                    </div>
+                    <div class="terminal-palette">
+                        <div class="terminal-header">
+                            <span class="term-dot red"></span>
+                            <span class="term-dot yellow"></span>
+                            <span class="term-dot green"></span>
+                            <span class="term-title">Quick Commands</span>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="cmd-row">
+                                <span class="cmd-prompt">$</span>
+                                <code id="installCmd">npm install -g simplebeacon</code>
+                                <button class="cmd-copy" onclick="copyToClipboard('installCmd')">Copy</button>
+                                <span class="cmd-desc">Install CLI globally</span>
+                            </div>
+                            <div class="cmd-row">
+                                <span class="cmd-prompt">$</span>
+                                <code id="scanCmd">simplebeacon scan . --output=report.json</code>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanCmd')">Copy</button>
+                                <span class="cmd-desc">Standard gate scan</span>
+                            </div>
+                            <div class="cmd-row">
+                                <span class="cmd-prompt">$</span>
+                                <code id="scanGateCmd">simplebeacon scan . --gate --offline</code>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanGateCmd')">Copy</button>
+                                <span class="cmd-desc">Gate-only (no network)</span>
+                            </div>
+                            <div class="cmd-row">
+                                <span class="cmd-prompt">$</span>
+                                <code id="scanFullCmd">simplebeacon scan . --full --gate --output=report.json</code>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanFullCmd')">Copy</button>
+                                <span class="cmd-desc">Full coverage + gate</span>
+                            </div>
+                            <div class="cmd-row">
+                                <span class="cmd-prompt">$</span>
+                                <code id="scanEuaiCmd">simplebeacon scan . --config .simplebeacon/config-full-coverage.json --full</code>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanEuaiCmd')">Copy</button>
+                                <span class="cmd-desc">EU AI Act assessment</span>
+                            </div>
                         </div>
                     </div>
-                    <div style="font-size:0.75rem;color:#F59E0B;display:flex;align-items:center;gap:6px;">
+                    <div style="font-size:0.75rem;color:#F59E0B;display:flex;align-items:center;gap:6px;margin-top:12px;">
                         <span>&#128737;</span>
                         <span>Zero-Trust: Output is audit metadata only — no source code included.</span>
                     </div>
@@ -1277,6 +1455,36 @@
         const cliJsonDropzone = document.getElementById('cli-json-dropzone');
         const browserFolderDropzone = document.getElementById('browser-folder-dropzone');
         const dropZone = cliJsonDropzone; // alias for existing code
+
+        // CLI path selector
+        const scanPathInput = document.getElementById('scanPathInput');
+        const scanCmdEl = document.getElementById('scanCmd');
+        const scanGateCmdEl = document.getElementById('scanGateCmd');
+        const scanFullCmdEl = document.getElementById('scanFullCmd');
+        const scanEuaiCmdEl = document.getElementById('scanEuaiCmd');
+
+        function updateCliCommands() {
+            const path = scanPathInput?.value.trim() || '.';
+            const safePath = path.includes(' ') ? `"${path}"` : path;
+            if (scanCmdEl) scanCmdEl.textContent = `simplebeacon scan ${safePath} --output=report.json`;
+            if (scanGateCmdEl) scanGateCmdEl.textContent = `simplebeacon scan ${safePath} --gate --offline`;
+            if (scanFullCmdEl) scanFullCmdEl.textContent = `simplebeacon scan ${safePath} --full --gate --output=report.json`;
+            if (scanEuaiCmdEl) scanEuaiCmdEl.textContent = `simplebeacon scan ${safePath} --config .simplebeacon/config-full-coverage.json --full`;
+        }
+
+        if (scanPathInput) {
+            scanPathInput.addEventListener('input', updateCliCommands);
+            // If user picks a folder via the hidden file input, derive a path
+            cliFolderInput.addEventListener('change', (e) => {
+                const files = e.target.files;
+                if (files.length > 0) {
+                    const firstPath = files[0].webkitRelativePath || '';
+                    const folderName = firstPath.split('/')[0] || '.';
+                    scanPathInput.value = folderName;
+                    updateCliCommands();
+                }
+            });
+        }
 
         let reportData = null;
 
