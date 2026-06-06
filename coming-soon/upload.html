@@ -3577,12 +3577,13 @@
             const grade = quality >= 90 ? 'A' : quality >= 80 ? 'B' : quality >= 70 ? 'C' : quality >= 60 ? 'D' : 'F';
             const gradeColor = quality >= 80 ? '#10B981' : quality >= 60 ? '#F59E0B' : '#EF4444';
 
-            // Build issue list HTML
+            // Build issue list HTML with explainability
             const issueItems = detectedIssues.slice(0, 5).map(issue => {
                 const sev = (issue.severity || 'low').toLowerCase();
                 const type = issue.type || 'Issue';
-                const desc = issue.description || `${type} detected`;
-                return `<div class="issue-item"><span class="severity ${sev}"></span><span class="issue-text">${desc}</span></div>`;
+                const desc = issue.humanReadable || issue.description || `${type} detected`;
+                const confidence = issue.confidence ? `<span style="margin-left:6px;font-size:0.65rem;color:#64748B;">${Math.round(issue.confidence * 100)}% confidence</span>` : '';
+                return `<div class="issue-item"><span class="severity ${sev}"></span><span class="issue-text">${desc}${confidence}</span></div>`;
             }).join('');
             const moreIssues = detectedIssues.length > 5 ? `<div class="issue-item" style="justify-content:center;"><span class="issue-text">+ ${detectedIssues.length - 5} more issues in full report</span></div>` : '';
 
@@ -3818,25 +3819,7 @@
                         <div style="font-size:0.8rem;font-weight:700;color:#60A5FA;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">11 Analysis Modules</div>
                         ${analysisModulesHtml}
                     </div>
-                    ${generateRoadmapHtml(data)}
                     ${footer}
-                </div>
-            `;
-        }
-
-        function generateRoadmapHtml(data) {
-            const rm = data.roadmap || {};
-            const todoFiles = (rm.todoFiles || []).slice(0, 10);
-            const todoCount = rm.todoCount || 0;
-            if (!todoCount && !todoFiles.length) return '';
-            const items = todoFiles.map(f => `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.75rem;color:var(--text-muted);"><span style="color:#F59E0B;">&#128204;</span> ${f}</div>`).join('');
-            const more = todoCount > todoFiles.length ? `<div style="padding:6px 0;font-size:0.7rem;color:#64748B;">... and ${todoCount - todoFiles.length} more files</div>` : '';
-            return `
-                <div style="margin-top:16px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;">
-                    <div style="font-size:0.8rem;font-weight:700;color:#60A5FA;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;">&#128204; Roadmap / TODO Markers</div>
-                    <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">${todoCount} file(s) contain TODO, FIXME, HACK, or BUG markers.</div>
-                    <div style="max-height:200px;overflow-y:auto;">${items}${more}</div>
-                    <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04);font-size:0.72rem;color:#94A3B8;">Tip: Address critical TODOs before release. Convert FIXMEs into tracked issues.</div>
                 </div>
             `;
         }
@@ -4213,11 +4196,14 @@
                             duplicateHashes.set(hash, [path]);
                         }
                     }
-                    // 4. Roadmap: TODO/FIXME markers in code
+                    // 4. Roadmap: TODO/FIXME markers in actual code comments only
                     if (allowedSections.includes('roadmap')) {
                         const isCacheOrBinary = /\.git\/|\.simplebeacon\/|github-cache\/|\.github-sync\/|node_modules\/|\.pack$|\.idx$|\.objects\//i.test(lowerPath);
+                        const isScanReport = /report\.json$|eu-ai-act-report\.json$|delivery_\d+_\w+\.json$/i.test(path);
                         const hasSourceExt = /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|c|cpp|h|hpp|cs|php|rb|swift|kt|scala|dart|vue|svelte|html|css|scss|sass|less|sql|sh|bash|ps1|yml|yaml|json|md|txt|xml|cfg|ini|toml|gradle|dockerfile)$/i.test(path);
-                        if (!isNodeModule && !isCacheOrBinary && hasSourceExt && /TODO:|FIXME:|HACK:|XXX:|NOTE:|BUG:/i.test(text)) {
+                        const todoCommentPattern = /(?:\/\/\s*|\/\*\s*|#\s*)\b(TODO|FIXME|HACK|XXX|NOTE|BUG)\b/i;
+                        const hasRealTodo = text.split('\n').some(line => todoCommentPattern.test(line));
+                        if (!isNodeModule && !isCacheOrBinary && !isScanReport && hasSourceExt && hasRealTodo) {
                             todoFiles.push(path);
                         }
                     }
@@ -4592,10 +4578,15 @@
             else if (qs >= 70) { grade = 'C'; gradeColor = '#F59E0B'; }
             else if (qs >= 50) { grade = 'D'; gradeColor = '#F97316'; }
 
-            const rawGate = report.gate?.pass ?? report.gateReport?.pass ?? null;
-            const gatePassed = rawGate === true;
-            const gateLabel = rawGate === null ? 'REVIEW' : (gatePassed ? 'PASSED' : 'BLOCKED');
-            const gateColor = rawGate === null ? '#60A5FA' : (gatePassed ? '#34D399' : '#EF4444');
+            // Derive gate status from actual findings, not just the pass flag
+            const detectedIssuesAll = Array.isArray(report.detectedIssues) ? report.detectedIssues : (Array.isArray(report.issues) ? report.issues : []);
+            const gateIssues = detectedIssuesAll.filter(i => ['high','critical','medium'].includes(i.severity));
+            const gateBlocking = report.gate?.blockingFindings || [];
+            const hasBlockingFindings = (report.gate?.blockingCount || 0) > 0 || (report.gate?.blockingIssues || []).length > 0 || gateBlocking.length > 0 || gateIssues.length > 0;
+            const derivedPass = hasBlockingFindings ? false : (report.gate?.pass ?? report.gateReport?.pass ?? null);
+            const gatePassed = derivedPass === true;
+            const gateLabel = derivedPass === null ? 'REVIEW' : (gatePassed ? 'PASSED' : 'BLOCKED');
+            const gateColor = derivedPass === null ? '#60A5FA' : (gatePassed ? '#34D399' : '#EF4444');
             const projectName = report.projectRoot || report.projectPath || report.projectName || 'local-scan';
             const fileCount = report.totalFiles || report.filesAnalyzed || 0;
             const lineCount = report.codebase?.totalLines || report.totalLines || 0;
@@ -4756,11 +4747,7 @@
 
             // 1. Gate — enriched with issue breakdown and remediation
             const g = report.gateReport || report.gate || {};
-            const gateIssues = (report.detectedIssues || report.issues || []).filter(i => ['high','critical','medium'].includes(i.severity));
-            const gateBlocking = report.gate?.blockingFindings || [];
-            // Derive pass from actual findings to handle inconsistent upstream data
-            const hasBlockingFindings = (g.blockingCount || 0) > 0 || (g.blockingIssues || []).length > 0 || gateBlocking.length > 0 || gateIssues.length > 0;
-            const derivedPass = hasBlockingFindings ? false : (g.pass ?? null);
+            // gateIssues, gateBlocking, hasBlockingFindings, derivedPass already computed earlier
             addModule('gate', 'Gate Scan', {
                 pass: derivedPass,
                 blockingCount: g.blockingCount ?? 0,
@@ -5205,6 +5192,9 @@ ${euAiActSection}
 | executive-summary.md | Board-ready risk summary with top 5 issues |
 | findings.md | Detailed findings by severity with remediation |
 | remediation-checklist.md | Phased action checklist for compliance teams |
+| roadmap.md | TODO/FIXME/HACK/BUG markers and action items |
+| explainability.md | How the AI detects each finding type (confidence + reasoning) |
+| dev-report.html | Human-friendly "what went wrong" guide for developers (print-to-PDF ready) |
 | manifest.json | Certificate metadata and integrity hash |
 | modules/ | Per-analysis-engine JSON exports + index |
 | README.md | This file |
@@ -5493,6 +5483,18 @@ ${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} TOD
             zip.file('remediation-checklist.md', checklist);
 
             // 11. Developer Report — human-readable "what went wrong" guide
+            // Pull fresh module data (just computed) instead of stale report.* fields
+            const getMod = (id) => modules.find(m => m.id === id)?.data || {};
+            const gateMod = getMod('gate');
+            const roadmapMod = getMod('roadmap');
+            const cleanupMod = getMod('cleanup');
+            const dataQualityMod = getMod('data-quality');
+            const fileReductionMod = getMod('file-reduction');
+            const npmMod = getMod('npm-audit');
+            const complianceMod = getMod('compliance');
+            const consolidationMod = getMod('consolidation');
+            const mockDataMod = getMod('mock-data');
+
             const severityIcon = sev => sev === 'critical' || sev === 'high' ? '&#9888;&#65039;' : sev === 'medium' ? '&#9888;&#65039;' : '&#128161;';
             const severityColor = sev => sev === 'critical' || sev === 'high' ? '#EF4444' : sev === 'medium' ? '#F59E0B' : '#60A5FA';
             const severityBg = sev => sev === 'critical' || sev === 'high' ? 'rgba(239,68,68,0.08)' : sev === 'medium' ? 'rgba(245,158,11,0.08)' : 'rgba(96,165,250,0.08)';
@@ -5573,7 +5575,7 @@ body{background:#fff;color:#000;}
 <h1>&#128270; Developer Report</h1>
 <div class="subtitle">${escapeHtml(projectName)} &middot; ${dateStr}</div>
 <div class="meta">
-  <div>Gate: <span class="status-pill ${gatePassed ? 'status-pass' : (report.gate?.pass === false ? 'status-blocked' : 'status-review')}">${gateLabel}</span></div>
+  <div>Gate: <span class="status-pill ${gatePassed ? 'status-pass' : (derivedPass === false ? 'status-blocked' : 'status-review')}">${gateLabel}</span></div>
   <div>Grade: <span class="status-pill grade-pill">${grade}</span></div>
   <div>Quality: <strong>${qs}/100</strong></div>
   <div>Files: <strong>${fileCount.toLocaleString()}</strong></div>
@@ -5583,59 +5585,59 @@ body{background:#fff;color:#000;}
 
 <div class="tldr">
   <h2>&#9888;&#65039; TL;DR — What You Need to Know</h2>
-  ${gatePassed ? '<p>Gate passed. No blocking issues detected. Review low-priority findings below.</p>' : `<p>Your project has <strong>${report.gate?.blockingCount || gateIssues.length} blocking issue(s)</strong> that must be resolved before release. These are the most critical:</p>
-  <ul>${gateBlocking.slice(0, 3).map(f => `<li><strong>${f.type || 'Blocking Finding'}</strong> — ${f.impact || 'Review required.'}${f.fix ? ` <em>Fix:</em> ${f.fix}` : ''}</li>`).join('')}</ul>`}
+  ${gatePassed ? '<p>Gate passed. No blocking issues detected. Review low-priority findings below.</p>' : `<p>Your project has <strong>${gateMod.blockingCount || gateIssues.length} blocking issue(s)</strong> that must be resolved before release. These are the most critical:</p>
+  <ul>${(gateMod.blockingFindings || gateBlocking).slice(0, 3).map(f => `<li><strong>${f.type || 'Blocking Finding'}</strong> — ${f.impact || 'Review required.'}${f.fix ? ` <em>Fix:</em> ${f.fix}` : ''}</li>`).join('')}</ul>`}
   ${(report.euAiActSummary?.highRiskIndicators || 0) > 0 ? '<p><strong>EU AI Act:</strong> High-risk AI indicators detected. Schedule legal review before August 2026.</p>' : ''}
   ${qs < 70 ? '<p><strong>Quality Score is low (' + qs + '/100).</strong> Prioritize the fixes outlined below to raise it above 70 before shipping.</p>' : ''}
 </div>
 
-${buildFindingCards(gateBlocking.length ? gateBlocking : gateIssues.slice(0, 5), 'Security & Gate Findings')}
+${buildFindingCards((gateMod.blockingFindings || gateBlocking).length ? (gateMod.blockingFindings || gateBlocking) : gateIssues.slice(0, 5), 'Security & Gate Findings')}
 
-${cons.duplicateGroups ? `<div class="section"><h2>&#128260; Consolidation Issues</h2>
-<p>There are <strong>${cons.duplicateGroups}</strong> groups of duplicate files in your repo. Duplicates bloat bundles, confuse developers, and increase maintenance overhead.</p>
+${consolidationMod.duplicateGroups ? `<div class="section"><h2>&#128260; Consolidation Issues</h2>
+<p>There are <strong>${consolidationMod.duplicateGroups}</strong> groups of duplicate files in your repo. Duplicates bloat bundles, confuse developers, and increase maintenance overhead.</p>
 <div class="fix-box"><h4>How to fix</h4><p>Merge duplicate files into shared modules. If two components import the same utility, extract it to a shared <code>utils/</code> folder and update imports. Remove redundant copies that are no longer referenced.</p></div>
 </div>` : ''}
 
-${mockTotal ? `<div class="section"><h2>&#128293; Mock Data & Fixtures</h2>
-<p><strong>${mockTotal}</strong> mock or fixture files detected (${mockPct}% of the repo). These are useful for testing but dangerous in production.</p>
+${mockDataMod.fileCount ? `<div class="section"><h2>&#128293; Mock Data & Fixtures</h2>
+<p><strong>${mockDataMod.fileCount}</strong> mock or fixture files detected${mockDataMod.percentageOfRepo ? ' (' + mockDataMod.percentageOfRepo + ' of the repo)' : ''}. These are useful for testing but dangerous in production.</p>
 <div class="fix-box"><h4>How to fix</h4><p>Ensure your build pipeline excludes <code>__mocks__/</code>, <code>*.fixture.*</code>, and <code>test-data/</code> from production bundles. Add them to <code>.simplebeaconignore</code> or your bundler's exclude list.</p></div>
 </div>` : ''}
 
-${rm.todoCount ? `<div class="section"><h2>&#128221; Roadmap Markers (TODO / FIXME)</h2>
-<p><strong>${rm.todoCount}</strong> files contain TODO, FIXME, HACK, or BUG markers. These are debt signals.</p>
+${roadmapMod.todoCount ? `<div class="section"><h2>&#128221; Roadmap Markers (TODO / FIXME)</h2>
+<p><strong>${roadmapMod.todoCount}</strong> files contain TODO, FIXME, HACK, or BUG markers. These are debt signals.</p>
 <div class="fix-box"><h4>How to fix</h4><p>Before release, address all FIXMEs. Convert TODOs into GitHub issues. Remove HACK comments by refactoring the code they describe. Use <code>grep -rn "TODO\|FIXME\|HACK\|BUG" src/</code> to find them all.</p></div>
 </div>` : ''}
 
-${cl.debugArtifactCount ? `<div class="section"><h2>&#128027; Debug Artifacts in Source</h2>
-<p><strong>${cl.debugArtifactCount}</strong> debug statements (console.log, debugger, alert) found in source files. These leak internals, slow performance, and look unprofessional.</p>
+${cleanupMod.debugArtifactCount ? `<div class="section"><h2>&#128027; Debug Artifacts in Source</h2>
+<p><strong>${cleanupMod.debugArtifactCount}</strong> debug statements (console.log, debugger, alert) found in source files. These leak internals, slow performance, and look unprofessional.</p>
 <div class="fix-box"><h4>How to fix</h4><p>Remove all <code>console.log</code>, <code>debugger;</code>, and <code>alert()</code> calls. Enable ESLint rule <code>no-console</code> in CI. For intentional logs, switch to a structured logger like <code>pino</code> or <code>winston</code>.</p></div>
 </div>` : ''}
 
-${dq.emptyJsonCount ? `<div class="section"><h2>&#129513; Data Quality Issues</h2>
-<p><strong>${dq.emptyJsonCount}</strong> empty JSON files detected. Empty configs bloat the repo and break tooling that expects valid data.</p>
+${dataQualityMod.emptyJsonCount ? `<div class="section"><h2>&#129513; Data Quality Issues</h2>
+<p><strong>${dataQualityMod.emptyJsonCount}</strong> empty JSON files detected. Empty configs bloat the repo and break tooling that expects valid data.</p>
 <div class="fix-box"><h4>How to fix</h4><p>Delete empty JSON files or populate them with schema-compliant defaults. Add JSON schema validation in CI to prevent regressions.</p></div>
 </div>` : ''}
 
-${(fr.unusedAssetCandidates || []).length ? `<div class="section"><h2>&#128444; Unused Assets</h2>
-<p><strong>${(fr.unusedAssetCandidates || []).length}</strong> image/asset files appear unused. They inflate bundle size and slow deploys.</p>
+${(fileReductionMod.unusedAssetCandidates || []).length ? `<div class="section"><h2>&#128444; Unused Assets</h2>
+<p><strong>${(fileReductionMod.unusedAssetCandidates || []).length}</strong> image/asset files appear unused. They inflate bundle size and slow deploys.</p>
 <div class="fix-box"><h4>How to fix</h4><p>Review each candidate. If genuinely unused, delete it. Enable tree-shaking and asset optimization in your build tool (e.g., Vite, Webpack, Rollup).</p></div>
 </div>` : ''}
 
-${npm.packageJsonCount ? `<div class="section"><h2>&#128230; Dependency Health</h2>
-<p>${npm.packageJsonCount} package.json file(s) with ${(npm.dependencyCount || 0).toLocaleString()} total dependencies. ${depsPerPkg > 50 ? '<strong>Dependency density is high.</strong> Large dependency trees increase attack surface and install time.' : 'Dependency density looks reasonable.'}</p>
-${depsPerPkg > 50 ? `<div class="fix-box"><h4>How to fix</h4><p>Run <code>npm ls</code> to audit your tree. Remove unused packages with <code>depcheck</code>. Consider pinning critical dependencies and enabling Dependabot.</p></div>` : ''}
+${npmMod.packageJsonCount ? `<div class="section"><h2>&#128230; Dependency Health</h2>
+<p>${npmMod.packageJsonCount} package.json file(s) with ${(npmMod.dependencyCount || 0).toLocaleString()} total dependencies. ${(npmMod.dependencyCount || 0) / (npmMod.packageJsonCount || 1) > 50 ? '<strong>Dependency density is high.</strong> Large dependency trees increase attack surface and install time.' : 'Dependency density looks reasonable.'}</p>
+${(npmMod.dependencyCount || 0) / (npmMod.packageJsonCount || 1) > 50 ? `<div class="fix-box"><h4>How to fix</h4><p>Run <code>npm ls</code> to audit your tree. Remove unused packages with <code>depcheck</code>. Consider pinning critical dependencies and enabling Dependabot.</p></div>` : ''}
 </div>` : ''}
 
-${(comp.licenseCount || comp.securityCount) ? `<div class="section"><h2>&#128506; Compliance</h2>
-<p>${comp.licenseCount || 0} license file(s) and ${comp.securityCount || 0} governance file(s) found.</p>
+${(complianceMod.licenseCount || complianceMod.securityCount) ? `<div class="section"><h2>&#128506; Compliance</h2>
+<p>${complianceMod.licenseCount || 0} license file(s) and ${complianceMod.securityCount || 0} governance file(s) found.</p>
 <div class="fix-box"><h4>How to fix</h4><p>Verify license compatibility with your distribution model. Add SECURITY.md if missing. Review copyright headers in source files.</p></div>
 </div>` : ''}
 
 <div class="section"><h2>&#127919; Quick Wins</h2>
 <div class="quick-wins">
   ${gatePassed ? '<div class="quick-win"><strong>Gate is green</strong> No immediate security blockers. Focus on polish.</div>' : '<div class="quick-win"><strong>Fix gate blockers first</strong> Security issues block release. Triage by severity.</div>'}
-  ${(report.roadmap?.todoCount || 0) > 0 ? '<div class="quick-win"><strong>Convert TODOs to issues</strong> Track them in Jira/GitHub instead of code comments.</div>' : '<div class="quick-win"><strong>No TODOs</strong> Clean codebase with no outstanding markers.</div>'}
-  ${cl.debugArtifactCount > 0 ? '<div class="quick-win"><strong>Strip console.log</strong> Use a linter to catch these before commit.</div>' : '<div class="quick-win"><strong>No debug artifacts</strong> Production-ready build hygiene.</div>'}
+  ${(roadmapMod.todoCount || 0) > 0 ? '<div class="quick-win"><strong>Convert TODOs to issues</strong> Track them in Jira/GitHub instead of code comments.</div>' : '<div class="quick-win"><strong>No TODOs</strong> Clean codebase with no outstanding markers.</div>'}
+  ${(cleanupMod.debugArtifactCount || 0) > 0 ? '<div class="quick-win"><strong>Strip console.log</strong> Use a linter to catch these before commit.</div>' : '<div class="quick-win"><strong>No debug artifacts</strong> Production-ready build hygiene.</div>'}
   ${qs < 70 ? '<div class="quick-win"><strong>Raise quality score</strong> Fix empty files, duplicates, and unused assets.</div>' : '<div class="quick-win"><strong>Quality score is good</strong> Maintain current standards.</div>'}
 </div>
 </div>

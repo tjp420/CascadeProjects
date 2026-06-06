@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "version": "1.3.0",
-  "generatedAt": "2026-06-06T17:42:50.423Z",
+  "generatedAt": "2026-06-06T17:51:05.325Z",
   "generatedBy": "SimpleBeacon Browser Sandbox",
   "scanProfileLabel": "Complete Scan",
   "projectRoot": "simplebeacon-test",
