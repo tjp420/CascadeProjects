@@ -1256,10 +1256,21 @@
                     </div>
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
-                    <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:12px;">
-                        <div class="icon">&#128229;</div>
-                        <p>Drop your <code>report.json</code> here<br><span style="font-size:0.8rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
-                        <p class="file-name" id="cliFileName"></p>
+                    <div class="input-mode-toggle" style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:16px;">
+                        <button id="modeFile" class="mode-btn active" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:var(--accent);color:white;transition:all 0.2s;">&#128229; Drop File</button>
+                        <button id="modePaste" class="mode-btn" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-muted);transition:all 0.2s;">&#128203; Paste JSON</button>
+                    </div>
+                    <div id="fileModePanel">
+                        <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:12px;">
+                            <div class="icon">&#128229;</div>
+                            <p>Drop your <code>report.json</code> here<br><span style="font-size:0.8rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
+                            <p class="file-name" id="cliFileName"></p>
+                        </div>
+                    </div>
+                    <div id="pasteModePanel" style="display:none;margin-bottom:12px;">
+                        <label style="display:block;font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Paste JSON directly</label>
+                        <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.8rem;resize:vertical;"></textarea>
+                        <button id="jsonPasteBtn" class="btn btn-secondary" style="margin-top:8px;width:100%;padding:10px;">Load JSON</button>
                     </div>
                     <div id="cliHashRibbon" class="hash-ribbon" style="display:none;">
                         <span class="hash-label">&#128274; Local Build Integrity</span>
@@ -1919,6 +1930,60 @@
             if (e.target.files[0]) handleJsonFile(e.target.files[0]);
         });
 
+        // JSON paste handler
+        const jsonPasteInput = document.getElementById('jsonPasteInput');
+        const jsonPasteBtn = document.getElementById('jsonPasteBtn');
+        if (jsonPasteBtn && jsonPasteInput) {
+            jsonPasteBtn.addEventListener('click', async () => {
+                const text = jsonPasteInput.value.trim();
+                if (!text) {
+                    showStatus('Paste JSON content first', 'error');
+                    return;
+                }
+                try {
+                    reportData = JSON.parse(text);
+                    cliFileName.textContent = 'pasted-json';
+                    const hash = await computeSha256(text);
+                    showHashRibbon('cliHashRibbon', 'cliHashValue', hash);
+                    renderPreview(reportData);
+                    scanPreview.style.display = 'block';
+                    updateSubmit();
+                    showStatus('JSON loaded from paste', 'success');
+                } catch (err) {
+                    showStatus('Invalid JSON: ' + err.message, 'error');
+                    reportData = null;
+                    updateSubmit();
+                }
+            });
+        }
+
+        // Input mode toggle (file drop vs paste JSON)
+        const modeFileBtn = document.getElementById('modeFile');
+        const modePasteBtn = document.getElementById('modePaste');
+        const fileModePanel = document.getElementById('fileModePanel');
+        const pasteModePanel = document.getElementById('pasteModePanel');
+        if (modeFileBtn && modePasteBtn && fileModePanel && pasteModePanel) {
+            modeFileBtn.addEventListener('click', () => {
+                modeFileBtn.classList.add('active');
+                modeFileBtn.style.background = 'var(--accent)';
+                modeFileBtn.style.color = 'white';
+                modePasteBtn.classList.remove('active');
+                modePasteBtn.style.background = 'transparent';
+                modePasteBtn.style.color = 'var(--text-muted)';
+                fileModePanel.style.display = 'block';
+                pasteModePanel.style.display = 'none';
+            });
+            modePasteBtn.addEventListener('click', () => {
+                modePasteBtn.classList.add('active');
+                modePasteBtn.style.background = 'var(--accent)';
+                modePasteBtn.style.color = 'white';
+                modeFileBtn.classList.remove('active');
+                modeFileBtn.style.background = 'transparent';
+                modeFileBtn.style.color = 'var(--text-muted)';
+                pasteModePanel.style.display = 'block';
+                fileModePanel.style.display = 'none';
+            });
+        }
 
         function renderPreview(data) {
             scanPreview.style.display = 'block';
