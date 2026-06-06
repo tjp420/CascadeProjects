@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-06-05T14:48:50.281Z",
+  "generatedAt": "2026-06-05T22:53:24.280Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
@@ -10,22 +10,22 @@
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-    "totalFiles": 1093,
+    "totalFiles": 1095,
     "totalFolders": 137,
     "profile": "audit"
   },
-  "mockSampleFiles": 67,
-  "totalFiles": 1080,
-  "ruleScopedFilesAnalyzed": 1080,
-  "repositoryFilesTotal": 1093,
+  "mockSampleFiles": 68,
+  "totalFiles": 1082,
+  "ruleScopedFilesAnalyzed": 1082,
+  "repositoryFilesTotal": 1095,
   "repositoryFoldersTotal": 137,
-  "filesAnalyzed": 1093,
-  "totalSizeBytes": 14087994,
-  "totalSizeLabel": "13.4MB",
-  "issueCount": 26,
+  "filesAnalyzed": 1095,
+  "totalSizeBytes": 13989346,
+  "totalSizeLabel": "13.3MB",
+  "issueCount": 16,
   "invalidJson": 0,
   "emptyFiles": 0,
-  "qualityScore": 82,
+  "qualityScore": 100,
   "schemaCompliance": 100,
   "schemaChecked": 50,
   "schemaPassed": 50,
@@ -34,37 +34,39 @@
   "duplicateGroups": 8,
   "roadmapSchemaChecked": 0,
   "roadmapSchemaPassed": 0,
-  "consistencyChecked": 17,
-  "consistencyPassed": 17,
+  "consistencyChecked": 15,
+  "consistencyPassed": 15,
   "consistencyScore": 100,
-  "fictionJsonFilesScanned": 17,
+  "fictionJsonFilesScanned": 15,
   "fictionSampleFilesScanned": 0,
   "fictionScope": "repository-json",
-  "credentialScanned": 836,
+  "credentialScanned": 841,
   "credentialFindings": 0,
-  "productionLeakScanned": 11,
+  "productionLeakScanned": 14,
   "productionLeakFindings": 0,
   "productionLeakSuppressedIntent": 0,
   "sourceCodeFilesScanned": 0,
   "sourceFictionPatternHits": 0,
-  "llmSlopFilesScanned": 57,
-  "llmSlopPatternHits": 2,
-  "euAiActScanned": 84,
+  "llmSlopFilesScanned": 58,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 85,
   "euAiActFindings": 0,
   "euAiActSummary": {
     "highRiskIndicators": 0,
-    "aiSystemIndicators": 4,
+    "aiSystemIndicators": 2,
     "transparencyGaps": 0,
-    "documentationArtifacts": 123,
+    "documentationArtifacts": 121,
     "documentationFound": [
       ".env.example",
       "AGENTS.md",
-      "coming-soon-rescan.json",
-      "coming-soon-scan.json",
+      "coming-soon-final.json",
+      "error-check2.log",
       "HANDOFF-2026-06-03.md",
       "issues.json",
       "ZORIN-LINUX-SETUP.md",
       ".simplebeacon/codebase-current.json",
+      ".simplebeacon/coming-soon-report.json",
+      ".simplebeacon/coming-soon-report2.json",
       ".simplebeacon/config.json",
       ".simplebeacon/eu-ai-act-assessment.json",
       ".simplebeacon/eu-ai-act-compliance.json",
@@ -110,15 +112,15 @@
   "jestSummary": null,
   "severityCounts": {
     "critical": 0,
-    "high": 3,
-    "medium": 7,
+    "high": 0,
+    "medium": 0,
     "low": 16
   },
   "mockDataCategories": [
     {
       "category": "Stale inventory (full-tree scan)",
-      "fileCount": 67,
-      "totalSize": "13.4MB",
+      "fileCount": 68,
+      "totalSize": "13.3MB",
       "qualityScore": null,
       "issues": null,
       "confidence": null,
@@ -285,78 +287,6 @@
         "C:\\Users\\Trevor\\CascadeProjects\\coming-soon-dev\\subscriptions.json"
       ],
       "file": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\subscriptions.json"
-    },
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "LLM Slop Pattern",
-      "count": 1,
-      "description": "coming-soon-dev/scan-debug.json:216 Hardcoded AI-default UI metric or placeholder Latin filler copy",
-      "pattern": "SB-FICTION-004",
-      "line": 216,
-      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
-      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
-      "affectedFiles": [
-        "scan-debug.json"
-      ],
-      "filePaths": [
-        "coming-soon-dev/scan-debug.json"
-      ],
-      "file": "coming-soon-dev/scan-debug.json"
-    },
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "LLM Slop Pattern",
-      "count": 1,
-      "description": "coming-soon-scan.json:2054 Hardcoded AI-default UI metric or placeholder Latin filler copy",
-      "pattern": "SB-FICTION-004",
-      "line": 2054,
-      "recommendation": "Replace placeholder copy with production-ready values before client handoff",
-      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
-      "affectedFiles": [
-        "coming-soon-scan.json"
-      ],
-      "filePaths": [
-        "coming-soon-scan.json"
-      ],
-      "file": "coming-soon-scan.json"
-    },
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "count": 1,
-      "description": "coming-soon-rescan.json:199 — Staging or dev hostname referenced in source",
-      "pattern": "SB-DEPLOY-005",
-      "line": 199,
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "coming-soon-rescan.json"
-      ],
-      "filePaths": [
-        "coming-soon-rescan.json"
-      ],
-      "file": "coming-soon-rescan.json"
-    },
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "count": 1,
-      "description": "coming-soon-rescan.json:223 — Staging or dev hostname referenced in source",
-      "pattern": "SB-DEPLOY-005",
-      "line": 223,
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "coming-soon-rescan.json"
-      ],
-      "filePaths": [
-        "coming-soon-rescan.json"
-      ],
-      "file": "coming-soon-rescan.json"
     }
   ],
   "rawIssues": [
@@ -582,236 +512,6 @@
           "coming-soon-dev/subscriptions.json"
         ],
         "contentHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
-    },
-    {
-      "id": "llm-slop-SB-FICTION-004-coming-soon-dev/scan-debug.json-6683",
-      "severity": "medium",
-      "type": "LLM Slop Pattern",
-      "filePath": "coming-soon-dev/scan-debug.json",
-      "file": "coming-soon-dev/scan-debug.json",
-      "line": 216,
-      "pattern": "SB-FICTION-004",
-      "count": 1,
-      "description": "coming-soon-dev/scan-debug.json:216 Hardcoded AI-default UI metric or placeholder Latin filler copy",
-      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
-      "affectedFiles": [
-        "scan-debug.json"
-      ],
-      "metadata": {
-        "ruleId": "SB-FICTION-004",
-        "match": "100% secure"
-      }
-    },
-    {
-      "id": "llm-slop-SB-FICTION-004-coming-soon-scan.json-131941",
-      "severity": "medium",
-      "type": "LLM Slop Pattern",
-      "filePath": "coming-soon-scan.json",
-      "file": "coming-soon-scan.json",
-      "line": 2054,
-      "pattern": "SB-FICTION-004",
-      "count": 1,
-      "description": "coming-soon-scan.json:2054 Hardcoded AI-default UI metric or placeholder Latin filler copy",
-      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
-      "affectedFiles": [
-        "coming-soon-scan.json"
-      ],
-      "metadata": {
-        "ruleId": "SB-FICTION-004",
-        "match": "100% secure"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-005-coming-soon-rescan.json-6271",
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "coming-soon-rescan.json",
-      "file": "coming-soon-rescan.json",
-      "line": 199,
-      "pattern": "SB-DEPLOY-005",
-      "count": 1,
-      "description": "coming-soon-rescan.json:199 — Staging or dev hostname referenced in source",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "coming-soon-rescan.json"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-005",
-        "category": "deploy-leak",
-        "offset": 6271,
-        "match": "http://localhost"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-005-coming-soon-rescan.json-7166",
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "coming-soon-rescan.json",
-      "file": "coming-soon-rescan.json",
-      "line": 223,
-      "pattern": "SB-DEPLOY-005",
-      "count": 1,
-      "description": "coming-soon-rescan.json:223 — Staging or dev hostname referenced in source",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "coming-soon-rescan.json"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-005",
-        "category": "deploy-leak",
-        "offset": 7166,
-        "match": "http://localhost"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-001-coming-soon-scan.json-132994",
-      "severity": "high",
-      "severityBand": "high",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "coming-soon-scan.json",
-      "file": "coming-soon-scan.json",
-      "line": 2078,
-      "pattern": "SB-DEPLOY-001",
-      "count": 1,
-      "description": "coming-soon-scan.json:2078 — Localhost or loopback URL with port in production-eligible code",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "coming-soon-scan.json"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-001",
-        "category": "deploy-leak",
-        "offset": 132994,
-        "match": "localhost:3000"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-001-coming-soon-scan.json-134050",
-      "severity": "high",
-      "severityBand": "high",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "coming-soon-scan.json",
-      "file": "coming-soon-scan.json",
-      "line": 2102,
-      "pattern": "SB-DEPLOY-001",
-      "count": 1,
-      "description": "coming-soon-scan.json:2102 — Localhost or loopback URL with port in production-eligible code",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "coming-soon-scan.json"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-001",
-        "category": "deploy-leak",
-        "offset": 134050,
-        "match": "localhost:3000"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-001-coming-soon-scan.json-135106",
-      "severity": "high",
-      "severityBand": "high",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "coming-soon-scan.json",
-      "file": "coming-soon-scan.json",
-      "line": 2126,
-      "pattern": "SB-DEPLOY-001",
-      "count": 1,
-      "description": "coming-soon-scan.json:2126 — Localhost or loopback URL with port in production-eligible code",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "coming-soon-scan.json"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-001",
-        "category": "deploy-leak",
-        "offset": 135106,
-        "match": "localhost:3000"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-005-coming-soon-scan.json-136147",
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "coming-soon-scan.json",
-      "file": "coming-soon-scan.json",
-      "line": 2150,
-      "pattern": "SB-DEPLOY-005",
-      "count": 1,
-      "description": "coming-soon-scan.json:2150 — Staging or dev hostname referenced in source",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "coming-soon-scan.json"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-005",
-        "category": "deploy-leak",
-        "offset": 136147,
-        "match": "http://localhost"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-005-coming-soon-scan.json-137190",
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "coming-soon-scan.json",
-      "file": "coming-soon-scan.json",
-      "line": 2174,
-      "pattern": "SB-DEPLOY-005",
-      "count": 1,
-      "description": "coming-soon-scan.json:2174 — Staging or dev hostname referenced in source",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "coming-soon-scan.json"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-005",
-        "category": "deploy-leak",
-        "offset": 137190,
-        "match": "http://localhost"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-005-coming-soon-scan.json-138233",
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "coming-soon-scan.json",
-      "file": "coming-soon-scan.json",
-      "line": 2198,
-      "pattern": "SB-DEPLOY-005",
-      "count": 1,
-      "description": "coming-soon-scan.json:2198 — Staging or dev hostname referenced in source",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "coming-soon-scan.json"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-005",
-        "category": "deploy-leak",
-        "offset": 138233,
-        "match": "http://localhost"
       }
     }
   ],
@@ -1387,6 +1087,7 @@
     "simple-integration.test.js",
     "setup.js",
     "THUMB-DRIVE-README.md",
+    "tokens-fresh.txt",
     "apply-roadmap-export.js",
     "cleanup-email-queue.cjs",
     "generate-license-token.cjs",
@@ -1455,6 +1156,7 @@
     "project-reports-sample.json",
     "quality-dashboard-sample.json",
     "release-timeline-sample.json",
+    "remediation-roadmap-sb-837864.json",
     "reports-sample.json",
     "repository-health-sample.json",
     "roadmap-comparison-sample.json",
@@ -1558,27 +1260,25 @@
     "UploadView.js",
     "index.js",
     "package.json",
+    "build-standalone.cjs",
+    ".env",
     ".env.example",
     ".gitignore",
     "404.html",
     "app-links.js",
-    "audit-booking.js",
     "certificate-upload.html",
     "community.html",
     "contact.html",
     "contact.js",
-    "dashboard.html",
-    "demo.html",
     "diagnostic-prep.html",
     "repo-handoff.html",
-    "email-template-certificate-upload.html",
     "email-template-universal.html",
+    "error.log",
     "favicon.svg",
     "index.html",
     "landing.html",
     "package-lock.json",
     "package.json",
-    "prevent-ai-overspend.html",
     "pricing.html",
     "privacy.html",
     "refund.html",
@@ -1595,22 +1295,23 @@
     "styles.css",
     "subscriptions.json",
     "terms.html",
-    "test-checkout.html",
-    "thank-you.html",
     "upload.html",
-    "scan-debug.json",
     "server.log",
     "subscriptions.json",
     "server.test.cjs",
-    "coming-soon-rescan.json",
-    "coming-soon-scan.json",
+    "coming-soon-final.json",
     "coming-soon-server.log",
     "coming-soon.zip",
     "cookies.txt",
     "dep-check.js",
+    "deploy-auto.js",
+    "deploy-to-render.js",
+    "deploy.bat",
     "env-debug-output.txt",
     "env-debug.js",
     "env-debug2.txt",
+    "error-check.log",
+    "error-check2.log",
     "HANDOFF-2026-06-03.md",
     "instructions.txt",
     "issues.json",
@@ -1881,6 +1582,7 @@
     "trust-guard.test.js",
     "README.md",
     "REMEDIATION.md",
+    "Running",
     "scan-website.sh",
     "server-start.log",
     "setup-zorin.sh",
@@ -1921,12 +1623,12 @@
         "low"
       ]
     },
-    "mockSampleFilesInScanPaths": 1080,
+    "mockSampleFilesInScanPaths": 1082,
     "pageSpecCatalogSize": 50,
     "pageSpecsValidated": 50,
     "pageSpecsFromScanPaths": 50,
     "pageSpecsFromAliasPaths": 0,
-    "productionDirsScanned": 11,
+    "productionDirsScanned": 14,
     "productionPaths": [
       "."
     ],
@@ -1935,25 +1637,25 @@
     ],
     "sourceCodeFilesScanned": 0,
     "sourceFictionPatternHits": 0,
-    "llmSlopFilesScanned": 57,
-    "llmSlopPatternHits": 2,
-    "euAiActFilesScanned": 84,
+    "llmSlopFilesScanned": 58,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 85,
     "euAiActPatternHits": 0,
     "euAiActHighRiskIndicators": 0,
     "jestExecutedDuringScan": false,
     "consistencyAnchorCount": 0,
     "fictionScope": "repository-json",
-    "fictionJsonFilesScanned": 17,
+    "fictionJsonFilesScanned": 15,
     "fictionSampleFilesScanned": 0,
-    "ruleScopedFilesAnalyzed": 1080,
-    "repositoryFilesTotal": 1093,
+    "ruleScopedFilesAnalyzed": 1082,
+    "repositoryFilesTotal": 1095,
     "repositoryFoldersTotal": 137,
     "benchmarkCacheIssuesExcluded": 0,
     "excludedPathsNote": "11 issue(s) from github-cache/ benchmark clones excluded from gate scores — scan clones with github-cache/.simplebeacon/config.json (profile: benchmark).",
     "limitations": [
-      "Repository inventory: 1,093 files — gate rules checked 1080 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 1,095 files — gate rules checked 1082 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-      "Fiction/KPI rules scan repository JSON (17) plus source code (0 files in .).",
+      "Fiction/KPI rules scan repository JSON (15) plus source code (0 files in .).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
       "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
       "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
@@ -1964,7 +1666,7 @@
     "inventoryMetricsStale": true
   },
   "gate": {
-    "pass": false,
+    "pass": true,
     "failOn": [
       "high"
     ],
@@ -1972,9 +1674,9 @@
       "medium",
       "low"
     ],
-    "blockingCount": 3,
-    "warningCount": 15
+    "blockingCount": 0,
+    "warningCount": 8
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-05T14:48:50.288Z"
+  "sanitizedAt": "2026-06-05T22:53:24.287Z"
 }

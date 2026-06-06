@@ -1,0 +1,38 @@
+{
+  "gate": {
+    "pass": true,
+    "blockingCount": 0
+  },
+  "qualityScore": 96,
+  "totalFiles": 56,
+  "issueCount": 2,
+  "repositoryFilesTotal": 56,
+  "scanTargetRoot": "coming-soon",
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "type": "AI System Indicator",
+      "count": 2,
+      "description": "AI/LLM implementation patterns found in 2 files"
+    }
+  ],
+  "rawIssues": [
+    {
+      "severity": "low",
+      "type": "AI System Indicator",
+      "filePath": "coming-soon/.simplebeacon/report-deliveries/delivery_1780698283952_3bhx9z.json",
+      "count": 2
+    }
+  ],
+  "scanDurationMs": 66,
+  "repositoryInventory": {
+    "totalFiles": 56,
+    "projectRoot": "browser-local"
+  },
+  "summary": {
+    "gatePass": true,
+    "qualityScore": 96,
+    "repositoryFiles": 56,
+    "simplebeaconIssues": 2
+  }
+}

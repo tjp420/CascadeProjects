@@ -29,7 +29,7 @@
       "items": [
         {
           "file": "path/to/sample.json",
-          "description": "totalFeatures=8 or completionRate=62",
+          "description": "totalFeatures={measured-count} or completionRate={measured-rate}",
           "recommendedAction": "Replace with repository-audit baseline values"
         }
       ],

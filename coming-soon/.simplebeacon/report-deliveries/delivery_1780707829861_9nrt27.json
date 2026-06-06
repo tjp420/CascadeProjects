@@ -1,0 +1,60 @@
+{
+  "type": "simplebeacon-report",
+  "version": "1.3.0",
+  "generatedAt": "2026-06-06T01:03:34.403Z",
+  "projectRoot": "coming-soon",
+  "projectPath": "coming-soon",
+  "scanTargetRoot": "coming-soon",
+  "platformRoot": "browser-sandbox",
+  "gate": {
+    "pass": false,
+    "blockingCount": 4,
+    "failOn": [
+      "high",
+      "critical"
+    ]
+  },
+  "qualityScore": 70,
+  "totalFiles": 6135,
+  "filesAnalyzed": 6135,
+  "repositoryFilesTotal": 6135,
+  "issueCount": 4,
+  "simplebeaconIssues": 4,
+  "detectedIssues": [
+    {
+      "severity": "medium",
+      "type": "Credential Pattern",
+      "count": 4,
+      "filePath": "coming-soon/node_modules/adm-zip/README.md, coming-soon/node_modules/dotenv/README-es.md, coming-soon/node_modules/dotenv/README.md ...",
+      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+      "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.",
+      "fix": "Move secrets to environment variables or a secret manager; never commit keys to version control."
+    }
+  ],
+  "issues": [
+    {
+      "severity": "medium",
+      "type": "Credential Pattern",
+      "count": 4
+    }
+  ],
+  "rawIssues": [
+    {
+      "severity": "medium",
+      "type": "Credential Pattern",
+      "count": 4
+    }
+  ],
+  "scanDurationMs": 2595,
+  "repositoryInventory": {
+    "totalFiles": 6135,
+    "projectRoot": "coming-soon"
+  },
+  "summary": {
+    "gatePass": false,
+    "qualityScore": 70,
+    "repositoryFiles": 6135,
+    "simplebeaconIssues": 4,
+    "totalFindings": 4
+  }
+}

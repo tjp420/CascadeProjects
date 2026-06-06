@@ -520,7 +520,8 @@ function buildCertificateHtml(reportJson, payload) {
     }).join('');
 
     // Build EU AI Act section
-    const euAiaHtml = euAiActSummary ? `
+    const hasEuAiFindings = (euAiActSummary.highRiskIndicators || 0) > 0 || (euAiActSummary.aiSystemIndicators || 0) > 0 || (euAiActSummary.transparencyGaps || 0) > 0 || (euAiActSummary.documentationArtifacts || 0) > 0 || ((euAiActSummary.documentationFound || []).length > 0);
+    const euAiaHtml = hasEuAiFindings ? `
     <section class="section">
       <div class="section-num">Section 02-A</div>
       <h2>EU AI Act Readiness Assessment</h2>

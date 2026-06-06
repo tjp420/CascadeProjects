@@ -1,0 +1,27 @@
+# Simplebeacon ignore patterns for coming-soon frontend
+# Generated scan artifacts
+.simplebeacon/
+.sb-uploads/
+sb-analyze-*/
+
+# Secrets and environment
+.env
+.env.*
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test outputs
+test-output*.txt

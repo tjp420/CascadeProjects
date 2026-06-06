@@ -1,90 +1,5 @@
 [
   {
-    "scanId": "7b91823e-8adb-4bfe-8f3c-433cfadd14bb",
-    "date": "2026-06-03T20:19:12.363Z",
-    "issueCount": 22,
-    "warningCount": 21,
-    "blockingCount": 1,
-    "qualityScore": 94,
-    "gatePass": false,
-    "severityCounts": {
-      "critical": 0,
-      "high": 1,
-      "medium": 13,
-      "low": 15
-    },
-    "fictionPatternsFound": 0,
-    "totalFilesScanned": 1035
-  },
-  {
-    "scanId": "d595071d-7c3d-4f1d-afec-ff694e61306d",
-    "date": "2026-06-03T20:19:15.176Z",
-    "issueCount": 22,
-    "warningCount": 21,
-    "blockingCount": 1,
-    "qualityScore": 94,
-    "gatePass": false,
-    "severityCounts": {
-      "critical": 0,
-      "high": 1,
-      "medium": 13,
-      "low": 15
-    },
-    "fictionPatternsFound": 0,
-    "totalFilesScanned": 1035
-  },
-  {
-    "scanId": "d6a290f7-ac88-4564-9e03-eb7c07c230b3",
-    "date": "2026-06-03T20:19:23.077Z",
-    "issueCount": 13,
-    "warningCount": 13,
-    "blockingCount": 0,
-    "qualityScore": 100,
-    "gatePass": true,
-    "severityCounts": {
-      "critical": 0,
-      "high": 0,
-      "medium": 12,
-      "low": 1
-    },
-    "fictionPatternsFound": 0,
-    "totalFilesScanned": 1466
-  },
-  {
-    "scanId": "2428e6a1-340f-4917-8b16-54cb1e0327ea",
-    "date": "2026-06-03T20:19:30.372Z",
-    "issueCount": 13,
-    "warningCount": 13,
-    "blockingCount": 0,
-    "qualityScore": 100,
-    "gatePass": true,
-    "severityCounts": {
-      "critical": 0,
-      "high": 0,
-      "medium": 12,
-      "low": 1
-    },
-    "fictionPatternsFound": 0,
-    "totalFilesScanned": 1468
-  },
-  {
-    "scanId": "1b9b48ab-ebdb-43de-b50f-a30af6e965f9",
-    "date": "2026-06-03T20:19:37.999Z",
-    "issueCount": 13,
-    "warningCount": 13,
-    "blockingCount": 0,
-    "qualityScore": 100,
-    "gatePass": true,
-    "severityCounts": {
-      "critical": 0,
-      "high": 0,
-      "medium": 12,
-      "low": 1
-    },
-    "fictionPatternsFound": 0,
-    "totalFilesScanned": 1446
-  },
-  {
     "scanId": "15f672ad-528e-43cf-940f-4f88cb5ca444",
     "date": "2026-06-03T20:19:41.672Z",
     "issueCount": 22,
@@ -508,5 +423,90 @@
     },
     "fictionPatternsFound": 0,
     "totalFilesScanned": 1093
+  },
+  {
+    "scanId": "8fb30edb-79bb-4913-9511-6e96115d209d",
+    "date": "2026-06-05T22:39:34.885Z",
+    "issueCount": 12,
+    "warningCount": 12,
+    "blockingCount": 0,
+    "qualityScore": 100,
+    "gatePass": true,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 4,
+      "low": 16
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 1097
+  },
+  {
+    "scanId": "c94d284c-003a-425b-82d5-091551e213f1",
+    "date": "2026-06-05T22:53:24.280Z",
+    "issueCount": 8,
+    "warningCount": 8,
+    "blockingCount": 0,
+    "qualityScore": 100,
+    "gatePass": true,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 16
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 1095
+  },
+  {
+    "scanId": "d3530c7d-75c0-42c5-938c-78ee8be8cc20",
+    "date": "2026-06-05T23:14:06.428Z",
+    "issueCount": 8,
+    "warningCount": 8,
+    "blockingCount": 0,
+    "qualityScore": 100,
+    "gatePass": true,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 16
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 1096
+  },
+  {
+    "scanId": "616bd1f6-cde6-44f9-9781-11e1bc50b336",
+    "date": "2026-06-05T23:34:25.940Z",
+    "issueCount": 8,
+    "warningCount": 8,
+    "blockingCount": 0,
+    "qualityScore": 100,
+    "gatePass": true,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 16
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 1098
+  },
+  {
+    "scanId": "69db9b3f-42cd-4286-8d23-947cdf5ebf16",
+    "date": "2026-06-05T23:35:38.762Z",
+    "issueCount": 8,
+    "warningCount": 8,
+    "blockingCount": 0,
+    "qualityScore": 100,
+    "gatePass": true,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 16
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 1098
   }
 ]
