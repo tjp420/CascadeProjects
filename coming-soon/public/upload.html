@@ -5053,17 +5053,39 @@
                         summary: 'Browser scan does not execute npm audit. Run CLI scan with --audit flag for full CVE report.'
                     }
                 } : {}),
-                ...(allowedSections.includes('buildReadiness') ? {
-                    buildReadiness: {
-                        readinessScore: 0,
-                        readinessStatus: 'UNKNOWN',
-                        totalChecks: 12,
-                        passedChecks: 0,
-                        missingCritical: [],
-                        missingRecommended: [],
-                        summary: 'Browser scan captures file list for build readiness analysis. Upload CLI report for full checklist evaluation.'
-                    }
-                } : {}),
+                fileList: sourceFiles.map(f => f.webkitRelativePath || f.name),
+                ...(allowedSections.includes('buildReadiness') ? (() => {
+                    const lowerPaths = (sourceFiles.map(f => (f.webkitRelativePath || f.name).toLowerCase()));
+                    const brChecks = [
+                        { name: 'package.json', found: lowerPaths.some(p => p.endsWith('package.json')), critical: true },
+                        { name: 'README', found: lowerPaths.some(p => /readme\.?/.test(p)), critical: true },
+                        { name: 'CHANGELOG', found: lowerPaths.some(p => /changelog|changes|history/i.test(p)), critical: false },
+                        { name: 'Tests', found: lowerPaths.some(p => /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p)), critical: true },
+                        { name: 'CI/CD', found: lowerPaths.some(p => /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(p)), critical: true },
+                        { name: 'Docker', found: lowerPaths.some(p => /dockerfile|docker-compose|\.dockerignore/i.test(p)), critical: false },
+                        { name: 'Linting/Formatting', found: lowerPaths.some(p => /eslint|prettier|\.editorconfig|lint-staged|husky/i.test(p)), critical: false },
+                        { name: 'TypeScript Config', found: lowerPaths.some(p => /tsconfig|\.ts$/i.test(p)), critical: false },
+                        { name: 'Build Tool Config', found: lowerPaths.some(p => /(webpack|rollup|vite|esbuild|parcel|babel|gulpfile|gruntfile)/i.test(p)), critical: false },
+                        { name: '.env.example', found: lowerPaths.some(p => /\.env\.example|\.env\.sample|\.env\.template/i.test(p)), critical: true },
+                        { name: '.gitignore', found: lowerPaths.some(p => p.includes('.gitignore')), critical: true },
+                        { name: '.npmignore', found: lowerPaths.some(p => p.includes('.npmignore')), critical: false }
+                    ];
+                    const brMissingCritical = brChecks.filter(c => c.critical && !c.found);
+                    const brMissingNice = brChecks.filter(c => !c.critical && !c.found);
+                    const brScore = Math.round(((brChecks.filter(c => c.found).length / brChecks.length) * 100));
+                    return { buildReadiness: {
+                        readinessScore: brScore,
+                        readinessStatus: brScore >= 80 ? 'READY' : (brScore >= 50 ? 'NEEDS WORK' : 'BLOCKED'),
+                        totalChecks: brChecks.length,
+                        passedChecks: brChecks.filter(c => c.found).length,
+                        missingCritical: brMissingCritical.map(c => c.name),
+                        missingRecommended: brMissingNice.map(c => c.name),
+                        checklist: brChecks,
+                        summary: `${brScore >= 80 ? 'READY' : (brScore >= 50 ? 'NEEDS WORK' : 'BLOCKED')} — ${brChecks.filter(c => c.found).length} of ${brChecks.length} checklist items present.${brMissingCritical.length ? ` ${brMissingCritical.length} critical blocker${brMissingCritical.length === 1 ? '' : 's'}.` : ''}`,
+                        remediation: brMissingCritical.length > 0 ? `Missing critical: ${brMissingCritical.map(c => c.name).join(', ')}.` : (brMissingNice.length > 0 ? `Missing recommended: ${brMissingNice.map(c => c.name).join(', ')}.` : 'No remediation needed.'),
+                        recommendations: brMissingCritical.length > 0 ? ['Add all critical files before production deployment.', 'Start with package.json, README, .gitignore, and .env.example.'] : (brMissingNice.length > 0 ? ['Add recommended files to improve maintainability.', 'Consider Docker, linting config, and CHANGELOG.'] : ['Project is fully ready for production. All checklist items present.'])
+                    }};
+                })() : {}),
                 credentialScanned: sourceFiles.length,
                 credentialFindings: credentialHits,
                 scanDurationMs: Date.now() - startTime,
