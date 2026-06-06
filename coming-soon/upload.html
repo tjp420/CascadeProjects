@@ -2246,15 +2246,16 @@
                         credentialHits++;
                         credFiles.push(path);
                     }
-                    if (profile.checkDebug && !(isNodeModule && /\/examples?\//i.test(lowerPath)) && /console\.log\(|debugger;|todo:|fixme:|hack:/i.test(text)) {
+                    // Skip node_modules from debug detection — dependency console.log is not user code
+                    if (profile.checkDebug && !isNodeModule && /console\.log\(|debugger;|todo:|fixme:|hack:/i.test(text)) {
                         debugHits.push(path);
                     }
                     if (profile.checkGov && /SPDX-License-Identifier|MIT License|Apache License|GNU General Public License|All rights reserved|Copyright \(c\)|License: /i.test(text)) {
                         govHits.push(path);
                     }
                     // --- 11 Analysis Category Heuristics ---
-                    // 3. Mock data: fixture/sample/test-data files
-                    if (/mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
+                    // 3. Mock data: fixture/sample/test-data files (skip node_modules — dependency mocks are not user code)
+                    if (!isNodeModule && /mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
                         mockFiles.push(path);
                     }
                     // 9. npm audit: package.json files
@@ -2296,12 +2297,12 @@
                             duplicateHashes.set(hash, [path]);
                         }
                     }
-                    // 4. Roadmap: TODO/FIXME markers in code
-                    if (/TODO:|FIXME:|HACK:|XXX:|NOTE:|BUG:/i.test(text)) {
+                    // 4. Roadmap: TODO/FIXME markers in code (skip node_modules — dependency TODOs are not user action items)
+                    if (!isNodeModule && /TODO:|FIXME:|HACK:|XXX:|NOTE:|BUG:/i.test(text)) {
                         todoFiles.push(path);
                     }
-                    // 6. File reduction: unused assets (images not referenced)
-                    if (/\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(lowerPath)) {
+                    // 6. File reduction: unused assets (images not referenced) — skip node_modules dependency assets
+                    if (!isNodeModule && /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(lowerPath)) {
                         const baseName = path.split('/').pop();
                         unusedAssetCandidates.push({ path, name: baseName });
                     }
