@@ -3123,13 +3123,16 @@
                         }
                     } else if (entry.isDirectory) {
                         const dirReader = entry.createReader();
+                        const allEntries = [];
                         let batch;
-                        let batchCount = 0;
                         do {
                             batch = await new Promise(resolve => dirReader.readEntries(resolve));
-                            batchCount++;
-                            for (const child of batch) await traverse(child, currentPath);
+                            allEntries.push(...batch);
                         } while (batch.length > 0 && !traverseAbort);
+                        for (const child of allEntries) {
+                            if (traverseAbort || files.length >= MAX_DISCOVERED_FILES) break;
+                            await traverse(child, currentPath);
+                        }
                     }
                     // Throttle UI updates to avoid freezing
                     const now = Date.now();
@@ -4673,7 +4676,34 @@
             const modules = [];
             const addModule = (id, label, data) => {
                 if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-                    modules.push({ id, label, data });
+                    const riskScore = data.riskScore ?? (
+                        data.severity === 'high' ? 80 : data.severity === 'medium' ? 50 : 20
+                    );
+                    const priority = data.priority ?? (
+                        riskScore >= 70 ? 'critical' : riskScore >= 50 ? 'high' : riskScore >= 30 ? 'medium' : 'low'
+                    );
+                    modules.push({
+                        id, label,
+                        data: {
+                            metadata: {
+                                projectName,
+                                generatedAt: now,
+                                scanVersion: '1.3.0',
+                                scanProfile: report.scanProfile || report.scanProfileLabel || 'browser-scan',
+                                moduleId: id,
+                                moduleLabel: label,
+                                totalFiles,
+                                totalLines
+                            },
+                            metrics: {
+                                riskScore,
+                                priority,
+                                ...(data.severity ? { severity: data.severity } : {}),
+                                ...(data.severityColor ? { severityColor: data.severityColor } : {})
+                            },
+                            ...data
+                        }
+                    });
                 }
             };
 
@@ -4696,6 +4726,19 @@
                         matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet }))
                     }))
                 })),
+                allIssues: (report.detectedIssues || []).slice(0, 15).map(i => ({
+                    severity: i.severity, type: i.type, count: i.count || 0,
+                    filePath: i.filePath, rule: i.rule, impact: i.impact, fix: i.fix
+                })),
+                severityCounts: report.severityCounts || {},
+                qualityScore: report.qualityScore ?? null,
+                scanDurationMs: report.scanDurationMs ?? null,
+                recommendations: [
+                    ...(g.pass === false ? ['Fix all blocking findings before release.'] : []),
+                    ...(credentialHits > 0 ? ['Move secrets to environment variables or a secret manager.'] : []),
+                    ...(aiHits.length > 0 ? ['Review AI indicators for compliance before enabling --gate.'] : []),
+                    'Run `npx simplebeacon scan --gate` in CI to prevent regressions.'
+                ],
                 remediation: gateIssues.filter(i => i.fix).map(i => i.fix).slice(0, 3)
             });
 
@@ -4707,7 +4750,12 @@
                 duplicateGroups: cons.duplicateGroups || 0,
                 duplicatePercentage: totalFiles > 0 ? ((cons.duplicateGroups || 0) / totalFiles * 100).toFixed(1) + '%' : '0.0%',
                 duplicateGroupsDetail: dupFiles.slice(0, 5).map(g => g.slice(0, 3)),
+                largestDuplicateGroup: dupFiles.reduce((max, g) => g.length > max.length ? g : max, []).slice(0, 3),
                 summary: cons.summary || (cons.duplicateGroups ? `${cons.duplicateGroups} duplicate file groups detected.` : 'No duplicate files detected.'),
+                recommendations: [
+                    ...(cons.duplicateGroups > 0 ? ['Consolidate duplicate files into shared modules.', 'Remove redundant copies to reduce bundle size.'] : []),
+                    ...(cons.monorepoMarkers > 0 ? ['Consider workspace tooling (Lerna, Nx, Turborepo) for monorepo management.'] : [])
+                ],
                 remediation: cons.duplicateGroups ? 'Consolidate duplicate files into shared modules or remove redundant copies.' : null
             });
 
@@ -4718,11 +4766,16 @@
             addModule('mock-data', 'Mock Data', {
                 fileCount: mockTotal,
                 percentageOfRepo: mockPct + '%',
+                mockDensity: totalFiles > 0 ? (mockTotal / totalFiles) : 0,
                 categories: mockCats.map(c => ({
                     category: c.category, fileCount: c.fileCount || 0, confidence: c.confidence, description: c.description
                 })),
                 affectedFiles: mockCats.flatMap(c => c.affectedFiles || []).slice(0, 10),
+                productionRisk: mockTotal > 50 ? 'high' : mockTotal > 10 ? 'medium' : 'low',
                 summary: mockTotal ? `${mockTotal} mock/fixture files detected (${mockPct}% of total).` : 'No mock data found.',
+                recommendations: [
+                    ...(mockTotal > 0 ? ['Ensure mock data is excluded from production bundles.', 'Review fixture files for PII or real credentials.'] : ['No mock data detected — good hygiene.'])
+                ],
                 remediation: mockTotal ? 'Review if mock data should be excluded from production bundles.' : null
             });
 
@@ -4735,7 +4788,16 @@
                 todoFiles: (rm.todoFiles || []).slice(0, 10),
                 severity: (rm.todoCount || 0) > 50 ? 'high' : ((rm.todoCount || 0) > 10 ? 'medium' : 'low'),
                 severityColor: (rm.todoCount || 0) > 50 ? '#EF4444' : ((rm.todoCount || 0) > 10 ? '#F59E0B' : '#34D399'),
+                markerBreakdown: {
+                    TODO: (rm.todoFiles || []).filter(f => /TODO/i.test(f)).length,
+                    FIXME: (rm.todoFiles || []).filter(f => /FIXME/i.test(f)).length,
+                    HACK: (rm.todoFiles || []).filter(f => /HACK/i.test(f)).length,
+                    BUG: (rm.todoFiles || []).filter(f => /BUG/i.test(f)).length
+                },
                 summary: rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} files contain TODO/FIXME markers (${todoDensity}% of repo).` : 'No roadmap markers found.'),
+                recommendations: [
+                    ...(rm.todoCount > 0 ? ['Address critical TODOs before release.', 'Convert FIXMEs into tracked issues.'] : ['No roadmap markers — clean codebase.'])
+                ],
                 remediation: (rm.todoCount || 0) ? 'Address critical TODOs before release. Consider converting FIXMEs into tracked issues.' : null
             });
 
@@ -4747,8 +4809,14 @@
                 totalFiles: cb.totalFiles || totalFiles,
                 totalLines: cb.totalLines || totalLines,
                 averageLinesPerFile: avgLines,
-                fileTypeBreakdown: ftEntries.map(([ext, count]) => ({ extension: ext, count })),
+                fileTypeBreakdown: ftEntries.map(([ext, count]) => ({ extension: ext, count, percentage: totalFiles > 0 ? ((count / totalFiles) * 100).toFixed(1) + '%' : '0.0%' })),
+                languageDominance: ftEntries.slice(0, 3).map(([ext, count]) => ({ extension: ext, count, percentage: totalFiles > 0 ? ((count / totalFiles) * 100).toFixed(1) + '%' : '0.0%' })),
+                codeHealth: avgLines > 800 ? 'poor' : avgLines > 500 ? 'fair' : 'good',
                 summary: cb.summary || `${(cb.totalFiles || totalFiles).toLocaleString()} files analyzed, ${(cb.totalLines || totalLines).toLocaleString()} lines of code.`,
+                recommendations: [
+                    ...(avgLines > 500 ? ['Large files may benefit from refactoring.'] : []),
+                    ...(ftEntries.length > 15 ? ['High language diversity — consider standardizing tech stack.'] : [])
+                ],
                 remediation: avgLines > 500 ? 'Large files may benefit from refactoring.' : null
             });
 
@@ -4759,7 +4827,15 @@
                 unusedAssetCandidates: (fr.unusedAssetCandidates || []).slice(0, 10),
                 unusedAssetCount: assetCount,
                 duplicateGroups: fr.duplicateGroups || 0,
+                reductionPotential: assetCount + (fr.duplicateGroups || 0),
+                assetTypes: [...new Set((fr.unusedAssetCandidates || []).map(p => {
+                    const m = p.match(/\.([^.]+)$/);
+                    return m ? m[1].toLowerCase() : 'unknown';
+                }))],
                 summary: fr.summary || (assetCount ? `${assetCount} image assets detected for review.` : 'No file reduction opportunities.'),
+                recommendations: [
+                    ...(assetCount > 0 ? ['Review and remove unused assets to reduce bundle size.', 'Enable tree-shaking in build pipeline.'] : ['No reduction opportunities — efficient asset usage.'])
+                ],
                 remediation: assetCount ? 'Review and remove unused assets to reduce bundle size.' : null
             });
 
@@ -4768,9 +4844,13 @@
             addModule('data-quality', 'Data Quality', {
                 emptyJsonFiles: (dq.emptyJsonFiles || []).slice(0, 10),
                 emptyJsonCount: dq.emptyJsonCount || 0,
+                jsonHealthScore: Math.max(0, 100 - (dq.emptyJsonCount || 0) * 5),
                 severity: (dq.emptyJsonCount || 0) > 0 ? 'high' : 'low',
                 severityColor: (dq.emptyJsonCount || 0) > 0 ? '#EF4444' : '#34D399',
                 summary: dq.summary || ((dq.emptyJsonCount || 0) ? `${dq.emptyJsonCount} empty JSON files detected.` : 'No data quality issues.'),
+                recommendations: [
+                    ...(dq.emptyJsonCount > 0 ? ['Remove empty JSON files or add meaningful content.', 'Add schema validation for JSON config files.'] : ['JSON data quality is good.'])
+                ],
                 remediation: (dq.emptyJsonCount || 0) ? 'Remove empty JSON files or add meaningful content. They bloat the repository and confuse tooling.' : null
             });
 
@@ -4785,9 +4865,18 @@
                 debugArtifacts: (cl.debugArtifacts || []).slice(0, 10),
                 debugArtifactCount: cl.debugArtifactCount || 0,
                 findings: debugDetailed,
+                artifactDensity: totalFiles > 0 ? ((cl.debugArtifactCount || 0) / totalFiles * 100).toFixed(2) + '%' : '0.00%',
+                filesByArtifactType: {
+                    consoleLog: (cl.debugArtifacts || []).filter(f => /console\.log/i.test(f)).length,
+                    debugger: (cl.debugArtifacts || []).filter(f => /debugger/i.test(f)).length,
+                    alertPrompt: (cl.debugArtifacts || []).filter(f => /alert\s*\(|prompt\s*\(/i.test(f)).length
+                },
                 severity: (cl.debugArtifactCount || 0) > 20 ? 'high' : ((cl.debugArtifactCount || 0) > 0 ? 'medium' : 'low'),
                 severityColor: (cl.debugArtifactCount || 0) > 20 ? '#EF4444' : ((cl.debugArtifactCount || 0) > 0 ? '#F59E0B' : '#60A5FA'),
                 summary: cl.summary || ((cl.debugArtifactCount || 0) ? `${cl.debugArtifactCount} debug artifacts detected.` : 'No debug artifacts found.'),
+                recommendations: [
+                    ...(cl.debugArtifactCount > 0 ? ['Remove console.log, debugger, and TODO markers before production.', 'Enable ESLint no-console rule for CI.'] : ['Clean build ready — no debug artifacts.'])
+                ],
                 remediation: (cl.debugArtifactCount || 0) ? 'Remove console.log, debugger statements, and TODO markers before production builds.' : null
             });
 
@@ -4799,7 +4888,12 @@
                 dependencyCount: npm.dependencyCount || 0,
                 dependenciesPerPackage: depsPerPkg,
                 packageJsonFiles: (npm.packageJsonFiles || []).slice(0, 5),
+                dependencyHealth: depsPerPkg > 100 ? 'poor' : depsPerPkg > 50 ? 'fair' : 'good',
                 summary: npm.summary || (npm.packageJsonCount ? `${npm.packageJsonCount} package.json files found with ${(npm.dependencyCount || 0).toLocaleString()} total dependencies.` : 'No package.json files found.'),
+                recommendations: [
+                    ...(depsPerPkg > 50 ? ['High dependency count — consider auditing for unused packages.', 'Enable Dependabot or Renovate for automated updates.'] : ['Dependency count is healthy.']),
+                    ...(npm.packageJsonCount > 1 ? ['Multiple package.json files — ensure versions stay in sync.'] : [])
+                ],
                 remediation: depsPerPkg > 50 ? 'High dependency count — consider auditing for unused packages.' : null
             });
 
@@ -4812,9 +4906,15 @@
                 licenseCount: comp.licenseCount || 0,
                 securityCount: comp.securityCount || 0,
                 governanceScore: compScore,
+                complianceHealth: compScore === 0 ? 'missing' : compScore >= 3 ? 'good' : 'partial',
                 licenseFiles: (comp.licenseFiles || []).slice(0, 5),
                 securityFiles: (comp.securityFiles || []).slice(0, 5),
+                missingGovernanceFiles: compScore === 0 ? ['LICENSE', 'SECURITY.md', 'CODE_OF_CONDUCT.md'] : [],
                 summary: compRemediation ? compSummary + ' ' + compRemediation : compSummary,
+                recommendations: [
+                    ...(compScore === 0 ? ['Add LICENSE file.', 'Add SECURITY.md for vulnerability disclosure.'] : []),
+                    ...(comp.securityCount === 0 ? ['Add CODE_OF_CONDUCT.md.'] : [])
+                ],
                 remediation: compRemediation
             });
 
