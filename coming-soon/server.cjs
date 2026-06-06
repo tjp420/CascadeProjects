@@ -535,85 +535,87 @@ function buildCertificateHtml(reportJson, payload) {
       <p class="meta">${euAiActSummary.deadlineNote || 'Review EU AI Act compliance requirements.'}</p>
     </section>` : '';
 
-    // Build analysis modules section
-    const analysisSectionsHtml = `
-    <section class="section">
-      <div class="section-num">Section 06</div>
-      <h2>Analysis Modules — Complete Scan Results</h2>
-      <p class="meta">Results from all 11 SimpleBeacon analysis engines run against the repository.</p>
-
-      <h3>&#128737; 1. SimpleBeacon Gate</h3>
+    // Build conditional analysis module subsections
+    const secGate = `<h3>&#128737; 1. SimpleBeacon Gate</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
-        <tr><td>Gate pass</td><td><strong>${gateReport.pass !== undefined ? (gateReport.pass ? 'PASS' : 'FAIL') : (gatePass)}</strong></td></tr>
+        <tr><td>Gate pass</td><td><strong>${gateReport.pass !== undefined ? (gateReport.pass ? 'PASS' : 'FAIL') : gatePass}</strong></td></tr>
         <tr><td>Blocking count</td><td>${gateReport.blockingCount ?? credentialHits}</td></tr>
         <tr><td>Summary</td><td>${gateReport.summary || (gatePass === 'PASS' ? 'No blocking credentials found.' : `${credentialHits} credential patterns detected.`)}</td></tr>
-      </table>
+      </table>`;
 
-      <h3>&#128260; 2. Consolidation</h3>
+    const hasConsolidation = (consolidation.monorepoMarkers || 0) > 0 || (consolidation.duplicateGroups || 0) > 0;
+    const secConsolidation = hasConsolidation ? `<h3>&#128260; 2. Consolidation</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Monorepo markers</td><td>${consolidation.monorepoMarkers || 0}</td></tr>
         <tr><td>Duplicate groups</td><td>${consolidation.duplicateGroups || 0}</td></tr>
         <tr><td>Summary</td><td>${consolidation.summary || 'No consolidation issues detected.'}</td></tr>
-      </table>
+      </table>` : '';
 
-      <h3>&#128269; 3. Mock Data Detection</h3>
-      ${mockRows ? `<table class="data-table"><tr><th>Category</th><th>Files</th><th>Confidence</th><th>Description</th><th>Sample files</th></tr>${mockRows}</table>` : '<p class="meta">No mock or fixture files detected.</p>'}
+    const secMockData = mockRows ? `<h3>&#128269; 3. Mock Data Detection</h3>
+      <table class="data-table"><tr><th>Category</th><th>Files</th><th>Confidence</th><th>Description</th><th>Sample files</th></tr>${mockRows}</table>` : '';
 
-      <h3>&#128506; 4. Roadmap Markers</h3>
+    const hasRoadmap = (roadmap.todoCount || 0) > 0;
+    const secRoadmap = hasRoadmap ? `<h3>&#128506; 4. Roadmap Markers</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>TODO/FIXME files</td><td>${roadmap.todoCount || 0}</td></tr>
         <tr><td>Summary</td><td>${roadmap.summary || 'No roadmap markers found.'}</td></tr>
-      </table>
+      </table>` : '';
 
-      <h3>&#128187; 5. Codebase Analysis</h3>
+    const secCodebase = `<h3>&#128187; 5. Codebase Analysis</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Total files</td><td>${codebase.totalFiles || totalFiles}</td></tr>
         <tr><td>Total lines</td><td>${(codebase.totalLines || 0).toLocaleString()}</td></tr>
         <tr><td>Summary</td><td>${codebase.summary || `${totalFiles} files analyzed.`}</td></tr>
-      </table>
+      </table>`;
 
-      <h3>&#128230; 6. File Reduction</h3>
+    const hasFileReduction = ((fileReduction.unusedAssetCandidates || []).length > 0) || (fileReduction.duplicateGroups || 0) > 0;
+    const secFileReduction = hasFileReduction ? `<h3>&#128230; 6. File Reduction</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Asset candidates</td><td>${(fileReduction.unusedAssetCandidates || []).length}</td></tr>
         <tr><td>Duplicate groups</td><td>${fileReduction.duplicateGroups || 0}</td></tr>
         <tr><td>Summary</td><td>${fileReduction.summary || 'No file reduction opportunities detected.'}</td></tr>
-      </table>
+      </table>` : '';
 
-      <h3>&#129516; 7. Data Quality</h3>
+    const hasDataQuality = (dataQuality.emptyJsonCount || 0) > 0;
+    const secDataQuality = hasDataQuality ? `<h3>&#129516; 7. Data Quality</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Empty/trivial JSON</td><td>${dataQuality.emptyJsonCount || 0}</td></tr>
         <tr><td>Summary</td><td>${dataQuality.summary || 'No data quality issues detected.'}</td></tr>
-      </table>
+      </table>` : '';
 
-      <h3>&#129529; 8. Cleanup Assistant</h3>
+    const hasCleanup = (cleanup.debugArtifactCount || 0) > 0;
+    const secCleanup = hasCleanup ? `<h3>&#129529; 8. Cleanup Assistant</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>Debug artifacts</td><td>${cleanup.debugArtifactCount || 0}</td></tr>
         <tr><td>Summary</td><td>${cleanup.summary || 'No cleanup items found.'}</td></tr>
-      </table>
+      </table>` : '';
 
-      <h3>&#128230; 9. npm Audit</h3>
+    const hasNpm = (npmAudit.packageJsonCount || 0) > 0;
+    const secNpm = hasNpm ? `<h3>&#128230; 9. npm Audit</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>package.json files</td><td>${npmAudit.packageJsonCount || 0}</td></tr>
         <tr><td>Summary</td><td>${npmAudit.summary || 'No package.json files detected.'}</td></tr>
-      </table>
+      </table>` : '';
 
-      <h3>&#9989; 10. Compliance</h3>
+    const hasCompliance = (compliance.licenseCount || 0) > 0 || (compliance.securityCount || 0) > 0;
+    const secCompliance = hasCompliance ? `<h3>&#9989; 10. Compliance</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>License files</td><td>${compliance.licenseCount || 0}</td></tr>
         <tr><td>Security/governance files</td><td>${compliance.securityCount || 0}</td></tr>
         <tr><td>Summary</td><td>${compliance.summary || 'No governance files detected.'}</td></tr>
-      </table>
+      </table>` : '';
 
-      <h3>&#127757; 11. EU AI Act Sprint</h3>
+    const hasEuAi = (euAiActSummary.highRiskIndicators || 0) > 0 || (euAiActSummary.aiSystemIndicators || 0) > 0 || (euAiActSummary.transparencyGaps || 0) > 0 || (euAiActSummary.documentationArtifacts || 0) > 0 || ((euAiActSummary.documentationFound || []).length > 0);
+    const secEuAi = hasEuAi ? `<h3>&#127757; 11. EU AI Act Sprint</h3>
       <table class="data-table">
         <tr><th>Metric</th><th>Value</th></tr>
         <tr><td>High-risk indicators</td><td>${euAiActSummary.highRiskIndicators || 0}</td></tr>
@@ -621,8 +623,16 @@ function buildCertificateHtml(reportJson, payload) {
         <tr><td>Transparency gaps</td><td>${euAiActSummary.transparencyGaps || 0}</td></tr>
         <tr><td>Documentation artifacts</td><td>${euAiActSummary.documentationArtifacts || 0}</td></tr>
         <tr><td>Summary</td><td>${euAiActSummary.deadlineNote || 'Review EU AI Act requirements.'}</td></tr>
-      </table>
-    </section>`;
+      </table>` : '';
+
+    const allSubs = [secGate, secConsolidation, secMockData, secRoadmap, secCodebase, secFileReduction, secDataQuality, secCleanup, secNpm, secCompliance, secEuAi].filter(Boolean).join('\n      ');
+    const analysisSectionsHtml = allSubs ? `
+    <section class="section">
+      <div class="section-num">Section 06</div>
+      <h2>Analysis Modules — Complete Scan Results</h2>
+      <p class="meta">Results from all 11 SimpleBeacon analysis engines run against the repository. Only modules with findings are shown.</p>
+      ${allSubs}
+    </section>` : '';
 
     const issueRows = detectedIssues.map(issue => {
         const sev = (issue.severity || 'low').toUpperCase();
@@ -783,6 +793,7 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
       <strong>Independent disclaimer.</strong> This assessment is an opinion-based, static technical review of the source files and configured scan paths at the time of evaluation. It is not a legal compliance guarantee, formal penetration test, SOC 2 attestation, or certification that the system is secure in production. The client remains responsible for remediation, release authorization, and ongoing security posture.
     </div>
   </section>
+  ${analysisSectionsHtml}
   <section class="section">
     <div class="section-num">Section 05</div>
     <h2>Production compliance sign-off</h2>
@@ -797,7 +808,6 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
       <span class="signoff-role">CTO / Lead Architect · Date: _______________</span>
     </div>
   </section>
-  ${analysisSectionsHtml}
   <section class="section">
     <div class="section-num">Appendix</div>
     <h2>Methodology &amp; scan scope</h2>
