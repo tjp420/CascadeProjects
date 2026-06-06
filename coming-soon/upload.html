@@ -685,21 +685,35 @@
             box-shadow: 0 0 4px rgba(52, 211, 153, 0.4);
         }
 
+        .analyzer-dropdown {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            background: var(--bg-card);
+        }
         .select-all-bar {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 12px;
-            padding: 8px 12px;
+            padding: 10px 14px;
             background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            border-bottom: 1px solid var(--border);
             cursor: pointer;
             user-select: none;
             transition: all 0.2s ease;
         }
         .select-all-bar:hover {
             border-color: rgba(37, 99, 235, 0.4);
+        }
+        .select-all-bar .select-all-chevron {
+            margin-left: auto;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            transition: transform 0.25s ease;
+        }
+        .module-dropdown.collapsed .select-all-chevron {
+            transform: rotate(-90deg);
         }
         .select-all-bar input[type="checkbox"] {
             width: 16px;
@@ -717,6 +731,20 @@
         .select-all-bar .select-all-count {
             font-size: 0.7rem;
             color: var(--text-muted);
+            margin-right: 8px;
+        }
+        .module-dropdown-body {
+            max-height: 800px;
+            opacity: 1;
+            overflow: hidden;
+            transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease;
+            padding: 10px;
+        }
+        .module-dropdown.collapsed .module-dropdown-body {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
         }
 
         /* Module dropdown */
@@ -1580,6 +1608,35 @@
             padding: 10px 14px;
             background: rgba(255,255,255,0.03);
             border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+        }
+        .terminal-header .term-chevron {
+            margin-left: auto;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            transition: transform 0.25s ease;
+        }
+        .terminal-palette.collapsed .term-chevron {
+            transform: rotate(-90deg);
+        }
+        .terminal-palette.collapsed .terminal-body,
+        .terminal-palette.collapsed .terminal-section-label {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            border-top-width: 0;
+            transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease, margin 0.2s ease;
+        }
+        .terminal-body, .terminal-section-label {
+            max-height: 600px;
+            opacity: 1;
+            overflow: hidden;
+            transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease, margin 0.2s ease;
         }
         .term-dot {
             width: 10px;
@@ -1817,12 +1874,12 @@
         </div>
 
         <!-- RUNTIME MODE SELECTOR -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-            <div>
+        <div style="margin-bottom:20px;">
+            <div style="margin-bottom:12px;">
                 <h2 style="margin:0;font-size:1.1rem;color:var(--text-main);">Project Compliance Evaluation</h2>
                 <p style="font-size:0.8rem;color:var(--text-muted);margin:4px 0 0;">Choose your preferred local static-analysis runtime.</p>
             </div>
-            <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);">
+            <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);width:fit-content;">
                 <button id="tab-cli" class="mode-tab" style="flex:none;padding:8px 16px;" title="Ctrl+1">&#10095; Terminal (CLI)</button>
                 <button id="tab-browser" class="mode-tab active" style="flex:none;padding:8px 16px;" title="Ctrl+2">&#127758; Browser Sandbox</button>
             </div>
@@ -1839,12 +1896,13 @@
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">Run these commands from your repository root (<code style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;">CascadeProjects/</code>). Change directories with <code>cd</code> first if needed.</p>
-                    <div class="terminal-palette">
-                        <div class="terminal-header">
+                    <div class="terminal-palette collapsed" id="quickCommandsPalette">
+                        <div class="terminal-header" onclick="togglePalette('quickCommandsPalette')" role="button" tabindex="0" aria-expanded="false" aria-controls="quickCommandsPalette">
                             <span class="term-dot red"></span>
                             <span class="term-dot yellow"></span>
                             <span class="term-dot green"></span>
                             <span class="term-title">Quick Commands</span>
+                            <span class="term-chevron" aria-hidden="true">&#9662;</span>
                         </div>
                         <div class="terminal-body">
                             <div class="cmd-row">
@@ -1878,7 +1936,7 @@
                                 <span class="cmd-desc">EU AI Act assessment</span>
                             </div>
                         </div>
-                        <p style="font-size:0.7rem;color:#94a3b8;margin:12px 0 4px;padding-top:8px;border-top:1px solid #334155;">Test this server (PowerShell)</p>
+                        <p class="terminal-section-label" style="font-size:0.7rem;color:#94a3b8;margin:12px 0 4px;padding-top:8px;border-top:1px solid #334155;">Test this server (PowerShell)</p>
                         <div class="terminal-body">
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
@@ -1906,67 +1964,6 @@
                     </div>
                 </div>
             </div>
-
-            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
-                <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
-                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Local Report Validator</h3>
-                    </div>
-                </div>
-                <div style="padding:20px 24px;background:var(--bg-input);">
-                    <div class="input-mode-toggle" style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:16px;">
-                        <button id="modeFile" class="mode-btn active" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:var(--accent);color:white;transition:all 0.2s;">&#128229; Drop File</button>
-                        <button id="modePaste" class="mode-btn" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-muted);transition:all 0.2s;">&#128203; Paste JSON</button>
-                    </div>
-                    <div id="fileModePanel">
-                        <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:12px;">
-                            <div class="icon">&#128229;</div>
-                            <p>Drop your <code>report.json</code> here<br><span style="font-size:0.8rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
-                            <p class="file-name" id="cliFileName"></p>
-                        </div>
-                    </div>
-                    <div id="pasteModePanel" style="display:none;margin-bottom:12px;">
-                        <label style="display:block;font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Paste JSON directly</label>
-                        <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.8rem;resize:vertical;"></textarea>
-                        <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);color:white;border:none;font-weight:600;">Load JSON</button>
-                    </div>
-                    <div id="cliHashRibbon" class="hash-ribbon" style="display:none;">
-                        <span class="hash-label">&#128274; Local Build Integrity</span>
-                        <span id="cliHashValue">--</span>
-                    </div>
-                    <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
-                    <div class="schema-accordion" id="schemaInspector">
-                        <div class="schema-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span>&#128203; Payload Schema Inspector</span>
-                            <span class="schema-chevron">&#9654;</span>
-                        </div>
-                        <div class="schema-body">
-                            <pre>{
-  "type": "simplebeacon-report",
-  "version": "1.3.0",
-  "generatedAt": "ISO-8601 timestamp",
-  "projectRoot": "string — redacted project label",
-  "gate": { "pass": boolean, "blockingCount": number },
-  "qualityScore": 0-100,
-  "totalFiles": number,
-  "issueCount": number,
-  "detectedIssues": [
-    { "severity": "low|medium|high|critical",
-      "type": "string — rule category",
-      "count": number,
-      "filePath": "redacted relative path",
-      "rule": "string — pattern ID",
-      "impact": "string — business risk statement",
-      "fix": "string — remediation recipe" }
-  ],
-  "summary": { "gatePass": boolean, "qualityScore": number }
-}</pre>
-                            <p style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;">No source code, AST, or file contents are transmitted. Only the summary JSON above leaves your perimeter.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- VIEW B: BROWSER SANDBOX -->
@@ -1987,7 +1984,7 @@
                             <p id="tokenError" class="hidden-display" style="font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
                         </div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
+                            <button type="button" class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
                                 <span>&#128229;</span> Generate Certificate
                             </button>
                             <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan" style="display:none;">&#10005; Clear</button>
@@ -2001,7 +1998,7 @@
                                 <p style="font-size:0.9rem;font-weight:600;color:var(--text-main);margin:0 0 4px;">&#128161; Don't have a token?</p>
                                 <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Generate a free community token instantly. No email required.</p>
                             </div>
-                            <button id="tryFreeBtn" style="padding:10px 20px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;box-shadow:0 0 20px rgba(37,99,235,0.2);">&#9881; Developer Sandbox</button>
+                            <button type="button" id="tryFreeBtn" style="padding:10px 20px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;box-shadow:0 0 20px rgba(37,99,235,0.2);">&#9881; Developer Sandbox</button>
                         </div>
                     </div>
 
@@ -2009,7 +2006,7 @@
                         <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
                         <div style="display:flex;gap:8px;">
                             <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
-                            <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send Token</button>
+                            <button type="button" id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send Token</button>
                         </div>
                         <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
                         <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
@@ -2038,12 +2035,17 @@
                             <option value="compliance">&#127775; Compliance Check — Governance + security</option>
                             <option value="hygiene">&#127775; Hygiene Sweep — Debug artifacts + cleanup</option>
                         </select>
-                        <div class="select-all-bar" id="selectAllBar">
-                            <input type="checkbox" id="selectAllModules" checked>
-                            <label for="selectAllModules">Select All Available Modules</label>
-                            <span class="select-all-count" id="selectAllCount"></span>
+                        <div class="module-dropdown" id="moduleDropdown">
+                            <div class="select-all-bar" id="selectAllBar" onclick="if(event.target.tagName!=='INPUT'&&event.target.tagName!=='LABEL')toggleModuleDropdown()" role="button" tabindex="0" aria-expanded="true" aria-controls="moduleDropdownBody">
+                                <input type="checkbox" id="selectAllModules" checked>
+                                <label for="selectAllModules">Select All Available Modules</label>
+                                <span class="select-all-count" id="selectAllCount"></span>
+                                <span class="select-all-chevron" aria-hidden="true">&#9662;</span>
+                            </div>
+                            <div class="module-dropdown-body" id="moduleDropdownBody">
+                                <div id="analyzerCardGrid" class="analyzer-grid"></div>
+                            </div>
                         </div>
-                        <div id="analyzerCardGrid" class="analyzer-grid"></div>
                         <p class="help-text" id="scanProfileHelp">Click modules above to toggle which scans are included in your ZIP report.</p>
                     </div>
                     <div class="sandbox-note">
@@ -2206,6 +2208,68 @@
         </footer>
     </div>
 
+    <!-- SHARED: Local Report Validator -->
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">3</span>
+                <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Local Report Validator</h3>
+            </div>
+        </div>
+        <div style="padding:20px 24px;background:var(--bg-input);">
+            <div class="input-mode-toggle" style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:16px;">
+                <button id="modeFile" class="mode-btn active" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:var(--accent);color:white;transition:all 0.2s;">&#128229; Drop File</button>
+                <button id="modePaste" class="mode-btn" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-muted);transition:all 0.2s;">&#128203; Paste JSON</button>
+            </div>
+            <div id="fileModePanel">
+                <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:12px;">
+                    <div class="icon">&#128229;</div>
+                    <p>Drop your <code>report.json</code> here<br><span style="font-size:0.8rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
+                    <p class="file-name" id="cliFileName"></p>
+                </div>
+            </div>
+            <div id="pasteModePanel" style="display:none;margin-bottom:12px;">
+                <label style="display:block;font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Paste JSON directly</label>
+                <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.8rem;resize:vertical;"></textarea>
+                <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);color:white;border:none;font-weight:600;">Load JSON</button>
+            </div>
+            <div id="cliHashRibbon" class="hash-ribbon" style="display:none;">
+                <span class="hash-label">&#128274; Local Build Integrity</span>
+                <span id="cliHashValue">--</span>
+            </div>
+            <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
+            <div class="schema-accordion" id="schemaInspector">
+                <div class="schema-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span>&#128203; Payload Schema Inspector</span>
+                    <span class="schema-chevron">&#9654;</span>
+                </div>
+                <div class="schema-body">
+                    <pre>{
+  "type": "simplebeacon-report",
+  "version": "1.3.0",
+  "generatedAt": "ISO-8601 timestamp",
+  "projectRoot": "string — redacted project label",
+  "gate": { "pass": boolean, "blockingCount": number },
+  "qualityScore": 0-100,
+  "totalFiles": number,
+  "issueCount": number,
+  "detectedIssues": [
+    { "severity": "low|medium|high|critical",
+      "type": "string — rule category",
+      "count": number,
+      "filePath": "redacted relative path",
+      "rule": "string — pattern ID",
+      "impact": "string — business risk statement",
+      "fix": "string — remediation recipe" }
+  ],
+  "summary": { "gatePass": boolean, "qualityScore": number }
+}</pre>
+                    <p style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;">No source code, AST, or file contents are transmitted. Only the summary JSON above leaves your perimeter.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Copy-to-clipboard helper
         window.copyToClipboard = function(elementId) {
@@ -2215,6 +2279,17 @@
                 const btn = el.nextElementSibling;
                 if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); }
             });
+        };
+
+        window.togglePalette = function(id) {
+            const palette = document.getElementById(id);
+            if (!palette) return;
+            palette.classList.toggle('collapsed');
+            const header = palette.querySelector('.terminal-header');
+            if (header) {
+                const expanded = !palette.classList.contains('collapsed');
+                header.setAttribute('aria-expanded', String(expanded));
+            }
         };
 
         // API base URL — localhost uses same-origin; production uses Render backend
@@ -2539,8 +2614,8 @@
             },
             complete: {
                 label: 'Complete Scan',
-                help: 'All 11 analysis engines — gate, consolidation, mock data, roadmap, codebase, file reduction, data quality, cleanup, npm audit, compliance, EU AI Act.',
-                note: 'Browser sandbox runs a <strong>Complete Scan</strong> — all 11 SimpleBeacon analysis engines for maximum coverage.',
+                help: 'All 13 analysis engines — gate, consolidation, mock data, roadmap, codebase, file reduction, data quality, cleanup, npm audit, compliance, EU AI Act, dependency audit, build readiness.',
+                note: 'Browser sandbox runs a <strong>Complete Scan</strong> — all 13 SimpleBeacon analysis engines for maximum coverage.',
                 reportType: 'simplebeacon-report',
                 title: 'SimpleBeacon Complete Scan',
                 checkAi: true,
@@ -2772,7 +2847,7 @@
             locked: [],                        // No token — all profiles locked
             community: ['gate'],               // Free Audit — gate attestation only
             instant: ['gate', 'instant'],       // $19 Instant — gate + instant snapshot
-            executive: ['gate', 'codebase', 'compliance', 'hygiene', 'complete'], // $499 Exec Cert — 10 of 11 engines (excludes EU AI Act)
+            executive: ['gate', 'codebase', 'compliance', 'hygiene', 'complete'], // $499 Exec Cert — 11 of 13 engines (excludes EU AI Act + dependency audit)
             euai: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],      // $2,499 Sprint — all engines + analyst access
             universal: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete']
         };
@@ -3864,7 +3939,7 @@
                 </div>
             `;
 
-            // Build 11 analysis module dropdown + detail panels
+            // Build 13 analysis module dropdown + detail panels
             const analysisModulesHtml = (() => {
                 const modules = [];
                 const uid = 'mod' + Math.floor(Math.random() * 100000);
@@ -4372,7 +4447,7 @@
             }
 
             if (localScanFileName) localScanFileName.textContent = `Scanning ${sourceFiles.length.toLocaleString()} files...`;
-            appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654; Stage 3/3:</span> Scanning ${sourceFiles.length.toLocaleString()} source files across 11 analysis engines...`);
+            appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654; Stage 3/3:</span> Scanning ${sourceFiles.length.toLocaleString()} source files across 13 analysis engines...`);
 
             // 3. Heuristic scan loop
             for (let i = 0; i < sourceFiles.length; i++) {
@@ -4432,7 +4507,7 @@
                             govFindings.push({ file: path, matches: govMatches });
                         }
                     }
-                    // --- 11 Analysis Category Heuristics (profile-gated) ---
+                    // --- 13 Analysis Category Heuristics (profile-gated) ---
                     // 3. Mock data: fixture/sample/test-data files
                     if (allowedSections.includes('mockDataCategories')) {
                         const isDemoSample = /sample-(certificate|clearance-pdf|report)\./.test(lowerPath);

@@ -2748,7 +2748,7 @@
             locked: [],                        // No token — all profiles locked
             community: ['gate'],               // Free Audit — gate attestation only
             instant: ['gate', 'instant'],       // $19 Instant — gate + instant snapshot
-            executive: ['gate', 'codebase', 'compliance', 'hygiene', 'complete'], // $499 Exec Cert — 10 of 11 engines (excludes EU AI Act)
+            executive: ['gate', 'codebase', 'compliance', 'hygiene', 'complete'], // $499 Exec Cert — 11 of 13 engines (excludes EU AI Act + dependency audit)
             euai: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],      // $2,499 Sprint — all engines + analyst access
             universal: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete']
         };
@@ -3841,7 +3841,7 @@
                 </div>
             `;
 
-            // Build 11 analysis module dropdown + detail panels
+            // Build 13 analysis module dropdown + detail panels
             const analysisModulesHtml = (() => {
                 const modules = [];
                 const uid = 'mod' + Math.floor(Math.random() * 100000);
@@ -4086,7 +4086,7 @@
                         ${moreIssues}
                     </div>
                     <div style="margin-top:16px;">
-                        <div style="font-size:0.8rem;font-weight:700;color:#60A5FA;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">11 Analysis Modules</div>
+                        <div style="font-size:0.8rem;font-weight:700;color:#60A5FA;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">13 Analysis Modules</div>
                         ${analysisModulesHtml}
                     </div>
                     ${footer}
@@ -4349,7 +4349,7 @@
             }
 
             if (localScanFileName) localScanFileName.textContent = `Scanning ${sourceFiles.length.toLocaleString()} files...`;
-            appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654; Stage 3/3:</span> Scanning ${sourceFiles.length.toLocaleString()} source files across 11 analysis engines...`);
+            appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654; Stage 3/3:</span> Scanning ${sourceFiles.length.toLocaleString()} source files across 13 analysis engines...`);
 
             // 3. Heuristic scan loop
             for (let i = 0; i < sourceFiles.length; i++) {
@@ -4409,7 +4409,7 @@
                             govFindings.push({ file: path, matches: govMatches });
                         }
                     }
-                    // --- 11 Analysis Category Heuristics (profile-gated) ---
+                    // --- 13 Analysis Category Heuristics (profile-gated) ---
                     // 3. Mock data: fixture/sample/test-data files
                     if (allowedSections.includes('mockDataCategories')) {
                         const isDemoSample = /sample-(certificate|clearance-pdf|report)\./.test(lowerPath);

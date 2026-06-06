@@ -201,6 +201,40 @@ function formatJsonReport(report, gateResult = null) {
             : 'No dependency vulnerabilities found.'
     };
 
+    // Build Readiness module — systematic project health scan
+    const allFiles = report.fileList || report.repositoryInventory?.totalFiles || [];
+    const filePaths = Array.isArray(allFiles) ? allFiles : [];
+    const lowerPaths = filePaths.map(f => (typeof f === 'string' ? f : f.path || '').toLowerCase());
+    const readinessChecks = [
+        { name: 'package.json', found: lowerPaths.some(p => p.endsWith('package.json')), critical: true },
+        { name: 'README', found: lowerPaths.some(p => /readme\.?/.test(p)), critical: true },
+        { name: 'CHANGELOG', found: lowerPaths.some(p => /changelog|changes|history/i.test(p)), critical: false },
+        { name: 'Tests', found: lowerPaths.some(p => /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p)), critical: true },
+        { name: 'CI/CD', found: lowerPaths.some(p => /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(p)), critical: true },
+        { name: 'Docker', found: lowerPaths.some(p => /dockerfile|docker-compose|\.dockerignore/i.test(p)), critical: false },
+        { name: 'Linting/Formatting', found: lowerPaths.some(p => /eslint|prettier|\.editorconfig|lint-staged|husky/i.test(p)), critical: false },
+        { name: 'TypeScript Config', found: lowerPaths.some(p => /tsconfig|\.ts$/i.test(p)), critical: false },
+        { name: 'Build Tool Config', found: lowerPaths.some(p => /(webpack|rollup|vite|esbuild|parcel|babel|gulpfile|gruntfile)/i.test(p)), critical: false },
+        { name: '.env.example', found: lowerPaths.some(p => /\.env\.example|\.env\.sample|\.env\.template/i.test(p)), critical: true },
+        { name: '.gitignore', found: lowerPaths.some(p => p.includes('.gitignore')), critical: true },
+        { name: '.npmignore', found: lowerPaths.some(p => p.includes('.npmignore')), critical: false }
+    ];
+    const missingCritical = readinessChecks.filter(c => c.critical && !c.found);
+    const missingNice = readinessChecks.filter(c => !c.critical && !c.found);
+    const readinessScore = Math.round(((readinessChecks.filter(c => c.found).length / readinessChecks.length) * 100));
+    const buildReadiness = report.buildReadiness || {
+        readinessScore: readinessScore,
+        readinessStatus: readinessScore >= 80 ? 'READY' : (readinessScore >= 50 ? 'NEEDS WORK' : 'BLOCKED'),
+        checklist: readinessChecks,
+        missingCritical: missingCritical.map(c => c.name),
+        missingRecommended: missingNice.map(c => c.name),
+        totalChecks: readinessChecks.length,
+        passedChecks: readinessChecks.filter(c => c.found).length,
+        summary: `${readinessScore >= 80 ? 'READY' : (readinessScore >= 50 ? 'NEEDS WORK' : 'BLOCKED')} — ${readinessChecks.filter(c => c.found).length} of ${readinessChecks.length} checklist items present.${missingCritical.length ? ` ${missingCritical.length} critical blocker${missingCritical.length === 1 ? '' : 's'}.` : ''}`,
+        recommendations: missingCritical.length > 0 ? ['Add all critical files before production deployment.', 'Start with package.json, README, .gitignore, and .env.example.'] : (missingNice.length > 0 ? ['Add recommended files to improve maintainability.', 'Consider Docker, linting config, and CHANGELOG.'] : ['Project is fully ready for production. All checklist items present.']),
+        remediation: missingCritical.length > 0 ? `Missing critical: ${missingCritical.map(c => c.name).join(', ')}.` : (missingNice.length > 0 ? `Missing recommended: ${missingNice.map(c => c.name).join(', ')}.` : 'No remediation needed.')
+    };
+
     const payload = {
         ...report,
         gate: enrichedGate,
@@ -215,6 +249,7 @@ function formatJsonReport(report, gateResult = null) {
         mockData,
         euAiAct,
         dependencyAudit,
+        buildReadiness,
         summary: {
             gatePass: enrichedGate?.pass ?? null,
             qualityScore: report.qualityScore || 0,

@@ -321,13 +321,13 @@ app.post('/api/test-checkout', async (req, res) => {
         };
         const stepsMap = {
             instant_report: '<li>Click the button above to open the certificate upload page</li><li>Paste your license token (already filled if you use the link)</li><li>Upload your source code zip or select a local directory</li><li>The scan runs locally — no code leaves your machine</li><li>Download your Code Hygiene Certificate PDF instantly</li>',
-            executive_clearance: '<li>Click the button above to open your dashboard</li><li>Paste your license token (already filled if you use the link)</li><li>Upload your source code or select a local directory</li><li>Run the Complete Scan with all 11 analyzers</li><li>Download your Executive Risk Certificate + Audit Report ZIP</li>',
+            executive_clearance: '<li>Click the button above to open your dashboard</li><li>Paste your license token (already filled if you use the link)</li><li>Upload your source code or select a local directory</li><li>Run the Complete Scan with all 13 analyzers</li><li>Download your Executive Risk Certificate + Audit Report ZIP</li>',
             eu_ai_act_sprint: '<li>Click the button above to open your dashboard</li><li>Paste your license token (already filled if you use the link)</li><li>Upload your source code zip or select a local directory</li><li>Run the EU AI Act compliance scan</li><li>Download your EU AI Act Readiness PDF instantly</li>',
             runtime_shield: '<li>Click the button above to open your dashboard</li><li>Paste your license token (already filled if you use the link)</li><li>Configure runtime sentinel for your stack</li><li>Set per-request and per-minute AI API spend caps</li><li>Monitor real-time spend dashboard with alerts</li>'
         };
         const featuresMap = {
             instant_report: '<li>Code Hygiene Gate scan</li><li>Production leak detection</li><li>Mock data / fixture detection</li><li>Instant PDF certificate</li>',
-            executive_clearance: '<li>Complete Scan (11 analyzers)</li><li>Codebase analysis + npm audit</li><li>Compliance checklist + EU AI Act</li><li>Executive audit report + certificate ZIP</li><li>Re-attestation support</li>',
+            executive_clearance: '<li>Complete Scan (13 analyzers)</li><li>Codebase analysis + npm audit</li><li>Compliance checklist + EU AI Act</li><li>Executive audit report + certificate ZIP</li><li>Re-attestation support</li>',
             eu_ai_act_sprint: '<li>EU AI Act Article 52-55 assessment</li><li>Risk classification (minimal / limited / high / unacceptable)</li><li>Conformity gap analysis</li><li>Remediation roadmap</li><li>Ready-to-submit documentation</li>',
             runtime_shield: '<li>Runtime sentinel library + middleware</li><li>Per-request, per-minute, per-hour spend caps</li><li>Real-time dashboard + Slack/PagerDuty alerts</li><li>Custom budget-policy rules</li><li>Dedicated cost-governance onboarding</li>'
         };
@@ -675,7 +675,7 @@ function buildCertificateHtml(reportJson, payload) {
     const totalFiles = data.totalFiles || data.filesAnalyzed || data.repositoryFilesTotal || data.summary?.repositoryFiles || 0;
     const qualityScore = data.qualityScore ?? data.summary?.qualityScore ?? 0;
 
-    // Extract all 11 analysis sections
+    // Extract all 13 analysis sections
     const mockDataCategories = data.mockDataCategories || [];
     const consolidation = data.consolidation || {};
     const roadmap = data.roadmap || {};
@@ -686,6 +686,8 @@ function buildCertificateHtml(reportJson, payload) {
     const npmAudit = data.npmAudit || {};
     const compliance = data.compliance || {};
     const euAiActSummary = data.euAiActSummary || {};
+    const dependencyAudit = data.dependencyAudit || data.vulnerabilityAudit || {};
+    const buildReadiness = data.buildReadiness || {};
     const severityCounts = data.severityCounts || {};
     const gateReport = data.gateReport || {};
 
@@ -801,12 +803,33 @@ function buildCertificateHtml(reportJson, payload) {
         <tr><td>Summary</td><td>${escapeHtml(euAiActSummary.deadlineNote || 'Review EU AI Act requirements.')}</td></tr>
       </table>` : '';
 
-    const allSubs = [secGate, secConsolidation, secMockData, secRoadmap, secCodebase, secFileReduction, secDataQuality, secCleanup, secNpm, secCompliance, secEuAi].filter(Boolean).join('\n      ');
+    const depVulnCount = dependencyAudit.vulnerabilityCount || dependencyAudit.critical || dependencyAudit.high || 0;
+    const hasDepAudit = depVulnCount > 0 || (dependencyAudit.affectedPackages || []).length > 0;
+    const secDepAudit = hasDepAudit ? `<h3>&#128274; 12. Dependency Vulnerabilities</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>Vulnerabilities</td><td>${dependencyAudit.vulnerabilityCount || 0}</td></tr>
+        <tr><td>Critical</td><td>${dependencyAudit.critical || 0}</td></tr>
+        <tr><td>High</td><td>${dependencyAudit.high || 0}</td></tr>
+        <tr><td>Summary</td><td>${escapeHtml(dependencyAudit.summary || 'No dependency vulnerabilities found.')}</td></tr>
+      </table>` : '';
+
+    const hasBuildReadiness = buildReadiness.readinessScore !== undefined || (buildReadiness.checklist || []).length > 0;
+    const secBuildReadiness = hasBuildReadiness ? `<h3>&#127959; 13. Build Readiness</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>Readiness score</td><td>${buildReadiness.readinessScore || 0}%</td></tr>
+        <tr><td>Status</td><td>${buildReadiness.readinessStatus || 'UNKNOWN'}</td></tr>
+        <tr><td>Critical blockers</td><td>${(buildReadiness.missingCritical || []).length}</td></tr>
+        <tr><td>Summary</td><td>${escapeHtml(buildReadiness.summary || 'Build readiness assessment not available.')}</td></tr>
+      </table>` : '';
+
+    const allSubs = [secGate, secConsolidation, secMockData, secRoadmap, secCodebase, secFileReduction, secDataQuality, secCleanup, secNpm, secCompliance, secEuAi, secDepAudit, secBuildReadiness].filter(Boolean).join('\n      ');
     const analysisSectionsHtml = allSubs ? `
     <section class="section">
       <div class="section-num">Section 06</div>
       <h2>Analysis Modules — Complete Scan Results</h2>
-      <p class="meta">Results from all 11 SimpleBeacon analysis engines run against the repository. Only modules with findings are shown.</p>
+      <p class="meta">Results from all 13 SimpleBeacon analysis engines run against the repository. Only modules with findings are shown.</p>
       ${allSubs}
     </section>` : '';
 
@@ -1101,6 +1124,8 @@ app.post('/api/certificate/download', async (req, res) => {
         addJson('json/09-npm-audit.json', reportJson.npmAudit || {});
         addJson('json/10-compliance.json', reportJson.compliance || {});
         addJson('json/11-eu-ai-act.json', reportJson.euAiActSummary || {});
+        addJson('json/12-dependency-vulns.json', reportJson.dependencyAudit || reportJson.vulnerabilityAudit || {});
+        addJson('json/13-build-readiness.json', reportJson.buildReadiness || {});
 
         // Human-readable HTML reports (print to PDF)
         const projectName = reportJson.projectRoot || reportJson.projectPath || reportJson.projectName || 'Project';
@@ -1118,6 +1143,8 @@ app.post('/api/certificate/download', async (req, res) => {
         archive.append(buildModuleHtml('npm Audit', '📦', reportJson.npmAudit, projectName), { name: 'reports/09-npm-audit.html' });
         archive.append(buildModuleHtml('Compliance', '✅', reportJson.compliance, projectName), { name: 'reports/10-compliance.html' });
         archive.append(buildModuleHtml('EU AI Act Readiness', '🇪🇺', reportJson.euAiActSummary, projectName), { name: 'reports/11-eu-ai-act.html' });
+        archive.append(buildModuleHtml('Dependency Vulnerabilities', '🔒', reportJson.dependencyAudit || reportJson.vulnerabilityAudit || {}, projectName), { name: 'reports/12-dependency-vulns.html' });
+        archive.append(buildModuleHtml('Build Readiness', '🏗️', reportJson.buildReadiness || {}, projectName), { name: 'reports/13-build-readiness.html' });
 
         addJson('manifest.json', {
             type: 'simplebeacon-export-manifest',
@@ -1138,6 +1165,8 @@ app.post('/api/certificate/download', async (req, res) => {
                 'reports/09-npm-audit.html',
                 'reports/10-compliance.html',
                 'reports/11-eu-ai-act.html',
+                'reports/12-dependency-vulns.html',
+                'reports/13-build-readiness.html',
                 'json/report.json',
                 'json/01-simplebeacon-gate.json',
                 'json/02-consolidation.json',
@@ -1150,6 +1179,8 @@ app.post('/api/certificate/download', async (req, res) => {
                 'json/09-npm-audit.json',
                 'json/10-compliance.json',
                 'json/11-eu-ai-act.json',
+                'json/12-dependency-vulns.json',
+                'json/13-build-readiness.json',
                 'manifest.json',
                 'README.txt'
             ],
@@ -1177,6 +1208,8 @@ Contents:
     09-npm-audit.html                    : 📦 npm audit — human-readable report (print to PDF)
     10-compliance.html                 : ✅ Compliance — human-readable report (print to PDF)
     11-eu-ai-act.html                    : 🇪🇺 EU AI Act — human-readable report (print to PDF)
+    12-dependency-vulns.html             : 🔒 Dependency vulnerabilities — human-readable report (print to PDF)
+    13-build-readiness.html              : 🏗️ Build readiness — human-readable report (print to PDF)
   json/
     report.json                           : Raw complete scan report (machine-readable JSON)
     01-simplebeacon-gate.json            : Gate scan results (machine-readable JSON)
@@ -1190,6 +1223,8 @@ Contents:
     09-npm-audit.json                    : package.json inventory (machine-readable JSON)
     10-compliance.json                   : License & governance file detection (machine-readable JSON)
     11-eu-ai-act.json                    : EU AI Act readiness indicators (machine-readable JSON)
+    12-dependency-vulns.json             : Dependency vulnerability audit (machine-readable JSON)
+    13-build-readiness.json              : Build readiness checklist (machine-readable JSON)
   manifest.json                           : Export manifest for verification
   README.txt                              : This file
 
