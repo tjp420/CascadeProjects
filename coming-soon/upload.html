@@ -604,6 +604,160 @@
         .gate-pass { color: var(--success); }
         .gate-fail { color: var(--error); }
 
+        /* Step Progress Indicator */
+        .workflow-steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+        .workflow-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .workflow-step.active { color: var(--text-main); }
+        .workflow-step.completed { color: var(--success); }
+        .step-num {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: var(--border);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .workflow-step.active .step-num {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+        .workflow-step.completed .step-num {
+            background: var(--success);
+            color: white;
+        }
+        .step-connector {
+            width: 24px;
+            height: 2px;
+            background: var(--border);
+            border-radius: 1px;
+            transition: background 0.3s ease;
+        }
+        .step-connector.completed { background: var(--success); }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent);
+            border-radius: 10px;
+            padding: 14px 18px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            animation: toastSlideIn 0.35s ease-out;
+            pointer-events: auto;
+            max-width: 360px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--error); }
+        .toast.warning { border-left-color: var(--warning); }
+        @keyframes toastSlideIn {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes toastFadeOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(40px); }
+        }
+
+        /* File loaded state */
+        .drop-zone.has-file {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.06);
+        }
+        .drop-zone.has-file .icon { color: var(--success); }
+
+        /* Empty state guidance */
+        .empty-state {
+            text-align: center;
+            padding: 32px 20px;
+            color: var(--text-muted);
+        }
+        .empty-state .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+        .empty-state h4 {
+            font-size: 1rem;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+        .empty-state p {
+            font-size: 0.85rem;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        /* Quick action chips */
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .quick-action-chip {
+            padding: 6px 14px;
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .quick-action-chip:hover {
+            border-color: var(--accent);
+            color: var(--text-main);
+            background: rgba(37, 99, 235, 0.08);
+        }
+
+        /* Keyboard hint */
+        kbd {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
         footer {
             padding: 32px 0;
             color: var(--text-muted);
@@ -830,6 +984,7 @@
         .status-pill.pass { background: rgba(16, 185, 129, 0.12); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.25); }
         .status-pill.warn { background: rgba(245, 158, 11, 0.12); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.25); }
         .status-pill.fail { background: rgba(239, 68, 68, 0.12); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.25); }
+        .status-pill.review { background: rgba(96, 165, 250, 0.12); color: #60A5FA; border: 1px solid rgba(96, 165, 250, 0.25); }
 
         /* Schema Inspector Accordion */
         .schema-accordion {
@@ -1140,6 +1295,27 @@
             <p id="pageSubtitle">100% private. Your source code never leaves your browser. Scan locally in-browser, or upload a pre-generated report JSON.</p>
         </header>
 
+        <!-- Visual Stepper -->
+        <div class="stepper" id="mainStepper">
+            <div class="stepper-step active" id="stepper1">
+                <div class="stepper-bubble">1</div>
+                <span class="stepper-label">Upload Scan</span>
+            </div>
+            <div class="stepper-line" id="stepperLine1"></div>
+            <div class="stepper-step" id="stepper2">
+                <div class="stepper-bubble">2</div>
+                <span class="stepper-label">Enter Token</span>
+            </div>
+            <div class="stepper-line" id="stepperLine2"></div>
+            <div class="stepper-step" id="stepper3">
+                <div class="stepper-bubble">3</div>
+                <span class="stepper-label">Certificate</span>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div class="toast-container" id="toastContainer"></div>
+
         <div class="local-note">
             <span style="font-size: 1.2rem;">&#128274;</span>
             <div>
@@ -1172,8 +1348,8 @@
                 <p style="font-size:0.8rem;color:var(--text-muted);margin:4px 0 0;">Choose your preferred local static-analysis runtime.</p>
             </div>
             <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);">
-                <button id="tab-cli" class="mode-tab active" style="flex:none;padding:8px 16px;">&#10095; Terminal (CLI)</button>
-                <button id="tab-browser" class="mode-tab" style="flex:none;padding:8px 16px;">&#127758; Browser Sandbox</button>
+                <button id="tab-cli" class="mode-tab active" style="flex:none;padding:8px 16px;" title="Ctrl+1">&#10095; Terminal (CLI)</button>
+                <button id="tab-browser" class="mode-tab" style="flex:none;padding:8px 16px;" title="Ctrl+2">&#127758; Browser Sandbox</button>
             </div>
         </div>
 
@@ -1388,26 +1564,49 @@
                     <div class="preview" id="previewContent"></div>
                 </div>
 
+                <!-- Empty state before JSON is loaded -->
+                <div id="certEmptyState" class="empty-state">
+                    <div class="empty-icon">&#128203;</div>
+                    <h4>Upload a Scan Report First</h4>
+                    <p>Use the <strong>CLI tab</strong> to paste a report JSON, or switch to the <strong>Browser Sandbox</strong> to scan a folder directly. Then return here to generate your certificate.</p>
+                    <div class="quick-actions">
+                        <span class="quick-action-chip" onclick="document.getElementById('tab-cli').click(); document.getElementById('modePaste').click(); document.getElementById('jsonPasteInput').focus();">Paste JSON</span>
+                        <span class="quick-action-chip" onclick="document.getElementById('tab-browser').click(); document.getElementById('browser-folder-dropzone').scrollIntoView({behavior:'smooth'});">Scan Folder</span>
+                    </div>
+                </div>
+
                 <div id="tokenActionRow" style="display:none;">
                     <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:12px;">
                         <div>
                             <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
                             <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
                             <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
+                            <div id="tokenValidIndicator" class="token-valid-indicator"></div>
                             <p id="tokenError" class="hidden-display" style="font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
                         </div>
-                        <div style="display:flex;gap:8px;">
-                            <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
                                 <span>&#128229;</span> Generate Certificate
                             </button>
-                            <button id="tryFreeBtn" style="padding:8px 16px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;">&#9881; Developer Sandbox</button>
                         </div>
                     </div>
+
+                    <!-- Developer Sandbox - Prominent Free Tier -->
+                    <div style="padding:16px;background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(16,185,129,0.04));border:1px solid rgba(37,99,235,0.25);border-radius:10px;margin-bottom:12px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                            <div>
+                                <p style="font-size:0.9rem;font-weight:600;color:var(--text-main);margin:0 0 4px;">&#128161; Don't have a token?</p>
+                                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Generate a free community token instantly. No email required.</p>
+                            </div>
+                            <button id="tryFreeBtn" style="padding:10px 20px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;box-shadow:0 0 20px rgba(37,99,235,0.2);">&#9881; Developer Sandbox</button>
+                        </div>
+                    </div>
+
                     <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
                         <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
                         <div style="display:flex;gap:8px;">
                             <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
-                            <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Token</button>
+                            <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send Token</button>
                         </div>
                         <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
                         <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
@@ -1477,6 +1676,36 @@
         const dropZone = cliJsonDropzone; // alias for existing code
 
         let reportData = null;
+
+        // Toast notification system
+        function showToast(message, type = 'info', duration = 4000) {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icons = { info: '&#8505;', success: '&#9989;', error: '&#10060;', warning: '&#9888;' };
+            toast.innerHTML = `<span style="font-size:1.1rem;flex-shrink:0;">${icons[type] || icons.info}</span><span style="flex:1;">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'toastFadeOut 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // Workflow step updates
+        function updateWorkflowStep(step) {
+            const s1 = document.getElementById('step1');
+            const s2 = document.getElementById('step2');
+            const s3 = document.getElementById('step3');
+            const c1 = document.getElementById('conn1');
+            const c2 = document.getElementById('conn2');
+            if (!s1 || !s2 || !s3) return;
+            [s1, s2, s3].forEach(s => { s.classList.remove('active', 'completed'); });
+            [c1, c2].forEach(c => { if (c) c.classList.remove('completed'); });
+            if (step >= 1) { s1.classList.add(step > 1 ? 'completed' : 'active'); }
+            if (step >= 2) { s2.classList.add(step > 2 ? 'completed' : 'active'); if (c1) c1.classList.add('completed'); }
+            if (step >= 3) { s3.classList.add('active'); if (c2) c2.classList.add('completed'); }
+        }
 
         // Browser sandbox scan profiles
         const BROWSER_SCAN_PROFILES = {
@@ -1553,6 +1782,11 @@
         const scanProfileHelp = document.getElementById('scanProfileHelp');
         const sandboxNoteText = document.getElementById('sandboxNoteText');
         if (browserScanProfile) {
+            // Initialize on load so help text matches the default selected option
+            const initProfile = BROWSER_SCAN_PROFILES[browserScanProfile.value] || BROWSER_SCAN_PROFILES.gate;
+            if (scanProfileHelp) scanProfileHelp.textContent = initProfile.help;
+            if (sandboxNoteText) sandboxNoteText.innerHTML = initProfile.note;
+
             browserScanProfile.addEventListener('change', () => {
                 const profile = BROWSER_SCAN_PROFILES[browserScanProfile.value] || BROWSER_SCAN_PROFILES.gate;
                 if (scanProfileHelp) scanProfileHelp.textContent = profile.help;
@@ -1727,7 +1961,7 @@
             }
             resendStatus.style.display = 'block';
             resendBtn.disabled = false;
-            resendBtn.textContent = 'Token';
+            resendBtn.textContent = 'Send Token';
         });
 
         // Developer Sandbox — generate a community token without payment
@@ -1746,12 +1980,12 @@
                     btn.style.borderColor = 'var(--success)';
                     btn.style.color = 'var(--success)';
                 } else {
-                    btn.textContent = '&#9881; Developer Sandbox';
+                    btn.textContent = '\u2699\uFE0F Developer Sandbox';
                     btn.disabled = false;
                     alert('Could not provision sandbox: ' + (data.error || 'Unknown error'));
                 }
             } catch (err) {
-                btn.textContent = '&#9881; Developer Sandbox';
+                btn.textContent = '\u2699\uFE0F Developer Sandbox';
                 btn.disabled = false;
                 alert('Network error: ' + err.message);
             }
@@ -1765,10 +1999,134 @@
             updateSubmit();
         });
 
+        // Stepper state management
+        function updateStepper() {
+            const step1 = document.getElementById('stepper1');
+            const step2 = document.getElementById('stepper2');
+            const step3 = document.getElementById('stepper3');
+            const line1 = document.getElementById('stepperLine1');
+            const line2 = document.getElementById('stepperLine2');
+            const hasFile = reportData !== null;
+            const hasToken = licenseInput.value.trim().length > 10;
+
+            if (!step1 || !step2 || !step3) return;
+
+            // Step 1: Upload Scan
+            if (hasFile) {
+                step1.classList.remove('active');
+                step1.classList.add('done');
+                line1.classList.add('done');
+            } else {
+                step1.classList.add('active');
+                step1.classList.remove('done');
+                line1.classList.remove('done');
+            }
+
+            // Step 2: Enter Token
+            if (hasFile && hasToken) {
+                step2.classList.remove('active');
+                step2.classList.add('done');
+                line2.classList.add('done');
+            } else if (hasFile) {
+                step2.classList.add('active');
+                step2.classList.remove('done');
+                line2.classList.add('active');
+                line2.classList.remove('done');
+            } else {
+                step2.classList.remove('active', 'done');
+                line2.classList.remove('active', 'done');
+            }
+
+            // Step 3: Certificate
+            if (hasFile && hasToken) {
+                step3.classList.add('active');
+                step3.classList.remove('done');
+            } else {
+                step3.classList.remove('active', 'done');
+            }
+        }
+
+        // localStorage persistence
+        const LS_KEY_TOKEN = 'simplebeacon_token';
+        const LS_KEY_SCAN = 'simplebeacon_scan_data';
+
+        function saveToLocalStorage() {
+            try {
+                const token = licenseInput.value.trim();
+                if (token) localStorage.setItem(LS_KEY_TOKEN, token);
+                if (reportData) localStorage.setItem(LS_KEY_SCAN, JSON.stringify(reportData));
+            } catch (e) { /* Storage may be full or disabled */ }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedToken = localStorage.getItem(LS_KEY_TOKEN);
+                if (savedToken && !licenseInput.value.trim()) {
+                    licenseInput.value = savedToken;
+                    applyProductFromToken(savedToken);
+                }
+                const savedScan = localStorage.getItem(LS_KEY_SCAN);
+                if (savedScan) {
+                    reportData = JSON.parse(savedScan);
+                    renderPreview(reportData);
+                    scanPreview.style.display = 'block';
+                    updateSubmit();
+                    showToast('Restored previous scan from browser storage', 'info');
+                    showStatus('Restored previous scan from browser storage.', 'success');
+                }
+            } catch (e) { /* Ignore parse errors */ }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === '1') { e.preventDefault(); tabCli.click(); }
+                if (e.key === '2') { e.preventDefault(); tabBrowser.click(); }
+                if (e.key === 'v' && e.shiftKey) {
+                    e.preventDefault();
+                    const pastePanel = document.getElementById('pasteModePanel');
+                    if (pastePanel) {
+                        tabCli.click();
+                        document.getElementById('modePaste').click();
+                        document.getElementById('jsonPasteInput').focus();
+                    }
+                }
+            }
+            if (e.key === 'Escape') {
+                // Clear any status messages
+                status.style.display = 'none';
+            }
+        });
+
+        // Real-time token validation feedback
+        function validateTokenVisual() {
+            const val = licenseInput.value.trim();
+            const indicator = document.getElementById('tokenValidIndicator');
+            if (!indicator) return;
+            if (val.length === 0) {
+                indicator.classList.remove('show', 'valid', 'invalid');
+                return;
+            }
+            const looksValid = val.length > 20 && val.includes('.');
+            indicator.classList.add('show');
+            if (looksValid) {
+                indicator.classList.add('valid');
+                indicator.classList.remove('invalid');
+                indicator.innerHTML = '<span>&#10003;</span> Token format looks valid';
+            } else {
+                indicator.classList.add('invalid');
+                indicator.classList.remove('valid');
+                indicator.innerHTML = '<span>&#9888;</span> Token too short or malformed';
+            }
+        }
+
         function updateSubmit() {
             const hasToken = licenseInput.value.trim().length > 10;
             const hasFile = reportData !== null;
             const tokenActionRow = document.getElementById('tokenActionRow');
+            const certEmptyState = document.getElementById('certEmptyState');
+            if (certEmptyState) certEmptyState.style.display = hasFile ? 'none' : 'block';
+            if (hasFile) updateWorkflowStep(2);
 
             if (hasFile) {
                 if (tokenActionRow) tokenActionRow.style.display = 'block';
@@ -1789,6 +2147,9 @@
                 submitBtn.innerHTML = '<span>&#128229;</span> Generate Certificate';
                 submitBtn.style.opacity = '1';
             }
+            updateStepper();
+            validateTokenVisual();
+            saveToLocalStorage();
         }
 
         // === Tab Toggle ===
@@ -1813,11 +2174,32 @@
 
         // === CLI JSON Dropzone ===
         cliJsonDropzone.addEventListener('click', () => fileInput.click());
-        cliJsonDropzone.addEventListener('dragover', (e) => { e.preventDefault(); cliJsonDropzone.classList.add('dragover'); });
-        cliJsonDropzone.addEventListener('dragleave', () => cliJsonDropzone.classList.remove('dragover'));
+        cliJsonDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            cliJsonDropzone.classList.add('dragover');
+            const fileCount = e.dataTransfer.items?.length || e.dataTransfer.files?.length || 0;
+            if (fileCount > 0) {
+                const prompt = cliJsonDropzone.querySelector('p');
+                if (prompt && !cliJsonDropzone.dataset.originalText) {
+                    cliJsonDropzone.dataset.originalText = prompt.innerHTML;
+                }
+                if (prompt) prompt.innerHTML = `<span style="color:#60A5FA;font-weight:600;">&#128206; ${fileCount} file${fileCount > 1 ? 's' : ''} ready to drop</span>`;
+            }
+        });
+        cliJsonDropzone.addEventListener('dragleave', () => {
+            cliJsonDropzone.classList.remove('dragover');
+            const prompt = cliJsonDropzone.querySelector('p');
+            if (prompt && cliJsonDropzone.dataset.originalText) {
+                prompt.innerHTML = cliJsonDropzone.dataset.originalText;
+            }
+        });
         cliJsonDropzone.addEventListener('drop', (e) => {
             e.preventDefault();
             cliJsonDropzone.classList.remove('dragover');
+            const prompt = cliJsonDropzone.querySelector('p');
+            if (prompt && cliJsonDropzone.dataset.originalText) {
+                prompt.innerHTML = cliJsonDropzone.dataset.originalText;
+            }
             const file = e.dataTransfer.files[0];
             if (file) handleJsonFile(file);
         });
@@ -1831,11 +2213,32 @@
                 cliFilesInput.click();
             }
         });
-        browserFolderDropzone.addEventListener('dragover', (e) => { e.preventDefault(); browserFolderDropzone.classList.add('dragover'); });
-        browserFolderDropzone.addEventListener('dragleave', () => browserFolderDropzone.classList.remove('dragover'));
+        browserFolderDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            browserFolderDropzone.classList.add('dragover');
+            const fileCount = e.dataTransfer.items?.length || e.dataTransfer.files?.length || 0;
+            if (fileCount > 0) {
+                const prompt = browserFolderDropzone.querySelector('#dropzone-prompt p');
+                if (prompt && !browserFolderDropzone.dataset.originalText) {
+                    browserFolderDropzone.dataset.originalText = prompt.innerHTML;
+                }
+                if (prompt) prompt.innerHTML = `<span style="color:#60A5FA;font-weight:600;">&#128451; ${fileCount} item${fileCount > 1 ? 's' : ''} ready to scan</span>`;
+            }
+        });
+        browserFolderDropzone.addEventListener('dragleave', () => {
+            browserFolderDropzone.classList.remove('dragover');
+            const prompt = browserFolderDropzone.querySelector('#dropzone-prompt p');
+            if (prompt && browserFolderDropzone.dataset.originalText) {
+                prompt.innerHTML = browserFolderDropzone.dataset.originalText;
+            }
+        });
         browserFolderDropzone.addEventListener('drop', async (e) => {
             e.preventDefault();
             browserFolderDropzone.classList.remove('dragover');
+            const prompt = browserFolderDropzone.querySelector('#dropzone-prompt p');
+            if (prompt && browserFolderDropzone.dataset.originalText) {
+                prompt.innerHTML = browserFolderDropzone.dataset.originalText;
+            }
             const items = e.dataTransfer.items;
             if (items && items.length > 0) {
                 const files = [];
@@ -1856,6 +2259,38 @@
                 await processLocalCLIScan(files);
             }
         });
+
+        // === Keyboard Shortcuts ===
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+V or Cmd+V anywhere -> focus JSON paste textarea
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                const active = document.activeElement;
+                if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+                const pasteInput = document.getElementById('jsonPasteInput');
+                if (pasteInput) {
+                    e.preventDefault();
+                    document.getElementById('tab-cli').click();
+                    document.getElementById('modePaste').click();
+                    pasteInput.focus();
+                    showToast('Paste your JSON here, then press Enter to load', 'info', 3000);
+                }
+            }
+            // Escape -> clear status messages
+            if (e.key === 'Escape') {
+                const statusEl = document.getElementById('status');
+                if (statusEl) statusEl.style.display = 'none';
+            }
+        });
+
+        // Enter in JSON paste textarea -> submit
+        if (jsonPasteInput) {
+            jsonPasteInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (jsonPasteBtn) jsonPasteBtn.click();
+                }
+            });
+        }
 
         // Simple DJB2 hash for duplicate detection in browser sandbox
         async function simpleHash(text) {
@@ -1886,10 +2321,12 @@
 
         function handleJsonFile(file) {
             if (!file.name.endsWith('.json')) {
+                showToast('Please upload a .json file', 'error');
                 showStatus('Please upload a .json file', 'error');
                 return;
             }
             cliFileName.textContent = file.name;
+            if (cliJsonDropzone) cliJsonDropzone.classList.add('has-file');
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
@@ -1900,7 +2337,9 @@
                     renderPreview(reportData);
                     scanPreview.style.display = 'block';
                     updateSubmit();
+                    showToast(`Loaded "${file.name}" — ${(e.target.result.length / 1024).toFixed(1)} KB`, 'success');
                 } catch (err) {
+                    showToast('Invalid JSON file', 'error');
                     showStatus('Invalid JSON file', 'error');
                     reportData = null;
                     updateSubmit();
@@ -1937,15 +2376,19 @@
                     renderPreview(reportData);
                     scanPreview.style.display = 'block';
                     updateSubmit();
+                    if (cliJsonDropzone) cliJsonDropzone.classList.add('has-file');
                     const hasToken = licenseInput.value.trim().length > 10;
                     if (hasToken) {
+                        showToast('JSON loaded! Ready to generate certificate.', 'success');
                         showStatus('JSON loaded. Click Generate Certificate to download your ZIP.', 'success');
                     } else {
+                        showToast('JSON loaded! Enter a token or try Developer Sandbox.', 'warning');
                         showStatus('JSON loaded. Paste a license token above to unlock certificate generation.', 'loading');
                         licenseInput.focus();
                         licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
                 } catch (err) {
+                    showToast('Invalid JSON: ' + err.message, 'error');
                     showStatus('Invalid JSON: ' + err.message, 'error');
                     reportData = null;
                     updateSubmit();
@@ -2217,7 +2660,7 @@
             appendTerminalLine(`Initializing Local Web Worker Core... Profile: ${profile.label}. Allocating isolated browser memory structures.`);
             appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
 
-            // Security baseline: always exclude dependency trees, secrets, and docs
+            // Security baseline: exclude dependency trees, secrets, and docs by default
             const excludeEnv = true;
             const skipDeps = true;
             const skipDocs = true;
@@ -2651,13 +3094,19 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                updateWorkflowStep(3);
+                showToast('Certificate ZIP downloaded successfully!', 'success', 6000);
                 showStatus('Certificate ZIP downloaded! Open the ZIP and browse to reports/*.html → Print → Save as PDF.', 'success');
             } catch (err) {
+                showToast(err.message, 'error');
                 showStatus(err.message, 'error');
             } finally {
                 submitBtn.disabled = false;
             }
         });
+
+        // === Page Load: restore previous session ===
+        loadFromLocalStorage();
     </script>
 </body>
 </html>
