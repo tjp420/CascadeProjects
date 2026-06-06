@@ -158,32 +158,85 @@
     function loadReport(report){currentReport=report;currentRoadmap=generateRoadmap(report);renderDashboard(report,currentRoadmap);emptyState.style.display='none';app.style.display='block';showToast('Roadmap generated','success');}
 
     function generateRoadmap(report){
-      const phases=[],qs=Number(report.qualityScore)||0,issues=Number(report.issueCount)||0,invalidJson=Number(report.invalidJson)||0,emptyFiles=Number(report.emptyFiles)||0;
-      const schemaComp=Number(report.schemaCompliance)||0,dupes=Number(report.duplicateGroups)||0,consistency=Number(report.consistencyScore)||0;
-      const credFindings=Number(report.credentialFindings)||0,leakFindings=Number(report.productionLeakFindings)||0,euAiAct=Number(report.euAiActFindings)||0;
-      const llmSlop=Number(report.llmSlopPatternHits)||0;
+      const phases=[];
+      // Use null for missing fields so we can distinguish "not measured" from "zero"
+      const qs=report.qualityScore!=null?Number(report.qualityScore):null;
+      const issues=report.issueCount!=null?Number(report.issueCount):null;
+      const invalidJson=report.invalidJson!=null?Number(report.invalidJson):(report.dataQuality?.emptyJsonCount!=null?Number(report.dataQuality.emptyJsonCount):null);
+      const emptyFiles=report.emptyFiles!=null?Number(report.emptyFiles):(report.dataQuality?.emptyJsonCount!=null?Number(report.dataQuality.emptyJsonCount):null);
+      const schemaComp=report.schemaCompliance!=null?Number(report.schemaCompliance):(report.dataQuality!=null?100:null);
+      const schemaChecked=report.schemaChecked!=null?Number(report.schemaChecked):null;
+      const schemaPassed=report.schemaPassed!=null?Number(report.schemaPassed):null;
+      const dupes=report.duplicateGroups!=null?Number(report.duplicateGroups):(report.consolidation?.duplicateGroups!=null?Number(report.consolidation.duplicateGroups):null);
+      const consistency=report.consistencyScore!=null?Number(report.consistencyScore):(report.consolidation?.duplicateGroups!=null?(report.consolidation.duplicateGroups===0?100:50):null);
+      const consistencyChecked=report.consistencyChecked!=null?Number(report.consistencyChecked):null;
+      const consistencyPassed=report.consistencyPassed!=null?Number(report.consistencyPassed):null;
+      const credFindings=report.credentialFindings!=null?Number(report.credentialFindings):(report.gate?.blockingCount!=null?Number(report.gate.blockingCount):null);
+      const leakFindings=report.productionLeakFindings!=null?Number(report.productionLeakFindings):null;
+      const euAiAct=report.euAiActFindings!=null?Number(report.euAiActFindings):(report.euAiActSummary?.aiSystemIndicators!=null?Number(report.euAiActSummary.aiSystemIndicators):null);
+      const llmSlop=report.llmSlopPatternHits!=null?Number(report.llmSlopPatternHits):(report.roadmap?.todoCount!=null?Number(report.roadmap.todoCount):null);
 
-      if(credFindings>0||leakFindings>0){
-        phases.push({id:'security',title:'Phase 1: Security Hardening',severity:'critical',effort:'1–2 days',description:`Address ${credFindings} credential and ${leakFindings} production leak finding(s).`,tasks:[credFindings>0?`Rotate ${credFindings} exposed credential(s)`:'',leakFindings>0?`Review ${leakFindings} production leak(s)`:'','Add .env to .gitignore','Re-run gate scan'].filter(Boolean),progress:(credFindings===0&&leakFindings===0)?100:0,status:(credFindings===0&&leakFindings===0)?'completed':'pending'});
+      // Phase 1: Security (only if measured and has findings)
+      if((credFindings!=null&&credFindings>0)||(leakFindings!=null&&leakFindings>0)){
+        const t=[];
+        if(credFindings>0)t.push(`Rotate ${credFindings} exposed credential(s)`);
+        if(leakFindings>0)t.push(`Review ${leakFindings} production leak(s)`);
+        t.push('Add .env to .gitignore','Re-run gate scan');
+        phases.push({id:'security',title:'Phase 1: Security Hardening',severity:'critical',effort:'1–2 days',description:`Address ${credFindings||0} credential and ${leakFindings||0} production leak finding(s).`,tasks:t,progress:0,status:'pending'});
       }
-      if(invalidJson>0||emptyFiles>0||schemaComp<100){
-        const t=[];if(invalidJson>0)t.push(`Fix ${invalidJson} invalid JSON file(s)`);if(emptyFiles>0)t.push(`Remove ${emptyFiles} empty file(s)`);if(schemaComp<100){const failed=(report.schemaChecked||0)-(report.schemaPassed||0);t.push(`Fix ${failed} schema violation(s)`);}t.push('Validate all JSON','Re-run scan');
-        phases.push({id:'integrity',title:`Phase ${phases.length+1}: Data Integrity`,severity:invalidJson>0?'high':'medium',effort:'2–4 days',description:`Resolve structural issues: ${invalidJson} invalid JSON, ${emptyFiles} empty files, ${schemaComp}% schema compliance.`,tasks:t,progress:(invalidJson===0&&emptyFiles===0&&schemaComp===100)?100:Math.round(schemaComp),status:(invalidJson===0&&emptyFiles===0&&schemaComp===100)?'completed':'pending'});
+
+      // Phase 2: Data Integrity (only if any integrity metric was measured)
+      const hasIntegrityMetrics=invalidJson!=null||emptyFiles!=null||schemaComp!=null;
+      if(hasIntegrityMetrics){
+        const allClean=(invalidJson===0||invalidJson==null)&&(emptyFiles===0||emptyFiles==null)&&(schemaComp===100||schemaComp==null);
+        const t=[];
+        if(invalidJson>0)t.push(`Fix ${invalidJson} invalid JSON file(s)`);
+        if(emptyFiles>0)t.push(`Remove ${emptyFiles} empty file(s)`);
+        if(schemaComp!=null&&schemaComp<100&&schemaChecked!=null){const failed=schemaChecked-(schemaPassed||0);if(failed>0)t.push(`Fix ${failed} schema violation(s)`);}
+        if(schemaComp!=null&&schemaComp<100&&schemaChecked==null)t.push('Review schema compliance failures');
+        t.push('Validate all JSON','Re-run scan');
+        phases.push({id:'integrity',title:`Phase ${phases.length+1}: Data Integrity`,severity:(invalidJson>0||emptyFiles>0)?'high':'medium',effort:'2–4 days',description:allClean?'Data integrity verified — no structural issues detected.':`Resolve structural issues${invalidJson>0?': '+invalidJson+' invalid JSON':''}${emptyFiles>0?': '+emptyFiles+' empty files':''}${schemaComp!=null&&schemaComp<100?': '+schemaComp+'% schema compliance':''}.`,tasks:t,progress:allClean?100:Math.round(schemaComp||0),status:allClean?'completed':'pending'});
       }
-      if(dupes>0||consistency<100){
-        const t=[];if(dupes>0)t.push(`Consolidate ${dupes} duplicate group(s)`);if(consistency<100){const failed=(report.consistencyChecked||0)-(report.consistencyPassed||0);t.push(`Resolve ${failed} consistency failure(s)`);}t.push('Standardize naming','Document canonical paths');
-        phases.push({id:'consistency',title:`Phase ${phases.length+1}: Consistency & Deduplication`,severity:dupes>5?'high':'medium',effort:'3–5 days',description:`Eliminate redundancy: ${dupes} duplicate group(s), ${consistency}% consistency.`,tasks:t,progress:(dupes===0&&consistency===100)?100:Math.round((consistency+(dupes===0?100:50))/2),status:(dupes===0&&consistency===100)?'completed':'pending'});
+
+      // Phase 3: Consistency (only if measured)
+      const hasConsistencyMetrics=dupes!=null||consistency!=null;
+      if(hasConsistencyMetrics){
+        const allClean=(dupes===0||dupes==null)&&(consistency===100||consistency==null);
+        const t=[];
+        if(dupes>0)t.push(`Consolidate ${dupes} duplicate group(s)`);
+        if(consistency!=null&&consistency<100&&consistencyChecked!=null){const failed=consistencyChecked-(consistencyPassed||0);if(failed>0)t.push(`Resolve ${failed} consistency failure(s)`);}
+        if(consistency!=null&&consistency<100&&consistencyChecked==null)t.push('Review consistency check failures');
+        t.push('Standardize naming conventions','Document canonical file locations');
+        phases.push({id:'consistency',title:`Phase ${phases.length+1}: Consistency & Deduplication`,severity:dupes>5?'high':'medium',effort:'3–5 days',description:allClean?'Consistency verified — no duplicates or naming drift.':`Eliminate redundancy${dupes>0?': '+dupes+' duplicate group(s)':''}${consistency!=null&&consistency<100?': '+consistency+'% consistency':''}.`,tasks:t,progress:allClean?100:Math.round((consistency||0)+(dupes===0?100:50))/2,status:allClean?'completed':'pending'});
       }
-      if(euAiAct>0||report.euAiActSummary){
+
+      // Phase 4: EU AI Act
+      if((euAiAct!=null&&euAiAct>0)||report.euAiActSummary){
         const s=report.euAiActSummary||{},hr=Number(s.highRiskIndicators)||0,tg=Number(s.transparencyGaps)||0;
-        const t=[];if(hr>0)t.push(`Address ${hr} high-risk indicator(s)`);if(tg>0)t.push(`Close ${tg} transparency gap(s)`);t.push('Generate documentation','Review AI classification','Schedule legal review');
+        const t=[];
+        if(hr>0)t.push(`Address ${hr} high-risk indicator(s)`);
+        if(tg>0)t.push(`Close ${tg} transparency gap(s)`);
+        t.push('Generate documentation artifacts','Review AI system classification (Art. 6)','Schedule legal review');
         phases.push({id:'euaiact',title:`Phase ${phases.length+1}: EU AI Act Compliance`,severity:hr>0?'critical':'medium',effort:'5–10 days',description:`Regulatory readiness: ${hr} high-risk, ${tg} transparency gaps, ${s.documentationArtifacts||0} artifacts.`,tasks:t,progress:(hr===0&&tg===0)?100:0,status:(hr===0&&tg===0)?'completed':'pending'});
       }
-      if(qs<95||llmSlop>0){
-        const t=[];if(llmSlop>0)t.push(`Audit ${llmSlop} LLM slop hit(s)`);if(qs<85)t.push('Refactor low-quality modules');t.push('Add test coverage','Pre-commit hooks','Monthly quality reviews');
-        phases.push({id:'optimization',title:`Phase ${phases.length+1}: Quality Optimization`,severity:qs<70?'high':'low',effort:'Ongoing',description:`Drive score from ${qs}/100 toward 95+.`,tasks:t,progress:Math.min(100,Math.round(qs)),status:qs>=95?'completed':'in-progress'});
+
+      // Phase 5: Quality Optimization (only if qualityScore was measured)
+      if(qs!=null&&(qs<95||(llmSlop!=null&&llmSlop>0))){
+        const t=[];
+        if(llmSlop!=null&&llmSlop>0)t.push(`Audit ${llmSlop} LLM slop pattern hit(s)`);
+        if(qs<85)t.push('Refactor low-quality modules (quality score < 85)');
+        t.push('Add test coverage for uncovered modules','Install pre-commit hooks for automated scanning','Schedule monthly quality gate reviews');
+        phases.push({id:'optimization',title:`Phase ${phases.length+1}: Quality Optimization`,severity:qs<70?'high':'low',effort:'Ongoing',description:`Drive quality score from ${qs}/100 toward 95+.`,tasks:t,progress:Math.min(100,Math.round(qs)),status:qs>=95?'completed':'in-progress'});
       }
-      if(phases.length===0)phases.push({id:'perfect',title:'All Systems Green',severity:'low',effort:'None',description:`Excellent quality — ${qs}/100, 0 issues.`,tasks:['Schedule next scan in 30 days'],progress:100,status:'completed'});
+
+      // Fallback: if no quality metrics were present at all
+      if(phases.length===0){
+        if(qs==null&&schemaComp==null&&consistency==null&&dupes==null&&credFindings==null){
+          phases.push({id:'no-metrics',title:'Scan Complete — Quality Metrics Not Present',severity:'low',effort:'Review scan config',description:'This scan report does not contain data-quality metrics. The scanner may have run in a lightweight mode (e.g., gate scan only). Re-run with --complete or check that the report includes qualityScore, schemaCompliance, and consistencyScore fields.',tasks:['Re-run scan with full analysis enabled','Verify scanner configuration includes data-quality analyzers','Check that the report JSON includes qualityScore, schemaCompliance, consistencyScore'],progress:0,status:'pending'});
+        } else {
+          phases.push({id:'perfect',title:'All Systems Green',severity:'low',effort:'None',description:'Excellent data quality — no actionable findings in any measured category.',tasks:['Schedule next scan in 30 days','Document quality maintenance procedures'],progress:100,status:'completed'});
+        }
+      }
       return{phases,generatedAt:new Date().toISOString(),sourceReport:report.generatedAt};
     }
 
@@ -191,15 +244,20 @@
       const pn=report.projectRoot||report.projectPath||report.projectName||'Unknown';
       projectNameEl.textContent='Project: '+pn;
       scanDateEl.textContent=report.generatedAt?new Date(report.generatedAt).toLocaleDateString():'—';
-      const qs=Number(report.qualityScore)||0,sc=Number(report.schemaCompliance)||0,cs=Number(report.consistencyScore)||0,issues=Number(report.issueCount)||0,dupes=Number(report.duplicateGroups)||0;
+      const qs=report.qualityScore!=null?Number(report.qualityScore):null;
+      const sc=report.schemaCompliance!=null?Number(report.schemaCompliance):null;
+      const cs=report.consistencyScore!=null?Number(report.consistencyScore):null;
+      const issues=report.issueCount!=null?Number(report.issueCount):null;
+      const dupes=report.duplicateGroups!=null?Number(report.duplicateGroups):null;
+      const filesAnalyzed=report.filesAnalyzed!=null?Number(report.filesAnalyzed):(report.totalFiles!=null?Number(report.totalFiles):null);
       const cards=[
-        {label:'Quality Score',value:qs+'/100',pct:qs,cls:qs>=85?'score-good':qs>=70?'score-warn':'score-bad'},
-        {label:'Schema Compliance',value:sc+'%',pct:sc,cls:sc===100?'score-good':sc>=80?'score-warn':'score-bad'},
-        {label:'Consistency',value:cs+'%',pct:cs,cls:cs===100?'score-good':cs>=80?'score-warn':'score-bad'},
-        {label:'Total Issues',value:String(issues),pct:Math.max(0,100-issues*3),cls:issues===0?'score-good':issues<10?'score-warn':'score-bad'},
-        {label:'Duplicate Groups',value:String(dupes),pct:dupes===0?100:Math.max(0,100-dupes*10),cls:dupes===0?'score-good':dupes<5?'score-warn':'score-bad'},
-        {label:'Files Analyzed',value:String(report.filesAnalyzed||report.totalFiles||0),pct:100,cls:'score-info'}
-      ];
+        qs!=null?{label:'Quality Score',value:qs+'/100',pct:qs,cls:qs>=85?'score-good':qs>=70?'score-warn':'score-bad'}:null,
+        sc!=null?{label:'Schema Compliance',value:sc+'%',pct:sc,cls:sc===100?'score-good':sc>=80?'score-warn':'score-bad'}:null,
+        cs!=null?{label:'Consistency',value:cs+'%',pct:cs,cls:cs===100?'score-good':cs>=80?'score-warn':'score-bad'}:null,
+        issues!=null?{label:'Total Issues',value:String(issues),pct:Math.max(0,100-issues*3),cls:issues===0?'score-good':issues<10?'score-warn':'score-bad'}:null,
+        dupes!=null?{label:'Duplicate Groups',value:String(dupes),pct:dupes===0?100:Math.max(0,100-dupes*10),cls:dupes===0?'score-good':dupes<5?'score-warn':'score-bad'}:null,
+        filesAnalyzed!=null?{label:'Files Analyzed',value:String(filesAnalyzed),pct:100,cls:'score-info'}:null
+      ].filter(Boolean);
       scorecardsEl.innerHTML=cards.map(c=>`<div class="scorecard ${c.cls}"><div class="scorecard-label">${c.label}</div><div class="scorecard-value">${c.value}</div><div class="scorecard-delta">${c.pct}% health</div><div class="scorecard-bar"><div class="scorecard-bar-fill" style="width:${c.pct}%"></div></div></div>`).join('');
       timelineEl.innerHTML=roadmap.phases.map(p=>{
         const sc=p.status==='completed'?'completed':p.status==='in-progress'?'in-progress':'';
@@ -209,6 +267,18 @@
       const preview=JSON.stringify(report,null,2);
       jsonPreviewEl.textContent=preview.length>4000?preview.slice(0,4000)+'\n\n... truncated ...':preview;
     }
+
+    // Auto-load from localStorage if a SimpleBeacon scan exists
+    (function autoLoadFromStorage(){
+      try{
+        const raw=localStorage.getItem('simplebeacon_scan_data');
+        if(raw){
+          const report=JSON.parse(raw);
+          loadReport(report);
+          showToast('Loaded scan from browser storage','info');
+        }
+      }catch(e){ /* ignore parse errors */ }
+    })();
 
     document.getElementById('exportJsonBtn').addEventListener('click',()=>{if(!currentRoadmap)return;const blob=new Blob([JSON.stringify(currentRoadmap,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='roadmap-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);showToast('Roadmap JSON exported','success');});
     document.getElementById('copyReportBtn').addEventListener('click',()=>{if(!currentRoadmap)return;const lines=['Data Quality Roadmap — '+new Date().toLocaleDateString(),''];currentRoadmap.phases.forEach(p=>{lines.push(p.title+' ['+p.severity+'] '+p.progress+'%');lines.push('  '+p.description);p.tasks.forEach(t=>lines.push('  - '+t));lines.push('');});navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('Summary copied','success'));});
