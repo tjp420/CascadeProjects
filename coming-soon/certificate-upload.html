@@ -5,6 +5,7 @@
     <meta http-equiv="refresh" content="0; url=upload.html">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SimpleBeacon — Upload Your Scan Report</title>
+    <script src="site-config.js"></script>
     <style>
         :root {
             --bg-main: #0B0F19;
@@ -576,98 +577,9 @@
             return div.innerHTML;
         }
 
-        // Product-aware configuration — prices match pricing.html
-        const PRODUCT_CONFIG = {
-            instant: {
-                label: 'Website Security Report',
-                price: '$19',
-                title: 'Upload Your Scan Report',
-                subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your Website Security Report.',
-                showUpload: true,
-                scanCommand: 'npx simplebeacon scan --gate --offline',
-                tokenHelp: 'Paste your $19 payment token to unlock the scanner.'
-            },
-            community: {
-                label: 'AI Slop Audit',
-                price: 'Free',
-                title: 'Free Audit',
-                subtitle: 'Run the scan locally on your machine. Complimentary risk assessment with Executive Risk Certificate.',
-                showUpload: true,
-                scanCommand: 'npx simplebeacon scan --gate --offline',
-                tokenHelp: 'Free community token. Run the scan locally — no payment required.'
-            },
-            executive: {
-                label: 'Executive Risk Certificate',
-                price: '$499',
-                title: 'Upload Your Scan Report',
-                subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your Executive Risk Certificate.',
-                showUpload: true,
-                scanCommand: 'npx simplebeacon scan --gate --offline',
-                tokenHelp: 'Paste the license token from your $499 payment confirmation email.'
-            },
-            euai: {
-                label: 'EU AI Act Sprint',
-                price: '$2,499',
-                title: 'Upload Your EU AI Act Scan',
-                subtitle: 'Upload your full-coverage scan to generate the EU AI Act Readiness Report.',
-                showUpload: true,
-                scanCommand: 'npx simplebeacon scan --gate --offline --config .simplebeacon/config-full-coverage.json',
-                tokenHelp: 'Paste the license token from your $2,499 EU AI Act Sprint confirmation email.'
-            },
-            universal: {
-                label: 'Universal License',
-                price: '',
-                title: 'Upload Your Scan Report',
-                subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your certificate.',
-                showUpload: true,
-                scanCommand: 'npx simplebeacon scan --gate --offline',
-                tokenHelp: 'Paste any SimpleBeacon license token — works with any tier or custom label.'
-            }
-        };
-
-        const ANALYSIS_TYPES = {
-            community: [
-                { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
-                { id: 'complete', label: '🔬 Complete Scan' }
-            ],
-            instant: [
-                { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
-                { id: 'mock-scan', label: '🔍 Mock data' },
-                { id: 'codebase', label: '🧹 Codebase' }
-            ],
-            executive: [
-                { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
-                { id: 'consolidation', label: '🔀 Consolidation' },
-                { id: 'mock-scan', label: '🔍 Mock data' },
-                { id: 'roadmap', label: '🗺️ Roadmap' },
-                { id: 'codebase', label: '🧹 Codebase' },
-                { id: 'file-reduction', label: '📦 File reduction' },
-                { id: 'data-quality', label: '🧪 Data quality' },
-                { id: 'cleanup-assistant', label: '🗂️ Cleanup assistant' },
-                { id: 'npm-audit', label: '📦 npm audit' },
-                { id: 'compliance', label: '✅ Compliance' },
-                { id: 'complete', label: '🔬 Complete Scan' }
-            ],
-            euai: [
-                { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
-                { id: 'complete', label: '🔬 Complete Scan' },
-                { id: 'eu-ai-act', label: '🇪🇺 EU AI Act sprint' },
-                { id: 'compliance', label: '✅ Compliance' }
-            ],
-            universal: [
-                { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
-                { id: 'consolidation', label: '🔀 Consolidation' },
-                { id: 'mock-scan', label: '🔍 Mock data' },
-                { id: 'roadmap', label: '🗺️ Roadmap' },
-                { id: 'codebase', label: '🧹 Codebase' },
-                { id: 'file-reduction', label: '📦 File reduction' },
-                { id: 'data-quality', label: '🧪 Data quality' },
-                { id: 'cleanup-assistant', label: '🗂️ Cleanup assistant' },
-                { id: 'npm-audit', label: '📦 npm audit' },
-                { id: 'compliance', label: '✅ Compliance' },
-                { id: 'complete', label: '🔬 Complete Scan' }
-            ]
-        };
+        // Product-aware configuration — shared from site-config.js
+        const PRODUCT_CONFIG = (window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.products) || {};
+        const ANALYSIS_TYPES = (window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.analysisTypes) || {};
 
         function populateAnalysisTypes(tier) {
             const select = document.getElementById('analysisType');

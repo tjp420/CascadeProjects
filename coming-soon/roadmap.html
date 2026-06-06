@@ -109,8 +109,14 @@
     <div class="dropzone" id="dropzone">
       <div class="icon">&#128206;</div>
       <h3>Drop scan report.json here</h3>
-      <p>Or paste JSON data below to generate your roadmap</p>
+      <p>Or click to browse</p>
       <input type="file" id="fileInput" accept=".json">
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:32px;">
+      <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">&#128203; Or paste JSON directly</label>
+      <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;background:#0a0e17;color:var(--text);font-family:'SF Mono',Monaco,monospace;font-size:0.8rem;resize:vertical;"></textarea>
+      <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:10px;width:100%;">Load JSON Report</button>
+      <p style="font-size:0.7rem;color:var(--text-dim);margin-top:8px;">Press Ctrl+Enter to submit</p>
     </div>
     <div id="app" style="display:none;">
       <div class="roadmap-section">
@@ -152,6 +158,24 @@
     dropzone.addEventListener('dragleave',()=>dropzone.classList.remove('dragover'));
     dropzone.addEventListener('drop',e=>{e.preventDefault();dropzone.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)loadFile(f);});
     fileInput.addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0]);});
+
+    // Paste JSON handler
+    const jsonPasteInput=document.getElementById('jsonPasteInput'),jsonPasteBtn=document.getElementById('jsonPasteBtn');
+    if(jsonPasteInput){
+      jsonPasteInput.addEventListener('keydown',e=>{
+        if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){
+          e.preventDefault();
+          if(jsonPasteBtn)jsonPasteBtn.click();
+        }
+      });
+    }
+    if(jsonPasteBtn&&jsonPasteInput){
+      jsonPasteBtn.addEventListener('click',()=>{
+        const text=jsonPasteInput.value.trim();
+        if(!text){showToast('Paste JSON content first','error');return;}
+        try{const j=JSON.parse(text);loadReport(j);}catch(err){showToast('Invalid JSON: '+err.message,'error');}
+      });
+    }
 
     function showToast(msg,type='info'){toastEl.textContent=msg;toastEl.className='toast show toast-'+type;setTimeout(()=>toastEl.classList.remove('show'),3000);}
     function loadFile(file){const r=new FileReader();r.onload=e=>{try{const j=JSON.parse(e.target.result);loadReport(j);}catch(err){showToast('Invalid JSON: '+err.message,'error');}};r.readAsText(file);}
