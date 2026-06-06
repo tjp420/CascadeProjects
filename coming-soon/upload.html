@@ -1109,6 +1109,8 @@
                     submitBtn.innerHTML = '<span>&#128064;</span> Preview Report (Free)';
                     submitBtn.style.opacity = '0.7';
                 }
+                // Re-render preview to update watermark/unlock state
+                if (reportData) renderPreview(reportData);
             } else {
                 if (tokenActionRow) tokenActionRow.style.display = 'none';
                 submitBtn.disabled = true;
@@ -1214,6 +1216,7 @@
 
         function renderPreview(data) {
             scanPreview.style.display = 'block';
+            const hasToken = licenseInput.value.trim().length > 10;
             const gate = data.gate || data.results?.simplebeacon?.gate || {};
             const gatePass = gate.pass ?? false;
             const detectedIssues = Array.isArray(data.detectedIssues) ? data.detectedIssues : (Array.isArray(data.rawIssues) ? data.rawIssues : []);
@@ -1238,8 +1241,18 @@
             const circumference = 2 * Math.PI * 52;
             const offset = circumference - (quality / 100) * circumference;
 
+            const footer = hasToken
+                ? `<div class="cert-footer" style="text-align:center;">
+                    <div style="font-size:0.9rem;color:#10B981;font-weight:700;margin-bottom:8px;">&#9989; Certificate Unlocked</div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);">Click <strong>Generate Certificate</strong> below to download your signed PDF.</div>
+                   </div>`
+                : `<div class="cert-footer">
+                    <div class="unlock-text">&#128274; Paste a license token above to unlock the official PDF certificate</div>
+                    <button class="unlock-btn" onclick="document.getElementById('licenseToken').focus(); document.getElementById('licenseToken').scrollIntoView({behavior:'smooth', block:'center'});">Unlock Certificate &rarr;</button>
+                   </div>`;
+
             scanPreview.innerHTML = `
-                <div class="cert-preview watermarked">
+                <div class="cert-preview ${hasToken ? '' : 'watermarked'}">
                     <div class="cert-header">
                         <h3>Executive Risk Certificate</h3>
                         <div class="cert-subtitle">${project} &mdash; ${new Date().toLocaleDateString()}</div>
@@ -1271,10 +1284,7 @@
                         ${issueItems}
                         ${moreIssues}
                     </div>
-                    <div class="cert-footer">
-                        <div class="unlock-text">&#128274; Paste a license token above to unlock the official PDF certificate</div>
-                        <button class="unlock-btn" onclick="document.getElementById('licenseToken').focus(); document.getElementById('licenseToken').scrollIntoView({behavior:'smooth', block:'center'});">Unlock Certificate &rarr;</button>
-                    </div>
+                    ${footer}
                 </div>
             `;
         }
@@ -1347,6 +1357,7 @@
             let totalLines = 0;
             let aiHits = [];
             let credentialHits = 0;
+            let credFiles = [];
             const startTime = Date.now();
 
             // 1. Check for user-provided .simplebeaconignore
@@ -1404,6 +1415,7 @@
                     }
                     if (/password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{16,}|secret[_-]?key\s*=\s*['"][a-z0-9]{16,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}/i.test(text)) {
                         credentialHits++;
+                        credFiles.push(path);
                     }
                     if ((i + 1) % 5 === 0 || i === sourceFiles.length - 1) {
                         appendTerminalLine(`Scanning chunk: <span style="color:#94A3B8;">${path}</span> (${lineCount} lines)`);
@@ -1440,8 +1452,8 @@
                 issueCount: aiHits.length + credentialHits,
                 simplebeaconIssues: aiHits.length + credentialHits,
                 detectedIssues: [
-                    ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length, description: `AI/LLM implementation patterns found in ${aiHits.length} files` }] : []),
-                    ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, description: `${credentialHits} potential credential patterns detected (heuristic — review manually)` }] : [])
+                    ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length, filePath: aiHits.slice(0,3).join(', ') + (aiHits.length > 3 ? ' ...' : ''), rule: 'AI_IMPLEMENTATION_PATTERN', impact: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.', fix: 'Review and remediate before enabling --gate on main.' }] : []),
+                    ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: credFiles.slice(0,3).join(', ') + (credFiles.length > 3 ? ' ...' : ''), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.' }] : [])
                 ],
                 issues: [
                     ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length, filePath: aiHits[0] || 'unknown' }] : []),
