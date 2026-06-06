@@ -637,13 +637,10 @@
             </div>
         </div>
 
-        <!-- SCAN TYPE SELECTOR -->
-        <div id="scanTypeRow" style="display:none;align-items:center;gap:12px;margin-bottom:16px;padding:12px 16px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.2);border-radius:10px;">
-            <span style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">Scan Profile:</span>
-            <select id="analysisType" style="flex:1;background:var(--bg-input);color:var(--text-main);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:0.85rem;cursor:pointer;">
-                <option value="simplebeacon">&#127775; Simplebeacon Gate</option>
-            </select>
-            <span id="scanTypeHint" style="font-size:0.75rem;color:var(--text-muted);max-width:280px;">Select the analysis engine for your certificate.</span>
+        <!-- BROWSER SCAN CAPABILITY NOTE -->
+        <div id="scanCapabilityNote" style="display:none;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:10px;">
+            <span style="font-size:1rem;">&#127757;</span>
+            <span style="font-size:0.8rem;color:var(--text-muted);">Browser sandbox runs a lightweight <strong style="color:#34D399;">Gate Scan</strong> (AI patterns + credential heuristics). For full analysis (codebase audit, EU AI Act, compliance), use the <strong>CLI tab</strong>.</span>
         </div>
 
         <!-- VIEW A: CLI WORKFLOW -->
@@ -880,67 +877,11 @@
             }
         };
 
-        const ANALYSIS_TYPES = {
-            community: [
-                { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' }
-            ],
-            instant: [
-                { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
-                { id: 'mock-scan', label: '🔍 Mock data' },
-                { id: 'codebase', label: '🧹 Codebase' }
-            ],
-            executive: [
-                { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
-                { id: 'consolidation', label: '🔀 Consolidation' },
-                { id: 'mock-scan', label: '🔍 Mock data' },
-                { id: 'roadmap', label: '🗺️ Roadmap' },
-                { id: 'codebase', label: '🧹 Codebase' },
-                { id: 'file-reduction', label: '📦 File reduction' },
-                { id: 'data-quality', label: '🧪 Data quality' },
-                { id: 'cleanup-assistant', label: '🗂️ Cleanup assistant' },
-                { id: 'npm-audit', label: '📦 npm audit' },
-                { id: 'compliance', label: '✅ Compliance' },
-                { id: 'complete', label: '🔬 Complete Scan' }
-            ],
-            euai: [
-                { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
-                { id: 'eu-ai-act', label: '🇪🇺 EU AI Act sprint' },
-                { id: 'compliance', label: '✅ Compliance' }
-            ],
-            universal: [
-                { id: 'simplebeacon', label: '🛡️ Simplebeacon Gate' },
-                { id: 'consolidation', label: '🔀 Consolidation' },
-                { id: 'mock-scan', label: '🔍 Mock data' },
-                { id: 'roadmap', label: '🗺️ Roadmap' },
-                { id: 'codebase', label: '🧹 Codebase' },
-                { id: 'file-reduction', label: '📦 File reduction' },
-                { id: 'data-quality', label: '🧪 Data quality' },
-                { id: 'cleanup-assistant', label: '🗂️ Cleanup assistant' },
-                { id: 'npm-audit', label: '📦 npm audit' },
-                { id: 'compliance', label: '✅ Compliance' },
-                { id: 'complete', label: '🔬 Complete Scan' }
-            ]
-        };
-
-        function populateAnalysisTypes(tier) {
-            const select = document.getElementById('analysisType');
-            const types = ANALYSIS_TYPES[tier] || ANALYSIS_TYPES.universal;
-            select.innerHTML = types.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
-            if (tier === 'euai') {
-                const euOption = select.querySelector('option[value="eu-ai-act"]');
-                if (euOption) select.value = 'eu-ai-act';
-            }
-            if (tier === 'instant') {
-                const completeOption = select.querySelector('option[value="complete"]');
-                if (completeOption) select.value = 'complete';
-            }
-        }
-
         function applyProductFromToken(token) {
-            const scanTypeRow = document.getElementById('scanTypeRow');
+            const capNote = document.getElementById('scanCapabilityNote');
             const banner = document.getElementById('sprintBanner');
             if (!token) {
-                if (scanTypeRow) scanTypeRow.style.display = 'none';
+                if (capNote) capNote.style.display = 'none';
                 if (banner) banner.style.display = 'none';
                 return;
             }
@@ -958,9 +899,7 @@
                 document.getElementById('pageTitle').textContent = config.title;
                 document.getElementById('pageSubtitle').textContent = config.subtitle;
                 document.getElementById('tokenHelp').textContent = config.tokenHelp;
-                populateAnalysisTypes(tier);
-                const scanTypeRow = document.getElementById('scanTypeRow');
-                if (scanTypeRow) scanTypeRow.style.display = 'flex';
+                if (capNote) capNote.style.display = 'flex';
                 if (!config.showUpload) {
                     document.getElementById('submitBtn').style.display = 'none';
                 }
