@@ -3745,6 +3745,7 @@
             let duplicateHashes = new Map();
             let duplicateGroups = 0;
             let todoFiles = [];
+            let imageFiles = [];
             let unusedAssetCandidates = [];
             let monorepoMarkers = 0;
             let totalDependencyCount = 0;
@@ -3833,7 +3834,7 @@
                     }
                     // Skip node_modules and CI workflows from debug detection — not user source code
                     const isCiWorkflow = /\.github\/workflows\//.test(lowerPath);
-                    if (profile.checkDebug && !isNodeModule && !isCiWorkflow && /console\.log\(|debugger;|todo:|fixme:|hack:/i.test(text)) {
+                    if (profile.checkDebug && !isNodeModule && !isCiWorkflow && /console\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|(?:\/\/|\/\*|\#|\*)\s*(?:TODO|FIXME|HACK|XXX|BUG|NOTE|REVIEW|TEMP|TEMPORARY|DELETE|REMOVE)|\b(?:todo|fixme|hack|xxx|bug|review|delete|remove)\b\s*[:;]|alert\s*\(|prompt\s*\(|confirm\s*\(/i.test(text)) {
                         debugHits.push(path);
                     }
                     if (profile.checkGov && /SPDX-License-Identifier|MIT License|Apache License|GNU General Public License|All rights reserved|Copyright \(c\)|License: /i.test(text)) {
@@ -3877,7 +3878,8 @@
                         emptyJsonFiles.push(path);
                     }
                     // 2. Consolidation + 6. File reduction: simple content hash for duplicates
-                    if (text.length < 50000 && !/node_modules|\.git|dist|build|coverage|github-cache/i.test(lowerPath)) {
+                    // Exclude: node_modules, .git, build dirs, .husky/_ templates, .simplebeacon internal files, timestamped generated artifacts
+                    if (text.length < 50000 && !/node_modules|\.git|dist|build|coverage|github-cache|\.husky\/\_|\.simplebeacon\/baseline|\.simplebeacon\/report-deliveries\/delivery_\d+/i.test(lowerPath)) {
                         const hash = await simpleHash(text);
                         if (duplicateHashes.has(hash)) {
                             duplicateHashes.get(hash).push(path);
@@ -3893,11 +3895,13 @@
                     if (!isNodeModule && !isCacheOrBinary && hasSourceExt && /TODO:|FIXME:|HACK:|XXX:|NOTE:|BUG:/i.test(text)) {
                         todoFiles.push(path);
                     }
-                    // 6. File reduction: unused assets (images not referenced) — skip node_modules and standard auto-loaded web assets
+                    // 6. File reduction: collect image paths for post-scan cross-reference
+                    // Skip node_modules, build output, and standard auto-loaded web assets
                     const baseName = path.split('/').pop();
-                    const isStandardWebAsset = /^(favicon|apple-touch-icon|mstile|browserconfig|site\.webmanifest)/i.test(baseName);
-                    if (!isNodeModule && !isStandardWebAsset && /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(lowerPath)) {
-                        unusedAssetCandidates.push({ path, name: baseName });
+                    const isBuildOutput = /\/(build|dist|frontend-build|out|\.next|\.output|target|coverage)\//i.test(lowerPath);
+                    const isStandardWebAsset = /^(favicon|apple-touch-icon|mstile|browserconfig|site\.webmanifest|logo192\.png|logo512\.png|maskable-icon|splash-screen|og-image)/i.test(baseName);
+                    if (!isNodeModule && !isBuildOutput && !isStandardWebAsset && /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(lowerPath)) {
+                        imageFiles.push({ path, name: baseName });
                     }
                     if ((i + 1) % 5 === 0 || i === sourceFiles.length - 1) {
                         appendTerminalLine(`Scanning chunk: <span style="color:#94A3B8;">${path}</span> (${lineCount} lines)`);
@@ -3923,6 +3927,31 @@
                         panelStatus.style.color = '#F59E0B';
                         throw new Error('Scan aborted');
                     }
+                }
+            }
+
+            // 3.5 Cross-reference images against source files to find truly unused assets
+            if (imageFiles.length > 0) {
+                appendTerminalLine(`Cross-referencing ${imageFiles.length} image assets against source files...`);
+                const sourceTextFiles = sourceFiles.filter(f => {
+                    const p = (f.webkitRelativePath || f.name).toLowerCase();
+                    return /\.(js|cjs|mjs|ts|tsx|jsx|vue|svelte|html|htm|css|scss|sass|less|json|md|txt|xml)$/i.test(p) && !/node_modules\/|\.git\/|\.simplebeacon\/|github-cache\//i.test(p);
+                });
+                // Collect all referenced image names in a single pass
+                const referencedNames = new Set();
+                for (const sf of sourceTextFiles) {
+                    try {
+                        const txt = await sf.text();
+                        for (const img of imageFiles) {
+                            if (txt.includes(img.name)) referencedNames.add(img.name);
+                        }
+                    } catch (e) { /* ignore unreadable */ }
+                }
+                unusedAssetCandidates = imageFiles.filter(img => !referencedNames.has(img.name));
+                if (unusedAssetCandidates.length > 0) {
+                    appendTerminalLine(`${unusedAssetCandidates.length} of ${imageFiles.length} images appear unused in source code.`, 'warn');
+                } else {
+                    appendTerminalLine(`All ${imageFiles.length} image assets are referenced in source code.`, 'success');
                 }
             }
 
@@ -4697,10 +4726,10 @@ Generated entirely in-browser. Zero data uploaded.
 | EU AI Act | ${(report.euAiActSummary?.aiSystemIndicators || 0)} AI indicator(s) |
 
 ## Top Risks
-${topIssues.length ? topIssues.map((i, idx) => `${idx + 1}. **${(i.severity || 'low').toUpperCase()}** — ${i.type || 'Issue'} (${i.count || 0}): ${(i.impact || 'Review required.').replace(/REVIEW REQUIRED[:\s]*/i, '')}${i.fix ? ` *Fix:* ${i.fix}` : ''}`).join('\n') : 'No actionable findings detected.'}
+${report.gate?.blockingFindings?.length ? report.gate.blockingFindings.map((f, idx) => `${idx + 1}. **${(f.severity || 'medium').toUpperCase()}** — ${f.type || 'Finding'} (${f.count || 0}): ${(f.impact || 'Review required.').replace(/REVIEW REQUIRED[:\s]*/i, '')}${f.fix ? ` *Fix:* ${f.fix}` : ''}`).join('\n') : (topIssues.length ? topIssues.map((i, idx) => `${idx + 1}. **${(i.severity || 'low').toUpperCase()}** — ${i.type || 'Issue'} (${i.count || 0}): ${(i.impact || 'Review required.').replace(/REVIEW REQUIRED[:\s]*/i, '')}${i.fix ? ` *Fix:* ${i.fix}` : ''}`).join('\n') : 'No actionable findings detected.')}
 
 ## Recommended Actions
-${gatePassed ? '- [x] Gate passed — no immediate blocking issues.\n' : '- [ ] **URGENT:** Address ' + (report.gate?.blockingCount || 0) + ' blocking credential finding(s) before release.\n'}${(report.euAiActSummary?.highRiskIndicators || 0) > 0 ? '- [ ] Schedule EU AI Act legal review (high-risk indicators detected).\n' : ''}${qs < 70 ? '- [ ] Quality score below 70 — prioritize refactoring low-quality modules.\n' : ''}${(report.consolidation?.duplicateGroups || 0) > 0 ? '- [ ] Consolidate ' + report.consolidation.duplicateGroups + ' duplicate file group(s).\n' : ''}${(report.roadmap?.todoCount || 0) > 0 ? '- [ ] Address ' + report.roadmap.todoCount + ' TODO/FIXME marker(s) before release.\n' : ''}- [ ] Schedule next scan in 30 days.
+${gatePassed ? '- [x] Gate passed — no immediate blocking issues.\n' : (report.gate?.remediation?.length ? report.gate.remediation.map(r => '- [ ] **URGENT:** ' + r).join('\n') + '\n' : '- [ ] **URGENT:** Address ' + (report.gate?.blockingCount || 0) + ' blocking credential finding(s) before release.\n')}${(report.euAiActSummary?.highRiskIndicators || 0) > 0 ? '- [ ] Schedule EU AI Act legal review (high-risk indicators detected).\n' : ''}${qs < 70 ? '- [ ] Quality score below 70 — prioritize refactoring low-quality modules.\n' : ''}${(report.consolidation?.duplicateGroups || 0) > 0 ? '- [ ] Consolidate ' + report.consolidation.duplicateGroups + ' duplicate file group(s).\n' : ''}${(report.roadmap?.todoCount || 0) > 0 ? '- [ ] Address ' + report.roadmap.todoCount + ' TODO/FIXME marker(s) before release.\n' : ''}- [ ] Schedule next scan in 30 days.
 
 ## Compliance Posture
 ${(report.euAiActSummary?.highRiskIndicators || 0) === 0 ? '✅ No high-risk AI indicators (Art. 5)' : '⚠️ High-risk AI indicators present (Art. 5)'}  
@@ -4719,11 +4748,20 @@ ${(report.euAiActSummary?.transparencyGaps || 0) === 0 ? '✅ No transparency ga
                 const sev = (issue.severity || 'low').toLowerCase();
                 (bySeverity[sev] || bySeverity.low).push(issue);
             }
+            const gateFindings = report.gate?.blockingFindings || [];
             const findingsMd = `# Detailed Findings Report — ${escapeHtml(projectName)}
 > **Certificate ID:** ${certId} · **Total Issues:** ${allIssues.length}
 
 ## Severity Breakdown
 ${Object.entries(bySeverity).filter(([_, arr]) => arr.length > 0).map(([sev, arr]) => `- **${sev.toUpperCase()}:** ${arr.length} issue(s)`).join('\n')}
+${gateFindings.length ? '\n## 🚨 Gate Findings (' + gateFindings.length + ' Blocking)\n' + gateFindings.map(f => `### ${f.type || 'Gate Finding'} (${f.count || 0} occurrence${(f.count || 0) !== 1 ? 's' : ''})
+- **Severity:** ${(f.severity || 'medium').toUpperCase()}
+- **Rule:** \`${f.rule || 'N/A'}\`
+- **Status:** ${report.gate?.status || 'BLOCKED'}
+- **Files:** ${(f.filePath || 'N/A').split(',').slice(0, 5).join(', ')}${(f.filePath || '').split(',').length > 5 ? ' ...' : ''}
+- **Impact:** ${f.impact || 'Review required.'}
+- **Remediation:** ${f.fix || 'Manual review recommended.'}
+`).join('') : ''}
 
 ${Object.entries(bySeverity).filter(([_, arr]) => arr.length > 0).map(([sev, arr]) => `
 ## ${sev.toUpperCase()} Findings (${arr.length})
@@ -4743,9 +4781,8 @@ ${arr.map(i => `### ${i.type || 'Finding'} (${i.count || 0} occurrence${(i.count
             const checklist = `# Remediation Checklist — ${escapeHtml(projectName)}
 > Use this checklist to track remediation progress. Check items off as they are completed.
 
-## Phase 1: Security (Week 1)
-- [ ] **Rotate exposed credentials** — ${report.gate?.blockingCount || 0} credential pattern(s) found in source.
-- [ ] **Add .env to .gitignore** if not already present.
+## Phase 1: Security (Week 1)${report.gate?.severityColor ? ' · Priority: ' + report.gate.severityColor.replace('#','') : ''}
+${report.gate?.remediation?.length ? report.gate.remediation.map(r => '- [ ] **' + r + '**').join('\n') + '\n' : '- [ ] **Rotate exposed credentials** — ' + (report.gate?.blockingCount || 0) + ' credential pattern(s) found in source.\n'}- [ ] **Add .env and .pem to .gitignore** if not already present.
 - [ ] **Re-run gate scan** to verify zero blocking findings.
 
 ## Phase 2: Data Integrity (Week 1–2)
