@@ -635,6 +635,15 @@
             </div>
         </div>
 
+        <!-- SCAN TYPE SELECTOR -->
+        <div id="scanTypeRow" style="display:none;align-items:center;gap:12px;margin-bottom:16px;padding:12px 16px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.2);border-radius:10px;">
+            <span style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">Scan Profile:</span>
+            <select id="analysisType" style="flex:1;background:var(--bg-input);color:var(--text-main);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:0.85rem;cursor:pointer;">
+                <option value="simplebeacon">&#127775; Simplebeacon Gate</option>
+            </select>
+            <span id="scanTypeHint" style="font-size:0.75rem;color:var(--text-muted);max-width:280px;">Select the analysis engine for your certificate.</span>
+        </div>
+
         <!-- VIEW A: CLI WORKFLOW -->
         <div id="view-cli">
             <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
@@ -926,7 +935,11 @@
         }
 
         function applyProductFromToken(token) {
-            if (!token) return;
+            const scanTypeRow = document.getElementById('scanTypeRow');
+            if (!token) {
+                if (scanTypeRow) scanTypeRow.style.display = 'none';
+                return;
+            }
             try {
                 const parts = token.split('.');
                 // 2-part token: payload is parts[0]; 3-part JWT: payload is parts[1]
@@ -942,6 +955,8 @@
                 document.getElementById('pageSubtitle').textContent = config.subtitle;
                 document.getElementById('tokenHelp').textContent = config.tokenHelp;
                 populateAnalysisTypes(tier);
+                const scanTypeRow = document.getElementById('scanTypeRow');
+                if (scanTypeRow) scanTypeRow.style.display = 'flex';
                 if (!config.showUpload) {
                     document.getElementById('submitBtn').style.display = 'none';
                 }
