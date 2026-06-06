@@ -62,10 +62,11 @@ function createMcpToolHandlers(options = {}) {
     }
 
     return {
-        scan_snippet: withGuard(({ content, filePath, projectRoot }) => {
-            const result = scanSnippetContent(String(content || ''), {
-                filePath: filePath || 'snippet.txt',
-                projectRoot: resolveProjectRoot(projectRoot)
+        scan_snippet: withGuard((args) => {
+            validateArgs(args, { required: ['content'] });
+            const result = scanSnippetContent(String(args.content || ''), {
+                filePath: args.filePath || 'snippet.txt',
+                projectRoot: resolveProjectRoot(args.projectRoot)
             });
             return formatToolResult({
                 ...result,
@@ -225,6 +226,55 @@ function createMcpToolHandlers(options = {}) {
             });
         }),
 
+        generate_marketing: withGuard((args) => {
+            const root = resolveProjectRoot(args.projectRoot);
+            const fs = require('fs');
+            const rp = args.reportPath ? path.resolve(root, args.reportPath) : path.join(root, '.simplebeacon', 'report.json');
+            let report;
+            try {
+                report = JSON.parse(fs.readFileSync(rp, 'utf8'));
+            } catch {
+                return formatToolResult({ error: 'No scan report found. Run scan_project first.' });
+            }
+            const { generateMarketingContent } = require('../lib/marketing/marketing-content-generator');
+            const channel = args.channel || 'blog';
+            const validChannels = ['blog', 'twitter', 'linkedin', 'newsletter', 'case-study', 'press-kit', 'one-pager'];
+            if (!validChannels.includes(channel)) {
+                return formatToolResult({ error: `Invalid channel: ${channel}. Valid: ${validChannels.join(', ')}` });
+            }
+            try {
+                const content = generateMarketingContent(report, { channel, tone: args.tone || 'professional' });
+                return formatMarkdownResult(`Marketing Content — ${channel}`, content);
+            } catch (err) {
+                return formatToolResult({ error: err.message || 'Marketing generation failed' });
+            }
+        }),
+
+        export_report: withGuard((args) => {
+            const root = resolveProjectRoot(args.projectRoot);
+            const fs = require('fs');
+            const rp = args.reportPath ? path.resolve(root, args.reportPath) : path.join(root, '.simplebeacon', 'report.json');
+            let report;
+            try {
+                report = JSON.parse(fs.readFileSync(rp, 'utf8'));
+            } catch {
+                return formatToolResult({ error: 'No scan report found. Run scan_project first.' });
+            }
+            const outPath = args.outPath ? path.resolve(root, args.outPath) : path.join(root, '.simplebeacon', 'exported-report.json');
+            try {
+                fs.mkdirSync(path.dirname(outPath), { recursive: true });
+                fs.writeFileSync(outPath, JSON.stringify(report, null, 2), 'utf8');
+                return formatToolResult({
+                    exported: true,
+                    path: outPath,
+                    sizeBytes: fs.statSync(outPath).size,
+                    localOnly: true
+                });
+            } catch (err) {
+                return formatToolResult({ error: err.message, path: outPath });
+            }
+        }),
+
         list_rulesets: withGuard(() => {
             const rulesets = {
                 schemaVersion: 'simplebeacon-rules-v1',
@@ -355,6 +405,31 @@ const TOOL_DEFINITIONS = [
         }
     },
     {
+        name: 'generate_marketing',
+        description: 'Generate marketing content (blog, twitter, linkedin, etc.) from a scan report. Runs locally — no data uploaded.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root for reading .simplebeacon/report.json (default: cwd)' },
+                reportPath: { type: 'string', description: 'Override report path relative to project root' },
+                channel: { type: 'string', description: 'Channel: blog, twitter, linkedin, newsletter, case-study, press-kit, one-pager (default: blog)' },
+                tone: { type: 'string', description: 'Tone: professional, casual, technical (default: professional)' }
+            }
+        }
+    },
+    {
+        name: 'export_report',
+        description: 'Export the latest scan report to a JSON file on disk. Useful for CI artifacts or sharing.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root for reading .simplebeacon/report.json (default: cwd)' },
+                reportPath: { type: 'string', description: 'Override source report path relative to project root' },
+                outPath: { type: 'string', description: 'Destination path relative to project root (default: .simplebeacon/exported-report.json)' }
+            }
+        }
+    },
+    {
         name: 'list_rulesets',
         description: 'Return the full Simplebeacon deterministic rule catalog — categories, severity bands, banned patterns, and anonymized type codes. Use this to learn what is forbidden before writing code.',
         inputSchema: {
@@ -368,5 +443,6 @@ const TOOL_DEFINITIONS = [
 module.exports = {
     createMcpToolHandlers,
     TOOL_DEFINITIONS,
-    formatToolResult
+    formatToolResult,
+    formatMarkdownResult
 };

@@ -75,7 +75,7 @@ describe('JSON report enrichment', () => {
         assert.ok(Array.isArray(result.gate.warningIssues), 'gate.warningIssues must be an array');
     });
 
-    it('formatJsonReport includes module summary objects', () => {
+    it('formatJsonReport includes all certificate-compatible modules', () => {
         const { formatJsonReport } = require(path.join(__dirname, '..', 'src', 'reporters', 'json.js'));
 
         const mockReport = {
@@ -96,6 +96,115 @@ describe('JSON report enrichment', () => {
         assert.ok(result.cleanup, 'report must have cleanup module');
         assert.ok(result.compliance, 'report must have compliance module');
         assert.ok(result.fileReduction, 'report must have fileReduction module');
+        assert.ok(result.npmAudit, 'report must have npmAudit module');
+        assert.ok(result.roadmap, 'report must have roadmap module');
+        assert.ok(result.mockData, 'report must have mockData module');
+        assert.ok(result.euAiAct, 'report must have euAiAct module');
+    });
+
+    it('formatJsonReport derives gate BLOCKED when blockingIssues exist even if pass=true', () => {
+        const { formatJsonReport } = require(path.join(__dirname, '..', 'src', 'reporters', 'json.js'));
+
+        const mockReport = {
+            projectRoot: '/test',
+            totalFiles: 10,
+            filesAnalyzed: 10,
+            generatedAt: new Date().toISOString(),
+            detectedIssues: [
+                { severity: 'medium', type: 'Credential Pattern', count: 1, filePath: 'config.js', impact: 'Exposed key', fix: 'Move to env vars' }
+            ],
+            issues: [],
+            summary: { totalFindings: 1 },
+            severityCounts: { critical: 0, high: 0, medium: 1, low: 0 }
+        };
+
+        const mockGate = {
+            pass: true, // inconsistent upstream data
+            failOn: ['high', 'critical'],
+            warnOn: ['medium'],
+            blockingIssues: [
+                { severity: 'medium', type: 'Credential Pattern', count: 1, filePath: 'config.js', impact: 'Exposed key', fix: 'Move to env vars' }
+            ],
+            warningIssues: []
+        };
+
+        const result = formatJsonReport(mockReport, mockGate);
+        assert.strictEqual(result.gate.pass, false, 'gate.pass must be derived false when blockingIssues exist');
+        assert.strictEqual(result.gate.status, 'BLOCKED', 'gate.status must be BLOCKED');
+        assert.ok(result.gate.summary.includes('blocked'), 'gate.summary must reflect blocked state');
+    });
+
+    it('formatJsonReport detects debug artifacts from detectedIssues', () => {
+        const { formatJsonReport } = require(path.join(__dirname, '..', 'src', 'reporters', 'json.js'));
+
+        const mockReport = {
+            projectRoot: '/test',
+            totalFiles: 10,
+            filesAnalyzed: 10,
+            generatedAt: new Date().toISOString(),
+            detectedIssues: [
+                { severity: 'low', type: 'Debug Artifact', count: 7, filePath: ['app.js', 'server.js'] }
+            ],
+            issues: [],
+            summary: { totalFindings: 1 },
+            severityCounts: { critical: 0, high: 0, medium: 0, low: 1 }
+        };
+
+        const result = formatJsonReport(mockReport, { pass: true, blockingIssues: [], warningIssues: [] });
+        assert.strictEqual(result.cleanup.debugArtifactCount, 7, 'cleanup.debugArtifactCount must come from detectedIssues');
+        assert.ok(result.cleanup.summary.includes('7'), 'cleanup summary must mention the count');
+    });
+
+    it('formatJsonReport detects governance markers from detectedIssues', () => {
+        const { formatJsonReport } = require(path.join(__dirname, '..', 'src', 'reporters', 'json.js'));
+
+        const mockReport = {
+            projectRoot: '/test',
+            totalFiles: 10,
+            filesAnalyzed: 10,
+            generatedAt: new Date().toISOString(),
+            detectedIssues: [
+                { severity: 'low', type: 'License/Governance Marker', count: 7, filePath: ['index.html', 'LICENSE'] }
+            ],
+            issues: [],
+            summary: { totalFindings: 1 },
+            severityCounts: { critical: 0, high: 0, medium: 0, low: 1 },
+            compliance: { licenseCount: 0, securityCount: 0 } // stale zero counts
+        };
+
+        const result = formatJsonReport(mockReport, { pass: true, blockingIssues: [], warningIssues: [] });
+        assert.strictEqual(result.compliance.licenseCount, 7, 'compliance.licenseCount must fallback to detectedIssues');
+        assert.ok(result.compliance.summary.includes('7'), 'compliance summary must mention the count');
+    });
+
+    it('formatJsonReport rejects stale upstream summary that claims PASS while blocked', () => {
+        const { formatJsonReport } = require(path.join(__dirname, '..', 'src', 'reporters', 'json.js'));
+
+        const mockReport = {
+            projectRoot: '/test',
+            totalFiles: 10,
+            filesAnalyzed: 10,
+            generatedAt: new Date().toISOString(),
+            detectedIssues: [],
+            issues: [],
+            summary: { totalFindings: 0 },
+            severityCounts: { critical: 0, high: 0, medium: 0, low: 0 }
+        };
+
+        const mockGate = {
+            pass: false,
+            summary: 'Gate passed with 1 low-severity pattern. Monitor in CI.', // stale/inconsistent
+            failOn: ['high', 'critical'],
+            warnOn: ['medium'],
+            blockingIssues: [
+                { severity: 'medium', type: 'Credential Pattern', count: 1, filePath: 'config.js' }
+            ],
+            warningIssues: []
+        };
+
+        const result = formatJsonReport(mockReport, mockGate);
+        assert.ok(!result.gate.summary.includes('passed'), 'stale PASS summary must be replaced');
+        assert.ok(result.gate.summary.includes('blocked'), 'correct BLOCKED summary must be present');
     });
 });
 
