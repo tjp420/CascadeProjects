@@ -430,8 +430,21 @@ function normalizeReport(reportJson) {
     return reportJson;
 }
 
+function getTierConfig(tier) {
+    const configs = {
+        euai: { label: 'EU AI Act Sprint', kicker: 'SimpleBeacon · EU AI Act Readiness', subtitle: 'EU AI Act compliance deliverable — Article 52, 10, and 13 readiness assessment.', badge: 'EU AI ACT', badgeClass: 'badge-gold' },
+        executive: { label: 'Executive Risk Certificate', kicker: 'SimpleBeacon · Executive Risk Certificate', subtitle: 'Executive clearance — pre-launch security gate attestation.', badge: 'EXECUTIVE', badgeClass: 'badge-gold' },
+        instant: { label: 'Instant Report', kicker: 'SimpleBeacon · Instant Security Report', subtitle: 'Quick-turn security snapshot — lightweight gate scan.', badge: 'INSTANT', badgeClass: 'badge-pass' },
+        agency: { label: 'Agency License', kicker: 'SimpleBeacon · Agency Partner Certificate', subtitle: 'Agency partner deliverable — white-label security attestation.', badge: 'AGENCY', badgeClass: 'badge-gold' },
+        universal: { label: 'Operator License', kicker: 'SimpleBeacon · Operator Vault Certificate', subtitle: 'Operator vault — full platform access with all engines.', badge: 'OPERATOR', badgeClass: 'badge-gold' }
+    };
+    return configs[tier] || configs.executive;
+}
+
 function buildCertificateHtml(reportJson, payload) {
     const data = normalizeReport(reportJson);
+    const tier = payload.tier || 'executive';
+    const tierConfig = getTierConfig(tier);
     const projectName = data.projectRoot || data.projectPath || data.projectName || payload.projectName || 'Project';
     const clientName = payload.clientName || 'Demo Client';
     const gatePass = data.gate?.pass ? 'PASS' : 'REVIEW';
@@ -439,7 +452,7 @@ function buildCertificateHtml(reportJson, payload) {
     const nowStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     const detectedIssues = data.detectedIssues || [];
     const credentialHits = data.gate?.blockingCount || 0;
-    const totalFiles = data.totalFiles ?? data.filesAnalyzed ?? data.repositoryFilesTotal ?? 0;
+    const totalFiles = data.totalFiles || data.filesAnalyzed || data.repositoryFilesTotal || data.summary?.repositoryFiles || 0;
     const qualityScore = data.qualityScore ?? data.summary?.qualityScore ?? 0;
 
     const issueRows = detectedIssues.map(issue => {
@@ -516,9 +529,9 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
 </style></head>
 <body>
 <section class="certificate cover-page">
-  <p class="cover-kicker">SimpleBeacon · Supplementary — Gate attestation</p>
+  <p class="cover-kicker">${tierConfig.kicker}</p>
   <h1 class="cover-title">${clientName.replace(/</g,'&lt;')}</h1>
-  <p class="cover-sub">Supplementary scan deliverable — not a standalone pre-launch security handoff. For vendor handoff, run Analyze → Complete (all steps) or combine gate attestation + codebase audit PDFs.</p>
+  <p class="cover-sub">${tierConfig.subtitle}</p>
   <div class="cover-meta">
     <div><strong>Report ID:</strong> ${reportId}</div>
     <div><strong>Executed:</strong> ${nowStr}</div>
@@ -528,7 +541,7 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
     <div><strong>Repository:</strong> ${projectName.replace(/</g,'&lt;')} / main</div>
   </div>
   <div class="cover-badges">
-    <span class="badge badge-gold">CONFIDENTIAL</span>
+    <span class="badge ${tierConfig.badgeClass}">${tierConfig.badge}</span>
     <span class="badge ${gatePass === 'PASS' ? 'badge-pass' : 'badge-blocked'}">GATE ${gatePass}</span>
   </div>
   <p class="confidential">Prepared for authorized business and engineering recipients. This document combines executive risk metrics for leadership and deterministic remediation mapping for developers.</p>
@@ -650,11 +663,42 @@ app.post('/api/reports/download', async (req, res) => {
     try {
         const archiver = require('archiver');
         const archive = archiver('zip', { zlib: { level: 9 } });
+        const tier = payload.tier || 'executive';
+        const tierConfig = getTierConfig(tier);
+        const dateStr = new Date().toISOString().slice(0,10);
+        const zipName = `simplebeacon-${tierConfig.label.toLowerCase().replace(/\s+/g,'-')}-${dateStr}.zip`;
         res.setHeader('Content-Type', 'application/zip');
-        res.setHeader('Content-Disposition', `attachment; filename="simplebeacon-certificate-${new Date().toISOString().slice(0,10)}.zip"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
         archive.pipe(res);
         archive.append(certificateHtml, { name: 'reports/certificate.html' });
-        archive.append(JSON.stringify(reportJson, null, 2), { name: 'reports/scan-report.json' });
+        archive.append(JSON.stringify(reportJson, null, 2), { name: 'json/report.json' });
+        archive.append(JSON.stringify({
+            type: 'simplebeacon-export-manifest',
+            version: '1.0.0',
+            generatedAt: new Date().toISOString(),
+            tier: tier,
+            productSku: payload.productSku || tier,
+            files: ['reports/certificate.html', 'json/report.json'],
+            certificateType: tierConfig.label,
+            reportId: 'SB-AUD-' + dateStr.replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,8).toUpperCase()
+        }, null, 2), { name: 'manifest.json' });
+        archive.append(`SimpleBeacon ${tierConfig.label}
+============================
+
+Generated: ${new Date().toLocaleString()}
+Tier: ${tier}
+Product SKU: ${payload.productSku || tier}
+
+Contents:
+  - reports/certificate.html : Printable certificate (open in browser, print to PDF)
+  - json/report.json         : Raw scan report data
+  - manifest.json            : Export manifest for verification
+
+For vendor handoff, run a Complete Scan via the CLI:
+  npx simplebeacon scan --gate --complete
+
+Questions? https://simplebeacon.ai
+`, { name: 'README.txt' });
         await archive.finalize();
     } catch (err) {
         console.error('[Certificate] Archive failed:', err.message);

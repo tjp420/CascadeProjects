@@ -62,6 +62,7 @@
         .container {
             max-width: 720px;
             margin: 0 auto;
+            animation: fadeInUp 0.6s ease-out;
         }
 
         .top-nav {
@@ -77,8 +78,13 @@
             font-weight: 700;
             background: linear-gradient(135deg, #60A5FA, #2563EB);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             text-decoration: none;
+            transition: filter 0.2s;
+        }
+        .top-nav .brand:hover {
+            filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.4));
         }
         .top-nav .nav-links {
             display: flex;
@@ -229,7 +235,17 @@
         select:focus {
             outline: none;
             border-color: var(--border-focus);
-            box-shadow: 0 0 0 3px var(--accent-glow);
+            box-shadow: 0 0 0 3px var(--accent-glow), 0 0 20px rgba(37, 99, 235, 0.15);
+        }
+
+        input[type="text"],
+        input[type="email"] {
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.1s;
+        }
+
+        input[type="text"]:hover,
+        input[type="email"]:hover {
+            border-color: rgba(37, 99, 235, 0.4);
         }
 
         .help-text {
@@ -328,6 +344,11 @@
             padding: 28px;
             margin-top: 16px;
             overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(37, 99, 235, 0.08);
+            transition: box-shadow 0.3s ease;
+        }
+        .cert-preview:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 80px rgba(37, 99, 235, 0.12);
         }
         .cert-preview.watermarked::after {
             content: 'PREVIEW';
@@ -337,8 +358,8 @@
             transform: translate(-50%, -50%) rotate(-30deg);
             font-size: 4rem;
             font-weight: 900;
-            color: rgba(239, 68, 68, 0.15);
-            border: 4px solid rgba(239, 68, 68, 0.2);
+            color: rgba(239, 68, 68, 0.12);
+            border: 4px solid rgba(239, 68, 68, 0.15);
             padding: 8px 32px;
             border-radius: 8px;
             pointer-events: none;
@@ -368,7 +389,7 @@
             position: relative;
             z-index: 2;
         }
-        .score-ring svg { transform: rotate(-90deg); }
+        .score-ring svg { transform: rotate(-90deg); filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.3)); }
         .score-ring .score-value {
             position: absolute;
             top: 50%;
@@ -377,6 +398,7 @@
             font-size: 2rem;
             font-weight: 800;
             color: var(--text-main);
+            text-shadow: 0 0 20px rgba(37, 99, 235, 0.3);
         }
         .score-ring .score-label {
             position: absolute;
@@ -386,6 +408,7 @@
             font-size: 0.7rem;
             color: var(--text-muted);
             text-transform: uppercase;
+            letter-spacing: 0.1em;
         }
         .issue-list {
             display: grid;
@@ -403,12 +426,19 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+        .issue-item:hover {
+            border-color: rgba(37, 99, 235, 0.25);
+            background: rgba(15, 23, 42, 0.8);
+            transform: translateX(2px);
         }
         .issue-item .severity {
             width: 8px;
             height: 8px;
             border-radius: 50%;
             flex-shrink: 0;
+            box-shadow: 0 0 6px currentColor;
         }
         .issue-item .severity.high { background: var(--error); }
         .issue-item .severity.medium { background: var(--warning); }
@@ -438,6 +468,15 @@
             text-decoration: none;
             cursor: pointer;
             border: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .cert-footer .unlock-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        }
+        .cert-footer .unlock-btn:active {
+            transform: translateY(0);
         }
 
         .btn {
@@ -499,27 +538,31 @@
             border-radius: 10px;
             font-size: 0.9rem;
             display: none;
+            animation: fadeInUp 0.3s ease-out;
         }
 
         .status.success {
             display: block;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.25);
             color: var(--success);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.08);
         }
 
         .status.error {
             display: block;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.25);
             color: var(--error);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.08);
         }
 
         .status.loading {
             display: block;
-            background: rgba(37, 99, 235, 0.1);
-            border: 1px solid rgba(37, 99, 235, 0.3);
+            background: rgba(37, 99, 235, 0.08);
+            border: 1px solid rgba(37, 99, 235, 0.25);
             color: #60A5FA;
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.08);
         }
 
         .scan-meta {
@@ -532,13 +575,20 @@
         .meta-item {
             background: var(--bg-input);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 10px;
+            padding: 14px;
             text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .meta-item:hover {
+            border-color: rgba(37, 99, 235, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .meta-item .value {
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             font-weight: 700;
             color: var(--text-main);
         }
@@ -596,7 +646,7 @@
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 16px;
         }
         footer .footer-links {
             display: flex;
@@ -613,8 +663,9 @@
         footer .footer-links a.cloud-link:hover { color: #EF4444; }
 
         .local-note {
-            background: rgba(245, 158, 11, 0.08);
-            border: 1px solid rgba(245, 158, 11, 0.25);
+            background: rgba(245, 158, 11, 0.06);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-left: 3px solid rgba(245, 158, 11, 0.5);
             border-radius: 10px;
             padding: 14px 18px;
             margin-bottom: 20px;
@@ -623,6 +674,7 @@
             display: flex;
             align-items: flex-start;
             gap: 10px;
+            backdrop-filter: blur(4px);
         }
 
         .local-note strong {
@@ -665,8 +717,18 @@
             background: rgba(255, 255, 255, 0.03);
         }
 
-        .mode-panel { display: none; }
-        .mode-panel.active { display: block; }
+        .mode-panel {
+            display: none;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .mode-panel.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+            animation: fadeInUp 0.35s ease-out;
+        }
 
         .dir-tree {
             background: var(--bg-input);
@@ -682,33 +744,87 @@
             line-height: 1.7;
         }
 
+        /* Code block copy buttons */
+        div[style*="display:flex;align-items:center;justify-content:space-between"] button {
+            transition: all 0.2s ease;
+        }
+        div[style*="display:flex;align-items:center;justify-content:space-between"] button:hover {
+            background: var(--accent) !important;
+            color: white !important;
+            transform: scale(1.05);
+        }
+
+        /* Try for Free button hover */
+        #tryFreeBtn:hover {
+            background: rgba(37, 99, 235, 0.15) !important;
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Sandbox capability note */
+        .sandbox-note {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            background: rgba(16, 185, 129, 0.06);
+            border: 1px solid rgba(16, 185, 129, 0.18);
+            border-left: 3px solid #34D399;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+        .sandbox-note:hover {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .sandbox-note .sandbox-icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .sandbox-note .sandbox-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .sandbox-note .sandbox-text strong {
+            color: #34D399;
+        }
+
         .dir-tree .dir-line { color: #60A5FA; font-weight: 600; }
         .dir-tree .file-count { color: var(--text-muted); font-size: 0.7rem; }
 
         .progress-bar {
-            width: 100%; height: 6px;
+            width: 100%; height: 8px;
             background: var(--bg-input);
-            border-radius: 3px;
+            border-radius: 4px;
             margin-top: 12px;
             overflow: hidden;
+            border: 1px solid var(--border);
         }
 
         .progress-bar .fill {
             height: 100%;
-            background: linear-gradient(90deg, #2563EB, #60A5FA);
-            border-radius: 3px;
-            transition: width 0.3s ease;
+            background: linear-gradient(90deg, #2563EB, #60A5FA, #2563EB);
+            background-size: 200% 100%;
+            border-radius: 4px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             width: 0%;
+            animation: shimmer 2s linear infinite;
         }
 
         .analyze-btn-secondary {
             background: linear-gradient(135deg, #059669, #047857);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+            box-shadow: 0 4px 16px rgba(5, 150, 105, 0.35);
         }
 
         .analyze-btn-secondary:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(5, 150, 105, 0.45);
+        }
+
+        .analyze-btn-secondary:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
         }
 
     </style>
@@ -748,7 +864,7 @@
             </div>
         </div>
 
-        <div id="sprintBanner" style="display:none;background:linear-gradient(135deg,rgba(37,99,235,0.15),rgba(16,185,129,0.1));border:1px solid rgba(37,99,235,0.3);border-radius:12px;padding:16px 20px;margin-bottom:20px;text-align:center;">
+        <div id="sprintBanner" style="display:none;background:linear-gradient(135deg,rgba(37,99,235,0.12),rgba(16,185,129,0.08));border:1px solid rgba(37,99,235,0.25);border-radius:12px;padding:16px 20px;margin-bottom:20px;text-align:center;box-shadow:0 0 30px rgba(37,99,235,0.08);">
             <div style="font-size:1.1rem;font-weight:700;color:#60A5FA;margin-bottom:4px;">&#9200; Sprint Window Active</div>
             <div style="color:var(--text-muted);font-size:0.9rem;">
                 <strong id="sprintDays">30</strong> days remaining in your <span id="sprintTier">EU AI Act Sprint</span>.
@@ -833,9 +949,9 @@
                     </div>
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
-                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:10px;">
-                        <span style="font-size:1rem;">&#127757;</span>
-                        <span style="font-size:0.8rem;color:var(--text-muted);">Browser sandbox runs a lightweight <strong style="color:#34D399;">Gate Scan</strong> (AI patterns + credential heuristics). For full analysis (codebase audit, EU AI Act, compliance), use the <strong>CLI tab</strong>.</span>
+                    <div class="sandbox-note">
+                        <span class="sandbox-icon">&#127757;</span>
+                        <span class="sandbox-text">Browser sandbox runs a lightweight <strong>Gate Scan</strong> (AI patterns + credential heuristics). For full analysis (codebase audit, EU AI Act, compliance), use the <strong>CLI tab</strong>.</span>
                     </div>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;">No Node.js required. Grab your entire repo folder and drop it here.</p>
                     <div id="browser-folder-dropzone" class="drop-zone" style="padding:40px 20px;margin-bottom:16px;transition:all 0.2s;">
@@ -889,7 +1005,7 @@
                             <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;">
                                 <span>&#128229;</span> Generate Certificate
                             </button>
-                            <button id="tryFreeBtn" style="padding:8px 16px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Try for Free</button>
+                            <button id="tryFreeBtn" style="padding:8px 16px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;">Try for Free</button>
                         </div>
                     </div>
                     <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
