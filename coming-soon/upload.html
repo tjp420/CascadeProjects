@@ -2333,8 +2333,8 @@
                     if (!isNodeModule && /security\.md|code_of_conduct|contributing|changelog/i.test(lowerPath)) {
                         securityFiles.push(path);
                     }
-                    // 7. Data quality: empty or trivial JSON
-                    if (lowerPath.endsWith('.json') && (text.trim().length < 10 || text.trim() === '{}' || text.trim() === '[]')) {
+                    // 7. Data quality: empty or trivial JSON (skip runtime data stores)
+                    if (lowerPath.endsWith('.json') && !/subscriptions\.json$/.test(lowerPath) && (text.trim().length < 10 || text.trim() === '{}' || text.trim() === '[]')) {
                         emptyJsonFiles.push(path);
                     }
                     // 2. Consolidation + 6. File reduction: simple content hash for duplicates
