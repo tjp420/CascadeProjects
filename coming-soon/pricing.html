@@ -203,15 +203,16 @@
         <article class="price-card" data-animate="fade-up" data-delay="100">
           <div class="price-card-header">
             <span class="price-tag">Instant Audit</span>
-            <h3>Instant Website Report</h3>
-            <div class="price-amount">$19<span class="price-unit">/domain</span></div>
+            <h3>Instant Code Hygiene Report</h3>
+            <div class="price-amount">$19<span class="price-unit">/project</span></div>
           </div>
-          <p class="price-desc">Automated public domain audit. PDF in 60 seconds.</p>
+          <p class="price-desc">Gate scan for credentials, mock data, and leaks. PDF in 60 seconds.</p>
           <ul class="price-features">
-            <li>SEO, SSL, mobile, speed, headers</li>
-            <li>60-second processing</li>
-            <li>Downloadable PDF report</li>
-            <li>Zero-retention: wiped from RAM</li>
+            <li>Credential &amp; secret detection</li>
+            <li>Mock data / fixture discovery</li>
+            <li>AI import &amp; debug artifact flags</li>
+            <li>Downloadable PDF certificate</li>
+            <li>Zero-retention: runs in browser sandbox</li>
           </ul>
           <button class="price-btn checkout-btn" data-tier="instant">Buy Instant Report — $19</button>
         </article>
@@ -223,12 +224,13 @@
             <h3>Executive Risk Certificate</h3>
             <div class="price-amount">$499<span class="price-unit">/project</span></div>
           </div>
-          <p class="price-desc">AI-powered technical review for boardrooms and regulatory filings.</p>
+          <p class="price-desc">Complete Scan with all 11 SimpleBeacon analyzers. Board-ready ZIP export.</p>
           <ul class="price-features">
-            <li>Cryptographically signed PDF</li>
-            <li>A–F grade + financial liability</li>
-            <li>AI-powered algorithmic verdict + automated cryptographic signature</li>
-            <li>48-hour turnaround</li>
+            <li>All 11 analysis engines (gate, consolidation, mock data, roadmap, codebase, file reduction, data quality, cleanup, npm audit, compliance, EU AI Act)</li>
+            <li>Deterministic heuristic scanning — no AI inference on counts</li>
+            <li>Certificate ZIP with PDF + per-module JSON exports</li>
+            <li>A–F grade + remediation roadmap</li>
+            <li>90-day token validity</li>
           </ul>
           <button class="price-btn checkout-btn" data-tier="executive">Get Certified — $499</button>
           <p class="price-sample"><a href="sample-report.html">View sample report</a></p>
@@ -238,24 +240,6 @@
 
       <h2 class="section-title" data-animate="fade-up">Corporate Compliance &amp; Board Deliverables</h2>
       <div class="pricing-grid">
-        <article class="price-card price-card-popular" data-animate="fade-up" data-delay="200">
-          <div class="popular-badge">Most Popular</div>
-          <div class="price-card-header">
-            <span class="price-tag">Board Deliverable</span>
-            <h3>Executive Risk Certificate</h3>
-            <div class="price-amount">$499<span class="price-unit">/project</span></div>
-          </div>
-          <p class="price-desc">AI-powered technical review for boardrooms and regulatory filings.</p>
-          <ul class="price-features">
-            <li>Cryptographically signed PDF</li>
-            <li>A–F grade + financial liability</li>
-            <li>AI-powered algorithmic verdict + automated cryptographic signature</li>
-            <li>48-hour turnaround</li>
-          </ul>
-          <button class="price-btn checkout-btn" data-tier="executive">Get Certified — $499</button>
-          <p class="price-sample"><a href="sample-report.html">View sample report</a></p>
-        </article>
-
         <article class="price-card price-card-premium" data-animate="fade-up" data-delay="300">
           <div class="price-card-header">
             <span class="price-tag">EU Regulatory</span>
@@ -285,12 +269,20 @@
           <div class="compare-cell compare-premium">$2,499 Sprint</div>
         </div>
         <div class="compare-row"><div class="compare-cell compare-feature">Price</div><div class="compare-cell">$0</div><div class="compare-cell">$19</div><div class="compare-cell compare-highlight"><strong>$499</strong></div><div class="compare-cell compare-premium"><strong>$2,499</strong></div></div>
-        <div class="compare-row"><div class="compare-cell compare-feature">Zero-retention</div><div class="compare-cell"><span class="check">&#10003;</span> CLI only</div><div class="compare-cell"><span class="check">&#10003;</span> RAM only</div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span> CLI only</div><div class="compare-cell compare-premium"><span class="check">&#10003;</span> CLI only</div></div>
-        <div class="compare-row"><div class="compare-cell compare-feature">Gate attestation</div><div class="compare-cell"><span class="check">&#10003;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
-        <div class="compare-row"><div class="compare-cell compare-feature">Signed PDF</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
-        <div class="compare-row"><div class="compare-cell compare-feature">EU AI Act scan</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="cross">&mdash;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Zero-retention</div><div class="compare-cell"><span class="check">&#10003;</span> CLI only</div><div class="compare-cell"><span class="check">&#10003;</span> Browser sandbox</div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span> Browser sandbox</div><div class="compare-cell compare-premium"><span class="check">&#10003;</span> Browser sandbox</div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Gate attestation (credentials, AI slop)</div><div class="compare-cell"><span class="check">&#10003;</span></div><div class="compare-cell"><span class="check">&#10003;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Consolidation scan (duplicates, monorepo)</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Mock data / fixture detection</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="check">&#10003;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Roadmap markers (TODO/FIXME)</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Codebase analysis (file types, LOC)</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">File reduction (unused assets, dupes)</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Data quality (empty JSON)</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Cleanup assistant (debug artifacts)</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">npm audit (package.json inventory)</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Compliance (license/governance files)</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">EU AI Act readiness assessment</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
+        <div class="compare-row"><div class="compare-cell compare-feature">Certificate ZIP (PDF + 11 JSON files)</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="check">&#10003;</span> PDF only</div><div class="compare-cell compare-highlight"><span class="check">&#10003;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
         <div class="compare-row"><div class="compare-cell compare-feature">Analyst access</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="cross">&mdash;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span> (30 days)</div></div>
-        <div class="compare-row"><div class="compare-cell compare-feature">Article 14 oversight</div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell"><span class="cross">&mdash;</span></div><div class="compare-cell compare-highlight"><span class="cross">&mdash;</span></div><div class="compare-cell compare-premium"><span class="check">&#10003;</span></div></div>
         <div class="compare-row"><div class="compare-cell compare-feature">Token validity</div><div class="compare-cell">Unlimited</div><div class="compare-cell">7 days</div><div class="compare-cell compare-highlight">90 days</div><div class="compare-cell compare-premium">30 days</div></div>
       </div>
       <p style="text-align:center;font-size:0.8rem;color:#6B7280;margin-bottom:40px;">The $19 Instant Report and $2,499 EU AI Act Sprint are fully automated self-service. No source code is uploaded to our servers. <strong>Continuous Shield</strong> ($1,499/mo) adds CI/CD gate monitoring, quarterly analyst reviews, and recurring certificates — <a href="contact.html?topic=enterprise">contact us</a> for enterprise setup.</p>
@@ -316,9 +308,9 @@
 
       <h2 class="section-title" data-animate="fade-up">FAQ</h2>
       <div class="faq-wrap">
-        <details class="faq-item" data-animate="fade-up"><summary>What is the $19 Instant Report and how does zero-retention work?</summary><p>The $19 Instant Website Report is a fully automated audit. You enter your domain, pay via Stripe, and download a comprehensive security PDF report within 60 seconds. <strong>Zero-retention means your domain and report only exist in our server's RAM for the seconds it takes to process.</strong> After you download the report, the data is explicitly deleted and garbage-collected. We do not store it, we do not log it, and we cannot retrieve it. Ever.</p></details>
+        <details class="faq-item" data-animate="fade-up"><summary>What is the $19 Instant Report and how does zero-retention work?</summary><p>The $19 Instant Code Hygiene Report runs a gate scan on your local repository for credentials, mock data, and AI imports. Pay via Stripe, run the scan in your browser sandbox, and download a PDF certificate within 60 seconds. <strong>Zero-retention means no source code ever leaves your machine.</strong> The scan runs entirely in your browser. We do not store, log, or transmit your source code. Ever.</p></details>
         <details class="faq-item" data-animate="fade-up"><summary>What is the "free audit" and what do I get?</summary><p>The complimentary AI Slop Audit runs entirely on your machine using our open-source CLI. You get an A&ndash;F grade, a list of AI-generated slop and credential leaks, and a remediation checklist. No source code ever leaves your infrastructure.</p></details>
-        <details class="faq-item" data-animate="fade-up"><summary>How is the Executive Risk Certificate different from the free audit?</summary><p>The free audit gives you raw findings. The $499 Executive Risk Certificate converts those findings into a cryptographically signed, one-page PDF with estimated financial liability, board-ready language, and an AI-powered algorithmic verdict with automated cryptographic signature. It is designed for regulatory filings and investor due diligence.</p></details>
+        <details class="faq-item" data-animate="fade-up"><summary>How is the Executive Risk Certificate different from the free audit?</summary><p>The free audit runs a lightweight hygiene sweep (gate scan). The $499 Executive Risk Certificate runs all 11 SimpleBeacon analysis engines — gate, consolidation, mock data, roadmap, codebase, file reduction, data quality, cleanup, npm audit, compliance, and EU AI Act readiness. It exports a ZIP containing a printable PDF certificate plus 11 per-module JSON files with full findings. Designed for regulatory filings and vendor handoff.</p></details>
         <details class="faq-item" data-animate="fade-up"><summary>Do I need a SaaS subscription to use these deliverables?</summary><p>No. The $19 Instant Report and $2,499 EU AI Act Sprint are self-service — download your PDF instantly from <a href="certificate-upload.html">certificate-upload.html</a>. Other board deliverables are one-time engagements — you run the scan locally, export anonymized JSON, and download your signed certificate within 48 hours. No recurring SaaS fees, no seat licenses, no feature gates.</p></details>
         <details class="faq-item" data-animate="fade-up"><summary>How does the EU AI Act Sprint self-service workflow work?</summary><p>After payment, you receive a license token and dashboard URL instantly. The token unlocks the EU AI Act scanner in your dashboard where you can either upload your source code zip or select a local directory. The scan runs on your machine (no code leaves your infrastructure) and generates an executive PDF immediately. Download your report from <a href="certificate-upload.html">certificate-upload.html</a> — no operator review required.</p></details>
         <details class="faq-item" data-animate="fade-up"><summary>Is the EU AI Act Sprint a legal conformity certification?</summary><p>No. It is a <em>technical readiness audit</em> that scans your codebase for Annex III high-risk AI patterns, Article 50 transparency gaps, and documentation completeness. It produces an executive PDF with findings and a 30-day remediation plan. For full legal conformity certification, engage a qualified EU legal firm.</p></details>
