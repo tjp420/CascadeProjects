@@ -1705,14 +1705,16 @@
         .schema-accordion.open .schema-chevron { transform: rotate(90deg); }
         .schema-accordion .schema-body {
             display: none;
-            padding: 14px 16px;
+            padding: 10px 14px;
             border-top: 1px solid var(--border);
+            max-height: 180px;
+            overflow-y: auto;
         }
         .schema-accordion.open .schema-body { display: block; animation: fadeInUp 0.25s ease-out; }
         .schema-accordion pre {
             margin: 0;
             font-family: var(--font-mono);
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             color: #94A3B8;
             line-height: 1.5;
             overflow-x: auto;
@@ -2424,29 +2426,29 @@
     </div>
 
     <!-- SHARED: Local Report Validator -->
-    <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
-        <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:12px;">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);">
             <div style="display:flex;align-items:center;gap:10px;">
                 <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">3</span>
-                <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Local Report Validator</h3>
+                <h3 style="margin:0;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Local Report Validator</h3>
             </div>
         </div>
-        <div style="padding:20px 24px;background:var(--bg-input);">
-            <div class="input-mode-toggle" style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:16px;">
+        <div style="padding:16px 20px;background:var(--bg-input);">
+            <div class="input-mode-toggle" style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:12px;">
                 <button id="modeFile" class="mode-btn active" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:var(--accent);color:white;transition:all 0.2s;">&#128229; Drop File</button>
                 <button id="modePaste" class="mode-btn" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-muted);transition:all 0.2s;">&#128203; Paste JSON</button>
             </div>
             <div id="fileModePanel">
-                <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:12px;">
-                    <div class="icon">&#128229;</div>
-                    <p>Drop your <code>report.json</code> here<br><span style="font-size:0.8rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
+                <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:10px;padding:24px 20px;">
+                    <div class="icon" style="font-size:1.6rem;margin-bottom:8px;">&#128229;</div>
+                    <p style="font-size:0.82rem;margin:0;">Drop your <code>report.json</code> here<br><span style="font-size:0.75rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
                     <p class="file-name" id="cliFileName"></p>
                 </div>
             </div>
-            <div id="pasteModePanel" style="display:none;margin-bottom:12px;">
-                <label style="display:block;font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Paste JSON directly</label>
-                <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.8rem;resize:vertical;"></textarea>
-                <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);color:white;border:none;font-weight:600;">Load JSON</button>
+            <div id="pasteModePanel" style="display:none;margin-bottom:10px;">
+                <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">Paste JSON directly</label>
+                <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:72px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.78rem;resize:vertical;"></textarea>
+                <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:6px;width:100%;padding:8px;background:var(--accent);color:white;border:none;font-weight:600;font-size:0.85rem;">Load JSON</button>
             </div>
             <div id="cliHashRibbon" class="hash-ribbon" style="display:none;">
                 <span class="hash-label">&#128274; Local Build Integrity</span>
@@ -5985,8 +5987,8 @@ Generated entirely in-browser. Zero data uploaded.
                     else if (d.pass === false || d.gatePass === false) status = 'BLOCKED';
                     else if (d.status === 'REVIEW') status = 'REVIEW';
                     else {
-                        const actionable = Object.entries(d).filter(([k,v]) => typeof v === 'number' && v > 0 && !/score|total|percentage|rate/i.test(k));
-                        const arrays = Object.entries(d).filter(([k,v]) => Array.isArray(v) && v.length > 0 && !/recommendations|documentationFound|controls|categories|licenseFiles|securityFiles|missingGovernanceFiles|affectedFiles|todoFiles|packageJsonFiles|unusedAssetCandidates|debugArtifacts|findings|fileTypeBreakdown|languageDominance/i.test(k));
+                        const actionable = Object.entries(d).filter(([k,v]) => typeof v === 'number' && v > 0 && !/score|totalFiles|totalLines|averageLinesPerFile|readinessScore|percentage|rate/i.test(k));
+                        const arrays = Object.entries(d).filter(([k,v]) => Array.isArray(v) && v.length > 0 && !/recommendations|documentationFound|controls|categories|licenseFiles|securityFiles|missingGovernanceFiles|affectedFiles|todoFiles|packageJsonFiles|unusedAssetCandidates|debugArtifacts|findings|fileTypeBreakdown|languageDominance|checklist/i.test(k));
                         if (actionable.length === 0 && arrays.length === 0) status = 'PASS';
                     }
                     return {
