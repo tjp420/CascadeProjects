@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SimpleBeacon — Local CLI &amp; MCP for AI-assisted code</title>
+  <meta name="description" content="Install SimpleBeacon locally. MCP snippet scans in Cursor, full-repo --gate for PR/CI. No repo upload. Free and offline by default.">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://simplebeacon.ai/community">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260530site">
+  <script src="site-config.js?v=20260602contact"></script>
+  <script src="app-links.js?v=20260602contact"></script>
+</head>
+<body>
+    <div id="loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0B0F19;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s ease,visibility .6s ease;">
+        <div style="width:48px;height:48px;border-radius:50%;border:3px solid rgba(37,99,235,.2);border-top-color:#2563EB;animation:spin 1s linear infinite;margin-bottom:20px;"></div>
+        <div style="color:#9CA3AF;font-size:14px;letter-spacing:.05em;">SimpleBeacon</div>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}body.loaded #loader{opacity:0;visibility:hidden;pointer-events:none}</style>
+    </div>
+    <script>window.addEventListener('DOMContentLoaded',function(){document.body.classList.add('loaded')});setTimeout(function(){document.body.classList.add('loaded')},3000)</script>
+  <main class="page-centered">
+    <a href="index.html" class="back-link">← SimpleBeacon home</a>
+
+    <article class="cli-install">
+      <p class="sales-gate-brand">Community · $0</p>
+      <h1 style="text-align:center;margin-bottom:0.5rem;">Release hygiene for AI-assisted code</h1>
+      <p class="signin-note">
+        Deterministic static checks for credential patterns, sample-data imports in production routes, and AI-fiction KPIs.
+        <strong>Runs on your machine</strong> — nothing uploads unless you opt in.
+      </p>
+
+      <div class="pricing-card" style="margin-top:1.25rem;max-width:none;">
+        <p class="pricing-label">One command</p>
+        <h3>Starter setup (MCP + CI + config)</h3>
+        <div class="cli-hint" id="install"><code>npx --yes simplebeacon init --starter</code></div>
+        <p class="pricing-note" style="margin-top:0.75rem;">Zero-install from GitHub — wires config, Cursor MCP, agent rule, and GitHub Action in one step.</p>
+        <div class="cli-hint"><code>npm install -D simplebeacon</code></div>
+        <p class="cli-note">Prefer zero install? Use <code>npx --yes simplebeacon init --starter</code> above — no <code>package.json</code> edit required.</p>
+        <p class="pricing-note" style="margin-top:0.75rem;">
+          Creates <code>.simplebeacon/config.json</code>, Cursor MCP (<code>simplebeacon-mcp --offline</code>),
+          an agent scan rule, and <code>.github/workflows/simplebeacon.yml</code>.
+          Reload Cursor → <strong>Settings → MCP</strong> → enable <strong>simplebeacon</strong>.
+        </p>
+      </div>
+
+      <div class="pricing-card" style="margin-top:1.25rem;max-width:none;">
+        <p class="pricing-label">While coding</p>
+        <h3>MCP in Cursor (shift-left)</h3>
+        <p class="pricing-note">Your agent scans snippets and files before they land in a PR — same rules as CI, local only.</p>
+        <ul class="pricing-features">
+          <li><code>scan_snippet</code> — paste or draft code before save</li>
+          <li><code>scan_file</code> — path under your repo root</li>
+          <li><code>gate_status</code> — last full scan pass/fail + blocking count</li>
+          <li><code>explain_finding</code> — why a rule fired and how to fix it</li>
+        </ul>
+        <div class="cli-hint"><code>npx simplebeacon-mcp --smoke-test</code></div>
+        <p class="cli-note">Smoke test prints sample findings and exits — the MCP server otherwise waits on stdio (normal).</p>
+        <a href="https://github.com/tjp420/simplebeacon/blob/main/docs/MCP-USER-SETUP.md" class="cta-billing-btn" rel="noopener noreferrer" data-github-mcp-docs>MCP setup guide →</a>
+      </div>
+
+      <div class="pricing-card" style="margin-top:1.25rem;max-width:none;">
+        <p class="pricing-label">Before merge</p>
+        <h3>Full-repo gate (authoritative)</h3>
+        <p class="pricing-note">MCP catches mistakes early; the CLI gate is what blocks merge in CI.</p>
+        <div class="cli-hint"><code>npx simplebeacon scan --gate --offline</code></div>
+        <div class="cli-hint"><code>npx simplebeacon gate status</code></div>
+        <ul class="pricing-features">
+          <li><code>--offline</code> — network blocked; proves nothing left your machine</li>
+          <li><code>--gate</code> — exit non-zero on blocking issues (sample paths, cred patterns, fiction KPIs)</li>
+          <li>Report blocking issues — not raw finding counts as a flex metric</li>
+        </ul>
+        <a href="https://github.com/tjp420/simplebeacon/blob/main/docs/GATE-CALIBRATION.md" class="cta-billing-btn cta-billing-btn--secondary" rel="noopener noreferrer" data-github-gate-docs>Gate calibration →</a>
+      </div>
+
+      <div class="pricing-card" style="margin-top:1.25rem;max-width:none;">
+        <p class="pricing-label">CI gate</p>
+        <h3>GitHub Action</h3>
+        <p class="pricing-note"><code>init --starter</code> drops the workflow file, or copy <code>examples/github-action/simplebeacon.yml</code> manually.</p>
+        <ul class="pricing-features">
+          <li>Fails PRs on blocking production leaks &amp; credential patterns</li>
+          <li>JSON report artifact + optional PR summary</li>
+          <li>Start in report-only mode; add <code>--gate</code> when your team is calibrated</li>
+        </ul>
+        <a href="https://github.com/tjp420/simplebeacon/blob/main/docs/GITHUB-ACTION-QUICKSTART.md" class="cta-billing-btn" rel="noopener noreferrer" data-github-docs>Action quickstart →</a>
+      </div>
+
+      <p class="cli-note" style="margin-top:1.5rem;">
+        Source:
+        <a href="https://github.com/tjp420/simplebeacon" rel="noopener noreferrer" data-github-link>github.com/tjp420/simplebeacon</a>
+        · MIT · MCP server has zero extra npm dependencies
+      </p>
+
+      <div class="pricing-card" style="margin-top:1.25rem;max-width:none;">
+        <p class="pricing-label">Honest metrics</p>
+        <h3>Gate blocking count — not raw findings</h3>
+        <p class="pricing-note">Large repos can surface thousands of informational pattern hits. The gate fails on <strong>blocking issues</strong> only (sample paths in prod routes, credential shapes, fiction KPIs). Tune allowlists in <code>.simplebeacon/config.json</code>.</p>
+        <ul class="pricing-features">
+          <li>Report <code>gate status</code> and blocking count — never flex total findings</li>
+          <li>MCP smoke test shows 2 blocking hits on a known bad import snippet</li>
+          <li>See <a href="https://github.com/tjp420/simplebeacon/blob/main/docs/GATE-CALIBRATION.md" data-github-gate-docs>GATE-CALIBRATION.md</a></li>
+        </ul>
+      </div>
+
+      <div class="pricing-card" style="margin-top:1.25rem;max-width:none;border-style:dashed;">
+        <p class="pricing-label">Optional paid</p>
+        <h3>Executive PDF (not required to use the CLI)</h3>
+        <p class="pricing-note">
+          Run the gate locally, then book a formatted clearance PDF from your JSON report — no zip handoff required for the free tier.
+          Agency milestone certificates from <a href="pricing.html#client-deliverables">$999+</a>.
+        </p>
+        <a href="pricing.html#auditBookingForm" class="cta-billing-btn cta-billing-btn--secondary">Book clearance PDF — $499</a>
+      </div>
+
+      <p class="cli-note" style="margin-top:1.5rem;">
+        Browser snippet check on the <a href="index.html">homepage</a> is a quick demo — MCP + CLI are the product.
+        Cloud Teams ($49/mo) is internal scan history — <a href="cloud-teams.html">waitlist</a>.
+      </p>
+    </article>
+  </main>
+  <script>
+    (function () {
+      var cfg = window.SIMPLEBEACON_SITE || {};
+      var gh = String(cfg.githubUrl || 'https://github.com/tjp420/simplebeacon').trim();
+      var base = gh.replace(/\/$/, '');
+      document.querySelectorAll('[data-github-link]').forEach(function (el) {
+        el.href = gh;
+        el.textContent = gh.replace(/^https:\/\//, '');
+      });
+      document.querySelectorAll('[data-github-docs]').forEach(function (el) {
+        el.href = base + '/blob/main/docs/GITHUB-ACTION-QUICKSTART.md';
+      });
+      document.querySelectorAll('[data-github-mcp-docs]').forEach(function (el) {
+        el.href = base + '/blob/main/docs/MCP-USER-SETUP.md';
+      });
+      document.querySelectorAll('[data-github-gate-docs]').forEach(function (el) {
+        el.href = base + '/blob/main/docs/GATE-CALIBRATION.md';
+      });
+    })();
+  </script>
+  <script>
+    // Only load Cloudflare analytics in production, not on localhost or file:// protocol
+    if (window.location.protocol !== 'file:' && !window.location.hostname.match(/^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/)) {
+      (function() {
+        var script = document.createElement('script');
+        script.defer = true;
+        script.src = 'https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447';
+        script.integrity = 'sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==';
+        script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"' + (window.CF_BEACON_TOKEN || '') + '","r":1}');
+        script.crossOrigin = 'anonymous';
+        document.body.appendChild(script);
+      })();
+    }
+  </script>
+</body>
+</html>

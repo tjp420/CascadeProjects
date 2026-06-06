@@ -165,11 +165,40 @@ function formatJsonReport(report, gateResult = null) {
     };
 
     // EU AI Act module
+    const euControls = report.euAiActControls || (report.euAiAct?.controls) || [];
+    const euHighRisk = report.euAiActHighRisk || (report.euAiAct?.highRiskIndicators) || 0;
+    const euTransparency = report.euAiActTransparency || (report.euAiAct?.transparencyGaps) || 0;
+    const euDocs = report.euAiActDocumentation || (report.euAiAct?.documentationArtifacts) || 0;
+    const euIndicators = report.euAiActFindings || (report.euAiAct?.aiSystemIndicators) || 0;
+    const euDocFound = report.euAiActDocFound || (report.euAiAct?.documentationFound) || [];
+    const euNote = report.euAiActDeadlineNote || (report.euAiAct?.deadlineNote) || '';
     const euAiAct = report.euAiAct || {
-        aiSystemIndicators: report.euAiActFindings || 0,
-        summary: (report.euAiActFindings || 0)
-            ? `${report.euAiActFindings} AI system indicators detected.`
+        aiSystemIndicators: euIndicators,
+        highRiskIndicators: euHighRisk,
+        transparencyGaps: euTransparency,
+        documentationArtifacts: euDocs,
+        documentationFound: euDocFound,
+        controls: euControls.slice(0, 10),
+        deadlineNote: euNote || ((euIndicators || euHighRisk) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.'),
+        summary: (euIndicators || euHighRisk)
+            ? `${euIndicators} AI system indicator${euIndicators === 1 ? '' : 's'} detected; ${euHighRisk} high-risk, ${euTransparency} transparency gap${euTransparency === 1 ? '' : 's'}.`
             : 'No EU AI Act indicators found.'
+    };
+
+    // Dependency Audit module
+    const depVulns = report.dependencyAudit || {};
+    const vulnCount = depVulns.vulnerabilityCount || 0;
+    const dependencyAudit = report.dependencyAudit || {
+        vulnerabilityCount: vulnCount,
+        critical: depVulns.critical || 0,
+        high: depVulns.high || 0,
+        moderate: depVulns.moderate || 0,
+        low: depVulns.low || 0,
+        affectedPackages: depVulns.affectedPackages || [],
+        outdatedPackages: depVulns.outdatedPackages || [],
+        summary: vulnCount
+            ? `${vulnCount} dependency issue${vulnCount === 1 ? '' : 's'} detected${(depVulns.critical || 0) ? ` (${depVulns.critical} critical)` : ''}.`
+            : 'No dependency vulnerabilities found.'
     };
 
     const payload = {
@@ -185,6 +214,7 @@ function formatJsonReport(report, gateResult = null) {
         roadmap,
         mockData,
         euAiAct,
+        dependencyAudit,
         summary: {
             gatePass: enrichedGate?.pass ?? null,
             qualityScore: report.qualityScore || 0,

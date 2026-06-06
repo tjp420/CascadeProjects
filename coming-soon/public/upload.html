@@ -2201,8 +2201,8 @@
             });
         };
 
-        // API base URL — same origin so requests route through the coming-soon server proxy
-        const API_BASE = '';
+        // API base URL — localhost uses same-origin; production uses Render backend
+        const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? '' : 'https://simplebeacon.onrender.com';
 
         // DOM element declarations
         const licenseInput = document.getElementById('licenseToken');
@@ -2405,14 +2405,6 @@
             } else if (num === '11') {
                 const eu = data.euAiActSummary || data.euAiAct || {};
                 moduleData = { ...moduleData, aiSystemIndicators: eu.aiSystemIndicators || 0, highRiskIndicators: eu.highRiskIndicators || 0, transparencyGaps: eu.transparencyGaps || 0, documentationArtifacts: eu.documentationArtifacts || 0, documentationFound: (eu.documentationFound || []).slice(0, 5), summary: eu.deadlineNote || ((eu.aiSystemIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.') };
-            } else if (num === '12') {
-                const depAudit = data.dependencyAudit || data.vulnerabilityAudit || {};
-                const vulnIssues = (data.detectedIssues || []).filter(i => i.type && /vulnerab|cve|npm audit|dependency|outdated/i.test(i.type));
-                const vc = depAudit.vulnerabilityCount || vulnIssues.length || 0;
-                const cc = depAudit.critical || vulnIssues.filter(i => i.severity === 'critical').length || 0;
-                const hc = depAudit.high || vulnIssues.filter(i => i.severity === 'high').length || 0;
-                const affected = (depAudit.affectedPackages || depAudit.affectedFiles || []).filter(Boolean);
-                moduleData = { ...moduleData, metrics: { riskScore: vc > 0 ? Math.min(100, cc * 25 + hc * 10 + (vc - cc - hc) * 2) : 0, priority: cc > 0 ? 'critical' : (hc > 0 ? 'high' : (vc > 0 ? 'medium' : 'low')) }, vulnerabilityCount: vc, critical: cc, high: hc, moderate: depAudit.moderate || vulnIssues.filter(i => i.severity === 'medium').length || 0, low: depAudit.low || vulnIssues.filter(i => i.severity === 'low').length || 0, affectedPackages: affected.slice(0, 10), outdatedPackages: (depAudit.outdatedPackages || []).slice(0, 10), summary: vc ? `${vc} dependency issue${vc === 1 ? '' : 's'} detected${cc ? ` (${cc} critical)` : ''}.` : 'No dependency vulnerabilities found.', recommendations: cc > 0 ? ['Update critical dependencies immediately.', 'Review changelogs for breaking changes before bumping major versions.'] : (vc > 0 ? ['Run npm audit fix to auto-resolve patchable issues.', 'Schedule dependency update sprint within 30 days.'] : ['Keep dependencies current with automated Dependabot or Renovate.']), remediation: cc > 0 ? 'Upgrade critical and high-severity packages before next release.' : (vc > 0 ? 'Run npm audit fix or yarn audit fix to resolve patchable vulnerabilities.' : 'No remediation needed — dependency hygiene is clean.') };
             }
 
             const blob = new Blob([JSON.stringify(moduleData, null, 2)], { type: 'application/json' });
@@ -2533,7 +2525,7 @@
             euai:       ['gateReport', 'euAiActSummary', 'compliance'],
             compliance: ['gateReport', 'compliance', 'npmAudit'],
             hygiene:    ['gateReport', 'cleanup', 'dataQuality', 'fileReduction', 'mockDataCategories'],
-            complete:   ['gateReport', 'consolidation', 'mockDataCategories', 'roadmap', 'codebase', 'fileReduction', 'dataQuality', 'cleanup', 'npmAudit', 'compliance', 'euAiActSummary', 'dependencyAudit']
+            complete:   ['gateReport', 'consolidation', 'mockDataCategories', 'roadmap', 'codebase', 'fileReduction', 'dataQuality', 'cleanup', 'npmAudit', 'compliance', 'euAiActSummary']
         };
 
         // Profile selector wiring
@@ -3341,6 +3333,7 @@
                             files.push(file);
                         } catch (err) {
                             traverseErrors++;
+                            console.warn('[traverse] Skipped unreadable file:', currentPath, err);
                         }
                     } else if (entry.isDirectory) {
                         const dirReader = entry.createReader();
@@ -3959,20 +3952,6 @@
                         {value: eu.documentationArtifacts || 0, label: 'Docs'}
                     ], eu.deadlineNote || ((eu.aiSystemIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.'), euRisk, euDetail);
                 }
-
-                // 12. Dependency Vulnerabilities
-                const depAudit = data.dependencyAudit || data.vulnerabilityAudit || {};
-                const vulnIssues = (data.detectedIssues || []).filter(i => i.type && /vulnerab|cve|npm audit|dependency|outdated/i.test(i.type));
-                const vulnCount = depAudit.vulnerabilityCount || vulnIssues.length || 0;
-                const criticalVulns = depAudit.critical || vulnIssues.filter(i => i.severity === 'critical').length || 0;
-                const highVulns = depAudit.high || vulnIssues.filter(i => i.severity === 'high').length || 0;
-                const vulnFiles = (depAudit.affectedPackages || depAudit.affectedFiles || []).slice(0, 6);
-                const vulnColor = criticalVulns > 0 ? '#EF4444' : (highVulns > 0 ? '#F59E0B' : (vulnCount > 0 ? '#60A5FA' : null));
-                const vulnDetail = vulnCount ? `<div class="detail-label">Vulnerability Summary</div><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">${vulnCount} total issue${vulnCount === 1 ? '' : 's'} found across dependencies.</div>${criticalVulns ? `<div style="font-size:0.7rem;color:#EF4444;margin-bottom:4px;">&#128308; ${criticalVulns} critical</div>` : ''}${highVulns ? `<div style="font-size:0.7rem;color:#F59E0B;margin-bottom:4px;">&#128993; ${highVulns} high</div>` : ''}${vulnFiles.length ? `<div class="detail-label">Affected Packages</div><ul>${vulnFiles.map(f => `<li>${f}</li>`).join('')}</ul>` : ''}<div class="detail-fix">Run ‘npm audit fix’ or update packages. Review breaking changes before major version bumps.</div>` : `<div class="detail-label">No known vulnerabilities</div><div style="font-size:0.72rem;color:var(--text-muted);">Dependency scan shows no flagged CVEs or audit warnings.</div>`;
-                pushModule('12', '🔒', 'Dependency Vulns', [
-                    {value: vulnCount, label: 'Vulnerabilities', color: vulnColor || '#60A5FA'},
-                    {value: criticalVulns + highVulns, label: 'Severe', color: criticalVulns > 0 ? '#EF4444' : (highVulns > 0 ? '#F59E0B' : '#60A5FA')}
-                ], vulnCount ? `${vulnCount} dependency issue${vulnCount === 1 ? '' : 's'} detected${criticalVulns ? ` (${criticalVulns} critical)` : ''}.` : 'No dependency vulnerabilities found.', vulnColor, vulnDetail);
 
                 // Expose for download handler
                 window._scanPreviewModules = modules;
@@ -4652,18 +4631,6 @@
                     euAiActFindings: aiHits.length,
                     euAiActScanned: sourceFiles.length
                 } : {}),
-                ...(allowedSections.includes('dependencyAudit') ? {
-                    dependencyAudit: {
-                        vulnerabilityCount: 0,
-                        critical: 0,
-                        high: 0,
-                        moderate: 0,
-                        low: 0,
-                        affectedPackages: [],
-                        outdatedPackages: [],
-                        summary: 'Browser scan does not execute npm audit. Run CLI scan with --audit flag for full CVE report.'
-                    }
-                } : {}),
                 credentialScanned: sourceFiles.length,
                 credentialFindings: credentialHits,
                 scanDurationMs: Date.now() - startTime,
@@ -5231,30 +5198,7 @@
                 });
             }
 
-            // 12. Dependency Vulnerabilities — CVE and audit findings
-            const depAudit = report.dependencyAudit || report.vulnerabilityAudit || {};
-            const vulnIssues = (report.detectedIssues || []).filter(i => i.type && /vulnerab|cve|npm audit|dependency|outdated/i.test(i.type));
-            const vulnCount = depAudit.vulnerabilityCount || vulnIssues.length || 0;
-            const criticalVulns = depAudit.critical || vulnIssues.filter(i => i.severity === 'critical').length || 0;
-            const highVulns = depAudit.high || vulnIssues.filter(i => i.severity === 'high').length || 0;
-            if (vulnCount > 0 || depAudit.affectedPackages || depAudit.outdatedPackages) {
-                addModule('dependency-vulns', 'Dependency Vulns', {
-                    vulnerabilityCount: vulnCount,
-                    critical: criticalVulns,
-                    high: highVulns,
-                    moderate: depAudit.moderate || vulnIssues.filter(i => i.severity === 'medium').length || 0,
-                    low: depAudit.low || vulnIssues.filter(i => i.severity === 'low').length || 0,
-                    affectedPackages: (depAudit.affectedPackages || []).slice(0, 5),
-                    outdatedPackages: (depAudit.outdatedPackages || []).slice(0, 5),
-                    severity: criticalVulns > 0 ? 'critical' : (highVulns > 0 ? 'high' : (vulnCount > 0 ? 'medium' : 'low')),
-                    severityColor: criticalVulns > 0 ? '#EF4444' : (highVulns > 0 ? '#F59E0B' : '#60A5FA'),
-                    summary: vulnCount ? `${vulnCount} dependency issue${vulnCount === 1 ? '' : 's'} detected${criticalVulns ? ` (${criticalVulns} critical)` : ''}.` : 'No dependency vulnerabilities found.',
-                    remediation: criticalVulns > 0 ? 'Upgrade critical and high-severity packages before next release.' : (vulnCount > 0 ? 'Run npm audit fix or yarn audit fix to resolve patchable vulnerabilities.' : 'No remediation needed.'),
-                    recommendations: criticalVulns > 0 ? ['Update critical dependencies immediately.', 'Review changelogs for breaking changes before bumping major versions.'] : (vulnCount > 0 ? ['Run npm audit fix to auto-resolve patchable issues.', 'Schedule dependency update sprint within 30 days.'] : ['Keep dependencies current with automated Dependabot or Renovate.'])
-                });
-            }
-
-            // 13. Remediation Plan — phased action items with progress
+            // 12. Remediation Plan — phased action items with progress
             if (report.remediationPhases && report.remediationPhases.length > 0) {
                 const phases = report.remediationPhases;
                 const completed = phases.filter(p => p.status === 'completed' || p.progress === 100).length;
@@ -6071,7 +6015,7 @@ ${(complianceMod.licenseCount || complianceMod.securityCount) ? `<div class="sec
                     if (issue.fix) rows.push({ label: 'Remediation', value: issue.fix });
                     if (issue.count) rows.push({ label: 'Occurrences', value: String(issue.count) });
                     showDetailPanel(issue.type || 'Finding Detail', rows);
-                } catch (err) { /* ignore parse errors */ }
+                } catch (err) { console.error('Issue detail parse error:', err); }
             }
         });
     </script>

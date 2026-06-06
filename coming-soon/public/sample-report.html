@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0d1117">
+  <title>Sample Executive Clearance PDF — Acme Enterprise Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      margin: 14mm 16mm;
+      background: #0d1117;
+    }
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --bg-elevated: #161b22;
+      --bg-panel: #010409;
+      --border: #30363d;
+      --border-muted: #21262d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --dim: #6e7681;
+      --line: #30363d;
+      --accent: #58a6ff;
+      --accent-soft: rgba(88, 166, 255, 0.12);
+      --pass: #3fb950;
+      --pass-bg: rgba(46, 164, 79, 0.14);
+      --warn: #d29922;
+      --warn-bg: rgba(210, 153, 34, 0.14);
+      --blocked: #f85149;
+      --blocked-bg: rgba(248, 81, 73, 0.14);
+      --gold: #d29922;
+      --green-glow: rgba(46, 164, 79, 0.12);
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      margin: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, var(--green-glow), transparent 55%),
+        radial-gradient(circle at 100% 80%, rgba(88, 166, 255, 0.06), transparent 40%),
+        var(--bg);
+      font-size: 11pt;
+      line-height: 1.55;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .cover-page {
+      min-height: 100vh;
+      padding: 48px 52px 40px;
+      background:
+        radial-gradient(ellipse 90% 60% at 20% 0%, rgba(46, 164, 79, 0.18), transparent 55%),
+        radial-gradient(circle at 100% 20%, rgba(88, 166, 255, 0.12), transparent 45%),
+        linear-gradient(160deg, #010409 0%, #0d1117 42%, #161b22 100%);
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      page-break-after: always;
+    }
+    .cover-kicker { letter-spacing: 0.14em; text-transform: uppercase; font-size: 10pt; color: var(--muted); margin: 0 0 12px; }
+    .cover-title { font-family: "Inter", "Segoe UI", sans-serif; font-size: 34pt; line-height: 1.12; margin: 0 0 16px; font-weight: 700; max-width: 720px; letter-spacing: -0.02em; }
+    .cover-sub { font-size: 13pt; color: #c9d1d9; max-width: 640px; margin: 0 0 28px; }
+    .cover-meta { font-size: 10pt; color: var(--muted); line-height: 1.7; }
+    .cover-badges { margin-top: 32px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .badge { display: inline-block; padding: 6px 14px; border-radius: 999px; font-size: 10pt; font-weight: 700; letter-spacing: 0.04em; border: 1px solid var(--border); }
+    .badge-gold { background: rgba(210, 153, 34, 0.12); color: #e3b341; border-color: rgba(210, 153, 34, 0.35); }
+    .badge-pass { background: var(--pass-bg); color: var(--pass); border-color: rgba(63, 185, 80, 0.35); }
+    .badge-warn { background: var(--warn-bg); color: var(--warn); border-color: rgba(210, 153, 34, 0.35); }
+    .badge-blocked { background: var(--blocked-bg); color: var(--blocked); border-color: rgba(248, 81, 73, 0.35); }
+    .confidential { margin-top: 48px; font-size: 9pt; color: var(--dim); border-top: 1px solid var(--border-muted); padding-top: 16px; }
+    main { padding: 36px 52px 48px; max-width: 920px; margin: 0 auto; }
+    .section { margin-bottom: 32px; page-break-inside: avoid; }
+    .section-num { color: var(--gold); font-size: 10pt; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+    h2 { font-family: "Inter", "Segoe UI", sans-serif; font-size: 20pt; margin: 0 0 12px; color: var(--text); page-break-after: avoid; letter-spacing: -0.02em; }
+    h3 { font-size: 12pt; margin: 18px 0 8px; color: #c9d1d9; }
+    .meta { color: var(--muted); font-size: 9.5pt; }
+    .verdict-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin: 16px 0 24px; }
+    .verdict-card { border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; background: var(--bg-elevated); }
+    .verdict-card.ready { border-left: 5px solid var(--pass); }
+    .verdict-card.conditional { border-left: 5px solid var(--warn); }
+    .verdict-card.blocked { border-left: 5px solid var(--blocked); }
+    .verdict-label { font-size: 10pt; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
+    .verdict-value { font-family: "Inter", "Segoe UI", sans-serif; font-size: 18pt; font-weight: 700; margin-bottom: 8px; }
+    .score-ring { font-size: 28pt; font-weight: 700; color: var(--accent); }
+    .exec-box { background: var(--accent-soft); border: 1px solid rgba(88, 166, 255, 0.28); border-radius: 12px; padding: 20px 22px; margin: 12px 0 8px; }
+    .exec-headline { font-weight: 700; color: #79c0ff; margin: 14px 0 10px; font-size: 12pt; }
+    .kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 20px 0; }
+    .kpi { border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; background: var(--bg-elevated); }
+    .kpi strong { display: block; font-size: 18pt; line-height: 1.1; margin-bottom: 4px; color: var(--text); }
+    .kpi span { color: var(--muted); font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.05em; }
+    .risk-matrix { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    .risk-matrix th, .risk-matrix td { border: 1px solid var(--border); padding: 10px; font-size: 10pt; }
+    .risk-matrix th { background: var(--bg-panel); text-align: left; color: #c9d1d9; }
+    .data-table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 9.5pt; }
+    .data-table th, .data-table td { border: 1px solid var(--border); padding: 8px 9px; vertical-align: top; text-align: left; }
+    .data-table th { background: var(--bg-panel); font-weight: 600; color: #c9d1d9; }
+    .data-table td { background: var(--bg-elevated); color: var(--text); }
+    .data-table tbody tr:nth-child(even) td { background: #131920; }
+    .data-table .empty { color: var(--muted); font-style: italic; }
+    code { font-size: 9pt; word-break: break-word; background: rgba(110, 118, 129, 0.18); color: #e6edf3; padding: 1px 4px; border-radius: 4px; font-family: "JetBrains Mono", Consolas, monospace; }
+    .sev { font-size: 8pt; font-weight: 700; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+    .sev-high { background: var(--blocked-bg); color: #ff7b72; }
+    .sev-medium { background: var(--warn-bg); color: #e3b341; }
+    .sev-low { background: var(--accent-soft); color: #79c0ff; }
+    .callout { background: rgba(210, 153, 34, 0.1); border: 1px solid rgba(210, 153, 34, 0.35); border-radius: 8px; padding: 12px 14px; font-size: 10pt; margin: 12px 0; color: #e6edf3; }
+    .gate-banner { margin: 18px 0 22px; padding: 22px 24px; border-radius: 14px; text-align: center; border: 2px solid var(--border); background: var(--bg-elevated); }
+    .gate-banner.pass { background: var(--pass-bg); border-color: rgba(63, 185, 80, 0.45); color: var(--pass); }
+    .gate-banner.fail { background: var(--blocked-bg); border-color: rgba(248, 81, 73, 0.45); color: var(--blocked); }
+    .gate-banner-label { font-size: 10pt; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.85; }
+    .gate-banner-value { font-family: "Inter", "Segoe UI", sans-serif; font-size: 42pt; font-weight: 800; line-height: 1.1; margin-top: 6px; }
+    .ledger-table td:first-child { width: 34%; font-weight: 600; background: var(--bg-panel); color: #c9d1d9; }
+    .tier-dot { display: inline-block; width: 10px; height: 10px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
+    .tier-critical { background: #f85149; }
+    .tier-high { background: #d29922; }
+    .tier-medium { background: #58a6ff; }
+    code.snippet { display: block; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; background: var(--bg-panel); border: 1px solid var(--border-muted); padding: 6px 8px; }
+    .fix-cell { min-width: 140px; word-break: break-word; overflow-wrap: anywhere; }
+    .impact-cell, .recipe-cell { min-width: 160px; max-width: 240px; font-size: 9pt; line-height: 1.45; vertical-align: top; }
+    .impact-badge { display: block; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); font-weight: 600; }
+    .impact-critical { background: var(--blocked-bg); color: #ff7b72; border-color: rgba(248, 81, 73, 0.35); }
+    .impact-high { background: rgba(210, 153, 34, 0.12); color: #e3b341; border-color: rgba(210, 153, 34, 0.35); }
+    .impact-hygiene { background: var(--accent-soft); color: #79c0ff; border-color: rgba(88, 166, 255, 0.28); }
+    .impact-review { background: rgba(110, 118, 129, 0.12); color: #c9d1d9; }
+    .recipe-cell { color: #c9d1d9; }
+    .recipe-cell code { display: inline; font-size: 8.5pt; }
+    .verify-block { margin: 18px 0 8px; }
+    .verify-block h3 { margin-top: 0; }
+    .signoff-section { page-break-before: always; }
+    .signoff-grid { border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; background: var(--bg-elevated); margin: 12px 0 20px; }
+    .signoff-check { display: block; margin: 0 0 12px; padding-left: 1.6rem; position: relative; font-size: 10pt; line-height: 1.5; color: var(--text); }
+    .signoff-check:last-child { margin-bottom: 0; }
+    .signoff-box { position: absolute; left: 0; top: 0.15rem; width: 0.95rem; height: 0.95rem; border: 2px solid var(--border); border-radius: 3px; background: var(--bg-panel); }
+    .signoff-signature { margin-top: 1.25rem; font-size: 10pt; color: var(--muted); }
+    .signoff-line { display: block; margin: 1rem 0 0.35rem; border-bottom: 1px solid var(--border); min-height: 1.75rem; color: var(--text); }
+    .signoff-role { font-size: 9pt; color: var(--dim); }
+    .command-box { background: var(--bg-panel); color: #c9d1d9; border: 1px solid var(--border); padding: 14px 16px; border-radius: 8px; font-family: "JetBrains Mono", Consolas, monospace; font-size: 9.5pt; margin: 10px 0; }
+    .disclaimer-box { border: 1px solid var(--border); background: var(--bg-elevated); padding: 16px 18px; border-radius: 8px; font-size: 9.5pt; color: var(--muted); }
+    .footer { margin-top: 40px; padding-top: 18px; border-top: 2px solid var(--border); color: var(--muted); font-size: 9pt; }
+    ul { margin: 8px 0; padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    a { color: #79c0ff; }
+    @media print {
+      html, body, main, section, .section {
+        background: var(--bg) !important;
+        color: var(--text) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .cover-page { min-height: auto; padding: 24mm 18mm; }
+      main { padding: 0; max-width: none; }
+      .kpi-strip { grid-template-columns: repeat(5, 1fr); }
+      .cover-page, .gate-banner, .gate-banner.pass, .gate-banner.fail,
+      .kpi, .verdict-card, .exec-box, .callout, .command-box, .disclaimer-box,
+      .data-table th, .data-table td, .risk-matrix th, .risk-matrix td,
+      .ledger-table td:first-child, .badge, code, code.snippet {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+<style>
+    .sample-site-bar {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(210, 153, 34, 0.12);
+      border-bottom: 1px solid rgba(210, 153, 34, 0.35);
+      padding: 10px 16px; font-size: 10pt; color: #e3b341;
+    }
+    .sample-site-bar strong { color: #f0c14b; }
+    .sample-site-bar a { color: #79c0ff; font-weight: 600; margin-left: 12px; text-decoration: none; }
+    .sample-site-nav {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 8px 16px; max-width: 920px; margin: 0 auto 0; padding: 12px 52px;
+      background: rgba(13, 17, 23, 0.92);
+      border-bottom: 1px solid #21262d;
+      color: #e6edf3; font-size: 10pt;
+      backdrop-filter: blur(12px);
+    }
+    .sample-site-nav .brand { font-weight: 700; letter-spacing: -0.02em; }
+    .sample-site-nav a { color: #8b949e; text-decoration: none; margin-left: 14px; }
+    .sample-site-nav a:hover { color: #e6edf3; }
+    .sample-deliverable-banner {
+      background: #FEF3C7; color: #92400E; border-bottom: 1px solid #FDE68A;
+      padding: 10px 16px; font-size: 13px; line-height: 1.5; text-align: center;
+    }
+    .sample-deliverable-banner a { color: #B45309; font-weight: 600; }
+    @media print { .sample-deliverable-banner { display: none !important; } }
+    @media print {
+      .sample-site-bar, .sample-site-nav { display: none !important; }
+    }</style></head>
+<body>
+    <div class="sample-site-bar" role="status">
+      <strong>Sample $499 deliverable.</strong> Fictional client and redacted paths.
+      This executive PDF layout is what paid clearance includes — not Cloud Teams UI.
+      Co-branded milestone certificates require an <a href="pricing.html#client-deliverables">Agency Project Pack ($999+)</a>.
+      <a href="landing.html">Home</a><a href="pricing.html">Pricing</a><a href="pricing.html#auditBookingForm">Book audit &mdash; $499</a>
+    </div>
+    <div class="sample-site-nav">
+      <span class="brand">🛡️ SimpleBeacon</span>
+      <span><a href="landing.html">Home</a><a href="sample-report.html">Sample report</a><a href="contact.html">Contact us</a></span>
+    </div>
+  <section class="cover-page">
+    <p class="cover-kicker">Simplebeacon · Executive clearance gate</p>
+    <h1 class="cover-title">Acme Enterprise Dashboard</h1>
+    <p class="cover-sub">Formal static assessment for vendor security questionnaires, client handoff packages, and production readiness sign-off.</p>
+    <div class="cover-meta">
+      <div><strong>Report ID:</strong> SB-AUD-2026-SAMPLE</div>
+      <div><strong>Executed:</strong> January 15, 2026 at 1:00 PM</div>
+      <div><strong>Client:</strong> Digital Build Agency LLC</div>
+      <div><strong>Assessor:</strong> Simplebeacon Security Audit Service</div>
+      <div><strong>Engine:</strong> Simplebeacon Engine v1.1.0 (Zero-Dependency)</div>
+      <div><strong>Repository:</strong> agency/acme-dashboard / staging</div>
+    </div>
+    <div class="cover-badges">
+      <span class="badge badge-gold">CONFIDENTIAL</span>
+      <span class="badge badge-blocked">GATE FAIL</span>
+      <span class="badge badge-gold">READINESS 20/100</span>
+    </div>
+    <p class="confidential">Prepared for authorized business and engineering recipients. This document combines executive risk metrics for leadership and deterministic remediation mapping for developers.</p>
+  </section>
+
+  <main>
+    <section class="section">
+      <div class="section-num">Section 01</div>
+      <h2>Audit Metadata &amp; Ledger</h2>
+      <p class="meta">Establishes consulting authority, scan scope, and performance evidence for this engagement.</p>
+      <table class="data-table ledger-table">
+        <tr><td>Client name</td><td>Digital Build Agency LLC</td></tr>
+        <tr><td>Target repository / branch</td><td><code>agency/acme-dashboard</code> / <code>staging</code> · platform <code>agency/acme-dashboard</code></td></tr>
+        <tr><td>Timestamp</td><td>January 15, 2026 at 1:00 PM</td></tr>
+        <tr><td>Engine core version</td><td>Simplebeacon Engine v1.1.0 (Zero-Dependency)</td></tr>
+        <tr><td>Scan performance ledger</td><td>342 code files deep-scanned · 342 gate-rule files checked · 412 repo files indexed · execution 1.8 seconds</td></tr>
+        <tr><td>Report assessor</td><td>Simplebeacon Security Audit Service</td></tr>
+        <tr><td>Quality score</td><td>72% · code health 68% · audit confidence 100/100</td></tr>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-num">Section 02</div>
+      <h2>Executive Dashboard (CFO View)</h2>
+      <p class="meta">Deterministic executive narrative and remediation mapping generated directly from complete scan JSON — no AI inference on counts or findings.</p>
+      <div class="gate-banner fail">
+        <div class="gate-banner-label">Overall gate result</div>
+        <div class="gate-banner-value">FAIL</div>
+      </div>
+      <table class="data-table">
+        <tr><th>Risk tier</th><th>Count</th><th>Business meaning</th></tr>
+        <tr>
+          <td><span class="tier-dot tier-critical"></span>Critical</td>
+          <td><strong>1</strong></td>
+          <td>High-risk cloud exposure — private keys, AWS/Stripe/API tokens in source</td>
+        </tr>
+        <tr>
+          <td><span class="tier-dot tier-high"></span>High</td>
+          <td><strong>3</strong></td>
+          <td>Structural release risk — mock/sample paths referenced from production code</td>
+        </tr>
+        <tr>
+          <td><span class="tier-dot tier-medium"></span>Medium</td>
+          <td><strong>1</strong></td>
+          <td>AI-fiction and hygiene patterns — placeholders, fake KPIs, debug artifacts</td>
+        </tr>
+      </table>
+      <div class="exec-box">
+        <p>Independent pre-launch assessment combining Simplebeacon gate analysis (REVIEW REQUIRED), full-tree inventory, and deep codebase hygiene on 342 source files. This deliverable is scoped to configured paths and deterministic rules — not a penetration test.</p>
+        <p class="exec-headline">Release blocked: resolve 2 gate-level issue(s) before client handoff.</p>
+        <ol><li>Clear all gate-blocking findings before any production deploy</li><li>Remediate 4 runtime-path finding(s) in Week 1</li><li>Improve production-path hygiene from 68% toward 90%+</li></ol>
+      </div>
+      <div class="kpi-strip">
+        <div class="kpi"><strong>3</strong><span>Gate issues</span></div>
+        <div class="kpi"><strong>4</strong><span>Runtime findings</span></div>
+        <div class="kpi"><strong>5</strong><span>Doc-tier (info)</span></div>
+        <div class="kpi"><strong>68%</strong><span>Code health</span></div>
+        <div class="kpi"><strong>342</strong><span>Files deep-scanned</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-num">Section 03</div>
+      <h2>Developer Action Plan (Technical Recipe Book)</h2>
+      <p class="meta">Each row maps scan JSON to a full remediation chain: raw file flag → business impact → safe copy-paste fix recipe. Showing up to 100 prioritized rows from 342 total scan match(es).</p>
+      <table class="data-table remediation-recipe-table">
+        <tr><th>Severity</th><th>File &amp; snippet</th><th>Rule triggered</th><th>Why it breaks (impact)</th><th>Safe code fix recipe</th></tr>
+        
+        <tr>
+            <td><span class="sev sev-critical">CRITICAL</span></td>
+            <td><code>server/config/storage.js:42</code><code class="snippet">AKIA…redacted…</code></td>
+            <td><code>CREDENTIALS / AWS-ACCESS-KEY</code></td>
+            <td class="impact-cell"><span class="impact-badge impact-critical">CRITICAL RISK: Left unchanged, this key can be scraped by automated bots within minutes of a public Git push — leading to immediate cloud wallet drainage and vendor account takeover.</span></td>
+            <td class="recipe-cell">Remove hardcoded pattern; load from environment or secret manager; rotate if ever deployed.</td>
+        </tr>
+    
+        <tr>
+            <td><span class="sev sev-high">HIGH</span></td>
+            <td><code>client/src/…/AnalyticsDashboard.tsx:89</code><code class="snippet">import sample from &quot;../data/kpi-sample.json&quot;</code></td>
+            <td><code>PRODUCTION-LEAK</code></td>
+            <td class="impact-cell"><span class="impact-badge impact-high">HIGH RISK: Left unchanged, production builds ship demo metrics and mock JSON to live users — triggering breach-of-contract delivery reviews at handoff.</span></td>
+            <td class="recipe-cell">Replace the static import with a runtime API/database call. Restrict sample JSON to test fixtures excluded from production webpack/esbuild bundles.</td>
+        </tr>
+    
+        <tr>
+            <td><span class="sev sev-high">HIGH</span></td>
+            <td><code>server/routes/analytics.js:17</code><code class="snippet">readFileSync(&quot;data/demo-metrics.json&quot;)</code></td>
+            <td><code>PRODUCTION-LEAK</code></td>
+            <td class="impact-cell"><span class="impact-badge impact-high">HIGH RISK: Left unchanged, production builds ship demo metrics and mock JSON to live users — triggering breach-of-contract delivery reviews at handoff.</span></td>
+            <td class="recipe-cell">Replace the static import with a runtime API/database call. Restrict sample JSON to test fixtures excluded from production webpack/esbuild bundles.</td>
+        </tr>
+    
+        <tr>
+            <td><span class="sev sev-medium">MEDIUM</span></td>
+            <td><code>server/middleware/auth.js:12</code><code class="snippet">console.log&#40;</code></td>
+            <td><code>DEBUG_ARTIFACT / CONSOLE_OR_DEBUGGER</code></td>
+            <td class="impact-cell"><span class="impact-badge impact-hygiene">HYGIENE RISK: Left unchanged, secrets and PII can leak through server logs, support bundles, and browser consoles during client demos.</span></td>
+            <td class="recipe-cell">Remove the statement or replace with structured logging behind a non-production guard. Never log tokens, API keys, or session identifiers.</td>
+        </tr>
+    
+      </table>
+      
+      <div class="callout"><strong>5 documentation-tier</strong> and <strong>0 tooling/script-tier</strong> markers were excluded from Section 03 — they are tracked for hygiene but not release blockers.</div>
+      <div class="verify-block">
+        <h3>Local verification before re-submit</h3>
+        <p class="meta">After engineering applies the recipes above, prove a clean gate locally — without waiting for a re-audit.</p>
+        <div class="command-box">npx simplebeacon scan --path ./agency/acme-dashboard --gate</div>
+      </div>
+      <h3>Category distribution (runtime scope)</h3>
+      <p class="meta">Counts below reflect runtime-path findings included in this audit sample.</p>
+      <table class="data-table">
+        <tr><th>Category</th><th>Total</th><th>Production paths</th><th>High</th><th>Med / Low</th></tr>
+        
+        <tr>
+            <td>credentials</td>
+            <td><strong>1</strong></td>
+            <td>1</td>
+            <td>1</td>
+            <td>0 / 0</td>
+        </tr>
+    
+        <tr>
+            <td>production leak</td>
+            <td><strong>2</strong></td>
+            <td>2</td>
+            <td>2</td>
+            <td>0 / 0</td>
+        </tr>
+    
+        <tr>
+            <td>debug artifact</td>
+            <td><strong>1</strong></td>
+            <td>1</td>
+            <td>0</td>
+            <td>1 / 0</td>
+        </tr>
+    
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-num">Section 04</div>
+      <h2>Compliance &amp; Git Gate Recommendations</h2>
+      <p class="meta">Continuous evaluation checklist and automated prevention steps for the engineering team.</p>
+      <h3>Continuous evaluation checklist</h3>
+      <table class="data-table"><tbody>
+<tr>
+<th>Checklist item</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+<tr>
+<td>Zero hardcoded credential patterns</td>
+<td><strong>FAIL</strong></td>
+<td>1 credential pattern in server/config</td>
+</tr>
+<tr>
+<td>Production path separation</td>
+<td><strong>FAIL</strong></td>
+<td>2 sample-path references from production code</td>
+</tr>
+<tr>
+<td>Schema conformity (configured samples)</td>
+<td><strong>PASS</strong></td>
+<td>12/12 samples match schema specs</td>
+</tr>
+<tr>
+<td>Fiction KPI baseline (sample JSON)</td>
+<td><strong>PASS</strong></td>
+<td>Consistency score 100% — no fiction KPI drift</td>
+</tr>
+</tbody></table>
+      <h3>Automated next step — local pre-commit hook</h3>
+      <div class="command-box">npx simplebeacon hook install</div>
+      <p class="meta">Install the open-source local hook so credential, mock-path, and fiction KPI patterns cannot re-enter the repository before commit.</p>
+      <h3>Recommended CI gate</h3>
+      <div class="command-box">npx simplebeacon scan --gate --format json --output .simplebeacon/report.json</div>
+      <p class="meta">Add <code>.github/workflows/simplebeacon-gate.yml</code> from SimpleBeacon examples so pull requests fail on configured high-severity findings.</p>
+      <div class="disclaimer-box">
+        <strong>Independent disclaimer.</strong> This assessment is an opinion-based, static technical review of the source files and configured scan paths at the time of evaluation. It is not a legal compliance guarantee, formal penetration test, SOC 2 attestation, or certification that the system is secure in production. The client remains responsible for remediation, release authorization, and ongoing security posture.
+      </div>
+    </section>
+
+    <section class="section signoff-section">
+      <div class="section-num">Section 05</div>
+      <h2>Simplebeacon production compliance sign-off</h2>
+      <p class="meta">Formal handoff seal — complete after remediations and a zero Critical/High re-scan.</p>
+      <div class="signoff-grid">
+        <span class="signoff-check"><span class="signoff-box" aria-hidden="true"></span> STAGE 1: Line-by-line remediation applied by engineering team.</span>
+        <span class="signoff-check"><span class="signoff-box" aria-hidden="true"></span> STAGE 2: Zero-dependency re-scan executed (0 Critical/High flags remaining).</span>
+      </div>
+      <div class="signoff-signature">
+        <span>Approved for production handoff by:</span>
+        <span class="signoff-line">&nbsp;</span>
+        <span class="signoff-role">CTO / Lead Architect · Date: _______________</span>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-num">Appendix</div>
+      <h2>Methodology &amp; scan scope</h2>
+      <ul><li>Repository inventory: 412 files — gate rules checked 342 (mock paths, credentials, server/ leaks).</li><li>Pattern matching on JSON samples and server/ production paths — not LLM semantic review.</li><li>Production-leak rule flags runtime loads of <code>*-sample.json</code> and <code>web/data</code> in route handlers — the class of issue dependency scanners miss.</li><li>Fiction/KPI rules scan repository JSON plus source code in server/, packages/*/src/, and client/.</li><li>Complete scan: analyzed 342 of 348 code-like files under the agency staging profile.</li><li>Intent classification suppresses false positives in tests, docs, example/, tools/, and applets/ paths.</li></ul>
+      <p class="meta">Consolidation: 0 duplicate group(s) · 28 JSON files hashed.</p>
+    </section>
+
+    <div class="footer">
+      <p><strong>Report ID SB-AUD-2026-SAMPLE</strong> · Generated January 15, 2026 at 1:00 PM by Simplebeacon</p>
+      <p>Print this document (Ctrl+P / Cmd+P) → Destination: <strong>Save as PDF</strong> · Recommended filename: <code>SB-AUD-2026-SAMPLE.pdf</code></p>
+    </div>
+  </main>
+
+  <script src="site-config.js"></script>
+  <script src="app-links.js"></script>
+  <script>
+    // Only load Cloudflare analytics in production, not on localhost or file:// protocol
+    if (window.location.protocol !== 'file:' && !window.location.hostname.match(/^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/)) {
+      (function() {
+        var script = document.createElement('script');
+        script.defer = true;
+        script.src = 'https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447';
+        script.integrity = 'sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==';
+        script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"' + (window.CF_BEACON_TOKEN || '') + '","r":1}');
+        script.crossOrigin = 'anonymous';
+        document.body.appendChild(script);
+      })();
+    }
+  </script>
+</body>
+</html>
