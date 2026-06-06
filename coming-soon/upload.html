@@ -2291,18 +2291,24 @@
             if (num === '1') {
                 const g = data.gateReport || data.gate || {};
                 const gateIssues = (data.detectedIssues || data.issues || []).filter(i => ['high','critical','medium'].includes(i.severity));
-                moduleData = { ...moduleData, pass: g.pass ?? null, blockingCount: g.blockingCount ?? 0, warningCount: g.warningCount ?? 0, status: g.pass === true ? 'PASS' : (g.pass === false ? 'BLOCKED' : 'REVIEW'), blockingFindings: gateIssues.slice(0, 15).map(i => ({ severity: i.severity, type: i.type, count: i.count || 0, filePath: i.filePath, rule: i.rule, impact: i.impact, fix: i.fix, findings: (i.findings || []).slice(0, 3).map(f => ({ file: f.file, matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet })) })) })), allIssues: (data.detectedIssues || []).slice(0, 20).map(i => ({ severity: i.severity, type: i.type, count: i.count || 0, filePath: i.filePath, rule: i.rule, impact: i.impact, fix: i.fix })), severityCounts: data.severityCounts || {}, qualityScore: data.qualityScore ?? null };
+                const bc = gateIssues.length || g.blockingCount || 0;
+                const wc = (data.detectedIssues || []).filter(i => i.severity === 'low' || i.severity === 'warning').length || g.warningCount || 0;
+                const pass = bc === 0 ? true : false;
+                moduleData = { ...moduleData, pass, blockingCount: bc, warningCount: wc, status: pass === true ? 'PASS' : 'BLOCKED', blockingFindings: gateIssues.slice(0, 15).map(i => ({ severity: i.severity, type: i.type, count: i.count || 0, filePath: i.filePath, rule: i.rule, impact: i.impact, fix: i.fix, findings: (i.findings || []).slice(0, 3).map(f => ({ file: f.file, matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet })) })) })), allIssues: (data.detectedIssues || []).slice(0, 20).map(i => ({ severity: i.severity, type: i.type, count: i.count || 0, filePath: i.filePath, rule: i.rule, impact: i.impact, fix: i.fix })), severityCounts: data.severityCounts || {}, qualityScore: data.qualityScore ?? null };
             } else if (num === '2') {
                 const cons = data.consolidation || {};
                 const dupFiles = (cons.duplicateFiles || []).map(g => g.filter(p => !/\.simplebeacon\//i.test(p))).filter(g => g.length > 1);
-                moduleData = { ...moduleData, monorepoMarkers: cons.monorepoMarkers || 0, duplicateGroups: cons.duplicateGroups || 0, duplicateGroupsDetail: dupFiles.slice(0, 5).map(g => g.slice(0, 3)), summary: cons.summary || (cons.duplicateGroups ? `${cons.duplicateGroups} duplicate file groups detected.` : 'No duplicate files detected.') };
+                const dupCount = dupFiles.length;
+                moduleData = { ...moduleData, monorepoMarkers: (cons.monorepoMarkers || []).length || cons.monorepoMarkers || 0, duplicateGroups: dupCount, duplicateGroupsDetail: dupFiles.slice(0, 5).map(g => g.slice(0, 3)), summary: dupCount ? `${dupCount} duplicate file groups detected.` : 'No duplicate files detected.' };
             } else if (num === '3') {
                 const mockCats = data.mockDataCategories || [];
                 const mockTotal = data.mockSampleFiles ?? mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
                 moduleData = { ...moduleData, fileCount: mockTotal, categories: mockCats.map(c => ({ category: c.category, fileCount: c.fileCount || 0, confidence: c.confidence, description: c.description })), affectedFiles: mockCats.flatMap(c => c.affectedFiles || []).slice(0, 10), summary: mockTotal ? `${mockTotal} mock/fixture files detected.` : 'No mock data found.' };
             } else if (num === '4') {
                 const rm = data.roadmap || {};
-                moduleData = { ...moduleData, todoCount: rm.todoCount || 0, todoFiles: (rm.todoFiles || []).slice(0, 10), summary: rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} files contain TODO/FIXME markers.` : 'No roadmap markers found.') };
+                const todoList = (rm.todoFiles || []).filter(Boolean);
+                const tc = todoList.length || rm.todoCount || 0;
+                moduleData = { ...moduleData, todoCount: tc, todoFiles: todoList.slice(0, 10), summary: tc ? `${tc} file${tc === 1 ? '' : 's'} ${tc === 1 ? 'contains' : 'contain'} TODO/FIXME markers.` : 'No roadmap markers found.' };
             } else if (num === '5') {
                 const cb = data.codebase || data.codeAnalysis || {};
                 const ftEntries = Object.entries(cb.fileTypes || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -2312,11 +2318,15 @@
                 moduleData = { ...moduleData, unusedAssetCandidates: (fr.unusedAssetCandidates || []).slice(0, 10), unusedAssetCount: (fr.unusedAssetCandidates || []).length, duplicateGroups: fr.duplicateGroups || 0, summary: fr.summary || ((fr.unusedAssetCandidates || []).length ? `${(fr.unusedAssetCandidates || []).length} image assets detected for review.` : 'No file reduction opportunities.') };
             } else if (num === '7') {
                 const dq = data.dataQuality || {};
-                moduleData = { ...moduleData, emptyJsonFiles: (dq.emptyJsonFiles || []).slice(0, 10), emptyJsonCount: dq.emptyJsonCount || 0, summary: dq.summary || ((dq.emptyJsonCount || 0) ? `${dq.emptyJsonCount} empty JSON files detected.` : 'No data quality issues.') };
+                const emptyFiles = (dq.emptyJsonFiles || []).filter(Boolean);
+                const ec = emptyFiles.length || dq.emptyJsonCount || 0;
+                moduleData = { ...moduleData, emptyJsonFiles: emptyFiles.slice(0, 10), emptyJsonCount: ec, summary: ec ? `${ec} empty JSON file${ec === 1 ? '' : 's'} detected.` : 'No data quality issues.' };
             } else if (num === '8') {
                 const cl = data.cleanup || {};
                 const debugIssue = (data.detectedIssues || []).find(i => i.type === 'Debug Artifact');
-                moduleData = { ...moduleData, debugArtifacts: (cl.debugArtifacts || []).slice(0, 10), debugArtifactCount: cl.debugArtifactCount || 0, findings: (debugIssue?.findings || []).slice(0, 5).map(f => ({ file: f.file, matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet })) })), summary: cl.summary || ((cl.debugArtifactCount || 0) ? `${cl.debugArtifactCount} debug artifacts detected.` : 'No debug artifacts found.') };
+                const artifacts = (cl.debugArtifacts || []).filter(Boolean);
+                const ac = artifacts.length || cl.debugArtifactCount || 0;
+                moduleData = { ...moduleData, debugArtifacts: artifacts.slice(0, 10), debugArtifactCount: ac, findings: (debugIssue?.findings || []).slice(0, 5).map(f => ({ file: f.file, matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet })) })), summary: ac ? `${ac} debug artifact${ac === 1 ? '' : 's'} detected.` : 'No debug artifacts found.' };
             } else if (num === '9') {
                 const npm = data.npmAudit || {};
                 moduleData = { ...moduleData, packageJsonCount: npm.packageJsonCount || 0, dependencyCount: npm.dependencyCount || 0, packageJsonFiles: (npm.packageJsonFiles || []).slice(0, 5), summary: npm.summary || (npm.packageJsonCount ? `${npm.packageJsonCount} package.json files found with ${(npm.dependencyCount || 0).toLocaleString()} total dependencies.` : 'No package.json files found.') };
@@ -5722,6 +5732,7 @@ body{background:#fff;color:#000;}
   <div>Files: <strong>${fileCount.toLocaleString()}</strong></div>
   <div>Lines: <strong>${lineCount.toLocaleString()}</strong></div>
   <div>Findings: <strong>${issueCount}</strong></div>
+  ${window._tokenPayload ? `<div>Tier: <span class="status-pill grade-pill">${(window._tokenPayload.tier || window._tokenPayload.product || 'executive').toUpperCase()}</span></div>` : ''}
 </div>
 
 <div class="tldr">

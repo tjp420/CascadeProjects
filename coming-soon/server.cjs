@@ -118,13 +118,13 @@ async function sendEmail(options) {
     try {
         const result = await sendViaResend({ to, from: process.env.RESEND_FROM || 'certificates@simplebeacon.ai', subject, text, html });
         return { sent: true, queued: false, id: result.id };
-    } catch (err) { console.error('[Email] Resend failed:', err.message); }
+    } catch (err) { /* Resend failed, try SMTP */ }
 
     // Try SMTP fallback
     try {
         await sendViaSmtp({ to, subject, text, html });
         return { sent: true, queued: false };
-    } catch (err) { console.error('[Email] SMTP failed:', err.message); }
+    } catch (err) { /* SMTP failed, queue to disk */ }
 
     // Fallback to disk queue
     return queueEmailToDisk({ to, subject, text, html });
@@ -360,7 +360,6 @@ app.post('/api/test-checkout', async (req, res) => {
 
         emailHtml = template;
     } catch (templateErr) {
-        console.error('[Email] Template load failed, falling back to inline:', templateErr.message);
         emailHtml = `<p>Hi ${clientName || email},</p><p>Your license token for <strong>${projectName}</strong> has been generated.</p><p>Tier: <strong>${config.label}</strong><br>Project: <strong>${projectName}</strong><br>Token: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">${token}</code></p><p><a href="${certUrl}" style="display:inline-block;padding:10px 18px;background:#2ea44f;color:#fff;text-decoration:none;border-radius:6px;">Upload Report &amp; Download Certificate</a></p><p>This token expires in ${config.days} days.</p><p style="color:#666;font-size:0.9em;margin-top:12px;"><strong>Didn't see this email?</strong> Check your spam or junk folder — license tokens sometimes end up there. If it's missing, contact support.</p>`;
     }
 

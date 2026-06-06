@@ -105,19 +105,28 @@ function formatJsonReport(report, gateResult = null) {
     const complianceRemediation = (licenseCount || securityCount)
         ? 'Verify license compatibility with your distribution model.'
         : 'Consider adding LICENSE and SECURITY.md.';
+    const govScore = licenseCount + securityCount;
+    const health = govScore >= 5 ? 'excellent' : (govScore >= 2 ? 'good' : (govScore >= 1 ? 'fair' : 'poor'));
+    const recs = [];
+    if (licenseCount === 0) recs.push('Add a LICENSE file to clarify distribution terms.');
+    if (securityCount === 0) recs.push('Add SECURITY.md to disclose vulnerability reporting.');
     const compliance = report.compliance ? {
         ...report.compliance,
         licenseCount: licenseCount,
         securityCount: securityCount,
-        governanceScore: licenseCount + securityCount,
+        governanceScore: govScore,
         summary: report.compliance.summary || complianceSummary,
-        remediation: report.compliance.remediation || complianceRemediation
+        remediation: report.compliance.remediation || complianceRemediation,
+        complianceHealth: health,
+        recommendations: recs.slice(0, 4)
     } : {
         licenseCount: licenseCount,
         securityCount: securityCount,
-        governanceScore: licenseCount + securityCount,
+        governanceScore: govScore,
         summary: complianceSummary,
-        remediation: complianceRemediation
+        remediation: complianceRemediation,
+        complianceHealth: health,
+        recommendations: recs.slice(0, 4)
     };
 
     const fileReduction = report.fileReduction || {
