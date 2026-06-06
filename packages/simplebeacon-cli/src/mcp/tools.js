@@ -21,6 +21,25 @@ function formatToolResult(payload) {
     };
 }
 
+function formatMarkdownResult(title, markdown) {
+    return {
+        content: [
+            { type: 'text', text: `## ${title}\n\n${markdown}` }
+        ]
+    };
+}
+
+function validateArgs(args, schema) {
+    if (!args || typeof args !== 'object') throw new Error('arguments must be an object');
+    const required = schema.required || [];
+    for (const key of required) {
+        if (args[key] === undefined || args[key] === null || args[key] === '') {
+            throw new Error(`Missing required argument: ${key}`);
+        }
+    }
+    return args;
+}
+
 function createMcpToolHandlers(options = {}) {
     const offline = options.offline !== false
         || process.env.SIMPLEBEACON_OFFLINE === '1'
