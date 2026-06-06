@@ -2322,7 +2322,21 @@
                 moduleData = { ...moduleData, packageJsonCount: npm.packageJsonCount || 0, dependencyCount: npm.dependencyCount || 0, packageJsonFiles: (npm.packageJsonFiles || []).slice(0, 5), summary: npm.summary || (npm.packageJsonCount ? `${npm.packageJsonCount} package.json files found with ${(npm.dependencyCount || 0).toLocaleString()} total dependencies.` : 'No package.json files found.') };
             } else if (num === '10') {
                 const comp = data.compliance || {};
-                moduleData = { ...moduleData, licenseCount: comp.licenseCount || 0, securityCount: comp.securityCount || 0, licenseFiles: (comp.licenseFiles || []).slice(0, 5), securityFiles: (comp.securityFiles || []).slice(0, 5), summary: comp.summary || (`${comp.licenseCount || 0} license files, ${comp.securityCount || 0} security/governance files detected.`) };
+                const licFiles = (comp.licenseFiles || []).filter(Boolean);
+                const secFiles = (comp.securityFiles || []).filter(Boolean);
+                const licCount = licFiles.length || comp.licenseCount || 0;
+                const secCount = secFiles.length || comp.securityCount || 0;
+                const govScore = licCount + secCount;
+                const health = govScore >= 5 ? 'excellent' : (govScore >= 2 ? 'good' : (govScore >= 1 ? 'fair' : 'poor'));
+                const standardFiles = ['LICENSE', 'LICENSE.md', 'LICENSE.txt', 'SECURITY.md', 'SECURITY.txt', 'CODE_OF_CONDUCT.md', 'CONTRIBUTING.md', 'PRIVACY.md', 'CHANGELOG.md', 'NOTICE'];
+                const foundFiles = [...licFiles.map(f => f.toUpperCase()), ...secFiles.map(f => f.toUpperCase())];
+                const missing = standardFiles.filter(f => !foundFiles.some(found => found.includes(f.replace('.md', '').replace('.txt', ''))));
+                const recs = [];
+                if (licCount === 0) recs.push('Add a LICENSE file to clarify distribution terms.');
+                if (secCount === 0) recs.push('Add SECURITY.md to disclose vulnerability reporting.');
+                if (!foundFiles.some(f => f.includes('CODE_OF_CONDUCT'))) recs.push('Add CODE_OF_CONDUCT.md to set community standards.');
+                if (!foundFiles.some(f => f.includes('CONTRIBUTING'))) recs.push('Add CONTRIBUTING.md to guide external contributions.');
+                moduleData = { ...moduleData, metrics: { riskScore: Math.max(0, 40 - govScore * 5), priority: health === 'excellent' ? 'low' : (health === 'good' ? 'low' : (health === 'fair' ? 'medium' : 'high')) }, licenseCount: licCount, securityCount: secCount, governanceScore: govScore, complianceHealth: health, licenseFiles: licFiles.slice(0, 5), securityFiles: secFiles.slice(0, 5), missingGovernanceFiles: missing.slice(0, 5), recommendations: recs.slice(0, 4), remediation: recs[0] || 'Verify license compatibility with your distribution model.', summary: `${licCount} license file${licCount === 1 ? '' : 's'}, ${secCount} security/governance file${secCount === 1 ? '' : 's'} detected.` };
             } else if (num === '11') {
                 const eu = data.euAiActSummary || data.euAiAct || {};
                 moduleData = { ...moduleData, aiSystemIndicators: eu.aiSystemIndicators || 0, highRiskIndicators: eu.highRiskIndicators || 0, transparencyGaps: eu.transparencyGaps || 0, documentationArtifacts: eu.documentationArtifacts || 0, documentationFound: (eu.documentationFound || []).slice(0, 5), summary: eu.deadlineNote || ((eu.aiSystemIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.') };
@@ -3898,6 +3912,7 @@
                     <div class="cert-header">
                         <h3>Executive Risk Certificate</h3>
                         <div class="cert-subtitle">${project} &mdash; ${new Date().toLocaleDateString()}</div>
+                        ${window._tokenPayload ? `<div style="margin-top:6px;font-size:0.72rem;color:#64748B;"><span class="status-pill pass" style="font-size:0.65rem;padding:2px 8px;">${(window._tokenPayload.tier || window._tokenPayload.product || 'executive').toUpperCase()}</span> ${window._tokenPayload.plan || window._tokenPayload.license || 'Sovereign'}</div>` : ''}
                     </div>
                     <div class="score-ring">
                         <svg width="120" height="120" viewBox="0 0 120 120">
@@ -5299,6 +5314,7 @@ ${euAiActSection}
 - **Quality Score:** ${qs}/100
 - **Files Analyzed:** ${fileCount}
 - **SHA-256:** ${reportHash}
+- **Product Tier:** ${window._tokenPayload ? (window._tokenPayload.tier || window._tokenPayload.product || 'executive').toUpperCase() : 'SOVEREIGN'}
 
 ## Contents
 | File | Description |
