@@ -1,0 +1,51 @@
+{
+  "type": "simplebeacon-report",
+  "version": "1.3.0",
+  "generatedAt": "2026-06-06T14:45:40.986Z",
+  "generatedBy": "SimpleBeacon Browser Sandbox",
+  "scanProfileLabel": "Complete Scan",
+  "projectRoot": "simplebeacon-test",
+  "gate": {
+    "pass": true,
+    "blockingCount": 1
+  },
+  "qualityScore": 88,
+  "totalFiles": 4,
+  "filesAnalyzed": 4,
+  "issueCount": 4,
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "type": "AI System Indicator",
+      "count": 1,
+      "filePath": "app.js",
+      "rule": "AI_IMPLEMENTATION_PATTERN",
+      "impact": "REVIEW REQUIRED",
+      "fix": "Review before enabling --gate on main."
+    },
+    {
+      "severity": "medium",
+      "type": "Credential Pattern",
+      "count": 1,
+      "filePath": "app.js",
+      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+      "impact": "MEDIUM RISK: Hardcoded credential patterns in source.",
+      "fix": "Move secrets to environment variables."
+    },
+    {
+      "severity": "low",
+      "type": "Debug Artifact",
+      "count": 2,
+      "filePath": "app.js, src/utils/helper.js",
+      "rule": "DEBUG_ARTIFACT",
+      "impact": "HYGIENE RISK: Debug artifacts should not reach production.",
+      "fix": "Remove console.log, debugger, TODO, and FIXME markers."
+    }
+  ],
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 1,
+    "low": 3
+  }
+}

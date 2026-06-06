@@ -1,0 +1,60 @@
+[36mΓòöΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòù
+Γòæ  SimpleBeacon Technical Verification Audit                  Γòæ
+Γòæ  Automated 4-Step Privacy-First Architecture Test           Γòæ
+ΓòÜΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥[0m
+
+[36mΓû╢ STEP 1: Local Sandbox Folder Drop Simulation[0m
+[32m  PASS[0m node_modules safely skipped
+[32m  PASS[0m Recursive scan read 4 source files
+[32m  PASS[0m AI heuristic flagged app.js
+[32m  PASS[0m Credential heuristic found 1 hit(s)
+[32m  PASS[0m Debug artifact heuristic flagged app.js
+[32m  PASS[0m Console streaming emitted file names
+[32m  PASS[0m Deep subfolder file discovered
+[32m  PASS[0m Metric summary: 4 files, 10 lines
+
+[36mΓû╢ STEP 2: Airplane Mode ΓÇö Network Leak Detection[0m
+[32m  PASS[0m processLocalCLIScan has zero network calls (offline-safe)
+[32m  PASS[0m generateSovereignCertificate has zero network calls (offline-safe)
+[32m  PASS[0m Certificate button calls local generator, not server endpoint
+[32m  PASS[0m JSZip and html2canvas libraries referenced
+
+[36mΓû╢ STEP 3: Payload Schema ΓÇö IP Leakage Detection[0m
+[32m  PASS[0m No Source code arrays leak
+[32m  PASS[0m No Full file contents leak
+[32m  PASS[0m No Variable names list leak
+[32m  PASS[0m No Hardcoded secrets leak
+[32m  PASS[0m No AST dump leak
+[32m  PASS[0m No Raw line excerpts leak
+[32m  PASS[0m Report contains required field: qualityScore
+[32m  PASS[0m Report contains required field: totalFiles
+[32m  PASS[0m Report contains required field: issueCount
+[32m  PASS[0m Report contains required field: generatedAt
+[32m  PASS[0m Report contains required field: gate
+[32m  PASS[0m Report contains only metadata: counts + relative paths
+[32m  PASS[0m Wrote test-audit-report.json for manual inspection
+
+[36mΓû╢ STEP 4: Client-Side Document Assembly Engine[0m
+[32m  PASS[0m Certificate label: "Complete Scan"
+[32m  PASS[0m Gate label: "PASSED"
+[32m  PASS[0m Gate color correct for PASSED
+[32m  PASS[0m Scope detected as Browser Sandbox
+[32m  PASS[0m Quality score: 88
+[32m  PASS[0m File count: 4
+[32m  PASS[0m Issue count: 4
+c:\Users\Trevor\CascadeProjects\coming-soon\test-technical-audit.js:322
+if (!/fetch\s*\(\s*API_BASE\s*\+\s*['"]\/api\/certificate/.test(submitBody)) {
+                                                                ^
+
+ReferenceError: submitBody is not defined
+    at Object.<anonymous> (c:\Users\Trevor\CascadeProjects\coming-soon\test-technical-audit.js:322:65)
+    at Module._compile (node:internal/modules/cjs/loader:1760:14)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module._load (node:internal/modules/cjs/loader:1299:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.9.0

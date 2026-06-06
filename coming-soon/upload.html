@@ -1703,17 +1703,17 @@
                 <p style="font-size:0.8rem;color:var(--text-muted);margin:4px 0 0;">Choose your preferred local static-analysis runtime.</p>
             </div>
             <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);">
-                <button id="tab-cli" class="mode-tab active" style="flex:none;padding:8px 16px;" title="Ctrl+1">&#10095; Terminal (CLI)</button>
-                <button id="tab-browser" class="mode-tab" style="flex:none;padding:8px 16px;" title="Ctrl+2">&#127758; Browser Sandbox</button>
+                <button id="tab-cli" class="mode-tab" style="flex:none;padding:8px 16px;" title="Ctrl+1">&#10095; Terminal (CLI)</button>
+                <button id="tab-browser" class="mode-tab active" style="flex:none;padding:8px 16px;" title="Ctrl+2">&#127758; Browser Sandbox</button>
             </div>
         </div>
 
         <!-- VIEW A: CLI WORKFLOW -->
-        <div id="view-cli">
+        <div id="view-cli" style="display:none;">
             <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
                 <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                     <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
+                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
                         <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Generate Metadata Package</h3>
                     </div>
                 </div>
@@ -1849,8 +1849,8 @@
             </div>
         </div>
 
-        <!-- VIEW B: BROWSER SANDBOX (hidden by default) -->
-        <div id="view-browser" style="display:none;">
+        <!-- VIEW B: BROWSER SANDBOX -->
+        <div id="view-browser">
             <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
                 <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                     <div style="display:flex;align-items:center;gap:10px;">
@@ -1880,9 +1880,13 @@
                         <span class="sandbox-icon">&#127757;</span>
                         <span class="sandbox-text" id="sandboxNoteText">Browser sandbox runs a lightweight <strong>Gate Scan</strong> (AI patterns + credential heuristics). For deep analysis, use the <strong>CLI tab</strong>.</span>
                     </div>
-                    <label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">
+                    <label style="display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">
                         <input type="checkbox" id="includeDepsToggle" style="cursor:pointer;">
                         <span>Include <code>node_modules</code> & <code>.git</code> in scan (slower, more noise)</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">
+                        <input type="checkbox" id="deepScanToggle" style="cursor:pointer;">
+                        <span><strong>Deep Scan</strong> — analyze <em>every</em> file (bypasses cache, docs, and scanner-page filters)</span>
                     </label>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;">No Node.js required. Grab your entire repo folder and drop it here.</p>
                     <div id="browser-folder-dropzone" class="terminal-shell" style="margin-bottom:16px;">
@@ -3425,14 +3429,16 @@
             if (browserFolderDropzone) browserFolderDropzone.classList.add('scanning');
             appendTerminalLine('simplebeacon scan .', 'input');
             appendTerminalLine(`Initializing Local Web Worker Core... Profile: ${profile.label}. Allocating isolated browser memory structures.`);
-            // Security baseline: exclude dependency trees, secrets, and docs by default (user can override via checkbox)
+            // Security baseline: exclude dependency trees and secrets by default (user can override via checkbox)
             const includeDeps = document.getElementById('includeDepsToggle')?.checked || false;
-            const excludeEnv = !includeDeps;      // always protect secrets unless explicitly including everything
+            const deepScan = document.getElementById('deepScanToggle')?.checked || false;
+            const excludeEnv = true;              // always protect secrets
             const skipDeps = !includeDeps;        // exclude node_modules/.git by default
-            const skipDocs = !includeDeps;        // exclude docs by default
+            const skipDocs = false;               // scan docs by default — they contain governance markers
 
             appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
             if (includeDeps) appendTerminalLine('Note: node_modules/.git inclusion enabled — scan will be slower and noisier.', 'warn');
+            if (deepScan) appendTerminalLine('DEEP SCAN MODE: All cache, docs, and scanner-page filters bypassed. Only secrets and 500MB+ files are excluded.', 'warn');
 
             let scanned = 0;
             let totalLines = 0;
@@ -3470,19 +3476,19 @@
                 const lowerPath = path.toLowerCase();
                 let reason = null;
 
-                if (f.size >= 5 * 1024 * 1024) {
-                    reason = 'File > 5MB';
-                } else if (skipDeps && (/node_modules\/|\.git\//.test(lowerPath))) {
+                if (f.size >= 500 * 1024 * 1024) {
+                    reason = 'File > 500MB';
+                } else if (!deepScan && skipDeps && (/node_modules\/|\.git\//.test(lowerPath))) {
                     reason = 'Core exclusion';
-                } else if (/\.simplebeacon\//.test(lowerPath)) {
+                } else if (!deepScan && /\.simplebeacon\//.test(lowerPath)) {
                     reason = 'Simplebeacon cache';
-                } else if (/github-cache\//.test(lowerPath)) {
+                } else if (!deepScan && /github-cache\//.test(lowerPath)) {
                     reason = 'Benchmark cache';
-                } else if (/\.github-sync\//.test(lowerPath)) {
+                } else if (!deepScan && /\.github-sync\//.test(lowerPath)) {
                     reason = 'Git sync cache';
-                } else if (/\.git\/hooks\/.*\.sample$/.test(lowerPath)) {
+                } else if (!deepScan && /\.git\/hooks\/.*\.sample$/.test(lowerPath)) {
                     reason = 'Git hook sample';
-                } else if (lowerPath.endsWith('upload.html')) {
+                } else if (!deepScan && lowerPath.endsWith('upload.html')) {
                     reason = 'Scanner page';
                 } else if (ignorePatterns.some(p => p.test(path))) {
                     reason = '.simplebeaconignore';
@@ -3501,7 +3507,11 @@
                 }
             }
 
-            appendTerminalLine(`Found ${sourceFiles.length} source files in your project. (${skipped} dependency/docs/secret files excluded — this is expected.)`, 'success');
+            if (deepScan) {
+                appendTerminalLine(`Found ${sourceFiles.length} source files in your project. (${skipped} files excluded — only secrets and 500MB+ files skipped.)`, 'success');
+            } else {
+                appendTerminalLine(`Found ${sourceFiles.length} source files in your project. (${skipped} dependency/secret files excluded — docs are scanned for governance markers.)`, 'success');
+            }
 
             // 3. Heuristic scan loop
             for (let i = 0; i < sourceFiles.length; i++) {
@@ -3856,6 +3866,14 @@
             if (!window.JSZip || !window.html2canvas) {
                 throw new Error('Certificate libraries not loaded. Check your network connection.');
             }
+            // Validate token shape (no crypto, just structural)
+            if (!token || typeof token !== 'string' || !token.includes('.') || token.length < 20) {
+                throw new Error('Invalid or malformed license token. Please paste a valid token.');
+            }
+            // Validate report object
+            if (!report || typeof report !== 'object' || Object.keys(report).length === 0) {
+                throw new Error('Report data is missing or empty. Run a scan first.');
+            }
 
             const zip = new JSZip();
             const now = new Date();
@@ -3864,7 +3882,7 @@
             const isoDate = now.toISOString();
 
             // Grade based on quality score
-            const qs = report.qualityScore || 0;
+            const qs = Number.isFinite(report.qualityScore) ? report.qualityScore : (report.qualityScore || 0);
             let grade = 'F';
             let gradeColor = '#EF4444';
             if (qs >= 95) { grade = 'A'; gradeColor = '#34D399'; }
@@ -3876,10 +3894,10 @@
             const gatePassed = rawGate === true;
             const gateLabel = rawGate === null ? 'REVIEW' : (gatePassed ? 'PASSED' : 'BLOCKED');
             const gateColor = rawGate === null ? '#60A5FA' : (gatePassed ? '#34D399' : '#EF4444');
-            const projectName = report.projectRoot || report.projectPath || 'local-scan';
+            const projectName = report.projectRoot || report.projectPath || report.projectName || 'local-scan';
             const fileCount = report.totalFiles || report.filesAnalyzed || 0;
             const issueCount = report.issueCount || report.simplebeaconIssues || 0;
-            const profileLabel = report.scanProfileLabel || report.type?.replace('simplebeacon-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Scan';
+            const profileLabel = report.scanProfileLabel || (report.type ? report.type.replace('simplebeacon-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Scan');
 
             // 1. Build certificate HTML
             const certWrapper = document.createElement('div');
@@ -3920,18 +3938,37 @@
             document.body.appendChild(certWrapper);
 
             // 2. Rasterize to PNG
-            const canvas = await html2canvas(certWrapper, { scale: 2, backgroundColor: '#0B0F19', logging: false });
+            let canvas;
+            try {
+                canvas = await html2canvas(certWrapper, { scale: 2, backgroundColor: '#0B0F19', logging: false });
+            } catch (e) {
+                certWrapper.remove();
+                throw new Error('Certificate rasterization failed — page may be too large. Try reducing the report size.');
+            }
             certWrapper.remove();
+            if (!canvas) {
+                throw new Error('Certificate canvas returned empty. Please try again.');
+            }
             const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            if (!pngBlob) {
+                throw new Error('PNG encoding failed. Please try again.');
+            }
 
-            // 3. Assemble ZIP
+            // 3. Compute SHA-256 integrity hash of report.json
+            const reportStr = JSON.stringify(report, null, 2);
+            const reportBytes = new TextEncoder().encode(reportStr);
+            const reportDigest = await crypto.subtle.digest('SHA-256', reportBytes);
+            const reportHash = 'sha256-' + Array.from(new Uint8Array(reportDigest)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+            // 4. Assemble ZIP
             zip.file('certificate.png', pngBlob);
-            zip.file('report.json', JSON.stringify(report, null, 2));
+            zip.file('report.json', reportStr);
             zip.file('manifest.json', JSON.stringify({
                 generator: 'SimpleBeacon Sovereign Engine v1.4.0',
                 timestamp: isoDate,
                 certificateId: certId,
                 tokenPrefix: token.slice(0,8) + '...',
+                reportIntegrity: reportHash,
                 localOnly: true,
                 zeroUpload: true
             }, null, 2));

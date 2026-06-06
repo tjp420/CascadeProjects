@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-06-06T14:40:33.155Z",
+  "generatedAt": "2026-06-06T14:44:35.119Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
@@ -20,7 +20,7 @@
   "repositoryFilesTotal": 1140,
   "repositoryFoldersTotal": 142,
   "filesAnalyzed": 1140,
-  "totalSizeBytes": 14356515,
+  "totalSizeBytes": 14357596,
   "totalSizeLabel": "13.7MB",
   "issueCount": 29,
   "invalidJson": 1,
@@ -1895,5 +1895,5 @@
     "warningCount": 9
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-06T14:40:33.160Z"
+  "sanitizedAt": "2026-06-06T14:44:35.124Z"
 }
