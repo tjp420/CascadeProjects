@@ -548,89 +548,62 @@
             </div>
         </div>
 
-        <!-- STEP 1 & 2: CONSOLIDATED AUDIT ENGINE -->
+        <!-- STEP 1: INSTALL CLI -->
         <div class="card" style="padding:0;overflow:hidden;">
-            <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <span style="background:var(--accent);color:white;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
-                    <h2 style="margin:0;font-size:1rem;">Run Local Compliance Audit</h2>
-                </div>
-                <!-- Tab Engine Switcher -->
-                <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);">
-                    <button id="tab-browser" class="mode-tab active" style="flex:none;padding:8px 16px;">Browser Sandbox</button>
-                    <button id="tab-cli" class="mode-tab" style="flex:none;padding:8px 16px;">Command Line (CLI)</button>
+                    <h2 style="margin:0;font-size:1rem;">Install Audit Engine</h2>
                 </div>
             </div>
-
-            <!-- CLI Mode -->
-            <div id="view-cli" style="padding:20px 24px;background:var(--bg-input);display:none;">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-                    <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
-                    <span style="font-size:0.85rem;color:var(--text-main);font-weight:600;">Install</span>
-                    <span style="font-size:0.8rem;color:var(--text-muted);">One command, runs everywhere</span>
-                </div>
-                <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#60A5FA;margin-bottom:16px;">
-                    <code id="installCmd">npm install -g simplebeacon</code>
-                    <button onclick="copyToClipboard('installCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
-                </div>
-
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-                    <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
-                    <span style="font-size:0.85rem;color:var(--text-main);font-weight:600;">Scan</span>
-                    <span style="font-size:0.8rem;color:var(--text-muted);">Run inside your project folder</span>
-                </div>
-                <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#34D399;margin-bottom:12px;">
-                    <code id="scanCmd">simplebeacon scan . --output=report.json</code>
-                    <button onclick="copyToClipboard('scanCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
-                </div>
-
-                <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:1rem;">&#128737;</span>
-                    <span style="font-size:0.75rem;color:#34D399;"><strong>Zero-Trust:</strong> Output is audit metadata only — your source code never leaves your machine.</span>
-                </div>
-            </div>
-
-            <!-- Browser Mode -->
-            <div id="view-browser">
-                <div style="padding:20px 24px;background:var(--bg-input);border-top:1px solid var(--border);">
-                    <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">Scan runs 100% in your browser. Nothing is uploaded to our servers.</p>
-                    <div id="cli-dropzone" class="drop-zone" style="margin-bottom:12px;">
-                        <div id="dropzone-prompt">
-                            <div class="icon">&#128451;</div>
-                            <p>Drag your project folder here<br><span style="font-size:0.8rem;opacity:0.7;">Scan runs in browser sandbox — zero network upload</span></p>
-                            <p class="file-name" id="localScanFileName"></p>
-                        </div>
-                        <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
-                        <input type="file" id="cli-files-input" multiple style="display:none;">
+            <div style="padding:20px 24px;background:var(--bg-input);">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#60A5FA;">
+                        <code id="installCmd">npm install -g simplebeacon</code>
+                        <button onclick="copyToClipboard('installCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
                     </div>
-                    <div id="terminal-console" class="preview" style="display:none;max-height:200px;margin-bottom:12px;"></div>
-                    <div id="panel-progress-container" style="display:none;margin-bottom:12px;">
-                        <div class="progress-bar"><div class="fill" id="panel-progress-bar"></div></div>
+                    <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#34D399;">
+                        <code id="scanCmd">simplebeacon scan . --output=report.json</code>
+                        <button onclick="copyToClipboard('scanCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
                     </div>
-                    <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);">
-                        <span>ENGINE: <span id="panel-status" style="color:#F59E0B;font-weight:700;">READY</span></span>
-                        <span id="panel-metrics" style="display:none;">Files: 0 | Lines: 0</span>
-                    </div>
+                </div>
+                <div style="margin-top:12px;font-size:0.75rem;color:#F59E0B;display:flex;align-items:center;gap:6px;">
+                    <span>&#128737;</span>
+                    <span>Zero-Trust: Output is audit metadata only — no source code included.</span>
                 </div>
             </div>
         </div>
 
-        <!-- STEP 3: UPLOAD & CERTIFICATE -->
+        <!-- STEP 2: UNIFIED SMART DROPZONE -->
         <div class="card" style="padding:0;overflow:hidden;">
             <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
                     <span style="background:var(--accent);color:white;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
-                    <h2 style="margin:0;font-size:1rem;">Upload &amp; Generate Certificate</h2>
+                    <h2 style="margin:0;font-size:1rem;">Process Project Metrics</h2>
                 </div>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Drop your scan report. Add a license token to unlock the official PDF.</p>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Drop a folder to scan, or a <code>report.json</code> to generate your certificate.</p>
             </div>
             <div style="padding:20px 24px;background:var(--bg-input);">
-                <!-- JSON Dropzone -->
-                <div class="drop-zone" id="dropZone">
-                    <div class="icon">&#128229;</div>
-                    <p>Drag your <code>simplebeacon_report.json</code> here<br>or click to browse</p>
-                    <p class="file-name" id="fileName"></p>
+                <!-- Smart Dropzone -->
+                <div id="smart-dropzone" class="drop-zone" style="margin-bottom:12px;">
+                    <div id="dropzone-prompt">
+                        <div class="icon">&#128451;</div>
+                        <p>Drag your <strong>project folder</strong> or <strong>report.json</strong> here<br><span style="font-size:0.8rem;opacity:0.7;">100% local — runs in your browser sandbox</span></p>
+                        <p class="file-name" id="localScanFileName"></p>
+                    </div>
+                    <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
+                    <input type="file" id="cli-files-input" multiple style="display:none;">
                     <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
+                </div>
+
+                <!-- Terminal Console (for folder scans) -->
+                <div id="terminal-console" class="preview" style="display:none;max-height:200px;margin-bottom:12px;"></div>
+                <div id="panel-progress-container" style="display:none;margin-bottom:12px;">
+                    <div class="progress-bar"><div class="fill" id="panel-progress-bar"></div></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-bottom:16px;">
+                    <span>ENGINE: <span id="panel-status" style="color:#F59E0B;font-weight:700;">READY</span></span>
+                    <span id="panel-metrics" style="display:none;">Files: 0 | Lines: 0</span>
                 </div>
 
                 <!-- Scan Preview -->
@@ -640,7 +613,7 @@
                     <div class="preview" id="previewContent"></div>
                 </div>
 
-                <!-- Token + Actions (inline) -->
+                <!-- Token + Actions (revealed after scan) -->
                 <div id="tokenActionRow" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
                     <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;">
                         <div>
@@ -691,7 +664,6 @@
 
         // DOM element declarations
         const licenseInput = document.getElementById('licenseToken');
-        const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileName = document.getElementById('fileName');
         const submitBtn = document.getElementById('submitBtn');
@@ -702,30 +674,13 @@
 
         // Browser-local scanner elements
         const localScanFileName = document.getElementById('localScanFileName');
+        const cliFolderInput = document.getElementById('cli-folder-input');
+        const cliFilesInput = document.getElementById('cli-files-input');
+        const dropzonePrompt = document.getElementById('dropzone-prompt');
 
-        // Tab engine switcher
-        const tabCli = document.getElementById('tab-cli');
-        const tabBrowser = document.getElementById('tab-browser');
-        const viewCli = document.getElementById('view-cli');
-        const viewBrowser = document.getElementById('view-browser');
-
-        if (tabCli && tabBrowser && viewCli && viewBrowser) {
-            // Default: show browser view
-            viewBrowser.style.display = 'block';
-            viewCli.style.display = 'none';
-            tabBrowser.addEventListener('click', () => {
-                tabBrowser.classList.add('active');
-                tabCli.classList.remove('active');
-                viewBrowser.style.display = 'block';
-                viewCli.style.display = 'none';
-            });
-            tabCli.addEventListener('click', () => {
-                tabCli.classList.add('active');
-                tabBrowser.classList.remove('active');
-                viewCli.style.display = 'block';
-                viewBrowser.style.display = 'none';
-            });
-        }
+        // Smart dropzone unified handler
+        const smartDropzone = document.getElementById('smart-dropzone');
+        const dropZone = smartDropzone; // alias for existing code that references dropZone
 
         let reportData = null;
 
@@ -1009,18 +964,51 @@
             }
         }
 
-        // === JSON Upload Mode ===
-        dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file) handleJsonFile(file);
+        // === Unified Smart Dropzone ===
+        smartDropzone.addEventListener('click', (e) => {
+            if (e.target.closest('#terminal-console')) return;
+            // Try folder picker first (Chrome/Edge), fall back to files (Firefox/Safari)
+            if ('webkitdirectory' in document.createElement('input')) {
+                cliFolderInput.click();
+            } else {
+                cliFilesInput.click();
+            }
         });
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files[0]) handleJsonFile(e.target.files[0]);
+        smartDropzone.addEventListener('dragover', (e) => { e.preventDefault(); smartDropzone.classList.add('dragover'); });
+        smartDropzone.addEventListener('dragleave', () => smartDropzone.classList.remove('dragover'));
+        smartDropzone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            smartDropzone.classList.remove('dragover');
+            const items = e.dataTransfer.items;
+            if (!items || items.length === 0) return;
+
+            const firstEntry = items[0].webkitGetAsEntry && items[0].webkitGetAsEntry();
+            const firstFile = e.dataTransfer.files[0];
+
+            if (firstEntry && firstEntry.isDirectory) {
+                // Folder dropped → run browser scan
+                const files = [];
+                async function traverse(entry) {
+                    if (entry.isFile) {
+                        const file = await new Promise(resolve => entry.file(resolve));
+                        files.push(file);
+                    } else if (entry.isDirectory) {
+                        const dirReader = entry.createReader();
+                        const entries = await new Promise(resolve => dirReader.readEntries(resolve));
+                        for (const child of entries) await traverse(child);
+                    }
+                }
+                for (let i = 0; i < items.length; i++) {
+                    const entry = items[i].webkitGetAsEntry && items[i].webkitGetAsEntry();
+                    if (entry) await traverse(entry);
+                }
+                await processLocalCLIScan(files);
+            } else if (firstFile && firstFile.name.endsWith('.json')) {
+                // JSON dropped → parse report
+                handleJsonFile(firstFile);
+            } else {
+                showStatus('Drop a project folder or a .json report file', 'error');
+            }
         });
 
         function handleJsonFile(file) {
@@ -1034,6 +1022,7 @@
                 try {
                     reportData = JSON.parse(e.target.result);
                     renderPreview(reportData);
+                    scanPreview.style.display = 'block';
                     updateSubmit();
                 } catch (err) {
                     showStatus('Invalid JSON file', 'error');
@@ -1043,6 +1032,16 @@
             };
             reader.readAsText(file);
         }
+
+        cliFolderInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) processLocalCLIScan(Array.from(e.target.files));
+        });
+        cliFilesInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) processLocalCLIScan(Array.from(e.target.files));
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) handleJsonFile(e.target.files[0]);
+        });
 
 
         function renderPreview(data) {
@@ -1118,31 +1117,12 @@
             status.style.display = 'block';
         }
 
-        // === CLI Control Panel Engine ===
-        const cliDropzone = document.getElementById('cli-dropzone');
-        const cliFolderInput = document.getElementById('cli-folder-input');
-        const dropzonePrompt = document.getElementById('dropzone-prompt');
+        // === Browser Scanner Engine ===
         const terminalConsole = document.getElementById('terminal-console');
-        const liveCommandText = document.getElementById('live-command');
         const panelStatus = document.getElementById('panel-status');
         const panelMetrics = document.getElementById('panel-metrics');
         const panelProgressContainer = document.getElementById('panel-progress-container');
         const panelProgressBar = document.getElementById('panel-progress-bar');
-
-        // 1. Dynamic live command string
-        function updateGeneratedCommandString() {
-            let baseCmd = 'simplebeacon scan .';
-            if (document.getElementById('flag-env')?.checked) baseCmd += ' --exclude-env';
-            if (document.getElementById('flag-deps')?.checked) baseCmd += ' --skip-node-modules';
-            if (document.getElementById('flag-code-only')?.checked) baseCmd += ' --code-only';
-            if (document.getElementById('flag-docs')?.checked) baseCmd += ' --skip-docs';
-            if (liveCommandText) liveCommandText.textContent = baseCmd;
-        }
-
-        ['flag-env', 'flag-deps', 'flag-code-only', 'flag-docs'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('change', updateGeneratedCommandString);
-        });
 
         // 2. Terminal writer
         function appendTerminalLine(text, type) {
@@ -1158,49 +1138,6 @@
             terminalConsole.appendChild(line);
             terminalConsole.scrollTop = terminalConsole.scrollHeight;
         }
-
-        // Dropzone interactions
-        const cliFilesInput = document.getElementById('cli-files-input');
-        cliDropzone.addEventListener('click', (e) => {
-            if (e.target.closest('#terminal-console')) return;
-            // Try folder picker first (Chrome/Edge), fall back to files (Firefox/Safari)
-            if ('webkitdirectory' in document.createElement('input')) {
-                cliFolderInput.click();
-            } else {
-                cliFilesInput.click();
-            }
-        });
-        cliDropzone.addEventListener('dragover', (e) => { e.preventDefault(); cliDropzone.style.borderColor = 'var(--primary)'; });
-        cliDropzone.addEventListener('dragleave', () => { cliDropzone.style.borderColor = ''; });
-        cliDropzone.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            cliDropzone.style.borderColor = '';
-            const items = e.dataTransfer.items;
-            if (items && items.length > 0) {
-                const files = [];
-                async function traverse(entry) {
-                    if (entry.isFile) {
-                        const file = await new Promise(resolve => entry.file(resolve));
-                        files.push(file);
-                    } else if (entry.isDirectory) {
-                        const dirReader = entry.createReader();
-                        const entries = await new Promise(resolve => dirReader.readEntries(resolve));
-                        for (const child of entries) await traverse(child);
-                    }
-                }
-                for (let i = 0; i < items.length; i++) {
-                    const entry = items[i].webkitGetAsEntry();
-                    if (entry) await traverse(entry);
-                }
-                await processLocalCLIScan(files);
-            }
-        });
-        cliFolderInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) processLocalCLIScan(Array.from(e.target.files));
-        });
-        cliFilesInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) processLocalCLIScan(Array.from(e.target.files));
-        });
 
         // Parse .simplebeaconignore contents into RegExp patterns (gitignore-style)
         function parseIgnoreFile(ignoreText) {
@@ -1347,6 +1284,7 @@
             panelStatus.style.color = '#10B981';
 
             renderPreview(reportData);
+            scanPreview.style.display = 'block';
             updateSubmit();
             showStatus(`Scan complete: ${sourceFiles.length} files, ${aiHits.length} AI hits, ${credentialHits} credential patterns. Token required for certificate.`, 'success');
 
