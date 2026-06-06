@@ -548,74 +548,115 @@
             </div>
         </div>
 
-        <!-- STEP 1: INSTALL CLI -->
-        <div class="card" style="padding:0;overflow:hidden;">
-            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <span style="background:var(--accent);color:white;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
-                    <h2 style="margin:0;font-size:1rem;">Install Audit Engine</h2>
+        <!-- RUNTIME MODE SELECTOR -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <div>
+                <h2 style="margin:0;font-size:1.1rem;color:var(--text-main);">Project Compliance Evaluation</h2>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:4px 0 0;">Choose your preferred local static-analysis runtime.</p>
+            </div>
+            <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);">
+                <button id="tab-cli" class="mode-tab active" style="flex:none;padding:8px 16px;">&#10095; Terminal (CLI)</button>
+                <button id="tab-browser" class="mode-tab" style="flex:none;padding:8px 16px;">&#127758; Browser Sandbox</button>
+            </div>
+        </div>
+
+        <!-- VIEW A: CLI WORKFLOW -->
+        <div id="view-cli">
+            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+                <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
+                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Generate Metadata Package</h3>
+                    </div>
+                </div>
+                <div style="padding:20px 24px;background:var(--bg-input);">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                        <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#60A5FA;">
+                            <code id="installCmd">npm install -g simplebeacon</code>
+                            <button onclick="copyToClipboard('installCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
+                        </div>
+                        <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#34D399;">
+                            <code id="scanCmd">simplebeacon scan . --output=report.json</code>
+                            <button onclick="copyToClipboard('scanCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
+                        </div>
+                    </div>
+                    <div style="font-size:0.75rem;color:#F59E0B;display:flex;align-items:center;gap:6px;">
+                        <span>&#128737;</span>
+                        <span>Zero-Trust: Output is audit metadata only — no source code included.</span>
+                    </div>
                 </div>
             </div>
-            <div style="padding:20px 24px;background:var(--bg-input);">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                    <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#60A5FA;">
-                        <code id="installCmd">npm install -g simplebeacon</code>
-                        <button onclick="copyToClipboard('installCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
-                    </div>
-                    <div style="background:#0B0F19;border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.85rem;color:#34D399;">
-                        <code id="scanCmd">simplebeacon scan . --output=report.json</code>
-                        <button onclick="copyToClipboard('scanCmd')" style="background:var(--border);color:var(--text-muted);border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;">Copy</button>
+
+            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+                <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
+                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Upload Profile Matrix</h3>
                     </div>
                 </div>
-                <div style="margin-top:12px;font-size:0.75rem;color:#F59E0B;display:flex;align-items:center;gap:6px;">
-                    <span>&#128737;</span>
-                    <span>Zero-Trust: Output is audit metadata only — no source code included.</span>
+                <div style="padding:20px 24px;background:var(--bg-input);">
+                    <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:12px;">
+                        <div class="icon">&#128229;</div>
+                        <p>Drop your <code>report.json</code> here<br><span style="font-size:0.8rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
+                        <p class="file-name" id="cliFileName"></p>
+                    </div>
+                    <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
                 </div>
             </div>
         </div>
 
-        <!-- STEP 2: UNIFIED SMART DROPZONE -->
+        <!-- VIEW B: BROWSER SANDBOX (hidden by default) -->
+        <div id="view-browser" style="display:none;">
+            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+                <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
+                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Direct Folder Analysis</h3>
+                    </div>
+                </div>
+                <div style="padding:20px 24px;background:var(--bg-input);">
+                    <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;">No Node.js required. Grab your entire repo folder and drop it here.</p>
+                    <div id="browser-folder-dropzone" class="drop-zone" style="padding:40px 20px;margin-bottom:16px;transition:all 0.2s;">
+                        <div id="dropzone-prompt">
+                            <div class="icon" style="font-size:2rem;margin-bottom:8px;">&#128451;</div>
+                            <p style="font-size:0.85rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;">Drag &amp; Drop Your Project Folder Here</p>
+                            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">Processing runs 100% locally in your browser sandbox. No source code leaves your computer.</p>
+                            <p style="font-size:0.7rem;color:var(--text-muted);margin-top:12px;opacity:0.6;">Or click to manually select a directory</p>
+                            <p class="file-name" id="localScanFileName"></p>
+                        </div>
+                        <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
+                        <input type="file" id="cli-files-input" multiple style="display:none;">
+                    </div>
+                    <div id="terminal-console" class="preview" style="display:none;max-height:240px;margin-bottom:12px;"></div>
+                    <div id="panel-progress-container" style="display:none;margin-bottom:12px;">
+                        <div class="progress-bar"><div class="fill" id="panel-progress-bar"></div></div>
+                    </div>
+                    <div id="status-ribbon" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);justify-content:space-between;align-items:center;font-size:0.75rem;color:var(--text-muted);">
+                        <span>Status: <span id="panel-status" style="color:#F59E0B;font-weight:700;">READY</span></span>
+                        <span id="panel-metrics">Files parsed: 0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CERTIFICATE GENERATION (always visible) -->
         <div class="card" style="padding:0;overflow:hidden;">
             <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-                    <span style="background:var(--accent);color:white;font-size:0.7rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
-                    <h2 style="margin:0;font-size:1rem;">Process Project Metrics</h2>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">3</span>
+                    <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Generate Signed Certificate</h3>
                 </div>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Drop a folder to scan, or a <code>report.json</code> to generate your certificate.</p>
             </div>
             <div style="padding:20px 24px;background:var(--bg-input);">
-                <!-- Smart Dropzone -->
-                <div id="smart-dropzone" class="drop-zone" style="margin-bottom:12px;">
-                    <div id="dropzone-prompt">
-                        <div class="icon">&#128451;</div>
-                        <p>Drag your <strong>project folder</strong> or <strong>report.json</strong> here<br><span style="font-size:0.8rem;opacity:0.7;">100% local — runs in your browser sandbox</span></p>
-                        <p class="file-name" id="localScanFileName"></p>
-                    </div>
-                    <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
-                    <input type="file" id="cli-files-input" multiple style="display:none;">
-                    <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
-                </div>
-
-                <!-- Terminal Console (for folder scans) -->
-                <div id="terminal-console" class="preview" style="display:none;max-height:200px;margin-bottom:12px;"></div>
-                <div id="panel-progress-container" style="display:none;margin-bottom:12px;">
-                    <div class="progress-bar"><div class="fill" id="panel-progress-bar"></div></div>
-                </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-bottom:16px;">
-                    <span>ENGINE: <span id="panel-status" style="color:#F59E0B;font-weight:700;">READY</span></span>
-                    <span id="panel-metrics" style="display:none;">Files: 0 | Lines: 0</span>
-                </div>
-
                 <!-- Scan Preview -->
-                <div id="scanPreview" style="display: none; margin-top:16px;">
+                <div id="scanPreview" style="display:none;margin-bottom:16px;">
                     <label>Scan Preview</label>
                     <div class="scan-meta" id="scanMeta"></div>
                     <div class="preview" id="previewContent"></div>
                 </div>
 
-                <!-- Token + Actions (revealed after scan) -->
-                <div id="tokenActionRow" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-                    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;">
+                <div id="tokenActionRow" style="display:none;">
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:12px;">
                         <div>
                             <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
                             <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
@@ -628,7 +669,7 @@
                             <button id="tryFreeBtn" style="padding:8px 16px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Try for Free</button>
                         </div>
                     </div>
-                    <div style="margin-top:12px;padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
+                    <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
                         <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
                         <div style="display:flex;gap:8px;">
                             <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
@@ -665,22 +706,30 @@
         // DOM element declarations
         const licenseInput = document.getElementById('licenseToken');
         const fileInput = document.getElementById('fileInput');
-        const fileName = document.getElementById('fileName');
+        const cliFileName = document.getElementById('cliFileName');
         const submitBtn = document.getElementById('submitBtn');
         const status = document.getElementById('status');
         const scanPreview = document.getElementById('scanPreview');
         const scanMeta = document.getElementById('scanMeta');
         const previewContent = document.getElementById('previewContent');
 
+        // Tab elements
+        const tabCli = document.getElementById('tab-cli');
+        const tabBrowser = document.getElementById('tab-browser');
+        const viewCli = document.getElementById('view-cli');
+        const viewBrowser = document.getElementById('view-browser');
+
         // Browser-local scanner elements
         const localScanFileName = document.getElementById('localScanFileName');
         const cliFolderInput = document.getElementById('cli-folder-input');
         const cliFilesInput = document.getElementById('cli-files-input');
         const dropzonePrompt = document.getElementById('dropzone-prompt');
+        const statusRibbon = document.getElementById('status-ribbon');
 
-        // Smart dropzone unified handler
-        const smartDropzone = document.getElementById('smart-dropzone');
-        const dropZone = smartDropzone; // alias for existing code that references dropZone
+        // Separate dropzones
+        const cliJsonDropzone = document.getElementById('cli-json-dropzone');
+        const browserFolderDropzone = document.getElementById('browser-folder-dropzone');
+        const dropZone = cliJsonDropzone; // alias for existing code
 
         let reportData = null;
 
@@ -964,29 +1013,49 @@
             }
         }
 
-        // === Unified Smart Dropzone ===
-        smartDropzone.addEventListener('click', (e) => {
+        // === Tab Toggle ===
+        if (tabCli && tabBrowser && viewCli && viewBrowser) {
+            tabCli.addEventListener('click', () => {
+                tabCli.classList.add('active');
+                tabBrowser.classList.remove('active');
+                viewCli.style.display = 'block';
+                viewBrowser.style.display = 'none';
+            });
+            tabBrowser.addEventListener('click', () => {
+                tabBrowser.classList.add('active');
+                tabCli.classList.remove('active');
+                viewBrowser.style.display = 'block';
+                viewCli.style.display = 'none';
+            });
+        }
+
+        // === CLI JSON Dropzone ===
+        cliJsonDropzone.addEventListener('click', () => fileInput.click());
+        cliJsonDropzone.addEventListener('dragover', (e) => { e.preventDefault(); cliJsonDropzone.classList.add('dragover'); });
+        cliJsonDropzone.addEventListener('dragleave', () => cliJsonDropzone.classList.remove('dragover'));
+        cliJsonDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            cliJsonDropzone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleJsonFile(file);
+        });
+
+        // === Browser Folder Dropzone ===
+        browserFolderDropzone.addEventListener('click', (e) => {
             if (e.target.closest('#terminal-console')) return;
-            // Try folder picker first (Chrome/Edge), fall back to files (Firefox/Safari)
             if ('webkitdirectory' in document.createElement('input')) {
                 cliFolderInput.click();
             } else {
                 cliFilesInput.click();
             }
         });
-        smartDropzone.addEventListener('dragover', (e) => { e.preventDefault(); smartDropzone.classList.add('dragover'); });
-        smartDropzone.addEventListener('dragleave', () => smartDropzone.classList.remove('dragover'));
-        smartDropzone.addEventListener('drop', async (e) => {
+        browserFolderDropzone.addEventListener('dragover', (e) => { e.preventDefault(); browserFolderDropzone.classList.add('dragover'); });
+        browserFolderDropzone.addEventListener('dragleave', () => browserFolderDropzone.classList.remove('dragover'));
+        browserFolderDropzone.addEventListener('drop', async (e) => {
             e.preventDefault();
-            smartDropzone.classList.remove('dragover');
+            browserFolderDropzone.classList.remove('dragover');
             const items = e.dataTransfer.items;
-            if (!items || items.length === 0) return;
-
-            const firstEntry = items[0].webkitGetAsEntry && items[0].webkitGetAsEntry();
-            const firstFile = e.dataTransfer.files[0];
-
-            if (firstEntry && firstEntry.isDirectory) {
-                // Folder dropped → run browser scan
+            if (items && items.length > 0) {
                 const files = [];
                 async function traverse(entry) {
                     if (entry.isFile) {
@@ -1003,11 +1072,6 @@
                     if (entry) await traverse(entry);
                 }
                 await processLocalCLIScan(files);
-            } else if (firstFile && firstFile.name.endsWith('.json')) {
-                // JSON dropped → parse report
-                handleJsonFile(firstFile);
-            } else {
-                showStatus('Drop a project folder or a .json report file', 'error');
             }
         });
 
@@ -1016,7 +1080,7 @@
                 showStatus('Please upload a .json file', 'error');
                 return;
             }
-            fileName.textContent = file.name;
+            cliFileName.textContent = file.name;
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
@@ -1160,6 +1224,7 @@
             if (dropzonePrompt) dropzonePrompt.style.display = 'none';
             terminalConsole.style.display = 'block';
             panelProgressContainer.style.display = 'block';
+            if (statusRibbon) statusRibbon.style.display = 'flex';
             panelMetrics.style.display = 'inline';
             panelStatus.textContent = 'RUNNING_ANALYSIS';
             panelStatus.style.color = '#60A5FA';
@@ -1265,7 +1330,7 @@
                     ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, description: `${credentialHits} potential credential patterns detected (heuristic — review manually)` }] : [])
                 ],
                 rawIssues: [
-                    ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', filePath: aiHits[0], count: aiHits.length }] : []),
+                    ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
                     ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits }] : [])
                 ],
                 scanDurationMs: Date.now() - startTime,
@@ -1288,17 +1353,39 @@
             updateSubmit();
             showStatus(`Scan complete: ${sourceFiles.length} files, ${aiHits.length} AI hits, ${credentialHits} credential patterns. Token required for certificate.`, 'success');
 
-            // Add download button for report.json
-            const existingBtn = document.getElementById('downloadReportBtn');
-            if (existingBtn) existingBtn.remove();
-            const downloadBtn = document.createElement('button');
-            downloadBtn.id = 'downloadReportBtn';
-            downloadBtn.className = 'btn btn-primary';
-            downloadBtn.style.marginTop = '12px';
-            downloadBtn.style.background = 'linear-gradient(135deg, #059669, #047857)';
-            downloadBtn.innerHTML = '<span>&#128229;</span> Download report.json';
-            downloadBtn.addEventListener('click', () => {
-                const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(reportData, null, 2));
+            // Build Secure Report preview + download
+            const existingReport = document.getElementById('secureReportBlock');
+            if (existingReport) existingReport.remove();
+
+            const reportBlock = document.createElement('div');
+            reportBlock.id = 'secureReportBlock';
+            reportBlock.style.marginTop = '16px';
+            reportBlock.style.padding = '16px';
+            reportBlock.style.background = 'rgba(16,185,129,0.06)';
+            reportBlock.style.border = '1px solid rgba(16,185,129,0.2)';
+            reportBlock.style.borderRadius = '10px';
+
+            const reportJson = JSON.stringify(reportData, null, 2);
+            reportBlock.innerHTML = `
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                    <span style="font-size:1.2rem;">&#128275;</span>
+                    <div>
+                        <div style="font-size:0.85rem;font-weight:700;color:#34D399;">Secure Report Ready</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);">Review what's included before downloading. No source code in this file.</div>
+                    </div>
+                </div>
+                <details style="margin-bottom:12px;">
+                    <summary style="font-size:0.8rem;color:#60A5FA;cursor:pointer;font-weight:600;">Preview report.json contents</summary>
+                    <pre style="margin-top:8px;padding:12px;background:#0B0F19;border:1px solid var(--border);border-radius:8px;font-size:0.75rem;color:#94A3B8;overflow-x:auto;max-height:200px;">${reportJson.replace(/</g, '&lt;')}</pre>
+                </details>
+                <button id="downloadReportBtn" class="btn btn-primary" style="background:linear-gradient(135deg,#059669,#047857);width:100%;">
+                    <span>&#128229;</span> Download report.json
+                </button>
+            `;
+            status.parentNode.insertBefore(reportBlock, status.nextSibling);
+
+            document.getElementById('downloadReportBtn').addEventListener('click', () => {
+                const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(reportJson);
                 const a = document.createElement('a');
                 a.setAttribute('href', dataStr);
                 a.setAttribute('download', 'report.json');
@@ -1306,7 +1393,6 @@
                 a.click();
                 a.remove();
             });
-            status.parentNode.insertBefore(downloadBtn, status.nextSibling);
         }
 
         submitBtn.addEventListener('click', async () => {
