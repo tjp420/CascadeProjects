@@ -823,12 +823,12 @@
                 } else {
                     btn.textContent = 'Try for Free →';
                     btn.disabled = false;
-                    alert('Could not generate free token: ' + (data.error || 'Unknown error'));
+                    showStatus('Could not generate free token: ' + (data.error || 'Unknown error'), 'error');
                 }
             } catch (err) {
                 btn.textContent = 'Try for Free →';
                 btn.disabled = false;
-                alert('Network error: ' + err.message);
+                showStatus('Network error: ' + err.message, 'error');
             }
         });
 

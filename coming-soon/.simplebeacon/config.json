@@ -21,7 +21,9 @@
     "test/**",
     "**/.gitkeep",
     "**/test-output*.txt",
-    "packages/simplebeacon-cli/**"
+    "packages/simplebeacon-cli/**",
+    "public/**",
+    "upload.html"
   ],
   "rules": {
     "credentials": {

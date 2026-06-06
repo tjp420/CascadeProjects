@@ -288,7 +288,8 @@
                     currentReport = JSON.parse(e.target.result);
                     showResults(currentReport);
                 } catch (err) {
-                    alert('Invalid JSON file: ' + err.message);
+                    console.error('Invalid JSON file:', err.message);
+                    document.getElementById('liveStatus').textContent = 'Error: Invalid JSON file — ' + err.message;
                 }
             };
             reader.readAsText(file);

@@ -5644,6 +5644,7 @@
 
             // 10b. AI Indicators — standalone module with line-level findings
             const aiIssue = (report.detectedIssues || []).find(i => i.type === 'AI System Indicator');
+            const govIssue = (report.detectedIssues || []).find(i => i.type === 'License/Governance Marker');
             if (aiIssue) {
                 addModule('ai-indicators', 'AI System Indicators', {
                     aiSystemIndicators: aiIssue.count || 0,
@@ -6077,11 +6078,11 @@ ${(cl.debugArtifacts || []).slice(0, 8).map(f => `- ${f}`).join('\n')}${(cl.debu
 ${(fr.unusedAssetCandidates || []).slice(0, 8).map(f => `- ${f}`).join('\n')}
 - **Remediation:** Review and remove unused assets to reduce bundle size.
 
-` : ''}${npm.packageJsonCount ? `## 📦 npm Audit (${npm.packageJsonCount} packages, ${(npm.dependencyCount || 0).toLocaleString()} deps)
+` : ''}${npm.packageJsonCount ? `## 📦 npm Audit (${npm.packageJsonCount} package${npm.packageJsonCount === 1 ? '' : 's'}, ${(npm.dependencyCount || 0).toLocaleString()} dependenc${(npm.dependencyCount || 0) === 1 ? 'y' : 'ies'})
 ${(npm.packageJsonFiles || []).slice(0, 5).map(f => `- ${f}`).join('\n')}
 - **Remediation:** ${npm.packageJsonCount > 0 && Math.round((npm.dependencyCount || 0) / npm.packageJsonCount) > 50 ? 'High dependency count — audit for unused packages.' : 'Keep dependencies up to date.'}
 
-` : ''}${(comp.licenseCount || comp.securityCount) ? `## ✅ Compliance / Governance (${(comp.licenseCount || 0)} licenses, ${(comp.securityCount || 0)} security)
+` : ''}${(comp.licenseCount || comp.securityCount) ? `## ✅ Compliance / Governance (${(comp.licenseCount || 0)} license${(comp.licenseCount || 0) === 1 ? '' : 's'}, ${(comp.securityCount || 0)} security)
 ${(comp.licenseFiles || []).slice(0, 5).map(f => `- 📜 ${f}`).join('\n')}
 ${(comp.securityFiles || []).slice(0, 3).map(f => `- 🔒 ${f}`).join('\n')}
 - **Remediation:** ${comp.remediation || 'Verify license compatibility with your distribution model.'}

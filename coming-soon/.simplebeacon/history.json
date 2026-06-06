@@ -202,5 +202,22 @@
     },
     "fictionPatternsFound": 0,
     "totalFilesScanned": 37
+  },
+  {
+    "scanId": "SB-317682",
+    "date": "2026-06-06T20:07:40.915Z",
+    "issueCount": 19,
+    "warningCount": 19,
+    "blockingCount": 0,
+    "qualityScore": 87,
+    "gatePass": true,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 19
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 6221
   }
 ]
