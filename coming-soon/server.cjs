@@ -447,7 +447,7 @@ function normalizeReport(reportJson) {
         return {
             ...reportJson,
             gate: {
-                pass: summary.gatePass ?? false,
+                pass: summary.gatePass ?? null,
                 blockingCount: (reportJson.severityCounts?.critical || 0) + (reportJson.severityCounts?.high || 0),
                 warningCount: (reportJson.severityCounts?.medium || 0) + (reportJson.severityCounts?.low || 0)
             },

@@ -1948,7 +1948,14 @@
                     renderPreview(reportData);
                     scanPreview.style.display = 'block';
                     updateSubmit();
-                    showStatus('JSON loaded from paste', 'success');
+                    const hasToken = licenseInput.value.trim().length > 10;
+                    if (hasToken) {
+                        showStatus('JSON loaded. Click Generate Certificate to download your ZIP.', 'success');
+                    } else {
+                        showStatus('JSON loaded. Paste a license token above to unlock certificate generation.', 'loading');
+                        licenseInput.focus();
+                        licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 } catch (err) {
                     showStatus('Invalid JSON: ' + err.message, 'error');
                     reportData = null;
@@ -1989,7 +1996,8 @@
             scanPreview.style.display = 'block';
             const hasToken = licenseInput.value.trim().length > 10;
             const gate = data.gate || data.results?.simplebeacon?.gate || {};
-            const gatePass = gate.pass ?? false;
+            const gatePass = gate.pass;
+            const gateStatus = gatePass === true ? 'pass' : gatePass === false ? 'fail' : 'review';
             const detectedIssues = Array.isArray(data.detectedIssues) ? data.detectedIssues : (Array.isArray(data.rawIssues) ? data.rawIssues : []);
             const rawIssues = Array.isArray(data.rawIssues) ? data.rawIssues : detectedIssues;
             const quality = data.qualityScore ?? data.results?.simplebeacon?.qualityScore ?? (rawIssues.length ? Math.max(0, 100 - rawIssues.length * 2) : 0);
@@ -2025,8 +2033,8 @@
             // Compliance matrix rows
             const hasAi = detectedIssues.some(i => i.type && i.type.toLowerCase().includes('ai'));
             const hasCred = detectedIssues.some(i => i.type && i.type.toLowerCase().includes('credential'));
-            const euAiaStatus = gatePass && !hasAi ? 'pass' : hasAi ? 'warn' : 'pass';
-            const owaspStatus = gatePass && !hasCred ? 'pass' : hasCred ? 'warn' : 'pass';
+            const euAiaStatus = gatePass === true && !hasAi ? 'pass' : hasAi ? 'warn' : 'pass';
+            const owaspStatus = gatePass === true && !hasCred ? 'pass' : hasCred ? 'warn' : 'pass';
             const matrixHtml = `
                 <div class="compliance-matrix" style="margin-bottom:16px;">
                     <div class="matrix-header">
@@ -2037,7 +2045,7 @@
                     <div class="matrix-row">
                         <div class="control-id">SB-GATE-01</div>
                         <div>SimpleBeacon Gate Attestation</div>
-                        <div><span class="status-pill ${gatePass ? 'pass' : 'fail'}">${gatePass ? '&#127775; PASSED' : '&#10071; FAILED'}</span></div>
+                        <div><span class="status-pill ${gateStatus}">${gatePass === true ? '&#127775; PASSED' : gatePass === false ? '&#10071; FAILED' : '&#9888; REVIEW'}</span></div>
                     </div>
                     <div class="matrix-row">
                         <div class="control-id">EU-AIA-ART-5</div>
@@ -2045,9 +2053,9 @@
                         <div><span class="status-pill ${euAiaStatus}">${hasAi ? '&#9888; REVIEW' : '&#127775; PASSED (0 Flags)'}</span></div>
                     </div>
                     <div class="matrix-row">
-                        <div class="control-id">OWASP-LLM-01</div>
-                        <div>Prompt Injection Structural Shield</div>
-                        <div><span class="status-pill ${owaspStatus}">${hasCred ? '&#9888; WARNING' : '&#127775; PASSED'}</span></div>
+                        <div class="control-id">SB-CRED-01</div>
+                        <div>Credential &amp; Secret Hygiene</div>
+                        <div><span class="status-pill ${hasCred ? 'warn' : 'pass'}">${hasCred ? '&#9888; REVIEW' : '&#127775; PASSED'}</span></div>
                     </div>
                 </div>
             `;
@@ -2069,7 +2077,7 @@
                     </div>
                     <div class="scan-meta" style="margin-top:0;">
                         <div class="meta-item">
-                            <div class="value ${gatePass ? 'gate-pass' : 'gate-fail'}">${gatePass ? 'PASS' : 'REVIEW'}</div>
+                            <div class="value ${gatePass === true ? 'gate-pass' : 'gate-fail'}" style="${gatePass === null ? 'color:var(--warn)' : ''}">${gatePass === true ? 'PASS' : 'REVIEW'}</div>
                             <div class="label">Gate</div>
                         </div>
                         <div class="meta-item">
