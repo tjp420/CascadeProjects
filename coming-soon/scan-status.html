@@ -232,7 +232,7 @@
     <script>
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         const isFile = window.location.protocol === 'file:';
-        const API_BASE = isFile ? ('http://' + 'localhost' + ':' + '3001') : '';
+        const API_BASE = (isLocal || isFile) ? ('http://' + 'localhost' + ':' + '3001') : 'https://simplebeacon.onrender.com';
         let currentReport = null;
 
         const dropZone = document.getElementById('dropZone');

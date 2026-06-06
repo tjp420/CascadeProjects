@@ -133,7 +133,7 @@ const RULE_CATALOG = [
         id: 'SB-HANDOFF-001',
         category: 'handoff-integrity',
         type: 'Handoff Integrity',
-        regex: /^<<<<<<<|^=======|^>>>>>>>/gm,
+        regex: /^<<<<<<<\s|^=======$|^>>>>>>>\s/gm,
         severity: 'critical',
         description: 'Unresolved Git merge conflict marker'
     },

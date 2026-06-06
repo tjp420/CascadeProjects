@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-06-06T14:40:33.155Z",
+  "generatedAt": "2026-06-06T19:01:21.791Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
@@ -10,18 +10,18 @@
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-    "totalFiles": 1140,
-    "totalFolders": 142,
+    "totalFiles": 1184,
+    "totalFolders": 144,
     "profile": "audit"
   },
-  "mockSampleFiles": 68,
-  "totalFiles": 1127,
-  "ruleScopedFilesAnalyzed": 1127,
-  "repositoryFilesTotal": 1140,
-  "repositoryFoldersTotal": 142,
-  "filesAnalyzed": 1140,
-  "totalSizeBytes": 14356515,
-  "totalSizeLabel": "13.7MB",
+  "mockSampleFiles": 72,
+  "totalFiles": 1171,
+  "ruleScopedFilesAnalyzed": 1171,
+  "repositoryFilesTotal": 1184,
+  "repositoryFoldersTotal": 144,
+  "filesAnalyzed": 1184,
+  "totalSizeBytes": 15851155,
+  "totalSizeLabel": "15.1MB",
   "issueCount": 29,
   "invalidJson": 1,
   "emptyFiles": 0,
@@ -34,36 +34,45 @@
   "duplicateGroups": 9,
   "roadmapSchemaChecked": 0,
   "roadmapSchemaPassed": 0,
-  "consistencyChecked": 16,
-  "consistencyPassed": 16,
+  "consistencyChecked": 21,
+  "consistencyPassed": 21,
   "consistencyScore": 100,
-  "fictionJsonFilesScanned": 16,
+  "fictionJsonFilesScanned": 21,
   "fictionSampleFilesScanned": 0,
   "fictionScope": "repository-json",
-  "credentialScanned": 867,
+  "credentialScanned": 885,
   "credentialFindings": 0,
   "productionLeakScanned": 14,
   "productionLeakFindings": 0,
   "productionLeakSuppressedIntent": 0,
   "sourceCodeFilesScanned": 0,
   "sourceFictionPatternHits": 0,
-  "llmSlopFilesScanned": 60,
+  "llmSlopFilesScanned": 65,
   "llmSlopPatternHits": 0,
-  "euAiActScanned": 88,
+  "euAiActScanned": 96,
   "euAiActFindings": 0,
   "euAiActSummary": {
     "highRiskIndicators": 0,
-    "aiSystemIndicators": 2,
+    "aiSystemIndicators": 3,
     "transparencyGaps": 0,
-    "documentationArtifacts": 126,
+    "documentationArtifacts": 179,
     "documentationFound": [
       ".env.example",
       "AGENTS.md",
+      "ai-platform-report.json",
+      "cascade-root-report.json",
+      "CHANGELOG.md",
+      "cli-test-report.json",
+      "cli-test-report2.json",
       "coming-soon-final.json",
+      "coming-soon-report.json",
       "error-check2.log",
       "HANDOFF-2026-06-03.md",
       "issues.json",
       "ZORIN-LINUX-SETUP.md",
+      ".simplebeacon/cli-test-report.json",
+      ".simplebeacon/cli-test-report2.json",
+      ".simplebeacon/cli-test-report3.json",
       ".simplebeacon/codebase-current.json",
       ".simplebeacon/coming-soon-report.json",
       ".simplebeacon/coming-soon-report2.json",
@@ -89,11 +98,13 @@
       ".simplebeacon/reduce-report.json",
       ".simplebeacon/reduce-verify.json",
       ".simplebeacon/report-fresh.json",
-      ".simplebeacon/report-test.json",
       ".simplebeacon/report-test2.json",
+      ".simplebeacon/report-test3.json",
+      ".simplebeacon/report-test4.json",
       ".simplebeacon/report.json",
       ".simplebeacon/reverted-gate.json",
       ".simplebeacon/verify-current.json",
+      ".simplebeacon/website-scan.json",
       "ai-platform/docs/model-card.md",
       "ai-platform/docs/ai-system-documentation.md",
       "ai-platform/docs/risk-assessment.md",
@@ -119,8 +130,8 @@
   "mockDataCategories": [
     {
       "category": "Stale inventory (full-tree scan)",
-      "fileCount": 68,
-      "totalSize": "13.7MB",
+      "fileCount": 72,
+      "totalSize": "15.1MB",
       "qualityScore": null,
       "issues": null,
       "confidence": null,
@@ -1430,17 +1441,25 @@
     "ToolsView.js",
     "TrustView.js",
     "UploadView.js",
+    "ai-platform-report.json",
+    "ai-platform-report.json.simplebeacon-backup.2026-06-06T14-46-11-770Z",
     "index.js",
     "package.json",
     "build-standalone.cjs",
+    "cascade-root-report.json",
+    "CHANGELOG.md",
+    "cli-test-report.json",
+    "cli-test-report2.json",
     ".env",
     ".env.example",
     ".gitignore",
     ".simplebeaconignore",
     "404.html",
+    "AI-SYSTEM.md",
     "app-links.js",
     "certificate-upload.html",
     "cloud-scan.html",
+    "CLOUDFLARE-DEPLOYMENT-PLAN.md",
     "community.html",
     "contact.html",
     "contact.js",
@@ -1455,11 +1474,41 @@
     "package.json",
     "pricing.html",
     "privacy.html",
+    "404.html",
+    "app-links.js",
+    "certificate-upload.html",
+    "cloud-scan.html",
+    "community.html",
+    "contact.html",
+    "contact.js",
+    "diagnostic-prep.html",
+    "repo-handoff.html",
+    "email-template-universal.html",
+    "favicon.svg",
+    "index.html",
+    "landing.html",
+    "pricing.html",
+    "privacy.html",
     "refund.html",
+    "roadmap.html",
     "robots.txt",
     "sample-certificate.html",
     "sample-clearance-pdf.html",
     "sample-report.html",
+    "scan-status.html",
+    "site-config.js",
+    "sitemap.xml",
+    "styles.css",
+    "terms.html",
+    "upload.html",
+    "refund.html",
+    "report.json",
+    "roadmap.html",
+    "robots.txt",
+    "sample-certificate.html",
+    "sample-clearance-pdf.html",
+    "sample-report.html",
+    "sample-report.json",
     "scan-status.html",
     "server.cjs",
     "site-config.js",
@@ -1470,6 +1519,7 @@
     "subscriptions.json",
     "terms.html",
     "test-audit-output.txt",
+    "test-audit-output2.txt",
     "test-audit-report.json",
     "test-certificate.js",
     "test-normalize.js",
@@ -1481,6 +1531,7 @@
     "subscriptions.json",
     "server.test.cjs",
     "coming-soon-final.json",
+    "coming-soon-report.json",
     "coming-soon-server.log",
     "coming-soon.zip",
     "cookies.txt",
@@ -1746,6 +1797,7 @@
     "11-eu-ai-act.html",
     "certificate.html",
     "test-certificate.zip",
+    "test-output.txt",
     "agency-handoff-patterns.test.js",
     "ai-fiction-detection.test.js",
     "anonymized-export.test.js",
@@ -1793,14 +1845,17 @@
     "scan-conclusion.test.js",
     "scan-history.test.js",
     "scan-paths.test.js",
+    "smoke.test.js",
     "supply-chain-security.test.js",
     "trust-guard.test.js",
     "README.md",
+    "RELEASE-PLAN.md",
     "REMEDIATION.md",
     "render.yaml",
     "report.json",
     "Running",
     "scan-website.sh",
+    "SECURITY.md",
     "server-start.log",
     "setup-zorin.sh",
     ".gitignore",
@@ -1840,7 +1895,7 @@
         "low"
       ]
     },
-    "mockSampleFilesInScanPaths": 1127,
+    "mockSampleFilesInScanPaths": 1171,
     "pageSpecCatalogSize": 50,
     "pageSpecsValidated": 50,
     "pageSpecsFromScanPaths": 50,
@@ -1854,25 +1909,25 @@
     ],
     "sourceCodeFilesScanned": 0,
     "sourceFictionPatternHits": 0,
-    "llmSlopFilesScanned": 60,
+    "llmSlopFilesScanned": 65,
     "llmSlopPatternHits": 0,
-    "euAiActFilesScanned": 88,
+    "euAiActFilesScanned": 96,
     "euAiActPatternHits": 0,
     "euAiActHighRiskIndicators": 0,
     "jestExecutedDuringScan": false,
     "consistencyAnchorCount": 0,
     "fictionScope": "repository-json",
-    "fictionJsonFilesScanned": 16,
+    "fictionJsonFilesScanned": 21,
     "fictionSampleFilesScanned": 0,
-    "ruleScopedFilesAnalyzed": 1127,
-    "repositoryFilesTotal": 1140,
-    "repositoryFoldersTotal": 142,
+    "ruleScopedFilesAnalyzed": 1171,
+    "repositoryFilesTotal": 1184,
+    "repositoryFoldersTotal": 144,
     "benchmarkCacheIssuesExcluded": 0,
     "excludedPathsNote": "11 issue(s) from github-cache/ benchmark clones excluded from gate scores — scan clones with github-cache/.simplebeacon/config.json (profile: benchmark).",
     "limitations": [
-      "Repository inventory: 1,140 files — gate rules checked 1127 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 1,184 files — gate rules checked 1171 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-      "Fiction/KPI rules scan repository JSON (16) plus source code (0 files in .).",
+      "Fiction/KPI rules scan repository JSON (21) plus source code (0 files in .).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
       "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
       "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
@@ -1892,8 +1947,437 @@
       "low"
     ],
     "blockingCount": 2,
-    "warningCount": 9
+    "warningCount": 27,
+    "blockingIssues": [
+      {
+        "id": "invalid-json-report.json",
+        "severity": "high",
+        "type": "Invalid JSON",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\report.json",
+        "count": 1,
+        "description": "report.json: Unexpected token '\u001b', \"\u001b[36mSimpl\"... is not valid JSON",
+        "recommendedAction": "Fix JSON syntax errors in mock data",
+        "affectedFiles": [
+          "report.json"
+        ]
+      },
+      {
+        "id": "agency-handoff-SB-HANDOFF-001-report.json-22",
+        "severity": "critical",
+        "severityBand": "critical",
+        "type": "Handoff Integrity",
+        "category": "handoff-integrity",
+        "filePath": "report.json",
+        "file": "report.json",
+        "line": 2,
+        "pattern": "SB-HANDOFF-001",
+        "count": 1,
+        "description": "report.json:2 — Unresolved Git merge conflict marker",
+        "recommendation": "Resolve merge conflict markers before client handoff.",
+        "recommendedAction": "Resolve merge conflict markers before client handoff.",
+        "affectedFiles": [
+          "report.json"
+        ],
+        "metadata": {
+          "patternId": "SB-HANDOFF-001",
+          "category": "handoff-integrity",
+          "offset": 22,
+          "match": "======="
+        }
+      }
+    ],
+    "warningIssues": [
+      {
+        "id": "duplicate-ab7dc5e0",
+        "severity": "low",
+        "type": "Duplicate Data",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json",
+        "filePaths": [
+          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json"
+        ],
+        "count": 2,
+        "description": "2 files share identical JSON content",
+        "recommendedAction": "Remove duplicate entries to optimize data size",
+        "affectedFiles": [
+          "ai-platform/packages/simplebeacon-cli/examples/ai-hygiene-enterprise-config.json",
+          "packages/simplebeacon-cli/examples/ai-hygiene-enterprise-config.json"
+        ],
+        "metadata": {
+          "duplicatePaths": [
+            "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json"
+          ],
+          "relativePaths": [
+            "ai-platform/packages/simplebeacon-cli/examples/ai-hygiene-enterprise-config.json",
+            "packages/simplebeacon-cli/examples/ai-hygiene-enterprise-config.json"
+          ],
+          "contentHash": "ab7dc5e014143cd996f130225e7855d080bb003b6cab0e70e8343c9ccd1a584b"
+        }
+      },
+      {
+        "id": "duplicate-f30f6cda",
+        "severity": "low",
+        "type": "Duplicate Data",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json",
+        "filePaths": [
+          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\enterprise-config.json"
+        ],
+        "count": 2,
+        "description": "2 files share identical JSON content",
+        "recommendedAction": "Remove duplicate entries to optimize data size",
+        "affectedFiles": [
+          "ai-platform/packages/simplebeacon-cli/examples/enterprise-config.json",
+          "packages/simplebeacon-cli/examples/enterprise-config.json"
+        ],
+        "metadata": {
+          "duplicatePaths": [
+            "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\enterprise-config.json"
+          ],
+          "relativePaths": [
+            "ai-platform/packages/simplebeacon-cli/examples/enterprise-config.json",
+            "packages/simplebeacon-cli/examples/enterprise-config.json"
+          ],
+          "contentHash": "f30f6cda00c1c9747f57a7e1c300a12fb297cdf7bcc213cc6227b00a3b8d1920"
+        }
+      },
+      {
+        "id": "duplicate-abebfd2b",
+        "severity": "low",
+        "type": "Duplicate Data",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json",
+        "filePaths": [
+          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json"
+        ],
+        "count": 2,
+        "description": "2 files share identical JSON content",
+        "recommendedAction": "Remove duplicate entries to optimize data size",
+        "affectedFiles": [
+          "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-github.mcp.json",
+          "packages/simplebeacon-cli/examples/mcp/cursor-github.mcp.json"
+        ],
+        "metadata": {
+          "duplicatePaths": [
+            "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json"
+          ],
+          "relativePaths": [
+            "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-github.mcp.json",
+            "packages/simplebeacon-cli/examples/mcp/cursor-github.mcp.json"
+          ],
+          "contentHash": "abebfd2b2ef178a75fb4fa063fdfafebecd3c8dac9854b8578849e094905d8c9"
+        }
+      },
+      {
+        "id": "duplicate-077a8b37",
+        "severity": "low",
+        "type": "Duplicate Data",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json",
+        "filePaths": [
+          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json"
+        ],
+        "count": 2,
+        "description": "2 files share identical JSON content",
+        "recommendedAction": "Remove duplicate entries to optimize data size",
+        "affectedFiles": [
+          "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-standard.mcp.json",
+          "packages/simplebeacon-cli/examples/mcp/cursor-standard.mcp.json"
+        ],
+        "metadata": {
+          "duplicatePaths": [
+            "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json"
+          ],
+          "relativePaths": [
+            "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-standard.mcp.json",
+            "packages/simplebeacon-cli/examples/mcp/cursor-standard.mcp.json"
+          ],
+          "contentHash": "077a8b3797fad419806afb7d077b5743fc3e87cf141866fdac47328c756abbba"
+        }
+      },
+      {
+        "id": "duplicate-12890bbe",
+        "severity": "low",
+        "type": "Duplicate Data",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json",
+        "filePaths": [
+          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json"
+        ],
+        "count": 2,
+        "description": "2 files share identical JSON content",
+        "recommendedAction": "Remove duplicate entries to optimize data size",
+        "affectedFiles": [
+          "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor.monorepo.mcp.json",
+          "packages/simplebeacon-cli/examples/mcp/cursor.monorepo.mcp.json"
+        ],
+        "metadata": {
+          "duplicatePaths": [
+            "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json"
+          ],
+          "relativePaths": [
+            "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor.monorepo.mcp.json",
+            "packages/simplebeacon-cli/examples/mcp/cursor.monorepo.mcp.json"
+          ],
+          "contentHash": "12890bbe0ca440ecdc3adbe3c5eeeadae4eda0163e9e7cdb76f31c6c01361e13"
+        }
+      },
+      {
+        "id": "duplicate-51242a7c",
+        "severity": "low",
+        "type": "Duplicate Data",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json",
+        "filePaths": [
+          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json"
+        ],
+        "count": 2,
+        "description": "2 files share identical JSON content",
+        "recommendedAction": "Remove duplicate entries to optimize data size",
+        "affectedFiles": [
+          "ai-platform/packages/simplebeacon-cli/src/compliance-checklist.defaults.json",
+          "packages/simplebeacon-cli/src/compliance-checklist.defaults.json"
+        ],
+        "metadata": {
+          "duplicatePaths": [
+            "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json"
+          ],
+          "relativePaths": [
+            "ai-platform/packages/simplebeacon-cli/src/compliance-checklist.defaults.json",
+            "packages/simplebeacon-cli/src/compliance-checklist.defaults.json"
+          ],
+          "contentHash": "51242a7cfd9d6124a351613d8c451fd153ee24e44f78969dbff366347216835f"
+        }
+      },
+      {
+        "id": "duplicate-ab3801dd",
+        "severity": "low",
+        "type": "Duplicate Data",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json",
+        "filePaths": [
+          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json"
+        ],
+        "count": 2,
+        "description": "2 files share identical JSON content",
+        "recommendedAction": "Remove duplicate entries to optimize data size",
+        "affectedFiles": [
+          "ai-platform/packages/simplebeacon-cli/src/compliance-checklist.eu-ai-act.defaults.json",
+          "packages/simplebeacon-cli/src/compliance-checklist.eu-ai-act.defaults.json"
+        ],
+        "metadata": {
+          "duplicatePaths": [
+            "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json"
+          ],
+          "relativePaths": [
+            "ai-platform/packages/simplebeacon-cli/src/compliance-checklist.eu-ai-act.defaults.json",
+            "packages/simplebeacon-cli/src/compliance-checklist.eu-ai-act.defaults.json"
+          ],
+          "contentHash": "ab3801dd555081f8ecd4555d481eff0093675a3491008f0be6b786528e608613"
+        }
+      },
+      {
+        "id": "duplicate-4f53cda1",
+        "severity": "low",
+        "type": "Duplicate Data",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\subscriptions.json",
+        "filePaths": [
+          "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\subscriptions.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\coming-soon-dev\\subscriptions.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\03-mock-data.json"
+        ],
+        "count": 3,
+        "description": "3 files share identical JSON content",
+        "recommendedAction": "Remove duplicate entries to optimize data size",
+        "affectedFiles": [
+          "coming-soon/subscriptions.json",
+          "coming-soon-dev/subscriptions.json",
+          "packages/simplebeacon-cli/test-cert/json/03-mock-data.json"
+        ],
+        "metadata": {
+          "duplicatePaths": [
+            "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\subscriptions.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\coming-soon-dev\\subscriptions.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\03-mock-data.json"
+          ],
+          "relativePaths": [
+            "coming-soon/subscriptions.json",
+            "coming-soon-dev/subscriptions.json",
+            "packages/simplebeacon-cli/test-cert/json/03-mock-data.json"
+          ],
+          "contentHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      },
+      {
+        "id": "duplicate-44136fa3",
+        "severity": "low",
+        "type": "Duplicate Data",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\01-simplebeacon-gate.json",
+        "filePaths": [
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\01-simplebeacon-gate.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\02-consolidation.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\04-roadmap.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\05-codebase.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\06-file-reduction.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\07-data-quality.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\08-cleanup.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\09-npm-audit.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\10-compliance.json",
+          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\11-eu-ai-act.json"
+        ],
+        "count": 10,
+        "description": "10 files share identical JSON content",
+        "recommendedAction": "Remove duplicate entries to optimize data size",
+        "affectedFiles": [
+          "packages/simplebeacon-cli/test-cert/json/01-simplebeacon-gate.json",
+          "packages/simplebeacon-cli/test-cert/json/02-consolidation.json",
+          "packages/simplebeacon-cli/test-cert/json/04-roadmap.json",
+          "packages/simplebeacon-cli/test-cert/json/05-codebase.json",
+          "packages/simplebeacon-cli/test-cert/json/06-file-reduction.json",
+          "packages/simplebeacon-cli/test-cert/json/07-data-quality.json",
+          "packages/simplebeacon-cli/test-cert/json/08-cleanup.json",
+          "packages/simplebeacon-cli/test-cert/json/09-npm-audit.json",
+          "packages/simplebeacon-cli/test-cert/json/10-compliance.json",
+          "packages/simplebeacon-cli/test-cert/json/11-eu-ai-act.json"
+        ],
+        "metadata": {
+          "duplicatePaths": [
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\01-simplebeacon-gate.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\02-consolidation.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\04-roadmap.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\05-codebase.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\06-file-reduction.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\07-data-quality.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\08-cleanup.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\09-npm-audit.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\10-compliance.json",
+            "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\11-eu-ai-act.json"
+          ],
+          "relativePaths": [
+            "packages/simplebeacon-cli/test-cert/json/01-simplebeacon-gate.json",
+            "packages/simplebeacon-cli/test-cert/json/02-consolidation.json",
+            "packages/simplebeacon-cli/test-cert/json/04-roadmap.json",
+            "packages/simplebeacon-cli/test-cert/json/05-codebase.json",
+            "packages/simplebeacon-cli/test-cert/json/06-file-reduction.json",
+            "packages/simplebeacon-cli/test-cert/json/07-data-quality.json",
+            "packages/simplebeacon-cli/test-cert/json/08-cleanup.json",
+            "packages/simplebeacon-cli/test-cert/json/09-npm-audit.json",
+            "packages/simplebeacon-cli/test-cert/json/10-compliance.json",
+            "packages/simplebeacon-cli/test-cert/json/11-eu-ai-act.json"
+          ],
+          "contentHash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        }
+      }
+    ],
+    "status": "BLOCKED",
+    "severityColor": "#EF4444",
+    "summary": "Gate blocked — 2 blocking issues detected. Review before release.",
+    "blockingFindings": [
+      {
+        "severity": "high",
+        "type": "Invalid JSON",
+        "count": 1,
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\report.json"
+      },
+      {
+        "severity": "critical",
+        "type": "Handoff Integrity",
+        "count": 1,
+        "filePath": "report.json"
+      }
+    ],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 9,
+    "summary": "9 duplicate file groups detected.",
+    "remediation": "Consolidate duplicate files into shared modules or remove redundant copies."
+  },
+  "codebase": {
+    "totalFiles": 1171,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "1,171 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 1,
+    "severity": "high",
+    "severityColor": "#EF4444",
+    "summary": "1 data quality issue detected.",
+    "remediation": "Review empty or invalid JSON files."
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "compliance": {
+    "licenseCount": 0,
+    "securityCount": 0,
+    "governanceScore": 0,
+    "summary": "No governance files detected.",
+    "remediation": "Consider adding LICENSE and SECURITY.md.",
+    "complianceHealth": "poor",
+    "recommendations": [
+      "Add a LICENSE file to clarify distribution terms.",
+      "Add SECURITY.md to disclose vulnerability reporting."
+    ]
+  },
+  "fileReduction": {
+    "duplicateGroups": 9,
+    "summary": "9 duplicate content groups found.",
+    "remediation": "Consolidate duplicate files into shared modules."
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 72,
+    "summary": "72 mock/fixture files detected."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "summary": {
+    "gatePass": false,
+    "qualityScore": 82,
+    "totalFiles": 1171,
+    "totalLines": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-06T14:40:33.160Z"
+  "sanitizedAt": "2026-06-06T19:01:21.798Z"
 }

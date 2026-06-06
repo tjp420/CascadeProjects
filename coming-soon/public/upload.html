@@ -2015,7 +2015,7 @@
                     <div class="form-group" style="margin-bottom:14px;">
                         <label style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">Scan Profile</label>
                         <select id="browserScanProfile" style="display:none;">
-                            <option value="complete" selected>&#127775; Complete Scan — All 11 engines</option>
+                            <option value="complete" selected>&#127775; Complete Scan — All 13 engines</option>
                             <option value="gate">&#127775; Gate Scan — Credential + AI heuristics</option>
                             <option value="codebase">&#127775; Codebase Audit — Full file analysis</option>
                             <option value="euai">&#127775; EU AI Act Sprint — AI system indicators</option>
@@ -2405,6 +2405,28 @@
             } else if (num === '11') {
                 const eu = data.euAiActSummary || data.euAiAct || {};
                 moduleData = { ...moduleData, aiSystemIndicators: eu.aiSystemIndicators || 0, highRiskIndicators: eu.highRiskIndicators || 0, transparencyGaps: eu.transparencyGaps || 0, documentationArtifacts: eu.documentationArtifacts || 0, documentationFound: (eu.documentationFound || []).slice(0, 5), summary: eu.deadlineNote || ((eu.aiSystemIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.') };
+            } else if (num === '13') {
+                const allFiles = data.fileList || data.repositoryInventory?.totalFiles || [];
+                const filePaths = Array.isArray(allFiles) ? allFiles : [];
+                const lowerPaths = filePaths.map(f => (typeof f === 'string' ? f : f.path || '').toLowerCase());
+                const checks = [
+                    { name: 'package.json', found: lowerPaths.some(p => p.endsWith('package.json')), critical: true },
+                    { name: 'README', found: lowerPaths.some(p => /readme\.?/.test(p)), critical: true },
+                    { name: 'CHANGELOG', found: lowerPaths.some(p => /changelog|changes|history/i.test(p)), critical: false },
+                    { name: 'Tests', found: lowerPaths.some(p => /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p)), critical: true },
+                    { name: 'CI/CD', found: lowerPaths.some(p => /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(p)), critical: true },
+                    { name: 'Docker', found: lowerPaths.some(p => /dockerfile|docker-compose|\.dockerignore/i.test(p)), critical: false },
+                    { name: 'Linting/Formatting', found: lowerPaths.some(p => /eslint|prettier|\.editorconfig|lint-staged|husky/i.test(p)), critical: false },
+                    { name: 'TypeScript Config', found: lowerPaths.some(p => /tsconfig|\.ts$/i.test(p)), critical: false },
+                    { name: 'Build Tool Config', found: lowerPaths.some(p => /(webpack|rollup|vite|esbuild|parcel|babel|gulpfile|gruntfile)/i.test(p)), critical: false },
+                    { name: '.env.example', found: lowerPaths.some(p => /\.env\.example|\.env\.sample|\.env\.template/i.test(p)), critical: true },
+                    { name: '.gitignore', found: lowerPaths.some(p => p.includes('.gitignore')), critical: true },
+                    { name: '.npmignore', found: lowerPaths.some(p => p.includes('.npmignore')), critical: false }
+                ];
+                const missingCritical = checks.filter(c => c.critical && !c.found);
+                const missingNice = checks.filter(c => !c.critical && !c.found);
+                const score = Math.round(((checks.filter(c => c.found).length / checks.length) * 100));
+                moduleData = { ...moduleData, metrics: { riskScore: 100 - score, priority: missingCritical.length > 2 ? 'critical' : (missingCritical.length > 0 ? 'high' : (missingNice.length > 3 ? 'medium' : 'low')) }, readinessScore: score, readinessStatus: score >= 80 ? 'READY' : (score >= 50 ? 'NEEDS WORK' : 'BLOCKED'), checklist: checks, missingCritical: missingCritical.map(c => c.name), missingRecommended: missingNice.map(c => c.name), totalChecks: checks.length, passedChecks: checks.filter(c => c.found).length, summary: `${score >= 80 ? 'READY' : (score >= 50 ? 'NEEDS WORK' : 'BLOCKED')} — ${checks.filter(c => c.found).length} of ${checks.length} checklist items present.${missingCritical.length ? ` ${missingCritical.length} critical blocker${missingCritical.length === 1 ? '' : 's'}.` : ''}`, recommendations: missingCritical.length > 0 ? ['Add all critical files before production deployment.', 'Start with package.json, README, .gitignore, and .env.example.'] : (missingNice.length > 0 ? ['Add recommended files to improve maintainability.', 'Consider Docker, linting config, and CHANGELOG.'] : ['Project is fully ready for production. All checklist items present.']), remediation: missingCritical.length > 0 ? `Missing critical: ${missingCritical.map(c => c.name).join(', ')}.` : (missingNice.length > 0 ? `Missing recommended: ${missingNice.map(c => c.name).join(', ')}.` : 'No remediation needed.') };
             }
 
             const blob = new Blob([JSON.stringify(moduleData, null, 2)], { type: 'application/json' });
@@ -2493,8 +2515,8 @@
             },
             complete: {
                 label: 'Complete Scan',
-                help: 'All 11 analysis engines — gate, consolidation, mock data, roadmap, codebase, file reduction, data quality, cleanup, npm audit, compliance, EU AI Act.',
-                note: 'Browser sandbox runs a <strong>Complete Scan</strong> — all 11 SimpleBeacon analysis engines for maximum coverage.',
+                help: 'All 13 analysis engines — gate, consolidation, mock data, roadmap, codebase, file reduction, data quality, cleanup, npm audit, compliance, EU AI Act, dependency audit, build readiness.',
+                note: 'Browser sandbox runs a <strong>Complete Scan</strong> — all 13 SimpleBeacon analysis engines for maximum coverage.',
                 reportType: 'simplebeacon-report',
                 title: 'SimpleBeacon Complete Scan',
                 checkAi: true,
@@ -2525,7 +2547,7 @@
             euai:       ['gateReport', 'euAiActSummary', 'compliance'],
             compliance: ['gateReport', 'compliance', 'npmAudit'],
             hygiene:    ['gateReport', 'cleanup', 'dataQuality', 'fileReduction', 'mockDataCategories'],
-            complete:   ['gateReport', 'consolidation', 'mockDataCategories', 'roadmap', 'codebase', 'fileReduction', 'dataQuality', 'cleanup', 'npmAudit', 'compliance', 'euAiActSummary']
+            complete:   ['gateReport', 'consolidation', 'mockDataCategories', 'roadmap', 'codebase', 'fileReduction', 'dataQuality', 'cleanup', 'npmAudit', 'compliance', 'euAiActSummary', 'dependencyAudit', 'buildReadiness']
         };
 
         // Profile selector wiring
@@ -2536,7 +2558,7 @@
         const selectAllModules = document.getElementById('selectAllModules');
         const selectAllCount = document.getElementById('selectAllCount');
 
-        // 11 Individual Analyzer Module Cards
+        // 12 Individual Analyzer Module Cards
         const MODULE_CARDS = [
             { id: 'gate', label: 'Gate Scan', desc: 'Credential patterns, AI/LLM imports, hardcoded secrets.', icon: '&#128737;' },
             { id: 'consolidation', label: 'Consolidation', desc: 'Duplicate file groups and monorepo markers.', icon: '&#128260;' },
@@ -2548,7 +2570,8 @@
             { id: 'cleanup', label: 'Cleanup', desc: 'Debug artifacts: console.log, debugger, TODO.', icon: '&#129532;' },
             { id: 'npm-audit', label: 'npm Audit', desc: 'Package.json files and dependency counts.', icon: '&#128230;' },
             { id: 'compliance', label: 'Compliance', desc: 'License, security, and governance files.', icon: '&#128196;' },
-            { id: 'eu-ai-act', label: 'EU AI Act', desc: 'AI system indicators and regulatory readiness.', icon: '&#127757;' }
+            { id: 'eu-ai-act', label: 'EU AI Act', desc: 'AI system indicators and regulatory readiness.', icon: '&#127757;' },
+            { id: 'build-readiness', label: 'Build Readiness', desc: 'Systematic project health scan — missing files, configs, scripts, and deploy blockers.', icon: '&#127959;' }
         ];
 
         // Which modules each tier may select
@@ -2558,7 +2581,7 @@
             instant: ['gate'],
             executive: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance'],
             euai: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act'],
-            universal: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act']
+            universal: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'build-readiness']
         };
 
         // Multi-select module picker for ZIP export
@@ -3952,6 +3975,61 @@
                         {value: eu.documentationArtifacts || 0, label: 'Docs'}
                     ], eu.deadlineNote || ((eu.aiSystemIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.'), euRisk, euDetail);
                 }
+
+                // 12. Dependency Vulnerabilities
+                const depAudit = data.dependencyAudit || data.vulnerabilityAudit || {};
+                const vulnIssues = (data.detectedIssues || []).filter(i => i.type && /vulnerab|cve|npm audit|dependency|outdated/i.test(i.type));
+                const vulnCount = depAudit.vulnerabilityCount || vulnIssues.length || 0;
+                const criticalVulns = depAudit.critical || vulnIssues.filter(i => i.severity === 'critical').length || 0;
+                const highVulns = depAudit.high || vulnIssues.filter(i => i.severity === 'high').length || 0;
+                const vulnFiles = (depAudit.affectedPackages || depAudit.affectedFiles || []).slice(0, 6);
+                const vulnColor = criticalVulns > 0 ? '#EF4444' : (highVulns > 0 ? '#F59E0B' : (vulnCount > 0 ? '#60A5FA' : null));
+                const vulnDetail = vulnCount ? `<div class="detail-label">Vulnerability Summary</div><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">${vulnCount} total issue${vulnCount === 1 ? '' : 's'} found across dependencies.</div>${criticalVulns ? `<div style="font-size:0.7rem;color:#EF4444;margin-bottom:4px;">&#128308; ${criticalVulns} critical</div>` : ''}${highVulns ? `<div style="font-size:0.7rem;color:#F59E0B;margin-bottom:4px;">&#128993; ${highVulns} high</div>` : ''}${vulnFiles.length ? `<div class="detail-label">Affected Packages</div><ul>${vulnFiles.map(f => `<li>${f}</li>`).join('')}</ul>` : ''}<div class="detail-fix">Run 'npm audit fix' or update packages. Review breaking changes before major version bumps.</div>` : `<div class="detail-label">No known vulnerabilities</div><div style="font-size:0.72rem;color:var(--text-muted);">Dependency scan shows no flagged CVEs or audit warnings.</div>`;
+                pushModule('12', '&#128274;', 'Dependency Vulns', [
+                    {value: vulnCount, label: 'Vulnerabilities', color: vulnColor || '#60A5FA'},
+                    {value: criticalVulns + highVulns, label: 'Severe', color: criticalVulns > 0 ? '#EF4444' : (highVulns > 0 ? '#F59E0B' : '#60A5FA')}
+                ], vulnCount ? `${vulnCount} dependency issue${vulnCount === 1 ? '' : 's'} detected${criticalVulns ? ` (${criticalVulns} critical)` : ''}.` : 'No dependency vulnerabilities found.', vulnColor, vulnDetail);
+
+                // 13. Build Readiness — systematic project health scan
+                const allFiles = data.fileList || data.repositoryInventory?.totalFiles || [];
+                const filePaths = Array.isArray(allFiles) ? allFiles : [];
+                const lowerPaths = filePaths.map(f => (typeof f === 'string' ? f : f.path || '').toLowerCase());
+                const hasPackageJson = lowerPaths.some(p => p.endsWith('package.json'));
+                const hasReadme = lowerPaths.some(p => /readme\.?/.test(p));
+                const hasChangelog = lowerPaths.some(p => /changelog|changes|history/i.test(p));
+                const hasTests = lowerPaths.some(p => /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p));
+                const hasCiCd = lowerPaths.some(p => /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(p));
+                const hasDocker = lowerPaths.some(p => /dockerfile|docker-compose|\.dockerignore/i.test(p));
+                const hasLinting = lowerPaths.some(p => /eslint|prettier|\.editorconfig|lint-staged|husky/i.test(p));
+                const hasTypescript = lowerPaths.some(p => /tsconfig|\.ts$/i.test(p));
+                const hasBuildScript = lowerPaths.some(p => /(webpack|rollup|vite|esbuild|parcel|babel|gulpfile|gruntfile)/i.test(p));
+                const hasEnvExample = lowerPaths.some(p => /\.env\.example|\.env\.sample|\.env\.template/i.test(p));
+                const hasGitignore = lowerPaths.some(p => p.includes('.gitignore'));
+                const hasNpmignore = lowerPaths.some(p => p.includes('.npmignore'));
+                const checks = [
+                    { name: 'package.json', found: hasPackageJson, critical: true },
+                    { name: 'README', found: hasReadme, critical: true },
+                    { name: 'CHANGELOG', found: hasChangelog, critical: false },
+                    { name: 'Tests', found: hasTests, critical: true },
+                    { name: 'CI/CD', found: hasCiCd, critical: true },
+                    { name: 'Docker', found: hasDocker, critical: false },
+                    { name: 'Linting/Formatting', found: hasLinting, critical: false },
+                    { name: 'TypeScript Config', found: hasTypescript, critical: false },
+                    { name: 'Build Tool Config', found: hasBuildScript, critical: false },
+                    { name: '.env.example', found: hasEnvExample, critical: true },
+                    { name: '.gitignore', found: hasGitignore, critical: true },
+                    { name: '.npmignore', found: hasNpmignore, critical: false }
+                ];
+                const missingCritical = checks.filter(c => c.critical && !c.found);
+                const missingNice = checks.filter(c => !c.critical && !c.found);
+                const readinessScore = Math.round(((checks.filter(c => c.found).length / checks.length) * 100));
+                const readinessColor = readinessScore >= 80 ? '#10B981' : (readinessScore >= 50 ? '#F59E0B' : '#EF4444');
+                const readinessStatus = readinessScore >= 80 ? 'READY' : (readinessScore >= 50 ? 'NEEDS WORK' : 'BLOCKED');
+                const buildDetail = `<div class="detail-label">Build Readiness Score</div><div style="font-size:1.2rem;font-weight:700;color:${readinessColor};margin-bottom:8px;">${readinessScore}% — ${readinessStatus}</div>${missingCritical.length ? `<div style="font-size:0.72rem;color:#EF4444;margin-bottom:8px;"><strong>${missingCritical.length} critical blocker${missingCritical.length === 1 ? '' : 's'}:</strong> ${missingCritical.map(c => c.name).join(', ')}</div>` : '<div style="font-size:0.72rem;color:#10B981;margin-bottom:8px;">All critical items present.</div>'}${missingNice.length ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">${missingNice.length} recommended item${missingNice.length === 1 ? '' : 's'} missing: ${missingNice.map(c => c.name).join(', ')}</div>` : ''}<div class="detail-label">Present</div><ul>${checks.filter(c => c.found).map(c => `<li>&#9989; ${c.name}</li>`).join('')}</ul><div class="detail-label">Missing</div><ul>${checks.filter(c => !c.found).map(c => `<li>&#10060; ${c.name}${c.critical ? ' (critical)' : ''}</li>`).join('')}</ul><div class="detail-fix">Add missing critical files before production deployment. Recommended files improve maintainability.</div>`;
+                pushModule('13', '&#127959;', 'Build Readiness', [
+                    {value: readinessScore + '%', label: 'Score', color: readinessColor},
+                    {value: missingCritical.length, label: 'Blockers', color: missingCritical.length > 0 ? '#EF4444' : '#10B981'}
+                ], `${readinessStatus} — ${checks.filter(c => c.found).length} of ${checks.length} checklist items present.${missingCritical.length ? ` ${missingCritical.length} critical blocker${missingCritical.length === 1 ? '' : 's'}.` : ''}`, readinessColor, buildDetail);
 
                 // Expose for download handler
                 window._scanPreviewModules = modules;
