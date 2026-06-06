@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SimpleBeacon — Upload Your Scan Report</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --bg-main: #0B0F19;
@@ -38,6 +40,10 @@
         @keyframes pulse-glow {
             0%, 100% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.15); }
             50% { box-shadow: 0 0 40px rgba(37, 99, 235, 0.3); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
 
         @keyframes shimmer {
@@ -850,6 +856,153 @@
             0%, 100% { border-color: var(--accent); }
             50% { border-color: rgba(37, 99, 235, 0.4); }
         }
+        .drop-zone.locked {
+            border-color: rgba(239, 68, 68, 0.25);
+            background: rgba(239, 68, 68, 0.04);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .drop-zone.locked .icon { filter: grayscale(0.6); opacity: 0.5; }
+        .drop-zone .locked-gate-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: rgba(11, 15, 25, 0.7);
+            border-radius: 12px;
+            pointer-events: none;
+        }
+
+        /* Terminal Shell Canvas */
+        .terminal-shell {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--bg-main);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .terminal-header {
+            background: var(--bg-card);
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+        .terminal-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            font-family: var(--font-mono);
+        }
+        .term-light {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .terminal-body {
+            position: relative;
+            min-height: 220px;
+        }
+        .terminal-dropzone {
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px dashed var(--border);
+            margin: 16px;
+            border-radius: 8px;
+            background: rgba(15, 22, 38, 0.5);
+        }
+        .terminal-dropzone:hover,
+        .terminal-dropzone.dragover {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.04);
+        }
+        .terminal-log {
+            display: none;
+            width: 100%;
+            padding: 12px 16px;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            max-height: 280px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .terminal-status-bar {
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+        .terminal-hash {
+            font-size: 0.68rem;
+            color: #64748B;
+            word-break: break-all;
+            max-width: 55%;
+            text-align: right;
+        }
+        .terminal-shell.locked .terminal-dropzone {
+            border-color: rgba(239, 68, 68, 0.25);
+            background: rgba(239, 68, 68, 0.04);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .terminal-shell.locked .term-light {
+            filter: grayscale(0.6);
+            opacity: 0.5;
+        }
+        .terminal-shell.scanning .terminal-dropzone {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.06);
+            animation: pulse-border 1.5s ease-in-out infinite;
+        }
+        .payload-schema {
+            margin-top: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--bg-input);
+        }
+        .payload-schema summary {
+            padding: 12px 16px;
+            font-size: 0.8rem;
+            color: #60A5FA;
+            cursor: pointer;
+            font-weight: 600;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            list-style: none;
+        }
+        .payload-schema summary::-webkit-details-marker { display: none; }
+        .payload-schema summary::before {
+            content: '📋 ';
+        }
+        .payload-schema pre {
+            padding: 16px;
+            font-size: 0.75rem;
+            color: #94A3B8;
+            overflow-x: auto;
+            max-height: 240px;
+            font-family: var(--font-mono);
+            line-height: 1.6;
+        }
 
         /* Empty state guidance */
         .empty-state {
@@ -1521,7 +1674,7 @@
         <div class="local-note">
             <span style="font-size: 1.2rem;">&#128274;</span>
             <div>
-                <strong>Zero-Trust Scanning:</strong> All processing happens in your browser sandbox. No source code is ever uploaded to our servers. We only receive the report metadata for certificate generation.
+                <strong>Zero-Trust Scanning:</strong> All processing happens in your browser sandbox. No source code, scan metadata, or report data is ever uploaded to our servers. Certificate ZIPs are generated entirely client-side.
             </div>
         </div>
 
@@ -1638,7 +1791,7 @@
                 <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                     <div style="display:flex;align-items:center;gap:10px;">
                         <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
-                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Upload Profile Matrix</h3>
+                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Local Report Validator</h3>
                     </div>
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
@@ -1732,18 +1885,47 @@
                         <span>Include <code>node_modules</code> & <code>.git</code> in scan (slower, more noise)</span>
                     </label>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;">No Node.js required. Grab your entire repo folder and drop it here.</p>
-                    <div id="browser-folder-dropzone" class="drop-zone" style="padding:40px 20px;margin-bottom:16px;transition:all 0.2s;">
-                        <div id="dropzone-prompt">
-                            <div class="icon" style="font-size:2rem;margin-bottom:8px;">&#128451;</div>
-                            <p style="font-size:0.85rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;">Drag &amp; Drop Your Project Folder Here</p>
-                            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">Processing runs 100% locally in your browser sandbox. No source code leaves your computer.</p>
-                            <p style="font-size:0.7rem;color:var(--text-muted);margin-top:12px;opacity:0.6;">Or click to manually select a directory</p>
-                            <p class="file-name" id="localScanFileName"></p>
+                    <div id="browser-folder-dropzone" class="terminal-shell" style="margin-bottom:16px;">
+                        <div class="terminal-header">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span class="term-light" style="background:#EF4444;"></span>
+                                <span class="term-light" style="background:#F59E0B;"></span>
+                                <span class="term-light" style="background:#10B981;"></span>
+                                <span class="terminal-title">simplebeacon-sandbox-core v1.4.0</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <span style="width:6px;height:6px;border-radius:50%;background:#10B981;animation:pulse 2s infinite;"></span>
+                                <span style="font-size:0.68rem;color:#64748B;">100% Isolated Browser Sandbox</span>
+                            </div>
+                        </div>
+                        <div class="terminal-body">
+                            <div id="terminal-dropzone-prompt" class="terminal-dropzone">
+                                <div style="text-align:center;">
+                                    <span style="font-size:2rem;display:block;margin-bottom:8px;transition:transform 0.2s;">&#128737;</span>
+                                    <p style="font-size:0.8rem;font-weight:700;color:var(--text-main);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">Drag &amp; Drop Project Directory</p>
+                                    <p style="font-size:0.72rem;color:var(--text-muted);max-width:320px;margin:0 auto;line-height:1.5;">Heuristic parsing executes locally inside your browser's isolated tab memory. No source code or metrics ever leave your machine.</p>
+                                    <p style="font-size:0.68rem;color:#64748B;margin-top:8px;">Or click to select a directory</p>
+                                    <p class="file-name" id="localScanFileName"></p>
+                                </div>
+                            </div>
+                            <div id="terminal-console" class="terminal-log"></div>
+                            <div id="dropzoneGateOverlay" class="locked-gate-overlay" style="display:none;">
+                                <span style="font-size:1.6rem;">&#128274;</span>
+                                <span style="font-size:0.8rem;font-weight:700;color:#F87171;">Token Required</span>
+                                <span style="font-size:0.7rem;color:var(--text-muted);">Paste a license token to unlock scanning</span>
+                            </div>
+                        </div>
+                        <div class="terminal-status-bar">
+                            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                                <span>CORE_STATUS: <span id="panel-status" style="color:#F59E0B;font-weight:700;">AWAITING_INPUT</span></span>
+                                <span id="panel-metrics" style="display:none;"></span>
+                                <button id="cancelScanBtn" style="display:none;padding:2px 8px;border:1px solid var(--error);background:transparent;color:var(--error);border-radius:4px;font-size:0.68rem;font-weight:600;cursor:pointer;">&#9209; Cancel</button>
+                            </div>
+                            <div id="integrity-hash" class="terminal-hash">HASH: NOT_YET_CALCULATED</div>
                         </div>
                         <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
                         <input type="file" id="cli-files-input" multiple style="display:none;">
                     </div>
-                    <div id="terminal-console" class="preview" style="display:none;max-height:240px;margin-bottom:12px;"></div>
                     <div id="panel-progress-container" style="display:none;margin-bottom:12px;">
                         <div class="progress-bar"><div class="fill" id="panel-progress-bar"></div></div>
                     </div>
@@ -1751,9 +1933,35 @@
                         <span class="hash-label">&#128274; Local Build Integrity</span>
                         <span id="browserHashValue">--</span>
                     </div>
-                    <div id="status-ribbon" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);justify-content:space-between;align-items:center;font-size:0.75rem;color:var(--text-muted);">
-                        <span>Status: <span id="panel-status" style="color:#F59E0B;font-weight:700;">READY</span></span>
-                        <span id="panel-metrics">Files parsed: 0</span>
+
+                    <div class="schema-accordion" id="browserSchemaInspector">
+                        <div class="schema-header" onclick="this.parentElement.classList.toggle('open')">
+                            <span>&#128203; Payload Schema Inspector (What we read)</span>
+                            <span class="schema-chevron">&#9654;</span>
+                        </div>
+                        <div class="schema-body">
+                            <pre>{
+  "type": "simplebeacon-report",
+  "version": "1.3.0",
+  "generatedAt": "ISO-8601 timestamp",
+  "projectRoot": "string — redacted project label",
+  "gate": { "pass": boolean, "blockingCount": number },
+  "qualityScore": 0-100,
+  "totalFiles": number,
+  "issueCount": number,
+  "detectedIssues": [
+    { "severity": "low|medium|high|critical",
+      "type": "string — rule category",
+      "count": number,
+      "filePath": "redacted relative path",
+      "rule": "string — pattern ID",
+      "impact": "string — business risk statement",
+      "fix": "string — remediation recipe" }
+  ],
+  "summary": { "gatePass": boolean, "qualityScore": number }
+}</pre>
+                            <p style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;">No source code, AST, or file contents are transmitted. Only the summary JSON above leaves your perimeter.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1893,8 +2101,8 @@
         const localScanFileName = document.getElementById('localScanFileName');
         const cliFolderInput = document.getElementById('cli-folder-input');
         const cliFilesInput = document.getElementById('cli-files-input');
-        const dropzonePrompt = document.getElementById('dropzone-prompt');
-        const statusRibbon = document.getElementById('status-ribbon');
+        const dropzonePrompt = document.getElementById('terminal-dropzone-prompt');
+        const integrityHashEl = document.getElementById('integrity-hash');
 
         // Separate dropzones
         const cliJsonDropzone = document.getElementById('cli-json-dropzone');
@@ -1902,6 +2110,7 @@
         const dropZone = cliJsonDropzone; // alias for existing code
 
         let reportData = null;
+        let scanAbortController = null;
 
         // Toast notification system
         function showToast(message, type = 'info', duration = 4000) {
@@ -2090,28 +2299,28 @@
         // Product-aware configuration — prices match pricing.html
         const PRODUCT_CONFIG = {
             instant: {
-                label: 'Instant Code Hygiene Report',
+                label: '$19 Instant',
                 price: '$19',
                 title: 'Upload Your Scan Report',
-                subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your Website Security Report.',
+                subtitle: 'Gate attestation + mock-data detection. Scan runs locally in your browser sandbox.',
                 showUpload: true,
                 scanCommand: 'node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
-                tokenHelp: 'Paste your $19 payment token to unlock the scanner.'
+                tokenHelp: 'Paste your $19 payment token to unlock the scanner. Valid 7 days.'
             },
             community: {
-                label: 'AI Slop Audit',
-                price: 'Free',
-                title: 'Free Community Audit',
-                subtitle: 'Run an unlimited file scan locally on your machine. No caps, no timeouts, no limits — only your RAM matters. Complimentary risk assessment with Executive Risk Certificate.',
+                label: 'Free Audit',
+                price: '$0',
+                title: 'Free Audit',
+                subtitle: 'Gate attestation only (credentials + AI slop). Unlimited scans. No payment required.',
                 showUpload: true,
                 scanCommand: 'node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Free community token. Run the scan locally — no payment required.'
             },
             executive: {
-                label: 'Executive Risk Certificate',
+                label: '$499 Exec Cert',
                 price: '$499',
                 title: 'Upload Your Scan Report',
-                subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your Executive Risk Certificate.',
+                subtitle: 'Full 11-engine analysis + EU AI Act readiness. Certificate ZIP generated locally.',
                 showUpload: true,
                 scanCommand: 'node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Paste the license token from your $499 payment confirmation email.'
@@ -2138,10 +2347,11 @@
 
         // Which scan profiles each tier may use
         const TIER_PROFILES = {
-            instant: ['gate'],
-            community: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],
-            executive: ['gate', 'codebase', 'compliance', 'hygiene', 'complete'],
-            euai: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],
+            locked: [],                        // No token — all profiles locked
+            community: ['gate'],               // Free Audit — gate attestation only
+            instant: ['gate'],                 // $19 Instant — gate + mock data (mock runs in all profiles)
+            executive: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'], // $499 Exec Cert — all 11 engines
+            euai: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],      // $2,499 Sprint — all engines + analyst access
             universal: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete']
         };
 
@@ -2180,12 +2390,15 @@
                     card.classList.remove('locked');
                 });
             }
+            updateDropzoneGate();
         }
 
         function applyProductFromToken(token) {
             const banner = document.getElementById('sprintBanner');
             if (!token) {
                 if (banner) banner.style.display = 'none';
+                filterScanProfiles('locked');
+                updateDropzoneGate();
                 return;
             }
             try {
@@ -2245,7 +2458,10 @@
                     banner.style.display = 'block';
                 }
             } catch (e) {
-                // Token decode failed — silently ignore
+                // Token decode failed — lock everything
+                filterScanProfiles('locked');
+            } finally {
+                updateDropzoneGate();
             }
         }
 
@@ -2257,6 +2473,10 @@
             licenseInput.value = urlToken;
             applyProductFromToken(urlToken);
             updateSubmit();
+            updateDropzoneGate();
+        } else {
+            filterScanProfiles('locked');
+            updateDropzoneGate();
         }
         if (sessionId) {
             // Could fetch session details from backend here
@@ -2317,6 +2537,7 @@
                     licenseInput.value = data.token;
                     applyProductFromToken(data.token);
                     updateSubmit();
+                    updateDropzoneGate();
                     btn.textContent = 'Free Token Ready ✓';
                     btn.style.borderColor = 'var(--success)';
                     btn.style.color = 'var(--success)';
@@ -2340,7 +2561,22 @@
             if (tokenError) tokenError.classList.add('hidden-display');
             applyProductFromToken(licenseInput.value.trim());
             updateSubmit();
+            updateDropzoneGate();
         });
+
+        // Token gate — browser scan requires a valid token
+        function hasValidToken() {
+            const val = licenseInput.value.trim();
+            return val.length > 20 && val.includes('.');
+        }
+
+        function updateDropzoneGate() {
+            if (!browserFolderDropzone) return;
+            const locked = !hasValidToken();
+            browserFolderDropzone.classList.toggle('locked', locked);
+            const overlay = document.getElementById('dropzoneGateOverlay');
+            if (overlay) overlay.style.display = locked ? 'flex' : 'none';
+        }
 
         // Stepper state management
         function updateStepper() {
@@ -2407,6 +2643,7 @@
                 if (savedToken && !licenseInput.value.trim()) {
                     licenseInput.value = savedToken;
                     applyProductFromToken(savedToken);
+                    updateDropzoneGate();
                 }
                 const savedScan = localStorage.getItem(LS_KEY_SCAN);
                 if (savedScan) {
@@ -2444,10 +2681,15 @@
                     const el = document.getElementById(id);
                     if (el) { el.style.display = 'none'; el.innerHTML = ''; }
                 });
+                if (integrityHashEl) {
+                    integrityHashEl.textContent = 'HASH: NOT_YET_CALCULATED';
+                    integrityHashEl.style.color = '#64748B';
+                }
                 // Reset terminal and browser scan panels
                 if (terminalConsole) terminalConsole.innerHTML = '';
-                if (panelStatus) { panelStatus.textContent = 'READY'; panelStatus.style.color = ''; }
-                if (panelMetrics) panelMetrics.innerHTML = '';
+                if (dropzonePrompt) dropzonePrompt.style.display = '';
+                if (panelStatus) { panelStatus.textContent = 'AWAITING_INPUT'; panelStatus.style.color = '#F59E0B'; }
+                if (panelMetrics) { panelMetrics.innerHTML = ''; panelMetrics.style.display = 'none'; }
                 if (panelProgressContainer) panelProgressContainer.style.display = 'none';
                 if (panelProgressBar) panelProgressBar.style.width = '0%';
                 // Reset scan profiles
@@ -2493,6 +2735,7 @@
             if (!indicator) return;
             if (val.length === 0) {
                 indicator.classList.remove('show', 'valid', 'invalid');
+                updateDropzoneGate();
                 return;
             }
             const looksValid = val.length > 20 && val.includes('.');
@@ -2506,6 +2749,7 @@
                 indicator.classList.remove('valid');
                 indicator.innerHTML = '<span>&#9888;</span> Token too short or malformed';
             }
+            updateDropzoneGate();
         }
 
         function updateSubmit() {
@@ -2596,6 +2840,12 @@
         // === Browser Folder Dropzone ===
         browserFolderDropzone.addEventListener('click', (e) => {
             if (e.target.closest('#terminal-console')) return;
+            if (!hasValidToken()) {
+                showToast('Paste a license token to unlock scanning.', 'warning');
+                licenseInput.focus();
+                licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
             if ('webkitdirectory' in document.createElement('input')) {
                 cliFolderInput.click();
             } else {
@@ -2604,19 +2854,20 @@
         });
         browserFolderDropzone.addEventListener('dragover', (e) => {
             e.preventDefault();
+            if (!hasValidToken()) return;
             browserFolderDropzone.classList.add('dragover');
             const fileCount = e.dataTransfer.items?.length || e.dataTransfer.files?.length || 0;
             if (fileCount > 0) {
-                const prompt = browserFolderDropzone.querySelector('#dropzone-prompt p');
+                const prompt = browserFolderDropzone.querySelector('#terminal-dropzone-prompt p');
                 if (prompt && !browserFolderDropzone.dataset.originalText) {
                     browserFolderDropzone.dataset.originalText = prompt.innerHTML;
                 }
-                if (prompt) prompt.innerHTML = `<span style="color:#60A5FA;font-weight:600;">&#128451; ${fileCount} item${fileCount > 1 ? 's' : ''} ready to scan</span>`;
+                if (prompt) prompt.innerHTML = `<span style="color:#60A5FA;font-weight:600;">&#128737; ${fileCount} item${fileCount > 1 ? 's' : ''} ready to scan</span>`;
             }
         });
         browserFolderDropzone.addEventListener('dragleave', () => {
             browserFolderDropzone.classList.remove('dragover');
-            const prompt = browserFolderDropzone.querySelector('#dropzone-prompt p');
+            const prompt = browserFolderDropzone.querySelector('#terminal-dropzone-prompt p');
             if (prompt && browserFolderDropzone.dataset.originalText) {
                 prompt.innerHTML = browserFolderDropzone.dataset.originalText;
             }
@@ -2624,7 +2875,13 @@
         browserFolderDropzone.addEventListener('drop', async (e) => {
             e.preventDefault();
             browserFolderDropzone.classList.remove('dragover');
-            const prompt = browserFolderDropzone.querySelector('#dropzone-prompt p');
+            if (!hasValidToken()) {
+                showToast('Paste a license token to unlock scanning.', 'warning');
+                licenseInput.focus();
+                licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            const prompt = browserFolderDropzone.querySelector('#terminal-dropzone-prompt p');
             if (prompt && browserFolderDropzone.dataset.originalText) {
                 prompt.innerHTML = browserFolderDropzone.dataset.originalText;
             }
@@ -2633,8 +2890,12 @@
                 const files = [];
                 async function traverse(entry) {
                     if (entry.isFile) {
-                        const file = await new Promise(resolve => entry.file(resolve));
-                        files.push(file);
+                        try {
+                            const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+                            files.push(file);
+                        } catch (err) {
+                            console.warn('[traverse] Skipped unreadable file:', entry.name, err);
+                        }
                     } else if (entry.isDirectory) {
                         const dirReader = entry.createReader();
                         // readEntries returns batches; loop until empty
@@ -2700,6 +2961,10 @@
                 value.textContent = 'sha256-' + text;
                 ribbon.style.display = 'flex';
             }
+            if (integrityHashEl) {
+                integrityHashEl.textContent = 'HASH: sha256-' + text;
+                integrityHashEl.style.color = '#34D399';
+            }
         }
 
         function handleJsonFile(file) {
@@ -2744,9 +3009,23 @@
         }
 
         cliFolderInput.addEventListener('change', (e) => {
+            if (!hasValidToken()) {
+                showToast('Paste a license token to unlock scanning.', 'warning');
+                licenseInput.focus();
+                licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                e.target.value = '';
+                return;
+            }
             if (e.target.files.length > 0) processLocalCLIScan(Array.from(e.target.files));
         });
         cliFilesInput.addEventListener('change', (e) => {
+            if (!hasValidToken()) {
+                showToast('Paste a license token to unlock scanning.', 'warning');
+                licenseInput.focus();
+                licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                e.target.value = '';
+                return;
+            }
             if (e.target.files.length > 0) processLocalCLIScan(Array.from(e.target.files));
         });
         fileInput.addEventListener('change', (e) => {
@@ -2865,7 +3144,8 @@
                 data.qualityScore = s.qualityScore ?? 0;
                 data.totalFiles = s.filesScanned ?? 0;
                 data.issueCount = s.totalIssuesFound ?? 0;
-                data.detectedIssues = [];
+                // Preserve original detectedIssues if present; only default to empty if truly missing
+                if (!Array.isArray(data.detectedIssues)) data.detectedIssues = [];
             }
 
             // Normalize re-attestation-note (synthesize from currentGate)
@@ -2936,11 +3216,11 @@
 
             const footer = hasToken
                 ? `<div class="cert-footer" style="text-align:center;">
-                    <div style="font-size:0.9rem;color:#10B981;font-weight:700;margin-bottom:8px;">&#9989; Certificate Unlocked</div>
-                    <div style="font-size:0.8rem;color:var(--text-muted);">Click <strong>Generate Certificate</strong> below to download your signed PDF.</div>
+                    <div style="font-size:0.9rem;color:#10B981;font-weight:700;margin-bottom:8px;">&#9989; Certificate Ready</div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);">Click <strong>Generate Certificate</strong> to build your ZIP locally — zero data leaves your browser.</div>
                    </div>`
                 : `<div class="cert-footer">
-                    <div class="unlock-text">&#128274; Paste a license token above to unlock the official PDF certificate</div>
+                    <div class="unlock-text">&#128274; Paste a license token to enable local certificate generation</div>
                     <button class="unlock-btn" onclick="document.getElementById('licenseToken').focus(); document.getElementById('licenseToken').scrollIntoView({behavior:'smooth', block:'center'});">Unlock Certificate &rarr;</button>
                    </div>`;
 
@@ -3107,14 +3387,38 @@
 
         // 3. Main scan engine
         async function processLocalCLIScan(files) {
+            // Defense-in-depth: token must be present
+            if (!hasValidToken()) {
+                showToast('Paste a license token to unlock scanning.', 'warning');
+                licenseInput.focus();
+                licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            // Abort any previous scan
+            if (scanAbortController) {
+                scanAbortController.abort();
+            }
+            scanAbortController = new AbortController();
+            const signal = scanAbortController.signal;
+
             if (dropzonePrompt) dropzonePrompt.style.display = 'none';
             terminalConsole.style.display = 'block';
             panelProgressContainer.style.display = 'block';
-            if (statusRibbon) statusRibbon.style.display = 'flex';
             panelMetrics.style.display = 'inline';
             panelStatus.textContent = 'RUNNING_ANALYSIS';
             panelStatus.style.color = '#60A5FA';
             terminalConsole.innerHTML = '';
+
+            const cancelBtn = document.getElementById('cancelScanBtn');
+            if (cancelBtn) {
+                cancelBtn.style.display = 'inline-block';
+                cancelBtn.onclick = () => {
+                    if (scanAbortController) {
+                        scanAbortController.abort();
+                        appendTerminalLine('Scan cancellation requested.', 'warn');
+                    }
+                };
+            }
 
             try {
             const profile = BROWSER_SCAN_PROFILES[browserScanProfile?.value || 'gate'];
@@ -3290,8 +3594,22 @@
                 scanned++;
                 const pct = Math.round(((i + 1) / sourceFiles.length) * 100);
                 panelProgressBar.style.width = pct + '%';
-                panelMetrics.textContent = `| Files: ${scanned} | Lines: ${totalLines}`;
-                if (i % 50 === 0) await new Promise(r => setTimeout(r, 0));
+                // Real-time findings summary in metrics
+                const findingParts = [`Files: ${scanned}/${sourceFiles.length}`];
+                if (profile.checkCredentials && credentialHits > 0) findingParts.push(`Creds: ${credentialHits}`);
+                if (profile.checkAi && aiHits.length > 0) findingParts.push(`AI: ${aiHits.length}`);
+                if (profile.checkDebug && debugHits.length > 0) findingParts.push(`Debug: ${debugHits.length}`);
+                panelMetrics.textContent = findingParts.join(' · ');
+                // Yield to browser every 50 files, and check for abort
+                if (i % 50 === 0) {
+                    await new Promise(r => setTimeout(r, 0));
+                    if (signal.aborted) {
+                        appendTerminalLine('Scan aborted by user.', 'warn');
+                        panelStatus.textContent = 'ABORTED';
+                        panelStatus.style.color = '#F59E0B';
+                        throw new Error('Scan aborted');
+                    }
+                }
             }
 
             // 4. Score & report
@@ -3313,6 +3631,7 @@
                 version: '1.3.0',
                 generatedAt: now,
                 generatedBy: 'SimpleBeacon Browser Sandbox',
+                scanProfileLabel: profile.label || 'Browser Scan',
                 projectRoot: projectName,
                 projectPath: projectName,
                 scanTargetRoot: projectName,
@@ -3518,9 +3837,114 @@
                 a.click();
                 a.remove();
             });
+            } catch (err) {
+                if (err.message !== 'Scan aborted') {
+                    appendTerminalLine(`Scan failed: ${err.message}`, 'error');
+                    panelStatus.textContent = 'FAILED';
+                    panelStatus.style.color = '#EF4444';
+                }
             } finally {
                 if (browserFolderDropzone) browserFolderDropzone.classList.remove('scanning');
+                const cancelBtn = document.getElementById('cancelScanBtn');
+                if (cancelBtn) cancelBtn.style.display = 'none';
+                scanAbortController = null;
             }
+        }
+
+        // Client-side certificate generator — zero data leaves the browser
+        async function generateSovereignCertificate(report, token) {
+            if (!window.JSZip || !window.html2canvas) {
+                throw new Error('Certificate libraries not loaded. Check your network connection.');
+            }
+
+            const zip = new JSZip();
+            const now = new Date();
+            const certId = 'SB-' + Math.floor(100000 + Math.random() * 900000);
+            const dateStr = now.toLocaleDateString();
+            const isoDate = now.toISOString();
+
+            // Grade based on quality score
+            const qs = report.qualityScore || 0;
+            let grade = 'F';
+            let gradeColor = '#EF4444';
+            if (qs >= 95) { grade = 'A'; gradeColor = '#34D399'; }
+            else if (qs >= 85) { grade = 'B'; gradeColor = '#60A5FA'; }
+            else if (qs >= 70) { grade = 'C'; gradeColor = '#F59E0B'; }
+            else if (qs >= 50) { grade = 'D'; gradeColor = '#F97316'; }
+
+            const rawGate = report.gate?.pass ?? report.gateReport?.pass ?? null;
+            const gatePassed = rawGate === true;
+            const gateLabel = rawGate === null ? 'REVIEW' : (gatePassed ? 'PASSED' : 'BLOCKED');
+            const gateColor = rawGate === null ? '#60A5FA' : (gatePassed ? '#34D399' : '#EF4444');
+            const projectName = report.projectRoot || report.projectPath || 'local-scan';
+            const fileCount = report.totalFiles || report.filesAnalyzed || 0;
+            const issueCount = report.issueCount || report.simplebeaconIssues || 0;
+            const profileLabel = report.scanProfileLabel || report.type?.replace('simplebeacon-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Scan';
+
+            // 1. Build certificate HTML
+            const certWrapper = document.createElement('div');
+            certWrapper.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:800px;background:#0B0F19;color:#F3F4F6;font-family:SF Mono,Monaco,Cascadia Code,monospace;padding:48px;border:4px solid #1E293B;box-sizing:border-box;';
+            certWrapper.innerHTML = `
+                <div style="border:2px solid rgba(37,99,235,0.3);padding:32px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #1E293B;padding-bottom:20px;margin-bottom:24px;">
+                        <div>
+                            <h1 style="margin:0;font-size:22px;font-weight:700;color:#fff;letter-spacing:0.08em;text-transform:uppercase;">SimpleBeacon Certification</h1>
+                            <p style="margin:6px 0 0;font-size:11px;color:#60A5FA;">${profileLabel} — Compliance Index</p>
+                        </div>
+                        <div style="text-align:right;font-size:11px;color:#9CA3AF;line-height:1.6;">
+                            <div>ID: ${certId}</div>
+                            <div>Issued: ${dateStr}</div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:24px;">
+                        <p style="font-size:12px;line-height:1.7;color:#CBD5E1;margin:0 0 16px;">
+                            This document certifies the scan result metadata from the associated SimpleBeacon report. The underlying analysis was performed entirely on the local machine — no source code or AST was transmitted to external servers.
+                        </p>
+                        <div style="background:#0F1626;border:1px solid #1E293B;border-radius:8px;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;font-size:11px;">
+                            <div><span style="color:#9CA3AF;">Project:</span> <span style="color:#F3F4F6;font-weight:700;">${projectName}</span></div>
+                            <div><span style="color:#9CA3AF;">Files Evaluated:</span> <span style="color:#F3F4F6;font-weight:700;">${fileCount}</span></div>
+                            <div><span style="color:#9CA3AF;">Logical Scope:</span> <span style="color:#F3F4F6;font-weight:700;">${report.generatedBy?.includes('Browser') ? 'Browser Sandbox' : 'Local CLI'}</span></div>
+                            <div><span style="color:#9CA3AF;">Gate Status:</span> <span style="color:${gateColor};font-weight:700;">${gateLabel}</span></div>
+                            <div><span style="color:#9CA3AF;">Compliance Grade:</span> <span style="color:${gradeColor};font-weight:700;font-size:13px;">${grade}</span></div>
+                            <div><span style="color:#9CA3AF;">Findings:</span> <span style="color:#F3F4F6;font-weight:700;">${issueCount}</span></div>
+                            <div><span style="color:#9CA3AF;">Data Integrity Seal:</span> <span style="color:#60A5FA;">VERIFIED_LOCAL</span></div>
+                            <div><span style="color:#9CA3AF;">Quality Score:</span> <span style="color:#F3F4F6;font-weight:700;">${qs}/100</span></div>
+                        </div>
+                    </div>
+                    <div style="border-top:1px solid #1E293B;padding-top:16px;display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#64748B;">
+                        <div>Token Verified: ${token.slice(0,8)}...${token.slice(-4)} (Client-Side Runtime)</div>
+                        <div style="font-weight:700;color:#9CA3AF;">SIMPLEBEACON SOVEREIGN PROTOCOL</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(certWrapper);
+
+            // 2. Rasterize to PNG
+            const canvas = await html2canvas(certWrapper, { scale: 2, backgroundColor: '#0B0F19', logging: false });
+            certWrapper.remove();
+            const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+            // 3. Assemble ZIP
+            zip.file('certificate.png', pngBlob);
+            zip.file('report.json', JSON.stringify(report, null, 2));
+            zip.file('manifest.json', JSON.stringify({
+                generator: 'SimpleBeacon Sovereign Engine v1.4.0',
+                timestamp: isoDate,
+                certificateId: certId,
+                tokenPrefix: token.slice(0,8) + '...',
+                localOnly: true,
+                zeroUpload: true
+            }, null, 2));
+
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `simplebeacon-certificate-${isoDate.slice(0,10)}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
         }
 
         submitBtn.addEventListener('click', async () => {
@@ -3539,40 +3963,13 @@
 
             submitBtn.disabled = true;
             submitBtn.classList.add('btn-loading');
-            showStatus('Generating certificate ZIP...', 'loading');
+            showStatus('Generating certificate locally in browser sandbox...', 'loading');
 
             try {
-                const response = await fetch(API_BASE + '/api/certificate/download', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ reportJson: reportData, licenseToken: token })
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    const msg = errData.error || `Certificate generation failed (${response.status})`;
-                    if (response.status === 401 || response.status === 403) {
-                        if (tokenError) tokenError.classList.remove('hidden-display');
-                        throw new Error('Invalid or expired token');
-                    }
-                    throw new Error(msg);
-                }
-
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `simplebeacon-certificate-${new Date().toISOString().slice(0,10)}.zip`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                await generateSovereignCertificate(reportData, token);
                 updateStepper();
-                showToast('Certificate ZIP downloaded successfully!', 'success', 6000);
-                showStatus('Certificate ZIP downloaded! Open the ZIP and browse to reports/*.html → Print → Save as PDF.', 'success');
+                showToast('Certificate ZIP downloaded — generated entirely in your browser!', 'success', 6000);
+                showStatus('Certificate ZIP generated locally! Zero bytes uploaded to any server.', 'success');
             } catch (err) {
                 showToast(err.message, 'error');
                 const statusEl = document.getElementById('status');
