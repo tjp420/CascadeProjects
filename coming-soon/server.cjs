@@ -983,12 +983,12 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
   <section class="section">
     <div class="section-num">Appendix</div>
     <h2>Methodology &amp; scan scope</h2>
-    <ul><li>Repository inventory: ${totalFiles} files — browser-local heuristic scan.</li><li>Pattern matching on file content for AI/LLM imports and credential heuristics — not LLM semantic review.</li><li>Processing runs 100% locally in browser sandbox. No source code leaves your computer.</li><li>Gate rules: credential patterns, AI-implementation detection.</li></ul>
-    <p class="meta">Report ID ${reportId} · Generated ${nowStr} by SimpleBeacon</p>
+    <ul><li>Repository inventory: ${safeTotalFiles} files — browser-local heuristic scan.</li><li>Pattern matching on file content for AI/LLM imports and credential heuristics — not LLM semantic review.</li><li>Processing runs 100% locally in browser sandbox. No source code leaves your computer.</li><li>Gate rules: credential patterns, AI-implementation detection.</li></ul>
+    <p class="meta">Report ID ${safeReportId} · Generated ${safeNowStr} by SimpleBeacon</p>
   </section>
   <div class="footer">
-    <p><strong>Report ID ${reportId}</strong> · Generated ${nowStr} by SimpleBeacon</p>
-    <p>Print this document (Ctrl+P / Cmd+P) → Destination: <strong>Save as PDF</strong> · Recommended filename: <code>${reportId}.pdf</code></p>
+    <p><strong>Report ID ${safeReportId}</strong> · Generated ${safeNowStr} by SimpleBeacon</p>
+    <p>Print this document (Ctrl+P / Cmd+P) → Destination: <strong>Save as PDF</strong> · Recommended filename: <code>${safeReportId}.pdf</code></p>
   </div>
 </main>
 </body></html>`;
@@ -996,10 +996,26 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
 
 // Certificate generation endpoint (unique path — ai-platform also registers /api/certificate/download)
 app.post('/api/certificate/download', async (req, res) => {
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+
+    // Rate limiting
+    const rateEntry = certRateLog.get(clientIp);
+    if (rateEntry && now < rateEntry.resetAt) {
+        if (rateEntry.count >= CERT_RATE_LIMIT_MAX) {
+            console.warn(`[Certificate] Rate limit exceeded for IP ${clientIp}`);
+            return res.status(429).json({ error: 'Too many certificate requests. Please try again later.' });
+        }
+        rateEntry.count++;
+    } else {
+        certRateLog.set(clientIp, { count: 1, resetAt: now + CERT_RATE_LIMIT_MS });
+    }
+
     const auth = req.headers.authorization || '';
     const token = auth.replace(/^Bearer\s+/i, '').trim();
     const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || (process.env.NODE_ENV !== 'production' ? 'simplebeacon-dev-insecure' : null);
     if (!secret) {
+        console.error('[Certificate] License secret not configured');
         return res.status(500).json({ error: 'License secret not configured' });
     }
     if (!token || token.length < 10) {
@@ -1010,7 +1026,19 @@ app.post('/api/certificate/download', async (req, res) => {
         return res.status(403).json({ error: 'Invalid or expired token' });
     }
 
+    // Validate report data presence
     let reportJson = req.body.reportJson || {};
+    if (!reportJson || Object.keys(reportJson).length === 0) {
+        return res.status(400).json({ error: 'Report JSON required in request body' });
+    }
+
+    // Guard against oversized reports (50MB limit)
+    const reportSize = JSON.stringify(reportJson).length;
+    if (reportSize > 50 * 1024 * 1024) {
+        console.warn(`[Certificate] Report too large: ${(reportSize / 1024 / 1024).toFixed(1)}MB from ${clientIp}`);
+        return res.status(413).json({ error: 'Report JSON exceeds 50MB size limit' });
+    }
+
     const rawResults = reportJson.results || {};
     reportJson = normalizeReport(reportJson);
     // Merge ai-platform complete-scan modules from nested results into top level for ZIP generation
@@ -1159,13 +1187,13 @@ For vendor handoff, run a Complete Scan via the CLI:
 Questions? https://simplebeacon.ai
 `, { name: 'README.txt' });
         await archive.finalize();
-        console.log('[Archive] Finalized successfully');
+        console.log(`[Certificate] Archive finalized successfully for tier=${payload.tier || 'executive'} size=${reportSize}bytes ip=${clientIp}`);
     } catch (err) {
-        console.error('[Certificate] Archive failed:', err.message);
+        console.error(`[Certificate] Archive failed: ${err.message} ip=${clientIp}`);
         if (!res.headersSent) {
             res.status(500).json({ error: 'Certificate generation failed' });
         } else {
-            res.end();
+            res.destroy();
         }
     }
 });

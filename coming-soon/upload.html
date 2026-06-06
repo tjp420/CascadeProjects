@@ -2164,13 +2164,7 @@
             });
         }
 
-        // Beforeunload warning if user has scan data
-        window.addEventListener('beforeunload', (e) => {
-            if (reportData) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        });
+        // Note: beforeunload confirmation removed — users can leave freely.
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
