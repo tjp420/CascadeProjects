@@ -2304,8 +2304,9 @@
                         govHits.push(path);
                     }
                     // --- 11 Analysis Category Heuristics ---
-                    // 3. Mock data: fixture/sample/test-data files (skip node_modules — dependency mocks are not user code)
-                    if (!isNodeModule && /mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
+                    // 3. Mock data: fixture/sample/test-data files (skip node_modules + marketing demo pages)
+                    const isDemoSample = /sample-(certificate|clearance-pdf|report)\./.test(lowerPath);
+                    if (!isNodeModule && !isDemoSample && /mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
                         mockFiles.push(path);
                     }
                     // 9. npm audit: package.json files
@@ -2351,9 +2352,10 @@
                     if (!isNodeModule && /TODO:|FIXME:|HACK:|XXX:|NOTE:|BUG:/i.test(text)) {
                         todoFiles.push(path);
                     }
-                    // 6. File reduction: unused assets (images not referenced) — skip node_modules dependency assets
-                    if (!isNodeModule && /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(lowerPath)) {
-                        const baseName = path.split('/').pop();
+                    // 6. File reduction: unused assets (images not referenced) — skip node_modules and standard auto-loaded web assets
+                    const baseName = path.split('/').pop();
+                    const isStandardWebAsset = /^(favicon|apple-touch-icon|mstile|browserconfig|site\.webmanifest)/i.test(baseName);
+                    if (!isNodeModule && !isStandardWebAsset && /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(lowerPath)) {
                         unusedAssetCandidates.push({ path, name: baseName });
                     }
                     if ((i + 1) % 5 === 0 || i === sourceFiles.length - 1) {
