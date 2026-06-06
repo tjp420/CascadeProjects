@@ -421,22 +421,34 @@ function verifyLicenseToken(token, secret) {
 }
 
 // Helper: build a full executive gate-attestation HTML certificate from a browser scan report
+function normalizeReport(reportJson) {
+    // If it's a complete-scan wrapper, pull the simplebeacon sub-report up
+    const sub = reportJson?.results?.simplebeacon;
+    if (sub && typeof sub === 'object') {
+        return { ...reportJson, ...sub, detectedIssues: sub.detectedIssues || reportJson.detectedIssues || [] };
+    }
+    return reportJson;
+}
+
 function buildCertificateHtml(reportJson, payload) {
-    const projectName = reportJson.projectRoot || reportJson.projectName || payload.projectName || 'Project';
+    const data = normalizeReport(reportJson);
+    const projectName = data.projectRoot || data.projectPath || data.projectName || payload.projectName || 'Project';
     const clientName = payload.clientName || 'Demo Client';
-    const gatePass = reportJson.gate?.pass ? 'PASS' : 'REVIEW';
+    const gatePass = data.gate?.pass ? 'PASS' : 'REVIEW';
     const reportId = 'SB-AUD-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,8).toUpperCase();
     const nowStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const detectedIssues = reportJson.detectedIssues || [];
-    const credentialHits = reportJson.gate?.blockingCount || 0;
+    const detectedIssues = data.detectedIssues || [];
+    const credentialHits = data.gate?.blockingCount || 0;
+    const totalFiles = data.totalFiles ?? data.filesAnalyzed ?? data.repositoryFilesTotal ?? 0;
+    const qualityScore = data.qualityScore ?? data.summary?.qualityScore ?? 0;
 
     const issueRows = detectedIssues.map(issue => {
         const sev = (issue.severity || 'low').toUpperCase();
         const sevClass = sev === 'CRITICAL' ? 'sev-critical' : sev === 'HIGH' ? 'sev-high' : sev === 'MEDIUM' ? 'sev-medium' : 'sev-low';
-        const fileSnippet = (issue.filePath || '—').replace(/</g,'&lt;');
-        const rule = (issue.rule || '—').replace(/</g,'&lt;');
-        const impact = (issue.impact || 'Review and remediate before next release.').replace(/</g,'&lt;');
-        const fix = (issue.fix || 'Review file manually and apply safe remediation.').replace(/</g,'&lt;');
+        const fileSnippet = (issue.filePath || (Array.isArray(issue.filePaths) && issue.filePaths[0]) || (Array.isArray(issue.affectedFiles) && issue.affectedFiles[0]) || issue.file || '—').replace(/</g,'&lt;');
+        const rule = (issue.rule || issue.type || '—').replace(/</g,'&lt;');
+        const impact = (issue.impact || issue.recommendation || 'Review and remediate before next release.').replace(/</g,'&lt;');
+        const fix = (issue.fix || issue.recommendation || 'Review file manually and apply safe remediation.').replace(/</g,'&lt;');
         return `<tr><td><span class="sev ${sevClass}">${sev}</span></td><td><code>${fileSnippet}</code></td><td><code>${rule}</code></td><td class="impact-cell"><span class="impact-badge impact-${sevClass.replace('sev-','')}">${impact}</span></td><td class="recipe-cell">${fix}</td></tr>`;
     }).join('');
 
@@ -531,9 +543,9 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
       <tr><td>Target repository / branch</td><td><code>${projectName.replace(/</g,'&lt;')}</code> / <code>main</code></td></tr>
       <tr><td>Timestamp</td><td>${nowStr}</td></tr>
       <tr><td>Engine core version</td><td>SimpleBeacon Engine v1.3.0 (Zero-Dependency)</td></tr>
-      <tr><td>Scan performance ledger</td><td>${reportJson.totalFiles || 0} repo files indexed</td></tr>
+      <tr><td>Scan performance ledger</td><td>${totalFiles} repo files indexed</td></tr>
       <tr><td>Report assessor</td><td>SimpleBeacon</td></tr>
-      <tr><td>Quality score</td><td>${reportJson.qualityScore || 0}% · code health — · audit confidence 100/100</td></tr>
+      <tr><td>Quality score</td><td>${qualityScore}% · code health — · audit confidence 100/100</td></tr>
     </table>
   </section>
   <section class="section">
@@ -549,7 +561,7 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
       <div class="kpi"><strong>0</strong><span>Runtime findings</span></div>
       <div class="kpi"><strong>—</strong><span>DQ findings</span></div>
       <div class="kpi"><strong>—</strong><span>Files deep-scanned</span></div>
-      <div class="kpi"><strong>${reportJson.qualityScore || 0}%</strong><span>Code health</span></div>
+      <div class="kpi"><strong>${qualityScore}%</strong><span>Code health</span></div>
     </div>
   </section>
   <section class="section">
@@ -573,8 +585,8 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
     <h3>Continuous evaluation checklist</h3>
     <table class="data-table">
       <tr><th>Checklist item</th><th>Status</th><th>Notes</th></tr>
-      <tr><td>Zero hardcoded credential patterns</td><td><strong>${credentialHits > 0 ? 'FAIL' : 'PASS'}</strong></td><td>${credentialHits > 0 ? credentialHits + ' credential pattern(s) detected' : 'Scanned ' + (reportJson.totalFiles || 0) + ' path(s) — no credential patterns'}</td></tr>
-      <tr><td>Production path separation</td><td><strong>PASS</strong></td><td>Scanned ${reportJson.totalFiles || 0} production file(s) — no sample-path leaks</td></tr>
+      <tr><td>Zero hardcoded credential patterns</td><td><strong>${credentialHits > 0 ? 'FAIL' : 'PASS'}</strong></td><td>${credentialHits > 0 ? credentialHits + ' credential pattern(s) detected' : 'Scanned ' + totalFiles + ' path(s) — no credential patterns'}</td></tr>
+      <tr><td>Production path separation</td><td><strong>PASS</strong></td><td>Scanned ${totalFiles} production file(s) — no sample-path leaks</td></tr>
       <tr><td>Schema conformity (configured samples)</td><td><strong>N/A</strong></td><td>No registered page samples checked</td></tr>
       <tr><td>Fiction KPI baseline (sample JSON)</td><td><strong>N/A</strong></td><td>Consistency anchors not configured for this profile</td></tr>
     </table>
@@ -605,7 +617,7 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
   <section class="section">
     <div class="section-num">Appendix</div>
     <h2>Methodology &amp; scan scope</h2>
-    <ul><li>Repository inventory: ${reportJson.totalFiles || 0} files — browser-local heuristic scan.</li><li>Pattern matching on file content for AI/LLM imports and credential heuristics — not LLM semantic review.</li><li>Processing runs 100% locally in browser sandbox. No source code leaves your computer.</li><li>Gate rules: credential patterns, AI-implementation detection.</li></ul>
+    <ul><li>Repository inventory: ${totalFiles} files — browser-local heuristic scan.</li><li>Pattern matching on file content for AI/LLM imports and credential heuristics — not LLM semantic review.</li><li>Processing runs 100% locally in browser sandbox. No source code leaves your computer.</li><li>Gate rules: credential patterns, AI-implementation detection.</li></ul>
     <p class="meta">Report ID ${reportId} · Generated ${nowStr} by SimpleBeacon</p>
   </section>
   <div class="footer">
