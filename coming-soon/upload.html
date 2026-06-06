@@ -1863,19 +1863,23 @@
             panelStatus.style.color = '#60A5FA';
             terminalConsole.innerHTML = '';
 
+            const profile = BROWSER_SCAN_PROFILES[browserScanProfile?.value || 'gate'];
             appendTerminalLine('simplebeacon scan .', 'input');
-            appendTerminalLine('Initializing Local Web Worker Core... Allocating isolated browser memory structures.');
+            appendTerminalLine(`Initializing Local Web Worker Core... Profile: ${profile.label}. Allocating isolated browser memory structures.`);
             appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
 
-            const excludeEnv = document.getElementById('flag-env')?.checked ?? false;
-            const skipDeps = document.getElementById('flag-deps')?.checked ?? false;
-            const skipDocs = document.getElementById('flag-docs')?.checked ?? false;
+            // Security baseline: always exclude dependency trees, secrets, and docs
+            const excludeEnv = true;
+            const skipDeps = true;
+            const skipDocs = true;
 
             let scanned = 0;
             let totalLines = 0;
             let aiHits = [];
             let credentialHits = 0;
             let credFiles = [];
+            let debugHits = [];
+            let govHits = [];
             const startTime = Date.now();
 
             // 1. Check for user-provided .simplebeaconignore
@@ -1929,12 +1933,18 @@
                     const lineCount = text.split('\n').length;
                     totalLines += lineCount;
                     const lower = text.toLowerCase();
-                    if (/new\s+openai|import\s+openai|from\s+anthropic|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/.test(lower)) {
+                    if (profile.checkAi && /new\s+openai|import\s+openai|from\s+anthropic|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/.test(lower)) {
                         aiHits.push(path);
                     }
-                    if (/password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{16,}|secret[_-]?key\s*=\s*['"][a-z0-9]{16,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}/i.test(text)) {
+                    if (profile.checkCredentials && /password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{16,}|secret[_-]?key\s*=\s*['"][a-z0-9]{16,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}/i.test(text)) {
                         credentialHits++;
                         credFiles.push(path);
+                    }
+                    if (profile.checkDebug && /console\.log\(|debugger;|todo:|fixme:|hack:/i.test(text)) {
+                        debugHits.push(path);
+                    }
+                    if (profile.checkGov && /SPDX-License-Identifier|MIT License|Apache License|GNU General Public License|All rights reserved|Copyright \(c\)|License: /i.test(text)) {
+                        govHits.push(path);
                     }
                     if ((i + 1) % 5 === 0 || i === sourceFiles.length - 1) {
                         appendTerminalLine(`Scanning chunk: <span style="color:#94A3B8;">${path}</span> (${lineCount} lines)`);
@@ -1948,15 +1958,16 @@
             }
 
             // 4. Score & report
-            const aiPenalty = Math.min(aiHits.length * 2, 20);
-            const credPenalty = Math.min(credentialHits * 10, 30);
-            const qualityScore = Math.max(0, 100 - aiPenalty - credPenalty);
+            const aiPenalty = profile.checkAi ? Math.min(aiHits.length * 2, 20) : 0;
+            const credPenalty = profile.checkCredentials ? Math.min(credentialHits * 10, 30) : 0;
+            const debugPenalty = profile.checkDebug ? Math.min(debugHits.length * 1, 10) : 0;
+            const qualityScore = Math.max(0, 100 - aiPenalty - credPenalty - debugPenalty);
             const gatePass = credentialHits < 3;
 
             const now = new Date().toISOString();
             const projectName = files[0].webkitRelativePath?.split('/')[0] || 'browser-local';
             reportData = {
-                type: 'simplebeacon-report',
+                type: profile.reportType || 'simplebeacon-report',
                 version: '1.3.0',
                 generatedAt: now,
                 projectRoot: projectName,
@@ -1968,29 +1979,38 @@
                 totalFiles: sourceFiles.length,
                 filesAnalyzed: sourceFiles.length,
                 repositoryFilesTotal: sourceFiles.length,
-                issueCount: aiHits.length + credentialHits,
-                simplebeaconIssues: aiHits.length + credentialHits,
+                issueCount: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
+                simplebeaconIssues: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
                 detectedIssues: [
-                    ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length, filePath: aiHits.slice(0,3).join(', ') + (aiHits.length > 3 ? ' ...' : ''), rule: 'AI_IMPLEMENTATION_PATTERN', impact: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.', fix: 'Review and remediate before enabling --gate on main.' }] : []),
-                    ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: credFiles.slice(0,3).join(', ') + (credFiles.length > 3 ? ' ...' : ''), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.' }] : [])
+                    ...(profile.checkAi && aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length, filePath: aiHits.slice(0,3).join(', ') + (aiHits.length > 3 ? ' ...' : ''), rule: 'AI_IMPLEMENTATION_PATTERN', impact: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.', fix: 'Review and remediate before enabling --gate on main.' }] : []),
+                    ...(profile.checkCredentials && credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: credFiles.slice(0,3).join(', ') + (credFiles.length > 3 ? ' ...' : ''), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.' }] : []),
+                    ...(profile.checkDebug && debugHits.length ? [{ severity: 'low', type: 'Debug Artifact', count: debugHits.length, filePath: debugHits.slice(0,3).join(', ') + (debugHits.length > 3 ? ' ...' : ''), rule: 'DEBUG_ARTIFACT', impact: 'HYGIENE RISK: Debug artifacts should not reach production builds.', fix: 'Remove console.log, debugger, TODO, and FIXME markers before release.' }] : []),
+                    ...(profile.checkGov && govHits.length ? [{ severity: 'low', type: 'License/Governance Marker', count: govHits.length, filePath: govHits.slice(0,3).join(', ') + (govHits.length > 3 ? ' ...' : ''), rule: 'GOVERNANCE_PATTERN', impact: 'INFO: License headers and copyright notices detected. Verify compliance with open-source policy.', fix: 'Review license compatibility with your product distribution model.' }] : [])
                 ],
                 issues: [
-                    ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
-                    ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits }] : [])
+                    ...(profile.checkAi && aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
+                    ...(profile.checkCredentials && credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits }] : []),
+                    ...(profile.checkDebug && debugHits.length ? [{ severity: 'low', type: 'Debug Artifact', count: debugHits.length }] : []),
+                    ...(profile.checkGov && govHits.length ? [{ severity: 'low', type: 'License/Governance Marker', count: govHits.length }] : [])
                 ],
                 rawIssues: [
-                    ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
-                    ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits }] : [])
+                    ...(profile.checkAi && aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
+                    ...(profile.checkCredentials && credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits }] : []),
+                    ...(profile.checkDebug && debugHits.length ? [{ severity: 'low', type: 'Debug Artifact', count: debugHits.length }] : []),
+                    ...(profile.checkGov && govHits.length ? [{ severity: 'low', type: 'License/Governance Marker', count: govHits.length }] : [])
                 ],
                 scanDurationMs: Date.now() - startTime,
                 repositoryInventory: { totalFiles: sourceFiles.length, projectRoot: projectName },
+                title: profile.title || 'SimpleBeacon Browser Scan',
                 summary: {
                     gatePass: gatePass,
                     qualityScore: qualityScore,
                     repositoryFiles: sourceFiles.length,
-                    simplebeaconIssues: aiHits.length + credentialHits,
-                    totalFindings: aiHits.length + credentialHits
-                }
+                    simplebeaconIssues: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
+                    totalFindings: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0)
+                },
+                scanProfile: profileKey,
+                scanProfileLabel: profile.label
             };
 
             appendTerminalLine('Local directory crawl operation complete. Verification tree generated.', 'success');
@@ -2007,7 +2027,11 @@
             renderPreview(reportData);
             scanPreview.style.display = 'block';
             updateSubmit();
-            showStatus(`Scan complete: ${sourceFiles.length} files, ${aiHits.length} AI hits, ${credentialHits} credential patterns. Token required for certificate.`, 'success');
+            const statusParts = [`${profile.label} complete: ${sourceFiles.length} files`];
+            if (profile.checkAi) statusParts.push(`${aiHits.length} AI indicators`);
+            if (profile.checkCredentials) statusParts.push(`${credentialHits} credentials`);
+            if (profile.checkDebug) statusParts.push(`${debugHits.length} debug artifacts`);
+            showStatus(statusParts.join(' · ') + '. Token required for certificate.', 'success');
 
             // Build Secure Report preview + download
             const existingReport = document.getElementById('secureReportBlock');
