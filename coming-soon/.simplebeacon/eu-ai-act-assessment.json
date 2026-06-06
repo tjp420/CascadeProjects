@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-assessment-report",
   "title": "Simplebeacon EU AI Act Readiness — coming-soon",
-  "generatedAt": "2026-06-05T16:11:12.156Z",
+  "generatedAt": "2026-06-06T05:50:32.746Z",
   "generatedBy": "Simplebeacon",
   "assessor": "SimpleBeacon Operator",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
@@ -9,9 +9,9 @@
   "deadline": "2026-08-02",
   "euAiActSummary": {
     "highRiskIndicators": 0,
-    "aiSystemIndicators": 0,
+    "aiSystemIndicators": 1,
     "transparencyGaps": 0,
-    "documentationArtifacts": 30,
+    "documentationArtifacts": 31,
     "documentationFound": [
       "app-links.js",
       "certificate-upload.html",
@@ -20,6 +20,7 @@
       "pricing.html",
       "refund.html",
       "sample-certificate.html",
+      "scan-status.html",
       "server.cjs",
       "site-config.js",
       "styles.css",
@@ -38,35 +39,35 @@
     "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
   },
   "executiveSummary": {
-    "gateResult": "PASS",
-    "qualityScore": 100,
-    "filesScanned": 33,
-    "criticalIssues": 0,
-    "highIssues": 0,
-    "mediumIssues": 0,
+    "gateResult": "FAIL",
+    "qualityScore": 76,
+    "filesScanned": 37,
+    "criticalIssues": 1,
+    "highIssues": 3,
+    "mediumIssues": 4,
     "lowIssues": 0,
-    "warningCount": 0,
-    "blockingCount": 0,
-    "headline": "Clean scan — no blocking mock/fiction findings in configured paths.",
-    "complianceScore": 100,
-    "complianceReady": true
+    "warningCount": 4,
+    "blockingCount": 3,
+    "headline": "1 EU AI Act signal(s). Gate would fail — these issues block merge when --gate is enabled.",
+    "complianceScore": 89,
+    "complianceReady": false
   },
   "complianceChecklist": {
     "type": "simplebeacon-compliance-checklist",
     "version": "1.0.0",
     "title": "Simplebeacon EU AI Act Readiness Checklist",
     "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
-    "evaluatedAt": "2026-06-05T16:11:12.156Z",
+    "evaluatedAt": "2026-06-06T05:50:32.746Z",
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
     "summary": {
-      "passed": 9,
-      "failed": 0,
+      "passed": 8,
+      "failed": 1,
       "skipped": 0,
       "total": 9,
-      "score": 100,
-      "readyForAutomation": true,
+      "score": 89,
+      "readyForAutomation": false,
       "checklistProfile": "eu-ai-act",
-      "headline": "9/9 EU AI Act readiness rules pass — review legal classification before August 2026"
+      "headline": "1 EU AI Act rule(s) fail — address before August 2026 deadline"
     },
     "rules": [
       {
@@ -75,8 +76,8 @@
         "category": "Automation",
         "severity": "critical",
         "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
-        "status": "pass",
-        "evidence": "Gate pass — no blocking issues at configured severities"
+        "status": "fail",
+        "evidence": "Gate fail — 3 blocking issue(s)"
       },
       {
         "id": "CRED-001",
@@ -112,7 +113,7 @@
         "severity": "high",
         "remediation": "Add user-facing disclosure that content is AI-generated or that users interact with an AI system",
         "status": "pass",
-        "evidence": "No generative AI integrations detected in user-facing paths"
+        "evidence": "1 AI integration(s) with Article 50 disclosure markers present"
       },
       {
         "id": "EUAI-003",
@@ -121,7 +122,7 @@
         "severity": "high",
         "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
         "status": "pass",
-        "evidence": "No AI system indicators — documentation not required by scan"
+        "evidence": "31 documentation artifact(s) found for 1 AI indicator(s)"
       },
       {
         "id": "EUAI-004",
@@ -139,7 +140,7 @@
         "severity": "medium",
         "remediation": "Log AI system inputs, outputs, and decision rationale for audit trails",
         "status": "pass",
-        "evidence": "No AI decision paths detected"
+        "evidence": "AI decision paths include audit/logging signals"
       },
       {
         "id": "SUPPLY-001",
@@ -182,19 +183,72 @@
       "summary": "All registered page samples match schema specs."
     },
     "euAiAct": {
-      "scanned": 31,
-      "findings": 0,
+      "scanned": 35,
+      "findings": 1,
       "severity": "high",
-      "items": [],
-      "summary": "No EU AI Act high-risk or transparency gaps detected."
+      "items": [
+        {
+          "file": "upload.html",
+          "description": "Generative AI or LLM integration detected (14 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        }
+      ],
+      "summary": "upload.html: Generative AI or LLM integration detected (14 matches in file)"
     },
     "other": {
-      "items": [],
-      "summary": "No other findings."
+      "items": [
+        {
+          "file": "server.cjs",
+          "description": "server.cjs:1033 — Unresolved Git merge conflict marker",
+          "severity": "critical",
+          "count": 1,
+          "recommendedAction": "Resolve merge conflict markers before client handoff."
+        },
+        {
+          "file": "upload.html",
+          "description": "upload.html:1234 — Localhost or loopback URL with port in production-eligible code",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "upload.html",
+          "description": "upload.html:1240 — Localhost or loopback URL with port in production-eligible code",
+          "severity": "high",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "upload.html",
+          "description": "upload.html:1502 — Debug logging flag enabled in config or source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "upload.html",
+          "description": "upload.html:1535 — Debug logging flag enabled in config or source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        },
+        {
+          "file": "upload.html",
+          "description": "upload.html:1546 — Debug logging flag enabled in config or source",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+        }
+      ],
+      "summary": "server.cjs: server.cjs:1033 — Unresolved Git merge conflict marker; upload.html: upload.html:1234 — Localhost or loopback URL with port in production-eligible code; upload.html: upload.html:1240 — Localhost or loopback URL with port in production-eligible code; upload.html: upload.html:1502 — Debug logging flag enabled in config or source; upload.html: upload.html:1535 — Debug logging flag enabled in config or source"
     }
   },
   "recommendedActions": {
     "immediate": [
+      "Fix high-severity findings before enabling --gate on main",
+      "Address EU AI Act transparency and documentation gaps before August 2026",
       "Add docs/model-card.md and docs/risk-assessment.md for AI integrations",
       "Add simplebeacon scan --gate to PR workflow (see docs/GITHUB-ACTION-QUICKSTART.md)"
     ],
@@ -228,12 +282,12 @@
     "npx simplebeacon assess --report .simplebeacon/report.json"
   ],
   "sourceReport": {
-    "generatedAt": "2026-06-05T16:11:12.143Z",
+    "generatedAt": "2026-06-06T05:50:32.733Z",
     "scanPaths": [
       "C:\\Users\\Trevor\\CascadeProjects\\coming-soon"
     ],
     "duplicateGroups": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-05T16:11:12.157Z"
+  "sanitizedAt": "2026-06-06T05:50:32.748Z"
 }

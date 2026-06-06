@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-06-05T16:11:12.143Z",
+  "generatedAt": "2026-06-06T05:50:32.733Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
   "scanTargetRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
@@ -11,22 +11,22 @@
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
-    "totalFiles": 33,
+    "totalFiles": 37,
     "totalFolders": 1,
     "profile": "audit"
   },
   "mockSampleFiles": 3,
-  "totalFiles": 33,
-  "ruleScopedFilesAnalyzed": 33,
-  "repositoryFilesTotal": 33,
+  "totalFiles": 37,
+  "ruleScopedFilesAnalyzed": 37,
+  "repositoryFilesTotal": 37,
   "repositoryFoldersTotal": 1,
-  "filesAnalyzed": 33,
-  "totalSizeBytes": 437431,
-  "totalSizeLabel": "427.2KB",
-  "issueCount": 0,
+  "filesAnalyzed": 37,
+  "totalSizeBytes": 669166,
+  "totalSizeLabel": "653.5KB",
+  "issueCount": 7,
   "invalidJson": 0,
   "emptyFiles": 0,
-  "qualityScore": 100,
+  "qualityScore": 76,
   "schemaCompliance": null,
   "schemaChecked": 0,
   "schemaPassed": 0,
@@ -48,15 +48,15 @@
   "productionLeakSuppressedIntent": 0,
   "sourceCodeFilesScanned": 0,
   "sourceFictionPatternHits": 0,
-  "llmSlopFilesScanned": 24,
+  "llmSlopFilesScanned": 25,
   "llmSlopPatternHits": 0,
-  "euAiActScanned": 31,
-  "euAiActFindings": 0,
+  "euAiActScanned": 35,
+  "euAiActFindings": 1,
   "euAiActSummary": {
     "highRiskIndicators": 0,
-    "aiSystemIndicators": 0,
+    "aiSystemIndicators": 1,
     "transparencyGaps": 0,
-    "documentationArtifacts": 30,
+    "documentationArtifacts": 31,
     "documentationFound": [
       "app-links.js",
       "certificate-upload.html",
@@ -65,6 +65,7 @@
       "pricing.html",
       "refund.html",
       "sample-certificate.html",
+      "scan-status.html",
       "server.cjs",
       "site-config.js",
       "styles.css",
@@ -96,37 +97,341 @@
   "jestBaselinePassed": true,
   "jestSummary": null,
   "severityCounts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
+    "critical": 1,
+    "high": 2,
+    "medium": 4,
     "low": 0
   },
   "mockDataCategories": [
     {
       "category": "Stale inventory (full-tree scan)",
       "fileCount": 3,
-      "totalSize": "427.2KB",
+      "totalSize": "653.5KB",
       "qualityScore": null,
       "issues": null,
       "confidence": null,
       "description": "Re-run scan to refresh — current categories reflect an outdated full-repo walk, not web/data samples."
     }
   ],
-  "detectedIssues": [],
-  "rawIssues": [],
+  "detectedIssues": [
+    {
+      "severity": "critical",
+      "severityBand": "critical",
+      "type": "Handoff Integrity",
+      "count": 1,
+      "description": "server.cjs:1033 — Unresolved Git merge conflict marker",
+      "pattern": "SB-HANDOFF-001",
+      "line": 1033,
+      "recommendation": "Resolve merge conflict markers before client handoff.",
+      "recommendedAction": "Resolve merge conflict markers before client handoff.",
+      "affectedFiles": [
+        "server.cjs"
+      ],
+      "filePaths": [
+        "server.cjs"
+      ],
+      "file": "server.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "upload.html:1234 — Localhost or loopback URL with port in production-eligible code",
+      "pattern": "SB-DEPLOY-001",
+      "line": 1234,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "filePaths": [
+        "upload.html"
+      ],
+      "file": "upload.html"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "upload.html:1240 — Localhost or loopback URL with port in production-eligible code",
+      "pattern": "SB-DEPLOY-001",
+      "line": 1240,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "filePaths": [
+        "upload.html"
+      ],
+      "file": "upload.html"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "upload.html:1502 — Debug logging flag enabled in config or source",
+      "pattern": "SB-DEPLOY-004",
+      "line": 1502,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "filePaths": [
+        "upload.html"
+      ],
+      "file": "upload.html"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "upload.html:1535 — Debug logging flag enabled in config or source",
+      "pattern": "SB-DEPLOY-004",
+      "line": 1535,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "filePaths": [
+        "upload.html"
+      ],
+      "file": "upload.html"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "upload.html:1546 — Debug logging flag enabled in config or source",
+      "pattern": "SB-DEPLOY-004",
+      "line": 1546,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "filePaths": [
+        "upload.html"
+      ],
+      "file": "upload.html"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (14 matches in file)",
+      "pattern": "EUAI-AI-001",
+      "line": null,
+      "recommendation": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "filePaths": [
+        "upload.html"
+      ],
+      "file": "upload.html"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "agency-handoff-SB-HANDOFF-001-server.cjs-60114",
+      "severity": "critical",
+      "severityBand": "critical",
+      "type": "Handoff Integrity",
+      "category": "handoff-integrity",
+      "filePath": "server.cjs",
+      "file": "server.cjs",
+      "line": 1033,
+      "pattern": "SB-HANDOFF-001",
+      "count": 1,
+      "description": "server.cjs:1033 — Unresolved Git merge conflict marker",
+      "recommendation": "Resolve merge conflict markers before client handoff.",
+      "recommendedAction": "Resolve merge conflict markers before client handoff.",
+      "affectedFiles": [
+        "server.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-HANDOFF-001",
+        "category": "handoff-integrity",
+        "offset": 60114,
+        "match": "======="
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-001-upload.html-45097",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "upload.html",
+      "file": "upload.html",
+      "line": 1234,
+      "pattern": "SB-DEPLOY-001",
+      "count": 1,
+      "description": "upload.html:1234 — Localhost or loopback URL with port in production-eligible code",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-001",
+        "category": "deploy-leak",
+        "offset": 45097,
+        "match": "127.0.0.1:61130"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-001-upload.html-45556",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "upload.html",
+      "file": "upload.html",
+      "line": 1240,
+      "pattern": "SB-DEPLOY-001",
+      "count": 1,
+      "description": "upload.html:1240 — Localhost or loopback URL with port in production-eligible code",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-001",
+        "category": "deploy-leak",
+        "offset": 45556,
+        "match": "127.0.0.1:61130"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-004-upload.html-64432",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "upload.html",
+      "file": "upload.html",
+      "line": 1502,
+      "pattern": "SB-DEPLOY-004",
+      "count": 1,
+      "description": "upload.html:1502 — Debug logging flag enabled in config or source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-004",
+        "category": "deploy-leak",
+        "offset": 64432,
+        "match": "Debug: true"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-004-upload.html-66068",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "upload.html",
+      "file": "upload.html",
+      "line": 1535,
+      "pattern": "SB-DEPLOY-004",
+      "count": 1,
+      "description": "upload.html:1535 — Debug logging flag enabled in config or source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-004",
+        "category": "deploy-leak",
+        "offset": 66068,
+        "match": "Debug: true"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-004-upload.html-66703",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "upload.html",
+      "file": "upload.html",
+      "line": 1546,
+      "pattern": "SB-DEPLOY-004",
+      "count": 1,
+      "description": "upload.html:1546 — Debug logging flag enabled in config or source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-004",
+        "category": "deploy-leak",
+        "offset": 66703,
+        "match": "Debug: true"
+      }
+    },
+    {
+      "id": "EUAI-AI-001-upload.html",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "upload.html",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (14 matches in file)",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "upload.html"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "generative AI",
+        "matchCount": 14,
+        "matches": [
+          "generative AI",
+          "openai",
+          "anthropic",
+          "gpt-4",
+          "claude",
+          "inference endpoint",
+          "huggingface"
+        ]
+      }
+    }
+  ],
   "benchmarkCacheIssues": [],
   "sampleFiles": [
+    ".env",
     ".env.example",
     ".gitignore",
+    ".simplebeaconignore",
     "404.html",
     "app-links.js",
     "certificate-upload.html",
+    "cloud-scan.html",
     "community.html",
     "contact.html",
     "contact.js",
     "diagnostic-prep.html",
     "repo-handoff.html",
     "email-template-universal.html",
+    "error.log",
     "favicon.svg",
     "index.html",
     "landing.html",
@@ -173,7 +478,7 @@
         "low"
       ]
     },
-    "mockSampleFilesInScanPaths": 33,
+    "mockSampleFilesInScanPaths": 37,
     "pageSpecCatalogSize": 50,
     "pageSpecsValidated": 0,
     "pageSpecsFromScanPaths": 0,
@@ -187,10 +492,10 @@
     ],
     "sourceCodeFilesScanned": 0,
     "sourceFictionPatternHits": 0,
-    "llmSlopFilesScanned": 24,
+    "llmSlopFilesScanned": 25,
     "llmSlopPatternHits": 0,
-    "euAiActFilesScanned": 31,
-    "euAiActPatternHits": 0,
+    "euAiActFilesScanned": 35,
+    "euAiActPatternHits": 1,
     "euAiActHighRiskIndicators": 0,
     "enterpriseGuardrailFilesScanned": 4,
     "enterpriseGuardrailHits": 0,
@@ -217,15 +522,15 @@
     "fictionScope": "repository-json",
     "fictionJsonFilesScanned": 3,
     "fictionSampleFilesScanned": 0,
-    "ruleScopedFilesAnalyzed": 33,
-    "repositoryFilesTotal": 33,
+    "ruleScopedFilesAnalyzed": 37,
+    "repositoryFilesTotal": 37,
     "repositoryFoldersTotal": 1,
     "fullDirectoryScan": false,
     "fullDirectoryStats": null,
     "benchmarkCacheIssuesExcluded": 0,
     "excludedPathsNote": null,
     "limitations": [
-      "Repository inventory: 33 files — gate rules checked 33 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 37 files — gate rules checked 37 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
       "Fiction/KPI rules scan repository JSON (3) plus source code (0 files in .).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
@@ -238,7 +543,7 @@
     "inventoryMetricsStale": true
   },
   "gate": {
-    "pass": true,
+    "pass": false,
     "failOn": [
       "high"
     ],
@@ -246,9 +551,9 @@
       "medium",
       "low"
     ],
-    "blockingCount": 0,
-    "warningCount": 0
+    "blockingCount": 3,
+    "warningCount": 4
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-05T16:11:12.145Z"
+  "sanitizedAt": "2026-06-06T05:50:32.735Z"
 }

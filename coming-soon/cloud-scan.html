@@ -325,7 +325,7 @@
                 uploadProgress.style.width = '100%';
                 showStatus('Scan complete! Generating certificate ZIP...', 'loading');
 
-                const certResponse = await fetch(API_BASE + '/api/reports/download', {
+                const certResponse = await fetch(API_BASE + '/api/certificate/download', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

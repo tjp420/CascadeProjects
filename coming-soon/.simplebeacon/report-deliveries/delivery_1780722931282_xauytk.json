@@ -1,0 +1,752 @@
+{
+  "type": "simplebeacon-complete-scan",
+  "version": "1.3.0",
+  "generatedAt": "2026-06-06T05:12:36.743Z",
+  "projectPath": "coming-soon",
+  "results": {
+    "simplebeacon": {
+      "type": "simplebeacon-report",
+      "reportVersion": 2,
+      "version": "1.3.0",
+      "generatedAt": "2026-06-06T05:12:09.698Z",
+      "generatedBy": "SimpleBeacon Browser Sandbox",
+      "projectRoot": "coming-soon",
+      "projectPath": "coming-soon",
+      "scanTargetRoot": "coming-soon",
+      "platformRoot": "browser-sandbox",
+      "gate": {
+        "pass": true,
+        "failOn": [
+          "high"
+        ],
+        "warnOn": [
+          "medium",
+          "low"
+        ],
+        "blockingCount": 0,
+        "warningCount": 1
+      },
+      "qualityScore": 100,
+      "totalFiles": 6112,
+      "filesAnalyzed": 6112,
+      "repositoryFilesTotal": 6112,
+      "repositoryFoldersTotal": 0,
+      "issueCount": 1,
+      "simplebeaconIssues": 1,
+      "detectedIssues": [
+        {
+          "severity": "medium",
+          "severityBand": "medium",
+          "type": "Credential Pattern",
+          "count": 1,
+          "pattern": null,
+          "line": null,
+          "recommendation": null,
+          "affectedFiles": [],
+          "filePaths": [],
+          "file": null
+        }
+      ],
+      "issues": [
+        {
+          "severity": "medium",
+          "type": "Credential Pattern",
+          "count": 1
+        }
+      ],
+      "severityCounts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 1,
+        "low": 0
+      },
+      "gateReport": {
+        "pass": true,
+        "blockingCount": 1,
+        "summary": "Gate passed with 1 low-severity pattern(s). Monitor in CI."
+      },
+      "consolidation": {
+        "monorepoMarkers": 0,
+        "duplicateGroups": 0,
+        "duplicateFiles": [],
+        "summary": "No duplicate files detected."
+      },
+      "mockDataCategories": [
+        {
+          "category": "Mock / Fixture / Sample Files",
+          "fileCount": 3,
+          "confidence": "medium",
+          "description": "Files with mock, fixture, sample, or test-data naming patterns.",
+          "affectedFiles": [
+            "coming-soon/sample-certificate.html",
+            "coming-soon/sample-clearance-pdf.html",
+            "coming-soon/sample-report.html"
+          ]
+        }
+      ],
+      "mockSampleFiles": 3,
+      "roadmap": {
+        "todoCount": 2,
+        "todoFiles": [
+          "coming-soon/downloads/repo-handoff.html",
+          "coming-soon/server.cjs"
+        ],
+        "summary": "2 files contain TODO/FIXME markers."
+      },
+      "codebase": {
+        "totalFiles": 6112,
+        "totalLines": 670461,
+        "fileTypes": {
+          "env": 1,
+          "example": 1,
+          "gitignore": 1,
+          "simplebeaconignore": 1,
+          "html": 17,
+          "js": 3190,
+          "log": 1,
+          "svg": 1,
+          "cmd": 5,
+          "ps1": 5,
+          "json": 291,
+          "ts": 1322,
+          "md": 344,
+          "map": 528,
+          "mjs": 15,
+          "cjs": 6,
+          "cts": 3,
+          "npmignore": 10,
+          "yml": 44,
+          "c": 3,
+          "txt": 6,
+          "bare": 39,
+          "gitkeep": 1,
+          "eslintrc": 23,
+          "nycrc": 16,
+          "njs": 1,
+          "mts": 2,
+          "gitattributes": 4,
+          "babelrc": 2,
+          "markdown": 3,
+          "editorconfig": 5,
+          "bnf": 1,
+          "jshintrc": 1,
+          "xml": 1,
+          "bat": 2,
+          "css": 1
+        },
+        "summary": "6112 files analyzed, 670,461 lines of code."
+      },
+      "fileReduction": {
+        "unusedAssetCandidates": [
+          {
+            "path": "coming-soon/favicon.svg",
+            "name": "favicon.svg"
+          }
+        ],
+        "duplicateGroups": 0,
+        "summary": "1 image assets detected for review. 0 duplicate content groups found."
+      },
+      "dataQuality": {
+        "emptyJsonFiles": [
+          "coming-soon/subscriptions.json"
+        ],
+        "emptyJsonCount": 1,
+        "summary": "1 empty or trivial JSON files detected."
+      },
+      "cleanup": {
+        "debugArtifacts": [],
+        "debugArtifactCount": 0,
+        "summary": "No debug artifacts found."
+      },
+      "npmAudit": {
+        "packageJsonFiles": [
+          "coming-soon/node_modules/@colors/colors/package.json",
+          "coming-soon/node_modules/@dabh/diagnostics/package.json",
+          "coming-soon/node_modules/@hapi/address/package.json",
+          "coming-soon/node_modules/@hapi/formula/package.json",
+          "coming-soon/node_modules/@hapi/hoek/package.json"
+        ],
+        "packageJsonCount": 245,
+        "dependencyCount": 1981,
+        "summary": "245 package.json files found with 1981 total dependencies."
+      },
+      "compliance": {
+        "licenseFiles": [
+          "coming-soon/node_modules/@colors/colors/LICENSE",
+          "coming-soon/node_modules/@dabh/diagnostics/LICENSE",
+          "coming-soon/node_modules/@hapi/address/LICENSE.md",
+          "coming-soon/node_modules/@hapi/formula/LICENSE.md",
+          "coming-soon/node_modules/@hapi/hoek/LICENSE.md"
+        ],
+        "securityFiles": [
+          "coming-soon/node_modules/@dabh/diagnostics/CHANGELOG.md",
+          "coming-soon/node_modules/@kwsites/file-exists/CHANGELOG.md",
+          "coming-soon/node_modules/@so-ric/colorspace/CHANGELOG.md",
+          "coming-soon/node_modules/async/CHANGELOG.md",
+          "coming-soon/node_modules/bluebird/changelog.md"
+        ],
+        "licenseCount": 221,
+        "securityCount": 52,
+        "summary": "221 license files, 52 security/governance files detected."
+      },
+      "euAiActSummary": {
+        "highRiskIndicators": 0,
+        "aiSystemIndicators": 0,
+        "transparencyGaps": 0,
+        "documentationArtifacts": 0,
+        "documentationFound": [],
+        "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+      },
+      "euAiActFindings": 0,
+      "euAiActScanned": 6112,
+      "credentialScanned": 6112,
+      "credentialFindings": 1,
+      "scanDurationMs": 2418,
+      "repositoryInventory": {
+        "totalFiles": 6112,
+        "projectRoot": "coming-soon"
+      },
+      "title": "SimpleBeacon Platform Gate Scan",
+      "summary": {
+        "gatePass": true,
+        "qualityScore": 90,
+        "repositoryFiles": 6112,
+        "simplebeaconIssues": 1,
+        "totalFindings": 1
+      },
+      "scanProfile": "gate",
+      "scanProfileLabel": "Gate Scan",
+      "benchmarkCacheIssues": [],
+      "invalidJson": 0,
+      "productionLeakFindings": 0,
+      "duplicateGroups": 0,
+      "scanScope": {
+        "resultsViewScope": "platform-only",
+        "benchmarkCacheIssuesExcluded": 0,
+        "excludedPathsNote": null,
+        "reportHealth": "platform-scoped",
+        "rescanRecommended": false,
+        "inventoryMetricsStale": false,
+        "securityHandoffEligible": false,
+        "gateExportNote": "Gate report export — run Complete scan for unified clearance bundle; gate pass alone is not vendor handoff."
+      },
+      "scanPaths": [],
+      "exportSanitized": true,
+      "exportVersion": "1.1.0",
+      "exportNormalized": true,
+      "benchmarkScan": false,
+      "scanTargetProfile": "product",
+      "securityHandoffEligible": false,
+      "handoffEligible": false,
+      "gateHealthStatus": "limited-scope-pass",
+      "gateAttestation": "limited-scope",
+      "hygieneSummary": {
+        "gatePass": true,
+        "blockingCount": 0,
+        "mockSampleFiles": 3,
+        "fictionJsonFilesScanned": null,
+        "fictionSampleFilesScanned": null,
+        "ruleScopedFilesAnalyzed": null,
+        "repositoryFilesTotal": 6112,
+        "gateRepositoryFilesTotal": 6112,
+        "credentialScanned": 6112,
+        "contentFilesScanned": 6112,
+        "llmSlopPatternHits": 0,
+        "qualityScore": 100,
+        "gateFailureNote": null,
+        "jestBaselineChecked": true,
+        "jestBaselinePassed": null,
+        "jestTests": null,
+        "jestScanSummary": null,
+        "attestationNote": "Deterministic gate hygiene — not legal conformity or Complete scan clearance certification."
+      },
+      "exportNotes": [
+        "3 JSON file(s) under configured mock paths — fiction KPI rules target *-sample.json filenames; none matched in this pass.",
+        "Top-level filesAnalyzed matches repository inventory — mock-path JSON count is mockSampleFiles (3)."
+      ],
+      "disclaimers": [
+        "Gate report export — credential, production-leak, schema, and fiction KPI rules in configured scan scope.",
+        "detectedIssues is the operator-facing issue list; rawIssues are omitted from exports.",
+        "Absolute host paths are redacted to project label in product exports."
+      ]
+    },
+    "codebase": {
+      "totalFiles": 6112,
+      "totalLines": 670461,
+      "fileTypes": {
+        "env": 1,
+        "example": 1,
+        "gitignore": 1,
+        "simplebeaconignore": 1,
+        "html": 17,
+        "js": 3190,
+        "log": 1,
+        "svg": 1,
+        "cmd": 5,
+        "ps1": 5,
+        "json": 291,
+        "ts": 1322,
+        "md": 344,
+        "map": 528,
+        "mjs": 15,
+        "cjs": 6,
+        "cts": 3,
+        "npmignore": 10,
+        "yml": 44,
+        "c": 3,
+        "txt": 6,
+        "bare": 39,
+        "gitkeep": 1,
+        "eslintrc": 23,
+        "nycrc": 16,
+        "njs": 1,
+        "mts": 2,
+        "gitattributes": 4,
+        "babelrc": 2,
+        "markdown": 3,
+        "editorconfig": 5,
+        "bnf": 1,
+        "jshintrc": 1,
+        "xml": 1,
+        "bat": 2,
+        "css": 1
+      },
+      "summary": "6112 files analyzed, 670,461 lines of code."
+    },
+    "mockScan": {
+      "categories": [
+        {
+          "category": "Mock / Fixture / Sample Files",
+          "fileCount": 3,
+          "confidence": "medium",
+          "description": "Files with mock, fixture, sample, or test-data naming patterns.",
+          "affectedFiles": [
+            "coming-soon/sample-certificate.html",
+            "coming-soon/sample-clearance-pdf.html",
+            "coming-soon/sample-report.html"
+          ]
+        }
+      ],
+      "total": 3
+    },
+    "roadmap": {
+      "todoCount": 2,
+      "todoFiles": [
+        "coming-soon/downloads/repo-handoff.html",
+        "coming-soon/server.cjs"
+      ],
+      "summary": "2 files contain TODO/FIXME markers."
+    },
+    "consolidation": {
+      "monorepoMarkers": 0,
+      "duplicateGroups": 0,
+      "duplicateFiles": [],
+      "summary": "No duplicate files detected."
+    },
+    "fileReduction": {
+      "unusedAssetCandidates": [
+        {
+          "path": "coming-soon/favicon.svg",
+          "name": "favicon.svg"
+        }
+      ],
+      "duplicateGroups": 0,
+      "summary": "1 image assets detected for review. 0 duplicate content groups found."
+    },
+    "dataQuality": {
+      "emptyJsonFiles": [
+        "coming-soon/subscriptions.json"
+      ],
+      "emptyJsonCount": 1,
+      "summary": "1 empty or trivial JSON files detected."
+    },
+    "cleanupAssistant": {
+      "debugArtifacts": [],
+      "debugArtifactCount": 0,
+      "summary": "No debug artifacts found."
+    },
+    "npmAudit": {
+      "packageJsonFiles": [
+        "coming-soon/node_modules/@colors/colors/package.json",
+        "coming-soon/node_modules/@dabh/diagnostics/package.json",
+        "coming-soon/node_modules/@hapi/address/package.json",
+        "coming-soon/node_modules/@hapi/formula/package.json",
+        "coming-soon/node_modules/@hapi/hoek/package.json"
+      ],
+      "packageJsonCount": 245,
+      "dependencyCount": 1981,
+      "summary": {
+        "0": "2",
+        "1": "4",
+        "2": "5",
+        "3": " ",
+        "4": "p",
+        "5": "a",
+        "6": "c",
+        "7": "k",
+        "8": "a",
+        "9": "g",
+        "10": "e",
+        "11": ".",
+        "12": "j",
+        "13": "s",
+        "14": "o",
+        "15": "n",
+        "16": " ",
+        "17": "f",
+        "18": "i",
+        "19": "l",
+        "20": "e",
+        "21": "s",
+        "22": " ",
+        "23": "f",
+        "24": "o",
+        "25": "u",
+        "26": "n",
+        "27": "d",
+        "28": " ",
+        "29": "w",
+        "30": "i",
+        "31": "t",
+        "32": "h",
+        "33": " ",
+        "34": "1",
+        "35": "9",
+        "36": "8",
+        "37": "1",
+        "38": " ",
+        "39": "t",
+        "40": "o",
+        "41": "t",
+        "42": "a",
+        "43": "l",
+        "44": " ",
+        "45": "d",
+        "46": "e",
+        "47": "p",
+        "48": "e",
+        "49": "n",
+        "50": "d",
+        "51": "e",
+        "52": "n",
+        "53": "c",
+        "54": "i",
+        "55": "e",
+        "56": "s",
+        "57": ".",
+        "total": 0,
+        "vulnerabilityTotal": 0,
+        "dependencies": null
+      },
+      "type": "simplebeacon-npm-audit",
+      "source": "npm-audit",
+      "projectPath": "coming-soon",
+      "exportNormalized": true,
+      "exportSanitized": true,
+      "supplyChainStatus": "not-applicable",
+      "scanTargetProfile": "product",
+      "securityHandoffEligible": false,
+      "handoffEligible": false,
+      "auditRoot": "coming-soon",
+      "exportNotes": [
+        "Absolute scan paths are redacted to project label in operator exports.",
+        "securityHandoffEligible is false — npm audit pass is supply-chain hygiene only, not vendor security handoff."
+      ],
+      "scanScope": {
+        "resultsViewScope": "product-root-npm-audit",
+        "reportHealth": "platform-scoped",
+        "securityHandoffEligible": false,
+        "gateRepositoryFilesTotal": 6112,
+        "supplyChainNote": "npm audit at product root — SUPPLY-001 hygiene only, not vendor handoff clearance."
+      },
+      "hygieneSummary": {
+        "dependencyTotal": null,
+        "prodDependencies": null,
+        "devDependencies": null,
+        "optionalDependencies": null,
+        "critical": 0,
+        "high": 0,
+        "moderate": 0,
+        "low": 0,
+        "supplyChainStatus": "not-applicable",
+        "auditPackageJson": null,
+        "gateRepositoryFilesTotal": 6112,
+        "contentFilesScanned": 6112,
+        "fictionSampleFilesScanned": 3,
+        "gatePass": true,
+        "blockingCount": 0,
+        "attestationNote": "npm audit at product root — SUPPLY-001 hygiene only, not vendor handoff certification."
+      }
+    },
+    "compliance": {
+      "type": "simplebeacon-compliance-checklist",
+      "version": "1.0.0",
+      "title": "SimpleBeacon Corporate Safety Checklist",
+      "description": "Automated guardrails for AI-generated code — maps scan signals to deploy readiness.",
+      "evaluatedAt": "2026-06-06T05:12:36.746Z",
+      "projectRoot": "coming-soon",
+      "summary": {
+        "passed": 0,
+        "failed": 1,
+        "skipped": 7,
+        "total": 8,
+        "score": 0,
+        "readyForAutomation": false,
+        "checklistProfile": "default",
+        "headline": "Limited gate scope — configure production paths before enabling automated deploy gates.",
+        "handoffEligible": false,
+        "hollowGate": true,
+        "scanTargetProfile": "limited-gate-scope",
+        "securityHandoffEligible": false
+      },
+      "rules": [
+        {
+          "id": "GATE-001",
+          "title": "Merge gate passes on configured severities",
+          "category": "Automation",
+          "severity": "critical",
+          "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
+          "status": "skip",
+          "evidence": "Benchmark clone — gate rule scope is 0 files; not evaluated on product paths."
+        },
+        {
+          "id": "CRED-001",
+          "title": "No credential or secret patterns in scanned paths",
+          "category": "Security",
+          "severity": "critical",
+          "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
+          "status": "fail",
+          "evidence": "1 credential pattern(s) detected"
+        },
+        {
+          "id": "LEAK-001",
+          "title": "No mock/sample JSON paths referenced from production directories",
+          "category": "Data integrity",
+          "severity": "high",
+          "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
+          "status": "skip",
+          "evidence": "Benchmark clone — gate rule scope is 0 files; not evaluated on product paths."
+        },
+        {
+          "id": "DATA-001",
+          "title": "Registered page samples match schema specs",
+          "category": "Data integrity",
+          "severity": "high",
+          "remediation": "Fix schema violations listed in the scan report",
+          "status": "skip",
+          "evidence": "No registered page samples checked — enable rules.json-schema and set scanPaths to your sample dir (e.g. web/data), then re-run scan."
+        },
+        {
+          "id": "DATA-002",
+          "title": "No fiction KPI or baseline drift in anchor samples",
+          "category": "Data integrity",
+          "severity": "high",
+          "remediation": "Replace fiction metrics with repository-audit baseline values",
+          "status": "skip",
+          "evidence": "Consistency anchors not configured for this profile"
+        },
+        {
+          "id": "SUPPLY-001",
+          "title": "No critical or high npm audit vulnerabilities",
+          "category": "Supply chain",
+          "severity": "critical",
+          "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
+          "status": "skip",
+          "evidence": "No package.json — npm audit not applicable"
+        },
+        {
+          "id": "SUPPLY-002",
+          "title": "Moderate npm vulnerabilities within policy limit",
+          "category": "Supply chain",
+          "severity": "medium",
+          "remediation": "Upgrade dependencies flagged by npm audit (moderate severity)",
+          "status": "skip",
+          "evidence": "npm audit not applicable"
+        },
+        {
+          "id": "AUTH-001",
+          "title": "Production profile has JWT auth enabled (REQUIRE_AUTH)",
+          "category": "Access control",
+          "severity": "medium",
+          "remediation": "Set REQUIRE_AUTH=true and real JWT secrets in .env.production on the deploy host",
+          "status": "skip",
+          "evidence": ".env.production not present (local/dev repo)"
+        }
+      ],
+      "exportNormalized": true,
+      "exportSanitized": true,
+      "handoffEligible": false,
+      "scanTargetProfile": "limited-gate-scope",
+      "securityHandoffEligible": false,
+      "complianceStatus": "limited-gate-scope",
+      "exportNotes": [
+        "securityHandoffEligible is false — checklist attests CI automation rules only, not vendor security handoff.",
+        "Absolute scan paths are redacted to project label in operator exports.",
+        "Gate passed with zero rule-scoped files — credential and production-leak rules did not run on product paths.",
+        "Paired gate scan PASS — checklist aligned with simplebeacon-gate.json attestation.",
+        "Checklist attests automated rule rows only — securityHandoffEligible remains false until operator vendor sign-off."
+      ],
+      "hygieneSummary": {
+        "complianceStatus": "limited-gate-scope",
+        "rulesPassed": 0,
+        "rulesFailed": 1,
+        "rulesSkipped": 7,
+        "checklistScore": 0,
+        "readyForAutomation": false,
+        "gateRepositoryFilesTotal": 6112,
+        "credentialScanned": 6112,
+        "contentFilesScanned": 6112,
+        "fictionJsonFilesScanned": null,
+        "fictionSampleFilesScanned": null,
+        "npmAuditCritical": null,
+        "npmAuditHigh": null,
+        "attestationNote": "Corporate safety checklist — automated CI gate rules only, not vendor security handoff or legal conformity certification.",
+        "gatePass": true
+      },
+      "scanScope": {
+        "checklistProfile": "default",
+        "resultsViewScope": "platform-only",
+        "securityHandoffEligible": false,
+        "gateRepositoryFilesTotal": 6112,
+        "sourceArtifacts": {
+          "gateReport": true,
+          "npmAudit": true
+        }
+      }
+    },
+    "euAiAct": {
+      "highRiskIndicators": 0,
+      "aiSystemIndicators": 0,
+      "transparencyGaps": 0,
+      "documentationArtifacts": 0,
+      "documentationFound": [],
+      "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+    },
+    "sprint": {
+      "highRiskIndicators": 0,
+      "aiSystemIndicators": 0,
+      "transparencyGaps": 0,
+      "documentationArtifacts": 0,
+      "documentationFound": [],
+      "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+    }
+  },
+  "enginesRun": [
+    "simplebeacon",
+    "codebase",
+    "mock-scan",
+    "roadmap",
+    "consolidation",
+    "file-reduction",
+    "data-quality",
+    "cleanup-assistant",
+    "npm-audit",
+    "compliance",
+    "eu-ai-act"
+  ],
+  "analysisConfig": {
+    "selectedEngines": [
+      "simplebeacon",
+      "codebase",
+      "mock-scan",
+      "roadmap",
+      "consolidation",
+      "file-reduction",
+      "data-quality",
+      "cleanup-assistant",
+      "npm-audit",
+      "compliance",
+      "eu-ai-act"
+    ],
+    "enginesRun": [
+      "simplebeacon",
+      "codebase",
+      "mock-scan",
+      "roadmap",
+      "consolidation",
+      "file-reduction",
+      "data-quality",
+      "cleanup-assistant",
+      "npm-audit",
+      "compliance",
+      "eu-ai-act"
+    ]
+  },
+  "summary": {
+    "simplebeaconGatePass": true,
+    "simplebeaconIssues": 1,
+    "simplebeaconGateAttestation": "limited-scope",
+    "compliancePassed": 0,
+    "complianceFailed": 1,
+    "fictionKpiHits": 0,
+    "scanTargetProfile": "limited-gate-scope",
+    "handoffEligible": false,
+    "securityHandoffEligible": false,
+    "complianceHandoffEligible": false,
+    "complianceExportNotes": [
+      "securityHandoffEligible is false — checklist attests CI automation rules only, not vendor security handoff.",
+      "Absolute scan paths are redacted to project label in operator exports.",
+      "Gate passed with zero rule-scoped files — credential and production-leak rules did not run on product paths.",
+      "Paired gate scan PASS — checklist aligned with simplebeacon-gate.json attestation."
+    ],
+    "platformScope": {
+      "reportHealth": "platform-scoped",
+      "mockSampleFiles": 3,
+      "repositoryFilesTotal": 6112,
+      "scanPaths": [],
+      "scanTargetProfile": "limited-gate-scope",
+      "simplebeaconGatePass": true,
+      "simplebeaconGateAttestation": "limited-scope",
+      "handoffEligible": false,
+      "securityHandoffEligible": false
+    }
+  },
+  "completeScanAnalysis": {
+    "projectPath": "coming-soon",
+    "fileReduction": null,
+    "dataQuality": null,
+    "priorityActions": [],
+    "notes": [],
+    "artifactProfile": "empty",
+    "scanTargetProfile": "product"
+  },
+  "exportNormalized": true,
+  "exportSanitized": true,
+  "scanTargetProfile": "product",
+  "securityHandoffEligible": false,
+  "handoffEligible": false,
+  "completeScanHealthStatus": "review-required",
+  "scanScope": {
+    "resultsViewScope": "complete-scan-bundle",
+    "securityHandoffEligible": false,
+    "gateRepositoryFilesTotal": 6112,
+    "completeScanNote": "Complete scan bundle — pair with json/simplebeacon-gate.json and per-engine JSON exports for handoff evidence."
+  },
+  "hygieneSummary": {
+    "completeScanHealthStatus": "review-required",
+    "enginesRun": 11,
+    "stepsCompleted": 11,
+    "gatePass": true,
+    "blockingCount": 0,
+    "gateRepositoryFilesTotal": 6112,
+    "credentialScanned": 6112,
+    "contentFilesScanned": 6112,
+    "fictionSampleFilesScanned": 3,
+    "compliancePassed": 0,
+    "complianceFailed": 1,
+    "attestationNote": "Complete scan bundle — nested engine exports are hygiene only, not vendor handoff certification."
+  },
+  "exportNotes": [
+    "securityHandoffEligible is false — complete scan bundle is hygiene aggregation only, not vendor security handoff.",
+    "Absolute scan paths are redacted to project label in operator exports.",
+    "Complete scan gate pass is a hygiene bundle — not Simplebeacon vendor security handoff clearance by itself.",
+    "Compliance checklist export attests rule rows only — handoffEligible remains false until operator sign-off."
+  ],
+  "complianceStatus": "limited-gate-scope",
+  "complianceExportNotes": [
+    "securityHandoffEligible is false — checklist attests CI automation rules only, not vendor security handoff.",
+    "Absolute scan paths are redacted to project label in operator exports.",
+    "Gate passed with zero rule-scoped files — credential and production-leak rules did not run on product paths.",
+    "Paired gate scan PASS — checklist aligned with simplebeacon-gate.json attestation."
+  ]
+}

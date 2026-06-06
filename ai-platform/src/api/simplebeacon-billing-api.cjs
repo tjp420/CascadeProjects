@@ -940,18 +940,26 @@ function setupSimplebeaconBillingRoutes(app) {
       for (const key of embeddedKeys) delete base[key];
       return base;
     })();
+    // Browser sandbox sends results as direct keys; ai-platform CLI sends as _ prefixed keys
+    const browserMockScan = reportJson.mockDataCategories?.length ? { categories: reportJson.mockDataCategories, total: reportJson.mockSampleFiles || reportJson.mockDataCategories.length } : null;
+    const browserDataQuality = reportJson.dataQuality?.emptyJsonCount !== undefined ? reportJson.dataQuality : null;
+    const browserCleanup = reportJson.cleanup?.debugArtifactCount !== undefined ? reportJson.cleanup : null;
+    const browserNpmAudit = reportJson.npmAudit?.packageJsonCount !== undefined ? reportJson.npmAudit : null;
+    const browserCompliance = reportJson.compliance?.licenseCount !== undefined ? reportJson.compliance : null;
+    const browserEuAiAct = reportJson.euAiActSummary?.highRiskIndicators !== undefined ? reportJson.euAiActSummary : null;
+
     const results = {
       simplebeacon: embeddedResults.simplebeacon || simplebeaconReport || reportJson,
-      codebase: embeddedResults.codebase || reportJson._codebaseAnalysis || null,
-      mockScan: embeddedResults.mockScan || reportJson._mockScanAnalysis || null,
-      roadmap: embeddedResults.roadmap || reportJson._roadmapAnalysis || null,
-      consolidation: embeddedResults.consolidation || reportJson._consolidationAnalysis || null,
-      fileReduction: embeddedResults.fileReduction || reportJson._fileReductionAnalysis || null,
-      dataQuality: embeddedResults.dataQuality || embeddedResults.dataCleanup || reportJson._dataQualityAnalysis || null,
-      cleanupAssistant: embeddedResults.cleanupAssistant || reportJson._cleanupAssistantAnalysis || null,
-      npmAudit: embeddedResults.npmAudit || reportJson._npmAuditAnalysis || null,
-      compliance: embeddedResults.compliance || reportJson._complianceAnalysis || null,
-      euAiAct: embeddedResults.euAiAct || reportJson._euAiActAnalysis || (reportJson.type === 'simplebeacon-eu-ai-act-sprint' ? reportJson : null) || null
+      codebase: embeddedResults.codebase || reportJson._codebaseAnalysis || reportJson.codebase || null,
+      mockScan: embeddedResults.mockScan || reportJson._mockScanAnalysis || browserMockScan || null,
+      roadmap: embeddedResults.roadmap || reportJson._roadmapAnalysis || reportJson.roadmap || null,
+      consolidation: embeddedResults.consolidation || reportJson._consolidationAnalysis || reportJson.consolidation || null,
+      fileReduction: embeddedResults.fileReduction || reportJson._fileReductionAnalysis || reportJson.fileReduction || null,
+      dataQuality: embeddedResults.dataQuality || embeddedResults.dataCleanup || reportJson._dataQualityAnalysis || browserDataQuality || null,
+      cleanupAssistant: embeddedResults.cleanupAssistant || reportJson._cleanupAssistantAnalysis || browserCleanup || null,
+      npmAudit: embeddedResults.npmAudit || reportJson._npmAuditAnalysis || browserNpmAudit || null,
+      compliance: embeddedResults.compliance || reportJson._complianceAnalysis || browserCompliance || null,
+      euAiAct: embeddedResults.euAiAct || reportJson._euAiActAnalysis || browserEuAiAct || (reportJson.type === 'simplebeacon-eu-ai-act-sprint' ? reportJson : null) || null
     };
     // Derive enginesRun from which result keys have actual data
     const enginesRun = [

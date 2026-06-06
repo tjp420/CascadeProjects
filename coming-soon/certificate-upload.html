@@ -1275,7 +1275,7 @@
                 renderDirPreview(reportData);
 
                 // Download certificate ZIP
-                const certResponse = await fetch(API_BASE + '/api/reports/download', {
+                const certResponse = await fetch(API_BASE + '/api/certificate/download', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1313,7 +1313,7 @@
             showStatus('Generating certificate ZIP...', 'loading');
 
             try {
-                const response = await fetch(API_BASE + '/api/reports/download', {
+                const response = await fetch(API_BASE + '/api/certificate/download', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

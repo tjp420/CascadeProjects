@@ -1,0 +1,211 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "version": "1.3.0",
+  "generatedAt": "2026-06-06T03:38:29.995Z",
+  "generatedBy": "SimpleBeacon Browser Sandbox",
+  "projectRoot": "ai-platform",
+  "projectPath": "ai-platform",
+  "scanTargetRoot": "ai-platform",
+  "platformRoot": "browser-sandbox",
+  "gate": {
+    "pass": true,
+    "blockingCount": 2,
+    "warningCount": 0
+  },
+  "qualityScore": 60,
+  "totalFiles": 635,
+  "filesAnalyzed": 635,
+  "repositoryFilesTotal": 635,
+  "repositoryFoldersTotal": 0,
+  "issueCount": 13,
+  "simplebeaconIssues": 13,
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "AI System Indicator",
+      "count": 11,
+      "filePath": "ai-platform/packages/simplebeacon-cli/bin/simplebeacon.js, ai-platform/packages/simplebeacon-cli/src/reporters/ai-enhanced-report.js, ai-platform/packages/simplebeacon-cli/src/reporters/report-enhance.js ...",
+      "rule": "AI_IMPLEMENTATION_PATTERN",
+      "impact": "REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.",
+      "fix": "Review and remediate before enabling --gate on main."
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Credential Pattern",
+      "count": 2,
+      "filePath": "ai-platform/server/index.cjs, ai-platform/tests/integration/simple-integration.test.js",
+      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+      "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.",
+      "fix": "Move secrets to environment variables or a secret manager; never commit keys to version control."
+    }
+  ],
+  "issues": [
+    {
+      "severity": "low",
+      "type": "AI System Indicator",
+      "count": 11
+    },
+    {
+      "severity": "medium",
+      "type": "Credential Pattern",
+      "count": 2
+    }
+  ],
+  "rawIssues": [
+    {
+      "severity": "low",
+      "type": "AI System Indicator",
+      "count": 11
+    },
+    {
+      "severity": "medium",
+      "type": "Credential Pattern",
+      "count": 2
+    }
+  ],
+  "severityCounts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 11
+  },
+  "gateReport": {
+    "pass": true,
+    "blockingCount": 2,
+    "summary": "Gate passed — no blocking credentials found."
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "duplicateFiles": [],
+    "summary": "No duplicate files detected."
+  },
+  "mockDataCategories": [
+    {
+      "category": "Mock / Fixture / Sample Files",
+      "fileCount": 62,
+      "confidence": "medium",
+      "description": "Files with mock, fixture, sample, or test-data naming patterns.",
+      "affectedFiles": [
+        "ai-platform/coming-soon/sample-report.html",
+        "ai-platform/packages/simplebeacon-cli/src/lib/mock-data-schema-validator.js",
+        "ai-platform/packages/simplebeacon-cli/src/lib/page-sample-specs.js",
+        "ai-platform/packages/simplebeacon-cli/src/lib/sample-consistency-checker.js",
+        "ai-platform/packages/simplebeacon-cli/src/lib/sample-path-resolver.js"
+      ]
+    }
+  ],
+  "mockSampleFiles": 62,
+  "roadmap": {
+    "todoCount": 94,
+    "todoFiles": [
+      "ai-platform/docs/outreach-prospects.js",
+      "ai-platform/mcp-http-server.cjs",
+      "ai-platform/packages/simplebeacon-cli/src/commands.js",
+      "ai-platform/packages/simplebeacon-cli/src/compliance-checklist.js",
+      "ai-platform/packages/simplebeacon-cli/src/lib/ai-problem-analyzer-export-sanitize.js"
+    ],
+    "summary": "94 files contain TODO/FIXME markers."
+  },
+  "codebase": {
+    "totalFiles": 635,
+    "totalLines": 164039,
+    "fileTypes": {
+      "yml": 11,
+      "gitignore": 2,
+      "js": 342,
+      "html": 3,
+      "json": 74,
+      "log": 6,
+      "cjs": 161,
+      "npmignore": 1,
+      "mdc": 1,
+      "ps1": 3,
+      "py": 1,
+      "wasm": 4,
+      "yaml": 1,
+      "sh": 1,
+      "sql": 3,
+      "bat": 7,
+      "svg": 1,
+      "css": 5,
+      "mjs": 2
+    },
+    "summary": "635 files analyzed, 164,039 lines of code."
+  },
+  "fileReduction": {
+    "unusedAssetCandidates": [
+      {
+        "path": "ai-platform/web/favicon.svg",
+        "name": "favicon.svg"
+      }
+    ],
+    "duplicateGroups": 0,
+    "summary": "1 image assets detected for review. 0 duplicate content groups found."
+  },
+  "dataQuality": {
+    "emptyJsonFiles": [],
+    "emptyJsonCount": 0,
+    "summary": "No empty JSON files detected."
+  },
+  "cleanup": {
+    "debugArtifacts": [],
+    "debugArtifactCount": 0,
+    "summary": "No debug artifacts found."
+  },
+  "npmAudit": {
+    "packageJsonFiles": [
+      "ai-platform/package.json",
+      "ai-platform/packages/simplebeacon-cli/package.json",
+      "ai-platform/packages/simplebeacon-intelligence/package.json"
+    ],
+    "packageJsonCount": 3,
+    "dependencyCount": 33,
+    "summary": "3 package.json files found with 33 total dependencies."
+  },
+  "compliance": {
+    "licenseFiles": [
+      "ai-platform/packages/simplebeacon-cli/LICENSE",
+      "ai-platform/packages/simplebeacon-cli/src/lib/license-token.js",
+      "ai-platform/tools/generate-license-token.cjs"
+    ],
+    "securityFiles": [],
+    "licenseCount": 3,
+    "securityCount": 0,
+    "summary": "3 license files, 0 security/governance files detected."
+  },
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 11,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 3,
+    "documentationFound": [
+      "ai-platform/packages/simplebeacon-cli/LICENSE",
+      "ai-platform/packages/simplebeacon-cli/src/lib/license-token.js",
+      "ai-platform/tools/generate-license-token.cjs"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "euAiActFindings": 11,
+  "euAiActScanned": 635,
+  "credentialScanned": 635,
+  "credentialFindings": 2,
+  "scanDurationMs": 344,
+  "repositoryInventory": {
+    "totalFiles": 635,
+    "projectRoot": "ai-platform"
+  },
+  "title": "SimpleBeacon Platform Gate Scan",
+  "summary": {
+    "gatePass": true,
+    "qualityScore": 60,
+    "repositoryFiles": 635,
+    "simplebeaconIssues": 13,
+    "totalFindings": 13
+  },
+  "scanProfile": "gate",
+  "scanProfileLabel": "Gate Scan"
+}

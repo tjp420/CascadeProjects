@@ -1,0 +1,292 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "version": "1.3.0",
+  "generatedAt": "2026-06-06T03:29:49.641Z",
+  "generatedBy": "SimpleBeacon Browser Sandbox",
+  "projectRoot": "ai-platform",
+  "projectPath": "ai-platform",
+  "scanTargetRoot": "ai-platform",
+  "platformRoot": "browser-sandbox",
+  "gate": {
+    "pass": true,
+    "blockingCount": 0,
+    "warningCount": 0
+  },
+  "qualityScore": 90,
+  "totalFiles": 16747,
+  "filesAnalyzed": 16747,
+  "repositoryFilesTotal": 16747,
+  "repositoryFoldersTotal": 0,
+  "issueCount": 72,
+  "simplebeaconIssues": 72,
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "Debug Artifact",
+      "count": 72,
+      "filePath": "ai-platform/.github/workflows/dashboard-ci.yml, ai-platform/.github-sync/simplebeacon/.git/hooks/sendemail-validate.sample, ai-platform/.github-sync/simplebeacon/bin/enrich-complete-scan.js ...",
+      "rule": "DEBUG_ARTIFACT",
+      "impact": "HYGIENE RISK: Debug artifacts should not reach production builds.",
+      "fix": "Remove console.log, debugger, TODO, and FIXME markers before release."
+    }
+  ],
+  "issues": [
+    {
+      "severity": "low",
+      "type": "Debug Artifact",
+      "count": 72
+    }
+  ],
+  "rawIssues": [
+    {
+      "severity": "low",
+      "type": "Debug Artifact",
+      "count": 72
+    }
+  ],
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 72
+  },
+  "gateReport": {
+    "pass": true,
+    "blockingCount": 0,
+    "summary": "Gate passed — no blocking credentials found."
+  },
+  "consolidation": {
+    "monorepoMarkers": 2,
+    "duplicateGroups": 111,
+    "duplicateFiles": [
+      [
+        "ai-platform/github-cache/tjp420-simplebeacon/.npmignore",
+        "ai-platform/packages/simplebeacon-cli/.npmignore"
+      ],
+      [
+        "ai-platform/github-cache/tjp420-simplebeacon/bin/enrich-complete-scan.js",
+        "ai-platform/packages/simplebeacon-cli/bin/enrich-complete-scan.js"
+      ],
+      [
+        "ai-platform/github-cache/tjp420-simplebeacon/bin/simplebeacon-mcp.js",
+        "ai-platform/packages/simplebeacon-cli/bin/simplebeacon-mcp.js"
+      ],
+      [
+        "ai-platform/github-cache/tjp420-simplebeacon/bin/simplebeacon-proxy.js",
+        "ai-platform/packages/simplebeacon-cli/bin/simplebeacon-proxy.js"
+      ],
+      [
+        "ai-platform/github-cache/tjp420-simplebeacon/docs/ANTI-BLOAT-MANIFESTO.md",
+        "ai-platform/packages/simplebeacon-cli/docs/ANTI-BLOAT-MANIFESTO.md"
+      ]
+    ],
+    "summary": "111 duplicate file groups detected."
+  },
+  "mockDataCategories": [
+    {
+      "category": "Mock / Fixture / Sample Files",
+      "fileCount": 116,
+      "confidence": "medium",
+      "description": "Files with mock, fixture, sample, or test-data naming patterns.",
+      "affectedFiles": [
+        "ai-platform/.github-sync/simplebeacon/.git/hooks/applypatch-msg.sample",
+        "ai-platform/.github-sync/simplebeacon/.git/hooks/commit-msg.sample",
+        "ai-platform/.github-sync/simplebeacon/.git/hooks/fsmonitor-watchman.sample",
+        "ai-platform/.github-sync/simplebeacon/.git/hooks/post-update.sample",
+        "ai-platform/.github-sync/simplebeacon/.git/hooks/pre-applypatch.sample"
+      ]
+    }
+  ],
+  "mockSampleFiles": 116,
+  "roadmap": {
+    "todoCount": 150,
+    "todoFiles": [
+      "ai-platform/.github-sync/simplebeacon/.git/hooks/sendemail-validate.sample",
+      "ai-platform/.github-sync/simplebeacon/docs/ANTI-BLOAT-MANIFESTO.md",
+      "ai-platform/.github-sync/simplebeacon/docs/ENTERPRISE-LICENSE-VAULT.md",
+      "ai-platform/.github-sync/simplebeacon/docs/LAUNCH-TEMPLATE.md",
+      "ai-platform/.github-sync/simplebeacon/docs/RULES.md"
+    ],
+    "summary": "150 files contain TODO/FIXME markers."
+  },
+  "codebase": {
+    "totalFiles": 16747,
+    "totalLines": 2149953,
+    "fileTypes": {
+      "1": 1,
+      "env": 1,
+      "example": 4,
+      "production": 1,
+      "v1-internal": 1,
+      "md": 915,
+      "yml": 127,
+      "sample": 56,
+      "idx": 4,
+      "pack": 4,
+      "rev": 4,
+      "gitignore": 5,
+      "npmignore": 23,
+      "js": 8684,
+      "json": 1015,
+      "mdc": 4,
+      "py": 4,
+      "ps1": 49,
+      "html": 6,
+      "log": 6,
+      "txt": 80,
+      "cjs": 200,
+      "cmd": 39,
+      "map": 1274,
+      "ts": 2488,
+      "flow": 2,
+      "editorconfig": 9,
+      "gitattributes": 6,
+      "mjs": 59,
+      "cts": 42,
+      "mts": 33,
+      "png": 4,
+      "wasm": 9,
+      "gitkeep": 4,
+      "jst": 25,
+      "def": 5,
+      "c": 3,
+      "bare": 39,
+      "eslintrc": 29,
+      "nycrc": 18,
+      "markdown": 8,
+      "njs": 1,
+      "eslintcache": 1,
+      "bsd": 4,
+      "babelrc": 5,
+      "jshintrc": 6,
+      "sh": 2,
+      "prettierrc": 1,
+      "go": 1,
+      "php": 1,
+      "bnf": 7,
+      "css": 8,
+      "exe": 1,
+      "coffee": 2,
+      "jscsrc": 1,
+      "lock": 1,
+      "yaml": 1,
+      "sql": 3,
+      "bat": 7,
+      "svg": 1
+    },
+    "summary": "16747 files analyzed, 2,149,953 lines of code."
+  },
+  "fileReduction": {
+    "unusedAssetCandidates": [
+      {
+        "path": "ai-platform/node_modules/@jest/reporters/assets/jest_logo.png",
+        "name": "jest_logo.png"
+      },
+      {
+        "path": "ai-platform/node_modules/istanbul-reports/lib/html/assets/favicon.png",
+        "name": "favicon.png"
+      },
+      {
+        "path": "ai-platform/node_modules/istanbul-reports/lib/html/assets/sort-arrow-sprite.png",
+        "name": "sort-arrow-sprite.png"
+      },
+      {
+        "path": "ai-platform/node_modules/istanbul-reports/lib/html-spa/assets/sort-arrow-sprite.png",
+        "name": "sort-arrow-sprite.png"
+      },
+      {
+        "path": "ai-platform/web/favicon.svg",
+        "name": "favicon.svg"
+      }
+    ],
+    "duplicateGroups": 111,
+    "summary": "5 image assets detected for review. 111 duplicate content groups found."
+  },
+  "dataQuality": {
+    "emptyJsonFiles": [],
+    "emptyJsonCount": 0,
+    "summary": "No empty JSON files detected."
+  },
+  "cleanup": {
+    "debugArtifacts": [
+      "ai-platform/.github/workflows/dashboard-ci.yml",
+      "ai-platform/.github-sync/simplebeacon/.git/hooks/sendemail-validate.sample",
+      "ai-platform/.github-sync/simplebeacon/bin/enrich-complete-scan.js",
+      "ai-platform/.github-sync/simplebeacon/docs/BENCHMARKS.md",
+      "ai-platform/.github-sync/simplebeacon/docs/PRODUCTION-LEAK-TRIAGE.md"
+    ],
+    "debugArtifactCount": 72,
+    "summary": "72 debug artifacts detected."
+  },
+  "npmAudit": {
+    "packageJsonFiles": [
+      "ai-platform/.github-sync/simplebeacon/package.json",
+      "ai-platform/github-cache/tjp420-simplebeacon/package.json",
+      "ai-platform/node_modules/@babel/code-frame/package.json",
+      "ai-platform/node_modules/@babel/compat-data/package.json",
+      "ai-platform/node_modules/@babel/core/package.json"
+    ],
+    "packageJsonCount": 676,
+    "dependencyCount": 5145,
+    "summary": "676 package.json files found with 5145 total dependencies."
+  },
+  "compliance": {
+    "licenseFiles": [
+      "ai-platform/.github-sync/simplebeacon/docs/ENTERPRISE-LICENSE-VAULT.md",
+      "ai-platform/.github-sync/simplebeacon/LICENSE",
+      "ai-platform/github-cache/tjp420-simplebeacon/LICENSE",
+      "ai-platform/node_modules/@babel/code-frame/LICENSE",
+      "ai-platform/node_modules/@babel/compat-data/LICENSE"
+    ],
+    "securityFiles": [
+      "ai-platform/CHANGELOG.md",
+      "ai-platform/docs/CONTRIBUTING.md",
+      "ai-platform/docs/SECURITY.md",
+      "ai-platform/node_modules/@babel/parser/CHANGELOG.md",
+      "ai-platform/node_modules/@bcoe/v8-coverage/CHANGELOG.md"
+    ],
+    "licenseCount": 621,
+    "securityCount": 105,
+    "summary": "621 license files, 105 security/governance files detected."
+  },
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 726,
+    "documentationFound": [
+      "ai-platform/.github-sync/simplebeacon/docs/ENTERPRISE-LICENSE-VAULT.md",
+      "ai-platform/.github-sync/simplebeacon/LICENSE",
+      "ai-platform/github-cache/tjp420-simplebeacon/LICENSE",
+      "ai-platform/node_modules/@babel/code-frame/LICENSE",
+      "ai-platform/node_modules/@babel/compat-data/LICENSE",
+      "ai-platform/node_modules/@babel/core/LICENSE",
+      "ai-platform/node_modules/@babel/generator/LICENSE",
+      "ai-platform/node_modules/@babel/helper-compilation-targets/LICENSE",
+      "ai-platform/node_modules/@babel/helper-globals/LICENSE",
+      "ai-platform/node_modules/@babel/helper-module-imports/LICENSE"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "euAiActFindings": 0,
+  "euAiActScanned": 16747,
+  "credentialScanned": 16747,
+  "credentialFindings": 0,
+  "scanDurationMs": 9292,
+  "repositoryInventory": {
+    "totalFiles": 16747,
+    "projectRoot": "ai-platform"
+  },
+  "title": "SimpleBeacon Hygiene Sweep",
+  "summary": {
+    "gatePass": true,
+    "qualityScore": 90,
+    "repositoryFiles": 16747,
+    "simplebeaconIssues": 72,
+    "totalFindings": 72
+  },
+  "scanProfile": "hygiene",
+  "scanProfileLabel": "Hygiene Sweep"
+}

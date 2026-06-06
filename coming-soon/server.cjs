@@ -506,7 +506,57 @@ function normalizeReport(reportJson) {
         };
     }
 
-    // 5. Direct simplebeacon-report (or browser-sandbox report)
+    // 5. Generic synthesis for partial/standalone module reports that lack a gate
+    if (!reportJson.gate) {
+        // npm-audit signal: packageJsonCount present without explicit type
+        if (reportJson.packageJsonCount !== undefined || reportJson.dependencyCount !== undefined) {
+            const pkgCount = reportJson.packageJsonCount ?? 0;
+            const depCount = reportJson.dependencyCount ?? 0;
+            const h = reportJson.hygieneSummary || {};
+            const critical = h.critical || 0;
+            const high = h.high || 0;
+            const moderate = h.moderate || 0;
+            const low = h.low || 0;
+            return {
+                ...reportJson,
+                gate: {
+                    pass: h.gatePass ?? true,
+                    blockingCount: critical + high,
+                    warningCount: moderate + low
+                },
+                qualityScore: h.gatePass === true ? 100 : Math.max(0, 100 - (critical * 20 + high * 10 + moderate * 5 + low * 2)),
+                totalFiles: pkgCount,
+                issueCount: critical + high + moderate + low,
+                detectedIssues: [],
+                npmAudit: {
+                    packageJsonCount: pkgCount,
+                    dependencyCount: depCount,
+                    summary: `${pkgCount} package.json files found with ${depCount} total dependencies.`,
+                    supplyChainStatus: reportJson.supplyChainStatus || 'not-applicable'
+                }
+            };
+        }
+
+        // Generic fallback for other partial reports
+        const debugCount = reportJson.debugArtifactCount || 0;
+        const mockCount = reportJson.mockSampleFiles || 0;
+        const credHits = reportJson.credentialFindings || 0;
+        const totalIssues = debugCount + mockCount + credHits + (reportJson.issueCount || 0);
+        return {
+            ...reportJson,
+            gate: {
+                pass: credHits === 0,
+                blockingCount: credHits,
+                warningCount: totalIssues - credHits
+            },
+            qualityScore: reportJson.qualityScore ?? (totalIssues === 0 ? 100 : Math.max(0, 100 - totalIssues * 2)),
+            totalFiles: reportJson.totalFiles ?? reportJson.filesAnalyzed ?? 0,
+            issueCount: totalIssues,
+            detectedIssues: reportJson.detectedIssues || []
+        };
+    }
+
+    // 6. Direct simplebeacon-report (or browser-sandbox report)
     return reportJson;
 }
 
@@ -905,7 +955,7 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
 </body></html>`;
 }
 
-// Certificate generation endpoint (unique path — ai-platform also registers /api/reports/download)
+// Certificate generation endpoint (unique path — ai-platform also registers /api/certificate/download)
 app.post('/api/certificate/download', async (req, res) => {
     const auth = req.headers.authorization || '';
     const token = auth.replace(/^Bearer\s+/i, '').trim();
@@ -922,7 +972,22 @@ app.post('/api/certificate/download', async (req, res) => {
     }
 
     let reportJson = req.body.reportJson || {};
+    const rawResults = reportJson.results || {};
     reportJson = normalizeReport(reportJson);
+    // Merge ai-platform complete-scan modules from nested results into top level for ZIP generation
+    if (rawResults && typeof rawResults === 'object') {
+        reportJson.consolidation = reportJson.consolidation || rawResults.consolidation || rawResults._consolidationAnalysis || null;
+        reportJson.mockDataCategories = reportJson.mockDataCategories || (rawResults.mockScan?.mockDataCategories) || (rawResults.mockScan?.categories) || null;
+        reportJson.mockSampleFiles = reportJson.mockSampleFiles || rawResults.mockScan?.mockSampleFiles || null;
+        reportJson.roadmap = reportJson.roadmap || rawResults.roadmap || rawResults._roadmapAnalysis || null;
+        reportJson.codebase = reportJson.codebase || rawResults.codebase || rawResults._codebaseAnalysis || null;
+        reportJson.fileReduction = reportJson.fileReduction || rawResults.fileReduction || rawResults._fileReductionAnalysis || null;
+        reportJson.dataQuality = reportJson.dataQuality || rawResults.dataQuality || rawResults._dataQualityAnalysis || rawResults.dataCleanup || null;
+        reportJson.cleanup = reportJson.cleanup || rawResults.cleanupAssistant || rawResults._cleanupAssistantAnalysis || rawResults.cleanup || null;
+        reportJson.npmAudit = reportJson.npmAudit || rawResults.npmAudit || rawResults._npmAuditAnalysis || null;
+        reportJson.compliance = reportJson.compliance || rawResults.compliance || rawResults._complianceAnalysis || null;
+        reportJson.euAiActSummary = reportJson.euAiActSummary || rawResults.euAiAct || rawResults._euAiActAnalysis || rawResults.euAiActSummary || null;
+    }
     const certificateHtml = buildCertificateHtml(reportJson, payload);
 
     try {

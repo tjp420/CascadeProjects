@@ -21,7 +21,10 @@
     "test/**",
     "**/.gitkeep",
     "**/test-output*.txt",
-    "packages/simplebeacon-cli/**"
+    "packages/simplebeacon-cli/**",
+    "**/.env",
+    "**/.env.*",
+    ".simplebeacon/**"
   ],
   "rules": {
     "credentials": {

@@ -152,6 +152,63 @@
                 </div>
                 <ul class="issue-list" id="issueList"></ul>
             </div>
+
+            <!-- Analysis Modules -->
+            <div class="card" id="analysisGateCard" style="display:none;">
+                <h2>&#128737; 1. SimpleBeacon Gate</h2>
+                <div class="metric-grid" id="analysisGateMetrics"></div>
+                <p id="analysisGateSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+            </div>
+            <div class="card" id="analysisConsolidationCard" style="display:none;">
+                <h2>&#128260; 2. Consolidation</h2>
+                <div class="metric-grid" id="analysisConsolidationMetrics"></div>
+                <p id="analysisConsolidationSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+            </div>
+            <div class="card" id="analysisMockCard" style="display:none;">
+                <h2>&#128269; 3. Mock Data Detection</h2>
+                <ul class="issue-list" id="analysisMockList"></ul>
+            </div>
+            <div class="card" id="analysisRoadmapCard" style="display:none;">
+                <h2>&#128506; 4. Roadmap Markers</h2>
+                <div class="metric-grid" id="analysisRoadmapMetrics"></div>
+                <p id="analysisRoadmapSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+            </div>
+            <div class="card" id="analysisCodebaseCard" style="display:none;">
+                <h2>&#128187; 5. Codebase Analysis</h2>
+                <div class="metric-grid" id="analysisCodebaseMetrics"></div>
+                <p id="analysisCodebaseSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+                <div id="analysisCodebaseFileTypes" style="margin-top:12px;font-size:0.8rem;color:var(--text-muted);"></div>
+            </div>
+            <div class="card" id="analysisFileReductionCard" style="display:none;">
+                <h2>&#128230; 6. File Reduction</h2>
+                <div class="metric-grid" id="analysisFileReductionMetrics"></div>
+                <p id="analysisFileReductionSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+            </div>
+            <div class="card" id="analysisDataQualityCard" style="display:none;">
+                <h2>&#129516; 7. Data Quality</h2>
+                <div class="metric-grid" id="analysisDataQualityMetrics"></div>
+                <p id="analysisDataQualitySummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+            </div>
+            <div class="card" id="analysisCleanupCard" style="display:none;">
+                <h2>&#129529; 8. Cleanup Assistant</h2>
+                <div class="metric-grid" id="analysisCleanupMetrics"></div>
+                <p id="analysisCleanupSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+            </div>
+            <div class="card" id="analysisNpmCard" style="display:none;">
+                <h2>&#128230; 9. npm Audit</h2>
+                <div class="metric-grid" id="analysisNpmMetrics"></div>
+                <p id="analysisNpmSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+            </div>
+            <div class="card" id="analysisComplianceCard" style="display:none;">
+                <h2>&#9989; 10. Compliance</h2>
+                <div class="metric-grid" id="analysisComplianceMetrics"></div>
+                <p id="analysisComplianceSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+            </div>
+            <div class="card" id="analysisEuAiCard" style="display:none;">
+                <h2>&#127757; 11. EU AI Act Sprint</h2>
+                <div class="metric-grid" id="analysisEuAiMetrics"></div>
+                <p id="analysisEuAiSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+            </div>
         </div>
 
         <div id="livePollArea" class="hidden">
@@ -258,6 +315,130 @@
             document.getElementById('qualityBar').style.width = (!isNaN(qNum) ? qNum : 0) + '%';
 
             renderIssues(report, 'all');
+            renderAnalysisModules(report);
+        }
+
+        function renderAnalysisModules(report) {
+            const showCard = (id, show) => { const el = document.getElementById(id); if (el) el.style.display = show ? 'block' : 'none'; };
+            const setMetrics = (id, items) => { const el = document.getElementById(id); if (el) el.innerHTML = items.map(i => `<div class="metric-box"><span class="value">${i.value}</span><span class="label">${i.label}</span></div>`).join(''); };
+            const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+            const setList = (id, items, render) => { const el = document.getElementById(id); if (!el) return; if (!items || !items.length) { el.innerHTML = '<li class="empty-state">No findings.</li>'; return; } el.innerHTML = items.map(render).join(''); };
+
+            // 1. Gate
+            const gateReport = report.gateReport || report.gate || {};
+            showCard('analysisGateCard', true);
+            setMetrics('analysisGateMetrics', [
+                { value: gateReport.pass !== undefined ? (gateReport.pass ? 'PASS' : 'FAIL') : (report.gate?.pass ? 'PASS' : 'REVIEW'), label: 'Gate Result' },
+                { value: gateReport.blockingCount ?? report.gate?.blockingCount ?? 0, label: 'Blocking' },
+                { value: gateReport.warningCount ?? report.gate?.warningCount ?? 0, label: 'Warnings' }
+            ]);
+            setText('analysisGateSummary', gateReport.summary || (report.gate?.pass ? 'Gate passed — no blocking issues.' : 'Gate failed — review blocking issues.'));
+
+            // 2. Consolidation
+            const cons = report.consolidation || {};
+            const hasCons = (cons.monorepoMarkers || 0) > 0 || (cons.duplicateGroups || 0) > 0 || (cons.duplicateFiles || []).length > 0;
+            showCard('analysisConsolidationCard', hasCons);
+            if (hasCons) {
+                setMetrics('analysisConsolidationMetrics', [
+                    { value: cons.monorepoMarkers || 0, label: 'Monorepo markers' },
+                    { value: cons.duplicateGroups || 0, label: 'Duplicate groups' }
+                ]);
+                setText('analysisConsolidationSummary', cons.summary || `${cons.duplicateGroups || 0} duplicate file groups detected.`);
+            }
+
+            // 3. Mock Data
+            const mock = report.mockDataCategories || [];
+            const mockCount = report.mockSampleFiles ?? mock.reduce((a, c) => a + (c.fileCount || 0), 0);
+            showCard('analysisMockCard', mockCount > 0);
+            if (mockCount > 0) {
+                setList('analysisMockList', mock, cat => `<li class="issue-item"><div class="issue-text"><div>${escapeHtml(cat.category || 'Mock Data')}</div><div class="issue-rule">${cat.fileCount || 0} files · ${cat.confidence || 'medium'} confidence</div><div class="issue-path">${escapeHtml((cat.affectedFiles || []).slice(0, 3).join(', '))}</div></div></li>`);
+            }
+
+            // 4. Roadmap
+            const roadmap = report.roadmap || {};
+            showCard('analysisRoadmapCard', (roadmap.todoCount || 0) > 0);
+            if ((roadmap.todoCount || 0) > 0) {
+                setMetrics('analysisRoadmapMetrics', [{ value: roadmap.todoCount || 0, label: 'TODO/FIXME files' }]);
+                setText('analysisRoadmapSummary', roadmap.summary || `${roadmap.todoCount} files contain roadmap markers.`);
+            }
+
+            // 5. Codebase
+            const codebase = report.codebase || {};
+            showCard('analysisCodebaseCard', true);
+            setMetrics('analysisCodebaseMetrics', [
+                { value: codebase.totalFiles || report.totalFiles || 0, label: 'Total files' },
+                { value: (codebase.totalLines || 0).toLocaleString(), label: 'Lines of code' }
+            ]);
+            setText('analysisCodebaseSummary', codebase.summary || `${codebase.totalFiles || 0} files analyzed.`);
+            const fileTypes = codebase.fileTypes || {};
+            const ftKeys = Object.keys(fileTypes);
+            const ftEl = document.getElementById('analysisCodebaseFileTypes');
+            if (ftEl) ftEl.innerHTML = ftKeys.length ? '<strong>File types:</strong> ' + ftKeys.map(k => `${k}: ${fileTypes[k]}`).join(', ') : '';
+
+            // 6. File Reduction
+            const fr = report.fileReduction || {};
+            const hasFr = ((fr.unusedAssetCandidates || []).length > 0) || (fr.duplicateGroups || 0) > 0;
+            showCard('analysisFileReductionCard', hasFr);
+            if (hasFr) {
+                setMetrics('analysisFileReductionMetrics', [
+                    { value: (fr.unusedAssetCandidates || []).length, label: 'Asset candidates' },
+                    { value: fr.duplicateGroups || 0, label: 'Duplicate groups' }
+                ]);
+                setText('analysisFileReductionSummary', fr.summary || 'File reduction opportunities found.');
+            }
+
+            // 7. Data Quality
+            const dq = report.dataQuality || {};
+            showCard('analysisDataQualityCard', (dq.emptyJsonCount || 0) > 0);
+            if ((dq.emptyJsonCount || 0) > 0) {
+                setMetrics('analysisDataQualityMetrics', [{ value: dq.emptyJsonCount || 0, label: 'Empty/trivial JSON' }]);
+                setText('analysisDataQualitySummary', dq.summary || `${dq.emptyJsonCount} empty JSON files detected.`);
+            }
+
+            // 8. Cleanup
+            const cleanup = report.cleanup || {};
+            showCard('analysisCleanupCard', (cleanup.debugArtifactCount || 0) > 0);
+            if ((cleanup.debugArtifactCount || 0) > 0) {
+                setMetrics('analysisCleanupMetrics', [{ value: cleanup.debugArtifactCount || 0, label: 'Debug artifacts' }]);
+                setText('analysisCleanupSummary', cleanup.summary || `${cleanup.debugArtifactCount} debug artifacts found.`);
+            }
+
+            // 9. npm Audit
+            const npm = report.npmAudit || {};
+            showCard('analysisNpmCard', (npm.packageJsonCount || 0) > 0);
+            if ((npm.packageJsonCount || 0) > 0) {
+                setMetrics('analysisNpmMetrics', [
+                    { value: npm.packageJsonCount || 0, label: 'package.json files' },
+                    { value: npm.dependencyCount || 0, label: 'Total dependencies' }
+                ]);
+                setText('analysisNpmSummary', npm.summary || `${npm.packageJsonCount} package.json files found.`);
+            }
+
+            // 10. Compliance
+            const comp = report.compliance || {};
+            const hasComp = (comp.licenseCount || 0) > 0 || (comp.securityCount || 0) > 0;
+            showCard('analysisComplianceCard', hasComp);
+            if (hasComp) {
+                setMetrics('analysisComplianceMetrics', [
+                    { value: comp.licenseCount || 0, label: 'License files' },
+                    { value: comp.securityCount || 0, label: 'Security files' }
+                ]);
+                setText('analysisComplianceSummary', comp.summary || 'Governance files detected.');
+            }
+
+            // 11. EU AI Act
+            const eu = report.euAiActSummary || {};
+            const hasEu = (eu.highRiskIndicators || 0) > 0 || (eu.aiSystemIndicators || 0) > 0 || (eu.transparencyGaps || 0) > 0 || (eu.documentationArtifacts || 0) > 0 || ((eu.documentationFound || []).length > 0);
+            showCard('analysisEuAiCard', hasEu);
+            if (hasEu) {
+                setMetrics('analysisEuAiMetrics', [
+                    { value: eu.highRiskIndicators || 0, label: 'High-risk indicators' },
+                    { value: eu.aiSystemIndicators || 0, label: 'AI system indicators' },
+                    { value: eu.transparencyGaps || 0, label: 'Transparency gaps' },
+                    { value: eu.documentationArtifacts || 0, label: 'Doc artifacts' }
+                ]);
+                setText('analysisEuAiSummary', eu.deadlineNote || 'Review EU AI Act compliance requirements.');
+            }
         }
 
         function renderIssues(report, filter) {

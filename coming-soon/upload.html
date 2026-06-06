@@ -701,6 +701,15 @@
             background: rgba(16, 185, 129, 0.06);
         }
         .drop-zone.has-file .icon { color: var(--success); }
+        .drop-zone.scanning {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.06);
+            animation: pulse-border 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-border {
+            0%, 100% { border-color: var(--accent); }
+            50% { border-color: rgba(37, 99, 235, 0.4); }
+        }
 
         /* Empty state guidance */
         .empty-state {
@@ -756,6 +765,39 @@
             font-family: var(--font-mono);
             font-size: 0.75rem;
             color: var(--text-muted);
+        }
+
+        /* Loading spinner for buttons */
+        .btn-loading {
+            position: relative;
+            color: transparent !important;
+        }
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 18px; height: 18px;
+            margin: -9px 0 0 -9px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* Reset / clear button */
+        .btn-text {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .btn-text:hover {
+            color: var(--error);
+            background: rgba(239, 68, 68, 0.08);
         }
 
         footer {
@@ -1520,6 +1562,10 @@
                         <span class="sandbox-icon">&#127757;</span>
                         <span class="sandbox-text" id="sandboxNoteText">Browser sandbox runs a lightweight <strong>Gate Scan</strong> (AI patterns + credential heuristics). For deep analysis, use the <strong>CLI tab</strong>.</span>
                     </div>
+                    <label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">
+                        <input type="checkbox" id="includeDepsToggle" style="cursor:pointer;">
+                        <span>Include <code>node_modules</code> & <code>.git</code> in scan (slower, more noise)</span>
+                    </label>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;">No Node.js required. Grab your entire repo folder and drop it here.</p>
                     <div id="browser-folder-dropzone" class="drop-zone" style="padding:40px 20px;margin-bottom:16px;transition:all 0.2s;">
                         <div id="dropzone-prompt">
@@ -1550,28 +1596,42 @@
 
         <!-- CERTIFICATE GENERATION (always visible) -->
         <div class="card" style="padding:0;overflow:hidden;">
-            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+            <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">3</span>
                     <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Generate Signed Certificate</h3>
                 </div>
+                <button id="clearSessionBtn" style="padding:6px 12px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:0.75rem;cursor:pointer;transition:all 0.2s;" title="Clear scan data, token, and local storage">
+                    &#128465; Clear
+                </button>
             </div>
             <div style="padding:20px 24px;background:var(--bg-input);">
                 <!-- Scan Preview -->
                 <div id="scanPreview" style="display:none;margin-bottom:16px;">
-                    <label>Scan Preview</label>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                        <label>Scan Preview</label>
+                        <div style="display:flex;gap:8px;">
+                            <button id="copyJsonBtn" style="padding:4px 10px;background:var(--bg-main);border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:0.72rem;cursor:pointer;transition:all 0.2s;" title="Copy report JSON to clipboard">
+                                &#128203; Copy JSON
+                            </button>
+                            <button id="collapsePreviewBtn" style="padding:4px 10px;background:var(--bg-main);border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:0.72rem;cursor:pointer;transition:all 0.2s;" title="Collapse/expand preview">
+                                &#9660; Collapse
+                            </button>
+                        </div>
+                    </div>
+                    <div id="fileMetaDisplay" style="display:none;font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;padding:8px 12px;background:var(--bg-main);border-radius:8px;border:1px solid var(--border);"></div>
                     <div class="scan-meta" id="scanMeta"></div>
                     <div class="preview" id="previewContent"></div>
                 </div>
 
                 <!-- Empty state before JSON is loaded -->
-                <div id="certEmptyState" class="empty-state">
-                    <div class="empty-icon">&#128203;</div>
-                    <h4>Upload a Scan Report First</h4>
-                    <p>Use the <strong>CLI tab</strong> to paste a report JSON, or switch to the <strong>Browser Sandbox</strong> to scan a folder directly. Then return here to generate your certificate.</p>
-                    <div class="quick-actions">
-                        <span class="quick-action-chip" onclick="document.getElementById('tab-cli').click(); document.getElementById('modePaste').click(); document.getElementById('jsonPasteInput').focus();">Paste JSON</span>
-                        <span class="quick-action-chip" onclick="document.getElementById('tab-browser').click(); document.getElementById('browser-folder-dropzone').scrollIntoView({behavior:'smooth'});">Scan Folder</span>
+                <div id="certEmptyState" class="empty-state" style="padding:40px 24px;">
+                    <div class="empty-state-icon">&#128451;</div>
+                    <h4 style="margin:0 0 8px;font-size:1.05rem;color:var(--text-main);">No Scan Report Loaded</h4>
+                    <p style="margin:0 0 20px;max-width:420px;">Upload a JSON report from the CLI, paste one directly, or scan a folder in the Browser Sandbox.</p>
+                    <div class="quick-actions" style="justify-content:center;">
+                        <span class="quick-action-chip" onclick="document.getElementById('tab-cli').click(); document.getElementById('modePaste').click(); document.getElementById('jsonPasteInput').focus();">&#128203; Paste JSON</span>
+                        <span class="quick-action-chip" onclick="document.getElementById('tab-browser').click(); document.getElementById('browser-folder-dropzone').scrollIntoView({behavior:'smooth'});">&#128451; Scan Folder</span>
                     </div>
                 </div>
 
@@ -1588,6 +1648,7 @@
                             <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
                                 <span>&#128229;</span> Generate Certificate
                             </button>
+                            <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan" style="display:none;">&#10005; Clear</button>
                         </div>
                     </div>
 
@@ -1982,12 +2043,12 @@
                 } else {
                     btn.textContent = '\u2699\uFE0F Developer Sandbox';
                     btn.disabled = false;
-                    alert('Could not provision sandbox: ' + (data.error || 'Unknown error'));
+                    showToast('Could not provision sandbox: ' + (data.error || 'Unknown error'), 'error');
                 }
             } catch (err) {
                 btn.textContent = '\u2699\uFE0F Developer Sandbox';
                 btn.disabled = false;
-                alert('Network error: ' + err.message);
+                showToast('Network error: ' + err.message, 'error');
             }
         });
 
@@ -2077,6 +2138,28 @@
             } catch (e) { /* Ignore parse errors */ }
         }
 
+        // Reset button — clear uploaded scan
+        const resetBtn = document.getElementById('resetBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                reportData = null;
+                cliFileName.textContent = '';
+                if (cliJsonDropzone) cliJsonDropzone.classList.remove('has-file');
+                scanPreview.style.display = 'none';
+                updateSubmit();
+                showToast('Scan cleared. Upload a new report to continue.', 'info');
+                updateWorkflowStep(1);
+            });
+        }
+
+        // Beforeunload warning if user has scan data
+        window.addEventListener('beforeunload', (e) => {
+            if (reportData) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey || e.metaKey) {
@@ -2126,6 +2209,7 @@
             const tokenActionRow = document.getElementById('tokenActionRow');
             const certEmptyState = document.getElementById('certEmptyState');
             if (certEmptyState) certEmptyState.style.display = hasFile ? 'none' : 'block';
+            if (resetBtn) resetBtn.style.display = hasFile ? 'inline-block' : 'none';
             if (hasFile) updateWorkflowStep(2);
 
             if (hasFile) {
@@ -2338,6 +2422,18 @@
                     scanPreview.style.display = 'block';
                     updateSubmit();
                     showToast(`Loaded "${file.name}" — ${(e.target.result.length / 1024).toFixed(1)} KB`, 'success');
+                    // Show file metadata
+                    const metaDisplay = document.getElementById('fileMetaDisplay');
+                    if (metaDisplay) {
+                        metaDisplay.innerHTML = `
+                            <span style="color:#60A5FA;font-weight:600;">&#128206; ${file.name}</span>
+                            <span style="margin-left:12px;">${(e.target.result.length / 1024).toFixed(1)} KB</span>
+                            <span style="margin-left:12px;color:var(--text-muted);">Modified: ${new Date(file.lastModified).toLocaleDateString()}</span>
+                        `;
+                        metaDisplay.style.display = 'block';
+                    }
+                    // Auto-scroll to certificate section
+                    document.getElementById('tokenActionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } catch (err) {
                     showToast('Invalid JSON file', 'error');
                     showStatus('Invalid JSON file', 'error');
@@ -2377,6 +2473,16 @@
                     scanPreview.style.display = 'block';
                     updateSubmit();
                     if (cliJsonDropzone) cliJsonDropzone.classList.add('has-file');
+                    // Show metadata for pasted JSON
+                    const metaDisplay = document.getElementById('fileMetaDisplay');
+                    if (metaDisplay) {
+                        metaDisplay.innerHTML = `
+                            <span style="color:#60A5FA;font-weight:600;">&#128203; Pasted JSON</span>
+                            <span style="margin-left:12px;">${(text.length / 1024).toFixed(1)} KB</span>
+                            <span style="margin-left:12px;color:var(--text-muted);">Type: ${reportData.type || 'unknown'}</span>
+                        `;
+                        metaDisplay.style.display = 'block';
+                    }
                     const hasToken = licenseInput.value.trim().length > 10;
                     if (hasToken) {
                         showToast('JSON loaded! Ready to generate certificate.', 'success');
@@ -2385,8 +2491,9 @@
                         showToast('JSON loaded! Enter a token or try Developer Sandbox.', 'warning');
                         showStatus('JSON loaded. Paste a license token above to unlock certificate generation.', 'loading');
                         licenseInput.focus();
-                        licenseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
+                    // Auto-scroll to certificate section
+                    document.getElementById('tokenActionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } catch (err) {
                     showToast('Invalid JSON: ' + err.message, 'error');
                     showStatus('Invalid JSON: ' + err.message, 'error');
@@ -2439,13 +2546,28 @@
 
             // Generic synthesis for partial/standalone reports without gate (cleanup, etc.)
             if (!data.gate) {
-                const debugCount = data.debugArtifactCount || 0;
-                const mockCount = data.mockSampleFiles || 0;
-                const credHits = data.credentialFindings || 0;
-                const totalIssues = debugCount + mockCount + credHits + (data.issueCount || 0);
-                data.gate = { pass: credHits === 0, blockingCount: credHits, warningCount: totalIssues - credHits };
-                data.qualityScore = data.qualityScore ?? (totalIssues === 0 ? 100 : Math.max(0, 100 - totalIssues * 2));
-                data.totalFiles = data.totalFiles ?? data.filesAnalyzed ?? 0;
+                // npm-audit signal: packageJsonCount present without explicit type
+                if (data.packageJsonCount !== undefined || data.dependencyCount !== undefined) {
+                    const pkgCount = data.packageJsonCount ?? 0;
+                    const depCount = data.dependencyCount ?? 0;
+                    const h = data.hygieneSummary || {};
+                    const critical = h.critical || 0;
+                    const high = h.high || 0;
+                    const moderate = h.moderate || 0;
+                    const low = h.low || 0;
+                    data.gate = { pass: h.gatePass ?? true, blockingCount: critical + high, warningCount: moderate + low };
+                    data.qualityScore = h.gatePass === true ? 100 : Math.max(0, 100 - (critical * 20 + high * 10 + moderate * 5 + low * 2));
+                    data.totalFiles = pkgCount;
+                    data.npmAudit = { packageJsonCount: pkgCount, dependencyCount: depCount, summary: `${pkgCount} package.json files found with ${depCount} total dependencies.` };
+                } else {
+                    const debugCount = data.debugArtifactCount || 0;
+                    const mockCount = data.mockSampleFiles || 0;
+                    const credHits = data.credentialFindings || 0;
+                    const totalIssues = debugCount + mockCount + credHits + (data.issueCount || 0);
+                    data.gate = { pass: credHits === 0, blockingCount: credHits, warningCount: totalIssues - credHits };
+                    data.qualityScore = data.qualityScore ?? (totalIssues === 0 ? 100 : Math.max(0, 100 - totalIssues * 2));
+                    data.totalFiles = data.totalFiles ?? data.filesAnalyzed ?? 0;
+                }
             }
 
             const gate = data.gate || data.results?.simplebeacon?.gate || {};
@@ -2655,15 +2777,19 @@
             panelStatus.style.color = '#60A5FA';
             terminalConsole.innerHTML = '';
 
+            try {
             const profile = BROWSER_SCAN_PROFILES[browserScanProfile?.value || 'gate'];
+            if (browserFolderDropzone) browserFolderDropzone.classList.add('scanning');
             appendTerminalLine('simplebeacon scan .', 'input');
             appendTerminalLine(`Initializing Local Web Worker Core... Profile: ${profile.label}. Allocating isolated browser memory structures.`);
             appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
+            if (includeDeps) appendTerminalLine('Note: node_modules/.git inclusion enabled — scan will be slower and noisier.', 'warn');
 
-            // Security baseline: exclude dependency trees, secrets, and docs by default
-            const excludeEnv = true;
-            const skipDeps = true;
-            const skipDocs = true;
+            // Security baseline: exclude dependency trees, secrets, and docs by default (user can override via checkbox)
+            const includeDeps = document.getElementById('includeDepsToggle')?.checked || false;
+            const excludeEnv = !includeDeps;      // always protect secrets unless explicitly including everything
+            const skipDeps = !includeDeps;        // exclude node_modules/.git by default
+            const skipDocs = !includeDeps;        // exclude docs by default
 
             let scanned = 0;
             let totalLines = 0;
@@ -2997,6 +3123,7 @@
                 showHashRibbon('browserHashRibbon', 'browserHashValue', hash);
             });
 
+            if (browserFolderDropzone) browserFolderDropzone.classList.remove('scanning');
             renderPreview(reportData);
             scanPreview.style.display = 'block';
             updateSubmit();
@@ -3046,6 +3173,9 @@
                 a.click();
                 a.remove();
             });
+            } finally {
+                if (browserFolderDropzone) browserFolderDropzone.classList.remove('scanning');
+            }
         }
 
         submitBtn.addEventListener('click', async () => {
@@ -3063,6 +3193,7 @@
             }
 
             submitBtn.disabled = true;
+            submitBtn.classList.add('btn-loading');
             showStatus('Generating certificate ZIP...', 'loading');
 
             try {
@@ -3102,8 +3233,53 @@
                 showStatus(err.message, 'error');
             } finally {
                 submitBtn.disabled = false;
+                submitBtn.classList.remove('btn-loading');
             }
         });
+
+        // === Clear Session button ===
+        const clearSessionBtn = document.getElementById('clearSessionBtn');
+        if (clearSessionBtn) {
+            clearSessionBtn.addEventListener('click', () => {
+                reportData = null;
+                licenseInput.value = '';
+                cliFileName.textContent = '';
+                if (cliJsonDropzone) cliJsonDropzone.classList.remove('has-file');
+                scanPreview.style.display = 'none';
+                const metaDisplay = document.getElementById('fileMetaDisplay');
+                if (metaDisplay) metaDisplay.style.display = 'none';
+                try {
+                    localStorage.removeItem(LS_KEY_TOKEN);
+                    localStorage.removeItem(LS_KEY_SCAN);
+                } catch (e) { /* ignore */ }
+                updateSubmit();
+                showToast('Session cleared. Token and scan data removed.', 'info');
+            });
+        }
+
+        // === Copy JSON button ===
+        const copyJsonBtn = document.getElementById('copyJsonBtn');
+        if (copyJsonBtn) {
+            copyJsonBtn.addEventListener('click', () => {
+                if (!reportData) return;
+                navigator.clipboard.writeText(JSON.stringify(reportData, null, 2)).then(() => {
+                    copyJsonBtn.textContent = 'Copied!';
+                    setTimeout(() => copyJsonBtn.innerHTML = '&#128203; Copy JSON', 1500);
+                    showToast('Report JSON copied to clipboard', 'success');
+                });
+            });
+        }
+
+        // === Collapse Preview button ===
+        const collapsePreviewBtn = document.getElementById('collapsePreviewBtn');
+        if (collapsePreviewBtn && previewContent) {
+            collapsePreviewBtn.addEventListener('click', () => {
+                const isHidden = previewContent.style.display === 'none';
+                previewContent.style.display = isHidden ? 'block' : 'none';
+                scanMeta.style.display = isHidden ? 'block' : 'none';
+                collapsePreviewBtn.innerHTML = isHidden ? '&#9650; Collapse' : '&#9660; Expand';
+            });
+        }
 
         // === Page Load: restore previous session ===
         loadFromLocalStorage();
