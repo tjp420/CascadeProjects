@@ -2243,7 +2243,7 @@
                     <div class="form-group" style="margin-bottom:14px;">
                         <label style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">Scan Profile</label>
                         <select id="browserScanProfile" style="display:none;">
-                            <option value="complete" selected>&#127775; Complete Scan — All 13 engines</option>
+                            <option value="complete" selected>&#127775; Complete Scan — All 15 engines</option>
                             <option value="gate">&#127775; Gate Scan — Credential + AI heuristics</option>
                             <option value="codebase">&#127775; Codebase Audit — Full file analysis</option>
                             <option value="euai">&#127775; EU AI Act Sprint — AI system indicators</option>
@@ -2726,7 +2726,7 @@
                 const eu = data.euAiActSummary || data.euAiAct || {};
                 const euIndicators = eu.aiSystemIndicators || 0;
                 const euHighRisk = eu.highRiskIndicators || 0;
-                moduleData = { ...moduleData, aiSystemIndicators: euIndicators, highRiskIndicators: euHighRisk, transparencyGaps: eu.transparencyGaps || 0, documentationArtifacts: eu.documentationArtifacts || 0, documentationFound: (eu.documentationFound || []).slice(0, 5), summary: eu.deadlineNote || (euHighRisk ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : euIndicators ? `${euIndicators} AI system indicator${euIndicators === 1 ? '' : 's'} detected; review EU AI Act applicability.` : 'Review EU AI Act requirements.') };
+                moduleData = { ...moduleData, aiSystemIndicators: euIndicators, highRiskIndicators: euHighRisk, transparencyGaps: eu.transparencyGaps || 0, documentationArtifacts: eu.documentationArtifacts || 0, documentationFound: (eu.documentationFound || []).slice(0, 5), controls: (eu.controls || []).slice(0, 5), summary: eu.deadlineNote || (euHighRisk ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : euIndicators ? `${euIndicators} AI system indicator${euIndicators === 1 ? '' : 's'} detected; review EU AI Act applicability.` : 'Review EU AI Act requirements.') };
             } else if (num === '12') {
                 const depAudit = data.dependencyAudit || data.vulnerabilityAudit || {};
                 const vulnIssues = (data.detectedIssues || []).filter(i => i.type && /vulnerab|cve|npm audit|dependency|outdated/i.test(i.type));
@@ -2849,8 +2849,8 @@
             },
             complete: {
                 label: 'Complete Scan',
-                help: 'All 13 analysis engines — gate, consolidation, mock data, roadmap, codebase, file reduction, data quality, cleanup, npm audit, compliance, EU AI Act, dependency audit, build readiness.',
-                note: 'Browser sandbox runs a <strong>Complete Scan</strong> — all 13 SimpleBeacon analysis engines for maximum coverage.',
+                help: 'All 15 analysis engines — gate, consolidation, mock data, roadmap, codebase, file reduction, data quality, cleanup, npm audit, compliance, EU AI Act, dependency vulns, build readiness, AI indicators, governance.',
+                note: 'Browser sandbox runs a <strong>Complete Scan</strong> — all 15 SimpleBeacon analysis engines for maximum coverage.',
                 reportType: 'simplebeacon-report',
                 title: 'SimpleBeacon Complete Scan',
                 checkAi: true,
@@ -2881,7 +2881,7 @@
             euai:       ['gateReport', 'euAiActSummary', 'compliance'],
             compliance: ['gateReport', 'compliance', 'npmAudit'],
             hygiene:    ['gateReport', 'cleanup', 'dataQuality', 'fileReduction', 'mockDataCategories'],
-            complete:   ['gateReport', 'consolidation', 'mockDataCategories', 'roadmap', 'codebase', 'fileReduction', 'dataQuality', 'cleanup', 'npmAudit', 'compliance', 'euAiActSummary', 'dependencyAudit', 'buildReadiness']
+            complete:   ['gateReport', 'consolidation', 'mockDataCategories', 'roadmap', 'codebase', 'fileReduction', 'dataQuality', 'cleanup', 'npmAudit', 'compliance', 'euAiActSummary', 'dependencyAudit', 'buildReadiness', 'aiIndicators', 'governance']
         };
 
         // Profile selector wiring
@@ -2892,7 +2892,7 @@
         const selectAllModules = document.getElementById('selectAllModules');
         const selectAllCount = document.getElementById('selectAllCount');
 
-        // 11 Individual Analyzer Module Cards
+        // 15 Individual Analyzer Module Cards
         const MODULE_CARDS = [
             { id: 'gate', label: 'Gate Scan', desc: 'Credential patterns, AI/LLM imports, hardcoded secrets.', icon: '&#128737;' },
             { id: 'consolidation', label: 'Consolidation', desc: 'Duplicate file groups and monorepo markers.', icon: '&#128260;' },
@@ -2905,7 +2905,10 @@
             { id: 'npm-audit', label: 'npm Audit', desc: 'Package.json files and dependency counts.', icon: '&#128230;' },
             { id: 'compliance', label: 'Compliance', desc: 'License, security, and governance files.', icon: '&#128196;' },
             { id: 'eu-ai-act', label: 'EU AI Act', desc: 'AI system indicators and regulatory readiness.', icon: '&#127757;' },
-            { id: 'build-readiness', label: 'Build Readiness', desc: 'Systematic project health scan — missing files, configs, scripts, and deploy blockers.', icon: '&#127959;' }
+            { id: 'dependency-vulns', label: 'Dependency Vulns', desc: 'CVE and outdated dependency audit.', icon: '&#128274;' },
+            { id: 'build-readiness', label: 'Build Readiness', desc: 'Systematic project health scan — missing files, configs, scripts, and deploy blockers.', icon: '&#127959;' },
+            { id: 'ai-indicators', label: 'AI System Indicators', desc: 'AI/LLM SDK imports and model inference patterns.', icon: '&#129302;' },
+            { id: 'governance', label: 'License & Governance', desc: 'License headers, copyright notices, and governance markers.', icon: '&#128220;' }
         ];
 
         // Which modules each tier may select
@@ -2913,9 +2916,9 @@
             locked: [],
             community: ['gate'],
             instant: ['gate'],
-            executive: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'build-readiness'],
-            euai: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'build-readiness'],
-            universal: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'build-readiness']
+            executive: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance'],
+            euai: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance'],
+            universal: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance']
         };
 
         // Multi-select module picker for ZIP export
@@ -3082,7 +3085,7 @@
             locked: [],                        // No token — all profiles locked
             community: ['gate'],               // Free Audit — gate attestation only
             instant: ['gate', 'instant'],       // $19 Instant — gate + instant snapshot
-            executive: ['gate', 'codebase', 'compliance', 'hygiene', 'complete'], // $499 Exec Cert — 11 of 13 engines (excludes EU AI Act + dependency audit)
+            executive: ['gate', 'codebase', 'compliance', 'hygiene', 'complete'], // $499 Exec Cert — all 15 engines
             euai: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],      // $2,499 Sprint — all engines + analyst access
             universal: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete']
         };
@@ -4053,7 +4056,9 @@
                 data.gate = { pass: h.gatePass ?? true, blockingCount: (h.critical || 0) + (h.high || 0), warningCount: (h.moderate || 0) + (h.low || 0) };
                 data.qualityScore = h.gatePass === true ? 100 : Math.max(0, 100 - ((h.critical || 0) * 20 + (h.high || 0) * 10 + (h.moderate || 0) * 5 + (h.low || 0) * 2));
                 data.totalFiles = data.packageJsonCount ?? 0;
-                data.npmAudit = { packageJsonCount: data.packageJsonCount ?? 0, dependencyCount: data.dependencyCount ?? 0, summary: `${data.packageJsonCount ?? 0} package.json files found with ${data.dependencyCount ?? 0} total dependencies.` };
+                const pjc1 = data.packageJsonCount ?? 0;
+                const dc1 = data.dependencyCount ?? 0;
+                data.npmAudit = { packageJsonCount: pjc1, dependencyCount: dc1, summary: `${pjc1} package.json file${pjc1 === 1 ? '' : 's'} found with ${dc1.toLocaleString()} total dependenc${dc1 === 1 ? 'y' : 'ies'}.` };
             }
 
             // Normalize public-summary (synthesize gate from summary/severityCounts)
@@ -4100,7 +4105,7 @@
                     data.gate = { pass: h.gatePass ?? true, blockingCount: critical + high, warningCount: moderate + low };
                     data.qualityScore = h.gatePass === true ? 100 : Math.max(0, 100 - (critical * 20 + high * 10 + moderate * 5 + low * 2));
                     data.totalFiles = pkgCount;
-                    data.npmAudit = { packageJsonCount: pkgCount, dependencyCount: depCount, summary: `${pkgCount} package.json files found with ${depCount} total dependencies.` };
+                    data.npmAudit = { packageJsonCount: pkgCount, dependencyCount: depCount, summary: `${pkgCount} package.json file${pkgCount === 1 ? '' : 's'} found with ${depCount.toLocaleString()} total dependenc${depCount === 1 ? 'y' : 'ies'}.` };
                 } else {
                     const debugCount = data.debugArtifactCount || 0;
                     const mockCount = data.mockSampleFiles || 0;
@@ -4179,7 +4184,7 @@
                 </div>
             `;
 
-            // Build 13 analysis module dropdown + detail panels
+            // Build 15 analysis module dropdown + detail panels
             const modules = [];
             const analysisModulesHtml = (() => {
                 const uid = 'mod' + Math.floor(Math.random() * 100000);
@@ -4289,7 +4294,7 @@
                     {value: npm.packageJsonCount || 0, label: 'package.json'},
                     {value: (npm.dependencyCount || 0).toLocaleString(), label: 'Deps'},
                     {value: depsPerPkg, label: 'avg/pkg', color: depsPerPkg > 50 ? '#F59E0B' : '#60A5FA'}
-                ], npm.summary || (npm.packageJsonCount ? `${npm.packageJsonCount} package.json files found with ${(npm.dependencyCount || 0).toLocaleString()} total dependencies.` : 'No package.json files found.'), depsPerPkg > 100 ? '#EF4444' : null, npmDetail);
+                ], npm.summary || (npm.packageJsonCount ? `${npm.packageJsonCount} package.json file${npm.packageJsonCount === 1 ? '' : 's'} found with ${(npm.dependencyCount || 0).toLocaleString()} total dependenc${(npm.dependencyCount || 0) === 1 ? 'y' : 'ies'}.` : 'No package.json files found.'), depsPerPkg > 100 ? '#EF4444' : null, npmDetail);
 
                 // 10. Compliance
                 const comp = data.compliance || {};
@@ -4688,7 +4693,7 @@
             }
 
             if (localScanFileName) localScanFileName.textContent = `Scanning ${sourceFiles.length.toLocaleString()} files...`;
-            appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654; Stage 3/3:</span> Scanning ${sourceFiles.length.toLocaleString()} source files across 13 analysis engines...`);
+            appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654; Stage 3/3:</span> Scanning ${sourceFiles.length.toLocaleString()} source files across 15 analysis engines...`);
 
             // 3. Heuristic scan loop
             for (let i = 0; i < sourceFiles.length; i++) {
@@ -4748,7 +4753,7 @@
                             govFindings.push({ file: path, matches: govMatches });
                         }
                     }
-                    // --- 13 Analysis Category Heuristics (profile-gated) ---
+                    // --- 15 Analysis Category Heuristics (profile-gated) ---
                     // 3. Mock data: fixture/sample/test-data files
                     if (allowedSections.includes('mockDataCategories')) {
                         const isDemoSample = /sample-(certificate|clearance-pdf|report)\./.test(lowerPath);
@@ -5034,7 +5039,7 @@
                         packageJsonFiles: packageJsonFiles.slice(0, 5),
                         packageJsonCount: packageJsonFiles.length,
                         dependencyCount: totalDependencyCount,
-                        summary: packageJsonFiles.length > 0 ? `${packageJsonFiles.length} package.json files found with ${totalDependencyCount} total dependencies.` : 'No package.json files detected.'
+                        summary: packageJsonFiles.length > 0 ? `${packageJsonFiles.length} package.json file${packageJsonFiles.length === 1 ? '' : 's'} found with ${totalDependencyCount.toLocaleString()} total dependenc${totalDependencyCount === 1 ? 'y' : 'ies'}.` : 'No package.json files detected.'
                     }
                 } : {}),
                 ...(allowedSections.includes('compliance') ? {
@@ -5051,9 +5056,12 @@
                         highRiskIndicators: 0,
                         aiSystemIndicators: aiHits.length,
                         transparencyGaps: 0,
-                        documentationArtifacts: licenseFiles.filter(p => !/node_modules\/|\.github-sync\/|github-cache\//.test(p)).length + securityFiles.filter(p => !/node_modules\/|\.github-sync\/|github-cache\//.test(p)).length,
-                        documentationFound: [...licenseFiles.filter(p => !/node_modules\/|\.github-sync\/|github-cache\//.test(p)), ...securityFiles.filter(p => !/node_modules\/|\.github-sync\/|github-cache\//.test(p))].slice(0, 10),
-                        deadlineNote: 'High-risk AI systems must comply with EU AI Act requirements by August 2026'
+                        documentationArtifacts: (licenseFiles.length + securityFiles.length) || 0,
+                        documentationFound: [...licenseFiles, ...securityFiles].slice(0, 10),
+                        controls: aiHits.length > 0 ? [
+                            { controlId: 'EU-AIA-ART-5', status: 'WARN', description: 'Article 5 of the EU AI Act prohibits certain high-risk AI practices. This check scans for AI SDK imports and model inference patterns that may trigger regulatory review.', action: 'Schedule legal review if deploying in the EU. Document AI system classification.' }
+                        ] : [],
+                        deadlineNote: aiHits.length > 0 ? `${aiHits.length} AI system indicator${aiHits.length === 1 ? '' : 's'} detected; review EU AI Act applicability.` : 'Review EU AI Act requirements.'
                     },
                     euAiActFindings: aiHits.length,
                     euAiActScanned: sourceFiles.length
@@ -5599,7 +5607,7 @@
                 dependenciesPerPackage: depsPerPkg,
                 packageJsonFiles: (npm.packageJsonFiles || []).slice(0, 5),
                 dependencyHealth: depsPerPkg > 100 ? 'poor' : depsPerPkg > 50 ? 'fair' : 'good',
-                summary: npm.summary || (npm.packageJsonCount ? `${npm.packageJsonCount} package.json files found with ${(npm.dependencyCount || 0).toLocaleString()} total dependencies.` : 'No package.json files found.'),
+                summary: npm.summary || (npm.packageJsonCount ? `${npm.packageJsonCount} package.json file${npm.packageJsonCount === 1 ? '' : 's'} found with ${(npm.dependencyCount || 0).toLocaleString()} total dependenc${(npm.dependencyCount || 0) === 1 ? 'y' : 'ies'}.` : 'No package.json files found.'),
                 recommendations: [
                     ...(depsPerPkg > 50 ? ['High dependency count — consider auditing for unused packages.', 'Enable Dependabot or Renovate for automated updates.'] : ['Dependency count is healthy.']),
                     ...(npm.packageJsonCount > 1 ? ['Multiple package.json files — ensure versions stay in sync.'] : [])
@@ -5609,20 +5617,20 @@
 
             // 10. Compliance — enriched with license/security files
             const comp = report.compliance || {};
-            const govIssue = (report.detectedIssues || []).find(i => i.type === 'License/Governance Marker');
-            const govCount = govIssue ? (govIssue.count || 0) : 0;
-            const licenseCount = comp.licenseCount || (govCount > 0 ? govCount : 0);
-            const securityCount = comp.securityCount || 0;
+            const licFiles = (comp.licenseFiles || []).filter(Boolean);
+            const secFiles = (comp.securityFiles || []).filter(Boolean);
+            const licenseCount = licFiles.length || comp.licenseCount || 0;
+            const securityCount = secFiles.length || comp.securityCount || 0;
             const compScore = licenseCount + securityCount;
-            const compSummary = comp.summary || (compScore ? `${licenseCount} license files, ${securityCount} security/governance files detected.` : 'No governance files detected.');
-            const compRemediation = comp.remediation || (compScore ? 'Verify license compatibility with your distribution model.' : 'Consider adding LICENSE and SECURITY.md.');
+            const compSummary = compScore ? `${licenseCount} license file${licenseCount === 1 ? '' : 's'}, ${securityCount} security/governance file${securityCount === 1 ? '' : 's'} detected.` : 'No governance files detected.';
+            const compRemediation = compScore ? 'Verify license compatibility with your distribution model.' : 'Consider adding LICENSE and SECURITY.md.';
             addModule('compliance', 'Compliance', {
                 licenseCount: licenseCount,
                 securityCount: securityCount,
                 governanceScore: compScore,
                 complianceHealth: compScore === 0 ? 'missing' : compScore >= 3 ? 'good' : 'partial',
-                licenseFiles: (comp.licenseFiles || []).slice(0, 5),
-                securityFiles: (comp.securityFiles || []).slice(0, 5),
+                licenseFiles: licFiles.slice(0, 5),
+                securityFiles: secFiles.slice(0, 5),
                 missingGovernanceFiles: compScore === 0 ? ['LICENSE', 'SECURITY.md', 'CODE_OF_CONDUCT.md'] : [],
                 summary: compRemediation ? compSummary + ' ' + compRemediation : compSummary,
                 recommendations: [
@@ -5675,6 +5683,7 @@
                     transparencyGaps: eu.transparencyGaps || 0,
                     documentationArtifacts: eu.documentationArtifacts || 0,
                     documentationFound: (eu.documentationFound || []).slice(0, 5),
+                    controls: (eu.controls || []).slice(0, 5),
                     severity: (eu.aiSystemIndicators || 0) > 0 ? 'high' : 'low',
                     severityColor: (eu.aiSystemIndicators || 0) > 0 ? '#EF4444' : '#60A5FA',
                     summary: eu.deadlineNote || ((eu.highRiskIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : (eu.aiSystemIndicators || 0) ? `${eu.aiSystemIndicators || 0} AI system indicator${(eu.aiSystemIndicators || 0) === 1 ? '' : 's'} detected; review EU AI Act applicability.` : 'Review EU AI Act requirements.'),
@@ -5802,7 +5811,7 @@ ${euAiActSection}
     else {
         // Non-gate: PASS if all counts are zero/empty, REVIEW if any actionable count > 0
         const actionable = Object.entries(d).filter(([k,v]) => typeof v === 'number' && v > 0 && !/score|total|percentage|rate/i.test(k));
-        const arrays = Object.values(d).filter(v => Array.isArray(v) && v.length > 0);
+        const arrays = Object.entries(d).filter(([k,v]) => Array.isArray(v) && v.length > 0 && !/recommendations|documentationFound|controls|categories|licenseFiles|securityFiles|missingGovernanceFiles|affectedFiles|todoFiles|packageJsonFiles|unusedAssetCandidates|debugArtifacts|findings|fileTypeBreakdown|languageDominance/i.test(k));
         if (actionable.length === 0 && arrays.length === 0) status = '<span class="pass">PASS</span>';
     }
     // Metric: try many field names, then fall back to first positive numeric field
@@ -5977,7 +5986,7 @@ Generated entirely in-browser. Zero data uploaded.
                     else if (d.status === 'REVIEW') status = 'REVIEW';
                     else {
                         const actionable = Object.entries(d).filter(([k,v]) => typeof v === 'number' && v > 0 && !/score|total|percentage|rate/i.test(k));
-                        const arrays = Object.values(d).filter(v => Array.isArray(v) && v.length > 0);
+                        const arrays = Object.entries(d).filter(([k,v]) => Array.isArray(v) && v.length > 0 && !/recommendations|documentationFound|controls|categories|licenseFiles|securityFiles|missingGovernanceFiles|affectedFiles|todoFiles|packageJsonFiles|unusedAssetCandidates|debugArtifacts|findings|fileTypeBreakdown|languageDominance/i.test(k));
                         if (actionable.length === 0 && arrays.length === 0) status = 'PASS';
                     }
                     return {
@@ -6184,31 +6193,36 @@ ${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} TOD
                         }
                     });
                 } else {
-                    // Fallback to legacy static checklist when phases not available
-                    md += `\n## Phase 1: Security (Week 1)
-- [ ] **Rotate exposed credentials** — ${report.gate?.blockingCount || 0} blocking issue(s).
-- [ ] **Add .env and .pem to .gitignore** if not already present.
-- [ ] **Re-run gate scan** to verify zero blocking findings.
-
-## Phase 2: Data Integrity (Week 1–2)
-- [ ] **Validate all JSON files** for structural integrity.
-- [ ] **Remove empty files** — ${report.dataQuality?.emptyJsonCount || 0} empty JSON file(s) detected.
-
-## Phase 3: Consistency (Week 2–3)
-- [ ] **Consolidate duplicate files** — ${report.consolidation?.duplicateGroups || 0} duplicate group(s).
-
-## Phase 4: Governance & Compliance (Week 3)
-- [ ] **Verify license compatibility** with your distribution model.
-- [ ] **Review security policies** — ${report.compliance?.securityCount || 0} security/governance file(s) detected.
-
-## Phase 5: EU AI Act Compliance (Week 3–4)
-- [ ] **Review AI system classification** (Art. 6) — ${report.euAiActSummary?.aiSystemIndicators || 0} indicator(s).
-- [ ] **Schedule legal review** if high-risk indicators present.
-
-## Phase 6: Quality Optimization (Ongoing)
-- [ ] **Remove debug artifacts** — ${report.cleanup?.debugArtifactCount || 0} found.
-- [ ] **Address TODO/FIXME markers** — ${report.roadmap?.todoCount || 0} file(s) flagged.
-`;
+                    // Fallback to legacy static checklist when phases not available — only include phases with actionable findings
+                    const g = report.gate || {};
+                    const dq = report.dataQuality || {};
+                    const cons = report.consolidation || {};
+                    const comp = report.compliance || {};
+                    const eu = report.euAiActSummary || {};
+                    const cl = report.cleanup || {};
+                    const rm = report.roadmap || {};
+                    let phaseNum = 1;
+                    if ((g.blockingCount || 0) > 0) {
+                        md += `\n## Phase ${phaseNum++}: Security (Week 1)\n- [ ] **Rotate exposed credentials** — ${g.blockingCount} blocking issue(s).\n- [ ] **Add .env and .pem to .gitignore** if not already present.\n- [ ] **Re-run gate scan** to verify zero blocking findings.\n`;
+                    }
+                    if ((dq.invalidJsonCount || 0) > 0 || (dq.emptyJsonCount || 0) > 0) {
+                        md += `\n## Phase ${phaseNum++}: Data Integrity (Week 1–2)\n- [ ] **Validate all JSON files** for structural integrity.\n- [ ] **Remove empty files** — ${dq.emptyJsonCount || 0} empty JSON file(s) detected.\n`;
+                    }
+                    if ((cons.duplicateGroups || 0) > 0) {
+                        md += `\n## Phase ${phaseNum++}: Consistency (Week 2–3)\n- [ ] **Consolidate duplicate files** — ${cons.duplicateGroups} duplicate group(s).\n`;
+                    }
+                    if ((comp.licenseCount || 0) > 0 || (comp.securityCount || 0) > 0) {
+                        md += `\n## Phase ${phaseNum++}: Governance & Compliance (Week 3)\n- [ ] **Verify license compatibility** with your distribution model.\n- [ ] **Review security policies** — ${comp.securityCount || 0} security/governance file(s) detected.\n`;
+                    }
+                    if ((eu.aiSystemIndicators || 0) > 0 || (eu.highRiskIndicators || 0) > 0) {
+                        md += `\n## Phase ${phaseNum++}: EU AI Act Compliance (Week 3–4)\n- [ ] **Review AI system classification** (Art. 6) — ${eu.aiSystemIndicators || 0} indicator(s).\n- [ ] **Schedule legal review** if high-risk indicators present.\n`;
+                    }
+                    if ((cl.debugArtifactCount || 0) > 0 || (rm.todoCount || 0) > 0) {
+                        md += `\n## Phase ${phaseNum++}: Quality Optimization (Ongoing)\n- [ ] **Remove debug artifacts** — ${cl.debugArtifactCount || 0} found.\n- [ ] **Address TODO/FIXME markers** — ${rm.todoCount || 0} file(s) flagged.\n`;
+                    }
+                    if (phaseNum === 1) {
+                        md += `\n## All Clear\nNo actionable findings detected. Continue monitoring with monthly gate scans.\n`;
+                    }
                 }
                 md += `\n## Verification\nRe-scan after completing all phases. Target: Grade A (95+), Gate PASS, 0 blocking findings.\n\n---\n*SimpleBeacon Remediation Checklist · Certificate ${certId}*\n`;
                 return md;
@@ -6241,13 +6255,13 @@ ${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} TOD
             };
             const buildFindingCards = (issues, title) => {
                 if (!issues || issues.length === 0) return '';
-                const cards = issues.slice(0, 8).map(i => {
+                const cards = issues.slice(0, 15).map(i => {
                     const s = (i.severity || 'low').toLowerCase();
                     const files = Array.isArray(i.filePath) ? i.filePath : (i.filePath ? i.filePath.split(',').map(x => x.trim()) : []);
-                    const fileList = files.slice(0, 3).map(f => `<code>${f}</code>`).join(', ');
-                    const moreFiles = files.length > 3 ? ` <em>+${files.length - 3} more</em>` : '';
-                    const snippets = (i.findings || []).slice(0, 2).flatMap(f => (f.matches || []).slice(0, 1).map(m =>
-                        `<div class="snippet"><div class="snippet-header"><span class="snippet-file">${f.file}</span><span class="snippet-line">Line ${m.line}</span></div><pre>${escapeHtml(cleanSnippet(m.snippet || '').slice(0, 120))}</pre></div>`
+                    const fileList = files.slice(0, 5).map(f => `<code>${f}</code>`).join(', ');
+                    const moreFiles = files.length > 5 ? ` <em>+${files.length - 5} more</em>` : '';
+                    const snippets = (i.findings || []).slice(0, 5).flatMap(f => (f.matches || []).slice(0, 3).map(m =>
+                        `<div class="snippet"><div class="snippet-header"><span class="snippet-file">${f.file}</span><span class="snippet-line">Line ${m.line}</span></div><pre>${escapeHtml(cleanSnippet(m.snippet || '').slice(0, 200))}</pre></div>`
                     )).join('');
                     return `<div class="finding-card" style="border-left:4px solid ${severityColor(s)};background:${severityBg(s)};">
                         <div class="finding-header"><span class="finding-sev" style="color:${severityColor(s)};">${severityIcon(s)} ${s.toUpperCase()}</span><strong>${i.type || title}</strong></div>
@@ -6256,10 +6270,13 @@ ${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} TOD
                             <p><strong>How to fix:</strong> ${i.fix || 'Manual review recommended.'}</p>
                             ${files.length ? `<p><strong>Files affected:</strong> ${fileList}${moreFiles}</p>` : ''}
                             ${snippets}
+                            ${i.reasoning ? `<p style="margin-top:8px;font-size:0.78rem;color:#94A3B8;border-top:1px solid var(--border);padding-top:8px;"><strong>Detection reasoning:</strong> ${escapeHtml(i.reasoning)}</p>` : ''}
+                            ${i.humanReadable ? `<p style="font-size:0.78rem;color:#94A3B8;"><strong>In plain English:</strong> ${escapeHtml(i.humanReadable)}</p>` : ''}
+                            ${i.confidence ? `<p style="font-size:0.75rem;color:#64748B;">Confidence: ${Math.round(i.confidence * 100)}%</p>` : ''}
                         </div>
                     </div>`;
                 }).join('');
-                return `<div class="section"><h2>${severityIcon('high')} ${title}</h2>${cards}${issues.length > 8 ? `<p class="more"><em>+${issues.length - 8} more ${title.toLowerCase()} not shown</em></p>` : ''}</div>`;
+                return `<div class="section"><h2>${severityIcon('high')} ${title}</h2>${cards}${issues.length > 15 ? `<p class="more"><em>+${issues.length - 15} more ${title.toLowerCase()} not shown</em></p>` : ''}</div>`;
             };
 
             const devReport = `<!DOCTYPE html>
@@ -6335,6 +6352,8 @@ body{background:#fff;color:#000;}
 
 ${buildFindingCards((gateMod.blockingFindings || gateBlocking).length ? (gateMod.blockingFindings || gateBlocking) : gateIssues.slice(0, 5), 'Security & Gate Findings')}
 
+${(report.detectedIssues || []).length > gateIssues.length ? buildFindingCards((report.detectedIssues || []).filter(i => !['high','critical','medium'].includes(i.severity)), 'All Low-Severity Findings') : ''}
+
 ${consolidationMod.duplicateGroups ? `<div class="section"><h2>&#128260; Consolidation Issues</h2>
 <p>There are <strong>${consolidationMod.duplicateGroups}</strong> groups of duplicate files in your repo. Duplicates bloat bundles, confuse developers, and increase maintenance overhead.</p>
 <div class="fix-box"><h4>How to fix</h4><p>Merge duplicate files into shared modules. If two components import the same utility, extract it to a shared <code>utils/</code> folder and update imports. Remove redundant copies that are no longer referenced.</p></div>
@@ -6347,11 +6366,14 @@ ${mockDataMod.fileCount ? `<div class="section"><h2>&#128293; Mock Data & Fixtur
 
 ${roadmapMod.todoCount ? `<div class="section"><h2>&#128221; Roadmap Markers (TODO / FIXME)</h2>
 <p><strong>${roadmapMod.todoCount}</strong> files contain TODO, FIXME, HACK, or BUG markers. These are debt signals.</p>
+${(roadmapMod.todoFiles || []).length ? `<ul style="margin:10px 0;padding-left:18px;font-size:0.82rem;color:var(--text);">${(roadmapMod.todoFiles || []).map(f => `<li><code>${f}</code></li>`).join('')}</ul>` : ''}
+${(roadmapMod.markerBreakdown && Object.values(roadmapMod.markerBreakdown).some(c => c > 0)) ? `<div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;font-size:0.78rem;">${Object.entries(roadmapMod.markerBreakdown).filter(([k,v]) => v > 0).map(([k,v]) => `<span style="background:rgba(96,165,250,0.12);color:#93C5FD;padding:4px 10px;border-radius:999px;font-weight:600;">${k}: ${v}</span>`).join('')}</div>` : ''}
 <div class="fix-box"><h4>How to fix</h4><p>Before release, address all FIXMEs. Convert TODOs into GitHub issues. Remove HACK comments by refactoring the code they describe. Use <code>grep -rn "TODO\|FIXME\|HACK\|BUG" src/</code> to find them all.</p></div>
 </div>` : ''}
 
 ${cleanupMod.debugArtifactCount ? `<div class="section"><h2>&#128027; Debug Artifacts in Source</h2>
 <p><strong>${cleanupMod.debugArtifactCount}</strong> debug statements (console.log, debugger, alert) found in source files. These leak internals, slow performance, and look unprofessional.</p>
+${(cleanupMod.findings || []).length ? (cleanupMod.findings || []).map(f => `<div class="snippet" style="margin:8px 0;"><div class="snippet-header"><span class="snippet-file">${f.file}</span></div>${(f.matches || []).slice(0, 3).map(m => `<pre>${escapeHtml((m.snippet || '').slice(0, 200))}</pre>`).join('')}</div>`).join('') : ''}
 <div class="fix-box"><h4>How to fix</h4><p>Remove all <code>console.log</code>, <code>debugger;</code>, and <code>alert()</code> calls. Enable ESLint rule <code>no-console</code> in CI. For intentional logs, switch to a structured logger like <code>pino</code> or <code>winston</code>.</p></div>
 </div>` : ''}
 

@@ -321,13 +321,13 @@ app.post('/api/test-checkout', async (req, res) => {
         };
         const stepsMap = {
             instant_report: '<li>Click the button above to open the certificate upload page</li><li>Paste your license token (already filled if you use the link)</li><li>Upload your source code zip or select a local directory</li><li>The scan runs locally — no code leaves your machine</li><li>Download your Code Hygiene Certificate PDF instantly</li>',
-            executive_clearance: '<li>Click the button above to open your dashboard</li><li>Paste your license token (already filled if you use the link)</li><li>Upload your source code or select a local directory</li><li>Run the Complete Scan with all 13 analyzers</li><li>Download your Executive Risk Certificate + Audit Report ZIP</li>',
+            executive_clearance: '<li>Click the button above to open your dashboard</li><li>Paste your license token (already filled if you use the link)</li><li>Upload your source code or select a local directory</li><li>Run the Complete Scan with all 15 analyzers</li><li>Download your Executive Risk Certificate + Audit Report ZIP</li>',
             eu_ai_act_sprint: '<li>Click the button above to open your dashboard</li><li>Paste your license token (already filled if you use the link)</li><li>Upload your source code zip or select a local directory</li><li>Run the EU AI Act compliance scan</li><li>Download your EU AI Act Readiness PDF instantly</li>',
             runtime_shield: '<li>Click the button above to open your dashboard</li><li>Paste your license token (already filled if you use the link)</li><li>Configure runtime sentinel for your stack</li><li>Set per-request and per-minute AI API spend caps</li><li>Monitor real-time spend dashboard with alerts</li>'
         };
         const featuresMap = {
             instant_report: '<li>Code Hygiene Gate scan</li><li>Production leak detection</li><li>Mock data / fixture detection</li><li>Instant PDF certificate</li>',
-            executive_clearance: '<li>Complete Scan (13 analyzers)</li><li>Codebase analysis + npm audit</li><li>Compliance checklist + EU AI Act</li><li>Executive audit report + certificate ZIP</li><li>Re-attestation support</li>',
+            executive_clearance: '<li>Complete Scan (15 analyzers)</li><li>Codebase analysis + npm audit</li><li>Compliance checklist + EU AI Act</li><li>Executive audit report + certificate ZIP</li><li>Re-attestation support</li>',
             eu_ai_act_sprint: '<li>EU AI Act Article 52-55 assessment</li><li>Risk classification (minimal / limited / high / unacceptable)</li><li>Conformity gap analysis</li><li>Remediation roadmap</li><li>Ready-to-submit documentation</li>',
             runtime_shield: '<li>Runtime sentinel library + middleware</li><li>Per-request, per-minute, per-hour spend caps</li><li>Real-time dashboard + Slack/PagerDuty alerts</li><li>Custom budget-policy rules</li><li>Dedicated cost-governance onboarding</li>'
         };
@@ -675,7 +675,7 @@ function buildCertificateHtml(reportJson, payload) {
     const totalFiles = data.totalFiles || data.filesAnalyzed || data.repositoryFilesTotal || data.summary?.repositoryFiles || 0;
     const qualityScore = data.qualityScore ?? data.summary?.qualityScore ?? 0;
 
-    // Extract all 13 analysis sections
+    // Extract all 15 analysis sections
     const mockDataCategories = data.mockDataCategories || [];
     const consolidation = data.consolidation || {};
     const roadmap = data.roadmap || {};
@@ -898,7 +898,7 @@ function buildCertificateHtml(reportJson, payload) {
     <section class="section">
       <div class="section-num">Section 06</div>
       <h2>Analysis Modules — Complete Scan Results</h2>
-      <p class="meta">Results from all 13 SimpleBeacon analysis engines run against the repository. Only modules with findings are shown.</p>
+      <p class="meta">Results from all 15 SimpleBeacon analysis engines run against the repository. Only modules with findings are shown.</p>
       ${allSubs}
     </section>` : '';
 
