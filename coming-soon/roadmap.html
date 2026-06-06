@@ -214,14 +214,38 @@
         phases.push({id:'consistency',title:`Phase ${phases.length+1}: Consistency & Deduplication`,severity:dupes>5?'high':'medium',effort:'3–5 days',description:allClean?'Consistency verified — no duplicates or naming drift.':`Eliminate redundancy${dupes>0?': '+dupes+' duplicate group(s)':''}${consistency!=null&&consistency<100?': '+consistency+'% consistency':''}.`,tasks:t,progress:allClean?100:Math.round((consistency||0)+(dupes===0?100:50))/2,status:allClean?'completed':'pending'});
       }
 
-      // Phase 4: EU AI Act
+      // Phase 4: Governance & Compliance
+      const comp = report.compliance || {};
+      const licenseCount = comp.licenseCount != null ? Number(comp.licenseCount) : null;
+      const securityCount = comp.securityCount != null ? Number(comp.securityCount) : null;
+      const govScore = comp.governanceScore != null ? Number(comp.governanceScore) : null;
+      if ((licenseCount != null && licenseCount > 0) || (securityCount != null && securityCount > 0) || (govScore != null && govScore > 0)) {
+        const t = [];
+        if (licenseCount > 0) t.push(`Audit ${licenseCount} open-source license file(s)`);
+        if (securityCount > 0) t.push(`Review ${securityCount} security/governance file(s)`);
+        t.push('Verify license compatibility with distribution model', 'Add LICENSE and SECURITY.md if missing', 'Document governance policies');
+        phases.push({
+          id: 'compliance',
+          title: `Phase ${phases.length + 1}: Governance & Compliance`,
+          severity: 'medium',
+          effort: '2–3 days',
+          description: `${licenseCount || 0} license file(s), ${securityCount || 0} security file(s). Governance score: ${govScore || 0}.`,
+          tasks: t,
+          progress: 0,
+          status: 'pending'
+        });
+      }
+
+      // Phase 5: EU AI Act
       if((euAiAct!=null&&euAiAct>0)||report.euAiActSummary){
-        const s=report.euAiActSummary||{},hr=Number(s.highRiskIndicators)||0,tg=Number(s.transparencyGaps)||0;
+        const s=report.euAiActSummary||{},hr=Number(s.highRiskIndicators)||0,tg=Number(s.transparencyGaps)||0,ai=Number(s.aiSystemIndicators)||0;
         const t=[];
         if(hr>0)t.push(`Address ${hr} high-risk indicator(s)`);
         if(tg>0)t.push(`Close ${tg} transparency gap(s)`);
+        if(ai>0)t.push(`Review ${ai} AI system indicator(s) (Art. 6)`);
         t.push('Generate documentation artifacts','Review AI system classification (Art. 6)','Schedule legal review');
-        phases.push({id:'euaiact',title:`Phase ${phases.length+1}: EU AI Act Compliance`,severity:hr>0?'critical':'medium',effort:'5–10 days',description:`Regulatory readiness: ${hr} high-risk, ${tg} transparency gaps, ${s.documentationArtifacts||0} artifacts.`,tasks:t,progress:(hr===0&&tg===0)?100:0,status:(hr===0&&tg===0)?'completed':'pending'});
+        const allClean = hr === 0 && tg === 0 && ai === 0;
+        phases.push({id:'euaiact',title:`Phase ${phases.length+1}: EU AI Act Compliance`,severity:hr>0?'critical':(ai>0?'high':'medium'),effort:'5–10 days',description:`Regulatory readiness: ${ai} AI indicators, ${hr} high-risk, ${tg} transparency gaps, ${s.documentationArtifacts||0} artifacts.`,tasks:t,progress:allClean?100:0,status:allClean?'completed':'pending'});
       }
 
       // Phase 5: Quality Optimization (only if qualityScore was measured)

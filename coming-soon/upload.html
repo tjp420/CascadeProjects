@@ -2345,21 +2345,23 @@
                 selectedModules.add(id);
                 card.classList.add('selected');
             }
+            updateCapMatrix();
         }
 
         function syncModuleSelectionFromTier() {
             if (!analyzerCardGrid) return;
             const tier = (() => {
                 const token = document.getElementById('licenseToken')?.value || '';
+                if (!token) return 'universal';
                 try {
                     const parts = token.split('.');
                     const data = parts.length === 2 ? parts[0] : parts[1];
-                    if (!data) return 'locked';
+                    if (!data) return 'universal';
                     const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
                     const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
                     const json = JSON.parse(atob(padded));
-                    return json.tier || 'locked';
-                } catch (e) { return 'locked'; }
+                    return json.tier || 'universal';
+                } catch (e) { return 'universal'; }
             })();
             const allowed = TIER_MODULE_MAP[tier] || TIER_MODULE_MAP.universal;
             selectedModules.clear();
@@ -2379,24 +2381,17 @@
                 const mod = MODULE_CARDS.find(m => m.id === first.dataset.value);
                 scanProfileHelp.textContent = mod ? mod.desc : 'Select modules to include in your ZIP report.';
             }
+            updateCapMatrix();
         }
 
-        function updateCapMatrix(activeKey) {
+        function updateCapMatrix() {
             if (!capMatrix || !capMatrixRows) return;
-            const active = BROWSER_SCAN_PROFILES[activeKey];
-            if (!active) { capMatrix.style.display = 'none'; return; }
             capMatrix.style.display = 'block';
-            const checks = [
-                { label: 'AI Detection', on: active.checkAi },
-                { label: 'Credentials', on: active.checkCredentials },
-                { label: 'Debug Artifacts', on: active.checkDebug },
-                { label: 'Governance', on: active.checkGov }
-            ];
-            capMatrixRows.innerHTML = checks.map(c => `
+            capMatrixRows.innerHTML = MODULE_CARDS.map(mod => `
                 <div class="cap-matrix-row">
-                    <div class="cap-matrix-label">${c.label}</div>
+                    <div class="cap-matrix-label">${mod.label}</div>
                     <div class="cap-matrix-checks">
-                        <div class="cap-check ${c.on ? 'on' : ''}">${c.on ? '&#10003;' : ''}</div>
+                        <div class="cap-check ${selectedModules.has(mod.id) ? 'on' : ''}">${selectedModules.has(mod.id) ? '&#10003;' : ''}</div>
                     </div>
                 </div>
             `).join('');
@@ -3939,9 +3934,9 @@
                     const isGitInternal = /\.git\//.test(lowerPath);
                     if (isGitInternal) continue; // safety net: never scan .git internals
                     const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)([-_][a-z]+)?(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
-                    // AI indicators — collect with line-level detail (exclude test output logs)
+                    // AI indicators — collect with line-level detail (exclude test output logs and node_modules)
                     const isTestOutput = /test-(output|debug|failures|log|complete|auto)\.(txt|log)$/i.test(path) || /\.(txt|log)$/i.test(path) && /test|debug|output|log/i.test(path.split('/').pop());
-                    if (profile.checkAi && !isTestOutput) {
+                    if (profile.checkAi && !isNodeModule && !isTestOutput) {
                         const aiPattern = /new\s+openai|require\s*\(\s*['"]openai['"]\s*\)|import\s+.*openai|from\s+['"]openai['"]|from\s+['"]@anthropic['"]|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/i;
                         const aiMatches = extractMatches(text, aiPattern, 3);
                         if (aiMatches.length > 0) {
@@ -3950,9 +3945,10 @@
                             appendTerminalLine(`AI indicator detected: <span style="color:#94A3B8;">${path}</span> (${aiMatches.length} match${aiMatches.length !== 1 ? 'es' : ''})`, 'warn');
                         }
                     }
-                    // Credential patterns — collect with line-level detail (skip test/sample/demo/vulnerable files)
-                    const isSampleOrTest = /\.(test|spec)\.|sample-|demo-|fixture-|mock-|audit-|vulnerable|exposed|leaky_|positive-test|\.simplebeacon\/|test-cert\/|__tests__\/|mocks\/|fixtures\//i.test(lowerPath);
-                    if (profile.checkCredentials && !isNodeModuleDoc && !isSampleOrTest) {
+                    // Credential patterns — collect with line-level detail (skip node_modules, test/sample/demo/vulnerable files, .d.ts docs)
+                    const isSampleOrTest = /\.(test|spec)\.|sample[-_]|demo-|fixture-|mock-|audit-|vulnerable|exposed|leaky_|positive-test|\.simplebeacon\/|test-cert\/|__tests__\/|mocks\/|fixtures\//i.test(lowerPath);
+                    const isTypeScriptDef = lowerPath.endsWith('.d.ts');
+                    if (profile.checkCredentials && !isNodeModule && !isSampleOrTest && !isTypeScriptDef) {
                         const credPattern = /password\s*=\s*['"][^'"]{6,}|api[_-]?key\s*=\s*['"][a-z0-9]{12,}|secret[_-]?key\s*=\s*['"][a-z0-9]{12,}|private_key\s*=\s*['"][^'"]{8,}|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}|API_KEY\s*=\s*['"][A-Za-z0-9_\-]{16,}|SECRET\s*=\s*['"][A-Za-z0-9_\-]{12,}|AUTH_TOKEN\s*=\s*['"][A-Za-z0-9_\-]{12,}/i;
                         const credMatches = extractMatches(text, credPattern, 3);
                         if (credMatches.length > 0) {
@@ -3973,8 +3969,8 @@
                             debugFindings.push({ file: path, matches: debugMatches });
                         }
                     }
-                    // Governance markers — collect with line-level detail
-                    if (profile.checkGov) {
+                    // Governance markers — collect with line-level detail (skip node_modules — dependency licenses are not project governance)
+                    if (profile.checkGov && !isNodeModule) {
                         const govPattern = /SPDX-License-Identifier|MIT License|Apache License|GNU General Public License|All rights reserved|Copyright \(c\)|License: /i;
                         const govMatches = extractMatches(text, govPattern, 3);
                         if (govMatches.length > 0) {
@@ -4013,11 +4009,12 @@
                         }
                     }
                     // 10. Compliance: governance files
+                    const isBuildOutput = /\/(build|dist|frontend-build|out|\.next|\.output|target|coverage)\//i.test(lowerPath);
                     if (allowedSections.includes('compliance') || allowedSections.includes('euAiActSummary')) {
-                        if (!isNodeModule && /license|licence/i.test(lowerPath) && !licenseFiles.includes(path)) {
+                        if (!isNodeModule && !isBuildOutput && /license|licence/i.test(lowerPath) && !licenseFiles.includes(path)) {
                             licenseFiles.push(path);
                         }
-                        if (!isNodeModule && /security\.md|code_of_conduct|contributing|changelog/i.test(lowerPath)) {
+                        if (!isNodeModule && !isBuildOutput && /security\.md|code_of_conduct|contributing|changelog/i.test(lowerPath)) {
                             securityFiles.push(path);
                         }
                     }
