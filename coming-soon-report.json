@@ -1,7 +1,7 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-06-06T14:46:11.763Z",
+  "generatedAt": "2026-06-06T14:46:44.671Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
@@ -10,17 +10,17 @@
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-    "totalFiles": 1142,
+    "totalFiles": 1143,
     "totalFolders": 142,
     "profile": "audit"
   },
   "mockSampleFiles": 68,
-  "totalFiles": 1129,
-  "ruleScopedFilesAnalyzed": 1129,
-  "repositoryFilesTotal": 1142,
+  "totalFiles": 1130,
+  "ruleScopedFilesAnalyzed": 1130,
+  "repositoryFilesTotal": 1143,
   "repositoryFoldersTotal": 142,
-  "filesAnalyzed": 1142,
-  "totalSizeBytes": 14429372,
+  "filesAnalyzed": 1143,
+  "totalSizeBytes": 14497443,
   "totalSizeLabel": "13.8MB",
   "issueCount": 29,
   "invalidJson": 1,
@@ -1432,6 +1432,7 @@
     "TrustView.js",
     "UploadView.js",
     "ai-platform-report.json",
+    "ai-platform-report.json.simplebeacon-backup.2026-06-06T14-46-11-770Z",
     "index.js",
     "package.json",
     "build-standalone.cjs",
@@ -1843,7 +1844,7 @@
         "low"
       ]
     },
-    "mockSampleFilesInScanPaths": 1129,
+    "mockSampleFilesInScanPaths": 1130,
     "pageSpecCatalogSize": 50,
     "pageSpecsValidated": 50,
     "pageSpecsFromScanPaths": 50,
@@ -1867,13 +1868,13 @@
     "fictionScope": "repository-json",
     "fictionJsonFilesScanned": 17,
     "fictionSampleFilesScanned": 0,
-    "ruleScopedFilesAnalyzed": 1129,
-    "repositoryFilesTotal": 1142,
+    "ruleScopedFilesAnalyzed": 1130,
+    "repositoryFilesTotal": 1143,
     "repositoryFoldersTotal": 142,
     "benchmarkCacheIssuesExcluded": 0,
     "excludedPathsNote": "11 issue(s) from github-cache/ benchmark clones excluded from gate scores — scan clones with github-cache/.simplebeacon/config.json (profile: benchmark).",
     "limitations": [
-      "Repository inventory: 1,142 files — gate rules checked 1129 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 1,143 files — gate rules checked 1130 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
       "Fiction/KPI rules scan repository JSON (17) plus source code (0 files in .).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
@@ -1898,5 +1899,5 @@
     "warningCount": 9
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-06T14:46:11.769Z"
+  "sanitizedAt": "2026-06-06T14:46:44.676Z"
 }

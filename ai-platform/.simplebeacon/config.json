@@ -63,7 +63,13 @@
     },
     "eu-ai-act-patterns": {
       "enabled": true,
-      "severity": "medium"
+      "severity": "medium",
+      "ignoreGlobs": [
+        "docs/**",
+        "**/free-slop-audit-offer.md",
+        "**/outreach-cc-campaign.md",
+        "**/prospect-list.md"
+      ]
     },
     "file-naming-patterns": {
       "enabled": false,

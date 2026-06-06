@@ -2197,7 +2197,20 @@
                 checkAi: true,
                 checkCredentials: true,
                 checkDebug: true,
-                checkGov: true
+                checkGov: true,
+                checkEuAi: true
+            },
+            instant: {
+                label: 'Instant Report',
+                help: 'Lightweight snapshot for quick status checks.',
+                note: 'Browser sandbox runs an <strong>Instant Report</strong> — quick gate + codebase snapshot.',
+                reportType: 'simplebeacon-report',
+                title: 'SimpleBeacon Instant Report',
+                checkAi: true,
+                checkCredentials: true,
+                checkDebug: false,
+                checkGov: false,
+                checkEuAi: false
             }
         };
 
@@ -2447,17 +2460,36 @@
                     const totalDays = tier === 'euai' ? 30 : (tier === 'executive' ? 90 : (tier === 'instant' ? 7 : 30));
                     const msRemaining = payload.exp - Date.now();
                     const daysRemaining = Math.max(0, Math.ceil(msRemaining / (24 * 60 * 60 * 1000)));
-                    const pct = Math.max(0, Math.min(100, (msRemaining / (totalDays * 24 * 60 * 60 * 1000)) * 100));
+                    const isExpired = daysRemaining === 0;
+                    const pct = isExpired ? 0 : Math.max(0, Math.min(100, (msRemaining / (totalDays * 24 * 60 * 60 * 1000)) * 100));
 
-                    document.getElementById('sprintDays').textContent = daysRemaining;
-                    document.getElementById('sprintTier').textContent = config.label;
-                    document.getElementById('sprintProject').textContent = payload.projectName || 'default-project';
-                    document.getElementById('sprintExpiryFill').style.width = pct + '%';
-
-                    // Color shift as expiry approaches
+                    const daysEl = document.getElementById('sprintDays');
+                    const tierEl = document.getElementById('sprintTier');
+                    const projEl = document.getElementById('sprintProject');
                     const fill = document.getElementById('sprintExpiryFill');
-                    if (pct < 15) fill.style.background = 'linear-gradient(90deg,#EF4444,#F59E0B)';
-                    else if (pct < 40) fill.style.background = 'linear-gradient(90deg,#F59E0B,#10B981)';
+
+                    if (isExpired) {
+                        daysEl.innerHTML = '<span style="color:#EF4444;font-weight:700;">EXPIRED</span>';
+                        tierEl.textContent = config.label;
+                        projEl.textContent = payload.projectName || 'default-project';
+                        fill.style.width = '0%';
+                        fill.style.background = 'linear-gradient(90deg,#EF4444,#991B1B)';
+                        banner.style.border = '1px solid rgba(239,68,68,0.4)';
+                        banner.style.background = 'linear-gradient(135deg,rgba(239,68,68,0.12),rgba(153,27,27,0.08))';
+                    } else {
+                        daysEl.textContent = daysRemaining;
+                        tierEl.textContent = config.label;
+                        projEl.textContent = payload.projectName || 'default-project';
+                        fill.style.width = pct + '%';
+
+                        // Color shift as expiry approaches
+                        if (pct < 15) fill.style.background = 'linear-gradient(90deg,#EF4444,#F59E0B)';
+                        else if (pct < 40) fill.style.background = 'linear-gradient(90deg,#F59E0B,#10B981)';
+                        else fill.style.background = 'linear-gradient(90deg,#2563EB,#10B981)';
+
+                        banner.style.border = '';
+                        banner.style.background = '';
+                    }
 
                     banner.style.display = 'block';
                 }
@@ -3261,43 +3293,107 @@
             // Build 11 analysis module mini-cards for preview
             const analysisModulesHtml = (() => {
                 const m = [];
-                const pushCard = (num, icon, title, values, summary) => {
-                    const vals = values.map(v => `<span style="display:inline-block;margin-right:12px;font-size:0.75rem;"><strong style="color:#60A5FA;">${v.value}</strong> <span style="color:var(--text-muted);">${v.label}</span></span>`).join('');
-                    m.push(`<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;"><div style="font-size:0.75rem;font-weight:700;color:#60A5FA;margin-bottom:4px;">${num} ${icon} ${title}</div><div style="margin-bottom:4px;">${vals}</div><div style="font-size:0.7rem;color:var(--text-muted);">${summary || 'No findings.'}</div></div>`);
+                const totalFiles = (data.codebase?.totalFiles) || files || 1;
+                const totalLines = (data.codebase?.totalLines) || 0;
+
+                const pushCard = (num, icon, title, values, summary, statusColor) => {
+                    const vals = values.map(v => `<span style="display:inline-block;margin-right:12px;font-size:0.75rem;"><strong style="color:${v.color || '#60A5FA'};">${v.value}</strong> <span style="color:var(--text-muted);">${v.label}</span></span>`).join('');
+                    const leftBorder = statusColor ? `border-left:3px solid ${statusColor};` : '';
+                    m.push(`<div style="background:var(--bg-elevated);border:1px solid var(--border);${leftBorder}border-radius:8px;padding:10px 14px;margin-bottom:8px;"><div style="font-size:0.75rem;font-weight:700;color:#60A5FA;margin-bottom:4px;">${num} ${icon} ${title}</div><div style="margin-bottom:4px;">${vals}</div><div style="font-size:0.7rem;color:var(--text-muted);">${summary || 'No findings.'}</div></div>`);
                 };
+
+                // 1. Gate
                 const g = data.gateReport || data.gate || {};
-                pushCard('1', '🛡️', 'Gate', [{value: g.pass !== undefined ? (g.pass ? 'PASS' : 'FAIL') : 'REVIEW', label: 'Result'}, {value: g.blockingCount ?? 0, label: 'Blocking'}], g.summary || (g.pass ? 'Gate passed.' : 'Review blocking issues.'));
+                const gateStatus = g.pass === true ? 'PASS' : (g.pass === false ? 'FAIL' : 'REVIEW');
+                const gateColor = g.pass === true ? '#34D399' : (g.pass === false ? '#EF4444' : '#60A5FA');
+                const gateBorder = g.pass === true ? '#34D399' : (g.pass === false ? '#EF4444' : '#60A5FA');
+                pushCard('1', '🛡️', 'Gate', [
+                    {value: gateStatus, label: 'Result', color: gateColor},
+                    {value: g.blockingCount ?? 0, label: 'Blocking'}
+                ], g.summary || (g.pass ? 'Gate passed — no blocking credentials found.' : 'Review blocking issues.'), gateBorder);
 
+                // 2. Consolidation
                 const cons = data.consolidation || {};
-                pushCard('2', '🔀', 'Consolidation', [{value: cons.monorepoMarkers || 0, label: 'Monorepo'}, {value: cons.duplicateGroups || 0, label: 'Duplicates'}], cons.summary || 'No consolidation issues.');
+                const dupPct = totalFiles > 0 ? ((cons.duplicateGroups || 0) / totalFiles * 100).toFixed(1) : '0.0';
+                pushCard('2', '🔀', 'Consolidation', [
+                    {value: cons.monorepoMarkers || 0, label: 'Monorepo'},
+                    {value: cons.duplicateGroups || 0, label: 'Duplicates'}
+                ], cons.summary || (cons.duplicateGroups ? `${cons.duplicateGroups} duplicate file groups detected (${dupPct}% of repo).` : 'No duplicate files detected.'), cons.duplicateGroups ? '#F59E0B' : null);
 
+                // 3. Mock Data
                 const mock = data.mockDataCategories || [];
                 const mockTotal = data.mockSampleFiles ?? mock.reduce((a,c) => a + (c.fileCount||0), 0);
-                pushCard('3', '🔍', 'Mock Data', [{value: mockTotal, label: 'Files'}], mock.length ? `${mockTotal} mock/fixture files detected.` : 'No mock data found.');
+                const mockPct = totalFiles > 0 ? (mockTotal / totalFiles * 100).toFixed(1) : '0.0';
+                pushCard('3', '🔍', 'Mock Data', [
+                    {value: mockTotal, label: 'Files'},
+                    {value: mockPct + '%', label: 'of repo', color: mockTotal > 0 ? '#F59E0B' : '#60A5FA'}
+                ], mockTotal ? `${mockTotal} mock/fixture files detected (${mockPct}% of total).` : 'No mock data found.', mockTotal > 50 ? '#EF4444' : (mockTotal > 0 ? '#F59E0B' : null));
 
+                // 4. Roadmap
                 const rm = data.roadmap || {};
-                pushCard('4', '🗺️', 'Roadmap', [{value: rm.todoCount || 0, label: 'TODO/FIXME'}], rm.summary || 'No roadmap markers found.');
+                const todoDensity = totalFiles > 0 ? ((rm.todoCount || 0) / totalFiles * 100).toFixed(1) : '0.0';
+                const todoSeverity = (rm.todoCount || 0) > 50 ? '#EF4444' : ((rm.todoCount || 0) > 10 ? '#F59E0B' : null);
+                pushCard('4', '🗺️', 'Roadmap', [
+                    {value: rm.todoCount || 0, label: 'TODO/FIXME', color: todoSeverity || '#60A5FA'},
+                    {value: todoDensity + '%', label: 'of files'}
+                ], rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} files contain TODO/FIXME markers (${todoDensity}% of repo).` : 'No roadmap markers found.'), todoSeverity);
 
+                // 5. Codebase
                 const cb = data.codebase || {};
-                pushCard('5', '🧹', 'Codebase', [{value: cb.totalFiles || files, label: 'Files'}, {value: (cb.totalLines || 0).toLocaleString(), label: 'Lines'}], cb.summary || `${cb.totalFiles || files} files analyzed.`);
+                const avgLines = (cb.totalFiles || files) > 0 ? Math.round((cb.totalLines || 0) / (cb.totalFiles || files)) : 0;
+                pushCard('5', '🧹', 'Codebase', [
+                    {value: (cb.totalFiles || files).toLocaleString(), label: 'Files'},
+                    {value: (cb.totalLines || 0).toLocaleString(), label: 'Lines'},
+                    {value: avgLines, label: 'avg lines/file', color: avgLines > 500 ? '#F59E0B' : '#60A5FA'}
+                ], cb.summary || `${(cb.totalFiles || files).toLocaleString()} files analyzed, ${(cb.totalLines || 0).toLocaleString()} lines of code.`, avgLines > 800 ? '#EF4444' : null);
 
+                // 6. File Reduction
                 const fr = data.fileReduction || {};
-                pushCard('6', '📦', 'File Reduction', [{value: (fr.unusedAssetCandidates || []).length, label: 'Assets'}, {value: fr.duplicateGroups || 0, label: 'Duplicates'}], fr.summary || 'No file reduction opportunities.');
+                const assetCount = (fr.unusedAssetCandidates || []).length;
+                pushCard('6', '📦', 'File Reduction', [
+                    {value: assetCount, label: 'Assets', color: assetCount > 0 ? '#F59E0B' : '#60A5FA'},
+                    {value: fr.duplicateGroups || 0, label: 'Duplicates'}
+                ], fr.summary || (assetCount ? `${assetCount} image assets detected for review.` : 'No file reduction opportunities.'), assetCount > 0 ? '#F59E0B' : null);
 
+                // 7. Data Quality
                 const dq = data.dataQuality || {};
-                pushCard('7', '🧪', 'Data Quality', [{value: dq.emptyJsonCount || 0, label: 'Empty JSON'}], dq.summary || 'No data quality issues.');
+                pushCard('7', '🧪', 'Data Quality', [
+                    {value: dq.emptyJsonCount || 0, label: 'Empty JSON', color: (dq.emptyJsonCount || 0) > 0 ? '#EF4444' : '#34D399'}
+                ], dq.summary || ((dq.emptyJsonCount || 0) ? `${dq.emptyJsonCount} empty JSON files detected.` : 'No data quality issues.'), (dq.emptyJsonCount || 0) > 0 ? '#EF4444' : null);
 
+                // 8. Cleanup
                 const cl = data.cleanup || {};
-                pushCard('8', '🗂️', 'Cleanup', [{value: cl.debugArtifactCount || 0, label: 'Debug artifacts'}], cl.summary || 'No cleanup items.');
+                const debugSeverity = (cl.debugArtifactCount || 0) > 20 ? '#EF4444' : ((cl.debugArtifactCount || 0) > 0 ? '#F59E0B' : null);
+                pushCard('8', '🗂️', 'Cleanup', [
+                    {value: cl.debugArtifactCount || 0, label: 'Debug artifacts', color: debugSeverity || '#60A5FA'}
+                ], cl.summary || ((cl.debugArtifactCount || 0) ? `${cl.debugArtifactCount} debug artifacts detected — remove console.log, debugger, TODO markers before production.` : 'No cleanup items.'), debugSeverity);
 
+                // 9. npm Audit
                 const npm = data.npmAudit || {};
-                pushCard('9', '📦', 'npm Audit', [{value: npm.packageJsonCount || 0, label: 'package.json'}, {value: npm.dependencyCount || 0, label: 'Deps'}], npm.summary || 'No package.json files found.');
+                const depsPerPkg = npm.packageJsonCount > 0 ? Math.round((npm.dependencyCount || 0) / npm.packageJsonCount) : 0;
+                pushCard('9', '📦', 'npm Audit', [
+                    {value: npm.packageJsonCount || 0, label: 'package.json'},
+                    {value: (npm.dependencyCount || 0).toLocaleString(), label: 'Deps'},
+                    {value: depsPerPkg, label: 'avg/pkg', color: depsPerPkg > 50 ? '#F59E0B' : '#60A5FA'}
+                ], npm.summary || (npm.packageJsonCount ? `${npm.packageJsonCount} package.json files found with ${(npm.dependencyCount || 0).toLocaleString()} total dependencies.` : 'No package.json files found.'), depsPerPkg > 100 ? '#EF4444' : null);
 
+                // 10. Compliance
                 const comp = data.compliance || {};
-                pushCard('10', '✅', 'Compliance', [{value: comp.licenseCount || 0, label: 'License'}, {value: comp.securityCount || 0, label: 'Security'}], comp.summary || 'No governance files detected.');
+                const compScore = (comp.licenseCount || 0) + (comp.securityCount || 0);
+                pushCard('10', '✅', 'Compliance', [
+                    {value: comp.licenseCount || 0, label: 'License'},
+                    {value: comp.securityCount || 0, label: 'Security'}
+                ], comp.summary || (compScore ? `${comp.licenseCount || 0} license files, ${comp.securityCount || 0} security/governance files detected.` : 'No governance files detected.'), compScore === 0 ? '#EF4444' : null);
 
-                const eu = data.euAiActSummary || {};
-                pushCard('11', '🇪🇺', 'EU AI Act', [{value: eu.aiSystemIndicators || 0, label: 'AI indicators'}, {value: eu.documentationArtifacts || 0, label: 'Docs'}], eu.deadlineNote || 'Review EU AI Act requirements.');
+                // 11. EU AI Act (only shown when profile enables it)
+                if (data.checkEuAi !== false) {
+                    const eu = data.euAiActSummary || {};
+                    const euRisk = (eu.aiSystemIndicators || 0) > 0 ? '#EF4444' : null;
+                    pushCard('11', '🇪🇺', 'EU AI Act', [
+                        {value: eu.aiSystemIndicators || 0, label: 'AI indicators', color: euRisk || '#60A5FA'},
+                        {value: eu.documentationArtifacts || 0, label: 'Docs'}
+                    ], eu.deadlineNote || ((eu.aiSystemIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.'), euRisk);
+                }
 
                 return m.join('');
             })();
@@ -3436,7 +3532,17 @@
             const skipDeps = !includeDeps;        // exclude node_modules/.git by default
             const skipDocs = false;               // scan docs by default — they contain governance markers
 
+            // Pre-scan estimator: warn if node_modules appears included
+            const nodeModuleCount = files.filter(f => /node_modules\//.test((f.webkitRelativePath || f.name).toLowerCase())).length;
+            const gitCount = files.filter(f => /\.git\//.test((f.webkitRelativePath || f.name).toLowerCase())).length;
+            const estTimeSec = Math.round(files.length * 0.003); // ~3ms per file heuristic
             appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
+            appendTerminalLine(`Estimator: ~${estTimeSec}s scan time · ${nodeModuleCount} node_modules files · ${gitCount} .git files detected.`);
+            if (nodeModuleCount > 100 && !includeDeps) {
+                appendTerminalLine(`Note: ${nodeModuleCount} node_modules files will be excluded by default. If you intended to scan source only, this is expected.`, 'success');
+            } else if (nodeModuleCount > 100 && includeDeps) {
+                appendTerminalLine(`Warning: ${nodeModuleCount} node_modules files will be scanned. Expect slower performance and potential false positives.`, 'warn');
+            }
             if (includeDeps) appendTerminalLine('Note: node_modules/.git inclusion enabled — scan will be slower and noisier.', 'warn');
             if (deepScan) appendTerminalLine('DEEP SCAN MODE: All cache, docs, and scanner-page filters bypassed. Only secrets and 500MB+ files are excluded.', 'warn');
 
@@ -3527,6 +3633,7 @@
                     const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)([-_][a-z]+)?(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
                     if (profile.checkAi && /new\s+openai|import\s+openai|from\s+anthropic|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/.test(lower)) {
                         aiHits.push(path);
+                        appendTerminalLine(`AI indicator detected: <span style="color:#94A3B8;">${path}</span>`, 'warn');
                     }
                     if (profile.checkCredentials && !isNodeModuleDoc && /password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{16,}|secret[_-]?key\s*=\s*['"][a-z0-9]{16,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}/i.test(text)) {
                         credentialHits++;
@@ -3642,6 +3749,7 @@
                 generatedAt: now,
                 generatedBy: 'SimpleBeacon Browser Sandbox',
                 scanProfileLabel: profile.label || 'Browser Scan',
+                checkEuAi: profile.checkEuAi || false,
                 projectRoot: projectName,
                 projectPath: projectName,
                 scanTargetRoot: projectName,
@@ -3896,8 +4004,43 @@
             const gateColor = rawGate === null ? '#60A5FA' : (gatePassed ? '#34D399' : '#EF4444');
             const projectName = report.projectRoot || report.projectPath || report.projectName || 'local-scan';
             const fileCount = report.totalFiles || report.filesAnalyzed || 0;
+            const lineCount = report.codebase?.totalLines || report.totalLines || 0;
             const issueCount = report.issueCount || report.simplebeaconIssues || 0;
             const profileLabel = report.scanProfileLabel || (report.type ? report.type.replace('simplebeacon-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Scan');
+
+            // Compute SHA-256 of report for the certificate seal
+            const reportStr = JSON.stringify(report, null, 2);
+            const reportBytes = new TextEncoder().encode(reportStr);
+            const reportDigest = await crypto.subtle.digest('SHA-256', reportBytes);
+            const reportHashHex = Array.from(new Uint8Array(reportDigest)).map(b => b.toString(16).padStart(2, '0')).join('');
+            const reportHash = 'sha256-' + reportHashHex;
+            const shortHash = reportHashHex.slice(0, 16) + '...' + reportHashHex.slice(-8);
+
+            // EU AI Act regulatory mapping (if applicable)
+            const hasEuAiAct = report.euAiActSummary || report.euAiActFindings !== undefined;
+            const euAiActSection = hasEuAiAct ? `
+                        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #1E293B;">
+                            <p style="font-size:10px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 10px;">EU AI Act Regulatory Mapping</p>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:10px;">
+                                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(30,41,59,0.5);">
+                                    <span style="color:#9CA3AF;">Art. 5 — Prohibited Practices</span>
+                                    <span style="color:${(report.euAiActSummary?.highRiskIndicators || 0) === 0 ? '#34D399' : '#EF4444'};font-weight:700;">${(report.euAiActSummary?.highRiskIndicators || 0) === 0 ? 'PASSED' : 'REVIEW'}</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(30,41,59,0.5);">
+                                    <span style="color:#9CA3AF;">Art. 6 — Risk Classification</span>
+                                    <span style="color:${(report.euAiActSummary?.aiSystemIndicators || 0) === 0 ? '#34D399' : '#F59E0B'};font-weight:700;">${(report.euAiActSummary?.aiSystemIndicators || 0) === 0 ? 'PASSED' : 'REVIEW'}</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(30,41,59,0.5);">
+                                    <span style="color:#9CA3AF;">Art. 10 — Transparency</span>
+                                    <span style="color:${(report.euAiActSummary?.transparencyGaps || 0) === 0 ? '#34D399' : '#EF4444'};font-weight:700;">${(report.euAiActSummary?.transparencyGaps || 0) === 0 ? 'PASSED' : 'REVIEW'}</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(30,41,59,0.5);">
+                                    <span style="color:#9CA3AF;">Documentation Artifacts</span>
+                                    <span style="color:#F3F4F6;font-weight:700;">${report.euAiActSummary?.documentationArtifacts || 0} found</span>
+                                </div>
+                            </div>
+                        </div>
+                    ` : '';
 
             // 1. Build certificate HTML
             const certWrapper = document.createElement('div');
@@ -3921,12 +4064,18 @@
                         <div style="background:#0F1626;border:1px solid #1E293B;border-radius:8px;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;font-size:11px;">
                             <div><span style="color:#9CA3AF;">Project:</span> <span style="color:#F3F4F6;font-weight:700;">${projectName}</span></div>
                             <div><span style="color:#9CA3AF;">Files Evaluated:</span> <span style="color:#F3F4F6;font-weight:700;">${fileCount}</span></div>
-                            <div><span style="color:#9CA3AF;">Logical Scope:</span> <span style="color:#F3F4F6;font-weight:700;">${report.generatedBy?.includes('Browser') ? 'Browser Sandbox' : 'Local CLI'}</span></div>
+                            <div><span style="color:#9CA3AF;">Lines of Code:</span> <span style="color:#F3F4F6;font-weight:700;">${lineCount.toLocaleString()}</span></div>
                             <div><span style="color:#9CA3AF;">Gate Status:</span> <span style="color:${gateColor};font-weight:700;">${gateLabel}</span></div>
                             <div><span style="color:#9CA3AF;">Compliance Grade:</span> <span style="color:${gradeColor};font-weight:700;font-size:13px;">${grade}</span></div>
                             <div><span style="color:#9CA3AF;">Findings:</span> <span style="color:#F3F4F6;font-weight:700;">${issueCount}</span></div>
-                            <div><span style="color:#9CA3AF;">Data Integrity Seal:</span> <span style="color:#60A5FA;">VERIFIED_LOCAL</span></div>
+                            <div><span style="color:#9CA3AF;">Logical Scope:</span> <span style="color:#F3F4F6;font-weight:700;">${report.generatedBy?.includes('Browser') ? 'Browser Sandbox' : 'Local CLI'}</span></div>
                             <div><span style="color:#9CA3AF;">Quality Score:</span> <span style="color:#F3F4F6;font-weight:700;">${qs}/100</span></div>
+                        </div>
+                        ${euAiActSection}
+                        <div style="margin-top:20px;padding:12px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.2);border-radius:8px;">
+                            <p style="font-size:9px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 6px;">Cryptographic Verification Seal</p>
+                            <p style="font-size:9px;color:#64748B;margin:0;font-family:monospace;word-break:break-all;">SHA-256: ${shortHash}</p>
+                            <p style="font-size:8px;color:#475569;margin:4px 0 0;">This hash cryptographically binds the certificate to the underlying report.json. Re-scanning will produce a different hash.</p>
                         </div>
                     </div>
                     <div style="border-top:1px solid #1E293B;padding-top:16px;display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#64748B;">
@@ -3954,13 +4103,7 @@
                 throw new Error('PNG encoding failed. Please try again.');
             }
 
-            // 3. Compute SHA-256 integrity hash of report.json
-            const reportStr = JSON.stringify(report, null, 2);
-            const reportBytes = new TextEncoder().encode(reportStr);
-            const reportDigest = await crypto.subtle.digest('SHA-256', reportBytes);
-            const reportHash = 'sha256-' + Array.from(new Uint8Array(reportDigest)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-            // 4. Assemble ZIP
+            // 3. Assemble ZIP
             zip.file('certificate.png', pngBlob);
             zip.file('report.json', reportStr);
             zip.file('manifest.json', JSON.stringify({
