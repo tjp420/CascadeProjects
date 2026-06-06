@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: simplebeacon
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node coming-soon/server.cjs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: SIMPLEBEACON_LICENSE_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGIN
+        value: ""
+      - key: PUBLIC_URL
+        sync: false
+    healthCheckPath: /health

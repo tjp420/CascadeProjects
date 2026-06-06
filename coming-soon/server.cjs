@@ -207,6 +207,11 @@ app.get('/api/simplebeacon', (_req, res) => {
     res.json({ status: 'ok', service: 'simplebeacon-api', version: '1.3.0' });
 });
 
+// Health check for Render + load balancers
+app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
 // Pricing config endpoint
 app.get('/api/config/pricing', (_req, res) => {
     res.json({
