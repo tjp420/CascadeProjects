@@ -195,7 +195,11 @@
         if(schemaComp!=null&&schemaComp<100&&schemaChecked!=null){const failed=schemaChecked-(schemaPassed||0);if(failed>0)t.push(`Fix ${failed} schema violation(s)`);}
         if(schemaComp!=null&&schemaComp<100&&schemaChecked==null)t.push('Review schema compliance failures');
         t.push('Validate all JSON','Re-run scan');
-        phases.push({id:'integrity',title:`Phase ${phases.length+1}: Data Integrity`,severity:(invalidJson>0||emptyFiles>0)?'high':'medium',effort:'2–4 days',description:allClean?'Data integrity verified — no structural issues detected.':`Resolve structural issues${invalidJson>0?': '+invalidJson+' invalid JSON':''}${emptyFiles>0?': '+emptyFiles+' empty files':''}${schemaComp!=null&&schemaComp<100?': '+schemaComp+'% schema compliance':''}.`,tasks:t,progress:allClean?100:Math.round(schemaComp||0),status:allClean?'completed':'pending'});
+        const sameEmptyCount = invalidJson === emptyFiles && invalidJson != null;
+        const dirtyDesc = sameEmptyCount
+          ? `Resolve structural issues: ${invalidJson} empty/invalid JSON file(s).`
+          : `Resolve structural issues${invalidJson>0?': '+invalidJson+' invalid JSON':''}${emptyFiles>0?': '+emptyFiles+' empty files':''}${schemaComp!=null&&schemaComp<100?': '+schemaComp+'% schema compliance':''}.`;
+        phases.push({id:'integrity',title:`Phase ${phases.length+1}: Data Integrity`,severity:(invalidJson>0||emptyFiles>0)?'high':'medium',effort:'2–4 days',description:allClean?'Data integrity verified — no structural issues detected.':dirtyDesc,tasks:t,progress:allClean?100:(schemaComp!=null?Math.round(schemaComp):0),status:allClean?'completed':'pending'});
       }
 
       // Phase 3: Consistency (only if measured)

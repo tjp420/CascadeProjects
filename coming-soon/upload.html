@@ -3840,13 +3840,14 @@
                         govHits.push(path);
                     }
                     // --- 11 Analysis Category Heuristics ---
-                    // 3. Mock data: fixture/sample/test-data files (skip node_modules + marketing demo pages)
+                    // 3. Mock data: fixture/sample/test-data files (skip node_modules, .git, and marketing demo pages)
                     const isDemoSample = /sample-(certificate|clearance-pdf|report)\./.test(lowerPath);
-                    if (!isNodeModule && !isDemoSample && /mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
+                    const isGitInternal = /\.git\//.test(lowerPath);
+                    if (!isNodeModule && !isGitInternal && !isDemoSample && /mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
                         mockFiles.push(path);
                     }
-                    // 9. npm audit: package.json files
-                    if (lowerPath.endsWith('package.json')) {
+                    // 9. npm audit: package.json files (skip node_modules — count only project roots)
+                    if (!isNodeModule && lowerPath.endsWith('package.json')) {
                         packageJsonFiles.push(path);
                         try {
                             const pkg = JSON.parse(text);
@@ -3870,8 +3871,9 @@
                     if (!isNodeModule && /security\.md|code_of_conduct|contributing|changelog/i.test(lowerPath)) {
                         securityFiles.push(path);
                     }
-                    // 7. Data quality: empty or trivial JSON (skip runtime data stores)
-                    if (lowerPath.endsWith('.json') && !/subscriptions\.json$/.test(lowerPath) && (text.trim().length < 10 || text.trim() === '{}' || text.trim() === '[]')) {
+                    // 7. Data quality: empty or trivial JSON (skip runtime data stores and test fixtures)
+                    const isTestFixture = /\/test[-/]|\/test\.json$|\.simplebeacon\/|test-cert\/|__tests__\/|fixtures\/|mocks\//.test(lowerPath);
+                    if (!isTestFixture && lowerPath.endsWith('.json') && !/subscriptions\.json$/.test(lowerPath) && (text.trim().length < 10 || text.trim() === '{}' || text.trim() === '[]')) {
                         emptyJsonFiles.push(path);
                     }
                     // 2. Consolidation + 6. File reduction: simple content hash for duplicates
@@ -3884,8 +3886,11 @@
                             duplicateHashes.set(hash, [path]);
                         }
                     }
-                    // 4. Roadmap: TODO/FIXME markers in code (skip node_modules — dependency TODOs are not user action items)
-                    if (!isNodeModule && /TODO:|FIXME:|HACK:|XXX:|NOTE:|BUG:/i.test(text)) {
+                    // 4. Roadmap: TODO/FIXME markers in code
+                    // Skip node_modules, .git, cache dirs, and binary-like files
+                    const isCacheOrBinary = /\.git\/|\.simplebeacon\/|github-cache\/|\.github-sync\/|node_modules\/|\.pack$|\.idx$|\.objects\//i.test(lowerPath);
+                    const hasSourceExt = /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|c|cpp|h|hpp|cs|php|rb|swift|kt|scala|dart|vue|svelte|html|css|scss|sass|less|sql|sh|bash|ps1|yml|yaml|json|md|txt|xml|cfg|ini|toml|gradle|dockerfile)$/i.test(path);
+                    if (!isNodeModule && !isCacheOrBinary && hasSourceExt && /TODO:|FIXME:|HACK:|XXX:|NOTE:|BUG:/i.test(text)) {
                         todoFiles.push(path);
                     }
                     // 6. File reduction: unused assets (images not referenced) — skip node_modules and standard auto-loaded web assets
@@ -4624,8 +4629,11 @@ ${euAiActSection}
 | certificate.html | Printable HTML certificate with full metrics |
 | certificate.png | Rasterized certificate image (800px) |
 | report.json | Complete raw scan report (source of truth) |
+| executive-summary.md | Board-ready risk summary with top 5 issues |
+| findings.md | Detailed findings by severity with remediation |
+| remediation-checklist.md | Phased action checklist for compliance teams |
 | manifest.json | Certificate metadata and integrity hash |
-| modules/ | Per-analysis-engine JSON exports |
+| modules/ | Per-analysis-engine JSON exports + index |
 | README.md | This file |
 
 ## Modules Included (${modules.length})
@@ -4660,6 +4668,114 @@ Generated entirely in-browser. Zero data uploaded.
             for (const m of modules) {
                 modulesFolder.file(m.id + '.json', JSON.stringify(m.data, null, 2));
             }
+
+            // 7. Module index JSON for programmatic access
+            modulesFolder.file('index.json', JSON.stringify({
+                generatedAt: isoDate,
+                certificateId: certId,
+                modules: modules.map(m => ({
+                    id: m.id,
+                    label: m.label,
+                    status: m.data.pass === true || m.data.gatePass === true ? 'PASS' : (m.data.pass === false || m.data.gatePass === false ? 'BLOCKED' : 'REVIEW'),
+                    file: `modules/${m.id}.json`
+                }))
+            }, null, 2));
+
+            // 8. Executive Summary — board-ready markdown
+            const topIssues = (report.detectedIssues || report.issues || []).slice(0, 5);
+            const execSummary = `# Executive Risk Summary — ${escapeHtml(projectName)}
+> **Certificate ID:** ${certId} · **Issued:** ${dateStr} · **Grade:** ${grade}
+
+## At a Glance
+| Metric | Value |
+|--------|-------|
+| Gate Status | ${gateLabel} |
+| Quality Score | ${qs}/100 |
+| Files Analyzed | ${fileCount.toLocaleString()} |
+| Lines of Code | ${lineCount.toLocaleString()} |
+| Total Findings | ${issueCount} |
+| EU AI Act | ${(report.euAiActSummary?.aiSystemIndicators || 0)} AI indicator(s) |
+
+## Top Risks
+${topIssues.length ? topIssues.map((i, idx) => `${idx + 1}. **${(i.severity || 'low').toUpperCase()}** — ${i.type || 'Issue'} (${i.count || 0}): ${(i.impact || 'Review required.').replace(/REVIEW REQUIRED[:\s]*/i, '')}${i.fix ? ` *Fix:* ${i.fix}` : ''}`).join('\n') : 'No actionable findings detected.'}
+
+## Recommended Actions
+${gatePassed ? '- [x] Gate passed — no immediate blocking issues.\n' : '- [ ] **URGENT:** Address ' + (report.gate?.blockingCount || 0) + ' blocking credential finding(s) before release.\n'}${(report.euAiActSummary?.highRiskIndicators || 0) > 0 ? '- [ ] Schedule EU AI Act legal review (high-risk indicators detected).\n' : ''}${qs < 70 ? '- [ ] Quality score below 70 — prioritize refactoring low-quality modules.\n' : ''}${(report.consolidation?.duplicateGroups || 0) > 0 ? '- [ ] Consolidate ' + report.consolidation.duplicateGroups + ' duplicate file group(s).\n' : ''}${(report.roadmap?.todoCount || 0) > 0 ? '- [ ] Address ' + report.roadmap.todoCount + ' TODO/FIXME marker(s) before release.\n' : ''}- [ ] Schedule next scan in 30 days.
+
+## Compliance Posture
+${(report.euAiActSummary?.highRiskIndicators || 0) === 0 ? '✅ No high-risk AI indicators (Art. 5)' : '⚠️ High-risk AI indicators present (Art. 5)'}  
+${(report.euAiActSummary?.aiSystemIndicators || 0) === 0 ? '✅ No AI system indicators (Art. 6)' : '⚠️ AI system indicators present — review classification (Art. 6)'}  
+${(report.euAiActSummary?.transparencyGaps || 0) === 0 ? '✅ No transparency gaps (Art. 10)' : '⚠️ Transparency gaps present (Art. 10)'}
+
+---
+*This summary was generated entirely in-browser by SimpleBeacon. No source code was transmitted to external servers.*
+`;
+            zip.file('executive-summary.md', execSummary);
+
+            // 9. Findings Report — all issues with file paths and remediation
+            const allIssues = (report.detectedIssues || report.issues || report.rawIssues || []);
+            const bySeverity = { critical: [], high: [], medium: [], low: [], info: [] };
+            for (const issue of allIssues) {
+                const sev = (issue.severity || 'low').toLowerCase();
+                (bySeverity[sev] || bySeverity.low).push(issue);
+            }
+            const findingsMd = `# Detailed Findings Report — ${escapeHtml(projectName)}
+> **Certificate ID:** ${certId} · **Total Issues:** ${allIssues.length}
+
+## Severity Breakdown
+${Object.entries(bySeverity).filter(([_, arr]) => arr.length > 0).map(([sev, arr]) => `- **${sev.toUpperCase()}:** ${arr.length} issue(s)`).join('\n')}
+
+${Object.entries(bySeverity).filter(([_, arr]) => arr.length > 0).map(([sev, arr]) => `
+## ${sev.toUpperCase()} Findings (${arr.length})
+${arr.map(i => `### ${i.type || 'Finding'} (${i.count || 0} occurrence${(i.count || 0) !== 1 ? 's' : ''})
+- **Rule:** \`${i.rule || 'N/A'}\`
+- **Files:** ${(i.filePath || 'N/A').split(',').slice(0, 5).join(', ')}${(i.filePath || '').split(',').length > 5 ? ' ...' : ''}
+- **Impact:** ${i.impact || 'Review required.'}
+- **Remediation:** ${i.fix || 'Manual review recommended.'}
+`).join('')}`).join('')}
+
+---
+*Generated by SimpleBeacon Sovereign Engine. Integrity hash: ${reportHash}*
+`;
+            zip.file('findings.md', findingsMd);
+
+            // 10. Remediation Checklist — actionable checklist for compliance teams
+            const checklist = `# Remediation Checklist — ${escapeHtml(projectName)}
+> Use this checklist to track remediation progress. Check items off as they are completed.
+
+## Phase 1: Security (Week 1)
+- [ ] **Rotate exposed credentials** — ${report.gate?.blockingCount || 0} credential pattern(s) found in source.
+- [ ] **Add .env to .gitignore** if not already present.
+- [ ] **Re-run gate scan** to verify zero blocking findings.
+
+## Phase 2: Data Integrity (Week 1–2)
+- [ ] **Validate all JSON files** for structural integrity.
+- [ ] **Remove empty files** — ${report.dataQuality?.emptyJsonCount || 0} empty JSON file(s) detected.
+- [ ] **Fix schema violations** — ${report.schemaCompliance != null ? report.schemaCompliance + '% compliant' : 'review schema compliance'}.
+
+## Phase 3: Consistency (Week 2–3)
+- [ ] **Consolidate duplicate files** — ${report.consolidation?.duplicateGroups || 0} duplicate group(s).
+- [ ] **Standardize naming conventions** across the codebase.
+- [ ] **Document canonical file locations** in README.
+
+## Phase 4: EU AI Act Compliance (Week 3–4)
+- [ ] **Review AI system classification** (Art. 6) — ${report.euAiActSummary?.aiSystemIndicators || 0} indicator(s).
+- [ ] **Generate documentation artifacts** — ${report.euAiActSummary?.documentationArtifacts || 0} found.
+- [ ] **Schedule legal review** if high-risk indicators present.
+
+## Phase 5: Quality Optimization (Ongoing)
+- [ ] **Remove debug artifacts** — ${report.cleanup?.debugArtifactCount || 0} console.log/debugger/TODO found.
+- [ ] **Address TODO/FIXME markers** — ${report.roadmap?.todoCount || 0} file(s) flagged.
+- [ ] **Add pre-commit hooks** for automated scanning.
+- [ ] **Schedule monthly quality gate reviews**.
+
+## Verification
+Re-scan after completing all phases. Target: Grade A (95+), Gate PASS, 0 blocking findings.
+
+---
+*SimpleBeacon Remediation Checklist · Certificate ${certId}*
+`;
+            zip.file('remediation-checklist.md', checklist);
 
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             console.log('[Certificate] ZIP blob ready:', zipBlob.size, 'bytes');
