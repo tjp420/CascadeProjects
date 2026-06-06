@@ -28,9 +28,15 @@ function createMcpToolHandlers(options = {}) {
     const networkGuard = offline ? createNetworkGuard({ label: 'simplebeacon-mcp' }) : null;
 
     function withGuard(fn) {
-        return async (...args) => {
+        return (...args) => {
             if (networkGuard) networkGuard.assertOfflineClean();
-            const result = await fn(...args);
+            const result = fn(...args);
+            if (result && typeof result.then === 'function') {
+                return result.then((r) => {
+                    if (networkGuard) networkGuard.assertOfflineClean();
+                    return r;
+                });
+            }
             if (networkGuard) networkGuard.assertOfflineClean();
             return result;
         };
@@ -70,17 +76,51 @@ function createMcpToolHandlers(options = {}) {
                     gate: gate === true,
                     offline: true
                 });
+                const detectedIssues = (report.detectedIssues || []).map(i => ({
+                    severity: i.severity || 'low',
+                    type: i.type || 'unknown',
+                    count: i.count || 1,
+                    filePath: Array.isArray(i.filePaths) && i.filePaths.length
+                        ? i.filePaths.slice(0, 5).join(', ')
+                        : (Array.isArray(i.affectedFiles) && i.affectedFiles.length
+                            ? i.affectedFiles.slice(0, 5).join(', ')
+                            : (i.filePath || '')),
+                    rule: i.pattern || i.rule || 'UNKNOWN',
+                    impact: i.description || i.impact || 'Review required.',
+                    fix: i.recommendedAction || i.recommendation || i.fix || 'Manual review required.'
+                }));
+                const gateBlocking = (report.gate?.blockingIssues || []).map(i => ({
+                    severity: i.severity || 'medium',
+                    type: i.type || 'Blocking Finding',
+                    count: i.count || 1,
+                    filePath: Array.isArray(i.filePaths) && i.filePaths.length
+                        ? i.filePaths.slice(0, 5).join(', ')
+                        : (Array.isArray(i.affectedFiles) && i.affectedFiles.length
+                            ? i.affectedFiles.slice(0, 5).join(', ')
+                            : (i.filePath || '')),
+                    rule: i.pattern || i.rule || 'UNKNOWN',
+                    impact: i.description || i.impact || 'Review required.',
+                    fix: i.recommendedAction || i.recommendation || i.fix || 'Manual review required.'
+                }));
                 return formatToolResult({
-                    gatePass: report.gate?.pass ?? null,
+                    type: 'simplebeacon-report',
+                    version: '1.3.0',
+                    generatedAt: report.generatedAt || new Date().toISOString(),
+                    projectRoot: report.projectRoot || root,
+                    gate: {
+                        pass: report.gate?.pass ?? null,
+                        blockingCount: report.gate?.blockingCount ?? 0,
+                        warningCount: report.gate?.warningCount ?? 0,
+                        blockingFindings: gateBlocking
+                    },
                     qualityScore: report.qualityScore ?? 0,
                     totalFiles: report.totalFiles ?? 0,
                     issueCount: report.issueCount ?? 0,
-                    topIssues: (report.detectedIssues || []).slice(0, 10).map(i => ({
-                        severity: i.severity,
-                        type: i.type,
-                        filePath: i.filePath,
-                        description: i.description
-                    })),
+                    detectedIssues: detectedIssues.slice(0, 12),
+                    summary: {
+                        gatePass: report.gate?.pass ?? null,
+                        qualityScore: report.qualityScore ?? 0
+                    },
                     localOnly: true,
                     methodology: 'Deterministic regex + AST scan — no code uploaded'
                 });

@@ -652,7 +652,9 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         failOn: gateSummary.failOn,
         warnOn: gateSummary.warnOn,
         blockingCount: (gateSummary.blockingIssues || []).reduce((sum, i) => sum + (i.count || 1), 0),
-        warningCount: (gateSummary.warningIssues || []).reduce((sum, i) => sum + (i.count || 1), 0)
+        warningCount: (gateSummary.warningIssues || []).reduce((sum, i) => sum + (i.count || 1), 0),
+        blockingIssues: gateSummary.blockingIssues || [],
+        warningIssues: gateSummary.warningIssues || []
     };
 
     return normalizePlatformScanReport(draftReport, { gateConfig: config.gate });

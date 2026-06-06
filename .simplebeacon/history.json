@@ -1,39 +1,5 @@
 [
   {
-    "scanId": "03a6c3c7-e6d6-439b-94cf-67a4058c5343",
-    "date": "2026-06-04T05:29:19.942Z",
-    "issueCount": 7,
-    "warningCount": 7,
-    "blockingCount": 0,
-    "qualityScore": 100,
-    "gatePass": true,
-    "severityCounts": {
-      "critical": 0,
-      "high": 0,
-      "medium": 0,
-      "low": 14
-    },
-    "fictionPatternsFound": 0,
-    "totalFilesScanned": 1051
-  },
-  {
-    "scanId": "91804f0d-9c5c-4807-af04-60044ff82b56",
-    "date": "2026-06-04T15:52:31.388Z",
-    "issueCount": 3,
-    "warningCount": 3,
-    "blockingCount": 0,
-    "qualityScore": 100,
-    "gatePass": true,
-    "severityCounts": {
-      "critical": 0,
-      "high": 0,
-      "medium": 2,
-      "low": 1
-    },
-    "fictionPatternsFound": 0,
-    "totalFilesScanned": 42
-  },
-  {
     "scanId": "ec413605-dd4e-4ed3-baed-93c2ca6c8a4e",
     "date": "2026-06-04T16:05:41.585Z",
     "issueCount": 18,
@@ -508,5 +474,39 @@
     },
     "fictionPatternsFound": 0,
     "totalFilesScanned": 1145
+  },
+  {
+    "scanId": "dc2d6236-a3e2-4a22-8416-bca653c84958",
+    "date": "2026-06-06T16:41:53.850Z",
+    "issueCount": 29,
+    "warningCount": 27,
+    "blockingCount": 2,
+    "qualityScore": 82,
+    "gatePass": false,
+    "severityCounts": {
+      "critical": 1,
+      "high": 1,
+      "medium": 0,
+      "low": 27
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 1147
+  },
+  {
+    "scanId": "e79f1435-2a3d-4853-9113-5902fcdfcb6e",
+    "date": "2026-06-06T16:43:25.482Z",
+    "issueCount": 29,
+    "warningCount": 27,
+    "blockingCount": 2,
+    "qualityScore": 82,
+    "gatePass": false,
+    "severityCounts": {
+      "critical": 1,
+      "high": 1,
+      "medium": 0,
+      "low": 27
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 1148
   }
 ]

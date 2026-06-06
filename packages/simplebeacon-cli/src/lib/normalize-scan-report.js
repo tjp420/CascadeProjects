@@ -55,7 +55,9 @@ function normalizePlatformScanReport(report, options = {}) {
         failOn: gateEval.failOn,
         warnOn: gateEval.warnOn,
         blockingCount: gateEval.blockingIssues.reduce((sum, i) => sum + (i.count || 1), 0),
-        warningCount: gateEval.warningIssues.reduce((sum, i) => sum + (i.count || 1), 0)
+        warningCount: gateEval.warningIssues.reduce((sum, i) => sum + (i.count || 1), 0),
+        blockingIssues: gateEval.blockingIssues,
+        warningIssues: gateEval.warningIssues
     };
     const issueCount = gate.blockingCount + gate.warningCount;
 

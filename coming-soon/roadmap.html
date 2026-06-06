@@ -174,7 +174,7 @@
       const credFindings=report.credentialFindings!=null?Number(report.credentialFindings):(report.gate?.blockingCount!=null?Number(report.gate.blockingCount):null);
       const leakFindings=report.productionLeakFindings!=null?Number(report.productionLeakFindings):null;
       const euAiAct=report.euAiActFindings!=null?Number(report.euAiActFindings):(report.euAiActSummary?.aiSystemIndicators!=null?Number(report.euAiActSummary.aiSystemIndicators):null);
-      const llmSlop=report.llmSlopPatternHits!=null?Number(report.llmSlopPatternHits):(report.roadmap?.todoCount!=null?Number(report.roadmap.todoCount):null);
+      const todoMarkers=report.todoMarkerCount!=null?Number(report.todoMarkerCount):(report.roadmap?.todoCount!=null?Number(report.roadmap.todoCount):null);
 
       // Phase 1: Security (only if measured and has findings)
       if((credFindings!=null&&credFindings>0)||(leakFindings!=null&&leakFindings>0)){
@@ -225,9 +225,9 @@
       }
 
       // Phase 5: Quality Optimization (only if qualityScore was measured)
-      if(qs!=null&&(qs<95||(llmSlop!=null&&llmSlop>0))){
+      if(qs!=null&&(qs<95||(todoMarkers!=null&&todoMarkers>0))){
         const t=[];
-        if(llmSlop!=null&&llmSlop>0)t.push(`Audit ${llmSlop} LLM slop pattern hit(s)`);
+        if(todoMarkers!=null&&todoMarkers>0)t.push(`Address ${todoMarkers} TODO/FIXME marker(s) in source code`);
         if(qs<85)t.push('Refactor low-quality modules (quality score < 85)');
         t.push('Add test coverage for uncovered modules','Install pre-commit hooks for automated scanning','Schedule monthly quality gate reviews');
         phases.push({id:'optimization',title:`Phase ${phases.length+1}: Quality Optimization`,severity:qs<70?'high':'low',effort:'Ongoing',description:`Drive quality score from ${qs}/100 toward 95+.`,tasks:t,progress:Math.min(100,Math.round(qs)),status:qs>=95?'completed':'in-progress'});

@@ -579,11 +579,32 @@
             background: linear-gradient(145deg, rgba(37, 99, 235, 0.08), transparent);
             box-shadow: 0 0 0 1px var(--accent), 0 4px 20px rgba(37, 99, 235, 0.15);
         }
+        .analyzer-card .card-check {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: transparent;
+            transition: all 0.2s ease;
+        }
+        .analyzer-card.selected .card-check {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: white;
+        }
         .analyzer-card.locked {
             opacity: 0.45;
             cursor: not-allowed;
             filter: grayscale(0.6);
         }
+        .analyzer-card.locked .card-check { display: none; }
         .analyzer-card.locked::after {
             content: '\1F512';
             position: absolute;
@@ -2261,74 +2282,103 @@
         const capMatrix = document.getElementById('capMatrix');
         const capMatrixRows = document.getElementById('capMatrixRows');
 
-        // Card icons for each profile
-        const PROFILE_ICONS = {
-            gate: '&#128737;',
-            codebase: '&#128187;',
-            euai: '&#127757;',
-            compliance: '&#128220;',
-            hygiene: '&#129522;',
-            complete: '&#11088;',
-            instant: '&#9889;'
+        // 11 Individual Analyzer Module Cards
+        const MODULE_CARDS = [
+            { id: 'gate', label: 'Gate Scan', desc: 'Credential patterns, AI/LLM imports, hardcoded secrets.', icon: '&#128737;' },
+            { id: 'consolidation', label: 'Consolidation', desc: 'Duplicate file groups and monorepo markers.', icon: '&#128260;' },
+            { id: 'mock-data', label: 'Mock Data', desc: 'Fixture, sample, and test-data files.', icon: '&#129522;' },
+            { id: 'roadmap', label: 'Roadmap', desc: 'TODO, FIXME, HACK, and BUG markers in code.', icon: '&#128220;' },
+            { id: 'codebase', label: 'Codebase Audit', desc: 'File type breakdown, line counts, and structure.', icon: '&#128187;' },
+            { id: 'file-reduction', label: 'File Reduction', desc: 'Unused image assets and duplicate content.', icon: '&#128450;' },
+            { id: 'data-quality', label: 'Data Quality', desc: 'Empty or trivial JSON files.', icon: '&#127922;' },
+            { id: 'cleanup', label: 'Cleanup', desc: 'Debug artifacts: console.log, debugger, TODO.', icon: '&#129532;' },
+            { id: 'npm-audit', label: 'npm Audit', desc: 'Package.json files and dependency counts.', icon: '&#128230;' },
+            { id: 'compliance', label: 'Compliance', desc: 'License, security, and governance files.', icon: '&#128196;' },
+            { id: 'eu-ai-act', label: 'EU AI Act', desc: 'AI system indicators and regulatory readiness.', icon: '&#127757;' }
+        ];
+
+        // Which modules each tier may select
+        const TIER_MODULE_MAP = {
+            locked: [],
+            community: ['gate'],
+            instant: ['gate'],
+            executive: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance'],
+            euai: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act'],
+            universal: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act']
         };
 
-        // Speed labels
-        const PROFILE_SPEED = {
-            gate: { label: 'Fast', cls: 'badge-fast' },
-            codebase: { label: 'Medium', cls: 'badge-medium' },
-            euai: { label: 'Medium', cls: 'badge-medium' },
-            compliance: { label: 'Fast', cls: 'badge-fast' },
-            hygiene: { label: 'Fast', cls: 'badge-fast' },
-            complete: { label: 'Thorough', cls: 'badge-thorough' },
-            instant: { label: 'Fast', cls: 'badge-fast' }
-        };
+        // Multi-select module picker for ZIP export
+        const selectedModules = new Set();
 
-        // Render analyzer cards
+        // Render analyzer cards as multi-select checklist
         function renderAnalyzerCards() {
             if (!analyzerCardGrid) return;
             analyzerCardGrid.innerHTML = '';
-            Object.entries(BROWSER_SCAN_PROFILES).forEach(([key, profile]) => {
+            MODULE_CARDS.forEach(mod => {
                 const card = document.createElement('div');
                 card.className = 'analyzer-card';
-                card.dataset.value = key;
-                const icon = PROFILE_ICONS[key] || '&#9889;';
-                const speed = PROFILE_SPEED[key] || { label: 'Medium', cls: 'badge-medium' };
+                card.dataset.value = mod.id;
                 card.innerHTML = `
-                    <div class="card-icon">${icon}</div>
-                    <div class="card-title">${profile.label}</div>
-                    <div class="card-desc">${profile.help}</div>
-                    <div class="card-badges">
-                        <span class="badge-chip ${speed.cls}">${speed.label}</span>
-                    </div>
-                    <div class="capability-bar">
-                        <div class="cap-dot ${profile.checkAi ? 'active' : ''}"></div>
-                        <div class="cap-dot ${profile.checkCredentials ? 'active' : ''}"></div>
-                        <div class="cap-dot ${profile.checkDebug ? 'active' : ''}"></div>
-                        <div class="cap-dot ${profile.checkGov ? 'active' : ''}"></div>
-                    </div>
+                    <div class="card-check">&#10003;</div>
+                    <div class="card-icon">${mod.icon}</div>
+                    <div class="card-title">${mod.label}</div>
+                    <div class="card-desc">${mod.desc}</div>
                 `;
                 card.addEventListener('click', () => {
                     if (card.classList.contains('locked')) {
-                        showToast('Upgrade your token to unlock this scan profile.', 'warning');
+                        showToast('Upgrade your token to unlock this module.', 'warning');
                         return;
                     }
-                    selectAnalyzerCard(key);
+                    toggleModuleSelection(mod.id, card);
                 });
                 analyzerCardGrid.appendChild(card);
             });
-            selectAnalyzerCard(browserScanProfile?.value || 'complete');
+            // Default: select all unlocked modules
+            syncModuleSelectionFromTier();
         }
 
-        function selectAnalyzerCard(value) {
-            if (!analyzerCardGrid || !browserScanProfile) return;
-            browserScanProfile.value = value;
+        function toggleModuleSelection(id, card) {
+            if (selectedModules.has(id)) {
+                selectedModules.delete(id);
+                card.classList.remove('selected');
+            } else {
+                selectedModules.add(id);
+                card.classList.add('selected');
+            }
+        }
+
+        function syncModuleSelectionFromTier() {
+            if (!analyzerCardGrid) return;
+            const tier = (() => {
+                const token = document.getElementById('licenseToken')?.value || '';
+                try {
+                    const parts = token.split('.');
+                    const data = parts.length === 2 ? parts[0] : parts[1];
+                    if (!data) return 'locked';
+                    const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+                    const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+                    const json = JSON.parse(atob(padded));
+                    return json.tier || 'locked';
+                } catch (e) { return 'locked'; }
+            })();
+            const allowed = TIER_MODULE_MAP[tier] || TIER_MODULE_MAP.universal;
+            selectedModules.clear();
             Array.from(analyzerCardGrid.children).forEach(card => {
-                card.classList.toggle('selected', card.dataset.value === value);
+                const ok = allowed.includes(card.dataset.value);
+                card.classList.toggle('locked', !ok);
+                if (ok) {
+                    selectedModules.add(card.dataset.value);
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
             });
-            const profile = BROWSER_SCAN_PROFILES[value] || BROWSER_SCAN_PROFILES.complete;
-            if (scanProfileHelp) scanProfileHelp.textContent = profile.help;
-            if (sandboxNoteText) sandboxNoteText.innerHTML = profile.note;
-            updateCapMatrix(value);
+            // Update UI help text based on first selected module
+            const first = Array.from(analyzerCardGrid.children).find(c => c.classList.contains('selected'));
+            if (first && scanProfileHelp) {
+                const mod = MODULE_CARDS.find(m => m.id === first.dataset.value);
+                scanProfileHelp.textContent = mod ? mod.desc : 'Select modules to include in your ZIP report.';
+            }
         }
 
         function updateCapMatrix(activeKey) {
@@ -2351,8 +2401,6 @@
                 </div>
             `).join('');
         }
-
-        renderAnalyzerCards();
 
         // Product-aware configuration — prices match pricing.html
         const PRODUCT_CONFIG = {
@@ -2412,6 +2460,8 @@
             euai: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],      // $2,499 Sprint — all engines + analyst access
             universal: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete']
         };
+
+        renderAnalyzerCards();
 
         function filterScanProfiles(tier) {
             const allowed = TIER_PROFILES[tier] || TIER_PROFILES.universal;
@@ -3021,6 +3071,10 @@
                 if (traverseErrors > 0) {
                     appendTerminalLine(`Warning: ${traverseErrors} files could not be read during directory traversal.`, 'warn');
                 }
+                // Warn about browser API truncation (~10k file limit in some browsers)
+                if (files.length >= 10000 && files.length % 1000 === 0) {
+                    appendTerminalLine(`<span style="color:#EF4444;font-weight:700;">&#9888; Warning:</span> Exactly ${files.length.toLocaleString()} files discovered — browser may have truncated. Drag additional folders or use CLI for full coverage.`, 'warn');
+                }
                 await processLocalCLIScan(files);
             }
         });
@@ -3466,7 +3520,11 @@
                 const gateColor = g.pass === true ? '#34D399' : (g.pass === false ? '#EF4444' : '#60A5FA');
                 const gateBorder = g.pass === true ? '#34D399' : (g.pass === false ? '#EF4444' : '#60A5FA');
                 const gateIssues = (data.detectedIssues || data.issues || []).filter(i => i.severity === 'high' || i.severity === 'critical' || i.severity === 'medium');
-                const gateDetail = gateIssues.length ? `<div class="detail-label">Blocking Findings</div><ul>${gateIssues.map(i => { const fp = Array.isArray(i.filePath) ? i.filePath : (i.filePath || '').split(','); return `<li><strong style="color:${i.severity==='high'||i.severity==='critical'?'#EF4444':'#F59E0B'};">${(i.severity||'').toUpperCase()}</strong> — ${i.type||''} (${i.count||0})<br><span style="opacity:0.7;">${fp.slice(0,3).join(', ')}${fp.length>3?' ...':''}</span></li>`; }).join('')}</ul>${gateIssues.some(i=>i.fix)?`<div class="detail-fix"><strong>Remediation:</strong> ${gateIssues.map(i=>i.fix).filter(Boolean).slice(0,2).join(' ')}</div>`:''}` : `<div class="detail-label">No blocking findings</div><div style="font-size:0.72rem;color:var(--text-muted);">Gate is clear. Continue to next phase.</div>`;
+                const gateDetail = gateIssues.length ? `<div class="detail-label">Blocking Findings</div><ul>${gateIssues.map(i => {
+                    const fp = Array.isArray(i.filePath) ? i.filePath : (i.filePath || '').split(',');
+                    const findingsHtml = i.findings && i.findings.length ? `<div style="margin:4px 0;padding:4px 6px;background:rgba(30,41,59,0.5);border-radius:4px;font-size:0.65rem;font-family:monospace;color:#94A3B8;">${i.findings.slice(0,2).flatMap(f => f.matches ? f.matches.map(m => `Line ${m.line}: ${m.snippet.slice(0,80)}`) : []).join('<br>')}</div>` : '';
+                    return `<li><strong style="color:${i.severity==='high'||i.severity==='critical'?'#EF4444':'#F59E0B'};">${(i.severity||'').toUpperCase()}</strong> — ${i.type||''} (${i.count||0})<br><span style="opacity:0.7;">${fp.slice(0,3).join(', ')}${fp.length>3?' ...':''}</span>${findingsHtml}</li>`;
+                }).join('')}</ul>${gateIssues.some(i=>i.fix)?`<div class="detail-fix"><strong>Remediation:</strong> ${gateIssues.map(i=>i.fix).filter(Boolean).slice(0,2).join(' ')}</div>`:''}` : `<div class="detail-label">No blocking findings</div><div style="font-size:0.72rem;color:var(--text-muted);">Gate is clear. Continue to next phase.</div>`;
                 pushCard('1', '🛡️', 'Gate', [
                     {value: gateStatus, label: 'Result', color: gateColor},
                     {value: g.blockingCount ?? 0, label: 'Blocking'}
@@ -3669,6 +3727,17 @@
 
         // 3. Main scan engine
         async function processLocalCLIScan(files) {
+            // Normalize Windows backslashes to forward slashes in all file paths
+            for (const f of files) {
+                const raw = f.webkitRelativePath || f.name;
+                if (raw.includes('\\')) {
+                    Object.defineProperty(f, 'webkitRelativePath', {
+                        value: raw.replace(/\\/g, '/'),
+                        writable: false,
+                        configurable: true
+                    });
+                }
+            }
             // Defense-in-depth: token must be present
             if (!hasValidToken()) {
                 showToast('Paste a license token to unlock scanning.', 'warning');
@@ -3703,7 +3772,8 @@
             }
 
             try {
-            const profileKey = browserScanProfile?.value || 'gate';
+            // Scan always runs 'complete' so all modules have data; ZIP filters to selected modules
+            const profileKey = 'complete';
             const profile = BROWSER_SCAN_PROFILES[profileKey];
             const allowedSections = PROFILE_SECTIONS[profileKey] || PROFILE_SECTIONS.complete;
             if (browserFolderDropzone) browserFolderDropzone.classList.add('scanning');
@@ -3754,6 +3824,35 @@
             const fileTypes = {};
             const startTime = Date.now();
 
+            // Rich finding collectors: per-file, per-line findings with context
+            const aiFindings = [];
+            const credentialFindings = [];
+            const debugFindings = [];
+            const govFindings = [];
+
+            // Helper: extract regex matches with line numbers and context
+            function extractMatches(text, pattern, maxMatches = 5) {
+                const matches = [];
+                const lines = text.split('\n');
+                const regex = new RegExp(pattern.source || pattern, pattern.flags || 'i');
+                for (let li = 0; li < lines.length && matches.length < maxMatches; li++) {
+                    const line = lines[li];
+                    if (regex.test(line)) {
+                        const snippet = line.trim().slice(0, 120);
+                        matches.push({
+                            line: li + 1,
+                            snippet: snippet,
+                            context: [
+                                lines[Math.max(0, li - 1)]?.trim().slice(0, 100) || null,
+                            snippet,
+                                lines[Math.min(lines.length - 1, li + 1)]?.trim().slice(0, 100) || null
+                            ].filter(Boolean)
+                        });
+                    }
+                }
+                return matches;
+            }
+
             // 1. Check for user-provided .simplebeaconignore
             let ignorePatterns = [];
             const ignoreFile = files.find(f => (f.webkitRelativePath || f.name).endsWith('.simplebeaconignore'));
@@ -3770,8 +3869,9 @@
                 const lowerPath = path.toLowerCase();
                 let reason = null;
 
-                if (f.size >= 500 * 1024 * 1024) {
-                    reason = 'File > 500MB';
+                const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB — large enough for fat binaries, still protects memory
+                if (f.size >= MAX_FILE_SIZE) {
+                    reason = 'File > 2GB';
                 } else if (!deepScan && skipDeps && (/node_modules\/|\.git\//.test(lowerPath))) {
                     reason = 'Core exclusion';
                 } else if (/\.simplebeacon\//.test(lowerPath)) {
@@ -3780,8 +3880,8 @@
                     reason = 'Benchmark cache';
                 } else if (/\.github-sync\//.test(lowerPath)) {
                     reason = 'Git sync cache';
-                } else if (!deepScan && /\.git\/hooks\/.*\.sample$/.test(lowerPath)) {
-                    reason = 'Git hook sample';
+                } else if (!deepScan && /\.git\/objects\/|\.git\/pack\/|\.git\/idx$/.test(lowerPath)) {
+                    reason = 'Git binary blob';
                 } else if (!deepScan && lowerPath.endsWith('upload.html')) {
                     reason = 'Scanner page';
                 } else if (ignorePatterns.some(p => p.test(path))) {
@@ -3839,24 +3939,48 @@
                     const isGitInternal = /\.git\//.test(lowerPath);
                     if (isGitInternal) continue; // safety net: never scan .git internals
                     const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)([-_][a-z]+)?(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
-                    if (profile.checkAi && /new\s+openai|require\s*\(\s*['"]openai['"]\s*\)|import\s+.*openai|from\s+['"]openai['"]|from\s+['"]@anthropic['"]|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/.test(lower)) {
-                        aiHits.push(path);
-                        appendTerminalLine(`AI indicator detected: <span style="color:#94A3B8;">${path}</span>`, 'warn');
+                    // AI indicators — collect with line-level detail (exclude test output logs)
+                    const isTestOutput = /test-(output|debug|failures|log|complete|auto)\.(txt|log)$/i.test(path) || /\.(txt|log)$/i.test(path) && /test|debug|output|log/i.test(path.split('/').pop());
+                    if (profile.checkAi && !isTestOutput) {
+                        const aiPattern = /new\s+openai|require\s*\(\s*['"]openai['"]\s*\)|import\s+.*openai|from\s+['"]openai['"]|from\s+['"]@anthropic['"]|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/i;
+                        const aiMatches = extractMatches(text, aiPattern, 3);
+                        if (aiMatches.length > 0) {
+                            aiHits.push(path);
+                            aiFindings.push({ file: path, matches: aiMatches });
+                            appendTerminalLine(`AI indicator detected: <span style="color:#94A3B8;">${path}</span> (${aiMatches.length} match${aiMatches.length !== 1 ? 'es' : ''})`, 'warn');
+                        }
                     }
-                    // Skip test/sample/demo/vulnerable files from credential detection — not production source
+                    // Credential patterns — collect with line-level detail (skip test/sample/demo/vulnerable files)
                     const isSampleOrTest = /\.(test|spec)\.|sample-|demo-|fixture-|mock-|audit-|vulnerable|exposed|leaky_|positive-test|\.simplebeacon\/|test-cert\/|__tests__\/|mocks\/|fixtures\//i.test(lowerPath);
-                    if (profile.checkCredentials && !isNodeModuleDoc && !isSampleOrTest && /password\s*=\s*['"][^'"]{6,}|api[_-]?key\s*=\s*['"][a-z0-9]{12,}|secret[_-]?key\s*=\s*['"][a-z0-9]{12,}|private_key\s*=\s*['"][^'"]{8,}|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}|API_KEY\s*=\s*['"][A-Za-z0-9_\-]{16,}|SECRET\s*=\s*['"][A-Za-z0-9_\-]{12,}|AUTH_TOKEN\s*=\s*['"][A-Za-z0-9_\-]{12,}/i.test(text)) {
-                        credentialHits++;
-                        credFiles.push(path);
+                    if (profile.checkCredentials && !isNodeModuleDoc && !isSampleOrTest) {
+                        const credPattern = /password\s*=\s*['"][^'"]{6,}|api[_-]?key\s*=\s*['"][a-z0-9]{12,}|secret[_-]?key\s*=\s*['"][a-z0-9]{12,}|private_key\s*=\s*['"][^'"]{8,}|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}|API_KEY\s*=\s*['"][A-Za-z0-9_\-]{16,}|SECRET\s*=\s*['"][A-Za-z0-9_\-]{12,}|AUTH_TOKEN\s*=\s*['"][A-Za-z0-9_\-]{12,}/i;
+                        const credMatches = extractMatches(text, credPattern, 3);
+                        if (credMatches.length > 0) {
+                            credentialHits++;
+                            credFiles.push(path);
+                            credentialFindings.push({ file: path, matches: credMatches });
+                        }
                     }
-                    // Skip node_modules, CI workflows, and docs from debug detection — not user source code
+                    // Debug artifacts — collect with line-level detail (source code only)
                     const isCiWorkflow = /\.github\/workflows\//.test(lowerPath);
-                    const isDocFile = /\.(md|txt|pdf|doc|docx)$/i.test(path);
-                    if (profile.checkDebug && !isNodeModule && !isCiWorkflow && !isDocFile && /console\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|(?:\/\/|\/\*|\#)\s*(?:TODO|FIXME|HACK|XXX|BUG|TEMP|DELETE|REMOVE)|\b(?:todo|fixme|hack|xxx|bug|delete|remove)\b\s*[:;]|alert\s*\(|prompt\s*\(|confirm\s*\(/i.test(text)) {
-                        debugHits.push(path);
+                    const isSourceCode = /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|c|cpp|h|hpp|cs|php|rb|swift|kt|scala|dart|vue|svelte)$/i.test(path);
+                    if (profile.checkDebug && !isNodeModule && !isCiWorkflow && isSourceCode) {
+                        // Runtime debug artifacts only — not TODO comments
+                        const debugPattern = /console\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|alert\s*\(|prompt\s*\(|confirm\s*\(/i;
+                        const debugMatches = extractMatches(text, debugPattern, 3);
+                        if (debugMatches.length > 0) {
+                            debugHits.push(path);
+                            debugFindings.push({ file: path, matches: debugMatches });
+                        }
                     }
-                    if (profile.checkGov && /SPDX-License-Identifier|MIT License|Apache License|GNU General Public License|All rights reserved|Copyright \(c\)|License: /i.test(text)) {
-                        govHits.push(path);
+                    // Governance markers — collect with line-level detail
+                    if (profile.checkGov) {
+                        const govPattern = /SPDX-License-Identifier|MIT License|Apache License|GNU General Public License|All rights reserved|Copyright \(c\)|License: /i;
+                        const govMatches = extractMatches(text, govPattern, 3);
+                        if (govMatches.length > 0) {
+                            govHits.push(path);
+                            govFindings.push({ file: path, matches: govMatches });
+                        }
                     }
                     // --- 11 Analysis Category Heuristics (profile-gated) ---
                     // 3. Mock data: fixture/sample/test-data files
@@ -3931,7 +4055,8 @@
                             imageFiles.push({ path, name: baseName });
                         }
                     }
-                    if ((i + 1) % 5 === 0 || i === sourceFiles.length - 1) {
+                    // Log every 100th file (or last) to reduce DOM thrashing
+                    if ((i + 1) % 100 === 0 || i === sourceFiles.length - 1) {
                         appendTerminalLine(`Scanning chunk: <span style="color:#94A3B8;">${path}</span> (${lineCount} lines)`);
                     }
                 } catch (e) {
@@ -3939,18 +4064,23 @@
                 }
                 scanned++;
                 const pct = Math.round(((i + 1) / sourceFiles.length) * 100);
-                panelProgressBar.style.width = pct + '%';
-                if (localScanFileName && i % 10 === 0) {
+                // Batch DOM updates: progress bar every 50 files, text every 100
+                if ((i + 1) % 50 === 0 || i === sourceFiles.length - 1) {
+                    panelProgressBar.style.width = pct + '%';
+                }
+                if (localScanFileName && (i % 100 === 0 || i === sourceFiles.length - 1)) {
                     localScanFileName.textContent = `Scanning ${scanned.toLocaleString()} of ${sourceFiles.length.toLocaleString()} files (${pct}%) — ${path.split('/').pop()}`;
                 }
-                // Real-time findings summary in metrics
-                const findingParts = [`Files: ${scanned}/${sourceFiles.length}`];
-                if (profile.checkCredentials && credentialHits > 0) findingParts.push(`Creds: ${credentialHits}`);
-                if (profile.checkAi && aiHits.length > 0) findingParts.push(`AI: ${aiHits.length}`);
-                if (profile.checkDebug && debugHits.length > 0) findingParts.push(`Debug: ${debugHits.length}`);
-                panelMetrics.textContent = findingParts.join(' · ');
-                // Yield to browser every 50 files, and check for abort
-                if (i % 50 === 0) {
+                // Batch metrics update every 50 files
+                if ((i + 1) % 50 === 0 || i === sourceFiles.length - 1) {
+                    const findingParts = [`Files: ${scanned}/${sourceFiles.length}`];
+                    if (profile.checkCredentials && credentialHits > 0) findingParts.push(`Creds: ${credentialHits}`);
+                    if (profile.checkAi && aiHits.length > 0) findingParts.push(`AI: ${aiHits.length}`);
+                    if (profile.checkDebug && debugHits.length > 0) findingParts.push(`Debug: ${debugHits.length}`);
+                    panelMetrics.textContent = findingParts.join(' · ');
+                }
+                // Yield to browser every 100 files, and check for abort
+                if (i % 100 === 0) {
                     await new Promise(r => setTimeout(r, 0));
                     if (signal.aborted) {
                         appendTerminalLine('Scan aborted by user.', 'warn');
@@ -3989,7 +4119,7 @@
             // 4. Score & report
             const aiPenalty = profile.checkAi ? Math.min(aiHits.length * 2, 20) : 0;
             const credPenalty = profile.checkCredentials ? Math.min(credentialHits * 10, 30) : 0;
-            const debugPenalty = profile.checkDebug ? Math.min(debugHits.length * 1, 10) : 0;
+            const debugPenalty = profile.checkDebug ? Math.min(debugHits.length * 0.5, 5) : 0;
             const qualityScore = Math.max(0, 100 - aiPenalty - credPenalty - debugPenalty);
             const gatePass = credentialHits < 3;
 
@@ -4020,10 +4150,10 @@
                 issueCount: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
                 simplebeaconIssues: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
                 detectedIssues: [
-                    ...(profile.checkAi && aiHits.length ? [{ severity: 'low', severityBand: 'low', type: 'AI System Indicator', count: aiHits.length, filePath: aiHits.slice(0,10), rule: 'AI_IMPLEMENTATION_PATTERN', impact: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.', fix: 'Review and remediate before enabling --gate on main.' }] : []),
-                    ...(profile.checkCredentials && credentialHits ? [{ severity: 'medium', severityBand: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: credFiles.slice(0,10), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.' }] : []),
-                    ...(profile.checkDebug && debugHits.length ? [{ severity: 'low', severityBand: 'low', type: 'Debug Artifact', count: debugHits.length, filePath: debugHits.slice(0,10), rule: 'DEBUG_ARTIFACT', impact: 'HYGIENE RISK: Debug artifacts should not reach production builds.', fix: 'Remove console.log, debugger, TODO, and FIXME markers before release.' }] : []),
-                    ...(profile.checkGov && govHits.length ? [{ severity: 'low', severityBand: 'low', type: 'License/Governance Marker', count: govHits.length, filePath: govHits.slice(0,10), rule: 'GOVERNANCE_PATTERN', impact: 'INFO: License headers and copyright notices detected. Verify compliance with open-source policy.', fix: 'Review license compatibility with your product distribution model.' }] : [])
+                    ...(profile.checkAi && aiFindings.length ? [{ severity: 'low', severityBand: 'low', type: 'AI System Indicator', count: aiFindings.reduce((a, f) => a + f.matches.length, 0), filePath: aiFindings.slice(0,10).map(f => f.file), rule: 'AI_IMPLEMENTATION_PATTERN', impact: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.', fix: 'Review and remediate before enabling --gate on main.', findings: aiFindings.slice(0,5) }] : []),
+                    ...(profile.checkCredentials && credentialFindings.length ? [{ severity: 'medium', severityBand: 'medium', type: 'Credential Pattern', count: credentialFindings.reduce((a, f) => a + f.matches.length, 0), filePath: credentialFindings.slice(0,10).map(f => f.file), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.', findings: credentialFindings.slice(0,5) }] : []),
+                    ...(profile.checkDebug && debugFindings.length ? [{ severity: 'low', severityBand: 'low', type: 'Debug Artifact', count: debugFindings.reduce((a, f) => a + f.matches.length, 0), filePath: debugFindings.slice(0,10).map(f => f.file), rule: 'DEBUG_ARTIFACT', impact: 'HYGIENE RISK: Debug artifacts should not reach production builds.', fix: 'Remove console.log, debugger, TODO, and FIXME markers before release.', findings: debugFindings.slice(0,5) }] : []),
+                    ...(profile.checkGov && govFindings.length ? [{ severity: 'low', severityBand: 'low', type: 'License/Governance Marker', count: govFindings.reduce((a, f) => a + f.matches.length, 0), filePath: govFindings.slice(0,10).map(f => f.file), rule: 'GOVERNANCE_PATTERN', impact: 'INFO: License headers and copyright notices detected. Verify compliance with open-source policy.', fix: 'Review license compatibility with your product distribution model.', findings: govFindings.slice(0,5) }] : [])
                 ],
                 issues: [
                     ...(profile.checkAi && aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
@@ -4048,7 +4178,7 @@
                     pass: gatePass,
                     blockingCount: credentialHits,
                     warningCount: 0,
-                    blockingFindings: (profile.checkCredentials && credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: credFiles.slice(0,10).join(', '), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.' }] : [])
+                    blockingFindings: (profile.checkCredentials && credentialFindings.length ? credentialFindings.slice(0,5).map(f => ({ severity: 'medium', type: 'Credential Pattern', count: f.matches.length, filePath: f.file, rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.', findings: f.matches })) : [])
                 },
                 gateReport: {
                     pass: gatePass,
@@ -4193,10 +4323,10 @@
             setTimeout(() => {
                 document.getElementById('tokenActionRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
-            const statusParts = [`${profile.label} complete: ${sourceFiles.length} files`];
-            if (profile.checkAi) statusParts.push(`${aiHits.length} AI indicators`);
-            if (profile.checkCredentials) statusParts.push(`${credentialHits} credentials`);
-            if (profile.checkDebug) statusParts.push(`${debugHits.length} debug artifacts`);
+            const statusParts = [`Complete scan: ${sourceFiles.length} files`, `${selectedModules.size} modules selected for ZIP`];
+            if (credentialHits) statusParts.push(`${credentialHits} credentials`);
+            if (aiHits.length) statusParts.push(`${aiHits.length} AI indicators`);
+            if (debugHits.length) statusParts.push(`${debugHits.length} debug artifacts`);
             showStatus(statusParts.join(' · ') + '. Token required for certificate.', 'success');
 
             // Build Secure Report preview + download
@@ -4295,7 +4425,9 @@
             const fileCount = report.totalFiles || report.filesAnalyzed || 0;
             const lineCount = report.codebase?.totalLines || report.totalLines || 0;
             const issueCount = report.issueCount || report.simplebeaconIssues || 0;
-            const profileLabel = report.scanProfileLabel || (report.type ? report.type.replace('simplebeacon-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Scan');
+            const profileLabel = selectedModules.size > 1
+                ? `${selectedModules.size} Modules Selected`
+                : (report.scanProfileLabel || (report.type ? report.type.replace('simplebeacon-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Scan'));
 
             // Compute SHA-256 of report for the certificate seal
             const reportStr = JSON.stringify(report, null, 2);
@@ -4556,6 +4688,10 @@
                 });
             }
 
+            // 3.5 Filter modules by user-selected cards for ZIP export
+            const zipModules = modules.filter(m => selectedModules.has(m.id));
+            console.log('[Certificate]', modules.length, 'modules built;', zipModules.length, 'selected for ZIP');
+
             // 4. Build HTML certificate (readable, searchable, printable)
             const certHtml = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>SimpleBeacon Certificate — ${escapeHtml(projectName)}</title>
@@ -4566,8 +4702,8 @@
 <div class="panel"><div><span style="color:#9CA3AF;">Project:</span> <strong>${escapeHtml(projectName)}</strong></div><div><span style="color:#9CA3AF;">Files:</span> <strong>${fileCount}</strong></div><div><span style="color:#9CA3AF;">Lines:</span> <strong>${lineCount.toLocaleString()}</strong></div><div><span style="color:#9CA3AF;">Gate:</span> <strong style="color:${gateColor};">${gateLabel}</strong></div><div><span style="color:#9CA3AF;">Grade:</span> <strong style="color:${gradeColor};font-size:13px;">${grade}</strong></div><div><span style="color:#9CA3AF;">Findings:</span> <strong>${issueCount}</strong></div><div><span style="color:#9CA3AF;">Scope:</span> <strong>${report.generatedBy?.includes('Browser') ? 'Browser Sandbox' : 'Local CLI'}</strong></div><div><span style="color:#9CA3AF;">Quality:</span> <strong>${qs}/100</strong></div></div>
 ${euAiActSection}
 <div class="seal"><p style="font-size:9px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 6px;">Cryptographic Verification Seal</p><code>SHA-256: ${reportHash}</code><p style="font-size:8px;color:#475569;margin:4px 0 0;">This hash cryptographically binds the certificate to the underlying report.json. Re-scanning will produce a different hash.</p></div>
-<h2 style="font-size:14px;margin:24px 0 12px;border-bottom:1px solid #1E293B;padding-bottom:8px;">Analysis Modules</h2>
-<table><thead><tr><th>Module</th><th>Status</th><th>Key Metric</th><th style="width:40%;">Summary</th></tr></thead><tbody>${modules.map(m => {
+<h2 style="font-size:14px;margin:24px 0 12px;border-bottom:1px solid #1E293B;padding-bottom:8px;">Analysis Modules (${zipModules.length} of ${modules.length})</h2>
+<table><thead><tr><th>Module</th><th>Status</th><th>Key Metric</th><th style="width:40%;">Summary</th></tr></thead><tbody>${zipModules.map(m => {
     const d = m.data;
     // Status: enriched data uses .status string; raw data uses .pass/.gatePass boolean
     let status = '<span class="review">REVIEW</span>';
@@ -4716,7 +4852,7 @@ Generated entirely in-browser. Zero data uploaded.
 `;
 
             // 6. Assemble ZIP
-            console.log('[Certificate] Assembling ZIP with', modules.length, 'modules...');
+            console.log('[Certificate] Assembling ZIP with', zipModules.length, 'modules...');
             zip.file('certificate.html', certHtml);
             zip.file('certificate.png', pngBlob);
             zip.file('report.json', reportStr);
@@ -4727,13 +4863,13 @@ Generated entirely in-browser. Zero data uploaded.
                 certificateId: certId,
                 tokenPrefix: token.slice(0,8) + '...',
                 reportIntegrity: reportHash,
-                modulesIncluded: modules.map(m => m.id),
-                moduleCount: modules.length,
+                modulesIncluded: zipModules.map(m => m.id),
+                moduleCount: zipModules.length,
                 localOnly: true,
                 zeroUpload: true
             }, null, 2));
             const modulesFolder = zip.folder('modules');
-            for (const m of modules) {
+            for (const m of zipModules) {
                 modulesFolder.file(m.id + '.json', JSON.stringify(m.data, null, 2));
             }
 
@@ -4741,7 +4877,7 @@ Generated entirely in-browser. Zero data uploaded.
             modulesFolder.file('index.json', JSON.stringify({
                 generatedAt: isoDate,
                 certificateId: certId,
-                modules: modules.map(m => {
+                modules: zipModules.map(m => {
                     const d = m.data;
                     let status = 'REVIEW';
                     if (d.pass === true || d.gatePass === true) status = 'PASS';
@@ -4804,10 +4940,12 @@ ${gateBlocking.length ? gateBlocking.map(f => `### ${f.type || 'Blocking Finding
 - **Files:** ${(Array.isArray(f.filePath) ? f.filePath : (f.filePath || 'N/A').split(',')).slice(0, 5).join(', ')}${(Array.isArray(f.filePath) ? f.filePath.length > 5 : (f.filePath || '').split(',').length > 5) ? ' ...' : ''}
 - **Impact:** ${f.impact || 'Review required.'}
 - **Remediation:** ${f.fix || 'Manual review recommended.'}
+${f.findings && f.findings.length ? f.findings.map(m => `\`\`\`\nLine ${m.line}: ${m.snippet}\n\`\`\``).join('\n') : ''}
 `).join('') : (gateIssues.length ? gateIssues.map(i => `### ${i.type || 'Finding'} (${i.count || 0} occurrence${(i.count || 0) !== 1 ? 's' : ''})
 - **Severity:** ${(i.severity || 'low').toUpperCase()} · **Rule:** \`${i.rule || 'N/A'}\`
 - **Impact:** ${i.impact || 'Review required.'}
 - **Remediation:** ${i.fix || 'Manual review recommended.'}
+${i.findings && i.findings.length ? i.findings.flatMap(f => f.matches ? f.matches.map(m => `\`\`\`\n${f.file} — Line ${m.line}:\n${m.snippet}\n\`\`\``) : []).slice(0, 10).join('\n') : ''}
 `).join('') : '_No security findings detected._')}
 
 ${cons.duplicateGroups ? `## 🔀 Consolidation Issues
