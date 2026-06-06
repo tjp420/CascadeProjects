@@ -1230,7 +1230,7 @@
             panelStatus.style.color = '#60A5FA';
             terminalConsole.innerHTML = '';
 
-            appendTerminalLine(`${liveCommandText ? liveCommandText.textContent : 'simplebeacon scan .'}`, 'input');
+            appendTerminalLine('simplebeacon scan .', 'input');
             appendTerminalLine('Initializing Local Web Worker Core... Allocating isolated browser memory structures.');
             appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
 
@@ -1318,28 +1318,43 @@
             const qualityScore = Math.max(0, 100 - aiPenalty - credPenalty);
             const gatePass = credentialHits < 3;
 
+            const now = new Date().toISOString();
+            const projectName = files[0].webkitRelativePath?.split('/')[0] || 'browser-local';
             reportData = {
-                gate: { pass: gatePass, blockingCount: credentialHits },
+                type: 'simplebeacon-report',
+                version: '1.3.0',
+                generatedAt: now,
+                projectRoot: projectName,
+                projectPath: projectName,
+                scanTargetRoot: projectName,
+                platformRoot: 'browser-sandbox',
+                gate: { pass: gatePass, blockingCount: credentialHits, failOn: ['high', 'critical'] },
                 qualityScore: qualityScore,
                 totalFiles: sourceFiles.length,
-                issueCount: aiHits.length + credentialHits,
+                filesAnalyzed: sourceFiles.length,
                 repositoryFilesTotal: sourceFiles.length,
-                scanTargetRoot: files[0].webkitRelativePath?.split('/')[0] || 'local-scan',
+                issueCount: aiHits.length + credentialHits,
+                simplebeaconIssues: aiHits.length + credentialHits,
                 detectedIssues: [
                     ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length, description: `AI/LLM implementation patterns found in ${aiHits.length} files` }] : []),
                     ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, description: `${credentialHits} potential credential patterns detected (heuristic — review manually)` }] : [])
+                ],
+                issues: [
+                    ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length, filePath: aiHits[0] || 'unknown' }] : []),
+                    ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: 'unknown' }] : [])
                 ],
                 rawIssues: [
                     ...(aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
                     ...(credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits }] : [])
                 ],
                 scanDurationMs: Date.now() - startTime,
-                repositoryInventory: { totalFiles: sourceFiles.length, projectRoot: 'browser-local' },
+                repositoryInventory: { totalFiles: sourceFiles.length, projectRoot: projectName },
                 summary: {
                     gatePass: gatePass,
                     qualityScore: qualityScore,
                     repositoryFiles: sourceFiles.length,
-                    simplebeaconIssues: aiHits.length + credentialHits
+                    simplebeaconIssues: aiHits.length + credentialHits,
+                    totalFindings: aiHits.length + credentialHits
                 }
             };
 
