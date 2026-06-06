@@ -164,7 +164,7 @@
       const issues=report.issueCount!=null?Number(report.issueCount):null;
       const invalidJson=report.invalidJson!=null?Number(report.invalidJson):(report.dataQuality?.emptyJsonCount!=null?Number(report.dataQuality.emptyJsonCount):null);
       const emptyFiles=report.emptyFiles!=null?Number(report.emptyFiles):(report.dataQuality?.emptyJsonCount!=null?Number(report.dataQuality.emptyJsonCount):null);
-      const schemaComp=report.schemaCompliance!=null?Number(report.schemaCompliance):(report.dataQuality!=null?100:null);
+      const schemaComp=report.schemaCompliance!=null?Number(report.schemaCompliance):(report.dataQuality?.emptyJsonCount!=null?(report.dataQuality.emptyJsonCount===0?100:null):null);
       const schemaChecked=report.schemaChecked!=null?Number(report.schemaChecked):null;
       const schemaPassed=report.schemaPassed!=null?Number(report.schemaPassed):null;
       const dupes=report.duplicateGroups!=null?Number(report.duplicateGroups):(report.consolidation?.duplicateGroups!=null?Number(report.consolidation.duplicateGroups):null);

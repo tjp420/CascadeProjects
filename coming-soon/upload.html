@@ -2242,6 +2242,17 @@
             }
         };
 
+        // Which report sections each profile includes
+        const PROFILE_SECTIONS = {
+            gate:       ['gateReport'],
+            instant:    ['gateReport', 'codebase'],
+            codebase:   ['gateReport', 'consolidation', 'codebase', 'roadmap', 'fileReduction', 'npmAudit'],
+            euai:       ['gateReport', 'euAiActSummary', 'compliance'],
+            compliance: ['gateReport', 'compliance', 'npmAudit'],
+            hygiene:    ['gateReport', 'cleanup', 'dataQuality', 'fileReduction', 'mockDataCategories'],
+            complete:   ['gateReport', 'consolidation', 'mockDataCategories', 'roadmap', 'codebase', 'fileReduction', 'dataQuality', 'cleanup', 'npmAudit', 'compliance', 'euAiActSummary']
+        };
+
         // Profile selector wiring
         const browserScanProfile = document.getElementById('browserScanProfile');
         const scanProfileHelp = document.getElementById('scanProfileHelp');
@@ -3692,7 +3703,9 @@
             }
 
             try {
-            const profile = BROWSER_SCAN_PROFILES[browserScanProfile?.value || 'gate'];
+            const profileKey = browserScanProfile?.value || 'gate';
+            const profile = BROWSER_SCAN_PROFILES[profileKey];
+            const allowedSections = PROFILE_SECTIONS[profileKey] || PROFILE_SECTIONS.complete;
             if (browserFolderDropzone) browserFolderDropzone.classList.add('scanning');
             appendTerminalLine('simplebeacon scan .', 'input');
             appendTerminalLine(`Initializing Local Web Worker Core... Profile: ${profile.label}. Allocating isolated browser memory structures.`);
@@ -3965,7 +3978,7 @@
                     medium: profile.checkCredentials ? credentialHits : 0,
                     low: (profile.checkAi ? aiHits.length : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0)
                 },
-                // 1. Simplebeacon Gate
+                // 1. Simplebeacon Gate (always included)
                 gate: {
                     pass: gatePass,
                     blockingCount: credentialHits,
@@ -3978,81 +3991,92 @@
                         ? (credentialHits === 0 ? 'Gate passed — no blocking credentials found.' : `Gate passed with ${credentialHits} low-severity pattern(s). Monitor in CI.`)
                         : `${credentialHits} credential patterns detected. Review before release.`
                 },
-                // 2. Consolidation
-                consolidation: {
-                    monorepoMarkers: monorepoMarkers,
-                    duplicateGroups: duplicateGroups,
-                    duplicateFiles: Array.from(duplicateHashes.values()).filter(g => g.length > 1).slice(0, 5),
-                    summary: duplicateGroups > 0 ? `${duplicateGroups} duplicate file groups detected.` : 'No duplicate files detected.'
-                },
-                // 3. Mock Data
-                mockDataCategories: [
-                    ...(mockFiles.length ? [{
-                        category: 'Mock / Fixture / Sample Files',
-                        fileCount: mockFiles.length,
-                        confidence: 'medium',
-                        description: 'Files with mock, fixture, sample, or test-data naming patterns.',
-                        affectedFiles: mockFiles.slice(0, 5)
-                    }] : [])
-                ],
-                mockSampleFiles: mockFiles.length,
-                // 4. Roadmap
-                roadmap: {
-                    todoCount: todoFiles.length,
-                    todoFiles: todoFiles.slice(0, 5),
-                    summary: todoFiles.length > 0 ? `${todoFiles.length} files contain TODO/FIXME markers.` : 'No roadmap markers found.'
-                },
-                // 5. Codebase
-                codebase: {
-                    totalFiles: sourceFiles.length,
-                    totalLines: totalLines,
-                    fileTypes: fileTypes,
-                    summary: `${sourceFiles.length} files analyzed, ${totalLines.toLocaleString()} lines of code.`
-                },
-                // 6. File Reduction
-                fileReduction: {
-                    unusedAssetCandidates: unusedAssetCandidates.slice(0, 10),
-                    duplicateGroups: duplicateGroups,
-                    summary: `${unusedAssetCandidates.length} image assets detected for review. ${duplicateGroups} duplicate content groups found.`
-                },
-                // 7. Data Quality
-                dataQuality: {
-                    emptyJsonFiles: emptyJsonFiles.slice(0, 5),
-                    emptyJsonCount: emptyJsonFiles.length,
-                    summary: emptyJsonFiles.length > 0 ? `${emptyJsonFiles.length} empty or trivial JSON files detected.` : 'No empty JSON files detected.'
-                },
-                // 8. Cleanup Assistant
-                cleanup: {
-                    debugArtifacts: debugHits.slice(0, 5),
-                    debugArtifactCount: debugHits.length,
-                    summary: debugHits.length > 0 ? `${debugHits.length} debug artifacts detected.` : 'No debug artifacts found.'
-                },
-                // 9. npm Audit
-                npmAudit: {
-                    packageJsonFiles: packageJsonFiles.slice(0, 5),
-                    packageJsonCount: packageJsonFiles.length,
-                    dependencyCount: totalDependencyCount,
-                    summary: packageJsonFiles.length > 0 ? `${packageJsonFiles.length} package.json files found with ${totalDependencyCount} total dependencies.` : 'No package.json files detected.'
-                },
-                // 10. Compliance
-                compliance: {
-                    licenseFiles: licenseFiles.slice(0, 5),
-                    securityFiles: securityFiles.slice(0, 5),
-                    licenseCount: licenseFiles.length,
-                    securityCount: securityFiles.length,
-                    summary: `${licenseFiles.length} license files, ${securityFiles.length} security/governance files detected.`
-                },
-                // 11. EU AI Act — only count docs from actual project, not node_modules
-                euAiActSummary: {
-                    highRiskIndicators: 0,
-                    aiSystemIndicators: aiHits.length,
-                    transparencyGaps: 0,
-                    documentationArtifacts: licenseFiles.filter(p => !/node_modules\//.test(p)).length + securityFiles.filter(p => !/node_modules\//.test(p)).length,
-                    documentationFound: [...licenseFiles.filter(p => !/node_modules\//.test(p)), ...securityFiles.filter(p => !/node_modules\//.test(p))].slice(0, 10),
-                    deadlineNote: 'High-risk AI systems must comply with EU AI Act requirements by August 2026'
-                },
-                euAiActFindings: aiHits.length,
-                euAiActScanned: sourceFiles.length,
+                // Profile-aware sections — only include what the selected profile needs
+                ...(allowedSections.includes('consolidation') ? {
+                    consolidation: {
+                        monorepoMarkers: monorepoMarkers,
+                        duplicateGroups: duplicateGroups,
+                        duplicateFiles: Array.from(duplicateHashes.values()).filter(g => g.length > 1).slice(0, 5),
+                        summary: duplicateGroups > 0 ? `${duplicateGroups} duplicate file groups detected.` : 'No duplicate files detected.'
+                    }
+                } : {}),
+                ...(allowedSections.includes('mockDataCategories') ? {
+                    mockDataCategories: [
+                        ...(mockFiles.length ? [{
+                            category: 'Mock / Fixture / Sample Files',
+                            fileCount: mockFiles.length,
+                            confidence: 'medium',
+                            description: 'Files with mock, fixture, sample, or test-data naming patterns.',
+                            affectedFiles: mockFiles.slice(0, 5)
+                        }] : [])
+                    ],
+                    mockSampleFiles: mockFiles.length
+                } : {}),
+                ...(allowedSections.includes('roadmap') ? {
+                    roadmap: {
+                        todoCount: todoFiles.length,
+                        todoFiles: todoFiles.slice(0, 5),
+                        summary: todoFiles.length > 0 ? `${todoFiles.length} files contain TODO/FIXME markers.` : 'No roadmap markers found.'
+                    }
+                } : {}),
+                ...(allowedSections.includes('codebase') ? {
+                    codebase: {
+                        totalFiles: sourceFiles.length,
+                        totalLines: totalLines,
+                        fileTypes: fileTypes,
+                        summary: `${sourceFiles.length} files analyzed, ${totalLines.toLocaleString()} lines of code.`
+                    }
+                } : {}),
+                ...(allowedSections.includes('fileReduction') ? {
+                    fileReduction: {
+                        unusedAssetCandidates: unusedAssetCandidates.slice(0, 10),
+                        duplicateGroups: duplicateGroups,
+                        summary: `${unusedAssetCandidates.length} image assets detected for review. ${duplicateGroups} duplicate content groups found.`
+                    }
+                } : {}),
+                ...(allowedSections.includes('dataQuality') ? {
+                    dataQuality: {
+                        emptyJsonFiles: emptyJsonFiles.slice(0, 5),
+                        emptyJsonCount: emptyJsonFiles.length,
+                        summary: emptyJsonFiles.length > 0 ? `${emptyJsonFiles.length} empty or trivial JSON files detected.` : 'No empty JSON files detected.'
+                    }
+                } : {}),
+                ...(allowedSections.includes('cleanup') ? {
+                    cleanup: {
+                        debugArtifacts: debugHits.slice(0, 5),
+                        debugArtifactCount: debugHits.length,
+                        summary: debugHits.length > 0 ? `${debugHits.length} debug artifacts detected.` : 'No debug artifacts found.'
+                    }
+                } : {}),
+                ...(allowedSections.includes('npmAudit') ? {
+                    npmAudit: {
+                        packageJsonFiles: packageJsonFiles.slice(0, 5),
+                        packageJsonCount: packageJsonFiles.length,
+                        dependencyCount: totalDependencyCount,
+                        summary: packageJsonFiles.length > 0 ? `${packageJsonFiles.length} package.json files found with ${totalDependencyCount} total dependencies.` : 'No package.json files detected.'
+                    }
+                } : {}),
+                ...(allowedSections.includes('compliance') ? {
+                    compliance: {
+                        licenseFiles: licenseFiles.slice(0, 5),
+                        securityFiles: securityFiles.slice(0, 5),
+                        licenseCount: licenseFiles.length,
+                        securityCount: securityFiles.length,
+                        summary: `${licenseFiles.length} license files, ${securityFiles.length} security/governance files detected.`
+                    }
+                } : {}),
+                ...(allowedSections.includes('euAiActSummary') ? {
+                    euAiActSummary: {
+                        highRiskIndicators: 0,
+                        aiSystemIndicators: aiHits.length,
+                        transparencyGaps: 0,
+                        documentationArtifacts: licenseFiles.filter(p => !/node_modules\//.test(p)).length + securityFiles.filter(p => !/node_modules\//.test(p)).length,
+                        documentationFound: [...licenseFiles.filter(p => !/node_modules\//.test(p)), ...securityFiles.filter(p => !/node_modules\//.test(p))].slice(0, 10),
+                        deadlineNote: 'High-risk AI systems must comply with EU AI Act requirements by August 2026'
+                    },
+                    euAiActFindings: aiHits.length,
+                    euAiActScanned: sourceFiles.length
+                } : {}),
                 credentialScanned: sourceFiles.length,
                 credentialFindings: credentialHits,
                 scanDurationMs: Date.now() - startTime,
@@ -4470,7 +4494,7 @@
 ${euAiActSection}
 <div class="seal"><p style="font-size:9px;font-weight:700;color:#60A5FA;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 6px;">Cryptographic Verification Seal</p><code>SHA-256: ${reportHash}</code><p style="font-size:8px;color:#475569;margin:4px 0 0;">This hash cryptographically binds the certificate to the underlying report.json. Re-scanning will produce a different hash.</p></div>
 <h2 style="font-size:14px;margin:24px 0 12px;border-bottom:1px solid #1E293B;padding-bottom:8px;">Analysis Modules</h2>
-<table><thead><tr><th>Module</th><th>Status</th><th>Key Metric</th></tr></thead><tbody>${modules.map(m => {
+<table><thead><tr><th>Module</th><th>Status</th><th>Key Metric</th><th style="width:40%;">Summary</th></tr></thead><tbody>${modules.map(m => {
     const d = m.data;
     // Status: enriched data uses .status string; raw data uses .pass/.gatePass boolean
     let status = '<span class="review">REVIEW</span>';
@@ -4577,7 +4601,8 @@ ${euAiActSection}
             metric = val.toLocaleString() + ' ' + label;
         }
     }
-    return `<tr><td>${m.label}</td><td>${status}</td><td>${metric}</td></tr>`;
+    const summary = d.summary || d.description || 'No additional details.';
+    return `<tr><td>${m.label}</td><td>${status}</td><td>${metric}</td><td style="font-size:11px;color:#94A3B8;">${summary}</td></tr>`;
 }).join('')}</tbody></table>
 <div class="footer"><div>Token: ${token.slice(0,8)}...${token.slice(-4)} (Client-Side Runtime)</div><div style="font-weight:700;color:#9CA3AF;">SIMPLEBEACON SOVEREIGN PROTOCOL</div></div>
 </div></body></html>`;
