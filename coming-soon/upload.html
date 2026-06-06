@@ -3466,7 +3466,7 @@
                 const gateColor = g.pass === true ? '#34D399' : (g.pass === false ? '#EF4444' : '#60A5FA');
                 const gateBorder = g.pass === true ? '#34D399' : (g.pass === false ? '#EF4444' : '#60A5FA');
                 const gateIssues = (data.detectedIssues || data.issues || []).filter(i => i.severity === 'high' || i.severity === 'critical' || i.severity === 'medium');
-                const gateDetail = gateIssues.length ? `<div class="detail-label">Blocking Findings</div><ul>${gateIssues.map(i => `<li><strong style="color:${i.severity==='high'||i.severity==='critical'?'#EF4444':'#F59E0B'};">${(i.severity||'').toUpperCase()}</strong> — ${i.type||''} (${i.count||0})<br><span style="opacity:0.7;">${(i.filePath||'').split(',').slice(0,3).join(', ')}${(i.filePath||'').split(',').length>3?' ...':''}</span></li>`).join('')}</ul>${gateIssues.some(i=>i.fix)?`<div class="detail-fix"><strong>Remediation:</strong> ${gateIssues.map(i=>i.fix).filter(Boolean).slice(0,2).join(' ')}</div>`:''}` : `<div class="detail-label">No blocking findings</div><div style="font-size:0.72rem;color:var(--text-muted);">Gate is clear. Continue to next phase.</div>`;
+                const gateDetail = gateIssues.length ? `<div class="detail-label">Blocking Findings</div><ul>${gateIssues.map(i => { const fp = Array.isArray(i.filePath) ? i.filePath : (i.filePath || '').split(','); return `<li><strong style="color:${i.severity==='high'||i.severity==='critical'?'#EF4444':'#F59E0B'};">${(i.severity||'').toUpperCase()}</strong> — ${i.type||''} (${i.count||0})<br><span style="opacity:0.7;">${fp.slice(0,3).join(', ')}${fp.length>3?' ...':''}</span></li>`; }).join('')}</ul>${gateIssues.some(i=>i.fix)?`<div class="detail-fix"><strong>Remediation:</strong> ${gateIssues.map(i=>i.fix).filter(Boolean).slice(0,2).join(' ')}</div>`:''}` : `<div class="detail-label">No blocking findings</div><div style="font-size:0.72rem;color:var(--text-muted);">Gate is clear. Continue to next phase.</div>`;
                 pushCard('1', '🛡️', 'Gate', [
                     {value: gateStatus, label: 'Result', color: gateColor},
                     {value: g.blockingCount ?? 0, label: 'Blocking'}
@@ -3830,7 +3830,9 @@
                         aiHits.push(path);
                         appendTerminalLine(`AI indicator detected: <span style="color:#94A3B8;">${path}</span>`, 'warn');
                     }
-                    if (profile.checkCredentials && !isNodeModuleDoc && /password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{8,}|secret[_-]?key\s*=\s*['"][a-z0-9]{8,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}|API_KEY\s*=\s*['"][^'"]{8,}|SECRET\s*=\s*['"][^'"]{8,}|TOKEN\s*=\s*['"][^'"]{8,}/i.test(text)) {
+                    // Skip test/sample/demo files from credential detection — not production source
+                    const isSampleOrTest = /\.(test|spec)\.|sample-|demo-|fixture-|mock-|audit-|\.simplebeacon\/|test-cert\/|__tests__\/|mocks\/|fixtures\//i.test(lowerPath);
+                    if (profile.checkCredentials && !isNodeModuleDoc && !isSampleOrTest && /password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{8,}|secret[_-]?key\s*=\s*['"][a-z0-9]{8,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}|API_KEY\s*=\s*['"][^'"]{8,}|SECRET\s*=\s*['"][^'"]{8,}|TOKEN\s*=\s*['"][^'"]{8,}/i.test(text)) {
                         credentialHits++;
                         credFiles.push(path);
                     }
@@ -3881,8 +3883,8 @@
                         emptyJsonFiles.push(path);
                     }
                     // 2. Consolidation + 6. File reduction: simple content hash for duplicates
-                    // Exclude: node_modules, .git, build dirs, .husky/_ templates, .simplebeacon internal files, timestamped generated artifacts
-                    if (text.length < 50000 && !/node_modules|\.git|dist|build|coverage|github-cache|\.husky\/\_|\.simplebeacon\/baseline|\.simplebeacon\/report-deliveries\/delivery_\d+/i.test(lowerPath)) {
+                    // Exclude: node_modules, .git, build dirs, .husky/_ templates, ALL .simplebeacon/ internal files
+                    if (text.length < 50000 && !/node_modules|\.git|dist|build|coverage|github-cache|\.husky\/\_|\.simplebeacon\//i.test(lowerPath)) {
                         const hash = await simpleHash(text);
                         if (duplicateHashes.has(hash)) {
                             duplicateHashes.get(hash).push(path);
@@ -3992,10 +3994,10 @@
                 issueCount: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
                 simplebeaconIssues: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
                 detectedIssues: [
-                    ...(profile.checkAi && aiHits.length ? [{ severity: 'low', severityBand: 'low', type: 'AI System Indicator', count: aiHits.length, filePath: aiHits.slice(0,3).join(', ') + (aiHits.length > 3 ? ' ...' : ''), rule: 'AI_IMPLEMENTATION_PATTERN', impact: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.', fix: 'Review and remediate before enabling --gate on main.' }] : []),
-                    ...(profile.checkCredentials && credentialHits ? [{ severity: 'medium', severityBand: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: credFiles.slice(0,3).join(', ') + (credFiles.length > 3 ? ' ...' : ''), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.' }] : []),
-                    ...(profile.checkDebug && debugHits.length ? [{ severity: 'low', severityBand: 'low', type: 'Debug Artifact', count: debugHits.length, filePath: debugHits.slice(0,3).join(', ') + (debugHits.length > 3 ? ' ...' : ''), rule: 'DEBUG_ARTIFACT', impact: 'HYGIENE RISK: Debug artifacts should not reach production builds.', fix: 'Remove console.log, debugger, TODO, and FIXME markers before release.' }] : []),
-                    ...(profile.checkGov && govHits.length ? [{ severity: 'low', severityBand: 'low', type: 'License/Governance Marker', count: govHits.length, filePath: govHits.slice(0,3).join(', ') + (govHits.length > 3 ? ' ...' : ''), rule: 'GOVERNANCE_PATTERN', impact: 'INFO: License headers and copyright notices detected. Verify compliance with open-source policy.', fix: 'Review license compatibility with your product distribution model.' }] : [])
+                    ...(profile.checkAi && aiHits.length ? [{ severity: 'low', severityBand: 'low', type: 'AI System Indicator', count: aiHits.length, filePath: aiHits.slice(0,10), rule: 'AI_IMPLEMENTATION_PATTERN', impact: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.', fix: 'Review and remediate before enabling --gate on main.' }] : []),
+                    ...(profile.checkCredentials && credentialHits ? [{ severity: 'medium', severityBand: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: credFiles.slice(0,10), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.' }] : []),
+                    ...(profile.checkDebug && debugHits.length ? [{ severity: 'low', severityBand: 'low', type: 'Debug Artifact', count: debugHits.length, filePath: debugHits.slice(0,10), rule: 'DEBUG_ARTIFACT', impact: 'HYGIENE RISK: Debug artifacts should not reach production builds.', fix: 'Remove console.log, debugger, TODO, and FIXME markers before release.' }] : []),
+                    ...(profile.checkGov && govHits.length ? [{ severity: 'low', severityBand: 'low', type: 'License/Governance Marker', count: govHits.length, filePath: govHits.slice(0,10), rule: 'GOVERNANCE_PATTERN', impact: 'INFO: License headers and copyright notices detected. Verify compliance with open-source policy.', fix: 'Review license compatibility with your product distribution model.' }] : [])
                 ],
                 issues: [
                     ...(profile.checkAi && aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
@@ -4033,7 +4035,7 @@
                     consolidation: {
                         monorepoMarkers: monorepoMarkers,
                         duplicateGroups: duplicateGroups,
-                        duplicateFiles: Array.from(duplicateHashes.values()).filter(g => g.length > 1).slice(0, 5),
+                        duplicateFiles: Array.from(duplicateHashes.values()).filter(g => g.length > 1).map(g => g.filter(p => !/\.simplebeacon\//i.test(p))).filter(g => g.length > 1).slice(0, 5),
                         summary: duplicateGroups > 0 ? `${duplicateGroups} duplicate file groups detected.` : 'No duplicate files detected.'
                     }
                 } : {}),
@@ -4107,8 +4109,8 @@
                         highRiskIndicators: 0,
                         aiSystemIndicators: aiHits.length,
                         transparencyGaps: 0,
-                        documentationArtifacts: licenseFiles.filter(p => !/node_modules\//.test(p)).length + securityFiles.filter(p => !/node_modules\//.test(p)).length,
-                        documentationFound: [...licenseFiles.filter(p => !/node_modules\//.test(p)), ...securityFiles.filter(p => !/node_modules\//.test(p))].slice(0, 10),
+                        documentationArtifacts: licenseFiles.filter(p => !/node_modules\/|\.github-sync\/|github-cache\//.test(p)).length + securityFiles.filter(p => !/node_modules\/|\.github-sync\/|github-cache\//.test(p)).length,
+                        documentationFound: [...licenseFiles.filter(p => !/node_modules\/|\.github-sync\/|github-cache\//.test(p)), ...securityFiles.filter(p => !/node_modules\/|\.github-sync\/|github-cache\//.test(p))].slice(0, 10),
                         deadlineNote: 'High-risk AI systems must comply with EU AI Act requirements by August 2026'
                     },
                     euAiActFindings: aiHits.length,
@@ -4395,7 +4397,7 @@
 
             // 2. Consolidation — enriched with duplicate groups
             const cons = report.consolidation || {};
-            const dupFiles = (cons.duplicateFiles || []).filter(g => g.length > 1);
+            const dupFiles = (cons.duplicateFiles || []).map(g => g.filter(p => !/\.simplebeacon\//i.test(p))).filter(g => g.length > 1);
             addModule('consolidation', 'Consolidation', {
                 monorepoMarkers: cons.monorepoMarkers || 0,
                 duplicateGroups: cons.duplicateGroups || 0,
