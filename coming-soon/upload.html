@@ -2299,23 +2299,78 @@
                 const cons = data.consolidation || {};
                 const dupFiles = (cons.duplicateFiles || []).map(g => g.filter(p => !/\.simplebeacon\//i.test(p))).filter(g => g.length > 1);
                 const dupCount = cons.duplicateGroups || dupFiles.length || 0;
-                moduleData = { ...moduleData, monorepoMarkers: cons.monorepoMarkers || (cons.monorepoMarkers || []).length || 0, duplicateGroups: dupCount, duplicateGroupsDetail: dupFiles.slice(0, 5).map(g => g.slice(0, 3)), summary: dupCount ? `${dupCount} duplicate file groups detected.` : 'No duplicate files detected.' };
+                moduleData = { ...moduleData, monorepoMarkers: cons.monorepoMarkers || (cons.monorepoMarkers || []).length || 0, duplicateGroups: dupCount, duplicateGroupsDetail: dupFiles.slice(0, 5).map(g => g.slice(0, 3)), summary: dupCount ? `${dupCount} duplicate file group${dupCount === 1 ? '' : 's'} detected.` : 'No duplicate files detected.' };
             } else if (num === '3') {
                 const mockCats = data.mockDataCategories || [];
                 const mockTotal = data.mockSampleFiles ?? mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
-                moduleData = { ...moduleData, fileCount: mockTotal, categories: mockCats.map(c => ({ category: c.category, fileCount: c.fileCount || 0, confidence: c.confidence, description: c.description })), affectedFiles: mockCats.flatMap(c => c.affectedFiles || []).slice(0, 10), summary: mockTotal ? `${mockTotal} mock/fixture files detected.` : 'No mock data found.' };
+                moduleData = { ...moduleData, fileCount: mockTotal, categories: mockCats.map(c => ({ category: c.category, fileCount: c.fileCount || 0, confidence: c.confidence, description: c.description })), affectedFiles: mockCats.flatMap(c => c.affectedFiles || []).slice(0, 10), summary: mockTotal ? `${mockTotal} mock/fixture file${mockTotal === 1 ? '' : 's'} detected.` : 'No mock data found.' };
             } else if (num === '4') {
+                // Synthesize roadmap from all report data
                 const rm = data.roadmap || {};
-                const todoList = (rm.todoFiles || []).filter(Boolean);
-                const tc = rm.todoCount || todoList.length || 0;
-                moduleData = { ...moduleData, todoCount: tc, todoFiles: todoList.slice(0, 10), summary: tc ? `${tc} file${tc === 1 ? '' : 's'} ${tc === 1 ? 'contains' : 'contain'} TODO/FIXME markers.` : 'No roadmap markers found.' };
+                const baseTodos = (rm.todoFiles || []).filter(Boolean);
+                const baseCount = rm.todoCount || baseTodos.length || 0;
+
+                // Gather action items from all other modules
+                const actionItems = [];
+
+                // Gate blockers
+                const gate = data.gate || data.gateReport || {};
+                const blockers = (gate.blockingCount || 0) + (data.detectedIssues || []).filter(i => ['high','critical'].includes(i.severity)).length;
+                if (blockers > 0) actionItems.push({ task: `Fix ${blockers} blocking security issue(s) before release`, priority: 'critical', source: 'gate' });
+
+                // Debug artifacts
+                const cl = data.cleanup || {};
+                const debugCount = cl.debugArtifactCount || (cl.debugArtifacts || []).length || 0;
+                if (debugCount > 0) actionItems.push({ task: `Remove ${debugCount} debug artifact(s) (console.log, debugger, alert)`, priority: 'high', source: 'cleanup' });
+
+                // Data quality
+                const dq = data.dataQuality || {};
+                const emptyCount = dq.emptyJsonCount || (dq.emptyJsonFiles || []).length || 0;
+                if (emptyCount > 0) actionItems.push({ task: `Clean up ${emptyCount} empty JSON file(s)`, priority: 'low', source: 'data-quality' });
+
+                // File reduction
+                const fr = data.fileReduction || data.fileReductionPlan || {};
+                const assetCount = (fr.unusedAssetCandidates || []).length;
+                if (assetCount > 0) actionItems.push({ task: `Review and remove ${assetCount} unused asset(s)`, priority: 'medium', source: 'file-reduction' });
+
+                // Consolidation
+                const cons = data.consolidation || {};
+                const dupCount = cons.duplicateGroups || 0;
+                if (dupCount > 0) actionItems.push({ task: `Consolidate ${dupCount} duplicate file group(s)`, priority: 'medium', source: 'consolidation' });
+
+                // EU AI Act
+                const eu = data.euAiActSummary || {};
+                if ((eu.highRiskIndicators || 0) > 0) actionItems.push({ task: 'Schedule EU AI Act legal review (high-risk indicators detected)', priority: 'critical', source: 'eu-ai-act' });
+                if ((eu.aiSystemIndicators || 0) > 0) actionItems.push({ task: 'Document AI system classification under EU AI Act Article 6', priority: 'medium', source: 'eu-ai-act' });
+                if ((eu.transparencyGaps || 0) > 0) actionItems.push({ task: 'Address transparency gaps per EU AI Act Article 10', priority: 'medium', source: 'eu-ai-act' });
+
+                // npm audit
+                const npm = data.npmAudit || {};
+                const pkgCount = npm.packageJsonCount || 0;
+                const depCount = npm.dependencyCount || 0;
+                if (pkgCount > 0 && depCount / pkgCount > 50) actionItems.push({ task: `Audit ${depCount} dependencies — dependency density is high`, priority: 'low', source: 'npm-audit' });
+
+                // Mock data
+                const mockCats = data.mockDataCategories || [];
+                const mockTotal = data.mockSampleFiles ?? mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
+                if (mockTotal > 0) actionItems.push({ task: `Ensure ${mockTotal} mock/fixture file(s) are excluded from production builds`, priority: 'low', source: 'mock-data' });
+
+                const totalTodos = baseCount + actionItems.length;
+                moduleData = { ...moduleData,
+                    todoCount: totalTodos,
+                    todoFiles: baseTodos.slice(0, 10),
+                    baseTodoCount: baseCount,
+                    actionItems: actionItems.slice(0, 15),
+                    summary: totalTodos ? `${totalTodos} roadmap item${totalTodos === 1 ? '' : 's'} (${baseCount} TODO/FIXME marker${baseCount === 1 ? '' : 's'} + ${actionItems.length} synthesized action item${actionItems.length === 1 ? '' : 's'})` : 'No roadmap items found.'
+                };
             } else if (num === '5') {
                 const cb = data.codebase || data.codeAnalysis || {};
                 const ftEntries = Object.entries(cb.fileTypes || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
                 moduleData = { ...moduleData, totalFiles: cb.totalFiles || totalFiles, totalLines: cb.totalLines || totalLines, fileTypeBreakdown: ftEntries.map(([ext, count]) => ({ extension: ext, count, percentage: totalFiles > 0 ? ((count / totalFiles) * 100).toFixed(1) + '%' : '0.0%' })), summary: cb.summary || `${(cb.totalFiles || totalFiles).toLocaleString()} files analyzed, ${(cb.totalLines || totalLines).toLocaleString()} lines of code.` };
             } else if (num === '6') {
                 const fr = data.fileReduction || data.fileReductionPlan || {};
-                moduleData = { ...moduleData, unusedAssetCandidates: (fr.unusedAssetCandidates || []).slice(0, 10), unusedAssetCount: (fr.unusedAssetCandidates || []).length, duplicateGroups: fr.duplicateGroups || 0, summary: fr.summary || ((fr.unusedAssetCandidates || []).length ? `${(fr.unusedAssetCandidates || []).length} image assets detected for review.` : 'No file reduction opportunities.') };
+                const assetLen = (fr.unusedAssetCandidates || []).length;
+                moduleData = { ...moduleData, unusedAssetCandidates: (fr.unusedAssetCandidates || []).slice(0, 10), unusedAssetCount: assetLen, duplicateGroups: fr.duplicateGroups || 0, summary: fr.summary || (assetLen ? `${assetLen} image asset${assetLen === 1 ? '' : 's'} detected for review.` : 'No file reduction opportunities.') };
             } else if (num === '7') {
                 const dq = data.dataQuality || {};
                 const emptyFiles = (dq.emptyJsonFiles || []).filter(Boolean);

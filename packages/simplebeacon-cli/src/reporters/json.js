@@ -30,7 +30,7 @@ function formatJsonReport(report, gateResult = null) {
             ? 'Gate blocked — review findings before release.'
             : (rawGate.summary || (derivedPass === true
                 ? 'Gate passed — no blocking credentials found.'
-                : `Gate blocked — ${(rawGate.blockingIssues || []).reduce((sum, i) => sum + (i.count || 1), 0)} blocking issue(s) detected. Review before release.`)),
+                : (() => { const bc = (rawGate.blockingIssues || []).reduce((sum, i) => sum + (i.count || 1), 0); return `Gate blocked — ${bc} blocking issue${bc === 1 ? '' : 's'} detected. Review before release.`; })())),
         blockingFindings: (rawGate.blockingIssues || []).slice(0, 10).map(i => ({
             severity: i.severity,
             type: i.type,
@@ -48,7 +48,7 @@ function formatJsonReport(report, gateResult = null) {
         monorepoMarkers: report.scanScope?.monorepoMarkers || 0,
         duplicateGroups: report.duplicateGroups || 0,
         summary: report.duplicateGroups
-            ? `${report.duplicateGroups} duplicate file groups detected.`
+            ? `${report.duplicateGroups} duplicate file group${report.duplicateGroups === 1 ? '' : 's'} detected.`
             : 'No duplicate files detected.',
         remediation: report.duplicateGroups
             ? 'Consolidate duplicate files into shared modules or remove redundant copies.'
@@ -60,7 +60,7 @@ function formatJsonReport(report, gateResult = null) {
         totalLines: totalLines,
         averageLinesPerFile: totalFiles > 0 ? Math.round(totalLines / totalFiles) : 0,
         summary: totalFiles
-            ? `${totalFiles.toLocaleString()} files analyzed, ${totalLines.toLocaleString()} lines of code.`
+            ? `${totalFiles.toLocaleString()} file${totalFiles === 1 ? '' : 's'} analyzed, ${totalLines.toLocaleString()} line${totalLines === 1 ? '' : 's'} of code.`
             : 'No files analyzed.'
     };
 
@@ -70,7 +70,7 @@ function formatJsonReport(report, gateResult = null) {
         severity: (report.emptyFiles || report.invalidJson) ? 'high' : 'low',
         severityColor: (report.emptyFiles || report.invalidJson) ? '#EF4444' : '#34D399',
         summary: (report.emptyFiles || report.invalidJson)
-            ? `${(report.emptyFiles || 0) + (report.invalidJson || 0)} data quality issue(s) detected.`
+            ? `${(report.emptyFiles || 0) + (report.invalidJson || 0)} data quality issue${(report.emptyFiles || 0) + (report.invalidJson || 0) === 1 ? '' : 's'} detected.`
             : 'No data quality issues.',
         remediation: (report.emptyFiles || report.invalidJson)
             ? 'Review empty or invalid JSON files.'
@@ -85,7 +85,7 @@ function formatJsonReport(report, gateResult = null) {
         severity: debugArtifactCount > 20 ? 'high' : debugArtifactCount > 0 ? 'medium' : 'low',
         severityColor: debugArtifactCount > 20 ? '#EF4444' : debugArtifactCount > 0 ? '#F59E0B' : '#34D399',
         summary: debugArtifactCount
-            ? `${debugArtifactCount} debug artifacts detected — remove console.log, debugger, TODO markers before production.`
+            ? `${debugArtifactCount} debug artifact${debugArtifactCount === 1 ? '' : 's'} detected — remove console.log, debugger, TODO markers before production.`
             : 'No cleanup issues.',
         remediation: debugArtifactCount
             ? 'Remove console.log, debugger statements, and TODO markers before production builds.'
@@ -100,7 +100,7 @@ function formatJsonReport(report, gateResult = null) {
     const licenseCount = hasStaleCompliance ? govCount : (report.compliance?.licenseCount ?? govCount);
     const securityCount = report.compliance?.securityCount ?? 0;
     const complianceSummary = (licenseCount || securityCount)
-        ? `${licenseCount} license files, ${securityCount} security/governance files detected.`
+        ? `${licenseCount} license file${licenseCount === 1 ? '' : 's'}, ${securityCount} security/governance file${securityCount === 1 ? '' : 's'} detected.`
         : 'No governance files detected.';
     const complianceRemediation = (licenseCount || securityCount)
         ? 'Verify license compatibility with your distribution model.'
@@ -132,7 +132,7 @@ function formatJsonReport(report, gateResult = null) {
     const fileReduction = report.fileReduction || {
         duplicateGroups: report.duplicateGroups || 0,
         summary: report.duplicateGroups
-            ? `${report.duplicateGroups} duplicate content groups found.`
+            ? `${report.duplicateGroups} duplicate content group${report.duplicateGroups === 1 ? '' : 's'} found.`
             : 'No file reduction opportunities.',
         remediation: report.duplicateGroups
             ? 'Consolidate duplicate files into shared modules.'
@@ -144,7 +144,7 @@ function formatJsonReport(report, gateResult = null) {
         packageJsonCount: report.packageJsonCount || 0,
         dependencyCount: report.dependencyCount || 0,
         summary: (report.packageJsonCount || 0)
-            ? `${report.packageJsonCount} package.json files found with ${(report.dependencyCount || 0).toLocaleString()} total dependencies.`
+            ? `${report.packageJsonCount} package.json file${report.packageJsonCount === 1 ? '' : 's'} found with ${(report.dependencyCount || 0).toLocaleString()} total dependenc${(report.dependencyCount || 0) === 1 ? 'y' : 'ies'}.`
             : 'No package.json files found.'
     };
 
@@ -152,7 +152,7 @@ function formatJsonReport(report, gateResult = null) {
     const roadmap = report.roadmap || {
         todoCount: report.roadmapSchemaChecked || 0,
         summary: (report.roadmapSchemaChecked || 0)
-            ? `${report.roadmapSchemaChecked} files contain TODO/FIXME markers.`
+            ? `${report.roadmapSchemaChecked} file${report.roadmapSchemaChecked === 1 ? '' : 's'} ${report.roadmapSchemaChecked === 1 ? 'contains' : 'contain'} TODO/FIXME markers.`
             : 'No roadmap markers found.'
     };
 
@@ -160,7 +160,7 @@ function formatJsonReport(report, gateResult = null) {
     const mockData = report.mockData || {
         fileCount: report.mockSampleFiles || 0,
         summary: (report.mockSampleFiles || 0)
-            ? `${report.mockSampleFiles} mock/fixture files detected.`
+            ? `${report.mockSampleFiles} mock/fixture file${report.mockSampleFiles === 1 ? '' : 's'} detected.`
             : 'No mock data found.'
     };
 
