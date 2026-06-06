@@ -1205,31 +1205,31 @@
                         <div class="terminal-body">
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
-                                <code id="installCmd">npm install -g simplebeacon</code>
+                                <code id="installCmd">cd ../packages/simplebeacon-cli && npm link</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('installCmd')">Copy</button>
-                                <span class="cmd-desc">Install CLI globally</span>
+                                <span class="cmd-desc">Link CLI locally (one-time)</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
-                                <code id="scanCmd">simplebeacon scan . --output=report.json</code>
+                                <code id="scanCmd">node ../packages/simplebeacon-cli/bin/simplebeacon.js scan . --output=report.json</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('scanCmd')">Copy</button>
                                 <span class="cmd-desc">Standard gate scan</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
-                                <code id="scanGateCmd">simplebeacon scan . --gate --offline</code>
+                                <code id="scanGateCmd">node ../packages/simplebeacon-cli/bin/simplebeacon.js scan . --gate --offline</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('scanGateCmd')">Copy</button>
                                 <span class="cmd-desc">Gate-only (no network)</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
-                                <code id="scanFullCmd">simplebeacon scan . --full --gate --output=report.json</code>
+                                <code id="scanFullCmd">node ../packages/simplebeacon-cli/bin/simplebeacon.js scan . --full --gate --output=report.json</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('scanFullCmd')">Copy</button>
                                 <span class="cmd-desc">Full coverage + gate</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
-                                <code id="scanEuaiCmd">simplebeacon scan . --config .simplebeacon/config-full-coverage.json --full</code>
+                                <code id="scanEuaiCmd">node ../packages/simplebeacon-cli/bin/simplebeacon.js scan . --config .simplebeacon/config-full-coverage.json --full</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('scanEuaiCmd')">Copy</button>
                                 <span class="cmd-desc">EU AI Act assessment</span>
                             </div>
@@ -1466,10 +1466,11 @@
         function updateCliCommands() {
             const path = scanPathInput?.value.trim() || '.';
             const safePath = path.includes(' ') ? `"${path}"` : path;
-            if (scanCmdEl) scanCmdEl.textContent = `simplebeacon scan ${safePath} --output=report.json`;
-            if (scanGateCmdEl) scanGateCmdEl.textContent = `simplebeacon scan ${safePath} --gate --offline`;
-            if (scanFullCmdEl) scanFullCmdEl.textContent = `simplebeacon scan ${safePath} --full --gate --output=report.json`;
-            if (scanEuaiCmdEl) scanEuaiCmdEl.textContent = `simplebeacon scan ${safePath} --config .simplebeacon/config-full-coverage.json --full`;
+            const cli = 'node ../packages/simplebeacon-cli/bin/simplebeacon.js';
+            if (scanCmdEl) scanCmdEl.textContent = `${cli} scan ${safePath} --output=report.json`;
+            if (scanGateCmdEl) scanGateCmdEl.textContent = `${cli} scan ${safePath} --gate --offline`;
+            if (scanFullCmdEl) scanFullCmdEl.textContent = `${cli} scan ${safePath} --full --gate --output=report.json`;
+            if (scanEuaiCmdEl) scanEuaiCmdEl.textContent = `${cli} scan ${safePath} --config .simplebeacon/config-full-coverage.json --full`;
         }
 
         if (scanPathInput) {
@@ -1567,7 +1568,7 @@
                 title: 'Upload Your Scan Report',
                 subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your Website Security Report.',
                 showUpload: true,
-                scanCommand: 'npx simplebeacon scan --gate --offline',
+                scanCommand: 'node ../packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Paste your $19 payment token to unlock the scanner.'
             },
             community: {
@@ -1576,7 +1577,7 @@
                 title: 'Free Community Audit',
                 subtitle: 'Run an unlimited file scan locally on your machine. No caps, no timeouts, no limits — only your RAM matters. Complimentary risk assessment with Executive Risk Certificate.',
                 showUpload: true,
-                scanCommand: 'npx simplebeacon scan --gate --offline',
+                scanCommand: 'node ../packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Free community token. Run the scan locally — no payment required.'
             },
             executive: {
@@ -1585,7 +1586,7 @@
                 title: 'Upload Your Scan Report',
                 subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your Executive Risk Certificate.',
                 showUpload: true,
-                scanCommand: 'npx simplebeacon scan --gate --offline',
+                scanCommand: 'node ../packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Paste the license token from your $499 payment confirmation email.'
             },
             euai: {
@@ -1594,7 +1595,7 @@
                 title: 'Upload Your EU AI Act Scan',
                 subtitle: 'Upload your full-coverage scan to generate the EU AI Act Readiness Report.',
                 showUpload: true,
-                scanCommand: 'npx simplebeacon scan --gate --offline --config .simplebeacon/config-full-coverage.json',
+                scanCommand: 'node ../packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline --config .simplebeacon/config-full-coverage.json',
                 tokenHelp: 'Paste the license token from your $2,499 EU AI Act Sprint confirmation email.'
             },
             universal: {
@@ -1603,7 +1604,7 @@
                 title: 'Upload Your Scan Report',
                 subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your certificate.',
                 showUpload: true,
-                scanCommand: 'npx simplebeacon scan --gate --offline',
+                scanCommand: 'node ../packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Paste any SimpleBeacon license token — works with any tier or custom label.'
             }
         };
@@ -1634,7 +1635,7 @@
                 if (config.scanCommand) {
                     const helpTexts = document.querySelectorAll('.help-text');
                     helpTexts.forEach(h => {
-                        if (h.textContent.includes('npx simplebeacon scan')) {
+                        if (h.textContent.includes('simplebeacon.js scan')) {
                             h.innerHTML = `Generated by: <code>${config.scanCommand}</code>`;
                         }
                     });
@@ -1855,6 +1856,15 @@
                 await processLocalCLIScan(files);
             }
         });
+
+        // Simple DJB2 hash for duplicate detection in browser sandbox
+        async function simpleHash(text) {
+            let hash = 5381;
+            for (let i = 0; i < text.length; i++) {
+                hash = ((hash << 5) + hash) + text.charCodeAt(i);
+            }
+            return String(hash >>> 0);
+        }
 
         // SHA-256 helper using Web Crypto API
         async function computeSha256(text) {
@@ -2088,6 +2098,16 @@
             let credFiles = [];
             let debugHits = [];
             let govHits = [];
+            let mockFiles = [];
+            let packageJsonFiles = [];
+            let licenseFiles = [];
+            let securityFiles = [];
+            let emptyJsonFiles = [];
+            let duplicateHashes = new Map();
+            let duplicateGroups = 0;
+            let todoFiles = [];
+            let unusedAssetCandidates = [];
+            let monorepoMarkers = 0;
             const startTime = Date.now();
 
             // 1. Check for user-provided .simplebeaconignore
@@ -2154,6 +2174,51 @@
                     if (profile.checkGov && /SPDX-License-Identifier|MIT License|Apache License|GNU General Public License|All rights reserved|Copyright \(c\)|License: /i.test(text)) {
                         govHits.push(path);
                     }
+                    // --- 11 Analysis Category Heuristics ---
+                    const lowerPath = path.toLowerCase();
+                    // 3. Mock data: fixture/sample/test-data files
+                    if (/mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
+                        mockFiles.push(path);
+                    }
+                    // 9. npm audit: package.json files
+                    if (lowerPath.endsWith('package.json')) {
+                        packageJsonFiles.push(path);
+                        try {
+                            const pkg = JSON.parse(text);
+                            const depCount = Object.keys(pkg.dependencies || {}).length + Object.keys(pkg.devDependencies || {}).length;
+                            if (depCount > 50) monorepoMarkers++;
+                        } catch (e) { /* ignore invalid package.json */ }
+                    }
+                    // 10. Compliance: governance files
+                    if (/license|licence/i.test(lowerPath) && !licenseFiles.includes(path)) {
+                        licenseFiles.push(path);
+                    }
+                    if (/security\.md|code_of_conduct|contributing|changelog|changelog/i.test(lowerPath)) {
+                        securityFiles.push(path);
+                    }
+                    // 7. Data quality: empty or trivial JSON
+                    if (lowerPath.endsWith('.json') && (text.trim().length < 10 || text.trim() === '{}' || text.trim() === '[]')) {
+                        emptyJsonFiles.push(path);
+                    }
+                    // 2. Consolidation + 6. File reduction: simple content hash for duplicates
+                    if (text.length < 50000 && !/node_modules|\.git|dist|build|coverage/i.test(lowerPath)) {
+                        const hash = await simpleHash(text);
+                        if (duplicateHashes.has(hash)) {
+                            duplicateHashes.get(hash).push(path);
+                            if (duplicateHashes.get(hash).length === 2) duplicateGroups++;
+                        } else {
+                            duplicateHashes.set(hash, [path]);
+                        }
+                    }
+                    // 4. Roadmap: TODO/FIXME markers in code
+                    if (/TODO:|FIXME:|HACK:|XXX:|NOTE:|BUG:/i.test(text)) {
+                        todoFiles.push(path);
+                    }
+                    // 6. File reduction: unused assets (images not referenced)
+                    if (/\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(lowerPath)) {
+                        const baseName = path.split('/').pop();
+                        unusedAssetCandidates.push({ path, name: baseName });
+                    }
                     if ((i + 1) % 5 === 0 || i === sourceFiles.length - 1) {
                         appendTerminalLine(`Scanning chunk: <span style="color:#94A3B8;">${path}</span> (${lineCount} lines)`);
                     }
@@ -2176,8 +2241,10 @@
             const projectName = files[0].webkitRelativePath?.split('/')[0] || 'browser-local';
             reportData = {
                 type: profile.reportType || 'simplebeacon-report',
+                reportVersion: 2,
                 version: '1.3.0',
                 generatedAt: now,
+                generatedBy: 'SimpleBeacon Browser Sandbox',
                 projectRoot: projectName,
                 projectPath: projectName,
                 scanTargetRoot: projectName,
@@ -2187,13 +2254,14 @@
                 totalFiles: sourceFiles.length,
                 filesAnalyzed: sourceFiles.length,
                 repositoryFilesTotal: sourceFiles.length,
+                repositoryFoldersTotal: 0,
                 issueCount: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
                 simplebeaconIssues: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
                 detectedIssues: [
-                    ...(profile.checkAi && aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length, filePath: aiHits.slice(0,3).join(', ') + (aiHits.length > 3 ? ' ...' : ''), rule: 'AI_IMPLEMENTATION_PATTERN', impact: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.', fix: 'Review and remediate before enabling --gate on main.' }] : []),
-                    ...(profile.checkCredentials && credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: credFiles.slice(0,3).join(', ') + (credFiles.length > 3 ? ' ...' : ''), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.' }] : []),
-                    ...(profile.checkDebug && debugHits.length ? [{ severity: 'low', type: 'Debug Artifact', count: debugHits.length, filePath: debugHits.slice(0,3).join(', ') + (debugHits.length > 3 ? ' ...' : ''), rule: 'DEBUG_ARTIFACT', impact: 'HYGIENE RISK: Debug artifacts should not reach production builds.', fix: 'Remove console.log, debugger, TODO, and FIXME markers before release.' }] : []),
-                    ...(profile.checkGov && govHits.length ? [{ severity: 'low', type: 'License/Governance Marker', count: govHits.length, filePath: govHits.slice(0,3).join(', ') + (govHits.length > 3 ? ' ...' : ''), rule: 'GOVERNANCE_PATTERN', impact: 'INFO: License headers and copyright notices detected. Verify compliance with open-source policy.', fix: 'Review license compatibility with your product distribution model.' }] : [])
+                    ...(profile.checkAi && aiHits.length ? [{ severity: 'low', severityBand: 'low', type: 'AI System Indicator', count: aiHits.length, filePath: aiHits.slice(0,3).join(', ') + (aiHits.length > 3 ? ' ...' : ''), rule: 'AI_IMPLEMENTATION_PATTERN', impact: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.', fix: 'Review and remediate before enabling --gate on main.' }] : []),
+                    ...(profile.checkCredentials && credentialHits ? [{ severity: 'medium', severityBand: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: credFiles.slice(0,3).join(', ') + (credFiles.length > 3 ? ' ...' : ''), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.' }] : []),
+                    ...(profile.checkDebug && debugHits.length ? [{ severity: 'low', severityBand: 'low', type: 'Debug Artifact', count: debugHits.length, filePath: debugHits.slice(0,3).join(', ') + (debugHits.length > 3 ? ' ...' : ''), rule: 'DEBUG_ARTIFACT', impact: 'HYGIENE RISK: Debug artifacts should not reach production builds.', fix: 'Remove console.log, debugger, TODO, and FIXME markers before release.' }] : []),
+                    ...(profile.checkGov && govHits.length ? [{ severity: 'low', severityBand: 'low', type: 'License/Governance Marker', count: govHits.length, filePath: govHits.slice(0,3).join(', ') + (govHits.length > 3 ? ' ...' : ''), rule: 'GOVERNANCE_PATTERN', impact: 'INFO: License headers and copyright notices detected. Verify compliance with open-source policy.', fix: 'Review license compatibility with your product distribution model.' }] : [])
                 ],
                 issues: [
                     ...(profile.checkAi && aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
@@ -2207,6 +2275,95 @@
                     ...(profile.checkDebug && debugHits.length ? [{ severity: 'low', type: 'Debug Artifact', count: debugHits.length }] : []),
                     ...(profile.checkGov && govHits.length ? [{ severity: 'low', type: 'License/Governance Marker', count: govHits.length }] : [])
                 ],
+                severityCounts: {
+                    critical: 0,
+                    high: profile.checkCredentials ? credentialHits : 0,
+                    medium: 0,
+                    low: (profile.checkAi ? aiHits.length : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0)
+                },
+                // 1. Simplebeacon Gate
+                gateReport: {
+                    pass: gatePass,
+                    blockingCount: credentialHits,
+                    summary: gatePass ? 'Gate passed — no blocking credentials found.' : `${credentialHits} credential patterns detected. Review before release.`
+                },
+                // 2. Consolidation
+                consolidation: {
+                    monorepoMarkers: monorepoMarkers,
+                    duplicateGroups: duplicateGroups,
+                    duplicateFiles: Array.from(duplicateHashes.values()).filter(g => g.length > 1).slice(0, 5),
+                    summary: duplicateGroups > 0 ? `${duplicateGroups} duplicate file groups detected.` : 'No duplicate files detected.'
+                },
+                // 3. Mock Data
+                mockDataCategories: [
+                    ...(mockFiles.length ? [{
+                        category: 'Mock / Fixture / Sample Files',
+                        fileCount: mockFiles.length,
+                        confidence: 'medium',
+                        description: 'Files with mock, fixture, sample, or test-data naming patterns.',
+                        affectedFiles: mockFiles.slice(0, 5)
+                    }] : [])
+                ],
+                mockSampleFiles: mockFiles.length,
+                // 4. Roadmap
+                roadmap: {
+                    todoCount: todoFiles.length,
+                    todoFiles: todoFiles.slice(0, 5),
+                    summary: todoFiles.length > 0 ? `${todoFiles.length} files contain TODO/FIXME markers.` : 'No roadmap markers found.'
+                },
+                // 5. Codebase
+                codebase: {
+                    totalFiles: sourceFiles.length,
+                    totalLines: totalLines,
+                    fileTypes: {},
+                    summary: `${sourceFiles.length} files analyzed, ${totalLines.toLocaleString()} lines of code.`
+                },
+                // 6. File Reduction
+                fileReduction: {
+                    unusedAssetCandidates: unusedAssetCandidates.slice(0, 10),
+                    duplicateGroups: duplicateGroups,
+                    summary: `${unusedAssetCandidates.length} image assets detected for review. ${duplicateGroups} duplicate content groups found.`
+                },
+                // 7. Data Quality
+                dataQuality: {
+                    emptyJsonFiles: emptyJsonFiles.slice(0, 5),
+                    emptyJsonCount: emptyJsonFiles.length,
+                    summary: emptyJsonFiles.length > 0 ? `${emptyJsonFiles.length} empty or trivial JSON files detected.` : 'No empty JSON files detected.'
+                },
+                // 8. Cleanup Assistant
+                cleanup: {
+                    debugArtifacts: debugHits.slice(0, 5),
+                    debugArtifactCount: debugHits.length,
+                    summary: debugHits.length > 0 ? `${debugHits.length} debug artifacts detected.` : 'No debug artifacts found.'
+                },
+                // 9. npm Audit
+                npmAudit: {
+                    packageJsonFiles: packageJsonFiles.slice(0, 5),
+                    packageJsonCount: packageJsonFiles.length,
+                    dependencyCount: packageJsonFiles.length,
+                    summary: packageJsonFiles.length > 0 ? `${packageJsonFiles.length} package.json files found.` : 'No package.json files detected.'
+                },
+                // 10. Compliance
+                compliance: {
+                    licenseFiles: licenseFiles.slice(0, 5),
+                    securityFiles: securityFiles.slice(0, 5),
+                    licenseCount: licenseFiles.length,
+                    securityCount: securityFiles.length,
+                    summary: `${licenseFiles.length} license files, ${securityFiles.length} security/governance files detected.`
+                },
+                // 11. EU AI Act
+                euAiActSummary: {
+                    highRiskIndicators: 0,
+                    aiSystemIndicators: aiHits.length,
+                    transparencyGaps: 0,
+                    documentationArtifacts: licenseFiles.length + securityFiles.length,
+                    documentationFound: [...licenseFiles, ...securityFiles].slice(0, 10),
+                    deadlineNote: 'High-risk AI systems must comply with EU AI Act requirements by August 2026'
+                },
+                euAiActFindings: aiHits.length,
+                euAiActScanned: sourceFiles.length,
+                credentialScanned: sourceFiles.length,
+                credentialFindings: credentialHits,
                 scanDurationMs: Date.now() - startTime,
                 repositoryInventory: { totalFiles: sourceFiles.length, projectRoot: projectName },
                 title: profile.title || 'SimpleBeacon Browser Scan',
@@ -2217,7 +2374,7 @@
                     simplebeaconIssues: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
                     totalFindings: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0)
                 },
-                scanProfile: profileKey,
+                scanProfile: browserScanProfile?.value || 'gate',
                 scanProfileLabel: profile.label
             };
 

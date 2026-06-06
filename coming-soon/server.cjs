@@ -499,6 +499,131 @@ function buildCertificateHtml(reportJson, payload) {
     const totalFiles = data.totalFiles || data.filesAnalyzed || data.repositoryFilesTotal || data.summary?.repositoryFiles || 0;
     const qualityScore = data.qualityScore ?? data.summary?.qualityScore ?? 0;
 
+    // Extract all 11 analysis sections
+    const mockDataCategories = data.mockDataCategories || [];
+    const consolidation = data.consolidation || {};
+    const roadmap = data.roadmap || {};
+    const codebase = data.codebase || {};
+    const fileReduction = data.fileReduction || {};
+    const dataQuality = data.dataQuality || {};
+    const cleanup = data.cleanup || {};
+    const npmAudit = data.npmAudit || {};
+    const compliance = data.compliance || {};
+    const euAiActSummary = data.euAiActSummary || {};
+    const severityCounts = data.severityCounts || {};
+    const gateReport = data.gateReport || {};
+
+    // Build mock data rows
+    const mockRows = (mockDataCategories || []).map(cat => {
+        const files = (cat.affectedFiles || []).slice(0, 3).join(', ');
+        return `<tr><td>${cat.category || 'Mock Data'}</td><td>${cat.fileCount || 0}</td><td>${cat.confidence || 'medium'}</td><td>${cat.description || ''}</td><td>${files}</td></tr>`;
+    }).join('');
+
+    // Build EU AI Act section
+    const euAiaHtml = euAiActSummary ? `
+    <section class="section">
+      <div class="section-num">Section 02-A</div>
+      <h2>EU AI Act Readiness Assessment</h2>
+      <p class="meta">Article 52, 10, and 13 gap analysis — risk classification and remediation roadmap.</p>
+      <div class="kpi-strip">
+        <div class="kpi"><strong>${euAiActSummary.highRiskIndicators || 0}</strong><span>High-risk indicators</span></div>
+        <div class="kpi"><strong>${euAiActSummary.aiSystemIndicators || 0}</strong><span>AI system indicators</span></div>
+        <div class="kpi"><strong>${euAiActSummary.transparencyGaps || 0}</strong><span>Transparency gaps</span></div>
+        <div class="kpi"><strong>${(euAiActSummary.documentationArtifacts || 0)}</strong><span>Doc artifacts</span></div>
+        <div class="kpi"><strong>${(euAiActSummary.documentationFound || []).length}</strong><span>Governance files</span></div>
+      </div>
+      <p class="meta">${euAiActSummary.deadlineNote || 'Review EU AI Act compliance requirements.'}</p>
+    </section>` : '';
+
+    // Build analysis modules section
+    const analysisSectionsHtml = `
+    <section class="section">
+      <div class="section-num">Section 06</div>
+      <h2>Analysis Modules — Complete Scan Results</h2>
+      <p class="meta">Results from all 11 SimpleBeacon analysis engines run against the repository.</p>
+
+      <h3>&#128737; 1. SimpleBeacon Gate</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>Gate pass</td><td><strong>${gateReport.pass !== undefined ? (gateReport.pass ? 'PASS' : 'FAIL') : (gatePass)}</strong></td></tr>
+        <tr><td>Blocking count</td><td>${gateReport.blockingCount ?? credentialHits}</td></tr>
+        <tr><td>Summary</td><td>${gateReport.summary || (gatePass === 'PASS' ? 'No blocking credentials found.' : `${credentialHits} credential patterns detected.`)}</td></tr>
+      </table>
+
+      <h3>&#128260; 2. Consolidation</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>Monorepo markers</td><td>${consolidation.monorepoMarkers || 0}</td></tr>
+        <tr><td>Duplicate groups</td><td>${consolidation.duplicateGroups || 0}</td></tr>
+        <tr><td>Summary</td><td>${consolidation.summary || 'No consolidation issues detected.'}</td></tr>
+      </table>
+
+      <h3>&#128269; 3. Mock Data Detection</h3>
+      ${mockRows ? `<table class="data-table"><tr><th>Category</th><th>Files</th><th>Confidence</th><th>Description</th><th>Sample files</th></tr>${mockRows}</table>` : '<p class="meta">No mock or fixture files detected.</p>'}
+
+      <h3>&#128506; 4. Roadmap Markers</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>TODO/FIXME files</td><td>${roadmap.todoCount || 0}</td></tr>
+        <tr><td>Summary</td><td>${roadmap.summary || 'No roadmap markers found.'}</td></tr>
+      </table>
+
+      <h3>&#128187; 5. Codebase Analysis</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>Total files</td><td>${codebase.totalFiles || totalFiles}</td></tr>
+        <tr><td>Total lines</td><td>${(codebase.totalLines || 0).toLocaleString()}</td></tr>
+        <tr><td>Summary</td><td>${codebase.summary || `${totalFiles} files analyzed.`}</td></tr>
+      </table>
+
+      <h3>&#128230; 6. File Reduction</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>Asset candidates</td><td>${(fileReduction.unusedAssetCandidates || []).length}</td></tr>
+        <tr><td>Duplicate groups</td><td>${fileReduction.duplicateGroups || 0}</td></tr>
+        <tr><td>Summary</td><td>${fileReduction.summary || 'No file reduction opportunities detected.'}</td></tr>
+      </table>
+
+      <h3>&#129516; 7. Data Quality</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>Empty/trivial JSON</td><td>${dataQuality.emptyJsonCount || 0}</td></tr>
+        <tr><td>Summary</td><td>${dataQuality.summary || 'No data quality issues detected.'}</td></tr>
+      </table>
+
+      <h3>&#129529; 8. Cleanup Assistant</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>Debug artifacts</td><td>${cleanup.debugArtifactCount || 0}</td></tr>
+        <tr><td>Summary</td><td>${cleanup.summary || 'No cleanup items found.'}</td></tr>
+      </table>
+
+      <h3>&#128230; 9. npm Audit</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>package.json files</td><td>${npmAudit.packageJsonCount || 0}</td></tr>
+        <tr><td>Summary</td><td>${npmAudit.summary || 'No package.json files detected.'}</td></tr>
+      </table>
+
+      <h3>&#9989; 10. Compliance</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>License files</td><td>${compliance.licenseCount || 0}</td></tr>
+        <tr><td>Security/governance files</td><td>${compliance.securityCount || 0}</td></tr>
+        <tr><td>Summary</td><td>${compliance.summary || 'No governance files detected.'}</td></tr>
+      </table>
+
+      <h3>&#127757; 11. EU AI Act Sprint</h3>
+      <table class="data-table">
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>High-risk indicators</td><td>${euAiActSummary.highRiskIndicators || 0}</td></tr>
+        <tr><td>AI system indicators</td><td>${euAiActSummary.aiSystemIndicators || 0}</td></tr>
+        <tr><td>Transparency gaps</td><td>${euAiActSummary.transparencyGaps || 0}</td></tr>
+        <tr><td>Documentation artifacts</td><td>${euAiActSummary.documentationArtifacts || 0}</td></tr>
+        <tr><td>Summary</td><td>${euAiActSummary.deadlineNote || 'Review EU AI Act requirements.'}</td></tr>
+      </table>
+    </section>`;
+
     const issueRows = detectedIssues.map(issue => {
         const sev = (issue.severity || 'low').toUpperCase();
         const sevClass = sev === 'CRITICAL' ? 'sev-critical' : sev === 'HIGH' ? 'sev-high' : sev === 'MEDIUM' ? 'sev-medium' : 'sev-low';
@@ -615,12 +740,13 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
     </div>
     <div class="kpi-strip">
       <div class="kpi"><strong>${gatePass === 'PASS' ? 'PASS' : 'REVIEW'}</strong><span>Gate (not scanned)</span></div>
-      <div class="kpi"><strong>0</strong><span>Runtime findings</span></div>
-      <div class="kpi"><strong>—</strong><span>DQ findings</span></div>
-      <div class="kpi"><strong>—</strong><span>Files deep-scanned</span></div>
+      <div class="kpi"><strong>${severityCounts.high || 0}</strong><span>High findings</span></div>
+      <div class="kpi"><strong>${severityCounts.medium || 0}</strong><span>Medium findings</span></div>
+      <div class="kpi"><strong>${totalFiles}</strong><span>Files deep-scanned</span></div>
       <div class="kpi"><strong>${qualityScore}%</strong><span>Code health</span></div>
     </div>
   </section>
+  ${euAiaHtml}
   <section class="section">
     <div class="section-num">Section 03</div>
     <h2>Developer Action Plan (Technical Recipe Book)</h2>
@@ -671,6 +797,7 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
       <span class="signoff-role">CTO / Lead Architect · Date: _______________</span>
     </div>
   </section>
+  ${analysisSectionsHtml}
   <section class="section">
     <div class="section-num">Appendix</div>
     <h2>Methodology &amp; scan scope</h2>
