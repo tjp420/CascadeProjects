@@ -1548,7 +1548,7 @@
         // Product-aware configuration — prices match pricing.html
         const PRODUCT_CONFIG = {
             instant: {
-                label: 'Website Security Report',
+                label: 'Instant Code Hygiene Report',
                 price: '$19',
                 title: 'Upload Your Scan Report',
                 subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your Website Security Report.',
@@ -2410,7 +2410,9 @@
                 gateReport: {
                     pass: gatePass,
                     blockingCount: credentialHits,
-                    summary: gatePass ? 'Gate passed — no blocking credentials found.' : `${credentialHits} credential patterns detected. Review before release.`
+                    summary: gatePass
+                        ? (credentialHits === 0 ? 'Gate passed — no blocking credentials found.' : `Gate passed with ${credentialHits} low-severity pattern(s). Monitor in CI.`)
+                        : `${credentialHits} credential patterns detected. Review before release.`
                 },
                 // 2. Consolidation
                 consolidation: {

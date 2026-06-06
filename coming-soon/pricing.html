@@ -392,7 +392,7 @@
     // Checkout modal handlers — loaded AFTER app-links.js to override direct Stripe wiring
     function openCheckoutModal(tier) {
       var modal = document.getElementById('checkoutModal');
-      var tierNames = { instant: 'Instant Report — $19', executive: 'Executive Risk Certificate — $499', euSprint: 'EU AI Act Sprint — $2,499', runtimeShield: 'Runtime Shield — $2,999/mo' };
+      var tierNames = { instant: 'Instant Code Hygiene Report — $19', executive: 'Executive Risk Certificate — $499', euai: 'EU AI Act Sprint — $2,499', runtimeShield: 'Runtime Shield — $2,999/mo' };
       document.getElementById('modalTitle').textContent = 'Purchase: ' + (tierNames[tier] || 'License');
       document.getElementById('modalTier').value = tier;
       document.getElementById('modalError').style.display = 'none';
