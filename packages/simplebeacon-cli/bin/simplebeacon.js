@@ -124,7 +124,8 @@ function parseArgs(argv) {
         maxFixes: 10,
         withAnalyzerSuite: false,
         version: false,
-        complete: false
+        complete: false,
+        watch: false
     };
 
     for (let i = flagStart; i < args.length; i += 1) {
@@ -227,6 +228,8 @@ function parseArgs(argv) {
             options.version = true;
         } else if (arg === '--complete') {
             options.complete = true;
+        } else if (arg === '--watch') {
+            options.watch = true;
         }
     }
 
@@ -320,6 +323,7 @@ Scan options:
   --fix-dry-run       Show diffs without applying patches
   --max-fixes <n>     Limit number of auto-fix attempts (default: 10)
   --complete          Run all 11 analyzers (gate + consolidation + mock data + roadmap + codebase + file reduction + data quality + cleanup + npm audit + compliance + EU AI Act)
+  --watch             Watch project files and re-run scan on changes (ctrl+c to stop)
   --offline           Fail if any outbound network activity occurs during scan
   --no-trust-banner   Suppress read-only / local-only trust confirmation lines
   --api-token <tok>   Paid tier API token (required with --upload)
@@ -427,7 +431,27 @@ async function uploadReportToCloud(uploadUrl, apiToken, report) {
     return data;
 }
 
-async function runScanCommand(options) {
+function createScanSpinner(label) {
+    if (!process.stderr.isTTY) return { start() {}, stop() {} };
+    const chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    let i = 0;
+    let timer = null;
+    return {
+        start() {
+            process.stderr.write(`\r${paint(chars[0], 'cyan')} ${label}...`);
+            timer = setInterval(() => {
+                i = (i + 1) % chars.length;
+                process.stderr.write(`\r${paint(chars[i], 'cyan')} ${label}...`);
+            }, 80);
+        },
+        stop() {
+            if (timer) clearInterval(timer);
+            process.stderr.write('\r'.padEnd(label.length + 10, ' ') + '\r');
+        }
+    };
+}
+
+async function executeOneScan(options, networkGuard) {
     const scanRoot = options.path;
     const { platformRoot } = resolvePlatformRoot(scanRoot);
     const config = loadSimplebeaconConfig(platformRoot, options.config);
@@ -450,9 +474,8 @@ async function runScanCommand(options) {
         throw new Error(`Invalid --format "${options.format}" — use text or json`);
     }
 
-    const networkGuard = createNetworkGuard({ offline: options.offline });
-    printTrustBanner({ quiet: options.noTrustBanner, offline: options.offline }, paint);
-
+    const spinner = createScanSpinner('Scanning');
+    spinner.start();
     try {
         const sanitizedScanRoot = sanitizePath(scanRoot);
         const report = await runScan(sanitizedScanRoot, {
@@ -469,6 +492,7 @@ async function runScanCommand(options) {
 
         const gateResult = evaluateGate(report, config.gate);
         const jsonReport = formatJsonReport(report, gateResult);
+        spinner.stop();
 
         if (options.anonymize) {
             options.format = 'json';
@@ -532,8 +556,55 @@ async function runScanCommand(options) {
 
         if (options.gate && !gateResult.pass) {
             console.error(paint(`Gate failed: ${gateResult.blockingIssues.length} blocking issue(s)`, 'red'));
-            process.exit(1);
+            return 1;
         }
+        return 0;
+    } catch (err) {
+        spinner.stop();
+        throw err;
+    }
+}
+
+async function runScanCommand(options) {
+    const networkGuard = createNetworkGuard({ offline: options.offline });
+    printTrustBanner({ quiet: options.noTrustBanner, offline: options.offline }, paint);
+
+    try {
+        if (options.watch) {
+            const scanRoot = options.path;
+            const watchedPaths = [scanRoot];
+            let debounceTimer = null;
+            let isScanning = false;
+            console.error(paint('[watch] Monitoring project for changes. Press Ctrl+C to stop.', 'cyan'));
+
+            const run = async () => {
+                if (isScanning) return;
+                isScanning = true;
+                try {
+                    await executeOneScan(options, networkGuard);
+                } catch (err) {
+                    console.error(paint(`[watch] Scan error: ${err.message}`, 'red'));
+                } finally {
+                    isScanning = false;
+                }
+            };
+
+            await run();
+
+            const watchers = watchedPaths.map((p) => fs.watch(p, { recursive: true }, (eventType, filename) => {
+                if (!filename || /node_modules|\.git|\.simplebeacon\/report/.test(filename)) return;
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    console.error(paint(`[watch] Change detected: ${filename}`, 'yellow'));
+                    run();
+                }, 500);
+            }));
+
+            return new Promise(() => {}); // Keep alive
+        }
+
+        const exitCode = await executeOneScan(options, networkGuard);
+        if (exitCode === 1) process.exit(1);
     } finally {
         networkGuard.dispose();
     }

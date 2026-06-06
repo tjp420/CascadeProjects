@@ -1909,6 +1909,42 @@
             }
         };
 
+        // Which scan profiles each tier may use
+        const TIER_PROFILES = {
+            instant: ['gate'],
+            community: ['gate', 'codebase', 'hygiene'],
+            executive: ['gate', 'codebase', 'compliance', 'hygiene', 'complete'],
+            euai: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],
+            universal: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete']
+        };
+
+        function filterScanProfiles(tier) {
+            if (!browserScanProfile) return;
+            const allowed = TIER_PROFILES[tier] || TIER_PROFILES.universal;
+            let firstEnabled = null;
+            Array.from(browserScanProfile.options).forEach(opt => {
+                const ok = allowed.includes(opt.value);
+                opt.disabled = !ok;
+                opt.style.opacity = ok ? '1' : '0.4';
+                if (ok && !firstEnabled) firstEnabled = opt.value;
+            });
+            if (firstEnabled && !allowed.includes(browserScanProfile.value)) {
+                browserScanProfile.value = firstEnabled;
+                // Trigger change handler to update help text
+                const profile = BROWSER_SCAN_PROFILES[firstEnabled];
+                if (scanProfileHelp) scanProfileHelp.textContent = profile.help;
+                if (sandboxNoteText) sandboxNoteText.innerHTML = profile.note;
+            }
+        }
+
+        function resetScanProfiles() {
+            if (!browserScanProfile) return;
+            Array.from(browserScanProfile.options).forEach(opt => {
+                opt.disabled = false;
+                opt.style.opacity = '1';
+            });
+        }
+
         function applyProductFromToken(token) {
             const banner = document.getElementById('sprintBanner');
             if (!token) {
@@ -1924,6 +1960,7 @@
                 const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
                 const payload = JSON.parse(atob(padded));
                 const tier = payload.tier || payload.product || 'executive';
+                filterScanProfiles(tier);
                 const config = PRODUCT_CONFIG[tier] || PRODUCT_CONFIG.universal;
                 document.getElementById('productLabel').textContent = config.label;
                 document.getElementById('pageTitle').textContent = config.title;
@@ -2034,7 +2071,8 @@
         document.getElementById('tryFreeBtn').addEventListener('click', async () => {
             const btn = document.getElementById('tryFreeBtn');
             btn.disabled = true;
-            btn.textContent = 'Provisioning Sandbox...';
+            btn.classList.add('btn-loading');
+            const originalText = '\u2699\uFE0F Developer Sandbox';
             try {
                 const response = await fetch('/api/free-token');
                 const data = await response.json();
@@ -2046,14 +2084,16 @@
                     btn.style.borderColor = 'var(--success)';
                     btn.style.color = 'var(--success)';
                 } else {
-                    btn.textContent = '\u2699\uFE0F Developer Sandbox';
+                    btn.textContent = originalText;
                     btn.disabled = false;
                     showToast('Could not provision sandbox: ' + (data.error || 'Unknown error'), 'error');
                 }
             } catch (err) {
-                btn.textContent = '\u2699\uFE0F Developer Sandbox';
+                btn.textContent = originalText;
                 btn.disabled = false;
                 showToast('Network error: ' + err.message, 'error');
+            } finally {
+                btn.classList.remove('btn-loading');
             }
         });
 
@@ -2157,10 +2197,32 @@
                 reportData = null;
                 cliFileName.textContent = '';
                 if (cliJsonDropzone) cliJsonDropzone.classList.remove('has-file');
+                if (fileInput) fileInput.value = '';
                 scanPreview.style.display = 'none';
+                // Clear secure report block
+                const secureBlock = document.getElementById('secureReportBlock');
+                if (secureBlock) secureBlock.remove();
+                // Clear hash ribbons
+                ['browserHashRibbon', 'cliHashRibbon'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+                });
+                // Reset terminal and browser scan panels
+                if (terminalConsole) terminalConsole.innerHTML = '';
+                if (panelStatus) { panelStatus.textContent = 'READY'; panelStatus.style.color = ''; }
+                if (panelMetrics) panelMetrics.innerHTML = '';
+                if (panelProgressContainer) panelProgressContainer.style.display = 'none';
+                if (panelProgressBar) panelProgressBar.style.width = '0%';
+                // Reset scan profiles
+                resetScanProfiles();
+                // Hide status and token action row
+                status.style.display = 'none';
+                status.className = 'status';
+                const tokenActionRow = document.getElementById('tokenActionRow');
+                if (tokenActionRow) tokenActionRow.style.display = 'none';
                 updateSubmit();
-                showToast('Scan cleared. Upload a new report to continue.', 'info');
                 updateStepper();
+                showToast('Scan cleared. Upload a new report to continue.', 'info');
             });
         }
 
