@@ -236,6 +236,8 @@
         }
 
         /* Certificate Preview Styles */
+        .hidden-display { display: none !important; }
+
         .cert-preview {
             position: relative;
             background: linear-gradient(145deg, #0F1626, #1a2845);
@@ -694,7 +696,7 @@
             <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
                 <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                     <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
+                        <span id="browser-step-number" style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
                         <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Direct Folder Analysis</h3>
                     </div>
                 </div>
@@ -745,7 +747,7 @@
                             <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
                             <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
                             <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
-                            <p id="tokenError" style="display:none;font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
+                            <p id="tokenError" class="hidden-display" style="font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
                         </div>
                         <div style="display:flex;gap:8px;">
                             <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;">
@@ -936,8 +938,10 @@
 
         function applyProductFromToken(token) {
             const scanTypeRow = document.getElementById('scanTypeRow');
+            const banner = document.getElementById('sprintBanner');
             if (!token) {
                 if (scanTypeRow) scanTypeRow.style.display = 'none';
+                if (banner) banner.style.display = 'none';
                 return;
             }
             try {
@@ -1088,7 +1092,7 @@
         // Wire up token input to both product detection AND button state
         licenseInput.addEventListener('input', () => {
             const tokenError = document.getElementById('tokenError');
-            if (tokenError) tokenError.style.display = 'none';
+            if (tokenError) tokenError.classList.add('hidden-display');
             applyProductFromToken(licenseInput.value.trim());
             updateSubmit();
         });
@@ -1126,12 +1130,16 @@
                 tabBrowser.classList.remove('active');
                 viewCli.style.display = 'block';
                 viewBrowser.style.display = 'none';
+                const stepNum = document.getElementById('browser-step-number');
+                if (stepNum) stepNum.textContent = '1';
             });
             tabBrowser.addEventListener('click', () => {
                 tabBrowser.classList.add('active');
                 tabCli.classList.remove('active');
                 viewBrowser.style.display = 'block';
                 viewCli.style.display = 'none';
+                const stepNum = document.getElementById('browser-step-number');
+                if (stepNum) stepNum.textContent = '2';
             });
         }
 
@@ -1379,6 +1387,8 @@
                     reason = 'File > 5MB';
                 } else if (skipDeps && (/node_modules\/|\.git\//.test(lowerPath))) {
                     reason = 'Core exclusion';
+                } else if (/\.simplebeacon\/report-deliveries\//.test(lowerPath)) {
+                    reason = 'Report delivery cache';
                 } else if (ignorePatterns.some(p => p.test(path))) {
                     reason = '.simplebeaconignore';
                 } else if (excludeEnv && (lowerPath.includes('.env') || lowerPath.includes('credentials') || lowerPath.endsWith('.pem'))) {
@@ -1529,7 +1539,7 @@
         submitBtn.addEventListener('click', async () => {
             const token = licenseInput.value.trim();
             const tokenError = document.getElementById('tokenError');
-            if (tokenError) tokenError.style.display = 'none';
+            if (tokenError) tokenError.classList.add('hidden-display');
             if (!reportData) return;
 
             // Preview mode: no token yet, guide user
@@ -1557,7 +1567,7 @@
                     const errData = await response.json().catch(() => ({}));
                     const msg = errData.error || `Certificate generation failed (${response.status})`;
                     if (response.status === 401 || response.status === 403) {
-                        if (tokenError) tokenError.style.display = 'block';
+                        if (tokenError) tokenError.classList.remove('hidden-display');
                         throw new Error('Invalid or expired token');
                     }
                     throw new Error(msg);
