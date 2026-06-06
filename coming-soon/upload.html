@@ -1863,57 +1863,57 @@
             </div>
         </div>
 
-        <!-- TOKEN GATE (always visible between views) -->
-        <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
-            <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
-                <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
-                <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">License Token</h3>
-            </div>
-            <div style="padding:20px 24px;background:var(--bg-input);">
-                <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:12px;">
-                    <div>
-                        <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
-                        <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
-                        <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
-                        <div id="tokenValidIndicator" class="token-valid-indicator"></div>
-                        <p id="tokenError" class="hidden-display" style="font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
-                    </div>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
-                            <span>&#128229;</span> Generate Certificate
-                        </button>
-                        <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan" style="display:none;">&#10005; Clear</button>
-                    </div>
-                </div>
-
-                <!-- Developer Sandbox - Prominent Free Tier -->
-                <div style="padding:16px;background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(16,185,129,0.04));border:1px solid rgba(37,99,235,0.25);border-radius:10px;margin-bottom:12px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                        <div>
-                            <p style="font-size:0.9rem;font-weight:600;color:var(--text-main);margin:0 0 4px;">&#128161; Don't have a token?</p>
-                            <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Generate a free community token instantly. No email required.</p>
-                        </div>
-                        <button id="tryFreeBtn" style="padding:10px 20px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;box-shadow:0 0 20px rgba(37,99,235,0.2);">&#9881; Developer Sandbox</button>
-                    </div>
-                </div>
-
-                <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
-                    <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
-                    <div style="display:flex;gap:8px;">
-                        <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
-                        <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send Token</button>
-                    </div>
-                    <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
-                    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
-                        <span style="font-size:0.75rem;color:var(--text-muted);">Corporate buyer?</span>
-                        <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon" style="font-size:0.75rem;color:#60A5FA;text-decoration:none;font-weight:600;">Request Invoice / W-9 &rarr;</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- VIEW B: BROWSER SANDBOX -->
         <div id="view-browser">
+            <!-- TOKEN GATE (Browser Sandbox only) -->
+            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+                <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+                    <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
+                    <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">License Token</h3>
+                </div>
+                <div style="padding:20px 24px;background:var(--bg-input);">
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:12px;">
+                        <div>
+                            <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
+                            <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
+                            <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
+                            <div id="tokenValidIndicator" class="token-valid-indicator"></div>
+                            <p id="tokenError" class="hidden-display" style="font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
+                                <span>&#128229;</span> Generate Certificate
+                            </button>
+                            <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan" style="display:none;">&#10005; Clear</button>
+                        </div>
+                    </div>
+
+                    <!-- Developer Sandbox - Prominent Free Tier -->
+                    <div style="padding:16px;background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(16,185,129,0.04));border:1px solid rgba(37,99,235,0.25);border-radius:10px;margin-bottom:12px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                            <div>
+                                <p style="font-size:0.9rem;font-weight:600;color:var(--text-main);margin:0 0 4px;">&#128161; Don't have a token?</p>
+                                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Generate a free community token instantly. No email required.</p>
+                            </div>
+                            <button id="tryFreeBtn" style="padding:10px 20px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;box-shadow:0 0 20px rgba(37,99,235,0.2);">&#9881; Developer Sandbox</button>
+                        </div>
+                    </div>
+
+                    <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
+                        <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
+                        <div style="display:flex;gap:8px;">
+                            <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
+                            <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send Token</button>
+                        </div>
+                        <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
+                        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:0.75rem;color:var(--text-muted);">Corporate buyer?</span>
+                            <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon" style="font-size:0.75rem;color:#60A5FA;text-decoration:none;font-weight:600;">Request Invoice / W-9 &rarr;</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
                 <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                     <div style="display:flex;align-items:center;gap:10px;">
@@ -2408,7 +2408,7 @@
             locked: [],                        // No token — all profiles locked
             community: ['gate'],               // Free Audit — gate attestation only
             instant: ['gate', 'instant'],       // $19 Instant — gate + instant snapshot
-            executive: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'], // $499 Exec Cert — all 11 engines
+            executive: ['gate', 'codebase', 'compliance', 'hygiene', 'complete'], // $499 Exec Cert — 10 of 11 engines (excludes EU AI Act)
             euai: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],      // $2,499 Sprint — all engines + analyst access
             universal: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete']
         };
@@ -3707,6 +3707,8 @@
             const profile = BROWSER_SCAN_PROFILES[profileKey];
             const allowedSections = PROFILE_SECTIONS[profileKey] || PROFILE_SECTIONS.complete;
             if (browserFolderDropzone) browserFolderDropzone.classList.add('scanning');
+            const localScanFileName = document.getElementById('localScanFileName');
+            if (localScanFileName) localScanFileName.textContent = `Preparing to scan ${files.length.toLocaleString()} files...`;
             appendTerminalLine('simplebeacon scan .', 'input');
             appendTerminalLine(`Initializing Local Web Worker Core... Profile: ${profile.label}. Allocating isolated browser memory structures.`);
             // Security baseline: exclude dependency trees and secrets by default (user can override via checkbox)
@@ -3764,7 +3766,7 @@
             const sourceFiles = [];
             const skipReasons = {};
             for (const f of files) {
-                const path = f.webkitRelativePath || f.name;
+                const path = (f.webkitRelativePath || f.name).replace(/\\/g, '/');
                 const lowerPath = path.toLowerCase();
                 let reason = null;
 
@@ -3803,21 +3805,30 @@
             }
 
             // Diagnostic: log exclusion breakdown
-            appendTerminalLine('Exclusion breakdown:', 'warn');
-            for (const [reason, count] of Object.entries(skipReasons).sort((a, b) => b[1] - a[1])) {
-                appendTerminalLine(`  ${reason}: ${count} files`, 'warn');
+            appendTerminalLine(`<span style="color:#F59E0B;font-weight:700;">&#128310; Filter Summary:</span> ${sourceFiles.length.toLocaleString()} source files kept · ${skipped.toLocaleString()} excluded`);
+            const sortedReasons = Object.entries(skipReasons).sort((a, b) => b[1] - a[1]);
+            for (const [reason, count] of sortedReasons.slice(0, 8)) {
+                appendTerminalLine(`  <span style="color:#64748B;">&#10148;</span> ${reason}: <strong>${count.toLocaleString()}</strong>`);
+            }
+            if (sortedReasons.length > 8) {
+                const rest = sortedReasons.slice(8).reduce((a, [,c]) => a + c, 0);
+                appendTerminalLine(`  <span style="color:#64748B;">&#10148;</span> Other reasons: <strong>${rest.toLocaleString()}</strong>`);
+            }
+
+            if (sourceFiles.length < files.length * 0.1) {
+                appendTerminalLine(`<span style="color:#60A5FA;">&#9432;</span> Only ${(sourceFiles.length / files.length * 100).toFixed(1)}% of files were analyzed. Most exclusions are node_modules, .git, and build artifacts. Toggle <strong>Deep Scan</strong> to include more.`, 'warn');
             }
 
             if (deepScan) {
-                appendTerminalLine(`Found ${sourceFiles.length} source files in your project. (${skipped} files excluded — only secrets and 500MB+ files skipped.)`, 'success');
+                appendTerminalLine(`Found ${sourceFiles.length.toLocaleString()} source files. (${skipped.toLocaleString()} excluded — only secrets and 500MB+ files skipped.)`, 'success');
             } else {
-                appendTerminalLine(`Found ${sourceFiles.length} source files in your project. (${skipped} dependency/secret files excluded — docs are scanned for governance markers.)`, 'success');
+                appendTerminalLine(`Found ${sourceFiles.length.toLocaleString()} source files. (${skipped.toLocaleString()} dependency/secret/generated files excluded.)`, 'success');
             }
 
             // 3. Heuristic scan loop
             for (let i = 0; i < sourceFiles.length; i++) {
                 const file = sourceFiles[i];
-                const path = file.webkitRelativePath || file.name;
+                const path = (file.webkitRelativePath || file.name).replace(/\\/g, '/');
                 try {
                     const text = await file.text();
                     const lineCount = text.split('\n').length;
@@ -3825,42 +3836,49 @@
                     const lower = text.toLowerCase();
                     const lowerPath = path.toLowerCase();
                     const isNodeModule = /node_modules\//.test(lowerPath);
+                    const isGitInternal = /\.git\//.test(lowerPath);
+                    if (isGitInternal) continue; // safety net: never scan .git internals
                     const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)([-_][a-z]+)?(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
                     if (profile.checkAi && /new\s+openai|require\s*\(\s*['"]openai['"]\s*\)|import\s+.*openai|from\s+['"]openai['"]|from\s+['"]@anthropic['"]|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/.test(lower)) {
                         aiHits.push(path);
                         appendTerminalLine(`AI indicator detected: <span style="color:#94A3B8;">${path}</span>`, 'warn');
                     }
-                    // Skip test/sample/demo files from credential detection — not production source
-                    const isSampleOrTest = /\.(test|spec)\.|sample-|demo-|fixture-|mock-|audit-|\.simplebeacon\/|test-cert\/|__tests__\/|mocks\/|fixtures\//i.test(lowerPath);
-                    if (profile.checkCredentials && !isNodeModuleDoc && !isSampleOrTest && /password\s*=\s*['"][^'"]{4,}|api[_-]?key\s*=\s*['"][a-z0-9]{8,}|secret[_-]?key\s*=\s*['"][a-z0-9]{8,}|private_key\s*=\s*['"]|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}|API_KEY\s*=\s*['"][^'"]{8,}|SECRET\s*=\s*['"][^'"]{8,}|TOKEN\s*=\s*['"][^'"]{8,}/i.test(text)) {
+                    // Skip test/sample/demo/vulnerable files from credential detection — not production source
+                    const isSampleOrTest = /\.(test|spec)\.|sample-|demo-|fixture-|mock-|audit-|vulnerable|exposed|leaky_|positive-test|\.simplebeacon\/|test-cert\/|__tests__\/|mocks\/|fixtures\//i.test(lowerPath);
+                    if (profile.checkCredentials && !isNodeModuleDoc && !isSampleOrTest && /password\s*=\s*['"][^'"]{6,}|api[_-]?key\s*=\s*['"][a-z0-9]{12,}|secret[_-]?key\s*=\s*['"][a-z0-9]{12,}|private_key\s*=\s*['"][^'"]{8,}|aws_access_key_id\s*=\s*['"][A-Z0-9]{16,}|API_KEY\s*=\s*['"][A-Za-z0-9_\-]{16,}|SECRET\s*=\s*['"][A-Za-z0-9_\-]{12,}|AUTH_TOKEN\s*=\s*['"][A-Za-z0-9_\-]{12,}/i.test(text)) {
                         credentialHits++;
                         credFiles.push(path);
                     }
-                    // Skip node_modules and CI workflows from debug detection — not user source code
+                    // Skip node_modules, CI workflows, and docs from debug detection — not user source code
                     const isCiWorkflow = /\.github\/workflows\//.test(lowerPath);
-                    if (profile.checkDebug && !isNodeModule && !isCiWorkflow && /console\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|(?:\/\/|\/\*|\#|\*)\s*(?:TODO|FIXME|HACK|XXX|BUG|NOTE|REVIEW|TEMP|TEMPORARY|DELETE|REMOVE)|\b(?:todo|fixme|hack|xxx|bug|review|delete|remove)\b\s*[:;]|alert\s*\(|prompt\s*\(|confirm\s*\(/i.test(text)) {
+                    const isDocFile = /\.(md|txt|pdf|doc|docx)$/i.test(path);
+                    if (profile.checkDebug && !isNodeModule && !isCiWorkflow && !isDocFile && /console\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|(?:\/\/|\/\*|\#)\s*(?:TODO|FIXME|HACK|XXX|BUG|TEMP|DELETE|REMOVE)|\b(?:todo|fixme|hack|xxx|bug|delete|remove)\b\s*[:;]|alert\s*\(|prompt\s*\(|confirm\s*\(/i.test(text)) {
                         debugHits.push(path);
                     }
                     if (profile.checkGov && /SPDX-License-Identifier|MIT License|Apache License|GNU General Public License|All rights reserved|Copyright \(c\)|License: /i.test(text)) {
                         govHits.push(path);
                     }
-                    // --- 11 Analysis Category Heuristics ---
-                    // 3. Mock data: fixture/sample/test-data files (skip node_modules, .git, and marketing demo pages)
-                    const isDemoSample = /sample-(certificate|clearance-pdf|report)\./.test(lowerPath);
-                    const isGitInternal = /\.git\//.test(lowerPath);
-                    if (!isNodeModule && !isGitInternal && !isDemoSample && /mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
-                        mockFiles.push(path);
+                    // --- 11 Analysis Category Heuristics (profile-gated) ---
+                    // 3. Mock data: fixture/sample/test-data files
+                    if (allowedSections.includes('mockDataCategories')) {
+                        const isDemoSample = /sample-(certificate|clearance-pdf|report)\./.test(lowerPath);
+                        const isGitInternal = /\.git\//.test(lowerPath);
+                        if (!isNodeModule && !isGitInternal && !isDemoSample && /mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
+                            mockFiles.push(path);
+                        }
                     }
-                    // 9. npm audit: package.json files (skip node_modules, sync caches — count only project roots)
-                    const isCacheDir = /\.github-sync\/|github-cache\//i.test(lowerPath);
-                    if (!isNodeModule && !isCacheDir && lowerPath.endsWith('package.json')) {
-                        packageJsonFiles.push(path);
-                        try {
-                            const pkg = JSON.parse(text);
-                            const depCount = Object.keys(pkg.dependencies || {}).length + Object.keys(pkg.devDependencies || {}).length;
-                            totalDependencyCount += depCount;
-                            if (depCount > 50) monorepoMarkers++;
-                        } catch (e) { /* ignore invalid package.json */ }
+                    // 9. npm audit: package.json files
+                    if (allowedSections.includes('npmAudit')) {
+                        const isCacheDir = /\.github-sync\/|github-cache\//i.test(lowerPath);
+                        if (!isNodeModule && !isCacheDir && lowerPath.endsWith('package.json')) {
+                            packageJsonFiles.push(path);
+                            try {
+                                const pkg = JSON.parse(text);
+                                const depCount = Object.keys(pkg.dependencies || {}).length + Object.keys(pkg.devDependencies || {}).length;
+                                totalDependencyCount += depCount;
+                                if (depCount > 50) monorepoMarkers++;
+                            } catch (e) { /* ignore invalid package.json */ }
+                        }
                     }
                     // 5. Codebase: track file types (skip backup timestamps and path-like extensions)
                     const extMatch = path.match(/\.([^.]+)$/);
@@ -3870,21 +3888,24 @@
                             fileTypes[ext] = (fileTypes[ext] || 0) + 1;
                         }
                     }
-                    // 10. Compliance: governance files (skip node_modules — dependency licenses are not project governance)
-                    if (!isNodeModule && /license|licence/i.test(lowerPath) && !licenseFiles.includes(path)) {
-                        licenseFiles.push(path);
+                    // 10. Compliance: governance files
+                    if (allowedSections.includes('compliance') || allowedSections.includes('euAiActSummary')) {
+                        if (!isNodeModule && /license|licence/i.test(lowerPath) && !licenseFiles.includes(path)) {
+                            licenseFiles.push(path);
+                        }
+                        if (!isNodeModule && /security\.md|code_of_conduct|contributing|changelog/i.test(lowerPath)) {
+                            securityFiles.push(path);
+                        }
                     }
-                    if (!isNodeModule && /security\.md|code_of_conduct|contributing|changelog/i.test(lowerPath)) {
-                        securityFiles.push(path);
-                    }
-                    // 7. Data quality: empty or trivial JSON (skip runtime data stores and test fixtures)
-                    const isTestFixture = /\/test[-/]|\/test\.json$|\.simplebeacon\/|test-cert\/|__tests__\/|fixtures\/|mocks\//.test(lowerPath);
-                    if (!isTestFixture && lowerPath.endsWith('.json') && !/subscriptions\.json$/.test(lowerPath) && (text.trim().length < 10 || text.trim() === '{}' || text.trim() === '[]')) {
-                        emptyJsonFiles.push(path);
+                    // 7. Data quality: empty or trivial JSON
+                    if (allowedSections.includes('dataQuality')) {
+                        const isTestFixture = /\/test[-/]|\/test\.json$|\.simplebeacon\/|test-cert\/|__tests__\/|fixtures\/|mocks\//.test(lowerPath);
+                        if (!isTestFixture && lowerPath.endsWith('.json') && !/subscriptions\.json$/.test(lowerPath) && (text.trim().length < 10 || text.trim() === '{}' || text.trim() === '[]')) {
+                            emptyJsonFiles.push(path);
+                        }
                     }
                     // 2. Consolidation + 6. File reduction: simple content hash for duplicates
-                    // Exclude: node_modules, .git, build dirs, .husky/_ templates, ALL .simplebeacon/ internal files
-                    if (text.length < 50000 && !/node_modules|\.git|dist|build|coverage|github-cache|\.husky\/\_|\.simplebeacon\//i.test(lowerPath)) {
+                    if ((allowedSections.includes('consolidation') || allowedSections.includes('fileReduction')) && text.length < 50000 && !/node_modules|\.git|dist|build|coverage|github-cache|\.husky\/\_|\.simplebeacon\//i.test(lowerPath)) {
                         const hash = await simpleHash(text);
                         if (duplicateHashes.has(hash)) {
                             duplicateHashes.get(hash).push(path);
@@ -3894,19 +3915,21 @@
                         }
                     }
                     // 4. Roadmap: TODO/FIXME markers in code
-                    // Skip node_modules, .git, cache dirs, and binary-like files
-                    const isCacheOrBinary = /\.git\/|\.simplebeacon\/|github-cache\/|\.github-sync\/|node_modules\/|\.pack$|\.idx$|\.objects\//i.test(lowerPath);
-                    const hasSourceExt = /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|c|cpp|h|hpp|cs|php|rb|swift|kt|scala|dart|vue|svelte|html|css|scss|sass|less|sql|sh|bash|ps1|yml|yaml|json|md|txt|xml|cfg|ini|toml|gradle|dockerfile)$/i.test(path);
-                    if (!isNodeModule && !isCacheOrBinary && hasSourceExt && /TODO:|FIXME:|HACK:|XXX:|NOTE:|BUG:/i.test(text)) {
-                        todoFiles.push(path);
+                    if (allowedSections.includes('roadmap')) {
+                        const isCacheOrBinary = /\.git\/|\.simplebeacon\/|github-cache\/|\.github-sync\/|node_modules\/|\.pack$|\.idx$|\.objects\//i.test(lowerPath);
+                        const hasSourceExt = /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|c|cpp|h|hpp|cs|php|rb|swift|kt|scala|dart|vue|svelte|html|css|scss|sass|less|sql|sh|bash|ps1|yml|yaml|json|md|txt|xml|cfg|ini|toml|gradle|dockerfile)$/i.test(path);
+                        if (!isNodeModule && !isCacheOrBinary && hasSourceExt && /TODO:|FIXME:|HACK:|XXX:|NOTE:|BUG:/i.test(text)) {
+                            todoFiles.push(path);
+                        }
                     }
                     // 6. File reduction: collect image paths for post-scan cross-reference
-                    // Skip node_modules, build output, and standard auto-loaded web assets
-                    const baseName = path.split('/').pop();
-                    const isBuildOutput = /\/(build|dist|frontend-build|out|\.next|\.output|target|coverage)\//i.test(lowerPath);
-                    const isStandardWebAsset = /^(favicon|apple-touch-icon|mstile|browserconfig|site\.webmanifest|logo192\.png|logo512\.png|maskable-icon|splash-screen|og-image)/i.test(baseName);
-                    if (!isNodeModule && !isBuildOutput && !isStandardWebAsset && /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(lowerPath)) {
-                        imageFiles.push({ path, name: baseName });
+                    if (allowedSections.includes('fileReduction')) {
+                        const baseName = path.split('/').pop();
+                        const isBuildOutput = /\/(build|dist|frontend-build|out|\.next|\.output|target|coverage)\//i.test(lowerPath);
+                        const isStandardWebAsset = /^(favicon|apple-touch-icon|mstile|browserconfig|site\.webmanifest|logo192\.png|logo512\.png|maskable-icon|splash-screen|og-image)/i.test(baseName);
+                        if (!isNodeModule && !isBuildOutput && !isStandardWebAsset && /\.(png|jpg|jpeg|gif|svg|webp|ico)$/i.test(lowerPath)) {
+                            imageFiles.push({ path, name: baseName });
+                        }
                     }
                     if ((i + 1) % 5 === 0 || i === sourceFiles.length - 1) {
                         appendTerminalLine(`Scanning chunk: <span style="color:#94A3B8;">${path}</span> (${lineCount} lines)`);
@@ -3917,6 +3940,9 @@
                 scanned++;
                 const pct = Math.round(((i + 1) / sourceFiles.length) * 100);
                 panelProgressBar.style.width = pct + '%';
+                if (localScanFileName && i % 10 === 0) {
+                    localScanFileName.textContent = `Scanning ${scanned.toLocaleString()} of ${sourceFiles.length.toLocaleString()} files (${pct}%) — ${path.split('/').pop()}`;
+                }
                 // Real-time findings summary in metrics
                 const findingParts = [`Files: ${scanned}/${sourceFiles.length}`];
                 if (profile.checkCredentials && credentialHits > 0) findingParts.push(`Creds: ${credentialHits}`);
@@ -4021,7 +4047,8 @@
                 gate: {
                     pass: gatePass,
                     blockingCount: credentialHits,
-                    warningCount: 0
+                    warningCount: 0,
+                    blockingFindings: (profile.checkCredentials && credentialHits ? [{ severity: 'medium', type: 'Credential Pattern', count: credentialHits, filePath: credFiles.slice(0,10).join(', '), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.' }] : [])
                 },
                 gateReport: {
                     pass: gatePass,
@@ -4029,6 +4056,10 @@
                     summary: gatePass
                         ? (credentialHits === 0 ? 'Gate passed — no blocking credentials found.' : `Gate passed with ${credentialHits} low-severity pattern(s). Monitor in CI.`)
                         : `${credentialHits} credential patterns detected. Review before release.`
+                },
+                summary: {
+                    gatePass: gatePass,
+                    qualityScore: qualityScore
                 },
                 // Profile-aware sections — only include what the selected profile needs
                 ...(allowedSections.includes('consolidation') ? {
@@ -4381,6 +4412,7 @@
             // 1. Gate — enriched with issue breakdown and remediation
             const g = report.gateReport || report.gate || {};
             const gateIssues = (report.detectedIssues || report.issues || []).filter(i => ['high','critical','medium'].includes(i.severity));
+            const gateBlocking = report.gate?.blockingFindings || [];
             addModule('gate', 'Gate Scan', {
                 pass: g.pass ?? null,
                 blockingCount: g.blockingCount ?? 0,
@@ -4509,8 +4541,8 @@
             });
 
             // 11. EU AI Act — enriched with indicators and documentation
+            const eu = report.euAiActSummary || report.euAiAct || {};
             if (report.checkEuAi !== false) {
-                const eu = report.euAiActSummary || report.euAiAct || {};
                 addModule('eu-ai-act', 'EU AI Act', {
                     aiSystemIndicators: eu.aiSystemIndicators || 0,
                     highRiskIndicators: eu.highRiskIndicators || 0,
@@ -4760,37 +4792,67 @@ ${(report.euAiActSummary?.transparencyGaps || 0) === 0 ? '✅ No transparency ga
 `;
             zip.file('executive-summary.md', execSummary);
 
-            // 9. Findings Report — all issues with file paths and remediation
-            const allIssues = (report.detectedIssues || report.issues || report.rawIssues || []);
-            const bySeverity = { critical: [], high: [], medium: [], low: [], info: [] };
-            for (const issue of allIssues) {
-                const sev = (issue.severity || 'low').toLowerCase();
-                (bySeverity[sev] || bySeverity.low).push(issue);
-            }
-            const gateFindings = report.gate?.blockingFindings || [];
-            const findingsMd = `# Detailed Findings Report — ${escapeHtml(projectName)}
-> **Certificate ID:** ${certId} · **Total Issues:** ${allIssues.length}
+            // 9. Findings Report — comprehensive, all modules (reuses variables from module extraction above)
 
-## Severity Breakdown
-${Object.entries(bySeverity).filter(([_, arr]) => arr.length > 0).map(([sev, arr]) => `- **${sev.toUpperCase()}:** ${arr.length} issue(s)`).join('\n')}
-${gateFindings.length ? '\n## 🚨 Gate Findings (' + gateFindings.length + ' Blocking)\n' + gateFindings.map(f => `### ${f.type || 'Gate Finding'} (${f.count || 0} occurrence${(f.count || 0) !== 1 ? 's' : ''})
-- **Severity:** ${(f.severity || 'medium').toUpperCase()}
+            const findingsMd = `# Detailed Findings Report — ${escapeHtml(projectName)}
+> **Certificate ID:** ${certId} · **Total Modules Scanned:** 11
+
+## 🚨 Security & Gate Findings (${gateBlocking.length ? gateBlocking.length + ' Blocking' : (gateIssues.length + ' Total')})
+${gateBlocking.length ? gateBlocking.map(f => `### ${f.type || 'Blocking Finding'} (${f.count || 0} occurrence${(f.count || 0) !== 1 ? 's' : ''})
+- **Severity:** ${(f.severity || 'medium').toUpperCase()} · **Status:** ${report.gate?.status || 'BLOCKED'}
 - **Rule:** \`${f.rule || 'N/A'}\`
-- **Status:** ${report.gate?.status || 'BLOCKED'}
-- **Files:** ${(f.filePath || 'N/A').split(',').slice(0, 5).join(', ')}${(f.filePath || '').split(',').length > 5 ? ' ...' : ''}
+- **Files:** ${(Array.isArray(f.filePath) ? f.filePath : (f.filePath || 'N/A').split(',')).slice(0, 5).join(', ')}${(Array.isArray(f.filePath) ? f.filePath.length > 5 : (f.filePath || '').split(',').length > 5) ? ' ...' : ''}
 - **Impact:** ${f.impact || 'Review required.'}
 - **Remediation:** ${f.fix || 'Manual review recommended.'}
-`).join('') : ''}
-
-${Object.entries(bySeverity).filter(([_, arr]) => arr.length > 0).map(([sev, arr]) => `
-## ${sev.toUpperCase()} Findings (${arr.length})
-${arr.map(i => `### ${i.type || 'Finding'} (${i.count || 0} occurrence${(i.count || 0) !== 1 ? 's' : ''})
-- **Rule:** \`${i.rule || 'N/A'}\`
-- **Files:** ${(i.filePath || 'N/A').split(',').slice(0, 5).join(', ')}${(i.filePath || '').split(',').length > 5 ? ' ...' : ''}
+`).join('') : (gateIssues.length ? gateIssues.map(i => `### ${i.type || 'Finding'} (${i.count || 0} occurrence${(i.count || 0) !== 1 ? 's' : ''})
+- **Severity:** ${(i.severity || 'low').toUpperCase()} · **Rule:** \`${i.rule || 'N/A'}\`
 - **Impact:** ${i.impact || 'Review required.'}
 - **Remediation:** ${i.fix || 'Manual review recommended.'}
-`).join('')}`).join('')}
+`).join('') : '_No security findings detected._')}
 
+${cons.duplicateGroups ? `## 🔀 Consolidation Issues
+### Duplicate File Groups (${cons.duplicateGroups})
+${(cons.duplicateFiles || []).filter(g => g.length > 1).slice(0, 5).map(g => `- ${g.slice(0, 3).join(' ↔ ')}${g.length > 3 ? ' ...' : ''}`).join('\n')}${(cons.duplicateFiles || []).length > 5 ? '\n_... and ' + ((cons.duplicateFiles || []).length - 5) + ' more groups_' : ''}
+- **Remediation:** Consolidate duplicate files into shared modules or remove redundant copies.
+
+` : ''}${mockTotal ? `## 🔍 Mock Data / Fixture Files (${mockTotal})
+${mockCats.flatMap(c => (c.affectedFiles || []).slice(0, 5).map(f => `- ${f}`)).slice(0, 10).join('\n')}${mockTotal > 10 ? '\n_... and ' + (mockTotal - 10) + ' more files_' : ''}
+- **Risk:** Mock data may be bundled into production deployments.
+- **Remediation:** Review if mock data should be excluded from production bundles.
+
+` : ''}${rm.todoCount ? `## 🗺️ Roadmap / TODO Markers (${rm.todoCount} files)
+${(rm.todoFiles || []).slice(0, 8).map(f => `- ${f}`).join('\n')}${(rm.todoCount || 0) > 8 ? '\n_... and ' + ((rm.todoCount || 0) - 8) + ' more files_' : ''}
+- **Remediation:** Address critical TODOs before release. Convert FIXMEs into tracked issues.
+
+` : ''}${dq.emptyJsonCount ? `## 🧪 Data Quality Issues (${dq.emptyJsonCount})
+${(dq.emptyJsonFiles || []).slice(0, 8).map(f => `- ${f}`).join('\n')}
+- **Remediation:** Remove empty JSON files or add meaningful content.
+
+` : ''}${cl.debugArtifactCount ? `## 🗂️ Cleanup / Debug Artifacts (${cl.debugArtifactCount})
+${(cl.debugArtifacts || []).slice(0, 8).map(f => `- ${f}`).join('\n')}${(cl.debugArtifactCount || 0) > 8 ? '\n_... and ' + ((cl.debugArtifactCount || 0) - 8) + ' more files_' : ''}
+- **Remediation:** Remove console.log, debugger statements, and TODO markers before production builds.
+
+` : ''}${(fr.unusedAssetCandidates || []).length ? `## 📦 File Reduction / Unused Assets (${(fr.unusedAssetCandidates || []).length})
+${(fr.unusedAssetCandidates || []).slice(0, 8).map(f => `- ${f}`).join('\n')}
+- **Remediation:** Review and remove unused assets to reduce bundle size.
+
+` : ''}${npm.packageJsonCount ? `## 📦 npm Audit (${npm.packageJsonCount} packages, ${(npm.dependencyCount || 0).toLocaleString()} deps)
+${(npm.packageJsonFiles || []).slice(0, 5).map(f => `- ${f}`).join('\n')}
+- **Remediation:** ${npm.packageJsonCount > 0 && Math.round((npm.dependencyCount || 0) / npm.packageJsonCount) > 50 ? 'High dependency count — audit for unused packages.' : 'Keep dependencies up to date.'}
+
+` : ''}${(comp.licenseCount || comp.securityCount) ? `## ✅ Compliance / Governance (${(comp.licenseCount || 0)} licenses, ${(comp.securityCount || 0)} security)
+${(comp.licenseFiles || []).slice(0, 5).map(f => `- 📜 ${f}`).join('\n')}
+${(comp.securityFiles || []).slice(0, 3).map(f => `- 🔒 ${f}`).join('\n')}
+- **Remediation:** ${comp.remediation || 'Verify license compatibility with your distribution model.'}
+
+` : ''}${(eu.aiSystemIndicators || eu.highRiskIndicators || eu.transparencyGaps) ? `## 🇪🇺 EU AI Act Indicators
+- **AI System Indicators (Art. 6):** ${eu.aiSystemIndicators || 0}
+- **High-Risk Indicators (Art. 5):** ${eu.highRiskIndicators || 0}
+- **Transparency Gaps (Art. 10):** ${eu.transparencyGaps || 0}
+- **Documentation Artifacts:** ${eu.documentationArtifacts || 0}
+${(eu.documentationFound || []).slice(0, 5).map(f => `- 📄 ${f}`).join('\n')}
+- **Remediation:** Review AI system classification. Schedule legal review if high-risk.
+` : ''}
 ---
 *Generated by SimpleBeacon Sovereign Engine. Integrity hash: ${reportHash}*
 `;
