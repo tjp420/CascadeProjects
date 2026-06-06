@@ -4030,7 +4030,7 @@
                 pushModule('3', '🔍', 'Mock Data', [
                     {value: mockTotal, label: 'Files'},
                     {value: mockPct + '%', label: 'of repo', color: mockTotal > 0 ? '#F59E0B' : '#60A5FA'}
-                ], mockTotal ? `${mockTotal} mock/fixture files detected (${mockPct}% of total).` : 'No mock data found.', mockTotal > 50 ? '#EF4444' : (mockTotal > 0 ? '#F59E0B' : null), mockDetail);
+                ], mockTotal ? `${mockTotal} mock/fixture file${mockTotal === 1 ? '' : 's'} detected (${mockPct}% of total).` : 'No mock data found.', mockTotal > 50 ? '#EF4444' : (mockTotal > 0 ? '#F59E0B' : null), mockDetail);
 
                 // 4. Roadmap
                 const rm = data.roadmap || {};
@@ -4041,7 +4041,7 @@
                 pushModule('4', '🗺️', 'Roadmap', [
                     {value: rm.todoCount || 0, label: 'TODO/FIXME', color: todoSeverity || '#60A5FA'},
                     {value: todoDensity + '%', label: 'of files'}
-                ], rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} files contain TODO/FIXME markers (${todoDensity}% of repo).` : 'No roadmap markers found.'), todoSeverity, rmDetail);
+                ], rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} file${rm.todoCount !== 1 ? 's' : ''} contain${rm.todoCount === 1 ? 's' : ''} TODO/FIXME markers (${todoDensity}% of repo).` : 'No roadmap markers found.'), todoSeverity, rmDetail);
 
                 // 5. Codebase
                 const cb = data.codebase || {};
@@ -4290,6 +4290,38 @@
                         writable: false,
                         configurable: true
                     });
+                }
+            }
+            // Auto-detect project root: if the dropped dir contains exactly one subdir
+            // with package.json or .simplebeacon/config.json, treat that as the root.
+            const paths = files.map(f => f.webkitRelativePath || f.name).map(p => p.replace(/\\/g, '/'));
+            const firstSegments = paths.map(p => p.split('/')[0]);
+            const uniqueRoots = [...new Set(firstSegments)];
+            let rootPrefix = '';
+            if (uniqueRoots.length === 1 && paths.some(p => p.includes('/'))) {
+                const candidate = uniqueRoots[0];
+                // Never treat .git or node_modules as project roots
+                const isValidRoot = candidate !== '.git' && candidate !== 'node_modules';
+                const hasPackageJson = paths.some(p => p === candidate + '/package.json');
+                const hasSimplebeacon = paths.some(p => p.startsWith(candidate + '/.simplebeacon/'));
+                const hasServerCjs = paths.some(p => p === candidate + '/server.cjs');
+                if (isValidRoot && (hasPackageJson || hasSimplebeacon || hasServerCjs)) {
+                    rootPrefix = candidate + '/';
+                    // Strip prefix from all paths
+                    for (const f of files) {
+                        const raw = f.webkitRelativePath || f.name;
+                        const normalized = raw.replace(/\\/g, '/');
+                        if (normalized.startsWith(rootPrefix)) {
+                            Object.defineProperty(f, 'webkitRelativePath', {
+                                value: normalized.slice(rootPrefix.length),
+                                writable: false,
+                                configurable: true
+                            });
+                        }
+                    }
+                    if (localScanFileName) {
+                        appendTerminalLine(`<span style="color:#60A5FA;">&#9432;</span> Auto-detected project root: <strong>${candidate}</strong> — scanning as project root.`);
+                    }
                 }
             }
             if (localScanFileName) localScanFileName.textContent = `Filtering ${files.length.toLocaleString()} files...`;
@@ -5301,7 +5333,7 @@
                 riskScore: mockRiskScore,
                 severity: mockSeverity,
                 productionRisk: mockSeverity,
-                summary: mockTotal ? `${mockTotal} mock/fixture files detected (${mockPct}% of total).` : 'No mock data found.',
+                summary: mockTotal ? `${mockTotal} mock/fixture file${mockTotal === 1 ? '' : 's'} detected (${mockPct}% of total).` : 'No mock data found.',
                 recommendations: [
                     ...(mockTotal > 0 ? ['Ensure mock data is excluded from production bundles.', 'Review fixture files for PII or real credentials.'] : ['No mock data detected — good hygiene.'])
                 ],
@@ -5318,7 +5350,7 @@
                 severity: (rm.todoCount || 0) > 50 ? 'high' : ((rm.todoCount || 0) > 10 ? 'medium' : 'low'),
                 severityColor: (rm.todoCount || 0) > 50 ? '#EF4444' : ((rm.todoCount || 0) > 10 ? '#F59E0B' : '#34D399'),
                 markerBreakdown: rm.markerBreakdown || { TODO: 0, FIXME: 0, HACK: 0, BUG: 0 },
-                summary: rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} files contain TODO/FIXME markers (${todoDensity}% of repo).` : 'No roadmap markers found.'),
+                summary: rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} file${rm.todoCount !== 1 ? 's' : ''} contain${rm.todoCount === 1 ? 's' : ''} TODO/FIXME markers (${todoDensity}% of repo).` : 'No roadmap markers found.'),
                 recommendations: [
                     ...(rm.todoCount > 0 ? ['Address critical TODOs before release.', 'Convert FIXMEs into tracked issues.'] : ['No roadmap markers — clean codebase.'])
                 ],
@@ -6165,12 +6197,12 @@ ${consolidationMod.duplicateGroups ? `<div class="section"><h2>&#128260; Consoli
 </div>` : ''}
 
 ${mockDataMod.fileCount ? `<div class="section"><h2>&#128293; Mock Data & Fixtures</h2>
-<p><strong>${mockDataMod.fileCount}</strong> mock or fixture files detected${mockDataMod.percentageOfRepo ? ' (' + mockDataMod.percentageOfRepo + ' of the repo)' : ''}. These are useful for testing but dangerous in production.</p>
+<p><strong>${mockDataMod.fileCount}</strong> mock or fixture file${mockDataMod.fileCount === 1 ? '' : 's'} detected${mockDataMod.percentageOfRepo ? ' (' + mockDataMod.percentageOfRepo + ' of the repo)' : ''}. These are useful for testing but dangerous in production.</p>
 <div class="fix-box"><h4>How to fix</h4><p>Ensure your build pipeline excludes <code>__mocks__/</code>, <code>*.fixture.*</code>, and <code>test-data/</code> from production bundles. Add them to <code>.simplebeaconignore</code> or your bundler's exclude list.</p></div>
 </div>` : ''}
 
 ${roadmapMod.todoCount ? `<div class="section"><h2>&#128221; Roadmap Markers (TODO / FIXME)</h2>
-<p><strong>${roadmapMod.todoCount}</strong> files contain TODO, FIXME, HACK, or BUG markers. These are debt signals.</p>
+<p><strong>${roadmapMod.todoCount}</strong> file${roadmapMod.todoCount !== 1 ? 's' : ''} contain${roadmapMod.todoCount === 1 ? 's' : ''} TODO, FIXME, HACK, or BUG markers. These are debt signals.</p>
 ${(roadmapMod.todoFiles || []).length ? `<ul style="margin:10px 0;padding-left:18px;font-size:0.82rem;color:var(--text);">${(roadmapMod.todoFiles || []).map(f => `<li><code>${f}</code></li>`).join('')}</ul>` : ''}
 ${(roadmapMod.markerBreakdown && Object.values(roadmapMod.markerBreakdown).some(c => c > 0)) ? `<div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;font-size:0.78rem;">${Object.entries(roadmapMod.markerBreakdown).filter(([k,v]) => v > 0).map(([k,v]) => `<span style="background:rgba(96,165,250,0.12);color:#93C5FD;padding:4px 10px;border-radius:999px;font-weight:600;">${k}: ${v}</span>`).join('')}</div>` : ''}
 <div class="fix-box"><h4>How to fix</h4><p>Before release, address all FIXMEs. Convert TODOs into GitHub issues. Remove HACK comments by refactoring the code they describe. Use <code>grep -rn "TODO\|FIXME\|HACK\|BUG" src/</code> to find them all.</p></div>
