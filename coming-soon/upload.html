@@ -1387,7 +1387,7 @@
                         <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
                         <div style="display:flex;gap:8px;">
                             <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
-                            <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send a Token</button>
+                            <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Token</button>
                         </div>
                         <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
                         <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
@@ -1727,7 +1727,7 @@
             }
             resendStatus.style.display = 'block';
             resendBtn.disabled = false;
-            resendBtn.textContent = 'Send a Token';
+            resendBtn.textContent = 'Token';
         });
 
         // Developer Sandbox — generate a community token without payment
@@ -2086,10 +2086,10 @@
             appendTerminalLine(`Initializing Local Web Worker Core... Profile: ${profile.label}. Allocating isolated browser memory structures.`);
             appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
 
-            // Security baseline: always exclude dependency trees, secrets, and docs
-            const excludeEnv = true;
-            const skipDeps = true;
-            const skipDocs = true;
+            // Scan all files by default — no restrictions
+            const excludeEnv = false;
+            const skipDeps = false;
+            const skipDocs = false;
 
             let scanned = 0;
             let totalLines = 0;
@@ -2108,6 +2108,8 @@
             let todoFiles = [];
             let unusedAssetCandidates = [];
             let monorepoMarkers = 0;
+            let totalDependencyCount = 0;
+            const fileTypes = {};
             const startTime = Date.now();
 
             // 1. Check for user-provided .simplebeaconignore
@@ -2186,8 +2188,15 @@
                         try {
                             const pkg = JSON.parse(text);
                             const depCount = Object.keys(pkg.dependencies || {}).length + Object.keys(pkg.devDependencies || {}).length;
+                            totalDependencyCount += depCount;
                             if (depCount > 50) monorepoMarkers++;
                         } catch (e) { /* ignore invalid package.json */ }
+                    }
+                    // 5. Codebase: track file types
+                    const extMatch = path.match(/\.([^.]+)$/);
+                    if (extMatch) {
+                        const ext = extMatch[1].toLowerCase();
+                        fileTypes[ext] = (fileTypes[ext] || 0) + 1;
                     }
                     // 10. Compliance: governance files
                     if (/license|licence/i.test(lowerPath) && !licenseFiles.includes(path)) {
@@ -2315,7 +2324,7 @@
                 codebase: {
                     totalFiles: sourceFiles.length,
                     totalLines: totalLines,
-                    fileTypes: {},
+                    fileTypes: fileTypes,
                     summary: `${sourceFiles.length} files analyzed, ${totalLines.toLocaleString()} lines of code.`
                 },
                 // 6. File Reduction
@@ -2340,8 +2349,8 @@
                 npmAudit: {
                     packageJsonFiles: packageJsonFiles.slice(0, 5),
                     packageJsonCount: packageJsonFiles.length,
-                    dependencyCount: packageJsonFiles.length,
-                    summary: packageJsonFiles.length > 0 ? `${packageJsonFiles.length} package.json files found.` : 'No package.json files detected.'
+                    dependencyCount: totalDependencyCount,
+                    summary: packageJsonFiles.length > 0 ? `${packageJsonFiles.length} package.json files found with ${totalDependencyCount} total dependencies.` : 'No package.json files detected.'
                 },
                 // 10. Compliance
                 compliance: {
