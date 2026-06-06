@@ -1,0 +1,689 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-06T20:48:12.485Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "configPath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "c:\\Users\\Trevor\\CascadeProjects\\coming-soon"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+    "totalFiles": 63,
+    "totalFolders": 3,
+    "profile": "audit"
+  },
+  "mockSampleFiles": 4,
+  "totalFiles": 63,
+  "ruleScopedFilesAnalyzed": 63,
+  "repositoryFilesTotal": 63,
+  "repositoryFoldersTotal": 3,
+  "filesAnalyzed": 63,
+  "totalSizeBytes": 1712212,
+  "totalSizeLabel": "1.6MB",
+  "issueCount": 3,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 6,
+  "consistencyPassed": 6,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 6,
+  "fictionSampleFilesScanned": 0,
+  "fictionScope": "repository-json",
+  "credentialScanned": 30,
+  "credentialFindings": 0,
+  "productionLeakScanned": 9,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 33,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 37,
+  "euAiActFindings": 2,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 2,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 37,
+    "documentationFound": [
+      "AI-SYSTEM.md",
+      "app-links.js",
+      "certificate-upload.html",
+      "contact.html",
+      "contact.js",
+      "pricing.html",
+      "refund.html",
+      "report.json",
+      "roadmap.html",
+      "sample-certificate.html",
+      "sample-report.json",
+      "scan-status.html",
+      "server.cjs",
+      "site-config.js",
+      "styles.css",
+      "terms.html",
+      "upload.html",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/verify-final.json",
+      ".simplebeacon/verify-scan.json",
+      ".simplebeacon/verify-scan2.json",
+      ".simplebeacon/verify-scan3.json"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 3,
+    "low": 0
+  },
+  "mockDataCategories": [
+    {
+      "category": "Stale inventory (full-tree scan)",
+      "fileCount": 4,
+      "totalSize": "1.6MB",
+      "qualityScore": null,
+      "issues": null,
+      "confidence": null,
+      "description": "Re-run scan to refresh — current categories reflect an outdated full-repo walk, not web/data samples."
+    }
+  ],
+  "detectedIssues": [
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "test-technical-audit.js:105 — Debug logging flag enabled in config or source",
+      "pattern": "SB-DEPLOY-004",
+      "line": 105,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "test-technical-audit.js"
+      ],
+      "filePaths": [
+        "test-technical-audit.js"
+      ],
+      "file": "test-technical-audit.js"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (63 matches in file)",
+      "pattern": "EUAI-AI-001",
+      "line": null,
+      "recommendation": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "report.json"
+      ],
+      "filePaths": [
+        "report.json"
+      ],
+      "file": "report.json"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (7 matches in file)",
+      "pattern": "EUAI-AI-001",
+      "line": null,
+      "recommendation": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "test-technical-audit.js"
+      ],
+      "filePaths": [
+        "test-technical-audit.js"
+      ],
+      "file": "test-technical-audit.js"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "agency-handoff-SB-DEPLOY-004-test-technical-audit.js-4491",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "test-technical-audit.js",
+      "file": "test-technical-audit.js",
+      "line": 105,
+      "pattern": "SB-DEPLOY-004",
+      "count": 1,
+      "description": "test-technical-audit.js:105 — Debug logging flag enabled in config or source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "test-technical-audit.js"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-004",
+        "category": "deploy-leak",
+        "offset": 4491,
+        "match": "Debug: true"
+      }
+    },
+    {
+      "id": "EUAI-AI-001-report.json",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "report.json",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (63 matches in file)",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "report.json"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "gpt-4",
+        "matchCount": 63,
+        "matches": [
+          "gpt-4",
+          "anthropic",
+          "claude",
+          "openai",
+          "OPENAI",
+          "OpenAI",
+          "Anthropic",
+          "huggingface"
+        ]
+      }
+    },
+    {
+      "id": "EUAI-AI-001-test-technical-audit.js",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "test-technical-audit.js",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (7 matches in file)",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "test-technical-audit.js"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "openai",
+        "matchCount": 7,
+        "matches": [
+          "openai",
+          "anthropic",
+          "claude"
+        ]
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [
+    ".env",
+    ".env.example",
+    ".gitignore",
+    ".simplebeaconignore",
+    "404.html",
+    "AI-SYSTEM.md",
+    "app-links.js",
+    "certificate-upload.html",
+    "cloud-scan.html",
+    "CLOUDFLARE-DEPLOYMENT-PLAN.md",
+    "community.html",
+    "contact.html",
+    "contact.js",
+    "diagnostic-prep.html",
+    "repo-handoff.html",
+    "email-template-universal.html",
+    "error.log",
+    "favicon.svg",
+    "index.html",
+    "landing.html",
+    "package-lock.json",
+    "package.json",
+    "pre-commit-hook.ps1",
+    "pre-commit-hook.sh",
+    "pricing.html",
+    "privacy.html",
+    "certificate-upload.html",
+    "cloud-scan.html",
+    "contact.html",
+    "contact.js",
+    "favicon.svg",
+    "index.html",
+    "pricing.html",
+    "roadmap.html",
+    "robots.txt",
+    "sitemap.xml",
+    "styles.css",
+    "refund.html",
+    "report.json",
+    "roadmap.html",
+    "robots.txt",
+    "sample-certificate.html",
+    "sample-clearance-pdf.html",
+    "sample-report.html",
+    "sample-report.json",
+    "scan-status.html",
+    "server.cjs",
+    "site-config.js",
+    "sitemap.xml",
+    "start-server.bat",
+    "stop-server.bat",
+    "styles.css",
+    "subscriptions.json",
+    "terms.html",
+    "test-audit-output.txt",
+    "test-audit-output2.txt",
+    "test-audit-report.json",
+    "test-certificate.js",
+    "test-normalize.js",
+    "test-renderPreview.js",
+    "test-technical-audit.js",
+    "test-zip-data.js",
+    "upload.html"
+  ],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 63,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 9,
+    "productionPaths": [
+      "."
+    ],
+    "sourceCodeScanPaths": [
+      "."
+    ],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 33,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 37,
+    "euAiActPatternHits": 2,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 6,
+    "fictionSampleFilesScanned": 0,
+    "ruleScopedFilesAnalyzed": 63,
+    "repositoryFilesTotal": 63,
+    "repositoryFoldersTotal": 3,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 63 files — gate rules checked 63 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (6) plus source code (0 files in .).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
+      "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
+      "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "stale-full-tree-scan",
+    "rescanRecommended": true,
+    "inventoryMetricsStale": true
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 3,
+    "blockingIssues": [],
+    "warningIssues": [
+      {
+        "id": "agency-handoff-SB-DEPLOY-004-test-technical-audit.js-4491",
+        "severity": "medium",
+        "severityBand": "medium",
+        "type": "Deploy Leak",
+        "category": "deploy-leak",
+        "filePath": "test-technical-audit.js",
+        "file": "test-technical-audit.js",
+        "line": 105,
+        "pattern": "SB-DEPLOY-004",
+        "count": 1,
+        "description": "test-technical-audit.js:105 — Debug logging flag enabled in config or source",
+        "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+        "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+        "affectedFiles": [
+          "test-technical-audit.js"
+        ],
+        "metadata": {
+          "patternId": "SB-DEPLOY-004",
+          "category": "deploy-leak",
+          "offset": 4491,
+          "match": "Debug: true"
+        }
+      },
+      {
+        "id": "EUAI-AI-001-report.json",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "report.json",
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (63 matches in file)",
+        "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+        "affectedFiles": [
+          "report.json"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "gpt-4",
+          "matchCount": 63,
+          "matches": [
+            "gpt-4",
+            "anthropic",
+            "claude",
+            "openai",
+            "OPENAI",
+            "OpenAI",
+            "Anthropic",
+            "huggingface"
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-001-test-technical-audit.js",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "test-technical-audit.js",
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (7 matches in file)",
+        "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+        "affectedFiles": [
+          "test-technical-audit.js"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "openai",
+          "matchCount": 7,
+          "matches": [
+            "openai",
+            "anthropic",
+            "claude"
+          ]
+        }
+      }
+    ],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed — no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 63,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "63 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "compliance": {
+    "licenseCount": 0,
+    "securityCount": 0,
+    "governanceScore": 0,
+    "summary": "No governance files detected.",
+    "remediation": "Consider adding LICENSE and SECURITY.md.",
+    "complianceHealth": "poor",
+    "recommendations": [
+      "Add a LICENSE file to clarify distribution terms.",
+      "Add SECURITY.md to disclose vulnerability reporting."
+    ]
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 4,
+    "summary": "4 mock/fixture files detected."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 2,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "2 AI system indicators detected; review EU AI Act applicability.",
+    "summary": "2 AI system indicators detected; 0 high-risk, 0 transparency gaps."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 0,
+    "readinessStatus": "BLOCKED",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": false,
+        "critical": false
+      }
+    ],
+    "missingCritical": [
+      "package.json",
+      "README",
+      "Tests",
+      "CI/CD",
+      ".env.example",
+      ".gitignore"
+    ],
+    "missingRecommended": [
+      "CHANGELOG",
+      "Docker",
+      "Linting/Formatting",
+      "TypeScript Config",
+      "Build Tool Config",
+      ".npmignore"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 0,
+    "summary": "BLOCKED — 0 of 12 checklist items present. 6 critical blockers.",
+    "recommendations": [
+      "Add all critical files before production deployment.",
+      "Start with package.json, README, .gitignore, and .env.example."
+    ],
+    "remediation": "Missing critical: package.json, README, Tests, CI/CD, .env.example, .gitignore."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2–4 days",
+      "description": "Data integrity verified — no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3–5 days",
+      "description": "Consistency verified — no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 3: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5–10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "qualityScore": 100,
+    "totalFiles": 63,
+    "totalLines": 0
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-06-06T20:48:12.489Z"
+}

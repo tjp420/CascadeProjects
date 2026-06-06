@@ -46,7 +46,7 @@ SimpleBeacon includes AI-powered analysis capabilities that scan source code for
 
 **Article 5 (Prohibited AI Practices):**  
 - No prohibited practices detected
-- No social scoring, biometric identification, or manipulation systems
+- No social scoring, biometric-based identification, or manipulation systems
 
 **Article 6 (Risk Classification):**  
 - AI System indicators reviewed: 5 false-positive pattern matches (scanner self-referencing its own detection regexes in `upload.html` and cached report JSON)
