@@ -1399,6 +1399,31 @@
         .status-pill.warn { background: rgba(245, 158, 11, 0.12); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.25); }
         .status-pill.fail { background: rgba(239, 68, 68, 0.12); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.25); }
         .status-pill.review { background: rgba(96, 165, 250, 0.12); color: #60A5FA; border: 1px solid rgba(96, 165, 250, 0.25); }
+        .compliance-matrix .matrix-row { cursor: pointer; transition: background 0.15s; }
+        .compliance-matrix .matrix-row:hover { background: rgba(96, 165, 250, 0.06); }
+        .issue-item { cursor: pointer; transition: background 0.15s; }
+        .issue-item:hover { background: rgba(96, 165, 250, 0.06); }
+        .detail-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            display: none; align-items: center; justify-content: center;
+            z-index: 1000; padding: 20px;
+        }
+        .detail-overlay.active { display: flex; }
+        .detail-panel {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; max-width: 560px; width: 100%;
+            max-height: 80vh; overflow-y: auto; padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        .detail-panel h3 { margin: 0 0 8px; color: var(--text-main); font-size: 1rem; }
+        .detail-panel .detail-meta { color: var(--text-muted); font-size: 0.78rem; margin-bottom: 14px; }
+        .detail-panel .detail-row { display: flex; gap: 12px; margin-bottom: 10px; }
+        .detail-panel .detail-label { color: var(--text-muted); font-size: 0.75rem; min-width: 100px; }
+        .detail-panel .detail-value { color: var(--text-main); font-size: 0.82rem; }
+        .detail-panel .close-btn {
+            float: right; background: none; border: none; color: var(--text-muted);
+            cursor: pointer; font-size: 1.2rem; line-height: 1;
+        }
 
         /* Schema Inspector Accordion */
         .schema-accordion {
@@ -2238,6 +2263,81 @@
             } catch (e) {
                 showToast('Failed to copy to clipboard', 'error');
             }
+        }
+
+        // Download selected module's full data as JSON
+        function downloadSelectedModule(btn) {
+            const container = btn.closest('[style*="display:flex;gap:8px"]') || btn.parentElement;
+            const select = container.querySelector('.module-dropdown');
+            if (!select || !select.value) {
+                showToast('Select a module first', 'warning');
+                return;
+            }
+            const mod = (window._scanPreviewModules || []).find(m => m.id === select.value);
+            const data = window._scanPreviewData || {};
+            if (!mod) {
+                showToast('Module not found', 'error');
+                return;
+            }
+            const num = mod.num;
+            const projectName = data.projectRoot || data.projectPath || data.projectName || 'local-scan';
+            const now = new Date().toISOString();
+            const totalFiles = (data.codebase?.totalFiles) || data.totalFiles || data.filesAnalyzed || 1;
+            const totalLines = (data.codebase?.totalLines) || data.totalLines || 0;
+
+            // Build rich module data based on module number
+            let moduleData = { metadata: { projectName, generatedAt: now, scanVersion: '1.3.0', moduleId: mod.id, moduleLabel: mod.title, totalFiles, totalLines } };
+
+            if (num === '1') {
+                const g = data.gateReport || data.gate || {};
+                const gateIssues = (data.detectedIssues || data.issues || []).filter(i => ['high','critical','medium'].includes(i.severity));
+                moduleData = { ...moduleData, pass: g.pass ?? null, blockingCount: g.blockingCount ?? 0, warningCount: g.warningCount ?? 0, status: g.pass === true ? 'PASS' : (g.pass === false ? 'BLOCKED' : 'REVIEW'), blockingFindings: gateIssues.slice(0, 15).map(i => ({ severity: i.severity, type: i.type, count: i.count || 0, filePath: i.filePath, rule: i.rule, impact: i.impact, fix: i.fix, findings: (i.findings || []).slice(0, 3).map(f => ({ file: f.file, matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet })) })) })), allIssues: (data.detectedIssues || []).slice(0, 20).map(i => ({ severity: i.severity, type: i.type, count: i.count || 0, filePath: i.filePath, rule: i.rule, impact: i.impact, fix: i.fix })), severityCounts: data.severityCounts || {}, qualityScore: data.qualityScore ?? null };
+            } else if (num === '2') {
+                const cons = data.consolidation || {};
+                const dupFiles = (cons.duplicateFiles || []).map(g => g.filter(p => !/\.simplebeacon\//i.test(p))).filter(g => g.length > 1);
+                moduleData = { ...moduleData, monorepoMarkers: cons.monorepoMarkers || 0, duplicateGroups: cons.duplicateGroups || 0, duplicateGroupsDetail: dupFiles.slice(0, 5).map(g => g.slice(0, 3)), summary: cons.summary || (cons.duplicateGroups ? `${cons.duplicateGroups} duplicate file groups detected.` : 'No duplicate files detected.') };
+            } else if (num === '3') {
+                const mockCats = data.mockDataCategories || [];
+                const mockTotal = data.mockSampleFiles ?? mockCats.reduce((a, c) => a + (c.fileCount || 0), 0);
+                moduleData = { ...moduleData, fileCount: mockTotal, categories: mockCats.map(c => ({ category: c.category, fileCount: c.fileCount || 0, confidence: c.confidence, description: c.description })), affectedFiles: mockCats.flatMap(c => c.affectedFiles || []).slice(0, 10), summary: mockTotal ? `${mockTotal} mock/fixture files detected.` : 'No mock data found.' };
+            } else if (num === '4') {
+                const rm = data.roadmap || {};
+                moduleData = { ...moduleData, todoCount: rm.todoCount || 0, todoFiles: (rm.todoFiles || []).slice(0, 10), summary: rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} files contain TODO/FIXME markers.` : 'No roadmap markers found.') };
+            } else if (num === '5') {
+                const cb = data.codebase || data.codeAnalysis || {};
+                const ftEntries = Object.entries(cb.fileTypes || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
+                moduleData = { ...moduleData, totalFiles: cb.totalFiles || totalFiles, totalLines: cb.totalLines || totalLines, fileTypeBreakdown: ftEntries.map(([ext, count]) => ({ extension: ext, count, percentage: totalFiles > 0 ? ((count / totalFiles) * 100).toFixed(1) + '%' : '0.0%' })), summary: cb.summary || `${(cb.totalFiles || totalFiles).toLocaleString()} files analyzed, ${(cb.totalLines || totalLines).toLocaleString()} lines of code.` };
+            } else if (num === '6') {
+                const fr = data.fileReduction || data.fileReductionPlan || {};
+                moduleData = { ...moduleData, unusedAssetCandidates: (fr.unusedAssetCandidates || []).slice(0, 10), unusedAssetCount: (fr.unusedAssetCandidates || []).length, duplicateGroups: fr.duplicateGroups || 0, summary: fr.summary || ((fr.unusedAssetCandidates || []).length ? `${(fr.unusedAssetCandidates || []).length} image assets detected for review.` : 'No file reduction opportunities.') };
+            } else if (num === '7') {
+                const dq = data.dataQuality || {};
+                moduleData = { ...moduleData, emptyJsonFiles: (dq.emptyJsonFiles || []).slice(0, 10), emptyJsonCount: dq.emptyJsonCount || 0, summary: dq.summary || ((dq.emptyJsonCount || 0) ? `${dq.emptyJsonCount} empty JSON files detected.` : 'No data quality issues.') };
+            } else if (num === '8') {
+                const cl = data.cleanup || {};
+                const debugIssue = (data.detectedIssues || []).find(i => i.type === 'Debug Artifact');
+                moduleData = { ...moduleData, debugArtifacts: (cl.debugArtifacts || []).slice(0, 10), debugArtifactCount: cl.debugArtifactCount || 0, findings: (debugIssue?.findings || []).slice(0, 5).map(f => ({ file: f.file, matches: (f.matches || []).slice(0, 3).map(m => ({ line: m.line, snippet: m.snippet })) })), summary: cl.summary || ((cl.debugArtifactCount || 0) ? `${cl.debugArtifactCount} debug artifacts detected.` : 'No debug artifacts found.') };
+            } else if (num === '9') {
+                const npm = data.npmAudit || {};
+                moduleData = { ...moduleData, packageJsonCount: npm.packageJsonCount || 0, dependencyCount: npm.dependencyCount || 0, packageJsonFiles: (npm.packageJsonFiles || []).slice(0, 5), summary: npm.summary || (npm.packageJsonCount ? `${npm.packageJsonCount} package.json files found with ${(npm.dependencyCount || 0).toLocaleString()} total dependencies.` : 'No package.json files found.') };
+            } else if (num === '10') {
+                const comp = data.compliance || {};
+                moduleData = { ...moduleData, licenseCount: comp.licenseCount || 0, securityCount: comp.securityCount || 0, licenseFiles: (comp.licenseFiles || []).slice(0, 5), securityFiles: (comp.securityFiles || []).slice(0, 5), summary: comp.summary || (`${comp.licenseCount || 0} license files, ${comp.securityCount || 0} security/governance files detected.`) };
+            } else if (num === '11') {
+                const eu = data.euAiActSummary || data.euAiAct || {};
+                moduleData = { ...moduleData, aiSystemIndicators: eu.aiSystemIndicators || 0, highRiskIndicators: eu.highRiskIndicators || 0, transparencyGaps: eu.transparencyGaps || 0, documentationArtifacts: eu.documentationArtifacts || 0, documentationFound: (eu.documentationFound || []).slice(0, 5), summary: eu.deadlineNote || ((eu.aiSystemIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.') };
+            }
+
+            const blob = new Blob([JSON.stringify(moduleData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${mod.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showToast(`Downloaded ${mod.title} module data`, 'success');
         }
 
         // Toast notification system
@@ -3583,7 +3683,7 @@
                 const type = issue.type || 'Issue';
                 const desc = issue.humanReadable || issue.description || `${type} detected`;
                 const confidence = issue.confidence ? `<span style="margin-left:6px;font-size:0.65rem;color:#64748B;">${Math.round(issue.confidence * 100)}% confidence</span>` : '';
-                return `<div class="issue-item"><span class="severity ${sev}"></span><span class="issue-text">${desc}${confidence}</span></div>`;
+                return `<div class="issue-item" data-issue='${JSON.stringify({type: issue.type, severity: issue.severity, description: desc, reasoning: issue.reasoning, confidence: issue.confidence, humanReadable: issue.humanReadable, impact: issue.impact, fix: issue.fix, count: issue.count}).replace(/'/g, "&#39;")}'><span class="severity ${sev}"></span><span class="issue-text">${desc}${confidence}</span></div>`;
             }).join('');
             const moreIssues = detectedIssues.length > 5 ? `<div class="issue-item" style="justify-content:center;"><span class="issue-text">+ ${detectedIssues.length - 5} more issues in full report</span></div>` : '';
 
@@ -3613,17 +3713,17 @@
                         <div>Requirement Title</div>
                         <div>Local Check</div>
                     </div>
-                    <div class="matrix-row">
+                    <div class="matrix-row" data-detail-title="SimpleBeacon Gate Attestation" data-detail-id="SB-GATE-01" data-detail-status="${gateStatus}" data-detail-desc="The Gate Attestation verifies that no blocking security findings exist before release. This includes hardcoded credentials, debug artifacts, and critical vulnerabilities." data-detail-action="${gatePass === true ? 'No action needed — gate is green.' : 'Review blocking findings above before shipping.'}">
                         <div class="control-id">SB-GATE-01</div>
                         <div>SimpleBeacon Gate Attestation</div>
                         <div><span class="status-pill ${gateStatus}">${gatePass === true ? '&#127775; PASSED' : gatePass === false ? '&#10071; FAILED' : '&#9888; REVIEW'}</span></div>
                     </div>
-                    <div class="matrix-row">
+                    <div class="matrix-row" data-detail-title="Prohibited AI Practices Audit" data-detail-id="EU-AIA-ART-5" data-detail-status="${euAiaStatus}" data-detail-desc="Article 5 of the EU AI Act prohibits certain high-risk AI practices. This check scans for AI SDK imports and model inference patterns that may trigger regulatory review." data-detail-action="${hasAi ? 'Schedule legal review if deploying in the EU. Document AI system classification.' : 'No AI indicators detected — no additional action needed.'}">
                         <div class="control-id">EU-AIA-ART-5</div>
                         <div>Prohibited AI Practices Audit</div>
                         <div><span class="status-pill ${euAiaStatus}">${hasAi ? '&#9888; REVIEW' : '&#127775; PASSED (0 Flags)'}</span></div>
                     </div>
-                    <div class="matrix-row">
+                    <div class="matrix-row" data-detail-title="Credential &amp; Secret Hygiene" data-detail-id="SB-CRED-01" data-detail-status="${hasCred ? 'warn' : 'pass'}" data-detail-desc="Scans source files for hardcoded passwords, API keys, secret keys, and access tokens using regex pattern matching on source text." data-detail-action="${hasCred ? 'Remove hardcoded secrets. Use environment variables or a secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault).' : 'No credential patterns detected — maintain good hygiene.'}">
                         <div class="control-id">SB-CRED-01</div>
                         <div>Credential &amp; Secret Hygiene</div>
                         <div><span class="status-pill ${hasCred ? 'warn' : 'pass'}">${hasCred ? '&#9888; REVIEW' : '&#127775; PASSED'}</span></div>
@@ -3766,9 +3866,13 @@
                     ], eu.deadlineNote || ((eu.aiSystemIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.'), euRisk, euDetail);
                 }
 
+                // Expose for download handler
+                window._scanPreviewModules = modules;
+                window._scanPreviewData = data;
+
                 const selectOptions = modules.map(mod => `<option value="${mod.id}">${mod.optionLabel}</option>`).join('');
                 const panels = modules.map(mod => {
-                    const vals = mod.values.map(v => `<button class="detail-data-btn" onclick="copyReportData('${String(v.value).replace(/'/g, "\\'")}', this)"><strong style="color:${v.color || '#60A5FA'};">${v.value}</strong> <span style="color:var(--text-muted);font-weight:400;">${v.label}</span><span class="copy-icon">&#128203;</span></button>`).join('');
+                    const vals = mod.values.map(v => `<button class="detail-data-btn" onclick="copyReportData('${String(v.value).replace(/'/g, "\\'")}', this)"><strong style="color:${v.color || '#60A5FA'}">${v.value}</strong> <span style="color:var(--text-muted);font-weight:400;">${v.label}</span><span class="copy-icon">&#128203;</span></button>`).join('');
                     const leftBorder = mod.statusColor ? `border-left:3px solid ${mod.statusColor};` : '';
                     // Transform file paths and counts inside detailHtml into buttons
                     let btnDetail = mod.detailHtml || '';
@@ -3778,7 +3882,7 @@
                     });
                     return `<div id="${mod.id}" class="module-detail-panel" style="${leftBorder}"><div class="detail-title">${mod.num} ${mod.icon} ${mod.title}</div><div class="detail-values">${vals}</div><div class="detail-summary">${mod.summary || 'No findings.'}</div>${btnDetail}</div>`;
                 }).join('');
-                return `<select class="module-dropdown" onchange="const p=this.parentElement.querySelectorAll('.module-detail-panel');p.forEach(x=>x.classList.remove('active'));const s=this.parentElement.querySelector('#'+this.value);if(s)s.classList.add('active');"><option value="" disabled selected>Select a module…</option>${selectOptions}</select>${panels}`;
+                return `<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:10px;"><select class="module-dropdown" style="flex:1;" onchange="const p=this.parentElement.parentElement.querySelectorAll('.module-detail-panel');p.forEach(x=>x.classList.remove('active'));const s=this.parentElement.parentElement.querySelector('#'+this.value);if(s)s.classList.add('active');"><option value="" disabled selected>Select a module…</option>${selectOptions}</select><button class="detail-data-btn" style="padding:8px 14px;font-size:0.8rem;" onclick="downloadSelectedModule(this)" title="Download full module data as JSON">&#128229; Export</button></div>${panels}`;
             })();
 
             scanPreview.innerHTML = `
@@ -5789,6 +5893,53 @@ ${(complianceMod.licenseCount || complianceMod.securityCount) ? `<div class="sec
 
         // === Page Load: restore previous session ===
         loadFromLocalStorage();
+
+        // Detail panel overlay — reusable for matrix rows and issue items
+        const detailOverlay = document.createElement('div');
+        detailOverlay.className = 'detail-overlay';
+        detailOverlay.innerHTML = `<div class="detail-panel"><button class="close-btn" onclick="this.closest('.detail-overlay').classList.remove('active')">&times;</button><div id="detail-panel-content"></div></div>`;
+        detailOverlay.addEventListener('click', e => { if (e.target === detailOverlay) detailOverlay.classList.remove('active'); });
+        document.body.appendChild(detailOverlay);
+
+        function showDetailPanel(title, rows) {
+            const content = document.getElementById('detail-panel-content');
+            const rowHtml = rows.map(r => `<div class="detail-row"><div class="detail-label">${r.label}</div><div class="detail-value">${r.value}</div></div>`).join('');
+            content.innerHTML = `<h3>${title}</h3><div class="detail-meta">Click anywhere outside to close</div>${rowHtml}`;
+            detailOverlay.classList.add('active');
+        }
+
+        // Event delegation for matrix rows and issue items inside scanPreview
+        document.addEventListener('click', e => {
+            const row = e.target.closest('.matrix-row');
+            if (row && row.dataset.detailTitle) {
+                const d = row.dataset;
+                showDetailPanel(d.detailTitle, [
+                    { label: 'Control ID', value: d.detailId || 'N/A' },
+                    { label: 'Status', value: `<span class="status-pill ${d.detailStatus || 'review'}">${d.detailStatus ? d.detailStatus.toUpperCase() : 'REVIEW'}</span>` },
+                    { label: 'Description', value: d.detailDesc || '' },
+                    { label: 'Action', value: d.detailAction || '' }
+                ]);
+                return;
+            }
+            const item = e.target.closest('.issue-item[data-issue]');
+            if (item) {
+                try {
+                    const issue = JSON.parse(item.dataset.issue.replace(/&#39;/g, "'"));
+                    const rows = [
+                        { label: 'Type', value: issue.type || 'Finding' },
+                        { label: 'Severity', value: (issue.severity || 'low').toUpperCase() },
+                        { label: 'Description', value: issue.description || '' }
+                    ];
+                    if (issue.confidence) rows.push({ label: 'Confidence', value: Math.round(issue.confidence * 100) + '%' });
+                    if (issue.reasoning) rows.push({ label: 'How we found this', value: issue.reasoning });
+                    if (issue.humanReadable) rows.push({ label: 'In plain English', value: issue.humanReadable });
+                    if (issue.impact) rows.push({ label: 'Impact', value: issue.impact });
+                    if (issue.fix) rows.push({ label: 'Remediation', value: issue.fix });
+                    if (issue.count) rows.push({ label: 'Occurrences', value: String(issue.count) });
+                    showDetailPanel(issue.type || 'Finding Detail', rows);
+                } catch (err) { console.error('Issue detail parse error:', err); }
+            }
+        });
     </script>
 </body>
 </html>

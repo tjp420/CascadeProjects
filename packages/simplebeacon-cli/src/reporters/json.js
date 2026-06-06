@@ -30,7 +30,7 @@ function formatJsonReport(report, gateResult = null) {
             ? 'Gate blocked — review findings before release.'
             : (rawGate.summary || (derivedPass === true
                 ? 'Gate passed — no blocking credentials found.'
-                : `${(rawGate.blockingIssues || []).reduce((sum, i) => sum + (i.count || 1), 0)} blocking issue(s) detected. Review before release.`)),
+                : `Gate blocked — ${(rawGate.blockingIssues || []).reduce((sum, i) => sum + (i.count || 1), 0)} blocking issue(s) detected. Review before release.`)),
         blockingFindings: (rawGate.blockingIssues || []).slice(0, 10).map(i => ({
             severity: i.severity,
             type: i.type,
