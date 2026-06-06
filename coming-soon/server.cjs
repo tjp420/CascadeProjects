@@ -422,11 +422,50 @@ function verifyLicenseToken(token, secret) {
 
 // Helper: build a full executive gate-attestation HTML certificate from a browser scan report
 function normalizeReport(reportJson) {
-    // If it's a complete-scan wrapper, pull the simplebeacon sub-report up
+    if (!reportJson || typeof reportJson !== 'object') return {};
+    const type = reportJson.type || '';
+
+    // 1. Complete-scan wrapper: pull the simplebeacon sub-report up
     const sub = reportJson?.results?.simplebeacon;
     if (sub && typeof sub === 'object') {
         return { ...reportJson, ...sub, detectedIssues: sub.detectedIssues || reportJson.detectedIssues || [] };
     }
+
+    // 2. Public-summary: synthesize gate and detectedIssues from summary/severityCounts
+    if (type === 'simplebeacon-public-summary') {
+        const summary = reportJson.summary || {};
+        return {
+            ...reportJson,
+            gate: {
+                pass: summary.gatePass ?? false,
+                blockingCount: (reportJson.severityCounts?.critical || 0) + (reportJson.severityCounts?.high || 0),
+                warningCount: (reportJson.severityCounts?.medium || 0) + (reportJson.severityCounts?.low || 0)
+            },
+            qualityScore: summary.qualityScore ?? 0,
+            totalFiles: summary.filesScanned ?? 0,
+            issueCount: summary.totalIssuesFound ?? 0,
+            detectedIssues: []
+        };
+    }
+
+    // 3. Re-attestation-note: synthesize from currentGate
+    if (type === 'simplebeacon-re-attestation-note') {
+        const cg = reportJson.currentGate || {};
+        return {
+            ...reportJson,
+            gate: {
+                pass: cg.pass ?? false,
+                blockingCount: cg.blockingCount ?? 0,
+                warningCount: 0
+            },
+            qualityScore: cg.qualityScore ?? 0,
+            totalFiles: cg.repositoryFilesTotal ?? 0,
+            issueCount: 0,
+            detectedIssues: []
+        };
+    }
+
+    // 4. Direct simplebeacon-report (or browser-sandbox report)
     return reportJson;
 }
 
