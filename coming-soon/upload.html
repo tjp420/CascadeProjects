@@ -1193,7 +1193,7 @@
                             <input type="text" id="scanPathInput" placeholder="./my-project" value=".">
                             <button id="pickFolderBtn" title="Pick folder" onclick="document.getElementById('cli-folder-input').click()">&#128451;</button>
                         </div>
-                        <p class="path-hint">Type your project path above, or click the folder icon. All commands below update automatically.</p>
+                        <p class="path-hint">Type your project path above, or click the folder icon. All commands below update automatically. Run from repo root (CascadeProjects/).</p>
                     </div>
                     <div class="terminal-palette">
                         <div class="terminal-header">
@@ -1205,31 +1205,31 @@
                         <div class="terminal-body">
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
-                                <code id="installCmd">cd ../packages/simplebeacon-cli && npm link</code>
+                                <code id="installCmd">node packages/simplebeacon-cli/bin/simplebeacon.js --version</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('installCmd')">Copy</button>
-                                <span class="cmd-desc">Link CLI locally (one-time)</span>
+                                <span class="cmd-desc">Verify CLI is ready</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
-                                <code id="scanCmd">node ../packages/simplebeacon-cli/bin/simplebeacon.js scan . --output=report.json</code>
+                                <code id="scanCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --output=report.json</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('scanCmd')">Copy</button>
                                 <span class="cmd-desc">Standard gate scan</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
-                                <code id="scanGateCmd">node ../packages/simplebeacon-cli/bin/simplebeacon.js scan . --gate --offline</code>
+                                <code id="scanGateCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --gate --offline</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('scanGateCmd')">Copy</button>
                                 <span class="cmd-desc">Gate-only (no network)</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
-                                <code id="scanFullCmd">node ../packages/simplebeacon-cli/bin/simplebeacon.js scan . --full --gate --output=report.json</code>
+                                <code id="scanFullCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --full --gate --output=report.json</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('scanFullCmd')">Copy</button>
                                 <span class="cmd-desc">Full coverage + gate</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
-                                <code id="scanEuaiCmd">node ../packages/simplebeacon-cli/bin/simplebeacon.js scan . --config .simplebeacon/config-full-coverage.json --full</code>
+                                <code id="scanEuaiCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --config .simplebeacon/config-full-coverage.json --full</code>
                                 <button class="cmd-copy" onclick="copyToClipboard('scanEuaiCmd')">Copy</button>
                                 <span class="cmd-desc">EU AI Act assessment</span>
                             </div>
@@ -1466,7 +1466,7 @@
         function updateCliCommands() {
             const path = scanPathInput?.value.trim() || '.';
             const safePath = path.includes(' ') ? `"${path}"` : path;
-            const cli = 'node ../packages/simplebeacon-cli/bin/simplebeacon.js';
+            const cli = 'node packages/simplebeacon-cli/bin/simplebeacon.js';
             if (scanCmdEl) scanCmdEl.textContent = `${cli} scan ${safePath} --output=report.json`;
             if (scanGateCmdEl) scanGateCmdEl.textContent = `${cli} scan ${safePath} --gate --offline`;
             if (scanFullCmdEl) scanFullCmdEl.textContent = `${cli} scan ${safePath} --full --gate --output=report.json`;
@@ -1568,7 +1568,7 @@
                 title: 'Upload Your Scan Report',
                 subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your Website Security Report.',
                 showUpload: true,
-                scanCommand: 'node ../packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
+                scanCommand: 'node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Paste your $19 payment token to unlock the scanner.'
             },
             community: {
@@ -1577,7 +1577,7 @@
                 title: 'Free Community Audit',
                 subtitle: 'Run an unlimited file scan locally on your machine. No caps, no timeouts, no limits — only your RAM matters. Complimentary risk assessment with Executive Risk Certificate.',
                 showUpload: true,
-                scanCommand: 'node ../packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
+                scanCommand: 'node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Free community token. Run the scan locally — no payment required.'
             },
             executive: {
@@ -1586,7 +1586,7 @@
                 title: 'Upload Your Scan Report',
                 subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your Executive Risk Certificate.',
                 showUpload: true,
-                scanCommand: 'node ../packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
+                scanCommand: 'node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Paste the license token from your $499 payment confirmation email.'
             },
             euai: {
@@ -1595,7 +1595,7 @@
                 title: 'Upload Your EU AI Act Scan',
                 subtitle: 'Upload your full-coverage scan to generate the EU AI Act Readiness Report.',
                 showUpload: true,
-                scanCommand: 'node ../packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline --config .simplebeacon/config-full-coverage.json',
+                scanCommand: 'node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline --config .simplebeacon/config-full-coverage.json',
                 tokenHelp: 'Paste the license token from your $2,499 EU AI Act Sprint confirmation email.'
             },
             universal: {
@@ -1604,7 +1604,7 @@
                 title: 'Upload Your Scan Report',
                 subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your certificate.',
                 showUpload: true,
-                scanCommand: 'node ../packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
+                scanCommand: 'node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --offline',
                 tokenHelp: 'Paste any SimpleBeacon license token — works with any tier or custom label.'
             }
         };
