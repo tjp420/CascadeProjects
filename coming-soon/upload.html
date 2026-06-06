@@ -637,12 +637,6 @@
             </div>
         </div>
 
-        <!-- BROWSER SCAN CAPABILITY NOTE -->
-        <div id="scanCapabilityNote" style="display:none;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:10px;">
-            <span style="font-size:1rem;">&#127757;</span>
-            <span style="font-size:0.8rem;color:var(--text-muted);">Browser sandbox runs a lightweight <strong style="color:#34D399;">Gate Scan</strong> (AI patterns + credential heuristics). For full analysis (codebase audit, EU AI Act, compliance), use the <strong>CLI tab</strong>.</span>
-        </div>
-
         <!-- VIEW A: CLI WORKFLOW -->
         <div id="view-cli">
             <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
@@ -698,6 +692,10 @@
                     </div>
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:10px;">
+                        <span style="font-size:1rem;">&#127757;</span>
+                        <span style="font-size:0.8rem;color:var(--text-muted);">Browser sandbox runs a lightweight <strong style="color:#34D399;">Gate Scan</strong> (AI patterns + credential heuristics). For full analysis (codebase audit, EU AI Act, compliance), use the <strong>CLI tab</strong>.</span>
+                    </div>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;">No Node.js required. Grab your entire repo folder and drop it here.</p>
                     <div id="browser-folder-dropzone" class="drop-zone" style="padding:40px 20px;margin-bottom:16px;transition:all 0.2s;">
                         <div id="dropzone-prompt">
@@ -878,10 +876,8 @@
         };
 
         function applyProductFromToken(token) {
-            const capNote = document.getElementById('scanCapabilityNote');
             const banner = document.getElementById('sprintBanner');
             if (!token) {
-                if (capNote) capNote.style.display = 'none';
                 if (banner) banner.style.display = 'none';
                 return;
             }
@@ -899,7 +895,6 @@
                 document.getElementById('pageTitle').textContent = config.title;
                 document.getElementById('pageSubtitle').textContent = config.subtitle;
                 document.getElementById('tokenHelp').textContent = config.tokenHelp;
-                if (capNote) capNote.style.display = 'flex';
                 if (!config.showUpload) {
                     document.getElementById('submitBtn').style.display = 'none';
                 }
@@ -1328,6 +1323,8 @@
                     reason = 'Core exclusion';
                 } else if (/\.simplebeacon\/report-deliveries\//.test(lowerPath)) {
                     reason = 'Report delivery cache';
+                } else if (lowerPath.endsWith('upload.html')) {
+                    reason = 'Scanner page';
                 } else if (ignorePatterns.some(p => p.test(path))) {
                     reason = '.simplebeaconignore';
                 } else if (excludeEnv && (lowerPath.includes('.env') || lowerPath.includes('credentials') || lowerPath.endsWith('.pem'))) {
