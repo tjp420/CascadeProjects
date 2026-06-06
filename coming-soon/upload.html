@@ -2159,10 +2159,10 @@
             appendTerminalLine(`Initializing Local Web Worker Core... Profile: ${profile.label}. Allocating isolated browser memory structures.`);
             appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
 
-            // Scan all files by default — no restrictions
-            const excludeEnv = false;
-            const skipDeps = false;
-            const skipDocs = false;
+            // Security baseline: always exclude dependency trees, secrets, and docs
+            const excludeEnv = true;
+            const skipDeps = true;
+            const skipDocs = true;
 
             let scanned = 0;
             let totalLines = 0;
@@ -2206,6 +2206,12 @@
                     reason = 'Core exclusion';
                 } else if (/\.simplebeacon\//.test(lowerPath)) {
                     reason = 'Simplebeacon cache';
+                } else if (/github-cache\//.test(lowerPath)) {
+                    reason = 'Benchmark cache';
+                } else if (/\.github-sync\//.test(lowerPath)) {
+                    reason = 'Git sync cache';
+                } else if (/\.git\/hooks\/.*\.sample$/.test(lowerPath)) {
+                    reason = 'Git hook sample';
                 } else if (lowerPath.endsWith('upload.html')) {
                     reason = 'Scanner page';
                 } else if (ignorePatterns.some(p => p.test(path))) {
@@ -2246,8 +2252,9 @@
                         credentialHits++;
                         credFiles.push(path);
                     }
-                    // Skip node_modules from debug detection — dependency console.log is not user code
-                    if (profile.checkDebug && !isNodeModule && /console\.log\(|debugger;|todo:|fixme:|hack:/i.test(text)) {
+                    // Skip node_modules and CI workflows from debug detection — not user source code
+                    const isCiWorkflow = /\.github\/workflows\//.test(lowerPath);
+                    if (profile.checkDebug && !isNodeModule && !isCiWorkflow && /console\.log\(|debugger;|todo:|fixme:|hack:/i.test(text)) {
                         debugHits.push(path);
                     }
                     if (profile.checkGov && /SPDX-License-Identifier|MIT License|Apache License|GNU General Public License|All rights reserved|Copyright \(c\)|License: /i.test(text)) {
@@ -2272,7 +2279,7 @@
                     const extMatch = path.match(/\.([^.]+)$/);
                     if (extMatch) {
                         const ext = extMatch[1].toLowerCase();
-                        if (!/^\d{4}/.test(ext) && !ext.includes('/') && ext.length <= 20) {
+                        if (!/^\d/.test(ext) && !ext.includes('/') && ext.length <= 20) {
                             fileTypes[ext] = (fileTypes[ext] || 0) + 1;
                         }
                     }
@@ -2288,7 +2295,7 @@
                         emptyJsonFiles.push(path);
                     }
                     // 2. Consolidation + 6. File reduction: simple content hash for duplicates
-                    if (text.length < 50000 && !/node_modules|\.git|dist|build|coverage/i.test(lowerPath)) {
+                    if (text.length < 50000 && !/node_modules|\.git|dist|build|coverage|github-cache/i.test(lowerPath)) {
                         const hash = await simpleHash(text);
                         if (duplicateHashes.has(hash)) {
                             duplicateHashes.get(hash).push(path);
@@ -2443,13 +2450,15 @@
                     securityCount: securityFiles.length,
                     summary: `${licenseFiles.length} license files, ${securityFiles.length} security/governance files detected.`
                 },
-                // 11. EU AI Act
+                // 11. EU AI Act — only count docs from actual project, not node_modules
+                const nonModuleLicenseFiles = licenseFiles.filter(p => !/node_modules\//.test(p));
+                const nonModuleSecurityFiles = securityFiles.filter(p => !/node_modules\//.test(p));
                 euAiActSummary: {
                     highRiskIndicators: 0,
                     aiSystemIndicators: aiHits.length,
                     transparencyGaps: 0,
-                    documentationArtifacts: licenseFiles.length + securityFiles.length,
-                    documentationFound: [...licenseFiles, ...securityFiles].slice(0, 10),
+                    documentationArtifacts: nonModuleLicenseFiles.length + nonModuleSecurityFiles.length,
+                    documentationFound: [...nonModuleLicenseFiles, ...nonModuleSecurityFiles].slice(0, 10),
                     deadlineNote: 'High-risk AI systems must comply with EU AI Act requirements by August 2026'
                 },
                 euAiActFindings: aiHits.length,
