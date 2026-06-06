@@ -691,6 +691,75 @@ function buildCertificateHtml(reportJson, payload) {
     const severityCounts = data.severityCounts || {};
     const gateReport = data.gateReport || {};
 
+    // Build remediation phases (from report or computed from scan data)
+    let remediationPhases = data.remediationPhases || [];
+    if (!Array.isArray(remediationPhases) || remediationPhases.length === 0) {
+        const qs = data.qualityScore ?? data.summary?.qualityScore ?? null;
+        const invalidJson = data.invalidJson ?? data.dataQuality?.invalidJsonCount ?? null;
+        const emptyFiles = data.emptyFiles ?? data.dataQuality?.emptyJsonCount ?? null;
+        const dupes = data.duplicateGroups ?? data.consolidation?.duplicateGroups ?? null;
+        const credFindings = data.credentialFindings ?? data.gate?.blockingCount ?? null;
+        const euAiAct = data.euAiActFindings ?? data.euAiActSummary?.aiSystemIndicators ?? null;
+        const todoMarkers = data.todoMarkerCount ?? data.roadmap?.todoCount ?? null;
+        const phases = [];
+        if ((credFindings != null && credFindings > 0) || (data.gate?.blockingIssues || []).length > 0) {
+            phases.push({ id: 'security', title: 'Phase 1: Security Hardening', severity: 'critical', effort: '1–2 days', description: `Address ${credFindings || 0} credential and production leak finding(s).`, tasks: [`Rotate ${credFindings || 0} exposed credential(s)`, 'Add .env to .gitignore', 'Re-run gate scan'], progress: 0, status: 'pending' });
+        }
+        const hasIntegrityMetrics = invalidJson != null || emptyFiles != null;
+        if (hasIntegrityMetrics) {
+            const allClean = (invalidJson === 0 || invalidJson == null) && (emptyFiles === 0 || emptyFiles == null);
+            phases.push({ id: 'integrity', title: `Phase ${phases.length + 1}: Data Integrity`, severity: (invalidJson > 0 || emptyFiles > 0) ? 'high' : 'medium', effort: '2–4 days', description: allClean ? 'Data integrity verified — no structural issues detected.' : `Resolve structural issues${invalidJson > 0 ? ': ' + invalidJson + ' invalid JSON' : ''}${emptyFiles > 0 ? ': ' + emptyFiles + ' empty files' : ''}.`, tasks: [...(invalidJson > 0 ? [`Fix ${invalidJson} invalid JSON file(s)`] : []), ...(emptyFiles > 0 ? [`Remove ${emptyFiles} empty file(s)`] : []), 'Validate all JSON', 'Re-run scan'], progress: allClean ? 100 : 0, status: allClean ? 'completed' : 'pending' });
+        }
+        const hasConsistencyMetrics = dupes != null;
+        if (hasConsistencyMetrics) {
+            const allClean = dupes === 0 || dupes == null;
+            phases.push({ id: 'consistency', title: `Phase ${phases.length + 1}: Consistency & Deduplication`, severity: dupes > 5 ? 'high' : 'medium', effort: '3–5 days', description: allClean ? 'Consistency verified — no duplicates or naming drift.' : `Eliminate redundancy${dupes > 0 ? ': ' + dupes + ' duplicate group(s)' : ''}.`, tasks: [...(dupes > 0 ? [`Consolidate ${dupes} duplicate group(s)`] : []), 'Standardize naming conventions', 'Document canonical file locations'], progress: allClean ? 100 : Math.round((dupes === 0 ? 100 : 50) / 2), status: allClean ? 'completed' : 'pending' });
+        }
+        const comp = data.compliance || {};
+        const licenseCount = comp.licenseCount != null ? Number(comp.licenseCount) : null;
+        const securityCount = comp.securityCount != null ? Number(comp.securityCount) : null;
+        if ((licenseCount != null && licenseCount > 0) || (securityCount != null && securityCount > 0)) {
+            phases.push({ id: 'compliance', title: `Phase ${phases.length + 1}: Governance & Compliance`, severity: 'medium', effort: '2–3 days', description: `${licenseCount || 0} license file(s), ${securityCount || 0} security file(s).`, tasks: [...(licenseCount > 0 ? [`Audit ${licenseCount} open-source license file(s)`] : []), ...(securityCount > 0 ? [`Review ${securityCount} security/governance file(s)`] : []), 'Verify license compatibility', 'Document governance policies'], progress: 0, status: 'pending' });
+        }
+        if ((euAiAct != null && euAiAct > 0) || data.euAiActSummary) {
+            const s = data.euAiActSummary || {}, hr = Number(s.highRiskIndicators) || 0, tg = Number(s.transparencyGaps) || 0, ai = Number(s.aiSystemIndicators) || 0;
+            const allClean = hr === 0 && tg === 0 && ai === 0;
+            phases.push({ id: 'euaiact', title: `Phase ${phases.length + 1}: EU AI Act Compliance`, severity: hr > 0 ? 'critical' : (ai > 0 ? 'high' : 'medium'), effort: '5–10 days', description: `Regulatory readiness: ${ai} AI indicators, ${hr} high-risk, ${tg} transparency gaps, ${s.documentationArtifacts || 0} artifacts.`, tasks: [...(hr > 0 ? [`Address ${hr} high-risk indicator(s)`] : []), ...(tg > 0 ? [`Close ${tg} transparency gap(s)`] : []), ...(ai > 0 ? [`Review ${ai} AI system indicator(s) (Art. 6)`] : []), 'Generate documentation artifacts', 'Review AI system classification (Art. 6)', 'Schedule legal review'], progress: allClean ? 100 : 0, status: allClean ? 'completed' : 'pending' });
+        }
+        if (qs != null && (qs < 95 || (todoMarkers != null && todoMarkers > 0))) {
+            phases.push({ id: 'optimization', title: `Phase ${phases.length + 1}: Quality Optimization`, severity: qs < 70 ? 'high' : 'low', effort: 'Ongoing', description: `Drive quality score from ${qs}/100 toward 95+.`, tasks: [...(todoMarkers != null && todoMarkers > 0 ? [`Address ${todoMarkers} TODO/FIXME marker(s) in source code`] : []), ...(qs < 85 ? ['Refactor low-quality modules (quality score < 85)'] : []), 'Add test coverage for uncovered modules', 'Install pre-commit hooks for automated scanning', 'Schedule monthly quality gate reviews'], progress: Math.min(100, Math.round(qs)), status: qs >= 95 ? 'completed' : 'in-progress' });
+        }
+        if (phases.length === 0) {
+            phases.push({ id: 'perfect', title: 'All Systems Green', severity: 'low', effort: 'None', description: 'Excellent data quality — no actionable findings in any measured category.', tasks: ['Schedule next scan in 30 days', 'Document quality maintenance procedures'], progress: 100, status: 'completed' });
+        }
+        remediationPhases = phases;
+    }
+    const completedPhases = remediationPhases.filter(p => p.status === 'completed' || p.progress === 100).length;
+    const pendingPhases = remediationPhases.filter(p => p.status === 'pending').length;
+    const criticalPhases = remediationPhases.filter(p => p.severity === 'critical' && p.status !== 'completed').length;
+    const phaseRows = remediationPhases.map(p => {
+        const statusLabel = p.status === 'completed' ? '✅ Complete' : p.status === 'in-progress' ? '🔄 In Progress' : '⏳ Pending';
+        const severityClass = p.severity === 'critical' ? 'sev-critical' : p.severity === 'high' ? 'sev-high' : p.severity === 'medium' ? 'sev-medium' : 'sev-low';
+        const tasks = (p.tasks || []).slice(0, 4).map(t => `<li>${escapeHtml(t)}</li>`).join('');
+        return `<tr><td><span class="sev ${severityClass}">${(p.severity || 'low').toUpperCase()}</span></td><td><strong>${escapeHtml(p.title)}</strong><br><span style="color:#8b949e;font-size:0.8em;">${escapeHtml(p.description || '')}</span></td><td>${statusLabel}<br><span style="color:#8b949e;font-size:0.8em;">${p.progress || 0}%</span></td><td><ul style="margin:0;padding-left:16px;">${tasks}</ul></td><td>${escapeHtml(p.effort || 'Unknown')}</td></tr>`;
+    }).join('');
+    const remediationHtml = remediationPhases.length ? `
+    <section class="section">
+      <div class="section-num">Section 04-A</div>
+      <h2>Remediation Roadmap</h2>
+      <p class="meta">Phased action plan generated from scan findings. ${completedPhases} of ${remediationPhases.length} phases complete. ${pendingPhases} pending${criticalPhases > 0 ? `, ${criticalPhases} critical` : ''}.</p>
+      <div class="kpi-strip">
+        <div class="kpi"><strong>${completedPhases}</strong><span>Completed</span></div>
+        <div class="kpi"><strong>${pendingPhases}</strong><span>Pending</span></div>
+        <div class="kpi"><strong>${criticalPhases}</strong><span>Critical</span></div>
+        <div class="kpi"><strong>${remediationPhases.length}</strong><span>Total Phases</span></div>
+      </div>
+      <table class="data-table">
+        <tr><th>Severity</th><th>Phase</th><th>Status</th><th>Tasks</th><th>Effort</th></tr>
+        ${phaseRows}
+      </table>
+    </section>` : '';
+
     // Build mock data rows
     const mockRows = (mockDataCategories || []).map(cat => {
         const files = (cat.affectedFiles || []).slice(0, 3).join(', ');
@@ -1002,6 +1071,7 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
     </div>
   </section>
   ${analysisSectionsHtml}
+  ${remediationHtml}
   <section class="section">
     <div class="section-num">Section 05</div>
     <h2>Production compliance sign-off</h2>
@@ -1126,6 +1196,7 @@ app.post('/api/certificate/download', async (req, res) => {
         addJson('json/11-eu-ai-act.json', reportJson.euAiActSummary || {});
         addJson('json/12-dependency-vulns.json', reportJson.dependencyAudit || reportJson.vulnerabilityAudit || {});
         addJson('json/13-build-readiness.json', reportJson.buildReadiness || {});
+        addJson('json/14-remediation-roadmap.json', reportJson.remediationPhases || []);
 
         // Human-readable HTML reports (print to PDF)
         const projectName = reportJson.projectRoot || reportJson.projectPath || reportJson.projectName || 'Project';
@@ -1167,6 +1238,7 @@ app.post('/api/certificate/download', async (req, res) => {
                 'reports/11-eu-ai-act.html',
                 'reports/12-dependency-vulns.html',
                 'reports/13-build-readiness.html',
+                'json/14-remediation-roadmap.json',
                 'json/report.json',
                 'json/01-simplebeacon-gate.json',
                 'json/02-consolidation.json',
@@ -1225,6 +1297,7 @@ Contents:
     11-eu-ai-act.json                    : EU AI Act readiness indicators (machine-readable JSON)
     12-dependency-vulns.json             : Dependency vulnerability audit (machine-readable JSON)
     13-build-readiness.json              : Build readiness checklist (machine-readable JSON)
+    14-remediation-roadmap.json          : Phased remediation plan (machine-readable JSON)
   manifest.json                           : Export manifest for verification
   README.txt                              : This file
 

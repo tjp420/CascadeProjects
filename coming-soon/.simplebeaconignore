@@ -25,3 +25,8 @@ Thumbs.db
 
 # Test outputs
 test-output*.txt
+
+# Test files (console.log expected)
+test-*.js
+*.test.js
+*.spec.js

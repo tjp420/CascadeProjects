@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SimpleBeacon — Privacy-first source code scanner. Analyze your repository for security, compliance, and quality issues entirely in your browser. Zero data leaves your device.">
+    <meta name="theme-color" content="#0B0F19">
     <title>SimpleBeacon — Upload Your Scan Report</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
     <style>
         :root {
             --bg-main: #0B0F19;
@@ -242,6 +244,20 @@
             outline: none;
             border-color: var(--border-focus);
             box-shadow: 0 0 0 3px var(--accent-glow), 0 0 20px rgba(37, 99, 235, 0.15);
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        button:focus-visible,
+        a:focus-visible,
+        [tabindex]:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 4px;
         }
 
         input[type="text"],
@@ -669,21 +685,242 @@
             box-shadow: 0 0 4px rgba(52, 211, 153, 0.4);
         }
 
+        /* Token Section Redesign */
+        .token-section {
+            padding: 20px 24px;
+            background: var(--bg-input);
+        }
+        .token-input-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+        .token-field {
+            min-width: 0;
+        }
+        .token-label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .token-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-size: 0.9rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .token-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+        }
+        .token-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            padding-top: 22px;
+        }
+        .token-actions .btn-primary {
+            white-space: nowrap;
+            min-width: 160px;
+        }
+        .token-error {
+            font-size: 0.75rem;
+            color: var(--error);
+            margin: 6px 0 0;
+        }
+        .token-error a {
+            color: #60A5FA;
+            text-decoration: none;
+        }
+        .token-options {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--bg-card);
+        }
+        .token-option-free {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, rgba(37,99,235,0.06), rgba(16,185,129,0.03));
+        }
+        .token-option-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .token-option-icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+        .token-option-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0 0 2px;
+        }
+        .token-option-desc {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+        .token-option-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+        .token-option-btn--free {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 20px rgba(37,99,235,0.2);
+        }
+        .token-option-btn--free:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 24px rgba(37,99,235,0.3);
+        }
+        .token-option-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 20px;
+            background: var(--bg-input);
+        }
+        .token-option-divider::before,
+        .token-option-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .token-option-divider span {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .token-option-resend {
+            padding: 14px 20px;
+            background: var(--bg-input);
+        }
+        .token-option-label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin: 0 0 10px;
+        }
+        .token-option-form {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .token-option-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-size: 0.85rem;
+        }
+        .token-option-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .token-option-btn--send {
+            background: var(--accent);
+            color: white;
+        }
+        .token-option-btn--send:hover {
+            background: #2563EB;
+        }
+        .token-option-status {
+            font-size: 0.8rem;
+            margin: 8px 0 0;
+            display: none;
+        }
+        .token-option-footer {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .token-option-footer span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .token-option-footer a {
+            font-size: 0.75rem;
+            color: #60A5FA;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .token-option-footer a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 640px) {
+            .token-input-row {
+                grid-template-columns: 1fr;
+            }
+            .token-actions {
+                padding-top: 0;
+                width: 100%;
+            }
+            .token-option-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+        }
+
+        .analyzer-dropdown {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            background: var(--bg-card);
+        }
         .select-all-bar {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 12px;
-            padding: 8px 12px;
+            padding: 10px 14px;
             background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            border-bottom: 1px solid var(--border);
             cursor: pointer;
             user-select: none;
             transition: all 0.2s ease;
         }
         .select-all-bar:hover {
             border-color: rgba(37, 99, 235, 0.4);
+        }
+        .select-all-bar .select-all-chevron {
+            margin-left: auto;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            transition: transform 0.25s ease;
+        }
+        .analyzer-dropdown.collapsed .select-all-chevron {
+            transform: rotate(-90deg);
         }
         .select-all-bar input[type="checkbox"] {
             width: 16px;
@@ -701,6 +938,20 @@
         .select-all-bar .select-all-count {
             font-size: 0.7rem;
             color: var(--text-muted);
+            margin-right: 8px;
+        }
+        .analyzer-dropdown-body {
+            max-height: 800px;
+            opacity: 1;
+            overflow: hidden;
+            transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease;
+            padding: 10px;
+        }
+        .analyzer-dropdown.collapsed .analyzer-dropdown-body {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
         }
 
         /* Module dropdown */
@@ -1564,6 +1815,35 @@
             padding: 10px 14px;
             background: rgba(255,255,255,0.03);
             border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+        }
+        .terminal-header .term-chevron {
+            margin-left: auto;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            transition: transform 0.25s ease;
+        }
+        .terminal-palette.collapsed .term-chevron {
+            transform: rotate(-90deg);
+        }
+        .terminal-palette.collapsed .terminal-body,
+        .terminal-palette.collapsed .terminal-section-label {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            border-top-width: 0;
+            transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease, margin 0.2s ease;
+        }
+        .terminal-body, .terminal-section-label {
+            max-height: 600px;
+            opacity: 1;
+            overflow: hidden;
+            transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease, margin 0.2s ease;
         }
         .term-dot {
             width: 10px;
@@ -1755,19 +2035,19 @@
         </header>
 
         <!-- Visual Stepper -->
-        <div class="stepper" id="mainStepper">
-            <div class="stepper-step active" id="stepper1">
-                <div class="stepper-bubble">1</div>
+        <div class="stepper" id="mainStepper" role="navigation" aria-label="Certificate generation steps">
+            <div class="stepper-step active" id="stepper1" aria-current="step">
+                <div class="stepper-bubble" aria-hidden="true">1</div>
                 <span class="stepper-label">Enter Token</span>
             </div>
-            <div class="stepper-line" id="stepperLine1"></div>
+            <div class="stepper-line" id="stepperLine1" aria-hidden="true"></div>
             <div class="stepper-step" id="stepper2">
-                <div class="stepper-bubble">2</div>
+                <div class="stepper-bubble" aria-hidden="true">2</div>
                 <span class="stepper-label">Upload / Scan</span>
             </div>
-            <div class="stepper-line" id="stepperLine2"></div>
+            <div class="stepper-line" id="stepperLine2" aria-hidden="true"></div>
             <div class="stepper-step" id="stepper3">
-                <div class="stepper-bubble">3</div>
+                <div class="stepper-bubble" aria-hidden="true">3</div>
                 <span class="stepper-label">Certificate</span>
             </div>
         </div>
@@ -1801,12 +2081,12 @@
         </div>
 
         <!-- RUNTIME MODE SELECTOR -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-            <div>
+        <div style="margin-bottom:20px;">
+            <div style="margin-bottom:12px;">
                 <h2 style="margin:0;font-size:1.1rem;color:var(--text-main);">Project Compliance Evaluation</h2>
                 <p style="font-size:0.8rem;color:var(--text-muted);margin:4px 0 0;">Choose your preferred local static-analysis runtime.</p>
             </div>
-            <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);">
+            <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);width:fit-content;">
                 <button id="tab-cli" class="mode-tab" style="flex:none;padding:8px 16px;" title="Ctrl+1">&#10095; Terminal (CLI)</button>
                 <button id="tab-browser" class="mode-tab active" style="flex:none;padding:8px 16px;" title="Ctrl+2">&#127758; Browser Sandbox</button>
             </div>
@@ -1823,57 +2103,58 @@
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">Run these commands from your repository root (<code style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;">CascadeProjects/</code>). Change directories with <code>cd</code> first if needed.</p>
-                    <div class="terminal-palette">
-                        <div class="terminal-header">
+                    <div class="terminal-palette collapsed" id="quickCommandsPalette">
+                        <div class="terminal-header" onclick="togglePalette('quickCommandsPalette')" role="button" tabindex="0" aria-expanded="false" aria-controls="quickCommandsPalette">
                             <span class="term-dot red"></span>
                             <span class="term-dot yellow"></span>
                             <span class="term-dot green"></span>
                             <span class="term-title">Quick Commands</span>
+                            <span class="term-chevron" aria-hidden="true">&#9662;</span>
                         </div>
                         <div class="terminal-body">
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="installCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan --help</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('installCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('installCmd')" aria-label="Copy verify CLI command">Copy</button>
                                 <span class="cmd-desc">Verify CLI is ready</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="scanCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --format json --output=report.json</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('scanCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanCmd')" aria-label="Copy standard gate scan command">Copy</button>
                                 <span class="cmd-desc">Standard gate scan</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="scanGateCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --gate --offline</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('scanGateCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanGateCmd')" aria-label="Copy gate-only scan command">Copy</button>
                                 <span class="cmd-desc">Gate-only (no network)</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="scanFullCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --complete --gate --format json --output=report.json</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('scanFullCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanFullCmd')" aria-label="Copy full coverage scan command">Copy</button>
                                 <span class="cmd-desc">Full coverage + gate</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="scanEuaiCmd">node packages/simplebeacon-cli/bin/simplebeacon.js scan . --complete --gate --format json --output=eu-ai-act-report.json</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('scanEuaiCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('scanEuaiCmd')" aria-label="Copy EU AI Act scan command">Copy</button>
                                 <span class="cmd-desc">EU AI Act assessment</span>
                             </div>
                         </div>
-                        <p style="font-size:0.7rem;color:#94a3b8;margin:12px 0 4px;padding-top:8px;border-top:1px solid #334155;">Test this server (PowerShell)</p>
+                        <p class="terminal-section-label" style="font-size:0.7rem;color:#94a3b8;margin:12px 0 4px;padding-top:8px;border-top:1px solid #334155;">Test this server (PowerShell)</p>
                         <div class="terminal-body">
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="testHealthCmd">curl http://localhost:PORT/api/simplebeacon</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('testHealthCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('testHealthCmd')" aria-label="Copy API health check command">Copy</button>
                                 <span class="cmd-desc">Check API health (replace PORT with your server port)</span>
                             </div>
                             <div class="cmd-row">
                                 <span class="cmd-prompt">$</span>
                                 <code id="testCertCmd">curl -X POST http://localhost:PORT/api/certificate/download -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_TOKEN" -d '{\"reportJson\":{\"type\":\"simplebeacon-report\"}}'</code>
-                                <button class="cmd-copy" onclick="copyToClipboard('testCertCmd')">Copy</button>
+                                <button class="cmd-copy" onclick="copyToClipboard('testCertCmd')" aria-label="Copy test certificate endpoint command">Copy</button>
                                 <span class="cmd-desc">Test certificate endpoint (replace PORT with your server port)</span>
                             </div>
                         </div>
@@ -1890,67 +2171,6 @@
                     </div>
                 </div>
             </div>
-
-            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
-                <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
-                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Local Report Validator</h3>
-                    </div>
-                </div>
-                <div style="padding:20px 24px;background:var(--bg-input);">
-                    <div class="input-mode-toggle" style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:16px;">
-                        <button id="modeFile" class="mode-btn active" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:var(--accent);color:white;transition:all 0.2s;">&#128229; Drop File</button>
-                        <button id="modePaste" class="mode-btn" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-muted);transition:all 0.2s;">&#128203; Paste JSON</button>
-                    </div>
-                    <div id="fileModePanel">
-                        <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:12px;">
-                            <div class="icon">&#128229;</div>
-                            <p>Drop your <code>report.json</code> here<br><span style="font-size:0.8rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
-                            <p class="file-name" id="cliFileName"></p>
-                        </div>
-                    </div>
-                    <div id="pasteModePanel" style="display:none;margin-bottom:12px;">
-                        <label style="display:block;font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Paste JSON directly</label>
-                        <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.8rem;resize:vertical;"></textarea>
-                        <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);color:white;border:none;font-weight:600;">Load JSON</button>
-                    </div>
-                    <div id="cliHashRibbon" class="hash-ribbon" style="display:none;">
-                        <span class="hash-label">&#128274; Local Build Integrity</span>
-                        <span id="cliHashValue">--</span>
-                    </div>
-                    <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
-                    <div class="schema-accordion" id="schemaInspector">
-                        <div class="schema-header" onclick="this.parentElement.classList.toggle('open')">
-                            <span>&#128203; Payload Schema Inspector</span>
-                            <span class="schema-chevron">&#9654;</span>
-                        </div>
-                        <div class="schema-body">
-                            <pre>{
-  "type": "simplebeacon-report",
-  "version": "1.3.0",
-  "generatedAt": "ISO-8601 timestamp",
-  "projectRoot": "string — redacted project label",
-  "gate": { "pass": boolean, "blockingCount": number },
-  "qualityScore": 0-100,
-  "totalFiles": number,
-  "issueCount": number,
-  "detectedIssues": [
-    { "severity": "low|medium|high|critical",
-      "type": "string — rule category",
-      "count": number,
-      "filePath": "redacted relative path",
-      "rule": "string — pattern ID",
-      "impact": "string — business risk statement",
-      "fix": "string — remediation recipe" }
-  ],
-  "summary": { "gatePass": boolean, "qualityScore": number }
-}</pre>
-                            <p style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;">No source code, AST, or file contents are transmitted. Only the summary JSON above leaves your perimeter.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- VIEW B: BROWSER SANDBOX -->
@@ -1961,44 +2181,52 @@
                     <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
                     <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">License Token</h3>
                 </div>
-                <div style="padding:20px 24px;background:var(--bg-input);">
-                    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin-bottom:12px;">
-                        <div>
-                            <label for="licenseToken" style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">License Token</label>
-                            <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" style="width:100%;">
+                <div class="token-section">
+                    <!-- Token Input Row -->
+                    <div class="token-input-row">
+                        <div class="token-field">
+                            <label for="licenseToken" class="token-label">License Token</label>
+                            <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off" class="token-input">
                             <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
                             <div id="tokenValidIndicator" class="token-valid-indicator"></div>
-                            <p id="tokenError" class="hidden-display" style="font-size:0.75rem;color:var(--error);margin-top:4px;">&#9888; Token validation failed. Check expiration or <a href="pricing.html" style="color:#60A5FA;">get a new one</a>.</p>
+                            <p id="tokenError" class="token-error hidden-display">&#9888; Token validation failed. Check expiration or <a href="pricing.html">get a new one</a>.</p>
                         </div>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <button class="btn btn-primary" id="submitBtn" disabled style="white-space:nowrap;flex:1;min-width:140px;">
+                        <div class="token-actions">
+                            <button type="button" class="btn btn-primary" id="submitBtn" disabled>
                                 <span>&#128229;</span> Generate Certificate
                             </button>
-                            <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan" style="display:none;">&#10005; Clear</button>
+                            <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan">&#10005; Clear</button>
                         </div>
                     </div>
 
-                    <!-- Developer Sandbox - Prominent Free Tier -->
-                    <div style="padding:16px;background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(16,185,129,0.04));border:1px solid rgba(37,99,235,0.25);border-radius:10px;margin-bottom:12px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                            <div>
-                                <p style="font-size:0.9rem;font-weight:600;color:var(--text-main);margin:0 0 4px;">&#128161; Don't have a token?</p>
-                                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Generate a free community token instantly. No email required.</p>
+                    <!-- No Token? Compact Options -->
+                    <div class="token-options">
+                        <div class="token-option-free">
+                            <div class="token-option-info">
+                                <span class="token-option-icon">&#128161;</span>
+                                <div>
+                                    <p class="token-option-title">Don't have a token?</p>
+                                    <p class="token-option-desc">Generate a free community token instantly. No email required.</p>
+                                </div>
                             </div>
-                            <button id="tryFreeBtn" style="padding:10px 20px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s ease;box-shadow:0 0 20px rgba(37,99,235,0.2);">&#9881; Developer Sandbox</button>
+                            <button type="button" id="tryFreeBtn" class="token-option-btn token-option-btn--free">&#9881; Developer Sandbox</button>
                         </div>
-                    </div>
 
-                    <div style="padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
-                        <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;"><strong>Need a token?</strong></p>
-                        <div style="display:flex;gap:8px;">
-                            <input type="email" id="resendEmail" placeholder="Enter your Email" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;">
-                            <button id="resendTokenBtn" style="padding:10px 16px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">Send Token</button>
+                        <div class="token-option-divider">
+                            <span>or</span>
                         </div>
-                        <p id="resendStatus" style="font-size:0.8rem;margin:8px 0 0;display:none;"></p>
-                        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;">
-                            <span style="font-size:0.75rem;color:var(--text-muted);">Corporate buyer?</span>
-                            <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon" style="font-size:0.75rem;color:#60A5FA;text-decoration:none;font-weight:600;">Request Invoice / W-9 &rarr;</a>
+
+                        <div class="token-option-resend">
+                            <p class="token-option-label"><strong>Need a token?</strong> Enter your email to resend.</p>
+                            <div class="token-option-form">
+                                <input type="email" id="resendEmail" placeholder="your@email.com" class="token-option-input">
+                                <button type="button" id="resendTokenBtn" class="token-option-btn token-option-btn--send">Send Token</button>
+                            </div>
+                            <p id="resendStatus" class="token-option-status"></p>
+                            <div class="token-option-footer">
+                                <span>Corporate buyer?</span>
+                                <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon">Request Invoice / W-9 &rarr;</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2022,12 +2250,17 @@
                             <option value="compliance">&#127775; Compliance Check — Governance + security</option>
                             <option value="hygiene">&#127775; Hygiene Sweep — Debug artifacts + cleanup</option>
                         </select>
-                        <div class="select-all-bar" id="selectAllBar">
-                            <input type="checkbox" id="selectAllModules" checked>
-                            <label for="selectAllModules">Select All Available Modules</label>
-                            <span class="select-all-count" id="selectAllCount"></span>
+                        <div class="analyzer-dropdown" id="analyzerDropdown">
+                            <div class="select-all-bar" id="selectAllBar" onclick="if(event.target.tagName!=='INPUT'&&event.target.tagName!=='LABEL')toggleModuleDropdown()" role="button" tabindex="0" aria-expanded="true" aria-controls="analyzerDropdownBody">
+                                <input type="checkbox" id="selectAllModules" checked>
+                                <label for="selectAllModules">Select All Available Modules</label>
+                                <span class="select-all-count" id="selectAllCount"></span>
+                                <span class="select-all-chevron" aria-hidden="true">&#9662;</span>
+                            </div>
+                            <div class="analyzer-dropdown-body" id="analyzerDropdownBody">
+                                <div id="analyzerCardGrid" class="analyzer-grid"></div>
+                            </div>
                         </div>
-                        <div id="analyzerCardGrid" class="analyzer-grid"></div>
                         <p class="help-text" id="scanProfileHelp">Click modules above to toggle which scans are included in your ZIP report.</p>
                     </div>
                     <div class="sandbox-note">
@@ -2084,8 +2317,8 @@
                         <input type="file" id="cli-folder-input" webkitdirectory directory multiple style="display:none;">
                         <input type="file" id="cli-files-input" multiple style="display:none;">
                     </div>
-                    <div id="panel-progress-container" style="display:none;margin-bottom:12px;">
-                        <div class="progress-bar"><div class="fill" id="panel-progress-bar"></div></div>
+                    <div id="panel-progress-container" style="display:none;margin-bottom:12px;" role="status" aria-live="polite" aria-label="Scan progress">
+                        <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Scan progress"><div class="fill" id="panel-progress-bar"></div></div>
                     </div>
                     <div id="browserHashRibbon" class="hash-ribbon" style="display:none;">
                         <span class="hash-label">&#128274; Local Build Integrity</span>
@@ -2161,7 +2394,7 @@
                     <h4 style="margin:0 0 8px;font-size:1.05rem;color:var(--text-main);">No Scan Report Loaded</h4>
                     <p style="margin:0 0 20px;max-width:420px;">Upload a JSON report from the CLI, paste one directly, or scan a folder in the Browser Sandbox.</p>
                     <div class="quick-actions" style="justify-content:center;">
-                        <span class="quick-action-chip" onclick="document.getElementById('tab-cli').click(); document.getElementById('modePaste').click(); document.getElementById('jsonPasteInput').focus();">&#128203; Paste JSON</span>
+                        <span class="quick-action-chip" onclick="document.getElementById('modePaste').click(); document.getElementById('jsonPasteInput').focus();">&#128203; Paste JSON</span>
                         <span class="quick-action-chip" onclick="document.getElementById('tab-browser').click(); document.getElementById('browser-folder-dropzone').scrollIntoView({behavior:'smooth'});">&#128451; Scan Folder</span>
                     </div>
                 </div>
@@ -2190,6 +2423,68 @@
         </footer>
     </div>
 
+    <!-- SHARED: Local Report Validator -->
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">3</span>
+                <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Local Report Validator</h3>
+            </div>
+        </div>
+        <div style="padding:20px 24px;background:var(--bg-input);">
+            <div class="input-mode-toggle" style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);margin-bottom:16px;">
+                <button id="modeFile" class="mode-btn active" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:var(--accent);color:white;transition:all 0.2s;">&#128229; Drop File</button>
+                <button id="modePaste" class="mode-btn" style="flex:1;padding:8px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-muted);transition:all 0.2s;">&#128203; Paste JSON</button>
+            </div>
+            <div id="fileModePanel">
+                <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:12px;">
+                    <div class="icon">&#128229;</div>
+                    <p>Drop your <code>report.json</code> here<br><span style="font-size:0.8rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
+                    <p class="file-name" id="cliFileName"></p>
+                </div>
+            </div>
+            <div id="pasteModePanel" style="display:none;margin-bottom:12px;">
+                <label style="display:block;font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Paste JSON directly</label>
+                <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.8rem;resize:vertical;"></textarea>
+                <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);color:white;border:none;font-weight:600;">Load JSON</button>
+            </div>
+            <div id="cliHashRibbon" class="hash-ribbon" style="display:none;">
+                <span class="hash-label">&#128274; Local Build Integrity</span>
+                <span id="cliHashValue">--</span>
+            </div>
+            <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
+            <div class="schema-accordion" id="schemaInspector">
+                <div class="schema-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span>&#128203; Payload Schema Inspector</span>
+                    <span class="schema-chevron">&#9654;</span>
+                </div>
+                <div class="schema-body">
+                    <pre>{
+  "type": "simplebeacon-report",
+  "version": "1.3.0",
+  "generatedAt": "ISO-8601 timestamp",
+  "projectRoot": "string — redacted project label",
+  "gate": { "pass": boolean, "blockingCount": number },
+  "qualityScore": 0-100,
+  "totalFiles": number,
+  "issueCount": number,
+  "detectedIssues": [
+    { "severity": "low|medium|high|critical",
+      "type": "string — rule category",
+      "count": number,
+      "filePath": "redacted relative path",
+      "rule": "string — pattern ID",
+      "impact": "string — business risk statement",
+      "fix": "string — remediation recipe" }
+  ],
+  "summary": { "gatePass": boolean, "qualityScore": number }
+}</pre>
+                    <p style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;">No source code, AST, or file contents are transmitted. Only the summary JSON above leaves your perimeter.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Copy-to-clipboard helper
         window.copyToClipboard = function(elementId) {
@@ -2199,6 +2494,28 @@
                 const btn = el.nextElementSibling;
                 if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); }
             });
+        };
+
+        window.togglePalette = function(id) {
+            const palette = document.getElementById(id);
+            if (!palette) return;
+            palette.classList.toggle('collapsed');
+            const header = palette.querySelector('.terminal-header');
+            if (header) {
+                const expanded = !palette.classList.contains('collapsed');
+                header.setAttribute('aria-expanded', String(expanded));
+            }
+        };
+
+        window.toggleModuleDropdown = function() {
+            const dd = document.getElementById('analyzerDropdown');
+            if (!dd) return;
+            dd.classList.toggle('collapsed');
+            const header = dd.querySelector('.select-all-bar');
+            if (header) {
+                const expanded = !dd.classList.contains('collapsed');
+                header.setAttribute('aria-expanded', String(expanded));
+            }
         };
 
         // API base URL — localhost uses same-origin; production uses Render backend
@@ -2267,18 +2584,21 @@
 
         // Download selected module's full data as JSON
         function downloadSelectedModule(btn) {
-            const container = btn.closest('[style*="display:flex;gap:8px"]') || btn.parentElement;
-            const select = container.querySelector('.module-dropdown');
-            if (!select || !select.value) {
-                showToast('Select a module first', 'warning');
-                return;
-            }
-            const mod = (window._scanPreviewModules || []).find(m => m.id === select.value);
-            const data = window._scanPreviewData || {};
-            if (!mod) {
-                showToast('Module not found', 'error');
-                return;
-            }
+            try {
+                const container = btn.closest('[style*="display:flex;gap:8px"]') || btn.parentElement;
+                if (!container) { console.error('Export: no container found'); showToast('Export button layout error', 'error'); return; }
+                const select = container.querySelector('.module-dropdown');
+                if (!select || !select.value) {
+                    showToast('Select a module first', 'warning');
+                    return;
+                }
+                const mod = (window._scanPreviewModules || []).find(m => m.id === select.value);
+                const data = window._scanPreviewData || {};
+                if (!mod) {
+                    console.error('Export: module not found for id', select.value, 'available:', (window._scanPreviewModules || []).map(m => m.id));
+                    showToast('Module not found', 'error');
+                    return;
+                }
             const num = mod.num;
             const projectName = data.projectRoot || data.projectPath || data.projectName || 'local-scan';
             const now = new Date().toISOString();
@@ -2405,6 +2725,14 @@
             } else if (num === '11') {
                 const eu = data.euAiActSummary || data.euAiAct || {};
                 moduleData = { ...moduleData, aiSystemIndicators: eu.aiSystemIndicators || 0, highRiskIndicators: eu.highRiskIndicators || 0, transparencyGaps: eu.transparencyGaps || 0, documentationArtifacts: eu.documentationArtifacts || 0, documentationFound: (eu.documentationFound || []).slice(0, 5), summary: eu.deadlineNote || ((eu.aiSystemIndicators || 0) ? 'High-risk AI systems must comply with EU AI Act requirements by August 2026' : 'Review EU AI Act requirements.') };
+            } else if (num === '12') {
+                const depAudit = data.dependencyAudit || data.vulnerabilityAudit || {};
+                const vulnIssues = (data.detectedIssues || []).filter(i => i.type && /vulnerab|cve|npm audit|dependency|outdated/i.test(i.type));
+                const vc = depAudit.vulnerabilityCount || vulnIssues.length || 0;
+                const cc = depAudit.critical || vulnIssues.filter(i => i.severity === 'critical').length || 0;
+                const hc = depAudit.high || vulnIssues.filter(i => i.severity === 'high').length || 0;
+                const affected = (depAudit.affectedPackages || depAudit.affectedFiles || []).filter(Boolean);
+                moduleData = { ...moduleData, metrics: { riskScore: vc > 0 ? Math.min(100, cc * 25 + hc * 10 + (vc - cc - hc) * 2) : 0, priority: cc > 0 ? 'critical' : (hc > 0 ? 'high' : (vc > 0 ? 'medium' : 'low')) }, vulnerabilityCount: vc, critical: cc, high: hc, moderate: depAudit.moderate || vulnIssues.filter(i => i.severity === 'medium').length || 0, low: depAudit.low || vulnIssues.filter(i => i.severity === 'low').length || 0, affectedPackages: affected.slice(0, 10), outdatedPackages: (depAudit.outdatedPackages || []).slice(0, 10), summary: vc ? `${vc} dependency issue${vc === 1 ? '' : 's'} detected${cc ? ` (${cc} critical)` : ''}.` : 'No dependency vulnerabilities found.', recommendations: cc > 0 ? ['Update critical dependencies immediately.', 'Review changelogs for breaking changes before bumping major versions.'] : (vc > 0 ? ['Run npm audit fix to auto-resolve patchable issues.', 'Schedule dependency update sprint within 30 days.'] : ['Keep dependencies current with automated Dependabot or Renovate.']), remediation: cc > 0 ? 'Upgrade critical and high-severity packages before next release.' : (vc > 0 ? 'Run npm audit fix or yarn audit fix to resolve patchable vulnerabilities.' : 'No remediation needed — dependency hygiene is clean.') };
             } else if (num === '13') {
                 const allFiles = data.fileList || data.repositoryInventory?.totalFiles || [];
                 const filePaths = Array.isArray(allFiles) ? allFiles : [];
@@ -2439,6 +2767,10 @@
             a.remove();
             URL.revokeObjectURL(url);
             showToast(`Downloaded ${mod.title} module data`, 'success');
+            } catch (err) {
+                console.error('Export failed:', err);
+                showToast('Export failed: ' + (err.message || err), 'error');
+            }
         }
 
         // Toast notification system
@@ -2558,7 +2890,7 @@
         const selectAllModules = document.getElementById('selectAllModules');
         const selectAllCount = document.getElementById('selectAllCount');
 
-        // 12 Individual Analyzer Module Cards
+        // 11 Individual Analyzer Module Cards
         const MODULE_CARDS = [
             { id: 'gate', label: 'Gate Scan', desc: 'Credential patterns, AI/LLM imports, hardcoded secrets.', icon: '&#128737;' },
             { id: 'consolidation', label: 'Consolidation', desc: 'Duplicate file groups and monorepo markers.', icon: '&#128260;' },
@@ -2579,8 +2911,8 @@
             locked: [],
             community: ['gate'],
             instant: ['gate'],
-            executive: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance'],
-            euai: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act'],
+            executive: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'build-readiness'],
+            euai: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'build-readiness'],
             universal: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'build-readiness']
         };
 
@@ -3150,7 +3482,6 @@
                     e.preventDefault();
                     const pastePanel = document.getElementById('pasteModePanel');
                     if (pastePanel) {
-                        tabCli.click();
                         document.getElementById('modePaste').click();
                         document.getElementById('jsonPasteInput').focus();
                     }
@@ -3192,6 +3523,7 @@
             const tokenActionRow = document.getElementById('tokenActionRow');
             const certEmptyState = document.getElementById('certEmptyState');
             const certSubmitBtn = document.getElementById('certSubmitBtn');
+            if (scanPreview) scanPreview.style.display = hasFile ? 'block' : 'none';
             if (certEmptyState) certEmptyState.style.display = hasFile ? 'none' : 'block';
             if (resetBtn) resetBtn.style.display = hasFile ? 'inline-block' : 'none';
             if (hasFile) updateStepper();
@@ -3356,7 +3688,6 @@
                             files.push(file);
                         } catch (err) {
                             traverseErrors++;
-                            console.warn('[traverse] Skipped unreadable file:', currentPath, err);
                         }
                     } else if (entry.isDirectory) {
                         const dirReader = entry.createReader();
@@ -3427,7 +3758,6 @@
                 const pasteInput = document.getElementById('jsonPasteInput');
                 if (pasteInput) {
                     e.preventDefault();
-                    document.getElementById('tab-cli').click();
                     document.getElementById('modePaste').click();
                     pasteInput.focus();
                     showToast('Paste your JSON here, then press Enter to load', 'info', 3000);
@@ -3594,6 +3924,7 @@
                     showToast('Invalid JSON file', 'error');
                     showStatus('Invalid JSON file', 'error');
                     reportData = null;
+                    if (scanPreview) scanPreview.style.display = 'none';
                     updateSubmit();
                 }
             };
@@ -3672,6 +4003,7 @@
                     showToast('Invalid JSON: ' + err.message, 'error');
                     showStatus('Invalid JSON: ' + err.message, 'error');
                     reportData = null;
+                    if (scanPreview) scanPreview.style.display = 'none';
                     updateSubmit();
                 }
             });
@@ -3984,8 +4316,8 @@
                 const highVulns = depAudit.high || vulnIssues.filter(i => i.severity === 'high').length || 0;
                 const vulnFiles = (depAudit.affectedPackages || depAudit.affectedFiles || []).slice(0, 6);
                 const vulnColor = criticalVulns > 0 ? '#EF4444' : (highVulns > 0 ? '#F59E0B' : (vulnCount > 0 ? '#60A5FA' : null));
-                const vulnDetail = vulnCount ? `<div class="detail-label">Vulnerability Summary</div><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">${vulnCount} total issue${vulnCount === 1 ? '' : 's'} found across dependencies.</div>${criticalVulns ? `<div style="font-size:0.7rem;color:#EF4444;margin-bottom:4px;">&#128308; ${criticalVulns} critical</div>` : ''}${highVulns ? `<div style="font-size:0.7rem;color:#F59E0B;margin-bottom:4px;">&#128993; ${highVulns} high</div>` : ''}${vulnFiles.length ? `<div class="detail-label">Affected Packages</div><ul>${vulnFiles.map(f => `<li>${f}</li>`).join('')}</ul>` : ''}<div class="detail-fix">Run 'npm audit fix' or update packages. Review breaking changes before major version bumps.</div>` : `<div class="detail-label">No known vulnerabilities</div><div style="font-size:0.72rem;color:var(--text-muted);">Dependency scan shows no flagged CVEs or audit warnings.</div>`;
-                pushModule('12', '&#128274;', 'Dependency Vulns', [
+                const vulnDetail = vulnCount ? `<div class="detail-label">Vulnerability Summary</div><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">${vulnCount} total issue${vulnCount === 1 ? '' : 's'} found across dependencies.</div>${criticalVulns ? `<div style="font-size:0.7rem;color:#EF4444;margin-bottom:4px;">&#128308; ${criticalVulns} critical</div>` : ''}${highVulns ? `<div style="font-size:0.7rem;color:#F59E0B;margin-bottom:4px;">&#128993; ${highVulns} high</div>` : ''}${vulnFiles.length ? `<div class="detail-label">Affected Packages</div><ul>${vulnFiles.map(f => `<li>${f}</li>`).join('')}</ul>` : ''}<div class="detail-fix">Run ‘npm audit fix’ or update packages. Review breaking changes before major version bumps.</div>` : `<div class="detail-label">No known vulnerabilities</div><div style="font-size:0.72rem;color:var(--text-muted);">Dependency scan shows no flagged CVEs or audit warnings.</div>`;
+                pushModule('12', '🔒', 'Dependency Vulns', [
                     {value: vulnCount, label: 'Vulnerabilities', color: vulnColor || '#60A5FA'},
                     {value: criticalVulns + highVulns, label: 'Severe', color: criticalVulns > 0 ? '#EF4444' : (highVulns > 0 ? '#F59E0B' : '#60A5FA')}
                 ], vulnCount ? `${vulnCount} dependency issue${vulnCount === 1 ? '' : 's'} detected${criticalVulns ? ` (${criticalVulns} critical)` : ''}.` : 'No dependency vulnerabilities found.', vulnColor, vulnDetail);
@@ -4086,7 +4418,7 @@
                         ${moreIssues}
                     </div>
                     <div style="margin-top:16px;">
-                        <div style="font-size:0.8rem;font-weight:700;color:#60A5FA;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">13 Analysis Modules</div>
+                        <div style="font-size:0.8rem;font-weight:700;color:#60A5FA;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">${modules.length} Analysis Module${modules.length !== 1 ? 's' : ''}</div>
                         ${analysisModulesHtml}
                     </div>
                     ${footer}
@@ -4709,6 +5041,29 @@
                     euAiActFindings: aiHits.length,
                     euAiActScanned: sourceFiles.length
                 } : {}),
+                ...(allowedSections.includes('dependencyAudit') ? {
+                    dependencyAudit: {
+                        vulnerabilityCount: 0,
+                        critical: 0,
+                        high: 0,
+                        moderate: 0,
+                        low: 0,
+                        affectedPackages: [],
+                        outdatedPackages: [],
+                        summary: 'Browser scan does not execute npm audit. Run CLI scan with --audit flag for full CVE report.'
+                    }
+                } : {}),
+                ...(allowedSections.includes('buildReadiness') ? {
+                    buildReadiness: {
+                        readinessScore: 0,
+                        readinessStatus: 'UNKNOWN',
+                        totalChecks: 12,
+                        passedChecks: 0,
+                        missingCritical: [],
+                        missingRecommended: [],
+                        summary: 'Browser scan captures file list for build readiness analysis. Upload CLI report for full checklist evaluation.'
+                    }
+                } : {}),
                 credentialScanned: sourceFiles.length,
                 credentialFindings: credentialHits,
                 scanDurationMs: Date.now() - startTime,
@@ -5276,7 +5631,66 @@
                 });
             }
 
-            // 12. Remediation Plan — phased action items with progress
+            // 12. Dependency Vulnerabilities — CVE and audit findings
+            const depAudit = report.dependencyAudit || report.vulnerabilityAudit || {};
+            const vulnIssues = (report.detectedIssues || []).filter(i => i.type && /vulnerab|cve|npm audit|dependency|outdated/i.test(i.type));
+            const vulnCount = depAudit.vulnerabilityCount || vulnIssues.length || 0;
+            const criticalVulns = depAudit.critical || vulnIssues.filter(i => i.severity === 'critical').length || 0;
+            const highVulns = depAudit.high || vulnIssues.filter(i => i.severity === 'high').length || 0;
+            if (vulnCount > 0 || depAudit.affectedPackages || depAudit.outdatedPackages) {
+                addModule('dependency-vulns', 'Dependency Vulns', {
+                    vulnerabilityCount: vulnCount,
+                    critical: criticalVulns,
+                    high: highVulns,
+                    moderate: depAudit.moderate || vulnIssues.filter(i => i.severity === 'medium').length || 0,
+                    low: depAudit.low || vulnIssues.filter(i => i.severity === 'low').length || 0,
+                    affectedPackages: (depAudit.affectedPackages || []).slice(0, 5),
+                    outdatedPackages: (depAudit.outdatedPackages || []).slice(0, 5),
+                    severity: criticalVulns > 0 ? 'critical' : (highVulns > 0 ? 'high' : (vulnCount > 0 ? 'medium' : 'low')),
+                    severityColor: criticalVulns > 0 ? '#EF4444' : (highVulns > 0 ? '#F59E0B' : '#60A5FA'),
+                    summary: vulnCount ? `${vulnCount} dependency issue${vulnCount === 1 ? '' : 's'} detected${criticalVulns ? ` (${criticalVulns} critical)` : ''}.` : 'No dependency vulnerabilities found.',
+                    remediation: criticalVulns > 0 ? 'Upgrade critical and high-severity packages before next release.' : (vulnCount > 0 ? 'Run npm audit fix or yarn audit fix to resolve patchable vulnerabilities.' : 'No remediation needed.'),
+                    recommendations: criticalVulns > 0 ? ['Update critical dependencies immediately.', 'Review changelogs for breaking changes before bumping major versions.'] : (vulnCount > 0 ? ['Run npm audit fix to auto-resolve patchable issues.', 'Schedule dependency update sprint within 30 days.'] : ['Keep dependencies current with automated Dependabot or Renovate.'])
+                });
+            }
+
+            // 13. Build Readiness — systematic project health scan
+            const allFilePaths = report.fileList || report.repositoryInventory?.totalFiles || [];
+            const paths = Array.isArray(allFilePaths) ? allFilePaths : [];
+            const lowerPaths = paths.map(f => (typeof f === 'string' ? f : f.path || '').toLowerCase());
+            const brChecks = [
+                { name: 'package.json', found: lowerPaths.some(p => p.endsWith('package.json')), critical: true },
+                { name: 'README', found: lowerPaths.some(p => /readme\.?/.test(p)), critical: true },
+                { name: 'CHANGELOG', found: lowerPaths.some(p => /changelog|changes|history/i.test(p)), critical: false },
+                { name: 'Tests', found: lowerPaths.some(p => /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p)), critical: true },
+                { name: 'CI/CD', found: lowerPaths.some(p => /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(p)), critical: true },
+                { name: 'Docker', found: lowerPaths.some(p => /dockerfile|docker-compose|\.dockerignore/i.test(p)), critical: false },
+                { name: 'Linting/Formatting', found: lowerPaths.some(p => /eslint|prettier|\.editorconfig|lint-staged|husky/i.test(p)), critical: false },
+                { name: 'TypeScript Config', found: lowerPaths.some(p => /tsconfig|\.ts$/i.test(p)), critical: false },
+                { name: 'Build Tool Config', found: lowerPaths.some(p => /(webpack|rollup|vite|esbuild|parcel|babel|gulpfile|gruntfile)/i.test(p)), critical: false },
+                { name: '.env.example', found: lowerPaths.some(p => /\.env\.example|\.env\.sample|\.env\.template/i.test(p)), critical: true },
+                { name: '.gitignore', found: lowerPaths.some(p => p.includes('.gitignore')), critical: true },
+                { name: '.npmignore', found: lowerPaths.some(p => p.includes('.npmignore')), critical: false }
+            ];
+            const brMissingCritical = brChecks.filter(c => c.critical && !c.found);
+            const brMissingNice = brChecks.filter(c => !c.critical && !c.found);
+            const brScore = Math.round(((brChecks.filter(c => c.found).length / brChecks.length) * 100));
+            addModule('build-readiness', 'Build Readiness', {
+                readinessScore: brScore,
+                readinessStatus: brScore >= 80 ? 'READY' : (brScore >= 50 ? 'NEEDS WORK' : 'BLOCKED'),
+                totalChecks: brChecks.length,
+                passedChecks: brChecks.filter(c => c.found).length,
+                missingCritical: brMissingCritical.map(c => c.name),
+                missingRecommended: brMissingNice.map(c => c.name),
+                checklist: brChecks,
+                severity: brMissingCritical.length > 2 ? 'critical' : (brMissingCritical.length > 0 ? 'high' : (brMissingNice.length > 3 ? 'medium' : 'low')),
+                severityColor: brMissingCritical.length > 0 ? '#EF4444' : (brMissingNice.length > 3 ? '#F59E0B' : '#10B981'),
+                summary: `${brScore >= 80 ? 'READY' : (brScore >= 50 ? 'NEEDS WORK' : 'BLOCKED')} — ${brChecks.filter(c => c.found).length} of ${brChecks.length} checklist items present.${brMissingCritical.length ? ` ${brMissingCritical.length} critical blocker${brMissingCritical.length === 1 ? '' : 's'}.` : ''}`,
+                remediation: brMissingCritical.length > 0 ? `Missing critical: ${brMissingCritical.map(c => c.name).join(', ')}.` : (brMissingNice.length > 0 ? `Missing recommended: ${brMissingNice.map(c => c.name).join(', ')}.` : 'No remediation needed.'),
+                recommendations: brMissingCritical.length > 0 ? ['Add all critical files before production deployment.', 'Start with package.json, README, .gitignore, and .env.example.'] : (brMissingNice.length > 0 ? ['Add recommended files to improve maintainability.', 'Consider Docker, linting config, and CHANGELOG.'] : ['Project is fully ready for production.'])
+            });
+
+            // 14. Remediation Plan — phased action items with progress
             if (report.remediationPhases && report.remediationPhases.length > 0) {
                 const phases = report.remediationPhases;
                 const completed = phases.filter(p => p.status === 'completed' || p.progress === 100).length;
@@ -6053,7 +6467,7 @@ ${(complianceMod.licenseCount || complianceMod.securityCount) ? `<div class="sec
         // Detail panel overlay — reusable for matrix rows and issue items
         const detailOverlay = document.createElement('div');
         detailOverlay.className = 'detail-overlay';
-        detailOverlay.innerHTML = `<div class="detail-panel"><button class="close-btn" onclick="this.closest('.detail-overlay').classList.remove('active')">&times;</button><div id="detail-panel-content"></div></div>`;
+        detailOverlay.innerHTML = `<div class="detail-panel"><button type="button" class="close-btn" onclick="this.closest('.detail-overlay').classList.remove('active')">&times;</button><div id="detail-panel-content"></div></div>`;
         detailOverlay.addEventListener('click', e => { if (e.target === detailOverlay) detailOverlay.classList.remove('active'); });
         document.body.appendChild(detailOverlay);
 
@@ -6093,7 +6507,7 @@ ${(complianceMod.licenseCount || complianceMod.securityCount) ? `<div class="sec
                     if (issue.fix) rows.push({ label: 'Remediation', value: issue.fix });
                     if (issue.count) rows.push({ label: 'Occurrences', value: String(issue.count) });
                     showDetailPanel(issue.type || 'Finding Detail', rows);
-                } catch (err) { console.error('Issue detail parse error:', err); }
+                } catch (err) { /* ignore parse errors */ }
             }
         });
     </script>
