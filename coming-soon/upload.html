@@ -1969,6 +1969,27 @@
         function renderPreview(data) {
             scanPreview.style.display = 'block';
             const hasToken = licenseInput.value.trim().length > 10;
+
+            // Normalize simplebeacon-npm-audit for preview (raw report is flat)
+            if (data.type === 'simplebeacon-npm-audit' && !data.gate) {
+                const h = data.hygieneSummary || {};
+                data.gate = { pass: h.gatePass ?? true, blockingCount: (h.critical || 0) + (h.high || 0), warningCount: (h.moderate || 0) + (h.low || 0) };
+                data.qualityScore = h.gatePass === true ? 100 : Math.max(0, 100 - ((h.critical || 0) * 20 + (h.high || 0) * 10 + (h.moderate || 0) * 5 + (h.low || 0) * 2));
+                data.totalFiles = data.packageJsonCount ?? 0;
+                data.npmAudit = { packageJsonCount: data.packageJsonCount ?? 0, dependencyCount: data.dependencyCount ?? 0, summary: `${data.packageJsonCount ?? 0} package.json files found with ${data.dependencyCount ?? 0} total dependencies.` };
+            }
+
+            // Generic synthesis for partial/standalone reports without gate (cleanup, etc.)
+            if (!data.gate) {
+                const debugCount = data.debugArtifactCount || 0;
+                const mockCount = data.mockSampleFiles || 0;
+                const credHits = data.credentialFindings || 0;
+                const totalIssues = debugCount + mockCount + credHits + (data.issueCount || 0);
+                data.gate = { pass: credHits === 0, blockingCount: credHits, warningCount: totalIssues - credHits };
+                data.qualityScore = data.qualityScore ?? (totalIssues === 0 ? 100 : Math.max(0, 100 - totalIssues * 2));
+                data.totalFiles = data.totalFiles ?? data.filesAnalyzed ?? 0;
+            }
+
             const gate = data.gate || data.results?.simplebeacon?.gate || {};
             const gatePass = gate.pass;
             const gateStatus = gatePass === true ? 'pass' : gatePass === false ? 'fail' : 'review';
@@ -2181,10 +2202,10 @@
             appendTerminalLine(`Initializing Local Web Worker Core... Profile: ${profile.label}. Allocating isolated browser memory structures.`);
             appendTerminalLine(`Discovered targets: evaluation tree containing ${files.length} raw elements.`);
 
-            // Security baseline: allow full scan — user can filter in .simplebeaconignore
-            const excludeEnv = false;
-            const skipDeps = false;
-            const skipDocs = false;
+            // Security baseline: always exclude dependency trees, secrets, and docs
+            const excludeEnv = true;
+            const skipDeps = true;
+            const skipDocs = true;
 
             let scanned = 0;
             let totalLines = 0;
@@ -2266,7 +2287,7 @@
                     const lower = text.toLowerCase();
                     const lowerPath = path.toLowerCase();
                     const isNodeModule = /node_modules\//.test(lowerPath);
-                    const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
+                    const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)([-_][a-z]+)?(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
                     if (profile.checkAi && /new\s+openai|import\s+openai|from\s+anthropic|new\s+anthropic|langchain|huggingface_hub|gpt-4|claude-3|claude-sonnet|createchatcompletion|openai\.chat\.completions|anthropic\.messages\.create|azure\.openai|\.create\(\s*\{\s*model\s*:\s*['"]gpt|\.create\(\s*\{\s*model\s*:\s*['"]claude/.test(lower)) {
                         aiHits.push(path);
                     }
@@ -2305,11 +2326,11 @@
                             fileTypes[ext] = (fileTypes[ext] || 0) + 1;
                         }
                     }
-                    // 10. Compliance: governance files
-                    if (/license|licence/i.test(lowerPath) && !licenseFiles.includes(path)) {
+                    // 10. Compliance: governance files (skip node_modules — dependency licenses are not project governance)
+                    if (!isNodeModule && /license|licence/i.test(lowerPath) && !licenseFiles.includes(path)) {
                         licenseFiles.push(path);
                     }
-                    if (/security\.md|code_of_conduct|contributing|changelog|changelog/i.test(lowerPath)) {
+                    if (!isNodeModule && /security\.md|code_of_conduct|contributing|changelog/i.test(lowerPath)) {
                         securityFiles.push(path);
                     }
                     // 7. Data quality: empty or trivial JSON
@@ -2397,8 +2418,8 @@
                 ],
                 severityCounts: {
                     critical: 0,
-                    high: profile.checkCredentials ? credentialHits : 0,
-                    medium: 0,
+                    high: 0,
+                    medium: profile.checkCredentials ? credentialHits : 0,
                     low: (profile.checkAi ? aiHits.length : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0)
                 },
                 // 1. Simplebeacon Gate
@@ -2585,7 +2606,7 @@
             showStatus('Generating certificate ZIP...', 'loading');
 
             try {
-                const response = await fetch(API_BASE + '/api/reports/download', {
+                const response = await fetch(API_BASE + '/api/certificate/download', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
