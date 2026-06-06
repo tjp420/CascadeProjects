@@ -477,7 +477,36 @@ function normalizeReport(reportJson) {
         };
     }
 
-    // 4. Direct simplebeacon-report (or browser-sandbox report)
+    // 4. npm-audit: synthesize gate and npmAudit from flat hygieneSummary / packageJsonCount
+    if (type === 'simplebeacon-npm-audit') {
+        const h = reportJson.hygieneSummary || {};
+        const pkgCount = reportJson.packageJsonCount ?? 0;
+        const depCount = reportJson.dependencyCount ?? 0;
+        const critical = h.critical || 0;
+        const high = h.high || 0;
+        const moderate = h.moderate || 0;
+        const low = h.low || 0;
+        return {
+            ...reportJson,
+            gate: {
+                pass: h.gatePass ?? true,
+                blockingCount: critical + high,
+                warningCount: moderate + low
+            },
+            qualityScore: h.gatePass === true ? 100 : Math.max(0, 100 - (critical * 20 + high * 10 + moderate * 5 + low * 2)),
+            totalFiles: pkgCount,
+            issueCount: critical + high + moderate + low,
+            detectedIssues: [],
+            npmAudit: {
+                packageJsonCount: pkgCount,
+                dependencyCount: depCount,
+                summary: `${pkgCount} package.json files found with ${depCount} total dependencies.`,
+                supplyChainStatus: reportJson.supplyChainStatus || 'not-applicable'
+            }
+        };
+    }
+
+    // 5. Direct simplebeacon-report (or browser-sandbox report)
     return reportJson;
 }
 
@@ -513,17 +542,19 @@ function buildModuleHtml(title, icon, data, projectName) {
 <meta charset="UTF-8">
 <title>${title} — ${projectName}</title>
 <style>
-body { font-family: Inter, system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; max-width: 900px; margin: 0 auto; padding: 40px 24px; }
-h1 { font-size: 1.5rem; margin-bottom: 8px; }
-.meta { color: #64748b; font-size: 0.85rem; margin-bottom: 24px; }
-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-th { background: #f1f5f9; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
-td { font-size: 0.9rem; vertical-align: top; }
+body { font-family: Inter, system-ui, -apple-system, sans-serif; background: #0B0F19; color: #E2E8F0; max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+h1 { font-size: 1.5rem; margin-bottom: 8px; color: #F1F5F9; }
+.meta { color: #94A3B8; font-size: 0.85rem; margin-bottom: 24px; }
+table { width: 100%; border-collapse: collapse; background: #111827; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.4); border: 1px solid #1E293B; }
+th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #1E293B; }
+th { background: #0F172A; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: #60A5FA; }
+td { font-size: 0.9rem; vertical-align: top; color: #E2E8F0; }
 tr:last-child td { border-bottom: none; }
-ul { margin: 0; }
-.footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 0.75rem; color: #94a3b8; }
-@media print { body { background: #fff; padding: 0; } }
+ul { margin: 0; color: #CBD5E1; }
+em { color: #94A3B8; }
+code { background: #1E293B; color: #60A5FA; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
+.footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #1E293B; font-size: 0.75rem; color: #64748B; }
+@media print { body { background: #fff; color: #1e293b; padding: 0; } table { background: #fff; border: 1px solid #e2e8f0; } th { background: #f1f5f9; color: #1e293b; } td { color: #1e293b; } code { background: #f1f5f9; color: #2563EB; } }
 </style>
 </head>
 <body>
@@ -874,8 +905,8 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
 </body></html>`;
 }
 
-// Certificate generation endpoint
-app.post('/api/reports/download', async (req, res) => {
+// Certificate generation endpoint (unique path — ai-platform also registers /api/reports/download)
+app.post('/api/certificate/download', async (req, res) => {
     const auth = req.headers.authorization || '';
     const token = auth.replace(/^Bearer\s+/i, '').trim();
     const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || (process.env.NODE_ENV !== 'production' ? 'simplebeacon-dev-insecure' : null);
@@ -928,7 +959,7 @@ app.post('/api/reports/download', async (req, res) => {
         addJson('json/11-eu-ai-act.json', reportJson.euAiActSummary || {});
 
         // Human-readable HTML reports (print to PDF)
-        const projectName = data.projectRoot || data.projectPath || 'Project';
+        const projectName = reportJson.projectRoot || reportJson.projectPath || reportJson.projectName || 'Project';
         archive.append(buildModuleHtml('SimpleBeacon Gate', '🛡️', reportJson.gateReport, projectName), { name: 'reports/01-simplebeacon-gate.html' });
         archive.append(buildModuleHtml('Consolidation', '🔀', reportJson.consolidation, projectName), { name: 'reports/02-consolidation.html' });
         archive.append(buildModuleHtml('Mock Data Detection', '🔍', { categories: reportJson.mockDataCategories, total: reportJson.mockSampleFiles }, projectName), { name: 'reports/03-mock-data.html' });
