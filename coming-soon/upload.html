@@ -2331,6 +2331,10 @@
             const qualityScore = Math.max(0, 100 - aiPenalty - credPenalty - debugPenalty);
             const gatePass = credentialHits < 3;
 
+            // EU AI Act: filter out node_modules documentation (not project governance)
+            const nonModuleLicenseFiles = licenseFiles.filter(p => !/node_modules\//.test(p));
+            const nonModuleSecurityFiles = securityFiles.filter(p => !/node_modules\//.test(p));
+
             const now = new Date().toISOString();
             const projectName = files[0].webkitRelativePath?.split('/')[0] || 'browser-local';
             reportData = {
@@ -2451,8 +2455,6 @@
                     summary: `${licenseFiles.length} license files, ${securityFiles.length} security/governance files detected.`
                 },
                 // 11. EU AI Act — only count docs from actual project, not node_modules
-                const nonModuleLicenseFiles = licenseFiles.filter(p => !/node_modules\//.test(p));
-                const nonModuleSecurityFiles = securityFiles.filter(p => !/node_modules\//.test(p));
                 euAiActSummary: {
                     highRiskIndicators: 0,
                     aiSystemIndicators: aiHits.length,
