@@ -355,6 +355,13 @@
         .module-card .module-detail li:last-child { border-bottom: none; }
         .module-card .module-detail .detail-label { font-size: 0.7rem; color: #60A5FA; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em; }
         .module-card .module-detail .detail-fix { font-size: 0.7rem; color: #34D399; margin-top: 6px; padding: 6px 8px; background: rgba(16,185,129,0.08); border-radius: 6px; border-left: 2px solid #34D399; }
+        .module-card .module-detail .detail-data-btn { font-size: 0.72rem; color: #60A5FA; background: rgba(37,99,235,0.12); border: 1px solid rgba(37,99,235,0.3); border-radius: 4px; padding: 2px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s; font-family: inherit; margin: 2px 0; }
+        .module-card .module-detail .detail-data-btn:hover { background: rgba(37,99,235,0.25); border-color: rgba(37,99,235,0.5); color: #93C5FD; }
+        .module-card .module-detail .detail-data-btn:active { transform: scale(0.97); }
+        .module-card .module-detail .detail-data-btn .copy-icon { font-size: 0.65rem; opacity: 0.6; }
+        .module-detail-panel .detail-data-btn { font-size: 0.75rem; color: #60A5FA; background: rgba(37,99,235,0.12); border: 1px solid rgba(37,99,235,0.3); border-radius: 4px; padding: 2px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s; font-family: inherit; margin: 2px 0; }
+        .module-detail-panel .detail-data-btn:hover { background: rgba(37,99,235,0.25); border-color: rgba(37,99,235,0.5); color: #93C5FD; }
+        .module-detail-panel .detail-data-btn:active { transform: scale(0.97); }
 
         .cert-preview {
             position: relative;
@@ -2003,11 +2010,11 @@
                         <span class="sandbox-text" id="sandboxNoteText">Browser sandbox runs a lightweight <strong>Gate Scan</strong> (AI patterns + credential heuristics). For deep analysis, use the <strong>CLI tab</strong>.</span>
                     </div>
                     <label style="display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">
-                        <input type="checkbox" id="includeDepsToggle" style="cursor:pointer;">
+                        <input type="checkbox" id="includeDepsToggle" checked style="cursor:pointer;">
                         <span>Include <code>node_modules</code> & <code>.git</code> in scan (slower, more noise)</span>
                     </label>
                     <label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">
-                        <input type="checkbox" id="deepScanToggle" style="cursor:pointer;">
+                        <input type="checkbox" id="deepScanToggle" checked style="cursor:pointer;">
                         <span><strong>Deep Scan</strong> — analyze <em>every</em> file (bypasses cache, docs, and scanner-page filters)</span>
                     </label>
                     <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 16px;">No Node.js required. Grab your entire repo folder and drop it here.</p>
@@ -2212,6 +2219,26 @@
 
         let reportData = null;
         let scanAbortController = null;
+
+        // Copy highlighted report data to clipboard
+        async function copyReportData(text, btn) {
+            try {
+                await navigator.clipboard.writeText(text);
+                const original = btn.innerHTML;
+                btn.innerHTML = '<span>&#10003;</span> Copied';
+                btn.style.background = 'rgba(16,185,129,0.25)';
+                btn.style.borderColor = 'rgba(16,185,129,0.5)';
+                btn.style.color = '#34D399';
+                setTimeout(() => {
+                    btn.innerHTML = original;
+                    btn.style.background = '';
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                }, 1500);
+            } catch (e) {
+                showToast('Failed to copy to clipboard', 'error');
+            }
+        }
 
         // Toast notification system
         function showToast(message, type = 'info', duration = 4000) {
@@ -3538,9 +3565,10 @@
             }
 
             const gate = data.gate || data.results?.simplebeacon?.gate || {};
-            const gatePass = gate.pass;
-            const gateStatus = gatePass === true ? 'pass' : gatePass === false ? 'fail' : 'review';
             const detectedIssues = Array.isArray(data.detectedIssues) ? data.detectedIssues : (Array.isArray(data.rawIssues) ? data.rawIssues : []);
+            const hasBlockingFindings = (gate.blockingCount || 0) > 0 || (gate.blockingIssues || []).length > 0 || detectedIssues.some(i => ['high','critical','medium'].includes(i.severity));
+            const gatePass = hasBlockingFindings ? false : (gate.pass ?? null);
+            const gateStatus = gatePass === true ? 'pass' : gatePass === false ? 'fail' : 'review';
             const rawIssues = Array.isArray(data.rawIssues) ? data.rawIssues : detectedIssues;
             const quality = data.qualityScore ?? data.results?.simplebeacon?.qualityScore ?? (rawIssues.length ? Math.max(0, 100 - rawIssues.length * 2) : 0);
             const files = data.totalFiles ?? data.filesAnalyzed ?? data.repositoryFilesTotal ?? data.summary?.files ?? 0;
@@ -3616,10 +3644,12 @@
 
                 // 1. Gate
                 const g = data.gateReport || data.gate || {};
-                const gateStatus = g.pass === true ? 'PASS' : (g.pass === false ? 'FAIL' : 'REVIEW');
-                const gateColor = g.pass === true ? '#34D399' : (g.pass === false ? '#EF4444' : '#60A5FA');
-                const gateBorder = g.pass === true ? '#34D399' : (g.pass === false ? '#EF4444' : '#60A5FA');
                 const gateIssues = (data.detectedIssues || data.issues || []).filter(i => i.severity === 'high' || i.severity === 'critical' || i.severity === 'medium');
+                const hasBlockingFindings = (g.blockingCount || 0) > 0 || (g.blockingIssues || []).length > 0 || gateIssues.length > 0;
+                const derivedPass = hasBlockingFindings ? false : (g.pass ?? null);
+                const gateStatus = derivedPass === true ? 'PASS' : (derivedPass === false ? 'FAIL' : 'REVIEW');
+                const gateColor = derivedPass === true ? '#34D399' : (derivedPass === false ? '#EF4444' : '#60A5FA');
+                const gateBorder = derivedPass === true ? '#34D399' : (derivedPass === false ? '#EF4444' : '#60A5FA');
                 const gateDetail = gateIssues.length ? `<div class="detail-label">Blocking Findings</div><ul>${gateIssues.map(i => {
                     const fp = Array.isArray(i.filePath) ? i.filePath : (i.filePath || '').split(',');
                     const findingsHtml = i.findings && i.findings.length ? `<div style="margin:4px 0;padding:4px 6px;background:rgba(30,41,59,0.5);border-radius:4px;font-size:0.65rem;font-family:monospace;color:#94A3B8;">${i.findings.slice(0,2).flatMap(f => f.matches ? f.matches.map(m => `Line ${m.line}: ${m.snippet.slice(0,80)}`) : []).join('<br>')}</div>` : '';
@@ -3628,7 +3658,7 @@
                 pushModule('1', '🛡️', 'Gate', [
                     {value: gateStatus, label: 'Result', color: gateColor},
                     {value: g.blockingCount ?? 0, label: 'Blocking'}
-                ], g.summary || (g.pass ? 'Gate passed — no blocking credentials found.' : 'Review blocking issues.'), gateBorder, gateDetail);
+                ], g.summary || (derivedPass === true ? 'Gate passed — no blocking credentials found.' : 'Review blocking issues.'), gateBorder, gateDetail);
 
                 // 2. Consolidation
                 const cons = data.consolidation || {};
@@ -3737,9 +3767,15 @@
 
                 const selectOptions = modules.map(mod => `<option value="${mod.id}">${mod.optionLabel}</option>`).join('');
                 const panels = modules.map(mod => {
-                    const vals = mod.values.map(v => `<span style="display:inline-block;margin-right:12px;font-size:0.75rem;"><strong style="color:${v.color || '#60A5FA'};">${v.value}</strong> <span style="color:var(--text-muted);">${v.label}</span></span>`).join('');
+                    const vals = mod.values.map(v => `<button class="detail-data-btn" onclick="copyReportData('${String(v.value).replace(/'/g, "\\'")}', this)"><strong style="color:${v.color || '#60A5FA'};">${v.value}</strong> <span style="color:var(--text-muted);font-weight:400;">${v.label}</span><span class="copy-icon">&#128203;</span></button>`).join('');
                     const leftBorder = mod.statusColor ? `border-left:3px solid ${mod.statusColor};` : '';
-                    return `<div id="${mod.id}" class="module-detail-panel" style="${leftBorder}"><div class="detail-title">${mod.num} ${mod.icon} ${mod.title}</div><div class="detail-values">${vals}</div><div class="detail-summary">${mod.summary || 'No findings.'}</div>${mod.detailHtml || ''}</div>`;
+                    // Transform file paths and counts inside detailHtml into buttons
+                    let btnDetail = mod.detailHtml || '';
+                    btnDetail = btnDetail.replace(/<li>([^<]+)<\/li>/g, (m, txt) => {
+                        const clean = txt.replace(/&#\d+;\s*/, '').trim();
+                        return `<li><button class="detail-data-btn" onclick="copyReportData('${clean.replace(/'/g, "\\'")}', this)">${txt}<span class="copy-icon">&#128203;</span></button></li>`;
+                    });
+                    return `<div id="${mod.id}" class="module-detail-panel" style="${leftBorder}"><div class="detail-title">${mod.num} ${mod.icon} ${mod.title}</div><div class="detail-values">${vals}</div><div class="detail-summary">${mod.summary || 'No findings.'}</div>${btnDetail}</div>`;
                 }).join('');
                 return `<select class="module-dropdown" onchange="const p=this.parentElement.querySelectorAll('.module-detail-panel');p.forEach(x=>x.classList.remove('active'));const s=this.parentElement.querySelector('#'+this.value);if(s)s.classList.add('active');"><option value="" disabled selected>Select a module…</option>${selectOptions}</select>${panels}`;
             })();
@@ -4289,10 +4325,10 @@
                 issueCount: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
                 simplebeaconIssues: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0),
                 detectedIssues: [
-                    ...(profile.checkAi && aiFindings.length ? [{ severity: 'low', severityBand: 'low', type: 'AI System Indicator', count: aiFindings.reduce((a, f) => a + f.matches.length, 0), filePath: aiFindings.slice(0,10).map(f => f.file), rule: 'AI_IMPLEMENTATION_PATTERN', impact: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.', fix: 'Review and remediate before enabling --gate on main.', findings: aiFindings.slice(0,5) }] : []),
-                    ...(profile.checkCredentials && credentialFindings.length ? [{ severity: 'medium', severityBand: 'medium', type: 'Credential Pattern', count: credentialFindings.reduce((a, f) => a + f.matches.length, 0), filePath: credentialFindings.slice(0,10).map(f => f.file), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.', findings: credentialFindings.slice(0,5) }] : []),
-                    ...(profile.checkDebug && debugFindings.length ? [{ severity: 'low', severityBand: 'low', type: 'Debug Artifact', count: debugFindings.reduce((a, f) => a + f.matches.length, 0), filePath: debugFindings.slice(0,10).map(f => f.file), rule: 'DEBUG_ARTIFACT', impact: 'HYGIENE RISK: Debug artifacts should not reach production builds.', fix: 'Remove console.log, debugger, TODO, and FIXME markers before release.', findings: debugFindings.slice(0,5) }] : []),
-                    ...(profile.checkGov && govFindings.length ? [{ severity: 'low', severityBand: 'low', type: 'License/Governance Marker', count: govFindings.reduce((a, f) => a + f.matches.length, 0), filePath: govFindings.slice(0,10).map(f => f.file), rule: 'GOVERNANCE_PATTERN', impact: 'INFO: License headers and copyright notices detected. Verify compliance with open-source policy.', fix: 'Review license compatibility with your product distribution model.', findings: govFindings.slice(0,5) }] : [])
+                    ...(profile.checkAi && aiFindings.length ? [{ severity: 'low', severityBand: 'low', type: 'AI System Indicator', count: aiFindings.reduce((a, f) => a + f.matches.length, 0), filePath: aiFindings.slice(0,10).map(f => f.file), rule: 'AI_IMPLEMENTATION_PATTERN', impact: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.', fix: 'Review and remediate before enabling --gate on main.', findings: aiFindings.slice(0,5), reasoning: 'The scanner detected imports or function calls matching known AI SDK signatures (OpenAI, Anthropic, LangChain, HuggingFace). These patterns indicate AI system integration that may require compliance review under EU AI Act Article 6.', confidence: 0.92, humanReadable: `AI SDK usage detected in ${aiFindings.length} file(s). This suggests the project implements or integrates with third-party AI services.` }] : []),
+                    ...(profile.checkCredentials && credentialFindings.length ? [{ severity: 'medium', severityBand: 'medium', type: 'Credential Pattern', count: credentialFindings.reduce((a, f) => a + f.matches.length, 0), filePath: credentialFindings.slice(0,10).map(f => f.file), rule: 'CREDENTIAL_PATTERN_HEURISTIC', impact: 'MEDIUM RISK: Hardcoded credential patterns in source increase breach surface and may trigger automated scanner alerts in CI.', fix: 'Move secrets to environment variables or a secret manager; never commit keys to version control.', findings: credentialFindings.slice(0,5), reasoning: 'Regex heuristics matched hardcoded credential patterns: password=, api_key=, secret_key=, or AWS access keys. These strings resemble common secret formats and are flagged for review even if they are dummy values.', confidence: 0.78, humanReadable: `Potential hardcoded secrets found in ${credentialFindings.length} file(s). The scanner matched patterns resembling API keys, passwords, or tokens assigned as string literals.` }] : []),
+                    ...(profile.checkDebug && debugFindings.length ? [{ severity: 'low', severityBand: 'low', type: 'Debug Artifact', count: debugFindings.reduce((a, f) => a + f.matches.length, 0), filePath: debugFindings.slice(0,10).map(f => f.file), rule: 'DEBUG_ARTIFACT', impact: 'HYGIENE RISK: Debug artifacts should not reach production builds.', fix: 'Remove console.log, debugger, TODO, and FIXME markers before release.', findings: debugFindings.slice(0,5), reasoning: 'Source code analysis detected console.log(), debugger statements, or alert()/prompt() calls. These are development-only artifacts that can leak internal state or interrupt user experience in production.', confidence: 0.98, humanReadable: `Debug artifacts (console.log, debugger, alert) found in ${debugFindings.length} file(s). These should be removed before production builds.` }] : []),
+                    ...(profile.checkGov && govFindings.length ? [{ severity: 'low', severityBand: 'low', type: 'License/Governance Marker', count: govFindings.reduce((a, f) => a + f.matches.length, 0), filePath: govFindings.slice(0,10).map(f => f.file), rule: 'GOVERNANCE_PATTERN', impact: 'INFO: License headers and copyright notices detected. Verify compliance with open-source policy.', fix: 'Review license compatibility with your product distribution model.', findings: govFindings.slice(0,5), reasoning: 'SPDX-License-Identifier tags, copyright headers, or license references were found in source files. This indicates the project contains licensed third-party code that must be tracked for compliance.', confidence: 0.95, humanReadable: `License and copyright markers detected in ${govFindings.length} file(s). Verify open-source license compatibility with your distribution model.` }] : [])
                 ],
                 issues: [
                     ...(profile.checkAi && aiHits.length ? [{ severity: 'low', type: 'AI System Indicator', count: aiHits.length }] : []),
@@ -4657,15 +4693,26 @@
             } catch (e) {
                 certWrapper.remove();
                 console.error('[Certificate] html2canvas error:', e);
-                throw new Error('Certificate rasterization failed — ' + (e.message || 'unknown error'));
+                throw new Error('Certificate rasterization failed — ' + (e && e.message || 'unknown error'));
             }
             certWrapper.remove();
             if (!canvas) {
                 throw new Error('Certificate canvas returned empty. Please try again.');
             }
-            const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            if (!pngBlob) {
-                throw new Error('PNG encoding failed. Please try again.');
+            let pngBlob;
+            try {
+                pngBlob = await new Promise((resolve, reject) => {
+                    try {
+                        canvas.toBlob(blob => {
+                            if (blob) resolve(blob);
+                            else reject(new Error('canvas.toBlob returned null'));
+                        }, 'image/png');
+                    } catch (canvasErr) {
+                        reject(new Error('canvas.toBlob threw: ' + (canvasErr && canvasErr.message || canvasErr)));
+                    }
+                });
+            } catch (blobErr) {
+                throw new Error('PNG blob creation failed — ' + (blobErr && blobErr.message || 'unknown error'));
             }
             console.log('[Certificate] PNG blob ready:', pngBlob.size, 'bytes');
 
@@ -4711,13 +4758,17 @@
             const g = report.gateReport || report.gate || {};
             const gateIssues = (report.detectedIssues || report.issues || []).filter(i => ['high','critical','medium'].includes(i.severity));
             const gateBlocking = report.gate?.blockingFindings || [];
+            // Derive pass from actual findings to handle inconsistent upstream data
+            const hasBlockingFindings = (g.blockingCount || 0) > 0 || (g.blockingIssues || []).length > 0 || gateBlocking.length > 0 || gateIssues.length > 0;
+            const derivedPass = hasBlockingFindings ? false : (g.pass ?? null);
             addModule('gate', 'Gate Scan', {
-                pass: g.pass ?? null,
+                pass: derivedPass,
                 blockingCount: g.blockingCount ?? 0,
                 warningCount: g.warningCount ?? 0,
-                status: g.pass === true ? 'PASS' : (g.pass === false ? 'BLOCKED' : 'REVIEW'),
-                severityColor: g.pass === true ? '#34D399' : (g.pass === false ? '#EF4444' : '#60A5FA'),
-                summary: g.summary || (g.pass ? 'Gate passed — no blocking credentials found.' : 'Review blocking issues.'),
+                status: derivedPass === true ? 'PASS' : (derivedPass === false ? 'BLOCKED' : 'REVIEW'),
+                severityColor: derivedPass === true ? '#34D399' : (derivedPass === false ? '#EF4444' : '#60A5FA'),
+                summary: g.summary || (derivedPass === true ? 'Gate passed — no blocking credentials found.' : (derivedPass === false ? 'Gate blocked — review findings before release.' : 'Gate review — verify all findings.')),
+                allClean: derivedPass === true && !hasBlockingFindings,
                 blockingFindings: gateIssues.slice(0, 10).map(i => ({
                     severity: i.severity, type: i.type, count: i.count || 0,
                     filePath: i.filePath, rule: i.rule, impact: i.impact, fix: i.fix,
@@ -4734,9 +4785,9 @@
                 qualityScore: report.qualityScore ?? null,
                 scanDurationMs: report.scanDurationMs ?? null,
                 recommendations: [
-                    ...(g.pass === false ? ['Fix all blocking findings before release.'] : []),
-                    ...(credentialHits > 0 ? ['Move secrets to environment variables or a secret manager.'] : []),
-                    ...(aiHits.length > 0 ? ['Review AI indicators for compliance before enabling --gate.'] : []),
+                    ...(derivedPass === false ? ['Fix all blocking findings before release.'] : []),
+                    ...((g.blockingIssues || []).some(i => /credential|secret|password|api[-_]?key|token/i.test(i.type || '')) ? ['Move secrets to environment variables or a secret manager.'] : []),
+                    ...((report.detectedIssues || []).some(i => /ai|openai|anthropic|langchain|huggingface/i.test(i.type || '')) ? ['Review AI indicators for compliance before enabling --gate.'] : []),
                     'Run `npx simplebeacon scan --gate` in CI to prevent regressions.'
                 ],
                 remediation: gateIssues.filter(i => i.fix).map(i => i.fix).slice(0, 3)
@@ -4968,9 +5019,47 @@
                 });
             }
 
+            // 12. Remediation Plan — phased action items with progress
+            if (report.remediationPhases && report.remediationPhases.length > 0) {
+                const phases = report.remediationPhases;
+                const completed = phases.filter(p => p.status === 'completed' || p.progress === 100).length;
+                const pending = phases.filter(p => p.status === 'pending').length;
+                const critical = phases.filter(p => p.severity === 'critical' && p.status !== 'completed').length;
+                addModule('remediation', 'Remediation Plan', {
+                    totalPhases: phases.length,
+                    completedPhases: completed,
+                    pendingPhases: pending,
+                    criticalPhases: critical,
+                    phases: phases.map(p => ({
+                        id: p.id,
+                        title: p.title,
+                        severity: p.severity,
+                        effort: p.effort,
+                        progress: p.progress,
+                        status: p.status,
+                        taskCount: (p.tasks || []).length,
+                        tasks: (p.tasks || []).slice(0, 5),
+                        description: p.description
+                    })),
+                    summary: `${completed} of ${phases.length} phases complete. ${pending} pending${critical > 0 ? `, ${critical} critical` : ''}.`,
+                    recommendations: [
+                        ...(critical > 0 ? [`Complete ${critical} critical phase(s) before release.`] : []),
+                        ...(pending > 0 ? [`Address ${pending} pending phase(s) to reach full compliance.`] : []),
+                        'Re-run gate scan after completing all phases.'
+                    ],
+                    remediation: critical > 0 ? `Prioritize ${critical} critical phase(s) before release.` : null
+                });
+            }
+
             // 3.5 Filter modules by user-selected cards for ZIP export
             const zipModules = modules.filter(m => selectedModules.has(m.id));
             console.log('[Certificate]', modules.length, 'modules built;', zipModules.length, 'selected for ZIP');
+            if (zipModules.length === 0) {
+                console.warn('[Certificate] No modules selected — defaulting to all available modules');
+                // Default to all modules if none selected (prevents empty ZIP)
+                modules.forEach(m => selectedModules.add(m.id));
+                zipModules.push(...modules);
+            }
 
             // 4. Build HTML certificate (readable, searchable, printable)
             const certHtml = `<!DOCTYPE html>
@@ -5302,46 +5391,262 @@ ${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} TOD
 `;
             zip.file('roadmap.md', roadmapMd);
 
-            // 10. Remediation Checklist — actionable checklist for compliance teams
-            const checklist = `# Remediation Checklist — ${escapeHtml(projectName)}
-> Use this checklist to track remediation progress. Check items off as they are completed.
+            // 9.6 Explainability Report — how the AI thinks and detects each finding
+            const explainabilityMd = `# How SimpleBeacon Detects Findings — ${escapeHtml(projectName)}
+> **Certificate ID:** ${certId}
 
-## Phase 1: Security (Week 1)${report.gate?.severityColor ? ' · Priority: ' + report.gate.severityColor.replace('#','') : ''}
-${report.gate?.remediation?.length ? report.gate.remediation.map(r => '- [ ] **' + r + '**').join('\n') + '\n' : '- [ ] **Rotate exposed credentials** — ' + (report.gate?.blockingCount || 0) + ' credential pattern(s) found in source.\n'}- [ ] **Add .env and .pem to .gitignore** if not already present.
+## 🔍 AI System Indicators
+**What we look for:** Import statements or function calls matching known AI SDK signatures — OpenAI, Anthropic, LangChain, HuggingFace, GPT-4, Claude-3.
+**Why this matters:** AI system integration may require compliance review under EU AI Act Article 6.
+**Confidence:** 92%
+
+## 🔐 Credential Patterns
+**What we look for:** Hardcoded strings matching patterns like \`password=\`, \`api_key=\`, \`secret_key=\`, AWS access keys.
+**Why this matters:** These patterns resemble common secret formats. Even dummy values are flagged for review because regex cannot distinguish real secrets from placeholders.
+**Confidence:** 78%
+
+## 🐛 Debug Artifacts
+**What we look for:** \`console.log()\`, \`debugger\`, \`alert()\`, \`prompt()\` calls in source code.
+**Why this matters:** Development-only artifacts can leak internal state or interrupt user experience in production.
+**Confidence:** 98%
+
+## 📜 License/Governance Markers
+**What we look for:** SPDX-License-Identifier tags, copyright headers, MIT/Apache/GNU license references.
+**Why this matters:** Licensed third-party code must be tracked for open-source compliance.
+**Confidence:** 95%
+
+## 🔀 Consolidation Issues
+**What we look for:** Files with identical SHA-256 hashes across different paths.
+**Why this matters:** Duplicate files increase bundle size and maintenance burden.
+**Confidence:** 99%
+
+## 🗺️ TODO/FIXME Markers
+**What we look for:** Comments containing \`TODO\`, \`FIXME\`, \`HACK\`, or \`BUG\`.
+**Why this matters:** These markers indicate unfinished work that should be tracked before release.
+**Confidence:** 99%
+
+## 🧪 Data Quality
+**What we look for:** JSON files with empty objects \`{}\` or arrays \`[]\`, or files under 10 bytes.
+**Why this matters:** Empty config files can confuse tooling and bloat the repository.
+**Confidence:** 95%
+
+## 📦 File Reduction
+**What we look for:** Image assets referenced in build output but not in source HTML/JS/CSS.
+**Why this matters:** Unused assets increase bundle size with no benefit.
+**Confidence:** 70% (may flag assets loaded dynamically)
+
+---
+*This document helps human developers understand the heuristic patterns SimpleBeacon uses. All detection happens locally in your browser — no data is transmitted to external servers.*
+`;
+            zip.file('explainability.md', explainabilityMd);
+
+            // 10. Remediation Checklist — actionable checklist for compliance teams
+            const checklist = (() => {
+                const phases = report.remediationPhases || [];
+                let md = `# Remediation Checklist — ${escapeHtml(projectName)}
+> Use this checklist to track remediation progress. Check items off as they are completed.\n`;
+                if (phases.length > 0) {
+                    phases.forEach(p => {
+                        const severityLabel = p.severity ? ` · ${p.severity.toUpperCase()}` : '';
+                        const statusLabel = p.status === 'completed' ? ' ✅' : p.status === 'in-progress' ? ' 🔄' : '';
+                        md += `\n## ${p.title}${severityLabel}${statusLabel}\n`;
+                        md += `> ${p.description || ''} · Effort: ${p.effort || 'Unknown'} · Progress: ${p.progress || 0}%\n\n`;
+                        if (p.tasks && p.tasks.length > 0) {
+                            p.tasks.forEach(task => {
+                                const checked = p.status === 'completed' ? '[x]' : '[ ]';
+                                md += `- ${checked} ${task}\n`;
+                            });
+                        } else {
+                            md += `- [ ] Complete all tasks for this phase\n`;
+                        }
+                    });
+                } else {
+                    // Fallback to legacy static checklist when phases not available
+                    md += `\n## Phase 1: Security (Week 1)
+- [ ] **Rotate exposed credentials** — ${report.gate?.blockingCount || 0} blocking issue(s).
+- [ ] **Add .env and .pem to .gitignore** if not already present.
 - [ ] **Re-run gate scan** to verify zero blocking findings.
 
 ## Phase 2: Data Integrity (Week 1–2)
 - [ ] **Validate all JSON files** for structural integrity.
 - [ ] **Remove empty files** — ${report.dataQuality?.emptyJsonCount || 0} empty JSON file(s) detected.
-- [ ] **Fix schema violations** — ${report.schemaCompliance != null ? report.schemaCompliance + '% compliant' : 'review schema compliance'}.
 
 ## Phase 3: Consistency (Week 2–3)
 - [ ] **Consolidate duplicate files** — ${report.consolidation?.duplicateGroups || 0} duplicate group(s).
-- [ ] **Standardize naming conventions** across the codebase.
-- [ ] **Document canonical file locations** in README.
 
 ## Phase 4: Governance & Compliance (Week 3)
-${report.compliance?.remediation ? '- [ ] **' + report.compliance.remediation + '**\n' : (report.compliance?.licenseCount || report.compliance?.securityCount ? '- [ ] **Verify license compatibility** with your distribution model.\n' : '- [ ] **Add LICENSE and SECURITY.md** to the repository root.\n')}- [ ] **Review security policies** — ${report.compliance?.securityCount || 0} security/governance file(s) detected.
-- [ ] **Audit open-source licenses** — ${report.compliance?.licenseCount || 0} license file(s) found.
+- [ ] **Verify license compatibility** with your distribution model.
+- [ ] **Review security policies** — ${report.compliance?.securityCount || 0} security/governance file(s) detected.
 
 ## Phase 5: EU AI Act Compliance (Week 3–4)
 - [ ] **Review AI system classification** (Art. 6) — ${report.euAiActSummary?.aiSystemIndicators || 0} indicator(s).
-- [ ] **Generate documentation artifacts** — ${report.euAiActSummary?.documentationArtifacts || 0} found.
 - [ ] **Schedule legal review** if high-risk indicators present.
 
 ## Phase 6: Quality Optimization (Ongoing)
-- [ ] **Remove debug artifacts** — ${report.cleanup?.debugArtifactCount || 0} console.log/debugger/TODO found.
+- [ ] **Remove debug artifacts** — ${report.cleanup?.debugArtifactCount || 0} found.
 - [ ] **Address TODO/FIXME markers** — ${report.roadmap?.todoCount || 0} file(s) flagged.
-- [ ] **Add pre-commit hooks** for automated scanning.
-- [ ] **Schedule monthly quality gate reviews**.
-
-## Verification
-Re-scan after completing all phases. Target: Grade A (95+), Gate PASS, 0 blocking findings.
-
----
-*SimpleBeacon Remediation Checklist · Certificate ${certId}*
 `;
+                }
+                md += `\n## Verification\nRe-scan after completing all phases. Target: Grade A (95+), Gate PASS, 0 blocking findings.\n\n---\n*SimpleBeacon Remediation Checklist · Certificate ${certId}*\n`;
+                return md;
+            })();
             zip.file('remediation-checklist.md', checklist);
+
+            // 11. Developer Report — human-readable "what went wrong" guide
+            const severityIcon = sev => sev === 'critical' || sev === 'high' ? '&#9888;&#65039;' : sev === 'medium' ? '&#9888;&#65039;' : '&#128161;';
+            const severityColor = sev => sev === 'critical' || sev === 'high' ? '#EF4444' : sev === 'medium' ? '#F59E0B' : '#60A5FA';
+            const severityBg = sev => sev === 'critical' || sev === 'high' ? 'rgba(239,68,68,0.08)' : sev === 'medium' ? 'rgba(245,158,11,0.08)' : 'rgba(96,165,250,0.08)';
+
+            const buildFindingCards = (issues, title) => {
+                if (!issues || issues.length === 0) return '';
+                const cards = issues.slice(0, 8).map(i => {
+                    const s = (i.severity || 'low').toLowerCase();
+                    const files = Array.isArray(i.filePath) ? i.filePath : (i.filePath ? i.filePath.split(',').map(x => x.trim()) : []);
+                    const fileList = files.slice(0, 3).map(f => `<code>${f}</code>`).join(', ');
+                    const moreFiles = files.length > 3 ? ` <em>+${files.length - 3} more</em>` : '';
+                    const snippets = (i.findings || []).slice(0, 2).flatMap(f => (f.matches || []).slice(0, 1).map(m =>
+                        `<div class="snippet"><span class="snippet-file">${f.file}</span><span class="snippet-line">Line ${m.line}</span><pre>${escapeHtml((m.snippet || '').slice(0, 120))}</pre></div>`
+                    )).join('');
+                    return `<div class="finding-card" style="border-left:4px solid ${severityColor(s)};background:${severityBg(s)};">
+                        <div class="finding-header"><span class="finding-sev" style="color:${severityColor(s)};">${severityIcon(s)} ${s.toUpperCase()}</span><strong>${i.type || title}</strong></div>
+                        <div class="finding-body">
+                            <p><strong>Why it matters:</strong> ${i.impact || 'Review required.'}</p>
+                            <p><strong>How to fix:</strong> ${i.fix || 'Manual review recommended.'}</p>
+                            ${files.length ? `<p><strong>Files affected:</strong> ${fileList}${moreFiles}</p>` : ''}
+                            ${snippets}
+                        </div>
+                    </div>`;
+                }).join('');
+                return `<div class="section"><h2>${severityIcon('high')} ${title}</h2>${cards}${issues.length > 8 ? `<p class="more"><em>+${issues.length - 8} more ${title.toLowerCase()} not shown</em></p>` : ''}</div>`;
+            };
+
+            const devReport = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Developer Report — ${escapeHtml(projectName)}</title>
+<style>
+:root{--bg:#0B0F19;--surface:#0F1626;--border:#1E293B;--text:#F3F4F6;--muted:#9CA3AF;--accent:#2563EB;}
+*{box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);margin:0;padding:40px 20px;line-height:1.65;}
+.wrap{max-width:760px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:36px;}
+h1{margin:0 0 6px;font-size:1.6rem;letter-spacing:0.04em;}
+.subtitle{color:var(--muted);font-size:0.9rem;margin-bottom:24px;}
+.meta{display:flex;flex-wrap:wrap;gap:16px 28px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border);font-size:0.8rem;color:var(--muted);}
+.meta strong{color:var(--text);}
+.status-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;}
+.status-pass{background:rgba(16,185,129,0.12);color:#34D399;border:1px solid rgba(16,185,129,0.3);}
+.status-blocked{background:rgba(239,68,68,0.12);color:#EF4444;border:1px solid rgba(239,68,68,0.3);}
+.status-review{background:rgba(96,165,250,0.12);color:#60A5FA;border:1px solid rgba(96,165,250,0.3);}
+.grade-pill{background:rgba(37,99,235,0.12);color:#93C5FD;border:1px solid rgba(37,99,235,0.3);}
+.tldr{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:16px 20px;margin-bottom:28px;}
+.tldr h2{margin:0 0 8px;font-size:1.05rem;color:#F59E0B;}
+.tldr p{margin:0;font-size:0.88rem;color:var(--text);}
+.tldr ul{margin:8px 0 0;padding-left:18px;font-size:0.85rem;}
+.tldr li{margin-bottom:4px;color:var(--text);}
+.section{margin-bottom:32px;}
+.section h2{font-size:1.15rem;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.finding-card{border-radius:8px;padding:16px 18px;margin-bottom:14px;}
+.finding-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:0.92rem;}
+.finding-sev{font-weight:700;font-size:0.72rem;letter-spacing:0.04em;min-width:72px;}
+.finding-body p{margin:6px 0;font-size:0.82rem;color:var(--text);}
+.finding-body strong{color:var(--muted);font-weight:600;}
+.snippet{background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-top:8px;font-size:0.75rem;}
+.snippet-file{color:#93C5FD;font-weight:600;}
+.snippet-line{float:right;color:var(--muted);font-size:0.7rem;}
+.snippet pre{margin:6px 0 0;color:#CBD5E1;white-space:pre-wrap;word-break:break-word;font-family:'Fira Code',monospace;font-size:0.72rem;}
+.more{color:var(--muted);font-size:0.8rem;margin-top:4px;}
+.fix-box{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:6px;padding:14px 16px;margin-top:8px;}
+.fix-box h4{margin:0 0 6px;color:#34D399;font-size:0.82rem;}
+.fix-box p{margin:0;font-size:0.8rem;color:var(--text);}
+.fix-box code{background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;font-size:0.75rem;}
+.quick-wins{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+.quick-win{background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:6px;padding:12px 14px;font-size:0.8rem;}
+.quick-win strong{color:#93C5FD;display:block;margin-bottom:4px;font-size:0.82rem;}
+@media print{
+body{background:#fff;color:#000;}
+.wrap{border-color:#ccc;background:#fff;}
+.tldr,.finding-card,.fix-box,.quick-win{background:#f8f9fa;border-color:#ddd;}
+.snippet{background:#f1f5f9;border-color:#ddd;}
+.meta,.section h2{border-color:#ddd;}
+}
+</style></head>
+<body>
+<div class="wrap">
+<h1>&#128270; Developer Report</h1>
+<div class="subtitle">${escapeHtml(projectName)} &middot; ${dateStr}</div>
+<div class="meta">
+  <div>Gate: <span class="status-pill ${gatePassed ? 'status-pass' : (report.gate?.pass === false ? 'status-blocked' : 'status-review')}">${gateLabel}</span></div>
+  <div>Grade: <span class="status-pill grade-pill">${grade}</span></div>
+  <div>Quality: <strong>${qs}/100</strong></div>
+  <div>Files: <strong>${fileCount.toLocaleString()}</strong></div>
+  <div>Lines: <strong>${lineCount.toLocaleString()}</strong></div>
+  <div>Findings: <strong>${issueCount}</strong></div>
+</div>
+
+<div class="tldr">
+  <h2>&#9888;&#65039; TL;DR — What You Need to Know</h2>
+  ${gatePassed ? '<p>Gate passed. No blocking issues detected. Review low-priority findings below.</p>' : `<p>Your project has <strong>${report.gate?.blockingCount || gateIssues.length} blocking issue(s)</strong> that must be resolved before release. These are the most critical:</p>
+  <ul>${gateBlocking.slice(0, 3).map(f => `<li><strong>${f.type || 'Blocking Finding'}</strong> — ${f.impact || 'Review required.'}${f.fix ? ` <em>Fix:</em> ${f.fix}` : ''}</li>`).join('')}</ul>`}
+  ${(report.euAiActSummary?.highRiskIndicators || 0) > 0 ? '<p><strong>EU AI Act:</strong> High-risk AI indicators detected. Schedule legal review before August 2026.</p>' : ''}
+  ${qs < 70 ? '<p><strong>Quality Score is low (' + qs + '/100).</strong> Prioritize the fixes outlined below to raise it above 70 before shipping.</p>' : ''}
+</div>
+
+${buildFindingCards(gateBlocking.length ? gateBlocking : gateIssues.slice(0, 5), 'Security & Gate Findings')}
+
+${cons.duplicateGroups ? `<div class="section"><h2>&#128260; Consolidation Issues</h2>
+<p>There are <strong>${cons.duplicateGroups}</strong> groups of duplicate files in your repo. Duplicates bloat bundles, confuse developers, and increase maintenance overhead.</p>
+<div class="fix-box"><h4>How to fix</h4><p>Merge duplicate files into shared modules. If two components import the same utility, extract it to a shared <code>utils/</code> folder and update imports. Remove redundant copies that are no longer referenced.</p></div>
+</div>` : ''}
+
+${mockTotal ? `<div class="section"><h2>&#128293; Mock Data & Fixtures</h2>
+<p><strong>${mockTotal}</strong> mock or fixture files detected (${mockPct}% of the repo). These are useful for testing but dangerous in production.</p>
+<div class="fix-box"><h4>How to fix</h4><p>Ensure your build pipeline excludes <code>__mocks__/</code>, <code>*.fixture.*</code>, and <code>test-data/</code> from production bundles. Add them to <code>.simplebeaconignore</code> or your bundler's exclude list.</p></div>
+</div>` : ''}
+
+${rm.todoCount ? `<div class="section"><h2>&#128221; Roadmap Markers (TODO / FIXME)</h2>
+<p><strong>${rm.todoCount}</strong> files contain TODO, FIXME, HACK, or BUG markers. These are debt signals.</p>
+<div class="fix-box"><h4>How to fix</h4><p>Before release, address all FIXMEs. Convert TODOs into GitHub issues. Remove HACK comments by refactoring the code they describe. Use <code>grep -rn "TODO\|FIXME\|HACK\|BUG" src/</code> to find them all.</p></div>
+</div>` : ''}
+
+${cl.debugArtifactCount ? `<div class="section"><h2>&#128027; Debug Artifacts in Source</h2>
+<p><strong>${cl.debugArtifactCount}</strong> debug statements (console.log, debugger, alert) found in source files. These leak internals, slow performance, and look unprofessional.</p>
+<div class="fix-box"><h4>How to fix</h4><p>Remove all <code>console.log</code>, <code>debugger;</code>, and <code>alert()</code> calls. Enable ESLint rule <code>no-console</code> in CI. For intentional logs, switch to a structured logger like <code>pino</code> or <code>winston</code>.</p></div>
+</div>` : ''}
+
+${dq.emptyJsonCount ? `<div class="section"><h2>&#129513; Data Quality Issues</h2>
+<p><strong>${dq.emptyJsonCount}</strong> empty JSON files detected. Empty configs bloat the repo and break tooling that expects valid data.</p>
+<div class="fix-box"><h4>How to fix</h4><p>Delete empty JSON files or populate them with schema-compliant defaults. Add JSON schema validation in CI to prevent regressions.</p></div>
+</div>` : ''}
+
+${(fr.unusedAssetCandidates || []).length ? `<div class="section"><h2>&#128444; Unused Assets</h2>
+<p><strong>${(fr.unusedAssetCandidates || []).length}</strong> image/asset files appear unused. They inflate bundle size and slow deploys.</p>
+<div class="fix-box"><h4>How to fix</h4><p>Review each candidate. If genuinely unused, delete it. Enable tree-shaking and asset optimization in your build tool (e.g., Vite, Webpack, Rollup).</p></div>
+</div>` : ''}
+
+${npm.packageJsonCount ? `<div class="section"><h2>&#128230; Dependency Health</h2>
+<p>${npm.packageJsonCount} package.json file(s) with ${(npm.dependencyCount || 0).toLocaleString()} total dependencies. ${depsPerPkg > 50 ? '<strong>Dependency density is high.</strong> Large dependency trees increase attack surface and install time.' : 'Dependency density looks reasonable.'}</p>
+${depsPerPkg > 50 ? `<div class="fix-box"><h4>How to fix</h4><p>Run <code>npm ls</code> to audit your tree. Remove unused packages with <code>depcheck</code>. Consider pinning critical dependencies and enabling Dependabot.</p></div>` : ''}
+</div>` : ''}
+
+${(comp.licenseCount || comp.securityCount) ? `<div class="section"><h2>&#128506; Compliance</h2>
+<p>${comp.licenseCount || 0} license file(s) and ${comp.securityCount || 0} governance file(s) found.</p>
+<div class="fix-box"><h4>How to fix</h4><p>Verify license compatibility with your distribution model. Add SECURITY.md if missing. Review copyright headers in source files.</p></div>
+</div>` : ''}
+
+<div class="section"><h2>&#127919; Quick Wins</h2>
+<div class="quick-wins">
+  ${gatePassed ? '<div class="quick-win"><strong>Gate is green</strong> No immediate security blockers. Focus on polish.</div>' : '<div class="quick-win"><strong>Fix gate blockers first</strong> Security issues block release. Triage by severity.</div>'}
+  ${(report.roadmap?.todoCount || 0) > 0 ? '<div class="quick-win"><strong>Convert TODOs to issues</strong> Track them in Jira/GitHub instead of code comments.</div>' : '<div class="quick-win"><strong>No TODOs</strong> Clean codebase with no outstanding markers.</div>'}
+  ${cl.debugArtifactCount > 0 ? '<div class="quick-win"><strong>Strip console.log</strong> Use a linter to catch these before commit.</div>' : '<div class="quick-win"><strong>No debug artifacts</strong> Production-ready build hygiene.</div>'}
+  ${qs < 70 ? '<div class="quick-win"><strong>Raise quality score</strong> Fix empty files, duplicates, and unused assets.</div>' : '<div class="quick-win"><strong>Quality score is good</strong> Maintain current standards.</div>'}
+</div>
+</div>
+
+<div style="margin-top:40px;padding-top:20px;border-top:1px solid var(--border);font-size:0.72rem;color:var(--muted);text-align:center;">
+  Generated by SimpleBeacon Sovereign Engine &middot; Certificate ${certId}<br>
+  Zero bytes uploaded. Scan ran entirely in your browser.
+</div>
+</div>
+</body></html>`;
+            zip.file('dev-report.html', devReport);
 
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             console.log('[Certificate] ZIP blob ready:', zipBlob.size, 'bytes');
@@ -5389,12 +5694,13 @@ Re-scan after completing all phases. Target: Grade A (95+), Gate PASS, 0 blockin
                 showToast('Certificate ZIP downloaded — generated entirely in your browser!', 'success', 6000);
                 showStatus('Certificate ZIP generated locally! Zero bytes uploaded to any server.', 'success');
             } catch (err) {
+                const errMsg = (err && err.message) || (typeof err === 'string' ? err : JSON.stringify(err));
                 console.error('[Certificate] Generation failed:', err);
-                appendTerminalLine(`Certificate generation failed: ${err.message}`, 'error');
-                showToast(err.message, 'error');
+                appendTerminalLine(`Certificate generation failed: ${errMsg || 'Unknown error — check console for details'}`, 'error');
+                showToast(errMsg || 'Certificate generation failed', 'error');
                 const statusEl = document.getElementById('status');
                 if (statusEl) {
-                    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span>${err.message}</span><button id="retryCertBtn" style="padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;">&#128260; Retry</button></div>`;
+                    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span>${errMsg || 'Unknown error'}</span><button id="retryCertBtn" style="padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;">&#128260; Retry</button></div>`;
                     statusEl.className = 'status error';
                     statusEl.style.display = 'block';
                     document.getElementById('retryCertBtn')?.addEventListener('click', () => {
