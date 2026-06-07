@@ -24,10 +24,29 @@ coverage/
 .DS_Store
 Thumbs.db
 
-# Test outputs
+# Test outputs & generated reports
 test-output*.txt
+report.json
+report-fresh.json
 
 # Test files (console.log expected)
 test-*.js
 *.test.js
 *.spec.js
+
+# Dev scripts falsely flagged as debug artifacts
+pre-commit-hook.*
+
+# Dev-only pages flagged as tech-debt
+roadmap.html
+scan-status.html
+
+# Docs flagged as meaningless-data / tech-debt
+AI-SYSTEM.md
+CLOUDFLARE-DEPLOYMENT-PLAN.md
+
+# Log files
+error.log
+
+# Data files flagged as duplicate
+subscriptions.json

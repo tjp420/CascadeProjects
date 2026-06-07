@@ -1,0 +1,727 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-07T00:14:40.270Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\coming-soon"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+    "totalFiles": 79,
+    "totalFolders": 10,
+    "profile": "audit"
+  },
+  "mockSampleFiles": 4,
+  "totalFiles": 79,
+  "ruleScopedFilesAnalyzed": 79,
+  "repositoryFilesTotal": 79,
+  "repositoryFoldersTotal": 10,
+  "filesAnalyzed": 79,
+  "totalSizeBytes": 1573293,
+  "totalSizeLabel": "1.5MB",
+  "issueCount": 3,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 94,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 5,
+  "consistencyPassed": 5,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 5,
+  "fictionSampleFilesScanned": 0,
+  "fictionScope": "repository-json",
+  "credentialScanned": 55,
+  "credentialFindings": 0,
+  "productionLeakScanned": 15,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 38,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 45,
+  "euAiActFindings": 1,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 1,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 64,
+    "documentationFound": [
+      "AI-SYSTEM.md",
+      "app-links.js",
+      "certificate-upload.html",
+      "certification-post-fix.html",
+      "CHANGELOG.md",
+      "contact.html",
+      "contact.js",
+      "pricing.html",
+      "README.md",
+      "refund.html",
+      "report.json",
+      "roadmap.html",
+      "sample-certificate.html",
+      "sample-report.json",
+      "scan-status.html",
+      "server.cjs",
+      "site-config.js",
+      "styles.css",
+      "terms.html",
+      "upload.html",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/report-coming-soon.json",
+      ".simplebeacon/report-final-roadmap.json",
+      ".simplebeacon/report-final.json",
+      ".simplebeacon/report-fresh.json",
+      ".simplebeacon/report-improved.json",
+      ".simplebeacon/report-roadmap.json",
+      ".simplebeacon/report-verify.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/verify-final.json",
+      ".simplebeacon/verify-scan.json",
+      ".simplebeacon/verify-scan2.json",
+      ".simplebeacon/verify-scan3.json"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "low": 0
+  },
+  "mockDataCategories": [
+    {
+      "category": "Stale inventory (full-tree scan)",
+      "fileCount": 4,
+      "totalSize": "1.5MB",
+      "qualityScore": null,
+      "issues": null,
+      "confidence": null,
+      "description": "Re-run scan to refresh — current categories reflect an outdated full-repo walk, not web/data samples."
+    }
+  ],
+  "detectedIssues": [
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "playwright.config.js:22 — Localhost or loopback URL with port in production-eligible code",
+      "pattern": "SB-DEPLOY-001",
+      "line": 22,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "playwright.config.js"
+      ],
+      "filePaths": [
+        "playwright.config.js"
+      ],
+      "file": "playwright.config.js"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "count": 1,
+      "description": "playwright.config.js:22 — Staging or dev hostname referenced in source",
+      "pattern": "SB-DEPLOY-005",
+      "line": 22,
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "playwright.config.js"
+      ],
+      "filePaths": [
+        "playwright.config.js"
+      ],
+      "file": "playwright.config.js"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (2 matches in file)",
+      "pattern": "EUAI-AI-001",
+      "line": null,
+      "recommendation": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "pricing.html"
+      ],
+      "filePaths": [
+        "pricing.html"
+      ],
+      "file": "pricing.html"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "agency-handoff-SB-DEPLOY-001-playwright.config.js-587",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "playwright.config.js",
+      "file": "playwright.config.js",
+      "line": 22,
+      "pattern": "SB-DEPLOY-001",
+      "count": 1,
+      "description": "playwright.config.js:22 — Localhost or loopback URL with port in production-eligible code",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "playwright.config.js"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-001",
+        "category": "deploy-leak",
+        "offset": 587,
+        "match": "localhost:3001"
+      }
+    },
+    {
+      "id": "agency-handoff-SB-DEPLOY-005-playwright.config.js-580",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Deploy Leak",
+      "category": "deploy-leak",
+      "filePath": "playwright.config.js",
+      "file": "playwright.config.js",
+      "line": 22,
+      "pattern": "SB-DEPLOY-005",
+      "count": 1,
+      "description": "playwright.config.js:22 — Staging or dev hostname referenced in source",
+      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "affectedFiles": [
+        "playwright.config.js"
+      ],
+      "metadata": {
+        "patternId": "SB-DEPLOY-005",
+        "category": "deploy-leak",
+        "offset": 580,
+        "match": "http://localhost"
+      }
+    },
+    {
+      "id": "EUAI-AI-001-pricing.html",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "pricing.html",
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (2 matches in file)",
+      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "affectedFiles": [
+        "pricing.html"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "OpenAI",
+        "matchCount": 2,
+        "matches": [
+          "OpenAI",
+          "Anthropic"
+        ]
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [
+    ".env",
+    ".env.example",
+    ".eslintrc.cjs",
+    "ci.yml",
+    ".gitignore",
+    ".netlifyignore",
+    ".npmignore",
+    ".prettierrc",
+    ".simplebeaconignore",
+    "404.html",
+    "AI-SYSTEM.md",
+    "app-links.js",
+    "certificate-upload.html",
+    "certification-post-fix.html",
+    "CHANGELOG.md",
+    "cloud-scan.html",
+    "CLOUDFLARE-DEPLOYMENT-PLAN.md",
+    "CODE_OF_CONDUCT.md",
+    "community.html",
+    "contact.html",
+    "contact.js",
+    "Dockerfile",
+    "diagnostic-prep.html",
+    "repo-handoff.html",
+    "upload.spec.js",
+    "email-template-universal.html",
+    "favicon.svg",
+    "index.html",
+    "scan-utils.js",
+    "scan-worker.js",
+    "landing.html",
+    "certificate-utils.cjs",
+    "db.cjs",
+    "LICENSE",
+    "netlify.toml",
+    "package-lock.json",
+    "package.json",
+    "playwright.config.js",
+    "pre-commit-hook.ps1",
+    "pre-commit-hook.sh",
+    "pricing.html",
+    "privacy.html",
+    "README.md",
+    "refund.html",
+    "report.json",
+    "roadmap.html",
+    "robots.txt",
+    "certificates.cjs",
+    "checkout.cjs",
+    "free-token.cjs",
+    "subscriptions.cjs",
+    "sample-certificate.html",
+    "sample-clearance-pdf.html",
+    "sample-report.html",
+    "sample-report.json",
+    "scan-status.html",
+    "SECURITY.md",
+    "server.cjs",
+    "certificate-generator.cjs",
+    "email.cjs",
+    "site-config.js",
+    "sitemap.xml",
+    "start-server.bat",
+    "stop-server.bat",
+    "styles.css",
+    "subscriptions.json",
+    "terms.html",
+    "db.test.cjs",
+    "scan-utils.test.cjs",
+    "test-audit-output.txt",
+    "test-audit-output2.txt",
+    "test-audit-report.json",
+    "test-certificate.js",
+    "test-normalize.js",
+    "test-renderPreview.js",
+    "test-technical-audit.js",
+    "test-zip-data.js",
+    "tsconfig.json",
+    "upload.html"
+  ],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 79,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 15,
+    "productionPaths": [
+      "."
+    ],
+    "sourceCodeScanPaths": [
+      "."
+    ],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 38,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 45,
+    "euAiActPatternHits": 1,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 5,
+    "fictionSampleFilesScanned": 0,
+    "ruleScopedFilesAnalyzed": 79,
+    "repositoryFilesTotal": 79,
+    "repositoryFoldersTotal": 10,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 79 files — gate rules checked 79 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (5) plus source code (0 files in .).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
+      "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
+      "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "stale-full-tree-scan",
+    "rescanRecommended": true,
+    "inventoryMetricsStale": true
+  },
+  "gate": {
+    "pass": false,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 1,
+    "warningCount": 2,
+    "blockingIssues": [
+      {
+        "id": "agency-handoff-SB-DEPLOY-001-playwright.config.js-587",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Deploy Leak",
+        "category": "deploy-leak",
+        "filePath": "playwright.config.js",
+        "file": "playwright.config.js",
+        "line": 22,
+        "pattern": "SB-DEPLOY-001",
+        "count": 1,
+        "description": "playwright.config.js:22 — Localhost or loopback URL with port in production-eligible code",
+        "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+        "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+        "affectedFiles": [
+          "playwright.config.js"
+        ],
+        "metadata": {
+          "patternId": "SB-DEPLOY-001",
+          "category": "deploy-leak",
+          "offset": 587,
+          "match": "localhost:3001"
+        }
+      }
+    ],
+    "warningIssues": [
+      {
+        "id": "agency-handoff-SB-DEPLOY-005-playwright.config.js-580",
+        "severity": "medium",
+        "severityBand": "medium",
+        "type": "Deploy Leak",
+        "category": "deploy-leak",
+        "filePath": "playwright.config.js",
+        "file": "playwright.config.js",
+        "line": 22,
+        "pattern": "SB-DEPLOY-005",
+        "count": 1,
+        "description": "playwright.config.js:22 — Staging or dev hostname referenced in source",
+        "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+        "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+        "affectedFiles": [
+          "playwright.config.js"
+        ],
+        "metadata": {
+          "patternId": "SB-DEPLOY-005",
+          "category": "deploy-leak",
+          "offset": 580,
+          "match": "http://localhost"
+        }
+      },
+      {
+        "id": "EUAI-AI-001-pricing.html",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "pricing.html",
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (2 matches in file)",
+        "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+        "affectedFiles": [
+          "pricing.html"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "OpenAI",
+          "matchCount": 2,
+          "matches": [
+            "OpenAI",
+            "Anthropic"
+          ]
+        }
+      }
+    ],
+    "status": "BLOCKED",
+    "severityColor": "#EF4444",
+    "summary": "Gate blocked — 1 blocking issue detected. Review before release.",
+    "blockingFindings": [
+      {
+        "severity": "high",
+        "type": "Deploy Leak",
+        "count": 1,
+        "filePath": "playwright.config.js"
+      }
+    ],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 79,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "79 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "compliance": {
+    "licenseCount": 0,
+    "securityCount": 0,
+    "governanceScore": 0,
+    "summary": "No governance files detected.",
+    "remediation": "Consider adding LICENSE and SECURITY.md.",
+    "complianceHealth": "poor",
+    "recommendations": [
+      "Add a LICENSE file to clarify distribution terms.",
+      "Add SECURITY.md to disclose vulnerability reporting."
+    ]
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 4,
+    "summary": "4 mock/fixture files detected."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 1,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "1 AI system indicator detected; review EU AI Act applicability.",
+    "summary": "1 AI system indicator detected; 0 high-risk, 0 transparency gaps."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 92,
+    "readinessStatus": "READY",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": true,
+        "critical": false
+      }
+    ],
+    "missingCritical": [],
+    "missingRecommended": [
+      "Build Tool Config"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 11,
+    "summary": "READY — 11 of 12 checklist items present.",
+    "recommendations": [
+      "Add recommended files to improve maintainability.",
+      "Consider Docker, linting config, and CHANGELOG."
+    ],
+    "remediation": "Missing recommended: Build Tool Config."
+  },
+  "remediationPhases": [
+    {
+      "id": "security",
+      "title": "Phase 1: Security Hardening",
+      "severity": "critical",
+      "effort": "1–2 days",
+      "description": "Address 0 credential and production leak findings.",
+      "tasks": [
+        "Rotate 0 exposed credentials",
+        "Add .env to .gitignore",
+        "Re-run gate scan"
+      ],
+      "progress": 0,
+      "status": "pending"
+    },
+    {
+      "id": "integrity",
+      "title": "Phase 2: Data Integrity",
+      "severity": "medium",
+      "effort": "2–4 days",
+      "description": "Data integrity verified — no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 3: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3–5 days",
+      "description": "Consistency verified — no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5–10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "low",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 94/100 toward 95+.",
+      "tasks": [
+        "Add test coverage for uncovered modules",
+        "Install pre-commit hooks for automated scanning",
+        "Schedule monthly quality gate reviews"
+      ],
+      "progress": 94,
+      "status": "in-progress"
+    }
+  ],
+  "summary": {
+    "gatePass": false,
+    "qualityScore": 94,
+    "totalFiles": 79,
+    "totalLines": 0
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-06-07T00:14:40.275Z"
+}

@@ -19,3 +19,10 @@ github-cache/
 data-central/
 data/.dev-jwt-secrets.json
 data/.test-token.txt
+
+# Build artifacts
+dist/
+build/
+.next/
+out/
+coverage/

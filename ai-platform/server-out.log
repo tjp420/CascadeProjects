@@ -1,4 +1,0 @@
-[Simplebeacon] SIMPLEBEACON_LANDING=(unset) internalDashboard=true → /=dashboard
-[Simplebeacon] Registered GET /api/analyze/data-cleanup
-[Simplebeacon] Registered POST /api/analyze/eu-ai-act-audit-report
-🌐 Legacy WebSocket server running on ws://localhost:8081

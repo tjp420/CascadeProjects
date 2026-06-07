@@ -18,7 +18,8 @@ const path = require('path');
 
 /* ── Token engine (mirrors packages/simplebeacon-cli/src/lib/license-token.js) ── */
 
-function generateLicenseToken(payload = {}, secret = 'simplebeacon-dev-insecure', expiresInMinutes = 60) {
+function generateLicenseToken(payload = {}, secret = process.env.SIMPLEBEACON_LICENSE_SECRET, expiresInMinutes = 60) {
+  if (!secret) throw new Error('SIMPLEBEACON_LICENSE_SECRET is required. Set it in your environment or pass it explicitly.');
   const issuedAt = Date.now();
   const expiresAt = issuedAt + (expiresInMinutes * 60 * 1000);
   const tokenPayload = {
@@ -35,7 +36,8 @@ function generateLicenseToken(payload = {}, secret = 'simplebeacon-dev-insecure'
   return `${data}.${sig}`;
 }
 
-function verifyLicenseToken(token, secret = 'simplebeacon-dev-insecure') {
+function verifyLicenseToken(token, secret = process.env.SIMPLEBEACON_LICENSE_SECRET) {
+  if (!secret) throw new Error('SIMPLEBEACON_LICENSE_SECRET is required. Set it in your environment or pass it explicitly.');
   if (!token || typeof token !== 'string') return null;
   const [data, sig] = token.split('.');
   if (!data || !sig) return null;
@@ -89,7 +91,8 @@ async function runSetup() {
   const appUrl = await prompt('App base URL (press Enter to skip): ');
 
   const lines = [
-    'SIMPLEBEACON_LICENSE_SECRET=' + (secret || 'simplebeacon-dev-insecure'),
+    'SIMPLEBEACON_LICENSE_SECRET=' + (secret || ''),
+    '# IMPORTANT: Replace the empty secret above with a strong random string before using in production.',
     'SIMPLEBEACON_APP_URL=' + (appUrl || '')
   ];
 
@@ -120,7 +123,11 @@ async function main() {
 
   if (flags.verify) {
     const token = String(flags.verify);
-    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+    if (!secret) {
+      console.error('ERROR: SIMPLEBEACON_LICENSE_SECRET is not set. Run with --setup or set the environment variable.');
+      process.exit(1);
+    }
     const payload = verifyLicenseToken(token, secret);
     if (!payload) {
       console.error('Token is INVALID or EXPIRED.');
@@ -173,7 +180,11 @@ async function main() {
     tier = 'euai';
   }
 
-  const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+  const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+  if (!secret) {
+    console.error('ERROR: SIMPLEBEACON_LICENSE_SECRET is not set. Run with --setup or set the environment variable.');
+    process.exit(1);
+  }
   const minutes = days * 24 * 60;
 
   const token = generateLicenseToken(

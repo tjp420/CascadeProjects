@@ -304,5 +304,22 @@
     },
     "fictionPatternsFound": 0,
     "totalFilesScanned": 57
+  },
+  {
+    "scanId": "46797614-6dfb-4323-975b-80d9944b8eda",
+    "date": "2026-06-07T00:14:40.270Z",
+    "issueCount": 3,
+    "warningCount": 2,
+    "blockingCount": 1,
+    "qualityScore": 94,
+    "gatePass": false,
+    "severityCounts": {
+      "critical": 0,
+      "high": 1,
+      "medium": 2,
+      "low": 0
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 79
   }
 ]

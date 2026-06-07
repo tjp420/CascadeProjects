@@ -53,6 +53,10 @@ coverage/
 /temp-edit*.js
 /fix-*.js
 
+# Logs
+*.log
+logs/
+
 # OS files
 .DS_Store
 Thumbs.db

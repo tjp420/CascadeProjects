@@ -44,7 +44,7 @@ function envFlag(name) {
 }
 
 function isInternalDashboardMode() {
-  return envFlag('SIMPLEBEACON_INTERNAL_DASHBOARD');
+  return envFlag('SIMPLEBEACON_INTERNAL_DASHBOARD') || process.env.NODE_ENV === 'development';
 }
 
 function upgradePayload(extra = {}) {

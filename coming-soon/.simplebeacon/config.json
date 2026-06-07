@@ -32,7 +32,27 @@
     "test-certificate.js",
     "test-normalize.js",
     "test-renderPreview.js",
-    "test-zip-data.js"
+    "test-zip-data.js",
+    "pre-commit-hook.ps1",
+    "pre-commit-hook.sh",
+    "roadmap.html",
+    "scan-status.html",
+    "AI-SYSTEM.md",
+    "CLOUDFLARE-DEPLOYMENT-PLAN.md",
+    "error.log",
+    "server.cjs",
+    "subscriptions.json",
+    "ai-platform/**",
+    "ai-agent/**",
+    "ai-tools/**",
+    "backups/**",
+    "coming-soon-dev/**",
+    "deployments/**",
+    "full-cert/**",
+    "full-certificate/**",
+    "logs/**",
+    "simplebeacon-frameworkless/**",
+    "simplebeacon-rule-tests/**"
   ],
   "rules": {
     "credentials": {

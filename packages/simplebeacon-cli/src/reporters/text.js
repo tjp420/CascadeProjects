@@ -2,6 +2,12 @@
  * Text reporter for simplebeacon scan results.
  */
 
+const {
+    GUIDE_PLAYBOOKS,
+    issueKind,
+    collectActiveGuideIds
+} = require('./remediation-guides');
+
 const COLORS = {
     reset: '\x1b[0m',
     red: '\x1b[31m',
@@ -86,8 +92,99 @@ function formatTextReport(report, gateResult = null) {
     return lines.join('\n');
 }
 
+function formatActionPlanReport(report, gateResult = null) {
+    const lines = [];
+    lines.push(paint('Simplebeacon Action Plan', 'cyan'));
+    lines.push('========================');
+    lines.push(`Root: ${report.projectRoot}`);
+    lines.push(`Quality score: ${report.qualityScore}/100`);
+    lines.push('');
+
+    if (gateResult) {
+        lines.push(gateResult.pass ? paint('Gate: PASS', 'green') : paint('Gate: FAIL', 'red'));
+        lines.push('');
+    }
+
+    const counts = report.severityCounts || {};
+    lines.push('Severity counts:');
+    lines.push(`  ${paint('Critical', 'red')}: ${counts.critical || 0}`);
+    lines.push(`  ${paint('High', 'red')}: ${counts.high || 0}`);
+    lines.push(`  ${paint('Medium', 'yellow')}: ${counts.medium || 0}`);
+    lines.push(`  ${paint('Low', 'dim')}: ${counts.low || 0}`);
+    lines.push('');
+
+    const issues = report.rawIssues || [];
+    if (issues.length === 0) {
+        lines.push(paint('No issues detected. No action required.', 'green'));
+        return lines.join('\n');
+    }
+
+    const guideIds = collectActiveGuideIds(issues, null)
+        .filter((id) => id !== 'ci-integration' && id !== 'roadmap');
+
+    if (guideIds.length === 0) {
+        lines.push(paint('No prioritized action items — scan is clean under configured paths.', 'green'));
+        return lines.join('\n');
+    }
+
+    const kindCounts = {};
+    for (const issue of issues) {
+        const kind = issueKind(issue);
+        if (GUIDE_PLAYBOOKS[kind]) {
+            kindCounts[kind] = (kindCounts[kind] || 0) + (issue.count || 1);
+        }
+    }
+
+    const orderedIds = [
+        'credentials',
+        'production-leak',
+        'npm-audit',
+        'fiction-kpi',
+        'schema',
+        'roadmap',
+        'ci-integration'
+    ].filter((id) => guideIds.includes(id));
+
+    const ESTIMATES = {
+        credentials: 45,
+        'production-leak': 60,
+        'fiction-kpi': 35,
+        schema: 30,
+        'npm-audit': 20,
+        roadmap: 10
+    };
+
+    let totalMinutes = 0;
+    lines.push(paint('Prioritized Remediation', 'cyan'));
+    lines.push('');
+
+    for (const id of orderedIds) {
+        const guide = GUIDE_PLAYBOOKS[id];
+        const count = kindCounts[id] || 0;
+        const est = ESTIMATES[id] || 30;
+        totalMinutes += est;
+        const diffColor = guide.difficulty === 'Easy' ? 'green' : (guide.difficulty === 'Moderate' ? 'yellow' : 'red');
+        lines.push(`${paint(`[${guide.difficulty}]`, diffColor)} ${guide.title}${count > 1 ? ` (${count} findings)` : ''}`);
+        lines.push(`  Time: ${guide.timeRequired}`);
+        lines.push(`  Impact: ${guide.whyItMatters}`);
+        lines.push('  Steps:');
+        for (const step of guide.steps) {
+            lines.push(`    • ${step}`);
+        }
+        lines.push(`  Verify: ${guide.verify}`);
+        lines.push('');
+    }
+
+    const hours = Math.max(1, Math.round(totalMinutes / 60));
+    lines.push(`Estimated total effort: ~${hours} hour${hours === 1 ? '' : 's'}`);
+    lines.push(paint('Run `npx simplebeacon scan --gate` after fixes to verify.', 'green'));
+
+    return lines.join('\n');
+}
+
 module.exports = {
     formatTextReport,
+    formatActionPlanReport,
     paint,
     colorEnabled
 };

@@ -46,6 +46,7 @@
             <option value="certificate">Executive Risk Certificate ($499)</option>
             <option value="eu-ai-act">EU AI Act Readiness Sprint ($2,499)</option>
             <option value="enterprise">Enterprise contract ($50,000+ annual)</option>
+            <option value="invoice-w9">Request Invoice / W-9</option>
             <option value="quarterly">Quarterly / Annual Protection Pack</option>
             <option value="general">General compliance question</option>
           </select>
@@ -58,6 +59,59 @@
           <span>Job title (required)</span>
           <input type="text" name="title" required placeholder="e.g. Chief Compliance Officer">
         </label>
+        <div id="invoiceFields" style="display:none;" class="invoice-fieldset">
+          <label class="audit-booking-field">
+            <span>What do you need?</span>
+            <select name="invoiceType">
+              <option value="invoice">Invoice only</option>
+              <option value="w9">W-9 only</option>
+              <option value="both">Invoice + W-9</option>
+            </select>
+          </label>
+          <label class="audit-booking-field">
+            <span>Product / service</span>
+            <select name="product">
+              <option value="">-- Select what you're buying --</option>
+              <option value="certificate">Executive Risk Certificate ($499)</option>
+              <option value="eu-ai-act">EU AI Act Readiness Sprint ($2,499)</option>
+              <option value="enterprise">Enterprise Contract ($50,000+ annual)</option>
+              <option value="quarterly">Quarterly / Annual Protection Pack</option>
+              <option value="other">Other / Not sure yet</option>
+            </select>
+          </label>
+          <label class="audit-booking-field">
+            <span>Billing address</span>
+            <input type="text" name="billingAddress" placeholder="Street address, suite, building">
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <label class="audit-booking-field">
+              <span>City</span>
+              <input type="text" name="billingCity" placeholder="City">
+            </label>
+            <label class="audit-booking-field">
+              <span>State / Province</span>
+              <input type="text" name="billingState" placeholder="State / Province">
+            </label>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <label class="audit-booking-field">
+              <span>ZIP / Postal code</span>
+              <input type="text" name="billingZip" placeholder="ZIP / Postal">
+            </label>
+            <label class="audit-booking-field">
+              <span>Country</span>
+              <input type="text" name="billingCountry" placeholder="United States">
+            </label>
+          </div>
+          <label class="audit-booking-field">
+            <span>Tax ID / EIN</span>
+            <input type="text" name="taxId" placeholder="XX-XXXXXXX (for W-9)">
+          </label>
+          <label class="audit-booking-field">
+            <span>Purchase Order # (optional)</span>
+            <input type="text" name="poNumber" placeholder="PO-12345">
+          </label>
+        </div>
         <label class="audit-booking-field">
           <span>Message (required)</span>
           <textarea name="message" rows="6" required minlength="10" maxlength="8000" placeholder="How can we help? Include your industry, approximate codebase size, and any upcoming regulatory deadlines."></textarea>
@@ -68,6 +122,42 @@
           We reply within <strong>one business day</strong>. Messages are delivered via our secure mail provider — not stored in your browser.
         </p>
       </form>
+
+      <div class="card" style="margin-top:2rem;padding:24px;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);">
+        <h2 style="margin:0 0 8px;font-size:1.1rem;color:var(--text-heading);">🤖 AI Session Handoff</h2>
+        <p style="margin:0 0 16px;font-size:0.85rem;color:var(--text-muted);">Generate a structured JSON report so the next AI session can pick up exactly where this one left off.</p>
+
+        <div id="handoffFields">
+          <label class="audit-booking-field">
+            <span>Session date</span>
+            <input type="date" id="handoffDate">
+          </label>
+          <label class="audit-booking-field">
+            <span>Files modified (one per line)</span>
+            <textarea id="handoffFiles" rows="4" placeholder="coming-soon/contact.html&#10;coming-soon/contact.js&#10;coming-soon/upload.html"></textarea>
+          </label>
+          <label class="audit-booking-field">
+            <span>Decisions made</span>
+            <textarea id="handoffDecisions" rows="3" placeholder="- Added invoice-w9 topic to contact form&#10;- Reordered CLI sub-tabs to CLI Setup first&#10;- Switched invoice link from mailto to contact form"></textarea>
+          </label>
+          <label class="audit-booking-field">
+            <span>Open tasks / blockers</span>
+            <textarea id="handoffPending" rows="3" placeholder="- Fix scan-worker.js cyclomatic complexity&#10;- Add EU AI Act patterns to new rule engine"></textarea>
+          </label>
+          <label class="audit-booking-field">
+            <span>Notes for next session</span>
+            <textarea id="handoffNotes" rows="3" placeholder="Remember to run node --test after any worker changes.&#10;The invoice fields are conditional and hidden by default."></textarea>
+          </label>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+          <button type="button" id="generateHandoffBtn" class="audit-booking-submit" style="background:var(--success);border:none;cursor:pointer;">📋 Generate Handoff JSON</button>
+          <button type="button" id="copyHandoffBtn" class="audit-booking-submit" style="background:var(--accent);border:none;cursor:pointer;display:none;">📋 Copy to Clipboard</button>
+          <button type="button" id="downloadHandoffBtn" class="audit-booking-submit" style="background:var(--bg-elevated);color:var(--text);border:1px solid var(--border);cursor:pointer;display:none;">⬇ Download JSON</button>
+        </div>
+
+        <pre id="handoffPreview" style="display:none;margin-top:16px;padding:16px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;font-size:0.75rem;overflow:auto;max-height:300px;color:var(--text);white-space:pre-wrap;word-break:break-word;"></pre>
+      </div>
 
       <p class="sales-gate-foot">
         <a href="index.html">← Home</a>

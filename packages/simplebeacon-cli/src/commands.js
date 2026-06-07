@@ -12,6 +12,7 @@ const {
     runScan,
     evaluateGate,
     formatTextReport,
+    formatActionPlanReport,
     formatJsonReport,
     syncJestBaseline,
     detectProjectProfile,
@@ -96,8 +97,8 @@ async function runScanCommand(options) {
         console.error(`Profile: ${config.profile || 'standard'}`);
     }
 
-    if (options.format !== 'text' && options.format !== 'json') {
-        throw new Error(`Invalid --format "${options.format}" — use text or json`);
+    if (options.format !== 'text' && options.format !== 'json' && options.format !== 'action-plan') {
+        throw new Error(`Invalid --format "${options.format}" — use text, json, or action-plan`);
     }
 
     const networkGuard = createNetworkGuard({ offline: options.offline });
@@ -123,9 +124,14 @@ async function runScanCommand(options) {
             console.error(`Cloud upload complete${uploadResult.scanId ? `: ${uploadResult.scanId}` : ''}`);
         }
 
-        const payload = options.format === 'json'
-            ? JSON.stringify(jsonReport, null, 2)
-            : formatTextReport(report, gateResult);
+        let payload;
+        if (options.format === 'json') {
+            payload = JSON.stringify(jsonReport, null, 2);
+        } else if (options.format === 'action-plan') {
+            payload = formatActionPlanReport(report, gateResult);
+        } else {
+            payload = formatTextReport(report, gateResult);
+        }
 
         if (options.output) {
             writeManagedFileSync(path.resolve(options.output), `${payload}\n`, {

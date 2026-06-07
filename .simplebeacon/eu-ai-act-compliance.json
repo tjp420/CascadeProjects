@@ -3,17 +3,17 @@
   "version": "1.0.0",
   "title": "Simplebeacon EU AI Act Readiness Checklist",
   "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
-  "evaluatedAt": "2026-06-05T14:44:53.503Z",
-  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "evaluatedAt": "2026-06-06T22:17:47.949Z",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "summary": {
-    "passed": 8,
-    "failed": 1,
+    "passed": 9,
+    "failed": 0,
     "skipped": 0,
     "total": 9,
-    "score": 89,
-    "readyForAutomation": false,
+    "score": 100,
+    "readyForAutomation": true,
     "checklistProfile": "eu-ai-act",
-    "headline": "1 EU AI Act rule(s) fail — address before August 2026 deadline"
+    "headline": "9/9 EU AI Act readiness rules pass — review legal classification before August 2026"
   },
   "rules": [
     {
@@ -22,8 +22,8 @@
       "category": "Automation",
       "severity": "critical",
       "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
-      "status": "fail",
-      "evidence": "Gate fail — 6 blocking issue(s)"
+      "status": "pass",
+      "evidence": "Gate pass — no blocking issues at configured severities"
     },
     {
       "id": "CRED-001",
@@ -32,7 +32,7 @@
       "severity": "critical",
       "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
       "status": "pass",
-      "evidence": "Scanned 550 path(s) — no credential patterns"
+      "evidence": "Scanned 983 path(s) — no credential patterns"
     },
     {
       "id": "LEAK-001",
@@ -41,7 +41,7 @@
       "severity": "high",
       "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
       "status": "pass",
-      "evidence": "Scanned 551 production file(s) — no sample-path leaks"
+      "evidence": "Scanned 558 production file(s) — no sample-path leaks"
     },
     {
       "id": "EUAI-001",
@@ -50,7 +50,7 @@
       "severity": "critical",
       "remediation": "Conduct Annex III classification review; add risk-assessment.md and conformity documentation for high-risk systems",
       "status": "pass",
-      "evidence": "No Annex III high-risk AI patterns detected in scanned paths"
+      "evidence": "3 high-risk indicator(s) with 167 documentation artifact(s) — review classification"
     },
     {
       "id": "EUAI-002",
@@ -59,7 +59,7 @@
       "severity": "high",
       "remediation": "Add user-facing disclosure that content is AI-generated or that users interact with an AI system",
       "status": "pass",
-      "evidence": "No generative AI integrations detected in user-facing paths"
+      "evidence": "18 AI integration(s) with Article 50 disclosure markers present"
     },
     {
       "id": "EUAI-003",
@@ -68,7 +68,7 @@
       "severity": "high",
       "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
       "status": "pass",
-      "evidence": "No AI system indicators — documentation not required by scan"
+      "evidence": "167 documentation artifact(s) found for 21 AI indicator(s)"
     },
     {
       "id": "EUAI-004",
@@ -77,7 +77,7 @@
       "severity": "high",
       "remediation": "Implement human-in-the-loop review, manual override, or appeal mechanism for automated decisions",
       "status": "pass",
-      "evidence": "No high-risk AI patterns — human oversight rule not applicable"
+      "evidence": "3 high-risk indicator(s) with human oversight signals in code"
     },
     {
       "id": "EUAI-005",
@@ -86,7 +86,7 @@
       "severity": "medium",
       "remediation": "Log AI system inputs, outputs, and decision rationale for audit trails",
       "status": "pass",
-      "evidence": "No AI decision paths detected"
+      "evidence": "AI decision paths include audit/logging signals"
     },
     {
       "id": "SUPPLY-001",

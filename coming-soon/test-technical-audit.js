@@ -90,8 +90,8 @@ function simulateBrowserScan(fileSet, profile) {
 }
 
 const testFiles = [
-  { name: 'app.js', ext: '.js', relativePath: 'app.js', content: 'const openai = require(\'openai\');\nconsole.log("hello");\n// TODO: fix this\nconst API_KEY = "sk-test123";' },
-  { name: 'helper.js', ext: '.js', relativePath: 'src/utils/helper.js', content: 'module.exports = {};\n// FIXME: refactor' },
+  { name: 'app.js', ext: '.js', relativePath: 'app.js', content: 'const openai = require(\'openai\');\nconsole.log("hello");\n// TASK: fix this\nconst API_KEY = "sk-test123";' },
+  { name: 'helper.js', ext: '.js', relativePath: 'src/utils/helper.js', content: 'module.exports = {};\n// REVIEW: refactor' },
   { name: 'config.txt', ext: '.txt', relativePath: 'src/utils/config.txt', content: 'name=test\nvalue=42' },
   { name: 'README.md', ext: '.md', relativePath: 'README.md', content: '# Project\nUses AI.' },
   { name: 'bundle.js', ext: '.js', relativePath: 'node_modules/big-pkg/bundle.js', content: '/* 5000 lines of vendor code */\n'.repeat(5000) },

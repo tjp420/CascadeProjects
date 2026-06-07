@@ -2,6 +2,7 @@
  * MCP tool handlers — local-only, no network.
  */
 
+const fs = require('fs');
 const path = require('path');
 const { scanSnippetContent, scanFileOnDisk, readGateStatus } = require('../lib/snippet-scanner');
 const { explainFinding, RULE_CATALOG, LEAK_PATTERNS } = require('./rule-catalog');
@@ -46,6 +47,22 @@ function createMcpToolHandlers(options = {}) {
         || process.env.SIMPLEBEACON_OFFLINE === 'true';
     const networkGuard = offline ? createNetworkGuard({ label: 'simplebeacon-mcp' }) : null;
 
+    // Shared in-memory cache: projectRoot -> { report, timestamp }
+    const scanCache = new Map();
+    function cacheReport(root, report) {
+        scanCache.set(root, { report, timestamp: Date.now() });
+    }
+    function getCachedReport(root) {
+        const entry = scanCache.get(root);
+        if (!entry) return null;
+        // 10-minute TTL
+        if (Date.now() - entry.timestamp > 10 * 60 * 1000) {
+            scanCache.delete(root);
+            return null;
+        }
+        return entry.report;
+    }
+
     function withGuard(fn) {
         return (...args) => {
             if (networkGuard) networkGuard.assertOfflineClean();
@@ -75,10 +92,9 @@ function createMcpToolHandlers(options = {}) {
             });
         }),
 
-        scan_file: withGuard(({ filePath, projectRoot }) => {
-            if (!filePath) {
-                return formatToolResult({ error: 'filePath is required' });
-            }
+        scan_file: withGuard((args) => {
+            validateArgs(args, { required: ['filePath'] });
+            const { filePath, projectRoot } = args;
             try {
                 const result = scanFileOnDisk(resolveProjectRoot(projectRoot), filePath);
                 return formatToolResult({ ...result, localOnly: true });
@@ -87,15 +103,31 @@ function createMcpToolHandlers(options = {}) {
             }
         }),
 
-        scan_project: withGuard(async ({ projectRoot, fullDirectoryScan, gate }) => {
-            const root = resolveProjectRoot(projectRoot);
+        scan_project: withGuard(async (args) => {
+            const root = resolveProjectRoot(args.projectRoot);
             const { runScan } = require('../scan');
+            const { loadSimplebeaconConfig } = require('../index');
             try {
+                const configPath = args.configPath ? path.resolve(root, args.configPath) : null;
+                const config = configPath && fs.existsSync(configPath)
+                    ? loadSimplebeaconConfig(root, configPath)
+                    : loadSimplebeaconConfig(root);
+                if (args.complete === true) {
+                    config.fullDirectoryScan = true;
+                }
+                if (args.profile) {
+                    config.profile = args.profile;
+                }
+                if (args.gate === true) {
+                    config.gate = config.gate || {};
+                    config.gate.enabled = true;
+                }
                 const report = await runScan(root, {
-                    fullDirectoryScan: fullDirectoryScan === true,
-                    gate: gate === true,
+                    config,
+                    configPath,
                     offline: true
                 });
+                cacheReport(root, report);
                 const detectedIssues = (report.detectedIssues || []).map(i => ({
                     severity: i.severity || 'low',
                     type: i.type || 'unknown',
@@ -122,7 +154,7 @@ function createMcpToolHandlers(options = {}) {
                     impact: i.description || i.impact || 'Review required.',
                     fix: i.recommendedAction || i.recommendation || i.fix || 'Manual review required.'
                 }));
-                return formatToolResult({
+                const payload = {
                     type: 'simplebeacon-report',
                     version: '1.3.0',
                     generatedAt: report.generatedAt || new Date().toISOString(),
@@ -143,7 +175,11 @@ function createMcpToolHandlers(options = {}) {
                     },
                     localOnly: true,
                     methodology: 'Deterministic regex + AST scan — no code uploaded'
-                });
+                };
+                if (args.format === 'json') {
+                    return formatToolResult(payload);
+                }
+                return formatToolResult(payload);
             } catch (err) {
                 return formatToolResult({ error: err.message, projectRoot: root });
             }
@@ -159,13 +195,15 @@ function createMcpToolHandlers(options = {}) {
 
         suggest_fixes: withGuard(({ projectRoot, reportPath, maxFixes }) => {
             const root = resolveProjectRoot(projectRoot);
-            const fs = require('fs');
-            const rp = reportPath ? path.resolve(root, reportPath) : path.join(root, '.simplebeacon', 'report.json');
-            let report;
-            try {
-                report = JSON.parse(fs.readFileSync(rp, 'utf8'));
-            } catch {
-                return formatToolResult({ error: 'No scan report found. Run scan_project first.' });
+            let report = getCachedReport(root);
+            if (!report) {
+                const fs = require('fs');
+                const rp = reportPath ? path.resolve(root, reportPath) : path.join(root, '.simplebeacon', 'report.json');
+                try {
+                    report = JSON.parse(fs.readFileSync(rp, 'utf8'));
+                } catch {
+                    return formatToolResult({ error: 'No scan report found. Run scan_project first.' });
+                }
             }
             const issues = (report.detectedIssues || report.rawIssues || []).filter(i => i.severity === 'critical' || i.severity === 'high');
             const suggestions = issues.slice(0, maxFixes ? Number(maxFixes) : 5).map((issue, idx) => ({
@@ -185,8 +223,107 @@ function createMcpToolHandlers(options = {}) {
             });
         }),
 
-        explain_finding: withGuard(({ patternId, type }) => {
-            return formatToolResult(explainFinding(patternId, { type }));
+        get_action_plan: withGuard(({ projectRoot, reportPath }) => {
+            const root = resolveProjectRoot(projectRoot);
+            let report = getCachedReport(root);
+            if (!report) {
+                const rp = reportPath ? path.resolve(root, reportPath) : path.join(root, '.simplebeacon', 'report.json');
+                try {
+                    report = JSON.parse(fs.readFileSync(rp, 'utf8'));
+                } catch {
+                    return formatToolResult({ error: 'No scan report found. Run scan_project first.' });
+                }
+            }
+            const { formatActionPlanReport } = require('../reporters/text');
+            const { evaluateGate } = require('../gate');
+            const { loadSimplebeaconConfig } = require('../index');
+            let gateResult = null;
+            try {
+                const config = loadSimplebeaconConfig(root);
+                gateResult = evaluateGate(report, config.gate);
+            } catch {
+                // no gate without config
+            }
+            const text = formatActionPlanReport(report, gateResult);
+            return {
+                content: [{ type: 'text', text }]
+            };
+        }),
+
+        explain_finding: withGuard((args) => {
+            validateArgs(args, { required: ['patternId'] });
+            return formatToolResult(explainFinding(args.patternId, { type: args.type }));
+        }),
+
+        init_project: withGuard((args) => {
+            const root = resolveProjectRoot(args.projectRoot);
+            const { initSimplebeacon } = require('../index');
+            const { installDeveloperStack } = require('../lib/developer-onboarding');
+            try {
+                const result = initSimplebeacon(root, {
+                    profile: args.profile || undefined,
+                    force: args.force === true
+                });
+                let stack = null;
+                if (args.withMcp === true || args.withCi === true || args.starter === true) {
+                    stack = installDeveloperStack(root, {
+                        withMcp: args.withMcp === true || args.starter === true,
+                        withCursorRule: args.withMcp === true || args.starter === true,
+                        withCi: args.withCi === true || args.starter === true,
+                        force: args.force === true
+                    });
+                }
+                return formatToolResult({
+                    initialized: true,
+                    projectRoot: root,
+                    configPath: result.configPath,
+                    baselinePath: result.baselinePath,
+                    profile: result.detected?.profile || args.profile || 'standard',
+                    developerStack: stack ? {
+                        mcp: stack.mcp ? { created: !!stack.mcp.created, path: stack.mcp.path } : null,
+                        cursorRule: stack.cursorRule ? { created: !!stack.cursorRule.created, path: stack.cursorRule.path } : null,
+                        ciWorkflow: stack.ciWorkflow ? { created: !!stack.ciWorkflow.created, path: stack.ciWorkflow.path } : null
+                    } : null,
+                    nextSteps: [
+                        'Run `scan_project` to perform your first scan',
+                        'Run `gate_status` to check pass/fail after scanning',
+                        ...(args.withMcp === true ? ['Reload Cursor → Settings → MCP → enable simplebeacon'] : [])
+                    ]
+                });
+            } catch (err) {
+                return formatToolResult({ error: err.message, projectRoot: root });
+            }
+        }),
+
+        compliance_checklist: withGuard(async (args) => {
+            const root = resolveProjectRoot(args.projectRoot);
+            const { evaluateComplianceChecklist } = require('../compliance-checklist');
+            const rp = args.reportPath ? path.resolve(root, args.reportPath) : path.join(root, '.simplebeacon', 'report.json');
+            let report;
+            try {
+                report = JSON.parse(fs.readFileSync(rp, 'utf8'));
+            } catch {
+                return formatToolResult({ error: 'No scan report found. Run scan_project first.' });
+            }
+            const checklist = evaluateComplianceChecklist(report, {
+                projectRoot: report.projectRoot || root,
+                checklistProfile: args.checklistProfile || undefined
+            });
+            return formatToolResult({
+                headline: checklist.summary.headline,
+                passed: checklist.summary.passed,
+                failed: checklist.summary.failed,
+                total: checklist.summary.total,
+                complianceScore: checklist.summary.complianceScore,
+                rules: checklist.rules.map(r => ({
+                    id: r.id,
+                    title: r.title,
+                    status: r.status,
+                    evidence: r.evidence,
+                    severity: r.severity
+                })),
+                localOnly: true
+            });
         }),
 
         run_analyzer_suite: withGuard(({ projectRoot, selectedIssueIds }) => {
@@ -347,13 +484,17 @@ const TOOL_DEFINITIONS = [
     },
     {
         name: 'scan_project',
-        description: 'Run a full project scan (gate or complete) on the local filesystem. Returns gate pass, quality score, top issues, and file count. No code is uploaded.',
+        description: 'Run a full project scan (gate or complete) on the local filesystem. Supports custom config, profile override, and complete scan mode. Returns gate pass, quality score, top issues, and file count. No code is uploaded.',
         inputSchema: {
             type: 'object',
             properties: {
                 projectRoot: { type: 'string', description: 'Project root to scan (default: cwd)' },
+                configPath: { type: 'string', description: 'Path to custom .simplebeacon/config.json relative to project root' },
+                profile: { type: 'string', description: 'Override scan profile: minimal, standard, cascade, executive, euai, universal' },
                 fullDirectoryScan: { type: 'boolean', description: 'Walk entire repo tree instead of selective paths (slower, more thorough)' },
-                gate: { type: 'boolean', description: 'Run gate-only scan (credentials + AI heuristics) instead of full scan' }
+                complete: { type: 'boolean', description: 'Shorthand for fullDirectoryScan + all analyzers (same as --complete in CLI)' },
+                gate: { type: 'boolean', description: 'Run gate-only scan (credentials + AI heuristics) instead of full scan' },
+                format: { type: 'string', description: 'Response format: json (default) | markdown' }
             }
         }
     },
@@ -382,6 +523,17 @@ const TOOL_DEFINITIONS = [
         }
     },
     {
+        name: 'get_action_plan',
+        description: 'Return a focused, human-readable action plan from the latest scan report — prioritized playbooks with time estimates, step-by-step steps, and verify commands. Uses the same deterministic remediation guides as the CLI --format action-plan.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                reportPath: { type: 'string', description: 'Override report path relative to project root' }
+            }
+        }
+    },
+    {
         name: 'explain_finding',
         description: 'Explain a pattern ID from scan results — deterministic rule metadata, not LLM inference.',
         inputSchema: {
@@ -391,6 +543,33 @@ const TOOL_DEFINITIONS = [
                 type: { type: 'string', description: 'Optional finding type for fallback lookup' }
             },
             required: ['patternId']
+        }
+    },
+    {
+        name: 'init_project',
+        description: 'Initialize a new project with .simplebeacon/config.json and baseline.json. Optionally install MCP config, Cursor rules, and CI workflow.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                profile: { type: 'string', description: 'Force profile: minimal, standard, cascade, executive, euai, universal' },
+                force: { type: 'boolean', description: 'Overwrite existing config/baseline' },
+                withMcp: { type: 'boolean', description: 'Write .cursor/mcp.json + agent rule for Cursor MCP' },
+                withCi: { type: 'boolean', description: 'Write .github/workflows/simplebeacon.yml' },
+                starter: { type: 'boolean', description: 'Shorthand for withMcp + withCi' }
+            }
+        }
+    },
+    {
+        name: 'compliance_checklist',
+        description: 'Evaluate corporate safety checklist from a scan report. Returns pass/fail per rule, compliance score, and headline.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectRoot: { type: 'string', description: 'Project root (default: cwd)' },
+                reportPath: { type: 'string', description: 'Override report path relative to project root (default: .simplebeacon/report.json)' },
+                checklistProfile: { type: 'string', description: 'Optional checklist profile name' }
+            }
         }
     },
     {

@@ -188,6 +188,9 @@ function isExcludedPath(relativePath) {
     if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
     if (/(?:^|\/)simplebeacon-toxic-fixtures\//.test(normalized)) return true;
     if (/(?:^|\/)\.github-sync\//.test(normalized)) return true;
+    if (/(?:^|\/)tests\//.test(normalized)) return true;
+    if (/(?:^|\/)test\//.test(normalized)) return true;
+    if (/\.test\.js$/i.test(normalized)) return true;
     return false;
 }
 

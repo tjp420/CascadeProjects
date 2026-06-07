@@ -1,25 +1,38 @@
 {
   "type": "simplebeacon-assessment-report",
-  "title": "Simplebeacon EU AI Act Readiness — coming-soon",
-  "generatedAt": "2026-06-05T14:44:53.507Z",
+  "title": "Simplebeacon EU AI Act Readiness — CascadeProjects",
+  "generatedAt": "2026-06-06T22:17:47.953Z",
   "generatedBy": "Simplebeacon",
   "assessor": "SimpleBeacon Operator",
-  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "assessmentProfile": "eu-ai-act",
   "deadline": "2026-08-02",
   "euAiActSummary": {
-    "highRiskIndicators": 0,
-    "aiSystemIndicators": 0,
+    "highRiskIndicators": 3,
+    "aiSystemIndicators": 18,
     "transparencyGaps": 0,
-    "documentationArtifacts": 99,
+    "documentationArtifacts": 167,
     "documentationFound": [
       ".env.example",
       "AGENTS.md",
-      "coming-soon-scan.json",
+      "ai-platform-report.json",
+      "cascade-root-report.json",
+      "CHANGELOG.md",
+      "cli-test-report.json",
+      "cli-test-report2.json",
+      "coming-soon-final.json",
+      "coming-soon-report.json",
+      "error-check2.log",
       "HANDOFF-2026-06-03.md",
       "issues.json",
+      "report.json",
       "ZORIN-LINUX-SETUP.md",
+      ".simplebeacon/cli-test-report.json",
+      ".simplebeacon/cli-test-report2.json",
+      ".simplebeacon/cli-test-report3.json",
       ".simplebeacon/codebase-current.json",
+      ".simplebeacon/coming-soon-report.json",
+      ".simplebeacon/coming-soon-report2.json",
       ".simplebeacon/config.json",
       ".simplebeacon/eu-ai-act-assessment.json",
       ".simplebeacon/eu-ai-act-compliance.json",
@@ -42,44 +55,48 @@
       ".simplebeacon/reduce-report.json",
       ".simplebeacon/reduce-verify.json",
       ".simplebeacon/report-fresh.json",
-      ".simplebeacon/report-test.json",
       ".simplebeacon/report-test2.json",
+      ".simplebeacon/report-test3.json",
+      ".simplebeacon/report-test4.json",
       ".simplebeacon/report.json",
       ".simplebeacon/reverted-gate.json",
-      ".simplebeacon/verify-current.json"
+      ".simplebeacon/verify-current.json",
+      ".simplebeacon/website-scan.json",
+      ".simplebeacon/website-scan2.json",
+      ".simplebeacon/website-scan3.json"
     ],
     "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
   },
   "executiveSummary": {
-    "gateResult": "FAIL",
-    "qualityScore": 64,
-    "filesScanned": 40,
+    "gateResult": "PASS",
+    "qualityScore": 100,
+    "filesScanned": 1158,
     "criticalIssues": 0,
-    "highIssues": 6,
-    "mediumIssues": 8,
-    "lowIssues": 0,
-    "warningCount": 8,
-    "blockingCount": 6,
-    "headline": "Gate failed but no categorized high-severity fiction/mock findings — review raw report.",
-    "complianceScore": 89,
-    "complianceReady": false
+    "highIssues": 0,
+    "mediumIssues": 20,
+    "lowIssues": 27,
+    "warningCount": 20,
+    "blockingCount": 0,
+    "headline": "24 EU AI Act signal(s). Gate passes — MEDIUM findings are warnings under current failOn policy.",
+    "complianceScore": 100,
+    "complianceReady": true
   },
   "complianceChecklist": {
     "type": "simplebeacon-compliance-checklist",
     "version": "1.0.0",
     "title": "Simplebeacon EU AI Act Readiness Checklist",
     "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
-    "evaluatedAt": "2026-06-05T14:44:53.507Z",
-    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+    "evaluatedAt": "2026-06-06T22:17:47.953Z",
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
     "summary": {
-      "passed": 8,
-      "failed": 1,
+      "passed": 9,
+      "failed": 0,
       "skipped": 0,
       "total": 9,
-      "score": 89,
-      "readyForAutomation": false,
+      "score": 100,
+      "readyForAutomation": true,
       "checklistProfile": "eu-ai-act",
-      "headline": "1 EU AI Act rule(s) fail — address before August 2026 deadline"
+      "headline": "9/9 EU AI Act readiness rules pass — review legal classification before August 2026"
     },
     "rules": [
       {
@@ -88,8 +105,8 @@
         "category": "Automation",
         "severity": "critical",
         "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
-        "status": "fail",
-        "evidence": "Gate fail — 6 blocking issue(s)"
+        "status": "pass",
+        "evidence": "Gate pass — no blocking issues at configured severities"
       },
       {
         "id": "CRED-001",
@@ -98,7 +115,7 @@
         "severity": "critical",
         "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
         "status": "pass",
-        "evidence": "Scanned 550 path(s) — no credential patterns"
+        "evidence": "Scanned 983 path(s) — no credential patterns"
       },
       {
         "id": "LEAK-001",
@@ -107,7 +124,7 @@
         "severity": "high",
         "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
         "status": "pass",
-        "evidence": "Scanned 551 production file(s) — no sample-path leaks"
+        "evidence": "Scanned 558 production file(s) — no sample-path leaks"
       },
       {
         "id": "EUAI-001",
@@ -116,7 +133,7 @@
         "severity": "critical",
         "remediation": "Conduct Annex III classification review; add risk-assessment.md and conformity documentation for high-risk systems",
         "status": "pass",
-        "evidence": "No Annex III high-risk AI patterns detected in scanned paths"
+        "evidence": "3 high-risk indicator(s) with 167 documentation artifact(s) — review classification"
       },
       {
         "id": "EUAI-002",
@@ -125,7 +142,7 @@
         "severity": "high",
         "remediation": "Add user-facing disclosure that content is AI-generated or that users interact with an AI system",
         "status": "pass",
-        "evidence": "No generative AI integrations detected in user-facing paths"
+        "evidence": "18 AI integration(s) with Article 50 disclosure markers present"
       },
       {
         "id": "EUAI-003",
@@ -134,7 +151,7 @@
         "severity": "high",
         "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
         "status": "pass",
-        "evidence": "No AI system indicators — documentation not required by scan"
+        "evidence": "167 documentation artifact(s) found for 21 AI indicator(s)"
       },
       {
         "id": "EUAI-004",
@@ -143,7 +160,7 @@
         "severity": "high",
         "remediation": "Implement human-in-the-loop review, manual override, or appeal mechanism for automated decisions",
         "status": "pass",
-        "evidence": "No high-risk AI patterns — human oversight rule not applicable"
+        "evidence": "3 high-risk indicator(s) with human oversight signals in code"
       },
       {
         "id": "EUAI-005",
@@ -152,7 +169,7 @@
         "severity": "medium",
         "remediation": "Log AI system inputs, outputs, and decision rationale for audit trails",
         "status": "pass",
-        "evidence": "No AI decision paths detected"
+        "evidence": "AI decision paths include audit/logging signals"
       },
       {
         "id": "SUPPLY-001",
@@ -167,147 +184,190 @@
   },
   "findings": {
     "credentials": {
-      "scanned": 550,
+      "scanned": 983,
       "findings": 0,
       "severity": "high",
       "items": [],
       "summary": "No credential patterns detected in scanned paths."
     },
     "fictionKpis": {
-      "scanned": 93,
+      "scanned": 102,
       "findings": 0,
       "severity": "high",
       "items": [],
       "summary": "No fiction KPI or consistency drift detected."
     },
     "productionLeaks": {
-      "scanned": 551,
+      "scanned": 558,
       "findings": 0,
       "severity": "medium",
       "items": [],
       "summary": "No mock/sample path references in production directories."
     },
     "schemaDrift": {
-      "checked": 0,
-      "passed": 0,
+      "checked": 50,
+      "passed": 50,
       "severity": "high",
       "items": [],
       "summary": "All registered page samples match schema specs."
     },
     "euAiAct": {
-      "scanned": 0,
-      "findings": 0,
+      "scanned": 278,
+      "findings": 24,
       "severity": "high",
-      "items": [],
-      "summary": "No EU AI Act high-risk or transparency gaps detected."
+      "items": [
+        {
+          "file": "ai-platform/.env",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/.env.example",
+          "description": "Generative AI or LLM integration detected (8 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/env-keys.txt",
+          "description": "Generative AI or LLM integration detected (8 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/pipeline/.env.example",
+          "description": "Generative AI or LLM integration detected (5 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/pipeline/requirements.txt",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ai-platform/server/dlp-dashboard.cjs",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "CHANGELOG.md",
+          "description": "Generative AI or LLM integration detected (3 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "instructions.txt",
+          "description": "Generative AI or LLM integration detected",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "logs/server-run.log",
+          "description": "Generative AI or LLM integration detected (88 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "report.json",
+          "description": "Generative AI or LLM integration detected (53 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        },
+        {
+          "file": "ZORIN-LINUX-SETUP.md",
+          "description": "Generative AI or LLM integration detected (2 matches in file)",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
+        }
+      ],
+      "summary": "ai-platform/.env: Generative AI or LLM integration detected (2 matches in file); ai-platform/.env.example: Generative AI or LLM integration detected (8 matches in file); ai-platform/env-keys.txt: Generative AI or LLM integration detected (8 matches in file); ai-platform/pipeline/.env.example: Generative AI or LLM integration detected (5 matches in file); ai-platform/pipeline/requirements.txt: Generative AI or LLM integration detected (2 matches in file)"
     },
     "other": {
       "items": [
         {
-          "file": "coming-soon-dev/scan-debug.json",
-          "description": "coming-soon-dev/scan-debug.json:216 Hardcoded AI-default UI metric or placeholder Latin filler copy",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Replace placeholder copy with production-ready values before client handoff"
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json",
+          "description": "2 files share identical JSON content",
+          "severity": "low",
+          "count": 2,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
         },
         {
-          "file": "coming-soon-scan.json",
-          "description": "coming-soon-scan.json:2054 Hardcoded AI-default UI metric or placeholder Latin filler copy",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Replace placeholder copy with production-ready values before client handoff"
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json",
+          "description": "2 files share identical JSON content",
+          "severity": "low",
+          "count": 2,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
         },
         {
-          "file": "ai-platform/tools/generate-license-token.cjs",
-          "description": "ai-platform/tools/generate-license-token.cjs:82 — Localhost or loopback URL with port in production-eligible code",
-          "severity": "high",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json",
+          "description": "2 files share identical JSON content",
+          "severity": "low",
+          "count": 2,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
         },
         {
-          "file": "ai-platform/tools/generate-license-token.cjs",
-          "description": "ai-platform/tools/generate-license-token.cjs:89 — Localhost or loopback URL with port in production-eligible code",
-          "severity": "high",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json",
+          "description": "2 files share identical JSON content",
+          "severity": "low",
+          "count": 2,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
         },
         {
-          "file": "ai-platform/tools/generate-license-token.cjs",
-          "description": "ai-platform/tools/generate-license-token.cjs:93 — Localhost or loopback URL with port in production-eligible code",
-          "severity": "high",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json",
+          "description": "2 files share identical JSON content",
+          "severity": "low",
+          "count": 2,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
         },
         {
-          "file": "ai-platform/tools/generate-license-token.cjs",
-          "description": "ai-platform/tools/generate-license-token.cjs:82 — Staging or dev hostname referenced in source",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json",
+          "description": "2 files share identical JSON content",
+          "severity": "low",
+          "count": 2,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
         },
         {
-          "file": "ai-platform/tools/generate-license-token.cjs",
-          "description": "ai-platform/tools/generate-license-token.cjs:89 — Staging or dev hostname referenced in source",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json",
+          "description": "2 files share identical JSON content",
+          "severity": "low",
+          "count": 2,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
         },
         {
-          "file": "ai-platform/tools/generate-license-token.cjs",
-          "description": "ai-platform/tools/generate-license-token.cjs:93 — Staging or dev hostname referenced in source",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\subscriptions.json",
+          "description": "3 files share identical JSON content",
+          "severity": "low",
+          "count": 3,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
         },
         {
-          "file": "coming-soon-scan.json",
-          "description": "coming-soon-scan.json:2078 — Localhost or loopback URL with port in production-eligible code",
-          "severity": "high",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
-        },
-        {
-          "file": "coming-soon-scan.json",
-          "description": "coming-soon-scan.json:2102 — Localhost or loopback URL with port in production-eligible code",
-          "severity": "high",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
-        },
-        {
-          "file": "coming-soon-scan.json",
-          "description": "coming-soon-scan.json:2126 — Localhost or loopback URL with port in production-eligible code",
-          "severity": "high",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
-        },
-        {
-          "file": "coming-soon-scan.json",
-          "description": "coming-soon-scan.json:2150 — Staging or dev hostname referenced in source",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
-        },
-        {
-          "file": "coming-soon-scan.json",
-          "description": "coming-soon-scan.json:2174 — Staging or dev hostname referenced in source",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
-        },
-        {
-          "file": "coming-soon-scan.json",
-          "description": "coming-soon-scan.json:2198 — Staging or dev hostname referenced in source",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts."
+          "file": "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\01-simplebeacon-gate.json",
+          "description": "10 files share identical JSON content",
+          "severity": "low",
+          "count": 10,
+          "recommendedAction": "Remove duplicate entries to optimize data size"
         }
       ],
-      "summary": "coming-soon-dev/scan-debug.json: coming-soon-dev/scan-debug.json:216 Hardcoded AI-default UI metric or placeholder Latin filler copy; coming-soon-scan.json: coming-soon-scan.json:2054 Hardcoded AI-default UI metric or placeholder Latin filler copy; ai-platform/tools/generate-license-token.cjs: ai-platform/tools/generate-license-token.cjs:82 — Localhost or loopback URL with port in production-eligible code; ai-platform/tools/generate-license-token.cjs: ai-platform/tools/generate-license-token.cjs:89 — Localhost or loopback URL with port in production-eligible code; ai-platform/tools/generate-license-token.cjs: ai-platform/tools/generate-license-token.cjs:93 — Localhost or loopback URL with port in production-eligible code"
+      "summary": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json: 2 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json: 2 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json: 2 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json: 2 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json: 2 files share identical JSON content"
     }
   },
   "recommendedActions": {
     "immediate": [
-      "Fix high-severity findings before enabling --gate on main",
+      "Address EU AI Act transparency and documentation gaps before August 2026",
       "Add docs/model-card.md and docs/risk-assessment.md for AI integrations",
       "Add simplebeacon scan --gate to PR workflow (see docs/GITHUB-ACTION-QUICKSTART.md)"
     ],
@@ -341,12 +401,12 @@
     "npx simplebeacon assess --report .simplebeacon/report.json"
   ],
   "sourceReport": {
-    "generatedAt": "2026-06-05T14:44:53.492Z",
+    "generatedAt": "2026-06-06T22:17:47.932Z",
     "scanPaths": [
-      "C:\\Users\\Trevor\\CascadeProjects\\coming-soon"
+      "C:\\Users\\Trevor\\CascadeProjects"
     ],
-    "duplicateGroups": 0
+    "duplicateGroups": 9
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-05T14:44:53.508Z"
+  "sanitizedAt": "2026-06-06T22:17:47.954Z"
 }

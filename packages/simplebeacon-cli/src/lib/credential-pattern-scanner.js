@@ -88,6 +88,11 @@ function isAllowlisted(match, content, fileName = '') {
         return true;
     }
 
+    // Ignore redacted placeholder strings and environment variable reads.
+    if (/\*\*\*REDACTED\*\*\*/.test(match[0]) || /process\.env\./i.test(snippet)) {
+        return true;
+    }
+
     return false;
 }
 

@@ -1,0 +1,51 @@
+# Test files and artifacts
+test-*
+*.test.js
+e2e/
+playwright.config.js
+
+# Generated reports and data
+report.json
+test-audit-output*.txt
+test-audit-report.json
+test-normalize.js
+test-renderPreview.js
+test-zip-data.js
+
+# Package manager files (not needed for static deploy)
+package-lock.json
+package.json
+node_modules/
+
+# Dev server scripts
+start-server.bat
+stop-server.bat
+
+# Server-side code (backend runs separately on Render)
+server.cjs
+routes/
+services/
+
+# CI/CD configs
+.eslintrc.cjs
+.prettierrc
+tsconfig.json
+Dockerfile
+
+# Documentation (not needed for live site)
+README.md
+CHANGELOG.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+LICENSE
+AI-SYSTEM.md
+CLOUDFLARE-DEPLOYMENT-PLAN.md
+
+# Scan artifacts
+.simplebeacon/
+.sb-uploads/
+sb-uploads/
+sb-analyze-*/
+
+# Subscriptions data
+subscriptions.json

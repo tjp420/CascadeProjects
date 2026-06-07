@@ -3,7 +3,7 @@
   "reportVersion": 2,
   "title": "File Merger & Reduction Scan (Measured Baseline)",
   "dataSource": "repository-audit",
-  "generatedAt": "2026-06-04T17:56:35.808Z",
+  "generatedAt": "2026-06-06T22:17:25.236Z",
   "generatedBy": "file-merger-reduction-scanner",
   "scanEngine": "file-merger-reduction-scanner",
   "inferenceMode": "filesystem + fuzzy-match",
@@ -47,48 +47,180 @@
       "data/roadmap"
     ],
     "sampleDataFilesAnalyzed": 0,
-    "jsonFilesAnalyzed": 90,
-    "repositoryFilesAudited": 1085,
+    "jsonFilesAnalyzed": 117,
+    "repositoryFilesAudited": 1180,
     "repositoryInventoryProfile": "audit",
     "repositoryInventoryIncluded": true,
-    "repositoryFilesTotal": 1086,
-    "repositoryFoldersTotal": 161,
+    "repositoryFilesTotal": 1181,
+    "repositoryFoldersTotal": 170,
     "limitations": [
-      "repositoryFilesTotal uses audit inventory (1,086 files).",
-      "Merge/dedup logic walked 1,085 audit-scoped files and hashed 90 JSON files.",
+      "repositoryFilesTotal uses audit inventory (1,181 files).",
+      "Merge/dedup logic walked 1,180 audit-scoped files and hashed 117 JSON files.",
       "Structure similarity pairs are limited to configured sample paths.",
-      "node_modules, .git, coverage, archive, dist, build, github-cache/, and deliverables/ are excluded from merge walks."
+      "node_modules, .git, coverage, archive, dist, build, github-cache/, and deliverables/ are excluded from merge walks.",
+      "1 benchmark-clone candidate(s) excluded from platform consolidation scores."
     ]
   },
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-    "totalFiles": 1086,
-    "totalFolders": 161,
+    "totalFiles": 1181,
+    "totalFolders": 170,
     "profile": "audit"
   },
   "summary": {
-    "filesAnalyzed": 1086,
+    "filesAnalyzed": 1181,
     "sampleDataFilesAnalyzed": 0,
-    "jsonFilesAnalyzed": 90,
-    "repositoryFilesTotal": 1086,
-    "repositoryFilesAudited": 1085,
-    "repositoryFoldersTotal": 161,
-    "totalSizeBytes": 12543756,
-    "totalSizeLabel": "12.0MB",
+    "jsonFilesAnalyzed": 117,
+    "repositoryFilesTotal": 1181,
+    "repositoryFilesAudited": 1180,
+    "repositoryFoldersTotal": 170,
+    "totalSizeBytes": 16069854,
+    "totalSizeLabel": "15.3MB",
     "mergeCandidates": 0,
-    "reductionOpportunities": 0,
-    "potentialSavingsBytes": 0,
-    "potentialSavingsLabel": "0B",
-    "exactDuplicateGroups": 0,
-    "benchmarkCacheCandidatesExcluded": 0,
+    "reductionOpportunities": 4,
+    "potentialSavingsBytes": 1044819,
+    "potentialSavingsLabel": "1020.3KB",
+    "exactDuplicateGroups": 1,
+    "benchmarkCacheCandidatesExcluded": 1,
     "structureSimilarPairs": 0,
     "fuzzyNearDuplicatePairs": 1,
     "patternConsolidationGroups": 0,
-    "oversizedFiles": 0
+    "oversizedFiles": 3
   },
   "mergeCandidates": [],
-  "reductionOpportunities": [],
-  "recommendations": [],
+  "reductionOpportunities": [
+    {
+      "id": "oversized-1",
+      "type": "format-optimization",
+      "method": "archive-or-trim",
+      "files": [
+        {
+          "path": "coming-soon/public/upload.html",
+          "name": "upload.html",
+          "sizeBytes": 397703,
+          "sizeLabel": "388.4KB"
+        }
+      ],
+      "currentSizeBytes": 397703,
+      "reducedSizeBytes": 59655,
+      "savingsBytes": 338048,
+      "savingsLabel": "330.1KB",
+      "confidence": 0.95,
+      "effort": "medium",
+      "risk": "medium",
+      "description": "upload.html exceeds 250.0KB — trim or archive for dashboard load"
+    },
+    {
+      "id": "oversized-2",
+      "type": "format-optimization",
+      "method": "archive-or-trim",
+      "files": [
+        {
+          "path": "coming-soon/report.json",
+          "name": "report.json",
+          "sizeBytes": 433836,
+          "sizeLabel": "423.7KB"
+        }
+      ],
+      "currentSizeBytes": 433836,
+      "reducedSizeBytes": 65075,
+      "savingsBytes": 368761,
+      "savingsLabel": "360.1KB",
+      "confidence": 0.95,
+      "effort": "medium",
+      "risk": "medium",
+      "description": "report.json exceeds 250.0KB — trim or archive for dashboard load"
+    },
+    {
+      "id": "oversized-3",
+      "type": "format-optimization",
+      "method": "archive-or-trim",
+      "files": [
+        {
+          "path": "coming-soon/upload.html",
+          "name": "upload.html",
+          "sizeBytes": 397654,
+          "sizeLabel": "388.3KB"
+        }
+      ],
+      "currentSizeBytes": 397654,
+      "reducedSizeBytes": 59648,
+      "savingsBytes": 338006,
+      "savingsLabel": "330.1KB",
+      "confidence": 0.95,
+      "effort": "medium",
+      "risk": "medium",
+      "description": "upload.html exceeds 250.0KB — trim or archive for dashboard load"
+    },
+    {
+      "id": "dedupe-1",
+      "type": "duplicate-removal",
+      "method": "deduplicate",
+      "files": [
+        {
+          "path": "coming-soon/subscriptions.json",
+          "name": "subscriptions.json",
+          "sizeBytes": 2,
+          "sizeLabel": "2B"
+        },
+        {
+          "path": "coming-soon-dev/subscriptions.json",
+          "name": "subscriptions.json",
+          "sizeBytes": 2,
+          "sizeLabel": "2B"
+        },
+        {
+          "path": "packages/simplebeacon-cli/test-cert/json/03-mock-data.json",
+          "name": "03-mock-data.json",
+          "sizeBytes": 2,
+          "sizeLabel": "2B"
+        }
+      ],
+      "currentSizeBytes": 6,
+      "reducedSizeBytes": 2,
+      "savingsBytes": 4,
+      "savingsLabel": "4B",
+      "confidence": 1,
+      "effort": "low",
+      "risk": "low",
+      "description": "3 files share identical JSON content"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "medium",
+      "action": "archive-or-trim",
+      "files": [
+        "coming-soon/public/upload.html"
+      ],
+      "savings": "330.1KB",
+      "effort": "medium",
+      "risk": "medium",
+      "description": "upload.html exceeds 250.0KB — trim or archive for dashboard load"
+    },
+    {
+      "priority": "medium",
+      "action": "archive-or-trim",
+      "files": [
+        "coming-soon/report.json"
+      ],
+      "savings": "360.1KB",
+      "effort": "medium",
+      "risk": "medium",
+      "description": "report.json exceeds 250.0KB — trim or archive for dashboard load"
+    },
+    {
+      "priority": "medium",
+      "action": "archive-or-trim",
+      "files": [
+        "coming-soon/upload.html"
+      ],
+      "savings": "330.1KB",
+      "effort": "medium",
+      "risk": "medium",
+      "description": "upload.html exceeds 250.0KB — trim or archive for dashboard load"
+    }
+  ],
   "rejectedFiction": {
     "warning": "Enterprise design claims not implemented in v0.8-beta",
     "claims": [

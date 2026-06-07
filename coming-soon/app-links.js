@@ -166,6 +166,15 @@
     });
   }
 
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   function applyPaymentsBanner() {
     if (document.getElementById('paymentsBanner')) return;
     if (cfg.stagingMode) return;
@@ -174,13 +183,14 @@
     var needsBanner = cfg.paymentsEnabled !== false && !cfg.stagingMode;
     if (!needsBanner) return;
 
+    var email = escapeHtml(auditEmail());
     var banner = document.createElement('div');
     banner.id = 'paymentsBanner';
     banner.className = 'staging-banner';
     banner.setAttribute('role', 'status');
     banner.innerHTML =
       '<strong>Payments enabled</strong> — email ' +
-      '<a href="mailto:' + auditEmail() + '">' + auditEmail() + '</a> for support.';
+      '<a href="mailto:' + email + '">' + email + '</a> for support.';
     document.body.insertBefore(banner, document.body.firstChild);
     document.documentElement.setAttribute('data-payments-pending', 'true');
   }

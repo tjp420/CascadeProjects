@@ -1,0 +1,531 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-06T23:46:41.093Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web\\data",
+    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\tests\\fixtures",
+    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "totalFiles": 724,
+    "totalFolders": 93,
+    "profile": "audit"
+  },
+  "mockSampleFiles": 50,
+  "totalFiles": 54,
+  "ruleScopedFilesAnalyzed": 201,
+  "repositoryFilesTotal": 724,
+  "repositoryFoldersTotal": 93,
+  "filesAnalyzed": 724,
+  "totalSizeBytes": 48434,
+  "totalSizeLabel": "47.3KB",
+  "issueCount": 0,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": 100,
+  "schemaChecked": 51,
+  "schemaPassed": 51,
+  "pageSampleSchemaChecked": 50,
+  "pageSampleSchemaPassed": 50,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 1,
+  "roadmapSchemaPassed": 1,
+  "consistencyChecked": 61,
+  "consistencyPassed": 61,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 61,
+  "fictionSampleFilesScanned": 50,
+  "fictionScope": "repository-json",
+  "credentialScanned": 201,
+  "credentialFindings": 0,
+  "productionLeakScanned": 147,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 95,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 149,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 34,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 2,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 338,
+    "documentationFound": [
+      ".env.example",
+      "env-keys.txt",
+      "eu-ai-act-report-print.html",
+      "mcp-http-server.cjs",
+      "README.md",
+      "server-out.log",
+      "docs/model-card.md",
+      "docs/ai-system-documentation.md",
+      "docs/risk-assessment.md",
+      "docs/conformity-declaration.md",
+      "docs/eu-ai-act-compliance.md",
+      "docs/audit-terms-of-service.md",
+      "docs/enterprise-positioning.md",
+      "docs/free-slop-audit-offer.md",
+      "docs/outreach-cc-campaign.md",
+      "docs/prospect-list.md",
+      ".simplebeacon/clean-verify.json",
+      ".simplebeacon/cleanup-all.json",
+      ".simplebeacon/config - Copy.json.bak",
+      ".simplebeacon/config-full-coverage.json",
+      ".simplebeacon/config-verify.json",
+      ".simplebeacon/config.json",
+      ".simplebeacon/data-cleanup-fresh.json",
+      ".simplebeacon/data-cleanup-report.json",
+      ".simplebeacon/data-only.json",
+      ".simplebeacon/data-quality-fresh.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/eu-files.txt",
+      ".simplebeacon/eu-final.txt",
+      ".simplebeacon/eu-fix-verify.json",
+      ".simplebeacon/eu-fix-verify2.json",
+      ".simplebeacon/eu-list.txt",
+      ".simplebeacon/eu-remaining.txt",
+      ".simplebeacon/file-reduction-analysis.json",
+      ".simplebeacon/file-reduction-fresh.json",
+      ".simplebeacon/file-reduction-only.json",
+      ".simplebeacon/file-reduction-post-fix.json",
+      ".simplebeacon/file-reduction-test.json",
+      ".simplebeacon/file-reduction-v2.json",
+      ".simplebeacon/file-reduction-v3.json",
+      ".simplebeacon/final-check.json",
+      ".simplebeacon/final-scan.json",
+      ".simplebeacon/final-verify-scan.json",
+      ".simplebeacon/final-verify.json",
+      ".simplebeacon/fresh-gate.json",
+      ".simplebeacon/fresh-scan.json",
+      ".simplebeacon/full-coverage-report.json",
+      ".simplebeacon/full-coverage-report2.json",
+      ".simplebeacon/full-dir-scan.json",
+      ".simplebeacon/full-scan-report.json",
+      ".simplebeacon/gate-current.json",
+      ".simplebeacon/gate-fix-verify.json",
+      ".simplebeacon/gate-fix-verify2.json",
+      ".simplebeacon/gate-fix-verify3.json",
+      ".simplebeacon/gate-fix-verify4.json",
+      ".simplebeacon/gate-post-fiction-fix.json",
+      ".simplebeacon/gate-test-report.json",
+      ".simplebeacon/latest-fix-all.json",
+      ".simplebeacon/parent-scan-test2.json",
+      ".simplebeacon/post-fix-report.json",
+      ".simplebeacon/post-fix-scan.json",
+      ".simplebeacon/reduce-post-edit.json",
+      ".simplebeacon/remaining.txt",
+      ".simplebeacon/report-check.json",
+      ".simplebeacon/report-data-path.json",
+      ".simplebeacon/report-fresh.json",
+      ".simplebeacon/report-now.json",
+      ".simplebeacon/report-remediation-check.json",
+      ".simplebeacon/report-test5.json",
+      ".simplebeacon/report-test6.json",
+      ".simplebeacon/report-verify.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/roadmap-fix.json",
+      ".simplebeacon/root-fixed-scan.json",
+      ".simplebeacon/root-fresh.json",
+      ".simplebeacon/sample-verify.json",
+      ".simplebeacon/sample-verify2.json",
+      ".simplebeacon/scan-agency1499.json",
+      ".simplebeacon/scan-agency999.json",
+      ".simplebeacon/scan-clearance499.json",
+      ".simplebeacon/scan-community.json",
+      ".simplebeacon/scan-euai2499.json",
+      ".simplebeacon/scan-github-repo.json",
+      ".simplebeacon/scan-warranty199.json",
+      ".simplebeacon/security-check.json",
+      ".simplebeacon/source-scan-verify.json",
+      ".simplebeacon/subscriptions.json",
+      ".simplebeacon/test-scan.json",
+      ".simplebeacon/timing-test.json",
+      ".simplebeacon/transparency-fix.json",
+      ".simplebeacon/trevor-paid-scan.json",
+      ".simplebeacon/universal-report.json",
+      ".simplebeacon/unused-files.json",
+      ".simplebeacon/verify-100-percent.json",
+      ".simplebeacon/verify-gate.json",
+      ".simplebeacon/verify-scan.json",
+      ".simplebeacon/_cli-data-scan.json",
+      ".simplebeacon/_data001-test.json",
+      ".simplebeacon/_test-data001.json"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "mockDataCategories": [
+    {
+      "category": "JSON Files",
+      "fileCount": 54,
+      "totalSize": "47.3KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "JSON Files discovered during filesystem scan"
+    }
+  ],
+  "detectedIssues": [],
+  "rawIssues": [],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [
+    "ai-adoption-trends-sample.json",
+    "ai-analysis-sample.json",
+    "ai-quality-metrics-sample.json",
+    "ai-roadmap-sample.json",
+    "ai-tools-sample.json",
+    "analytics-sample.json",
+    "analyze-pipeline-sample.json",
+    "api-sample.json",
+    "assets-library-sample.json",
+    "audit-gate-sample.json",
+    "baseline-comparison-sample.json",
+    "billing-system-sample.json",
+    "cascade-roadmap-sample.json",
+    "code-generation-sample.json",
+    "code-templates-sample.json",
+    "compliance-summary-sample.json",
+    "coverage-reports-sample.json",
+    "dashboard-home-sample.json",
+    "data-maintenance-analyzers-sample.json",
+    "database-sample.json",
+    "debt-analytics-sample.json",
+    "debt-calculator-sample.json",
+    "debt-reduction-sample.json",
+    "dev-tools-sample.json",
+    "engineering-baseline-sample.json",
+    "feature-backlog-sample.json",
+    "fictional-patterns-sample.json",
+    "gguf-roadmap-sample.json",
+    "help-sample.json",
+    "implementation-plan-sample.json",
+    "issue-resolution-sample.json",
+    "launch-readiness-sample.json",
+    "local-models-sample.json",
+    "master-roadmap-sample.json",
+    "merger-tool-sample.json",
+    "mock-analysis-sample.json",
+    "performance-sample.json",
+    "project-reports-sample.json",
+    "quality-dashboard-sample.json",
+    "release-timeline-sample.json",
+    "remediation-roadmap-sb-837864.json",
+    "reports-sample.json",
+    "repository-health-sample.json",
+    "roadmap-comparison-sample.json",
+    "security-dashboard-sample.json",
+    "settings-sample.json",
+    "simplebeacon-cli-dashboard-sample.json",
+    "simplebeacon-cli-sample.json",
+    "status-sample.json",
+    "support-dashboard-sample.json",
+    "trust-verification-sample.json",
+    ".dev-jwt-secrets.json",
+    "ai-roadmap-report.json",
+    "dynamic-roadmap-last-scan.json"
+  ],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 54,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 50,
+    "pageSpecsFromScanPaths": 50,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 147,
+    "productionPaths": [
+      "server/",
+      "src/"
+    ],
+    "sourceCodeScanPaths": [
+      "server/",
+      "src/"
+    ],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 149,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 34,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 5,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 61,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 201,
+    "repositoryFilesTotal": 724,
+    "repositoryFoldersTotal": 93,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 724 files — gate rules checked 201 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (61) plus source code (0 files in server/, src/).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 0,
+    "blockingIssues": [],
+    "warningIssues": [],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed — no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 54,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "54 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "compliance": {
+    "licenseCount": 0,
+    "securityCount": 0,
+    "governanceScore": 0,
+    "summary": "No governance files detected.",
+    "remediation": "Consider adding LICENSE and SECURITY.md.",
+    "complianceHealth": "poor",
+    "recommendations": [
+      "Add a LICENSE file to clarify distribution terms.",
+      "Add SECURITY.md to disclose vulnerability reporting."
+    ]
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 1,
+    "summary": "1 file contains TODO/FIXME markers."
+  },
+  "mockData": {
+    "fileCount": 50,
+    "summary": "50 mock/fixture files detected."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 0,
+    "readinessStatus": "BLOCKED",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": false,
+        "critical": false
+      }
+    ],
+    "missingCritical": [
+      "package.json",
+      "README",
+      "Tests",
+      "CI/CD",
+      ".env.example",
+      ".gitignore"
+    ],
+    "missingRecommended": [
+      "CHANGELOG",
+      "Docker",
+      "Linting/Formatting",
+      "TypeScript Config",
+      "Build Tool Config",
+      ".npmignore"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 0,
+    "summary": "BLOCKED — 0 of 12 checklist items present. 6 critical blockers.",
+    "recommendations": [
+      "Add all critical files before production deployment.",
+      "Start with package.json, README, .gitignore, and .env.example."
+    ],
+    "remediation": "Missing critical: package.json, README, Tests, CI/CD, .env.example, .gitignore."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2–4 days",
+      "description": "Data integrity verified — no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3–5 days",
+      "description": "Consistency verified — no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "qualityScore": 100,
+    "totalFiles": 54,
+    "totalLines": 0
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-06-06T23:46:41.097Z"
+}

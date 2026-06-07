@@ -79,6 +79,17 @@ function isKnownCodebaseFalsePositive(finding) {
     if (finding.category === 'tech-debt' && finding.type === 'todo' && String(finding.match || '').toLowerCase().includes('implement')) {
         return true;
     }
+    // Skip variable-name TODOs (e.g., todoCount, todoFiles) and string-literal TODOs in scanner UI
+    if (finding.category === 'tech-debt') {
+        const match = String(finding.match || '').toLowerCase();
+        const desc = String(finding.description || '').toLowerCase();
+        if (/\b(todoCount|todoFiles|todoMarkers|baseTodoCount|totalTodos|todoDensity|todoSeverity|rm\.todoCount|rm\.todoFiles|markerBreakdown)\b/i.test(desc)) {
+            return true;
+        }
+        if (/\b(todoCount|todoFiles|todoMarkers|baseTodoCount|totalTodos|todoDensity|todoSeverity|todoCommentPattern|fileMarkers|hasRealTodo|todoMarkerCounts)\b/i.test(match)) {
+            return true;
+        }
+    }
     return false;
 }
 

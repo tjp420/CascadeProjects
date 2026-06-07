@@ -10,6 +10,13 @@ sb-analyze-*/
 # Node modules
 node_modules/
 
+# Build artifacts
+dist/
+build/
+.next/
+out/
+coverage/
+
 # Logs
 *.log
 npm-debug.log*

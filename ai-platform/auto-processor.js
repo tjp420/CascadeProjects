@@ -30,6 +30,10 @@ const ARCHIVE_DIR = path.resolve(__dirname, './processed_archive');
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'unbreakable-oracle:latest';
 const OFFLINE_MODE = process.env.SIMPLEBEACON_OFFLINE === 'true' || process.env.NODE_ENV === 'production';
+const DEBUG = process.env.DEBUG === 'true' || process.env.NODE_ENV !== 'production';
+
+const log = DEBUG ? console.log.bind(console) : () => {};
+const logError = DEBUG ? console.error.bind(console) : () => {};
 
 // Privacy enforcement
 if (!OFFLINE_MODE) {
@@ -40,7 +44,7 @@ if (!OFFLINE_MODE) {
 [WATCH_DIR, OUTPUT_DIR, ARCHIVE_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-    console.log(`Created directory: ${dir}`);
+    log(`Created directory: ${dir}`);
   }
 });
 
@@ -81,14 +85,14 @@ async function processFile(filePath) {
   const startTime = Date.now();
 
   try {
-    console.log(`[${new Date().toISOString()}] Processing: ${filename}`);
+    log(`[${new Date().toISOString()}] Processing: ${filename}`);
 
     // 1. Read input file
     const rawData = fs.readFileSync(filePath, 'utf8');
 
     // 2. Absolute Privacy: Strip PII before AI processing
     const cleanData = sanitizePrivacyData(rawData);
-    console.log(`[${new Date().toISOString()}] PII sanitized for: ${filename}`);
+    log(`[${new Date().toISOString()}] PII sanitized for: ${filename}`);
 
     // 3. Automated Analysis via local Ollama
     const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded secrets, mock data, and AI-hallucinated paths.
@@ -106,7 +110,7 @@ ${cleanData}
 Provide a structured report with findings and recommendations.`;
 
     const analysisResult = await analyzeWithOllama(analysisPrompt);
-    console.log(`[${new Date().toISOString()}] Analysis completed for: ${filename}`);
+    log(`[${new Date().toISOString()}] Analysis completed for: ${filename}`);
 
     // 4. Generate report
     const report = {
@@ -129,17 +133,17 @@ Provide a structured report with findings and recommendations.`;
     const outputFilename = `report_${Date.now()}_${filename}.json`;
     const outputPath = path.join(OUTPUT_DIR, outputFilename);
     fs.writeFileSync(outputPath, JSON.stringify(report, null, 2));
-    console.log(`[${new Date().toISOString()}] Report saved: ${outputFilename}`);
+    log(`[${new Date().toISOString()}] Report saved: ${outputFilename}`);
 
     // 6. Archive original file (instead of deleting for audit trail)
     const archivePath = path.join(ARCHIVE_DIR, filename);
     fs.renameSync(filePath, archivePath);
-    console.log(`[${new Date().toISOString()}] Archived to: ${archivePath}`);
+    log(`[${new Date().toISOString()}] Archived to: ${archivePath}`);
 
-    console.log(`[${new Date().toISOString()}] ✅ Successfully processed ${filename} in ${Date.now() - startTime}ms`);
+    log(`[${new Date().toISOString()}] ✅ Successfully processed ${filename} in ${Date.now() - startTime}ms`);
 
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ Failed to process ${filename}:`, error.message);
+    logError(`[${new Date().toISOString()}] ❌ Failed to process ${filename}:`, error.message);
     
     // Move failed file to error subdirectory
     const errorDir = path.join(ARCHIVE_DIR, 'errors');
@@ -154,11 +158,11 @@ Provide a structured report with findings and recommendations.`;
 function processExistingFiles() {
   const files = fs.readdirSync(WATCH_DIR);
   if (files.length === 0) {
-    console.log(`[${new Date().toISOString()}] No existing files to process in ${WATCH_DIR}`);
+    log(`[${new Date().toISOString()}] No existing files to process in ${WATCH_DIR}`);
     return;
   }
 
-  console.log(`[${new Date().toISOString()}] Processing ${files.length} existing file(s)...`);
+  log(`[${new Date().toISOString()}] Processing ${files.length} existing file(s)...`);
   files.forEach(file => {
     const fullPath = path.join(WATCH_DIR, file);
     if (fs.statSync(fullPath).isFile()) {
@@ -171,7 +175,7 @@ function processExistingFiles() {
  * Setup file watcher for real-time processing
  */
 function setupFileWatcher() {
-  console.log(`[${new Date().toISOString()}] Setting up file watcher on: ${WATCH_DIR}`);
+  log(`[${new Date().toISOString()}] Setting up file watcher on: ${WATCH_DIR}`);
   
   const watcher = chokidar.watch(WATCH_DIR, {
     ignored: /(^|[\\/])\../, // ignore dotfiles
@@ -192,23 +196,23 @@ function setupFileWatcher() {
       }, 2500);
     })
     .on('error', error => {
-      console.error(`[${new Date().toISOString()}] Watcher error:`, error);
+      logError(`[${new Date().toISOString()}] Watcher error:`, error);
     });
 
-  console.log(`[${new Date().toISOString()}] File watcher active. Drop files into ${WATCH_DIR} for automatic processing.`);
+  log(`[${new Date().toISOString()}] File watcher active. Drop files into ${WATCH_DIR} for automatic processing.`);
 }
 
 /**
  * Main entry point
  */
 async function main() {
-  console.log('⚡ SimpleBeacon Automated Private Service starting...');
-  console.log(`📁 Watch directory: ${WATCH_DIR}`);
-  console.log(`📁 Output directory: ${OUTPUT_DIR}`);
-  console.log(`🤖 Ollama URL: ${OLLAMA_BASE_URL}`);
-  console.log(`🤖 Ollama Model: ${OLLAMA_MODEL}`);
-  console.log(`🔒 Offline Mode: ${OFFLINE_MODE ? 'ENFORCED' : 'WARNING - NOT ENFORCED'}`);
-  console.log('');
+  log('⚡ SimpleBeacon Automated Private Service starting...');
+  log(`📁 Watch directory: ${WATCH_DIR}`);
+  log(`📁 Output directory: ${OUTPUT_DIR}`);
+  log(`🤖 Ollama URL: ${OLLAMA_BASE_URL}`);
+  log(`🤖 Ollama Model: ${OLLAMA_MODEL}`);
+  log(`🔒 Offline Mode: ${OFFLINE_MODE ? 'ENFORCED' : 'WARNING - NOT ENFORCED'}`);
+  log('');
 
   // Verify Ollama is accessible
   try {
@@ -216,10 +220,10 @@ async function main() {
     if (!testResponse.ok) {
       throw new Error(`Ollama returned ${testResponse.status}`);
     }
-    console.log(`[${new Date().toISOString()}] ✅ Ollama connection verified`);
+    log(`[${new Date().toISOString()}] ✅ Ollama connection verified`);
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ Ollama connection failed: ${error.message}`);
-    console.error(`[${new Date().toISOString()}] Ensure Ollama is running: ollama serve`);
+    logError(`[${new Date().toISOString()}] ❌ Ollama connection failed: ${error.message}`);
+    logError(`[${new Date().toISOString()}] Ensure Ollama is running: ollama serve`);
     process.exit(1);
   }
 
@@ -229,24 +233,24 @@ async function main() {
   // Start file watcher
   setupFileWatcher();
 
-  console.log('');
-  console.log('⚡ SimpleBeacon Automated Private Service is running in headless mode...');
-  console.log('Press Ctrl+C to stop');
+  log('');
+  log('⚡ SimpleBeacon Automated Private Service is running in headless mode...');
+  log('Press Ctrl+C to stop');
 }
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
-  console.log('\n⚡ Shutting down SimpleBeacon Automated Private Service...');
+  log('\n⚡ Shutting down SimpleBeacon Automated Private Service...');
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('\n⚡ Shutting down SimpleBeacon Automated Private Service...');
+  log('\n⚡ Shutting down SimpleBeacon Automated Private Service...');
   process.exit(0);
 });
 
 // Start the service
 main().catch(error => {
-  console.error('Fatal error starting service:', error);
+  logError('Fatal error starting service:', error);
   process.exit(1);
 });

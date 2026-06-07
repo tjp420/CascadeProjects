@@ -6,6 +6,14 @@ const { proposeInlineFix, verifyFileSyntax } = require('../ai-tools/index.js');
 
 const OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 const MODEL_NAME = process.env.AGENT_MODEL || 'llama3.2:latest';
+const DEBUG = process.env.DEBUG_AGENT === '1' || process.env.DEBUG_AGENT === 'true';
+
+function debugLog(...args) {
+    if (DEBUG) console.log(...args);
+}
+function debugError(...args) {
+    if (DEBUG) console.error(...args);
+}
 
 /**
  * Helper to call the local 2B model synchronously via Ollama's generate endpoint.
@@ -37,8 +45,8 @@ async function callLocalModel(prompt) {
  * Plan → Execute → Verify
  */
 async function runLocalAgent(userGoal) {
-    console.log(`\n🤖 [Agent Initialization] Goal: "${userGoal}"`);
-    console.log(`🧠 [Model] ${MODEL_NAME} @ ${OLLAMA_URL}`);
+    debugLog(`\n🤖 [Agent Initialization] Goal: "${userGoal}"`);
+    debugLog(`🧠 [Model] ${MODEL_NAME} @ ${OLLAMA_URL}`);
 
     // Step 1: PLAN (Generate Steps via 2B model)
     const planningPrompt = getPlanningPrompt(userGoal);
@@ -53,12 +61,12 @@ async function runLocalAgent(userGoal) {
             throw new Error('Plan is not a JSON array');
         }
     } catch (parseErr) {
-        console.error('❌ [Agent Failure] The 2B model failed to return a valid JSON array structure.');
-        console.error('   Raw response:', planResponse.slice(0, 500));
+        debugError('❌ [Agent Failure] The 2B model failed to return a valid JSON array structure.');
+        debugError('   Raw response:', planResponse.slice(0, 500));
         return { success: false, error: 'Malformed plan structure', raw: planResponse };
     }
 
-    console.log(`📋 [Agent Plan Generated] Executing ${plan.length} steps...\n`);
+    debugLog(`📋 [Agent Plan Generated] Executing ${plan.length} steps...\n`);
 
     const executionLog = [];
 
@@ -68,7 +76,7 @@ async function runLocalAgent(userGoal) {
         const stepNum = i + 1;
 
         if (!step || typeof step.op !== 'string') {
-            console.error(`❌ [Step ${stepNum}] Invalid step structure: missing "op" field`);
+            debugError(`❌ [Step ${stepNum}] Invalid step structure: missing "op" field`);
             return { success: false, error: `Invalid step ${stepNum}` };
         }
 
@@ -76,14 +84,14 @@ async function runLocalAgent(userGoal) {
         if (step.path) {
             const fullPath = path.resolve(process.cwd(), step.path);
             if (!fs.existsSync(fullPath)) {
-                console.error(`🛡️ [Safety Block] Step ${stepNum} tried to reference ghost file: ${step.path}`);
+                debugError(`🛡️ [Safety Block] Step ${stepNum} tried to reference ghost file: ${step.path}`);
                 return { success: false, error: `Ghost file safety violation: ${step.path}` };
             }
         }
 
         switch (step.op) {
             case 'read_file': {
-                console.log(`🔍 [Step ${stepNum}] read_file: ${step.path}`);
+                debugLog(`🔍 [Step ${stepNum}] read_file: ${step.path}`);
                 const fullPath = path.resolve(process.cwd(), step.path);
                 const content = fs.readFileSync(fullPath, 'utf8');
                 executionLog.push({ step: stepNum, op: 'read_file', path: step.path, size: content.length });
@@ -92,24 +100,24 @@ async function runLocalAgent(userGoal) {
             }
 
             case 'patch_file': {
-                console.log(`🧹 [Step ${stepNum}] patch_file: ${step.path}`);
+                debugLog(`🧹 [Step ${stepNum}] patch_file: ${step.path}`);
                 if (!step.search || !step.replace) {
-                    console.error(`❌ [Step ${stepNum}] patch_file requires "search" and "replace" fields`);
+                    debugError(`❌ [Step ${stepNum}] patch_file requires "search" and "replace" fields`);
                     return { success: false, error: `Missing patch fields at step ${stepNum}` };
                 }
 
                 const result = proposeInlineFix(step.path, step.search, step.replace);
                 if (!result.ok) {
-                    console.error(`❌ [Step ${stepNum}] Patch failed: ${result.error}`);
+                    debugError(`❌ [Step ${stepNum}] Patch failed: ${result.error}`);
                     return { success: false, error: result.error, step: stepNum };
                 }
-                console.log(`✅ [Step ${stepNum}] Patch applied and syntax verified`);
+                debugLog(`✅ [Step ${stepNum}] Patch applied and syntax verified`);
                 executionLog.push({ step: stepNum, op: 'patch_file', path: step.path, status: 'ok' });
                 break;
             }
 
             case 'run_tests': {
-                console.log(`🧪 [Step ${stepNum}] run_tests: invoking project test runner...`);
+                debugLog(`🧪 [Step ${stepNum}] run_tests: invoking project test runner...`);
                 let logOutput;
                 let testExitCode = 0;
                 try {
@@ -121,27 +129,27 @@ async function runLocalAgent(userGoal) {
                 executionLog.push({ step: stepNum, op: 'run_tests', exitCode: testExitCode });
 
                 // Step 3: VERIFY (Let the 2B model evaluate the raw text outcome)
-                console.log(`🔍 [Step ${stepNum}] Sending test output to ${MODEL_NAME} for verification...`);
+                debugLog(`🔍 [Step ${stepNum}] Sending test output to ${MODEL_NAME} for verification...`);
                 const verificationPrompt = getVerificationPrompt(logOutput);
                 const assessment = await callLocalModel(verificationPrompt);
 
                 if (assessment !== 'SUCCESS') {
-                    console.error(`❌ [Verification Failure] 2B model assessment: ${assessment}`);
-                    console.error('   Test output (first 500 chars):', logOutput.slice(0, 500));
+                    debugError(`❌ [Verification Failure] 2B model assessment: ${assessment}`);
+                    debugError('   Test output (first 500 chars):', logOutput.slice(0, 500));
                     return { success: false, error: 'Test verification failed', assessment };
                 }
-                console.log(`✅ [Step ${stepNum}] 2B model confirms tests passing`);
+                debugLog(`✅ [Step ${stepNum}] 2B model confirms tests passing`);
                 break;
             }
 
             default: {
-                console.error(`❌ [Step ${stepNum}] Unknown operation: "${step.op}"`);
+                debugError(`❌ [Step ${stepNum}] Unknown operation: "${step.op}"`);
                 return { success: false, error: `Unknown operation: ${step.op}` };
             }
         }
     }
 
-    console.log('\n🎯 [Goal Reached] Agent loop completed successfully.');
+    debugLog('\n🎯 [Goal Reached] Agent loop completed successfully.');
     return { success: true, steps: executionLog.length };
 }
 

@@ -992,7 +992,9 @@
             if (collectedFiles.length > 30) {
                 lines.push('... and ' + (collectedFiles.length - 30) + ' more files');
             }
-            dirTree.innerHTML = '<div class="dir-line">' + rootName + '</div><div class="file-count">' + collectedFiles.length + ' files ready for scan</div><br>' + lines.join('\n').replace(/\n/g, '<br>');
+            const safeRoot = escapeHtml(rootName);
+            const safeLines = lines.map(l => escapeHtml(l)).join('\n').replace(/\n/g, '<br>');
+            dirTree.innerHTML = '<div class="dir-line">' + safeRoot + '</div><div class="file-count">' + collectedFiles.length + ' files ready for scan</div><br>' + safeLines;
             updateSubmit();
         }
 

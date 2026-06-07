@@ -331,6 +331,12 @@ if (landingRootExists) {
     if (!storefrontAssetsEnabled()) return next();
     return res.redirect(301, '/pricing');
   });
+  for (const legalPage of ['terms', 'privacy', 'refund', 'contact']) {
+    app.get(`/${legalPage}.html`, (req, res, next) => {
+      if (!storefrontAssetsEnabled()) return next();
+      return res.redirect(301, `/${legalPage}`);
+    });
+  }
   app.get(['/community', '/community/'], (req, res, next) => {
     if (!storefrontAssetsEnabled()) return next();
     return res.redirect(302, '/');
@@ -469,6 +475,7 @@ app.get('/favicon.svg', (_req, res) => {
 app.use('/api/metrics/path-health', pathHealthRouter);
 
 app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'development') return next();
   if (!internalDashboard) return next();
   if (!req.path.startsWith('/api/')) return next();
   if (req.path.startsWith('/api/simplebeacon/billing/webhook')) return next();
@@ -492,6 +499,7 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'development') return next();
   if (!internalDashboard) return next();
   if (!isProtectedDashboardPath(req.path)) return next();
   if (isVaultAuthenticated(req)) return next();

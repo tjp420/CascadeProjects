@@ -196,6 +196,7 @@ app.get('/sample-report', (req, res) => {
 });
 
 app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'development') return next();
   if (!process.env.DASHBOARD_VAULT_PASSWORD) return next();
   if (!req.path.startsWith('/api/')) return next();
   if (req.path.startsWith('/api/simplebeacon/billing/webhook')) return next();
@@ -231,6 +232,7 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'development') return next();
   if (!process.env.DASHBOARD_VAULT_PASSWORD) return next();
   if (!isProtectedDashboardPath(req.path)) return next();
   if (isVaultAuthenticated(req)) return next();
@@ -276,12 +278,6 @@ app.get('/simplebeacon-dashboard/index.html', async (req, res) => {
     html = await fs.promises.readFile(indexPath, 'utf8');
   } catch {
     return res.status(404).send('index.html not found');
-  }
-
-  // Inject vault password as window global for local dev mode
-  if (process.env.DASHBOARD_VAULT_PASSWORD) {
-    const injectScript = `<script>window.SIMPLEBEACON_VAULT_PASSWORD = "${process.env.DASHBOARD_VAULT_PASSWORD}";</script>`;
-    html = html.replace('</head>', `${injectScript}</head>`);
   }
 
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');

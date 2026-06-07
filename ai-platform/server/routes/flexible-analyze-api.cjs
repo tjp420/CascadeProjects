@@ -1956,12 +1956,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             } catch (err) {
                 stdout = err.stdout || '';
                 stderr = err.stderr || '';
-                if (!fs.existsSync(reportOut)) {
-                    throw err;
-                }
+                try { await fs.promises.access(reportOut); } catch { throw err; }
             }
 
-            const report = JSON.parse(fs.readFileSync(reportOut, 'utf8'));
+            const report = JSON.parse(await fs.promises.readFile(reportOut, 'utf8'));
             logger.info(`[Upload Directory] Scan found: totalFiles=${report.totalFiles || report.repositoryFilesTotal || 'n/a'}, scanned=${report.ruleScopedFilesAnalyzed || 'n/a'}, issues=${report.issueCount || report.gate?.blockingCount || 'n/a'}`);
             const results = { simplebeacon: report };
 

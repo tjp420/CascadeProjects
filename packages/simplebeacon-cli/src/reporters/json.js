@@ -202,7 +202,7 @@ function formatJsonReport(report, gateResult = null) {
     };
 
     // Build Readiness module — systematic project health scan
-    const allFiles = report.fileList || report.repositoryInventory?.totalFiles || [];
+    const allFiles = report.fileList || report.sampleFiles || report.repositoryInventory?.files || [];
     const filePaths = Array.isArray(allFiles) ? allFiles : [];
     const lowerPaths = filePaths.map(f => (typeof f === 'string' ? f : f.path || '').toLowerCase());
     const readinessChecks = [
@@ -210,7 +210,7 @@ function formatJsonReport(report, gateResult = null) {
         { name: 'README', found: lowerPaths.some(p => /readme\.?/.test(p)), critical: true },
         { name: 'CHANGELOG', found: lowerPaths.some(p => /changelog|changes|history/i.test(p)), critical: false },
         { name: 'Tests', found: lowerPaths.some(p => /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p)), critical: true },
-        { name: 'CI/CD', found: lowerPaths.some(p => /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(p)), critical: true },
+        { name: 'CI/CD', found: lowerPaths.some(p => /\.github|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|ci\.(yml|yaml)|build\.(yml|yaml)|deploy\.(yml|yaml)/i.test(p)), critical: true },
         { name: 'Docker', found: lowerPaths.some(p => /dockerfile|docker-compose|\.dockerignore/i.test(p)), critical: false },
         { name: 'Linting/Formatting', found: lowerPaths.some(p => /eslint|prettier|\.editorconfig|lint-staged|husky/i.test(p)), critical: false },
         { name: 'TypeScript Config', found: lowerPaths.some(p => /tsconfig|\.ts$/i.test(p)), critical: false },

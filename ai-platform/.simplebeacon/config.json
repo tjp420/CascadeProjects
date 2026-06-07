@@ -28,6 +28,8 @@
     "**/*.spec.ts",
     "tests/**",
     "test/**",
+    "**/.github-sync/**",
+    "**/bin/**",
     "packages/simplebeacon-cli/**"
   ],
   "rules": {

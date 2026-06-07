@@ -11,7 +11,9 @@ const {
     runScan,
     evaluateGate,
     formatTextReport,
+    formatActionPlanReport,
     formatJsonReport,
+    compileAuditReportMarkdown,
     syncJestBaseline,
     detectProjectProfile,
     resolvePlatformRoot,
@@ -48,7 +50,7 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance']);
+const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'mcp']);
 
 function writeStdoutLine(message = '') {
     process.stdout.write(`${message}\n`);
@@ -128,50 +130,94 @@ function parseArgs(argv) {
         watch: false
     };
 
+    const knownFlags = new Set([
+        '--path', '-p', '--config', '-c', '--format', '-f', '--output', '-o',
+        '--report', '-r', '--issue-number', '--repo', '--profile', '--fail-on',
+        '--gate', '--with-jest', '--verbose', '-v', '--company', '--assessor',
+        '--client', '--branch', '--assessment', '--print-only', '--api-token',
+        '--upload', '--type', '--husky', '--offline', '--no-trust-banner',
+        '--dry-run', '--force', '--enhance', '--enhance-model', '--scanner',
+        '--checklist', '--with-mcp', '--with-ci', '--starter', '--anonymize',
+        '--fix', '--fix-provider', '--fix-dry-run', '--with-analyzer-suite',
+        '--fullDirectoryScan', '--full', '--email', '--server', '--poll-seconds',
+        '--max-polls', '--max-fixes', '--mcp-mode', '--help', '-h', '--version',
+        '-V', '--complete', '--watch'
+    ]);
+
     for (let i = flagStart; i < args.length; i += 1) {
-        const arg = args[i];
-        if (arg === '--path' && args[i + 1]) {
-            options.path = args[++i];
-        } else if (arg === '--config' && args[i + 1]) {
-            options.config = args[++i];
-        } else if (arg === '--format' && args[i + 1]) {
-            options.format = args[++i];
-        } else if (arg === '--output' && args[i + 1]) {
-            options.output = args[++i];
-        } else if (arg === '--report' && args[i + 1]) {
-            options.report = args[++i];
-        } else if (arg === '--issue-number' && args[i + 1]) {
-            options.issueNumber = args[++i];
-        } else if (arg === '--repo' && args[i + 1]) {
-            options.repo = args[++i];
-        } else if (arg === '--profile' && args[i + 1]) {
-            options.profile = args[++i];
-        } else if (arg === '--fail-on' && args[i + 1]) {
-            options.failOn = args[++i].split(',').map((s) => s.trim()).filter(Boolean);
+        let arg = args[i];
+
+        // Support --flag=value and -f=value syntax
+        let value = null;
+        if ((arg.startsWith('--') || /^-[a-zA-Z]=/.test(arg)) && arg.includes('=')) {
+            const idx = arg.indexOf('=');
+            value = arg.slice(idx + 1);
+            arg = arg.slice(0, idx);
+        }
+
+        // Validate unknown flags
+        if (arg.startsWith('-') && !knownFlags.has(arg)) {
+            throw new ConfigError(`Unknown argument: ${args[i]}. Run with --help for usage.`, { arg: args[i] });
+        }
+
+        const next = () => {
+            if (value !== null) return value;
+            if (args[i + 1] && !args[i + 1].startsWith('-')) {
+                i += 1;
+                return args[i];
+            }
+            return null;
+        };
+
+        const requireNext = (flagName) => {
+            const v = next();
+            if (v === null) throw new ConfigError(`${flagName} requires a value`, { flag: flagName });
+            return v;
+        };
+
+        if (arg === '--path' || arg === '-p') {
+            options.path = requireNext('--path');
+        } else if (arg === '--config' || arg === '-c') {
+            options.config = requireNext('--config');
+        } else if (arg === '--format' || arg === '-f') {
+            options.format = requireNext('--format');
+        } else if (arg === '--output' || arg === '-o') {
+            options.output = requireNext('--output');
+        } else if (arg === '--report' || arg === '-r') {
+            options.report = requireNext('--report');
+        } else if (arg === '--issue-number') {
+            options.issueNumber = requireNext('--issue-number');
+        } else if (arg === '--repo') {
+            options.repo = requireNext('--repo');
+        } else if (arg === '--profile') {
+            options.profile = requireNext('--profile');
+        } else if (arg === '--fail-on') {
+            const val = requireNext('--fail-on');
+            options.failOn = val.split(',').map((s) => s.trim()).filter(Boolean);
         } else if (arg === '--gate') {
             options.gate = true;
         } else if (arg === '--with-jest') {
             options.withJest = true;
         } else if (arg === '--verbose' || arg === '-v') {
             options.verbose = true;
-        } else if (arg === '--company' && args[i + 1]) {
-            options.company = args[++i];
-        } else if (arg === '--assessor' && args[i + 1]) {
-            options.assessor = args[++i];
-        } else if (arg === '--client' && args[i + 1]) {
-            options.client = args[++i];
-        } else if (arg === '--branch' && args[i + 1]) {
-            options.branch = args[++i];
-        } else if (arg === '--assessment' && args[i + 1]) {
-            options.assessment = args[++i];
+        } else if (arg === '--company') {
+            options.company = requireNext('--company');
+        } else if (arg === '--assessor') {
+            options.assessor = requireNext('--assessor');
+        } else if (arg === '--client') {
+            options.client = requireNext('--client');
+        } else if (arg === '--branch') {
+            options.branch = requireNext('--branch');
+        } else if (arg === '--assessment') {
+            options.assessment = requireNext('--assessment');
         } else if (arg === '--print-only') {
             options.printOnly = true;
-        } else if (arg === '--api-token' && args[i + 1]) {
-            options.apiToken = args[++i];
-        } else if (arg === '--upload' && args[i + 1]) {
-            options.upload = args[++i];
-        } else if (arg === '--type' && args[i + 1]) {
-            options.hookType = args[++i];
+        } else if (arg === '--api-token') {
+            options.apiToken = requireNext('--api-token');
+        } else if (arg === '--upload') {
+            options.upload = requireNext('--upload');
+        } else if (arg === '--type') {
+            options.hookType = requireNext('--type');
         } else if (arg === '--husky') {
             options.preferHusky = true;
         } else if (arg === '--offline') {
@@ -184,12 +230,12 @@ function parseArgs(argv) {
             options.force = true;
         } else if (arg === '--enhance') {
             options.enhance = true;
-        } else if (arg === '--enhance-model' && args[i + 1]) {
-            options.enhanceModel = args[++i];
-        } else if (arg === '--scanner' && args[i + 1]) {
-            options.scanner = args[++i];
-        } else if (arg === '--checklist' && args[i + 1]) {
-            options.checklist = args[++i];
+        } else if (arg === '--enhance-model') {
+            options.enhanceModel = requireNext('--enhance-model');
+        } else if (arg === '--scanner') {
+            options.scanner = requireNext('--scanner');
+        } else if (arg === '--checklist') {
+            options.checklist = requireNext('--checklist');
         } else if (arg === '--with-mcp') {
             options.withMcp = true;
         } else if (arg === '--with-ci') {
@@ -202,26 +248,26 @@ function parseArgs(argv) {
             options.anonymize = true;
         } else if (arg === '--fix') {
             options.fix = true;
-        } else if (arg === '--fix-provider' && args[i + 1]) {
-            options.fixProvider = args[++i];
+        } else if (arg === '--fix-provider') {
+            options.fixProvider = requireNext('--fix-provider');
         } else if (arg === '--fix-dry-run') {
             options.fixDryRun = true;
         } else if (arg === '--with-analyzer-suite') {
             options.withAnalyzerSuite = true;
         } else if (arg === '--fullDirectoryScan' || arg === '--full') {
             options.fullDirectoryScan = true;
-        } else if (arg === '--email' && args[i + 1]) {
-            options.email = args[++i];
-        } else if (arg === '--server' && args[i + 1]) {
-            options.server = args[++i];
-        } else if (arg === '--poll-seconds' && args[i + 1]) {
-            options.pollSeconds = Number(args[++i]) || 5;
-        } else if (arg === '--max-polls' && args[i + 1]) {
-            options.maxPolls = Number(args[++i]) || 60;
-        } else if (arg === '--max-fixes' && args[i + 1]) {
-            options.maxFixes = Number(args[++i]) || 10;
-        } else if (arg === '--mcp-mode' && args[i + 1]) {
-            options.mcpMode = args[++i];
+        } else if (arg === '--email') {
+            options.email = requireNext('--email');
+        } else if (arg === '--server') {
+            options.server = requireNext('--server');
+        } else if (arg === '--poll-seconds') {
+            options.pollSeconds = Number(requireNext('--poll-seconds')) || 5;
+        } else if (arg === '--max-polls') {
+            options.maxPolls = Number(requireNext('--max-polls')) || 60;
+        } else if (arg === '--max-fixes') {
+            options.maxFixes = Number(requireNext('--max-fixes')) || 10;
+        } else if (arg === '--mcp-mode') {
+            options.mcpMode = requireNext('--mcp-mode');
         } else if (arg === '--help' || arg === '-h') {
             options.help = true;
         } else if (arg === '--version' || arg === '-V') {
@@ -275,6 +321,7 @@ function printHelp() {
 Usage:
   simplebeacon scan [options]     Scan project and report findings
   simplebeacon init [options]     Create .simplebeacon/config.json and baseline.json
+  simplebeacon mcp [options]      Start MCP stdio server for Cursor / Claude Desktop
   simplebeacon comment [options]  Post GitHub PR comment from JSON report
   simplebeacon assess [options]   Build customer assessment JSON from scan report
   simplebeacon compliance [opts]  Evaluate corporate safety checklist from report
@@ -308,10 +355,11 @@ Init options:
   --mcp-mode MODE     npx-local (default) | npx-github | monorepo
 
 Scan options:
-  --path <dir>        Project root (default: cwd)
-  --config <file>     Config path (default: .simplebeacon/config.json)
-  --format text|json  Output format (default: text)
-  --output <file>     Write report to file
+  --path, -p <dir>    Project root (default: cwd)
+  --config, -c <f>    Config path (default: .simplebeacon/config.json)
+  --format, -f fmt    Output format: text | json (default: text)
+  --output, -o <file> Write report to file
+  --report, -r <file> Use existing scan report JSON
   --gate              Exit 1 when gate severities are found
   --fail-on a,b,c     Override gate fail severities (default: high)
   --with-jest         Run npm test and compare to baseline (slow)
@@ -470,8 +518,8 @@ async function executeOneScan(options, networkGuard) {
         console.error(`Profile: ${config.profile || 'standard'}`);
     }
 
-    if (options.format !== 'text' && options.format !== 'json') {
-        throw new Error(`Invalid --format "${options.format}" — use text or json`);
+    if (options.format !== 'text' && options.format !== 'json' && options.format !== 'action-plan') {
+        throw new Error(`Invalid --format "${options.format}" — use text, json, or action-plan`);
     }
 
     const spinner = createScanSpinner('Scanning');
@@ -512,10 +560,12 @@ async function executeOneScan(options, networkGuard) {
             const anon = buildAnonymizedExport(report);
             const signed = signAnonymizedExport(anon);
             payload = JSON.stringify(signed, null, 2);
+        } else if (options.format === 'json') {
+            payload = JSON.stringify(jsonReport, null, 2);
+        } else if (options.format === 'action-plan') {
+            payload = formatActionPlanReport(report, gateResult);
         } else {
-            payload = options.format === 'json'
-                ? JSON.stringify(jsonReport, null, 2)
-                : formatTextReport(report, gateResult);
+            payload = formatTextReport(report, gateResult);
         }
 
         if (options.output) {
@@ -1177,6 +1227,13 @@ async function main() {
 
     if (options.command === 'gate-status') {
         runGateStatusCommand(options);
+        return;
+    }
+
+    if (options.command === 'mcp') {
+        const { createMcpStdioServer } = require('../src/mcp/stdio-server');
+        const server = createMcpStdioServer({ offline: options.offline });
+        server.start();
         return;
     }
 

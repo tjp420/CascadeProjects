@@ -1,8 +1,16 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs').promises;
-const crypto = require('crypto');
-const https = require('https');
+const fsSync = require('fs');
+const jwt = require('jsonwebtoken');
+const db = require('./lib/db.cjs');
+const { sendEmail } = require('./services/email.cjs');
+const {
+    escapeHtml,
+    normalizeReport,
+    getTierConfig,
+    buildModuleHtml
+} = require('./services/certificate-generator.cjs');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -24,117 +32,43 @@ const CERT_RATE_LIMIT_MS = 10 * 60 * 1000;
 const CERT_RATE_LIMIT_MAX = 10;
 const certRateLog = new Map(); // ip -> { count, resetAt }
 
-// HTML escape helper to prevent XSS in generated reports
-function escapeHtml(str) {
-    if (str == null) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
+// Subscribe rate limiter: max 5 per IP per hour
+const SUB_RATE_LIMIT_MS = 60 * 60 * 1000;
+const SUB_RATE_LIMIT_MAX = 5;
+const subRateLog = new Map(); // ip -> { count, resetAt }
 
-// Inline token generator (matches packages/simplebeacon-cli/src/lib/license-token.js)
+// Test-checkout rate limiter: max 3 per IP per hour
+const TEST_CHECKOUT_RATE_LIMIT_MS = 60 * 60 * 1000;
+const TEST_CHECKOUT_RATE_LIMIT_MAX = 3;
+const testCheckoutRateLog = new Map(); // ip -> { count, resetAt }
+
+// Periodic cleanup of expired rate limiter entries to prevent memory leaks
+function cleanupExpiredRateLimiters() {
+    const now = Date.now();
+    for (const [ip, entry] of certRateLog) { if (now >= entry.resetAt) certRateLog.delete(ip); }
+    for (const [ip, entry] of subRateLog) { if (now >= entry.resetAt) subRateLog.delete(ip); }
+    for (const [ip, entry] of testCheckoutRateLog) { if (now >= entry.resetAt) testCheckoutRateLog.delete(ip); }
+    for (const [ip, entry] of freeTokenLog) { if (now - entry.createdAt >= FREE_TOKEN_COOLDOWN_MS) freeTokenLog.delete(ip); }
+}
+// Run cleanup every 30 minutes
+setInterval(cleanupExpiredRateLimiters, 30 * 60 * 1000);
+
+/**
+ * Generate a JWT license token.
+ * @param {{email?:string, tier?:string, features?:string[], clientName?:string, projectName?:string}} payload
+ * @param {string} secret
+ * @param {number} expiresInMinutes
+ * @returns {string}
+ */
 function generateLicenseToken(payload, secret, expiresInMinutes) {
-  const issuedAt = Date.now();
-  const expiresAt = issuedAt + (expiresInMinutes * 60 * 1000);
   const tokenPayload = {
     email: payload.email || '',
     tier: payload.tier || 'executive',
     features: payload.features || [],
     clientName: payload.clientName || payload.email || 'Client',
-    projectName: payload.projectName || 'Project',
-    iat: issuedAt,
-    exp: expiresAt
+    projectName: payload.projectName || 'Project'
   };
-  const data = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
-  const sig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
-  return `${data}.${sig}`;
-}
-const SUBSCRIPTIONS_FILE = path.join(__dirname, 'subscriptions.json');
-const EMAIL_QUEUE_DIR = path.join(__dirname, '.simplebeacon', 'email-queue');
-
-function ensureQueueDir() {
-    const fsSync = require('fs');
-    if (!fsSync.existsSync(EMAIL_QUEUE_DIR)) {
-        fsSync.mkdirSync(EMAIL_QUEUE_DIR, { recursive: true });
-    }
-}
-
-function queueEmailToDisk({ to, subject, text, html }) {
-    const fsSync = require('fs');
-    ensureQueueDir();
-    const id = 'email_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    const filePath = path.join(EMAIL_QUEUE_DIR, id + '.json');
-    const payload = {
-        id,
-        to,
-        subject,
-        text: text || '',
-        html: html || undefined,
-        queuedAt: new Date().toISOString()
-    };
-    fsSync.writeFileSync(filePath, JSON.stringify(payload, null, 2) + '\n');
-    return { sent: false, queued: true, queuePath: filePath };
-}
-
-// Resend API email sender
-function sendViaResend({ to, from, subject, text, html }) {
-    return new Promise((resolve, reject) => {
-        const key = process.env.RESEND_API_KEY;
-        if (!key || !key.startsWith('re_')) return reject(new Error('Resend not configured'));
-        const payload = JSON.stringify({ from, to: [to], subject, text, html });
-        const req = https.request({
-            hostname: 'api.resend.com',
-            path: '/emails',
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
-        }, (res) => {
-            let data = '';
-            res.on('data', (chunk) => { data += chunk; });
-            res.on('end', () => {
-                if (res.statusCode >= 200 && res.statusCode < 300) {
-                    try { resolve({ id: JSON.parse(data).id }); } catch { resolve({ id: null }); }
-                } else { reject(new Error('Resend ' + res.statusCode + ': ' + data)); }
-            });
-        });
-        req.on('error', reject);
-        req.write(payload);
-        req.end();
-    });
-}
-
-// SMTP email sender (requires nodemailer)
-async function sendViaSmtp({ to, from, subject, text, html }) {
-    let nodemailer;
-    try { nodemailer = require('nodemailer'); } catch { throw new Error('nodemailer not installed'); }
-    const cfg = { host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT) || 587, user: process.env.SMTP_USER, pass: process.env.SMTP_PASS, from: process.env.SMTP_FROM || from || 'certificates@simplebeacon.ai', secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465 };
-    if (!cfg.host || !cfg.user || !cfg.pass) throw new Error('SMTP not configured');
-    const transporter = nodemailer.createTransport({ host: cfg.host, port: cfg.port, secure: cfg.secure, auth: { user: cfg.user, pass: cfg.pass } });
-    await transporter.sendMail({ from: cfg.from, to, subject, text: text || '', html: html || undefined });
-    return { sent: true };
-}
-
-// Send email with fallback: Resend → SMTP → disk queue
-async function sendEmail(options) {
-    const { to, subject, text, html } = options;
-    if (!to || !subject) return { sent: false, queued: false, error: 'to and subject required' };
-
-    // Try Resend first (key hardcoded fallback in sendViaResend)
-    try {
-        const result = await sendViaResend({ to, from: process.env.RESEND_FROM || 'certificates@simplebeacon.ai', subject, text, html });
-        return { sent: true, queued: false, id: result.id };
-    } catch (err) { /* Resend failed, try SMTP */ }
-
-    // Try SMTP fallback
-    try {
-        await sendViaSmtp({ to, subject, text, html });
-        return { sent: true, queued: false };
-    } catch (err) { /* SMTP failed, queue to disk */ }
-
-    // Fallback to disk queue
-    return queueEmailToDisk({ to, subject, text, html });
+  return jwt.sign(tokenPayload, secret, { expiresIn: expiresInMinutes * 60 });
 }
 
 // Security headers (helmet-lite)
@@ -143,6 +77,7 @@ app.use((req, res, next) => {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.stripe.com; frame-src https://js.stripe.com;");
     if (req.headers['x-forwarded-proto'] === 'https' || req.secure) {
         res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
     }
@@ -154,12 +89,15 @@ app.use((req, res, next) => {
     const isDev = process.env.NODE_ENV !== 'production';
     const origin = req.headers.origin || '';
     if (isDev) {
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        // Reflect actual origin instead of wildcard to allow credentials in dev
+        res.setHeader('Access-Control-Allow-Origin', origin || '*');
     } else {
         const allowedOrigins = (process.env.ALLOWED_ORIGIN || '')
             .split(',').map(s => s.trim()).filter(Boolean);
-        if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-            res.setHeader('Access-Control-Allow-Origin', origin || allowedOrigins[0] || '*');
+        if (allowedOrigins.includes(origin)) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
+        } else {
+            return res.status(403).json({ error: 'Origin not allowed' });
         }
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -231,432 +169,39 @@ app.get('/api/config/pricing', (_req, res) => {
     res.json({
         success: true,
         pricing: {
-            instant: { stripeLink: process.env.STRIPE_LINK_INSTANT || 'https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07' },
-            executive: { stripeLink: process.env.STRIPE_LINK_EXECUTIVE || 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05' },
-            euSprint: { stripeLink: process.env.STRIPE_LINK_EU_SPRINT || 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06' }
+            instant: { stripeLink: process.env.STRIPE_LINK_INSTANT || '' },
+            executive: { stripeLink: process.env.STRIPE_LINK_EXECUTIVE || '' },
+            euSprint: { stripeLink: process.env.STRIPE_LINK_EU_SPRINT || '' }
         }
     });
 });
 
-// Ensure subscriptions.json exists on server boot
-async function initStorage() {
-    try {
-        await fs.access(SUBSCRIPTIONS_FILE);
-    } catch {
-        await fs.writeFile(SUBSCRIPTIONS_FILE, JSON.stringify([], null, 2), 'utf8');
-    }
-}
-initStorage();
+// Mount extracted routes
+const subscriptionRoutes = require('./routes/subscriptions.cjs');
+app.use(subscriptionRoutes);
 
-// API Endpoint for Newsletter Signups
-app.post('/api/subscribe', async (req, res) => {
-    const { email } = req.body;
+const checkoutRoutes = require('./routes/checkout.cjs');
+app.use(checkoutRoutes);
 
-    // Server-side baseline validation
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
-        return res.status(400).json({ error: 'A valid email address is required.' });
-    }
+const freeTokenRoutes = require('./routes/free-token.cjs');
+app.use(freeTokenRoutes);
 
-    try {
-        // Atomic read-then-write loop to prevent truncation
-        const fileData = await fs.readFile(SUBSCRIPTIONS_FILE, 'utf8');
-        const subscriptions = JSON.parse(fileData || '[]');
+const certificateRoutes = require('./routes/certificates.cjs');
+app.use(certificateRoutes);
 
-        // Prevent duplicate entries
-        if (subscriptions.some(entry => entry.email.toLowerCase() === email.toLowerCase())) {
-            return res.status(200).json({ message: 'Email already registered.' });
-        }
-
-        // Append new subscriber record with ISO timestamp
-        subscriptions.push({
-            email: email.trim(),
-            timestamp: new Date().toISOString()
-        });
-
-        // Write back to disk with clean formatting
-        await fs.writeFile(SUBSCRIPTIONS_FILE, JSON.stringify(subscriptions, null, 2), 'utf8');
-        return res.status(200).json({ message: 'Successfully subscribed.' });
-
-    } catch (error) {
-        return res.status(500).json({ error: 'Internal database storage failure.' });
-    }
-});
-
-// Test checkout endpoint — generates a token immediately without Stripe
-app.post('/api/test-checkout', async (req, res) => {
-    const { email, projectName, clientName, tier } = req.body;
-    if (!email || !projectName) {
-        return res.status(400).json({ error: 'Email and project name are required.' });
-    }
-
-    const tierMap = {
-        instant_report: { label: 'Instant Report', days: 7, tier: 'instant' },
-        executive_clearance: { label: 'Executive Risk Certificate', days: 90, tier: 'executive' },
-        eu_ai_act_sprint: { label: 'EU AI Act Sprint', days: 30, tier: 'euai' },
-        runtime_shield: { label: 'Runtime Shield', days: 30, tier: 'universal' }
-    };
-    const config = tierMap[tier] || tierMap.executive_clearance;
-    const minutes = config.days * 24 * 60;
-    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
-    if (!secret) {
-        return res.status(500).json({ error: 'License secret not configured' });
-    }
-
-    const token = generateLicenseToken(
-        { email, tier: config.tier, projectName, clientName: clientName || email },
-        secret,
-        minutes
-    );
-
-    const certUrl = `${PUBLIC_URL}/certificate-upload.html?token=${encodeURIComponent(token)}`;
-
-    // Load branded email template
-    let emailHtml;
-    try {
-        const fsSync = require('fs');
-        const templatePath = path.join(__dirname, 'email-template-universal.html');
-        let template = fsSync.readFileSync(templatePath, 'utf8');
-
-        // Tier-aware content
-        const isFree = tier === 'free' || tier === 'community';
-        const isEnterprise = tier === 'eu_ai_act_sprint' || tier === 'runtime_shield';
-        const priceMap = {
-            instant_report: '$19.00',
-            executive_clearance: '$499.00',
-            eu_ai_act_sprint: '$2,499.00',
-            runtime_shield: '$2,999.00/mo'
-        };
-        const stepsMap = {
-            instant_report: '<li>Click the button above to open the certificate upload page</li><li>Paste your license token (already filled if you use the link)</li><li>Upload your source code zip or select a local directory</li><li>The scan runs locally — no code leaves your machine</li><li>Download your Code Hygiene Certificate PDF instantly</li>',
-            executive_clearance: '<li>Click the button above to open your dashboard</li><li>Paste your license token (already filled if you use the link)</li><li>Upload your source code or select a local directory</li><li>Run the Complete Scan with all 15 analyzers</li><li>Download your Executive Risk Certificate + Audit Report ZIP</li>',
-            eu_ai_act_sprint: '<li>Click the button above to open your dashboard</li><li>Paste your license token (already filled if you use the link)</li><li>Upload your source code zip or select a local directory</li><li>Run the EU AI Act compliance scan</li><li>Download your EU AI Act Readiness PDF instantly</li>',
-            runtime_shield: '<li>Click the button above to open your dashboard</li><li>Paste your license token (already filled if you use the link)</li><li>Configure runtime sentinel for your stack</li><li>Set per-request and per-minute AI API spend caps</li><li>Monitor real-time spend dashboard with alerts</li>'
-        };
-        const featuresMap = {
-            instant_report: '<li>Code Hygiene Gate scan</li><li>Production leak detection</li><li>Mock data / fixture detection</li><li>Instant PDF certificate</li>',
-            executive_clearance: '<li>Complete Scan (15 analyzers)</li><li>Codebase analysis + npm audit</li><li>Compliance checklist + EU AI Act</li><li>Executive audit report + certificate ZIP</li><li>Re-attestation support</li>',
-            eu_ai_act_sprint: '<li>EU AI Act Article 52-55 assessment</li><li>Risk classification (minimal / limited / high / unacceptable)</li><li>Conformity gap analysis</li><li>Remediation roadmap</li><li>Ready-to-submit documentation</li>',
-            runtime_shield: '<li>Runtime sentinel library + middleware</li><li>Per-request, per-minute, per-hour spend caps</li><li>Real-time dashboard + Slack/PagerDuty alerts</li><li>Custom budget-policy rules</li><li>Dedicated cost-governance onboarding</li>'
-        };
-        const deliveryMap = {
-            instant_report: { visible: '', headline: '', detail: '' },
-            executive_clearance: { visible: '', headline: '', detail: '' },
-            eu_ai_act_sprint: { visible: 'visible', headline: 'Manual review included', detail: 'A compliance analyst will review your scan within 24 hours and email a finalized attestation package.' },
-            runtime_shield: { visible: 'visible', headline: 'Onboarding scheduled', detail: 'A Solutions Engineer will contact you within 1 business day to begin runtime integration.' }
-        };
-
-        const d = deliveryMap[tier] || deliveryMap.executive_clearance;
-
-        template = template
-            .replace(/\{\{HEADLINE\}\}/g, isFree ? 'Welcome!' : 'Payment Confirmed')
-            .replace(/\{\{PRODUCT_NAME\}\}/g, config.label)
-            .replace(/\{\{RECEIPT_CLASS\}\}/g, isFree ? 'free' : isEnterprise ? 'enterprise' : '')
-            .replace(/\{\{PRICE\}\}/g, isFree ? 'Free' : (priceMap[tier] || '$499.00'))
-            .replace(/\{\{PAYMENT_METHOD\}\}/g, isFree ? 'No payment required' : 'Paid via Stripe')
-            .replace(/\{\{DATE\}\}/g, new Date().toLocaleDateString('en-US'))
-            .replace(/\{\{INVOICE_LINE\}\}/g, isFree ? 'Community tier — no invoice' : 'Invoice #INV-' + Date.now().toString(36).toUpperCase())
-            .replace(/\{\{TOKEN_STYLE\}\}/g, isFree ? 'style="display:none;"' : 'style="display:block;"')
-            .replace(/\{\{LICENSE_TOKEN\}\}/g, token)
-            .replace(/\{\{PRIMARY_URL\}\}/g, certUrl)
-            .replace(/\{\{PRIMARY_CTA\}\}/g, isFree ? 'Get Started →' : 'Upload Report & Download Certificate')
-            .replace(/\{\{SECONDARY_STYLE\}\}/g, 'style="display:none;"')
-            .replace(/\{\{SECONDARY_URL\}\}/g, '#')
-            .replace(/\{\{SECONDARY_CTA\}\}/g, 'View Documentation')
-            .replace(/\{\{STEPS_TITLE\}\}/g, 'What happens next')
-            .replace(/\{\{STEPS_LIST\}\}/g, stepsMap[tier] || stepsMap.executive_clearance)
-            .replace(/\{\{FEATURES_STYLE\}\}/g, 'style="display:block;"')
-            .replace(/\{\{FEATURES_LIST\}\}/g, featuresMap[tier] || featuresMap.executive_clearance)
-            .replace(/\{\{DELIVERY_STYLE\}\}/g, d.visible === 'visible' ? 'style="display:block;"' : 'style="display:none;"')
-            .replace(/\{\{DELIVERY_HEADLINE\}\}/g, d.headline)
-            .replace(/\{\{DELIVERY_DETAIL\}\}/g, d.detail)
-            .replace(/\{\{PRIVACY_TEXT\}\}/g, 'Your source code never leaves your machine. The scan runs entirely locally in your browser and Node.js process. Only anonymized findings are uploaded for PDF generation.')
-            .replace(/\{\{SUPPORT_TEXT\}\}/g, "Didn't see your token? Check your spam folder or email us at");
-
-        emailHtml = template;
-    } catch (templateErr) {
-        emailHtml = `<p>Hi ${clientName || email},</p><p>Your license token for <strong>${projectName}</strong> has been generated.</p><p>Tier: <strong>${config.label}</strong><br>Project: <strong>${projectName}</strong><br>Token: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">${token}</code></p><p><a href="${certUrl}" style="display:inline-block;padding:10px 18px;background:#2ea44f;color:#fff;text-decoration:none;border-radius:6px;">Upload Report &amp; Download Certificate</a></p><p>This token expires in ${config.days} days.</p><p style="color:#666;font-size:0.9em;margin-top:12px;"><strong>Didn't see this email?</strong> Check your spam or junk folder — license tokens sometimes end up there. If it's missing, contact support.</p>`;
-    }
-
-    // Send email with token (Resend → SMTP → disk queue)
-    const emailResult = await sendEmail({
-        to: email,
-        subject: 'Your SimpleBeacon License Token — ' + config.label,
-        text: `Hi ${clientName || email},\n\nYour license token for "${projectName}" has been generated.\n\nTier: ${config.label}\nProject: ${projectName}\nToken: ${token}\n\nUpload your scan report here:\n${certUrl}\n\nThis token expires in ${config.days} days.\n\nDidn't receive this email? Check your spam or junk folder — sometimes license emails end up there.\n`,
-        html: emailHtml
-    });
-
-    res.json({
-        success: true,
-        token,
-        certUrl,
-        email,
-        projectName,
-        clientName: clientName || email,
-        tier: config.label,
-        expiresInDays: config.days,
-        emailSent: emailResult.sent,
-        emailQueued: emailResult.queued,
-        emailId: emailResult.id || null,
-        emailQueuePath: emailResult.queuePath || null,
-        emailError: emailResult.error || null
-    });
-});
-
-// Free token endpoint — no email or payment required
-app.get('/api/free-token', (req, res) => {
-    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
-    const now = Date.now();
-    const existing = freeTokenLog.get(clientIp);
-
-    if (existing && (now - existing.createdAt) < FREE_TOKEN_COOLDOWN_MS) {
-        const remainingMin = Math.ceil((FREE_TOKEN_COOLDOWN_MS - (now - existing.createdAt)) / 60000);
-        return res.json({
-            success: true,
-            token: existing.token,
-            certUrl: existing.certUrl,
-            tier: 'community',
-            label: 'AI Slop Audit',
-            expiresInDays: 7,
-            cached: true,
-            retryAfterMinutes: remainingMin,
-            message: `Free token already issued. Reuse this token or wait ${remainingMin} minutes for a new one.`
-        });
-    }
-
-    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
-    const token = generateLicenseToken(
-        { email: 'guest@simplebeacon.ai', tier: 'community', projectName: 'Free-Demo', clientName: 'Guest' },
-        secret,
-        7 * 24 * 60 // 7 days
-    );
-    const certUrl = `${PUBLIC_URL}/certificate-upload.html?token=${encodeURIComponent(token)}`;
-    freeTokenLog.set(clientIp, { token, certUrl, createdAt: now });
-    res.json({
-        success: true,
-        token,
-        certUrl,
-        tier: 'community',
-        label: 'AI Slop Audit',
-        expiresInDays: 7,
-        cached: false,
-        message: 'Free community token generated. Valid for 7 days.'
-    });
-});
-
-// Token verification helper
+/**
+ * Verify a JWT license token.
+ * @param {string} token
+ * @param {string} secret
+ * @returns {object|null} Decoded payload or null if invalid/expired
+ */
 function verifyLicenseToken(token, secret) {
-    if (!token || !token.includes('.')) return null;
-    const [data, sig] = token.split('.');
-    if (!data || !sig) return null;
-    const expectedSig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
-    if (sig !== expectedSig) return null;
+    if (!token || typeof token !== 'string') return null;
     try {
-        const payload = JSON.parse(Buffer.from(data, 'base64url').toString('utf8'));
-        if (payload.exp && Date.now() > payload.exp) return null;
-        return payload;
+        return jwt.verify(token, secret, { clockTolerance: 60 });
     } catch {
         return null;
     }
-}
-
-// Helper: build a full executive gate-attestation HTML certificate from a browser scan report
-function normalizeReport(reportJson) {
-    if (!reportJson || typeof reportJson !== 'object') return {};
-    const type = reportJson.type || '';
-
-    // 1. Complete-scan wrapper: pull the simplebeacon sub-report up
-    const sub = reportJson?.results?.simplebeacon;
-    if (sub && typeof sub === 'object') {
-        // Handle double-wrapped complete scans (sub itself is another wrapper)
-        const nested = sub.results?.simplebeacon;
-        if (nested && typeof nested === 'object') {
-            const issues = nested.detectedIssues || sub.detectedIssues || reportJson.detectedIssues || [];
-            return { ...reportJson, ...sub, ...nested, detectedIssues: issues, issueCount: nested.issueCount ?? sub.issueCount ?? reportJson.issueCount ?? issues.length };
-        }
-        const issues = sub.detectedIssues || reportJson.detectedIssues || [];
-        return { ...reportJson, ...sub, detectedIssues: issues, issueCount: sub.issueCount ?? reportJson.issueCount ?? issues.length };
-    }
-
-    // 2. Public-summary: synthesize gate and detectedIssues from summary/severityCounts
-    if (type === 'simplebeacon-public-summary') {
-        const summary = reportJson.summary || {};
-        return {
-            ...reportJson,
-            gate: {
-                pass: summary.gatePass ?? null,
-                blockingCount: (reportJson.severityCounts?.critical || 0) + (reportJson.severityCounts?.high || 0),
-                warningCount: (reportJson.severityCounts?.medium || 0) + (reportJson.severityCounts?.low || 0)
-            },
-            qualityScore: summary.qualityScore ?? 0,
-            totalFiles: summary.filesScanned ?? 0,
-            issueCount: summary.totalIssuesFound ?? 0,
-            detectedIssues: []
-        };
-    }
-
-    // 3. Re-attestation-note: synthesize from currentGate
-    if (type === 'simplebeacon-re-attestation-note') {
-        const isReference = reportJson.workflowStatus === 'reference-only' || reportJson.currentGate === null;
-        const cg = reportJson.currentGate || {};
-        return {
-            ...reportJson,
-            gate: {
-                pass: isReference ? null : (cg.pass ?? false),
-                blockingCount: isReference ? null : (cg.blockingCount ?? 0),
-                warningCount: 0
-            },
-            isReferenceTemplate: isReference,
-            qualityScore: cg.qualityScore ?? 0,
-            totalFiles: cg.repositoryFilesTotal ?? 0,
-            issueCount: 0,
-            detectedIssues: []
-        };
-    }
-
-    // 4. npm-audit: synthesize gate and npmAudit from flat hygieneSummary / packageJsonCount
-    if (type === 'simplebeacon-npm-audit') {
-        const h = reportJson.hygieneSummary || {};
-        const pkgCount = reportJson.packageJsonCount ?? 0;
-        const depCount = reportJson.dependencyCount ?? 0;
-        const critical = h.critical || 0;
-        const high = h.high || 0;
-        const moderate = h.moderate || 0;
-        const low = h.low || 0;
-        return {
-            ...reportJson,
-            gate: {
-                pass: h.gatePass ?? true,
-                blockingCount: critical + high,
-                warningCount: moderate + low
-            },
-            qualityScore: h.gatePass === true ? 100 : Math.max(0, 100 - (critical * 20 + high * 10 + moderate * 5 + low * 2)),
-            totalFiles: pkgCount,
-            issueCount: critical + high + moderate + low,
-            detectedIssues: [],
-            npmAudit: {
-                packageJsonCount: pkgCount,
-                dependencyCount: depCount,
-                summary: `${pkgCount} package.json files found with ${depCount} total dependencies.`,
-                supplyChainStatus: reportJson.supplyChainStatus || 'not-applicable'
-            }
-        };
-    }
-
-    // 5. Generic synthesis for partial/standalone module reports that lack a gate
-    if (!reportJson.gate) {
-        // npm-audit signal: packageJsonCount present without explicit type
-        if (reportJson.packageJsonCount !== undefined || reportJson.dependencyCount !== undefined) {
-            const pkgCount = reportJson.packageJsonCount ?? 0;
-            const depCount = reportJson.dependencyCount ?? 0;
-            const h = reportJson.hygieneSummary || {};
-            const critical = h.critical || 0;
-            const high = h.high || 0;
-            const moderate = h.moderate || 0;
-            const low = h.low || 0;
-            return {
-                ...reportJson,
-                gate: {
-                    pass: h.gatePass ?? true,
-                    blockingCount: critical + high,
-                    warningCount: moderate + low
-                },
-                qualityScore: h.gatePass === true ? 100 : Math.max(0, 100 - (critical * 20 + high * 10 + moderate * 5 + low * 2)),
-                totalFiles: pkgCount,
-                issueCount: critical + high + moderate + low,
-                detectedIssues: [],
-                npmAudit: {
-                    packageJsonCount: pkgCount,
-                    dependencyCount: depCount,
-                    summary: `${pkgCount} package.json files found with ${depCount} total dependencies.`,
-                    supplyChainStatus: reportJson.supplyChainStatus || 'not-applicable'
-                }
-            };
-        }
-
-        // Generic fallback for other partial reports
-        const debugCount = reportJson.debugArtifactCount || 0;
-        const mockCount = reportJson.mockSampleFiles || 0;
-        const credHits = reportJson.credentialFindings || 0;
-        const totalIssues = debugCount + mockCount + credHits + (reportJson.issueCount || 0);
-        return {
-            ...reportJson,
-            gate: {
-                pass: credHits === 0,
-                blockingCount: credHits,
-                warningCount: totalIssues - credHits
-            },
-            qualityScore: reportJson.qualityScore ?? (totalIssues === 0 ? 100 : Math.max(0, 100 - totalIssues * 2)),
-            totalFiles: reportJson.totalFiles ?? reportJson.filesAnalyzed ?? 0,
-            issueCount: totalIssues,
-            detectedIssues: reportJson.detectedIssues || []
-        };
-    }
-
-    // 6. Direct simplebeacon-report (or browser-sandbox report)
-    return reportJson;
-}
-
-function getTierConfig(tier) {
-    const configs = {
-        euai: { label: 'EU AI Act Sprint', kicker: 'SimpleBeacon · EU AI Act Readiness', subtitle: 'EU AI Act compliance deliverable — Article 52, 10, and 13 readiness assessment.', badge: 'EU AI ACT', badgeClass: 'badge-gold' },
-        executive: { label: 'Executive Risk Certificate', kicker: 'SimpleBeacon · Executive Risk Certificate', subtitle: 'Executive clearance — pre-launch security gate attestation.', badge: 'EXECUTIVE', badgeClass: 'badge-gold' },
-        instant: { label: 'Instant Code Hygiene Report', kicker: 'SimpleBeacon · Instant Code Hygiene Report', subtitle: 'Quick-turn security snapshot — lightweight gate scan with credential, mock data, and AI pattern detection.', badge: 'INSTANT', badgeClass: 'badge-pass' },
-        community: { label: 'AI Slop Audit', kicker: 'SimpleBeacon · Community Audit', subtitle: 'Complimentary AI slop and leak detection — open source, unlimited scans.', badge: 'COMMUNITY', badgeClass: 'badge-pass' },
-        agency: { label: 'Agency License', kicker: 'SimpleBeacon · Agency Partner Certificate', subtitle: 'Agency partner deliverable — white-label security attestation.', badge: 'AGENCY', badgeClass: 'badge-gold' },
-        universal: { label: 'Operator License', kicker: 'SimpleBeacon · Operator Vault Certificate', subtitle: 'Operator vault — full platform access with all engines.', badge: 'OPERATOR', badgeClass: 'badge-gold' }
-    };
-    return configs[tier] || configs.executive;
-}
-
-// Helper: generate a human-readable HTML report page from a module's JSON data
-function buildModuleHtml(title, icon, data, projectName) {
-    const safeTitle = escapeHtml(title);
-    const safeIcon = escapeHtml(icon);
-    const safeProject = escapeHtml(projectName);
-    const rows = Object.entries(data || {}).map(([key, val]) => {
-        const safeKey = escapeHtml(key);
-        if (Array.isArray(val)) {
-            if (val.length === 0) return `<tr><td>${safeKey}</td><td><em>None found</em></td></tr>`;
-            const items = val.slice(0, 10).map(v => typeof v === 'string' ? `<li>${escapeHtml(v)}</li>` : `<li><code>${escapeHtml(JSON.stringify(v).slice(0, 120))}</code></li>`).join('');
-            return `<tr><td>${safeKey}</td><td><ul style="margin:0;padding-left:18px;">${items}${val.length > 10 ? `<li><em>...and ${val.length - 10} more</em></li>` : ''}</ul></td></tr>`;
-        }
-        if (typeof val === 'object' && val !== null) {
-            const jsonStr = JSON.stringify(val, null, 2);
-            return `<tr><td>${safeKey}</td><td><code style="font-size:0.8rem;">${escapeHtml(jsonStr.slice(0, 300))}${jsonStr.length > 300 ? '...' : ''}</code></td></tr>`;
-        }
-        return `<tr><td>${safeKey}</td><td><strong>${escapeHtml(val)}</strong></td></tr>`;
-    }).join('');
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>${safeTitle} — ${safeProject}</title>
-<style>
-body { font-family: Inter, system-ui, -apple-system, sans-serif; background: #0B0F19; color: #E2E8F0; max-width: 900px; margin: 0 auto; padding: 40px 24px; }
-h1 { font-size: 1.5rem; margin-bottom: 8px; color: #F1F5F9; }
-.meta { color: #94A3B8; font-size: 0.85rem; margin-bottom: 24px; }
-table { width: 100%; border-collapse: collapse; background: #111827; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.4); border: 1px solid #1E293B; }
-th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #1E293B; }
-th { background: #0F172A; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: #60A5FA; }
-td { font-size: 0.9rem; vertical-align: top; color: #E2E8F0; }
-tr:last-child td { border-bottom: none; }
-ul { margin: 0; color: #CBD5E1; }
-em { color: #94A3B8; }
-code { background: #1E293B; color: #60A5FA; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
-.footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #1E293B; font-size: 0.75rem; color: #64748B; }
-@media print { body { background: #fff; color: #1e293b; padding: 0; } table { background: #fff; border: 1px solid #e2e8f0; } th { background: #f1f5f9; color: #1e293b; } td { color: #1e293b; } code { background: #f1f5f9; color: #2563EB; } }
-</style>
-</head>
-<body>
-<h1>${safeIcon} ${safeTitle}</h1>
-<p class="meta">Project: <strong>${safeProject}</strong> · Generated by SimpleBeacon</p>
-<table>
-${rows || '<tr><td colspan="2"><em>No data available for this module.</em></td></tr>'}
-</table>
-<div class="footer">Print this page (Ctrl+P / Cmd+P) → Destination: Save as PDF</div>
-</body>
-</html>`;
 }
 
 function buildCertificateHtml(reportJson, payload) {
@@ -666,7 +211,7 @@ function buildCertificateHtml(reportJson, payload) {
     const projectName = data.projectRoot || data.projectPath || data.projectName || payload.projectName || 'Project';
     const clientName = payload.clientName || 'Demo Client';
     const gatePass = data.gate?.pass ? 'PASS' : 'REVIEW';
-    const reportId = 'SB-AUD-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,8).toUpperCase();
+    const reportId = 'SB-AUD-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + crypto.randomBytes(4).toString('hex').toUpperCase();
     const nowStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     // Normalize issues from various report shapes (detectedIssues, issues, rawIssues)
     const normalizeIssue = (issue) => ({
@@ -1107,223 +652,6 @@ ul{margin:8px 0;padding-left:20px;} li{margin-bottom:6px;}
 </body></html>`;
 }
 
-// Certificate generation endpoint (unique path — ai-platform also registers /api/certificate/download)
-app.post('/api/certificate/download', async (req, res) => {
-    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const now = Date.now();
-
-    // Rate limiting
-    const rateEntry = certRateLog.get(clientIp);
-    if (rateEntry && now < rateEntry.resetAt) {
-        if (rateEntry.count >= CERT_RATE_LIMIT_MAX) {
-            logger.warn(`[Certificate] Rate limit exceeded for IP ${clientIp}`);
-            return res.status(429).json({ error: 'Too many certificate requests. Please try again later.' });
-        }
-        rateEntry.count++;
-    } else {
-        certRateLog.set(clientIp, { count: 1, resetAt: now + CERT_RATE_LIMIT_MS });
-    }
-
-    const auth = req.headers.authorization || '';
-    const token = auth.replace(/^Bearer\s+/i, '').trim();
-    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
-    if (!secret) {
-        logger.error('[Certificate] License secret not configured');
-        return res.status(500).json({ error: 'License secret not configured' });
-    }
-    if (!token || token.length < 10) {
-        return res.status(401).json({ error: 'License token required' });
-    }
-    const payload = verifyLicenseToken(token, secret);
-    if (!payload) {
-        return res.status(403).json({ error: 'Invalid or expired token' });
-    }
-
-    // Validate report data presence
-    let reportJson = req.body.reportJson || {};
-    if (!reportJson || Object.keys(reportJson).length === 0) {
-        return res.status(400).json({ error: 'Report JSON required in request body' });
-    }
-
-    // Guard against oversized reports (50MB limit)
-    const reportSize = JSON.stringify(reportJson).length;
-    if (reportSize > 50 * 1024 * 1024) {
-        logger.warn(`[Certificate] Report too large: ${(reportSize / 1024 / 1024).toFixed(1)}MB from ${clientIp}`);
-        return res.status(413).json({ error: 'Report JSON exceeds 50MB size limit' });
-    }
-
-    const rawResults = reportJson.results || {};
-    reportJson = normalizeReport(reportJson);
-    // Merge ai-platform complete-scan modules from nested results into top level for ZIP generation
-    if (rawResults && typeof rawResults === 'object') {
-        reportJson.consolidation = reportJson.consolidation || rawResults.consolidation || rawResults._consolidationAnalysis || null;
-        reportJson.mockDataCategories = reportJson.mockDataCategories || (rawResults.mockScan?.mockDataCategories) || (rawResults.mockScan?.categories) || null;
-        reportJson.mockSampleFiles = reportJson.mockSampleFiles || rawResults.mockScan?.mockSampleFiles || null;
-        reportJson.roadmap = reportJson.roadmap || rawResults.roadmap || rawResults._roadmapAnalysis || null;
-        reportJson.codebase = reportJson.codebase || rawResults.codebase || rawResults._codebaseAnalysis || null;
-        reportJson.fileReduction = reportJson.fileReduction || rawResults.fileReduction || rawResults._fileReductionAnalysis || null;
-        reportJson.dataQuality = reportJson.dataQuality || rawResults.dataQuality || rawResults._dataQualityAnalysis || rawResults.dataCleanup || null;
-        reportJson.cleanup = reportJson.cleanup || rawResults.cleanupAssistant || rawResults._cleanupAssistantAnalysis || rawResults.cleanup || null;
-        reportJson.npmAudit = reportJson.npmAudit || rawResults.npmAudit || rawResults._npmAuditAnalysis || null;
-        reportJson.compliance = reportJson.compliance || rawResults.compliance || rawResults._complianceAnalysis || null;
-        reportJson.euAiActSummary = reportJson.euAiActSummary || rawResults.euAiAct || rawResults._euAiActAnalysis || rawResults.euAiActSummary || null;
-    }
-    const certificateHtml = buildCertificateHtml(reportJson, payload);
-
-    try {
-        const archiver = require('archiver');
-        const archive = archiver('zip', { zlib: { level: 9 } });
-        archive.on('error', (err) => { logger.error('[Archive] Error:', err.message); });
-        archive.on('warning', (err) => { logger.error('[Archive] Warning:', err.message); });
-        const tier = payload.tier || 'executive';
-        const tierConfig = getTierConfig(tier);
-        const dateStr = new Date().toISOString().slice(0,10);
-        const zipName = `simplebeacon-${tierConfig.label.toLowerCase().replace(/\s+/g,'-')}-${dateStr}.zip`;
-        res.setHeader('Content-Type', 'application/zip');
-        res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
-        archive.pipe(res);
-
-        const addJson = (name, data) => {
-            const str = JSON.stringify(data, null, 2);
-            archive.append(str, { name });
-        };
-
-        archive.append(certificateHtml, { name: 'reports/certificate.html' });
-        addJson('json/report.json', reportJson);
-        addJson('json/01-simplebeacon-gate.json', reportJson.gateReport || {});
-        addJson('json/02-consolidation.json', reportJson.consolidation || {});
-        addJson('json/03-mock-data.json', reportJson.mockDataCategories || []);
-        addJson('json/04-roadmap.json', reportJson.roadmap || {});
-        addJson('json/05-codebase.json', reportJson.codebase || {});
-        addJson('json/06-file-reduction.json', reportJson.fileReduction || {});
-        addJson('json/07-data-quality.json', reportJson.dataQuality || {});
-        addJson('json/08-cleanup.json', reportJson.cleanup || {});
-        addJson('json/09-npm-audit.json', reportJson.npmAudit || {});
-        addJson('json/10-compliance.json', reportJson.compliance || {});
-        addJson('json/11-eu-ai-act.json', reportJson.euAiActSummary || {});
-        addJson('json/12-dependency-vulns.json', reportJson.dependencyAudit || reportJson.vulnerabilityAudit || {});
-        addJson('json/13-build-readiness.json', reportJson.buildReadiness || {});
-        addJson('json/14-remediation-roadmap.json', reportJson.remediationPhases || []);
-
-        // Human-readable HTML reports (print to PDF)
-        const projectName = reportJson.projectRoot || reportJson.projectPath || reportJson.projectName || 'Project';
-        archive.append(buildModuleHtml('SimpleBeacon Gate', '🛡️', reportJson.gateReport, projectName), { name: 'reports/01-simplebeacon-gate.html' });
-        archive.append(buildModuleHtml('Consolidation', '🔀', reportJson.consolidation, projectName), { name: 'reports/02-consolidation.html' });
-        const mockDataModuleData = (reportJson.mockDataCategories || []).length ? {
-            'Detected Categories': reportJson.mockDataCategories.map(c => `${c.category || 'Unknown'}: ${c.fileCount || 0} files (${c.confidence || 'medium'} confidence) — ${c.description || ''}`.trim())
-        } : { 'Status': 'No mock data detected' };
-        archive.append(buildModuleHtml('Mock Data Detection', '🔍', mockDataModuleData, projectName), { name: 'reports/03-mock-data.html' });
-        archive.append(buildModuleHtml('Roadmap Markers', '🗺️', reportJson.roadmap, projectName), { name: 'reports/04-roadmap.html' });
-        archive.append(buildModuleHtml('Codebase Analysis', '🧹', reportJson.codebase, projectName), { name: 'reports/05-codebase.html' });
-        archive.append(buildModuleHtml('File Reduction', '📦', reportJson.fileReduction, projectName), { name: 'reports/06-file-reduction.html' });
-        archive.append(buildModuleHtml('Data Quality', '🧪', reportJson.dataQuality, projectName), { name: 'reports/07-data-quality.html' });
-        archive.append(buildModuleHtml('Cleanup Assistant', '🗂️', reportJson.cleanup, projectName), { name: 'reports/08-cleanup.html' });
-        archive.append(buildModuleHtml('npm Audit', '📦', reportJson.npmAudit, projectName), { name: 'reports/09-npm-audit.html' });
-        archive.append(buildModuleHtml('Compliance', '✅', reportJson.compliance, projectName), { name: 'reports/10-compliance.html' });
-        archive.append(buildModuleHtml('EU AI Act Readiness', '🇪🇺', reportJson.euAiActSummary, projectName), { name: 'reports/11-eu-ai-act.html' });
-        archive.append(buildModuleHtml('Dependency Vulnerabilities', '🔒', reportJson.dependencyAudit || reportJson.vulnerabilityAudit || {}, projectName), { name: 'reports/12-dependency-vulns.html' });
-        archive.append(buildModuleHtml('Build Readiness', '🏗️', reportJson.buildReadiness || {}, projectName), { name: 'reports/13-build-readiness.html' });
-
-        addJson('manifest.json', {
-            type: 'simplebeacon-export-manifest',
-            version: '1.0.0',
-            generatedAt: new Date().toISOString(),
-            tier: tier,
-            productSku: payload.productSku || tier,
-            files: [
-                'reports/certificate.html',
-                'reports/01-simplebeacon-gate.html',
-                'reports/02-consolidation.html',
-                'reports/03-mock-data.html',
-                'reports/04-roadmap.html',
-                'reports/05-codebase.html',
-                'reports/06-file-reduction.html',
-                'reports/07-data-quality.html',
-                'reports/08-cleanup.html',
-                'reports/09-npm-audit.html',
-                'reports/10-compliance.html',
-                'reports/11-eu-ai-act.html',
-                'reports/12-dependency-vulns.html',
-                'reports/13-build-readiness.html',
-                'json/14-remediation-roadmap.json',
-                'json/report.json',
-                'json/01-simplebeacon-gate.json',
-                'json/02-consolidation.json',
-                'json/03-mock-data.json',
-                'json/04-roadmap.json',
-                'json/05-codebase.json',
-                'json/06-file-reduction.json',
-                'json/07-data-quality.json',
-                'json/08-cleanup.json',
-                'json/09-npm-audit.json',
-                'json/10-compliance.json',
-                'json/11-eu-ai-act.json',
-                'json/12-dependency-vulns.json',
-                'json/13-build-readiness.json',
-                'manifest.json',
-                'README.txt'
-            ],
-            certificateType: tierConfig.label,
-            reportId: 'SB-AUD-' + dateStr.replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,8).toUpperCase()
-        });
-        archive.append(`SimpleBeacon ${tierConfig.label}
-============================
-
-Generated: ${new Date().toLocaleString()}
-Tier: ${tier}
-Product SKU: ${payload.productSku || tier}
-
-Contents:
-  reports/
-    certificate.html                      : Master certificate (open in browser, print to PDF)
-    01-simplebeacon-gate.html            : 🛡️ Gate scan — human-readable report (print to PDF)
-    02-consolidation.html                : 🔀 Consolidation — human-readable report (print to PDF)
-    03-mock-data.html                    : 🔍 Mock data — human-readable report (print to PDF)
-    04-roadmap.html                      : 🗺️ Roadmap — human-readable report (print to PDF)
-    05-codebase.html                     : 🧹 Codebase — human-readable report (print to PDF)
-    06-file-reduction.html               : 📦 File reduction — human-readable report (print to PDF)
-    07-data-quality.html                 : 🧪 Data quality — human-readable report (print to PDF)
-    08-cleanup.html                      : 🗂️ Cleanup — human-readable report (print to PDF)
-    09-npm-audit.html                    : 📦 npm audit — human-readable report (print to PDF)
-    10-compliance.html                 : ✅ Compliance — human-readable report (print to PDF)
-    11-eu-ai-act.html                    : 🇪🇺 EU AI Act — human-readable report (print to PDF)
-    12-dependency-vulns.html             : 🔒 Dependency vulnerabilities — human-readable report (print to PDF)
-    13-build-readiness.html              : 🏗️ Build readiness — human-readable report (print to PDF)
-  json/
-    report.json                           : Raw complete scan report (machine-readable JSON)
-    01-simplebeacon-gate.json            : Gate scan results (machine-readable JSON)
-    02-consolidation.json                : Monorepo & duplicate file analysis (machine-readable JSON)
-    03-mock-data.json                    : Mock / fixture / sample file detection (machine-readable JSON)
-    04-roadmap.json                      : TODO / FIXME marker inventory (machine-readable JSON)
-    05-codebase.json                     : File & line count summary (machine-readable JSON)
-    06-file-reduction.json               : Unused asset & duplicate detection (machine-readable JSON)
-    07-data-quality.json                 : Empty / trivial JSON findings (machine-readable JSON)
-    08-cleanup.json                      : Debug artifact & hygiene sweep (machine-readable JSON)
-    09-npm-audit.json                    : package.json inventory (machine-readable JSON)
-    10-compliance.json                   : License & governance file detection (machine-readable JSON)
-    11-eu-ai-act.json                    : EU AI Act readiness indicators (machine-readable JSON)
-    12-dependency-vulns.json             : Dependency vulnerability audit (machine-readable JSON)
-    13-build-readiness.json              : Build readiness checklist (machine-readable JSON)
-    14-remediation-roadmap.json          : Phased remediation plan (machine-readable JSON)
-  manifest.json                           : Export manifest for verification
-  README.txt                              : This file
-
-For vendor handoff, run a Complete Scan via the CLI:
-  npx simplebeacon scan --gate --complete
-
-Questions? https://simplebeacon.ai
-`, { name: 'README.txt' });
-        await archive.finalize();
-    } catch (err) {
-        logger.error(`[Certificate] Archive failed: ${err.message} ip=${clientIp}`);
-        if (!res.headersSent) {
-            res.status(500).json({ error: 'Certificate generation failed' });
-        } else {
-            res.destroy();
-        }
-    }
-});
-
 // Serve specific pages explicitly
 app.get('/upload.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'upload.html'));
@@ -1340,9 +668,29 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Global error handler — catches unhandled errors from any middleware or route
+app.use((err, req, res, next) => {
+    logger.error(`[Error] ${req.method} ${req.path}:`, err.message);
+    if (res.headersSent) {
+        return next(err);
+    }
+    res.status(500).json({ error: 'Internal server error' });
+});
+
+// Process-level error handlers — prevent crashes from unhandled errors
+process.on('uncaughtException', (err) => {
+    logger.error('[FATAL] Uncaught exception:', err.message);
+    // Graceful shutdown: give logger time to flush, then exit
+    setTimeout(() => process.exit(1), 500);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('[FATAL] Unhandled rejection at:', promise, 'reason:', reason);
+});
+
 if (require.main === module) {
     app.listen(PORT, () => {
-        // Server ready
+        logger.info(`Server listening on port ${PORT}`);
     });
 }
 

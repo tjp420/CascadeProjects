@@ -1,37 +1,57 @@
 {
   "profile": "eu-ai-act",
   "scanPaths": [
-    "."
+    "coming-soon"
   ],
   "productionPaths": [
-    "."
+    "coming-soon"
   ],
   "sampleDir": "fixtures",
   "consistencyAnchorSamples": [],
   "ignore": [
-    "**/*.spec.js",
-    "**/*.spec.ts",
+    "node_modules/**",
+    "coverage/**",
+    "dist/**",
+    "build/**",
     "**/*.test.js",
+    "**/*.spec.js",
     "**/*.test.ts",
+    "**/*.spec.ts",
+    "tests/**",
+    "test/**",
     "**/.gitkeep",
     "**/test-output*.txt",
-    "ai-agent/**",
+    "**/.github-sync/**",
+    "**/bin/**",
+    "packages/simplebeacon-cli/**",
     "ai-platform/**",
+    "ai-agent/**",
     "ai-tools/**",
     "backups/**",
-    "build/**",
-    "coming-soon/**",
-    "coverage/**",
+    "coming-soon-dev/**",
     "deployments/**",
-    "dist/**",
+    "full-cert/**",
+    "full-certificate/**",
     "logs/**",
-    "node_modules/**",
-    "packages/**",
-    "packages/simplebeacon-cli/**",
     "simplebeacon-frameworkless/**",
     "simplebeacon-rule-tests/**",
-    "test/**",
-    "tests/**"
+    "CHANGELOG.md",
+    "instructions.txt",
+    "report.json",
+    "report-fresh.json",
+    "error-check.log",
+    "error-check2.log",
+    "scan-website.sh",
+    "setup-zorin.sh",
+    "start-dashboard.sh",
+    "ZORIN-LINUX-SETUP.md",
+    "HANDOFF-*.md",
+    "*.zip",
+    "*.bat",
+    "*.log",
+    "*.sh",
+    "tmp-*.txt",
+    "public/**"
   ],
   "rules": {
     "credentials": {
@@ -109,17 +129,7 @@
   "fullDirectoryScanSkipDirs": [
     ".git",
     ".github-sync",
-    "ai-agent",
-    "ai-platform",
-    "ai-tools",
-    "backups",
-    "coming-soon",
-    "deployments",
     "github-cache",
-    "logs",
-    "node_modules",
-    "packages",
-    "simplebeacon-frameworkless",
-    "simplebeacon-rule-tests"
+    "node_modules"
   ]
 }

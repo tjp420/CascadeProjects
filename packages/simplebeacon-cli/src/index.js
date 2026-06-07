@@ -27,7 +27,7 @@ const {
     countBySeverity
 } = require('./scan');
 const { evaluateGate } = require('./gate');
-const { formatTextReport } = require('./reporters/text');
+const { formatTextReport, formatActionPlanReport } = require('./reporters/text');
 const { formatJsonReport } = require('./reporters/json');
 const { formatGithubComment, formatGithubStepSummary, postGithubComment } = require('./reporters/github-comment');
 const { buildAssessmentReport } = require('./assessment');
@@ -197,6 +197,7 @@ module.exports = {
     countBySeverity,
     evaluateGate,
     formatTextReport,
+    formatActionPlanReport,
     formatJsonReport,
     formatGithubComment,
     formatGithubStepSummary,

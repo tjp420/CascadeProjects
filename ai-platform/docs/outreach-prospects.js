@@ -8,6 +8,11 @@
 const fs = require('fs');
 const path = require('path');
 
+const DEBUG = process.env.DEBUG_PIPELINE === '1' || process.env.DEBUG_PIPELINE === 'true';
+
+function log(...args) { if (DEBUG) console.log(...args); }
+function logError(...args) { if (DEBUG) console.error(...args); }
+
 const PIPELINE_FILE = path.join(__dirname, 'outreach-pipeline.json');
 
 const STAGES = ['prospect', 'contacted', 'audit_requested', 'audit_delivered', 'executive_clearance', 'continuous_shield', 'nurture', 'closed_lost'];
@@ -42,19 +47,19 @@ function addProspect({ name, company, industry, title, source, notes }) {
     };
     pipeline.push(prospect);
     savePipeline(pipeline);
-    console.log(`[Pipeline] Added prospect: ${name} at ${company}`);
+    log(`[Pipeline] Added prospect: ${name} at ${company}`);
     return prospect;
 }
 
 function advanceStage(id, newStage, note) {
     if (!STAGES.includes(newStage)) {
-        console.error(`[Pipeline] Invalid stage: ${newStage}. Valid: ${STAGES.join(', ')}`);
+        logError(`[Pipeline] Invalid stage: ${newStage}. Valid: ${STAGES.join(', ')}`);
         return null;
     }
     const pipeline = loadPipeline();
     const prospect = pipeline.find(p => p.id === id);
     if (!prospect) {
-        console.error(`[Pipeline] Prospect not found: ${id}`);
+        logError(`[Pipeline] Prospect not found: ${id}`);
         return null;
     }
     const oldStage = prospect.stage;
@@ -66,7 +71,7 @@ function advanceStage(id, newStage, note) {
         at: new Date().toISOString()
     });
     savePipeline(pipeline);
-    console.log(`[Pipeline] ${prospect.name} moved: ${oldStage} → ${newStage}`);
+    log(`[Pipeline] ${prospect.name} moved: ${oldStage} → ${newStage}`);
     return prospect;
 }
 
@@ -74,13 +79,13 @@ function addTouch(id, action, note) {
     const pipeline = loadPipeline();
     const prospect = pipeline.find(p => p.id === id);
     if (!prospect) {
-        console.error(`[Pipeline] Prospect not found: ${id}`);
+        logError(`[Pipeline] Prospect not found: ${id}`);
         return null;
     }
     prospect.touchHistory.push({ action, note: note || '', at: new Date().toISOString() });
     prospect.updatedAt = new Date().toISOString();
     savePipeline(pipeline);
-    console.log(`[Pipeline] Touch logged for ${prospect.name}: ${action}`);
+    log(`[Pipeline] Touch logged for ${prospect.name}: ${action}`);
     return prospect;
 }
 
@@ -94,24 +99,24 @@ function report() {
         if (p.stage === 'executive_clearance') totalRevenue += 499;
         if (p.stage === 'continuous_shield') totalRevenue += 1499;
     }
-    console.log('\n=== SimpleBeacon Outreach Pipeline ===\n');
+    log('\n=== SimpleBeacon Outreach Pipeline ===\n');
     for (const stage of STAGES) {
-        console.log(`  ${stage.padEnd(20)} : ${byStage[stage]}`);
+        log(`  ${stage.padEnd(20)} : ${byStage[stage]}`);
     }
-    console.log(`\n  Total prospects: ${pipeline.length}`);
-    console.log(`  Estimated revenue: $${totalRevenue.toLocaleString()}`);
-    console.log('');
+    log(`\n  Total prospects: ${pipeline.length}`);
+    log(`  Estimated revenue: $${totalRevenue.toLocaleString()}`);
+    log('');
     return { byStage, totalRevenue, total: pipeline.length };
 }
 
 function list(stageFilter) {
     const pipeline = loadPipeline();
     const filtered = stageFilter ? pipeline.filter(p => p.stage === stageFilter) : pipeline;
-    console.log(`\n=== Prospects${stageFilter ? ` (${stageFilter})` : ''} ===\n`);
+    log(`\n=== Prospects${stageFilter ? ` (${stageFilter})` : ''} ===\n`);
     for (const p of filtered) {
-        console.log(`  ${p.name} | ${p.company} | ${p.industry} | ${p.stage} | Last touch: ${p.touchHistory.length > 0 ? p.touchHistory[p.touchHistory.length - 1].at.slice(0, 10) : 'never'}`);
+        log(`  ${p.name} | ${p.company} | ${p.industry} | ${p.stage} | Last touch: ${p.touchHistory.length > 0 ? p.touchHistory[p.touchHistory.length - 1].at.slice(0, 10) : 'never'}`);
     }
-    console.log('');
+    log('');
 }
 
 // CLI
@@ -120,21 +125,21 @@ const [, , cmd, ...args] = process.argv;
 if (cmd === 'add') {
     const [name, company, industry, title] = args;
     if (!name || !company) {
-        console.error('Usage: node outreach-prospects.js add "Name" "Company" "Industry" "Title"');
+        logError('Usage: node outreach-prospects.js add "Name" "Company" "Industry" "Title"');
         process.exit(1);
     }
     addProspect({ name, company, industry: industry || 'Unknown', title: title || 'Unknown', source: 'manual' });
 } else if (cmd === 'stage') {
     const [id, stage, note] = args;
     if (!id || !stage) {
-        console.error('Usage: node outreach-prospects.js stage <id> <stage> [note]');
+        logError('Usage: node outreach-prospects.js stage <id> <stage> [note]');
         process.exit(1);
     }
     advanceStage(id, stage, note);
 } else if (cmd === 'touch') {
     const [id, action, note] = args;
     if (!id || !action) {
-        console.error('Usage: node outreach-prospects.js touch <id> <action> [note]');
+        logError('Usage: node outreach-prospects.js touch <id> <action> [note]');
         process.exit(1);
     }
     addTouch(id, action, note);
@@ -143,7 +148,7 @@ if (cmd === 'add') {
 } else if (cmd === 'list') {
     list(args[0]);
 } else {
-    console.log(`
+    log(`
 SimpleBeacon Outreach Tracker
 
 Commands:

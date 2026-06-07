@@ -1,0 +1,33 @@
+# Root-level ignore: block all sibling projects from being scanned when running from CascadeProjects/
+ai-platform/
+ai-agent/
+ai-tools/
+backups/
+coming-soon-dev/
+deployments/
+full-cert/
+full-certificate/
+logs/
+packages/
+simplebeacon-frameworkless/
+simplebeacon-rule-tests/
+
+# Root-level noise files
+CHANGELOG.md
+HANDOFF-*.md
+instructions.txt
+error-check.log
+error-check2.log
+report.json
+report-fresh.json
+scan-website.sh
+setup-zorin.sh
+start-dashboard.sh
+ZORIN-LINUX-SETUP.md
+cookies.txt
+new-cookies.txt
+cookies.txt
+*.zip
+*.bat
+*.log
+tmp-*.txt

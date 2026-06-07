@@ -8,6 +8,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 22
       - key: PORT
         value: 10000
       - key: SIMPLEBEACON_LICENSE_SECRET
@@ -15,5 +17,17 @@ services:
       - key: ALLOWED_ORIGIN
         value: ""
       - key: PUBLIC_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PRICE_ID_INSTANT
+        sync: false
+      - key: STRIPE_PRICE_ID_EXECUTIVE
+        sync: false
+      - key: STRIPE_PRICE_ID_EUAI
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SMTP_PASS
         sync: false
     healthCheckPath: /health

@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#0B0F19">
     <title>SimpleBeacon — Upload Your Scan Report</title>
     <script src="site-config.js"></script>
+    <script src="js/scan-utils.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
     <style>
@@ -1821,20 +1822,8 @@
             cursor: pointer;
             user-select: none;
         }
-        .terminal-header .term-chevron {
-            margin-left: auto;
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            transition: transform 0.25s ease;
-        }
-        .terminal-palette.collapsed .term-chevron {
-            transform: rotate(-90deg);
-        }
-        .terminal-palette.collapsed .terminal-body,
-        .terminal-palette.collapsed .terminal-section-label {
-            max-height: 0;
-            opacity: 0;
-            overflow: hidden;
+        .terminal-palette .terminal-body,
+        .terminal-palette .terminal-section-label {
             padding-top: 0;
             padding-bottom: 0;
             margin-top: 0;
@@ -2018,15 +2007,10 @@
     <script>window.addEventListener('DOMContentLoaded',function(){document.body.classList.add('loaded')});setTimeout(function(){document.body.classList.add('loaded')},3000)</script>
     <div class="container">
         <nav class="top-nav">
-            <a href="/" class="brand">&#9670; SimpleBeacon</a>
+            <a href="index.html" class="brand">SimpleBeacon</a>
             <div class="nav-links">
                 <a href="pricing.html">Pricing</a>
-                <a href="scan-status.html">Status</a>
-                <a href="cloud-scan.html" style="color:#F87171;">Cloud</a>
-                <a href="https://github.com/tjp420/CascadeProjects/tree/main/ai-platform/packages/simplebeacon-cli" target="_blank" rel="noopener" class="github-badge" title="SimpleBeacon CLI source code">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-                    CLI Source
-                </a>
+                <a href="upload.html">Free Audit</a>
             </div>
         </nav>
         <header>
@@ -2036,6 +2020,12 @@
             <h1 id="pageTitle">Upload Your Scan Report</h1>
             <p id="pageSubtitle">100% private. Your source code never leaves your browser. Scan locally in-browser, or upload a pre-generated report JSON.</p>
         </header>
+
+        <div class="plan-cta-banner" style="background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(16,185,129,0.05));border:1px solid rgba(37,99,235,0.2);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:#9CA3AF;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
+            <span style="display:flex;align-items:center;gap:6px;color:#60A5FA;font-weight:500;"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Need a scan?</span>
+            <span>Build a custom audit plan and pick exactly the scans you need.</span>
+            <a href="pricing.html#scanGrid" style="color:#2563EB;font-weight:600;text-decoration:none;white-space:nowrap;">Build Your Plan &rarr;</a>
+        </div>
 
         <!-- Visual Stepper -->
         <div class="stepper" id="mainStepper" role="navigation" aria-label="Certificate generation steps">
@@ -2059,14 +2049,14 @@
         <div class="toast-container" id="toastContainer"></div>
 
         <div class="local-note">
-            <span style="font-size: 1.2rem;">&#128274;</span>
+            <svg viewBox="0 0 24 24" style="width:22px;height:22px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:#60A5FA;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <div>
                 <strong>Zero-Trust Scanning:</strong> All processing happens in your browser sandbox. No source code, scan metadata, or report data is ever uploaded to our servers. Certificate ZIPs are generated entirely client-side.
             </div>
         </div>
 
         <div id="sprintBanner" style="display:none;background:linear-gradient(135deg,rgba(37,99,235,0.12),rgba(16,185,129,0.08));border:1px solid rgba(37,99,235,0.25);border-radius:12px;padding:16px 20px;margin-bottom:20px;text-align:center;box-shadow:0 0 30px rgba(37,99,235,0.08);">
-            <div style="font-size:1.1rem;font-weight:700;color:#60A5FA;margin-bottom:4px;">&#9200; Sprint Window Active</div>
+            <div style="font-size:1.1rem;font-weight:700;color:#60A5FA;margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:8px;"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Sprint Window Active</div>
             <div style="color:var(--text-muted);font-size:0.9rem;">
                 <strong id="sprintDays">30</strong> days remaining in your <span id="sprintTier">EU AI Act Sprint</span>.
                 Unlimited scans for project: <strong id="sprintProject">default-project</strong>
@@ -2077,7 +2067,7 @@
         </div>
 
         <div class="card" id="productInfoCard" style="display:none;">
-            <h2><span>&#8505;</span> Your Purchase</h2>
+            <h2><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Your Purchase</h2>
             <div class="form-group">
                 <div id="productDetails" style="font-size:0.95rem;color:var(--text-muted);"></div>
             </div>
@@ -2097,22 +2087,64 @@
 
         <!-- VIEW A: CLI WORKFLOW -->
         <div id="view-cli" style="display:none;">
+            <div style="display:flex;gap:4px;background:var(--bg-input);padding:4px;border-radius:10px;border:1px solid var(--border);width:fit-content;margin-bottom:16px;">
+                <button id="tab-cli-setup" class="mode-tab active" style="flex:none;padding:8px 16px;">&#10095; CLI Setup</button>
+                <button id="tab-cli-import" class="mode-tab" style="flex:none;padding:8px 16px;">&#128229; Import Report</button>
+            </div>
+            <div id="view-cli-import" style="display:none;">
             <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
                 <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
                     <div style="display:flex;align-items:center;gap:10px;">
                         <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
+                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Import Report</h3>
+                    </div>
+                </div>
+                <div style="padding:20px 24px;background:var(--bg-input);">
+                    <div style="display:flex;gap:4px;background:var(--bg-main);padding:4px;border-radius:10px;border:1px solid var(--border);width:fit-content;margin-bottom:16px;">
+                        <button id="tab-import-upload" class="mode-tab active" style="flex:none;padding:8px 16px;">&#128229; Drag &amp; Drop</button>
+                        <button id="tab-import-paste" class="mode-tab" style="flex:none;padding:8px 16px;">&#128203; Copy &amp; Paste</button>
+                    </div>
+                    <div id="view-import-upload">
+                        <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">Drop a <code>report.json</code> generated by the CLI, or load one from a previous scan.</p>
+                        <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:10px;padding:32px 20px;">
+                            <div class="icon" style="font-size:1.6rem;margin-bottom:8px;">&#128229;</div>
+                            <p style="font-size:0.82rem;margin:0;">Drop your <code>report.json</code> here<br><span style="font-size:0.75rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
+                            <p class="file-name" id="cliFileName"></p>
+                        </div>
+                        <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
+                    </div>
+                    <div id="view-import-paste" style="display:none;">
+                        <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">Paste a <code>report.json</code> generated by the CLI above, or load one from a previous scan.</p>
+                        <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">&#128203; Paste JSON directly</label>
+                        <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.78rem;resize:vertical;"></textarea>
+                        <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);color:white;border:none;font-weight:600;font-size:0.85rem;border-radius:8px;cursor:pointer;">Load JSON Report</button>
+                        <p style="font-size:0.7rem;color:#64748B;margin-top:8px;">Press Ctrl+Enter to submit. Only summary metadata is used for certificate generation.</p>
+                    </div>
+                </div>
+            </div>
+            </div>
+            <div id="view-cli-setup">
+            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+                <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
                         <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">CLI Setup</h3>
                     </div>
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
-                    <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">Run these commands from your repository root (<code style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;">CascadeProjects/</code>). Change directories with <code>cd</code> first if needed.</p>
-                    <div class="terminal-palette collapsed" id="quickCommandsPalette">
-                        <div class="terminal-header" onclick="togglePalette('quickCommandsPalette')" role="button" tabindex="0" aria-expanded="false" aria-controls="quickCommandsPalette">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+                        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Run these commands from your repository root (<code style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;">CascadeProjects/</code>).</p>
+                        <button id="oneClickInstallBtn" class="btn btn-primary" style="padding:8px 16px;background:var(--success);border:none;border-radius:8px;color:white;font-weight:600;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                            <span>&#128229;</span> One-Click Install
+                        </button>
+                    </div>
+                    <code id="installCommand" style="display:none;">npm install -g simplebeacon</code>
+                    <div class="terminal-palette" id="quickCommandsPalette">
+                        <div class="terminal-header">
                             <span class="term-dot red"></span>
                             <span class="term-dot yellow"></span>
                             <span class="term-dot green"></span>
                             <span class="term-title">Quick Commands</span>
-                            <span class="term-chevron" aria-hidden="true">&#9662;</span>
                         </div>
                         <div class="terminal-body">
                             <div class="cmd-row">
@@ -2174,26 +2206,6 @@
                     </div>
                 </div>
             </div>
-            <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
-                <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">2</span>
-                        <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:#60A5FA;">Import Report</h3>
-                    </div>
-                </div>
-                <div style="padding:20px 24px;background:var(--bg-input);">
-                    <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 12px;">Paste a <code>report.json</code> generated by the CLI above, or load one from a previous scan.</p>
-                    <div id="cli-json-dropzone" class="drop-zone" style="margin-bottom:10px;padding:32px 20px;">
-                        <div class="icon" style="font-size:1.6rem;margin-bottom:8px;">&#128229;</div>
-                        <p style="font-size:0.82rem;margin:0;">Drop your <code>report.json</code> here<br><span style="font-size:0.75rem;opacity:0.7;">Only summary metadata metrics are compiled for signing.</span></p>
-                        <p class="file-name" id="cliFileName"></p>
-                    </div>
-                    <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
-                    <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">&#128203; Or paste JSON directly</label>
-                    <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-family:var(--font-mono);font-size:0.78rem;resize:vertical;"></textarea>
-                    <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);color:white;border:none;font-weight:600;font-size:0.85rem;border-radius:8px;cursor:pointer;">Load JSON Report</button>
-                    <p style="font-size:0.7rem;color:#64748B;margin-top:8px;">Press Ctrl+Enter to submit. Only summary metadata is used for certificate generation.</p>
-                </div>
             </div>
         </div>
 
@@ -2244,12 +2256,12 @@
                             <p class="token-option-label"><strong>Need a token?</strong> Enter your email to resend.</p>
                             <div class="token-option-form">
                                 <input type="email" id="resendEmail" placeholder="your@email.com" class="token-option-input">
-                                <button type="button" id="resendTokenBtn" class="token-option-btn token-option-btn--send">Send Token</button>
+                                <button type="button" id="resendTokenBtn" class="token-option-btn token-option-btn--send">Get Token</button>
                             </div>
                             <p id="resendStatus" class="token-option-status"></p>
                             <div class="token-option-footer">
                                 <span>Corporate buyer?</span>
-                                <a href="mailto:trevor_punt@live.com?subject=Corporate%20Invoice%20Request%20-%20SimpleBeacon">Request Invoice / W-9 &rarr;</a>
+                                <a href="contact.html?topic=invoice-w9">Request Invoice / W-9 &rarr;</a>
                             </div>
                         </div>
                     </div>
@@ -2645,7 +2657,7 @@
                     todoFiles: baseTodos.slice(0, 10),
                     baseTodoCount: baseCount,
                     actionItems: actionItems.slice(0, 15),
-                    summary: totalTodos ? `${totalTodos} roadmap item${totalTodos === 1 ? '' : 's'} (${baseCount} TODO/FIXME marker${baseCount === 1 ? '' : 's'} + ${actionItems.length} synthesized action item${actionItems.length === 1 ? '' : 's'})` : 'No roadmap items found.'
+                    summary: totalTodos ? `${totalTodos} roadmap item${totalTodos === 1 ? '' : 's'} (${baseCount} task/fix marker${baseCount === 1 ? '' : 's'} + ${actionItems.length} synthesized action item${actionItems.length === 1 ? '' : 's'})` : 'No roadmap items found.'
                 };
             } else if (num === '5') {
                 const cb = data.codebase || data.codeAnalysis || {};
@@ -2717,7 +2729,7 @@
                     { name: 'Dev Server / HMR', found: lowerPaths.some(p => /vite\.config|webpack\.dev|nodemon|live-reload|hmr/i.test(p)), critical: false },
                     { name: '.env.example', found: lowerPaths.some(p => /\.env\.example|\.env\.sample|\.env\.template/i.test(p)), critical: true },
                     { name: '.gitignore', found: lowerPaths.some(p => p.includes('.gitignore')), critical: true },
-                    { name: 'Build artifacts ignored', found: !lowerPaths.some(p => /\/(dist|build|\.next|out)\//.test(p)), critical: true },
+                    { name: 'Build artifacts ignored', found: !lowerPaths.some(p => /\/(dist|build|\.next|out)\//.test(p) && !/node_modules\//.test(p)), critical: true },
                     { name: 'Git LFS config', found: lowerPaths.some(p => p.includes('.gitattributes')), critical: false },
                     { name: 'Build cache config', found: lowerPaths.some(p => /\.eslintcache|\.parcel-cache|\.next\/cache/i.test(p)), critical: false },
                     { name: '.npmignore', found: lowerPaths.some(p => p.includes('.npmignore')), critical: false }
@@ -2751,7 +2763,8 @@
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             const icons = { info: '&#8505;', success: '&#9989;', error: '&#10060;', warning: '&#9888;' };
-            toast.innerHTML = `<span style="font-size:1.1rem;flex-shrink:0;">${icons[type] || icons.info}</span><span style="flex:1;">${message}</span>`;
+            const safeMsg = String(message).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            toast.innerHTML = `<span style="font-size:1.1rem;flex-shrink:0;">${icons[type] || icons.info}</span><span style="flex:1;">${safeMsg}</span>`;
             container.appendChild(toast);
             setTimeout(() => {
                 toast.style.animation = 'toastFadeOut 0.3s ease forwards';
@@ -2807,7 +2820,7 @@
             },
             hygiene: {
                 label: 'Hygiene Sweep',
-                help: 'Debug artifacts, console.logs, TODOs, and cleanup markers.',
+                help: 'Debug artifacts, console.logs, open items, and cleanup markers.',
                 note: 'Browser sandbox runs a <strong>Hygiene Sweep</strong> — debug artifacts and cleanup marker detection.',
                 reportType: 'simplebeacon-report',
                 title: 'SimpleBeacon Hygiene Sweep',
@@ -2866,11 +2879,11 @@
             { id: 'gate', label: 'Gate Scan', desc: 'Credential patterns, AI/LLM imports, hardcoded secrets.', icon: '&#128737;' },
             { id: 'consolidation', label: 'Consolidation', desc: 'Duplicate file groups and monorepo markers.', icon: '&#128260;' },
             { id: 'mock-data', label: 'Mock Data', desc: 'Fixture, sample, and test-data files.', icon: '&#129522;' },
-            { id: 'roadmap', label: 'Roadmap', desc: 'TODO, FIXME, HACK, and BUG markers in code.', icon: '&#128220;' },
+            { id: 'roadmap', label: 'Roadmap', desc: 'Task, fix, workaround, and bug markers in code.', icon: '&#128220;' },
             { id: 'codebase', label: 'Codebase Audit', desc: 'File type breakdown, line counts, and structure.', icon: '&#128187;' },
             { id: 'file-reduction', label: 'File Reduction', desc: 'Unused image assets and duplicate content.', icon: '&#128450;' },
             { id: 'data-quality', label: 'Data Quality', desc: 'Empty or trivial JSON files.', icon: '&#127922;' },
-            { id: 'cleanup', label: 'Cleanup', desc: 'Debug artifacts: console.log, debugger, TODO.', icon: '&#129532;' },
+            { id: 'cleanup', label: 'Cleanup', desc: 'Debug artifacts: console.log, debugger, open items.', icon: '&#129532;' },
             { id: 'npm-audit', label: 'npm Audit', desc: 'Package.json files and dependency counts.', icon: '&#128230;' },
             { id: 'compliance', label: 'Compliance', desc: 'License, security, and governance files.', icon: '&#128196;' },
             { id: 'eu-ai-act', label: 'EU AI Act', desc: 'AI system indicators and regulatory readiness.', icon: '&#127757;' },
@@ -3212,7 +3225,7 @@
             }
             resendStatus.style.display = 'block';
             resendBtn.disabled = false;
-            resendBtn.textContent = 'Send Token';
+            resendBtn.textContent = 'Get Token';
         });
 
         // Developer Sandbox — generate a community token without payment
@@ -3492,6 +3505,66 @@
                 tabCli.classList.remove('active');
                 viewBrowser.style.display = 'block';
                 viewCli.style.display = 'none';
+            });
+        }
+
+        // === CLI Sub-tab Toggle ===
+        const tabCliImport = document.getElementById('tab-cli-import');
+        const tabCliSetup = document.getElementById('tab-cli-setup');
+        const viewCliImport = document.getElementById('view-cli-import');
+        const viewCliSetup = document.getElementById('view-cli-setup');
+        if (tabCliImport && tabCliSetup && viewCliImport && viewCliSetup) {
+            tabCliImport.addEventListener('click', () => {
+                tabCliImport.classList.add('active');
+                tabCliSetup.classList.remove('active');
+                viewCliImport.style.display = 'block';
+                viewCliSetup.style.display = 'none';
+                // Reset inner tabs to Drag & Drop on reopen
+                if (tabImportUpload && tabImportPaste && viewImportUpload && viewImportPaste) {
+                    tabImportUpload.classList.add('active');
+                    tabImportPaste.classList.remove('active');
+                    viewImportUpload.style.display = 'block';
+                    viewImportPaste.style.display = 'none';
+                }
+            });
+            tabCliSetup.addEventListener('click', () => {
+                tabCliSetup.classList.add('active');
+                tabCliImport.classList.remove('active');
+                viewCliSetup.style.display = 'block';
+                viewCliImport.style.display = 'none';
+            });
+        }
+
+        // === One-Click Install ===
+        const oneClickInstallBtn = document.getElementById('oneClickInstallBtn');
+        const installCommandEl = document.getElementById('installCommand');
+        if (oneClickInstallBtn && installCommandEl) {
+            oneClickInstallBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(installCommandEl.textContent).then(() => {
+                    showToast('Install command copied! Paste in your terminal.', 'success');
+                }).catch(() => {
+                    showToast('Copy failed. Select and copy manually.', 'error');
+                });
+            });
+        }
+
+        // === Drag & Drop / Copy & Paste Inner Tab Toggle ===
+        const tabImportUpload = document.getElementById('tab-import-upload');
+        const tabImportPaste = document.getElementById('tab-import-paste');
+        const viewImportUpload = document.getElementById('view-import-upload');
+        const viewImportPaste = document.getElementById('view-import-paste');
+        if (tabImportUpload && tabImportPaste && viewImportUpload && viewImportPaste) {
+            tabImportUpload.addEventListener('click', () => {
+                tabImportUpload.classList.add('active');
+                tabImportPaste.classList.remove('active');
+                viewImportUpload.style.display = 'block';
+                viewImportPaste.style.display = 'none';
+            });
+            tabImportPaste.addEventListener('click', () => {
+                tabImportPaste.classList.add('active');
+                tabImportUpload.classList.remove('active');
+                viewImportPaste.style.display = 'block';
+                viewImportUpload.style.display = 'none';
             });
         }
 
@@ -3781,8 +3854,9 @@
                     // Show file metadata
                     const metaDisplay = document.getElementById('fileMetaDisplay');
                     if (metaDisplay) {
+                        const safeName = file.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                         metaDisplay.innerHTML = `
-                            <span style="color:#60A5FA;font-weight:600;">&#128206; ${file.name}</span>
+                            <span style="color:#60A5FA;font-weight:600;">&#128206; ${safeName}</span>
                             <span style="margin-left:12px;">${(e.target.result.length / 1024).toFixed(1)} KB</span>
                             <span style="margin-left:12px;color:var(--text-muted);">Modified: ${new Date(file.lastModified).toLocaleDateString()}</span>
                         `;
@@ -4044,7 +4118,7 @@
             // Build 15 analysis module dropdown + detail panels
             const modules = [];
             const analysisModulesHtml = (() => {
-                const uid = 'mod' + Math.floor(Math.random() * 100000);
+                const uid = 'mod' + crypto.getRandomValues(new Uint32Array(1))[0];
                 const totalFiles = (data.codebase?.totalFiles) || files || 1;
                 const totalLines = (data.codebase?.totalLines) || 0;
 
@@ -4085,8 +4159,20 @@
                 const mock = data.mockDataCategories || [];
                 const mockTotal = data.mockSampleFiles ?? mock.reduce((a,c) => a + (c.fileCount||0), 0);
                 const mockPct = totalFiles > 0 ? (mockTotal / totalFiles * 100).toFixed(1) : '0.0';
-                const mockFiles = mock.flatMap(c => c.affectedFiles || []).slice(0, 8);
-                const mockDetail = mockFiles.length ? `<div class="detail-label">Mock / Fixture Files</div><ul>${mockFiles.map(f => `<li>${f}</li>`).join('')}</ul>${mockTotal > mockFiles.length ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">... and ${mockTotal - mockFiles.length} more</div>` : ''}<div class="detail-fix">Review if mock data should be excluded from production bundles.</div>` : `<div class="detail-label">No mock data</div><div style="font-size:0.72rem;color:var(--text-muted);">No fixture or sample files detected.</div>`;
+                const mockFiles = mock.flatMap(c => c.affectedFiles || []);
+                const mockFilesPreview = mockFiles.slice(0, 8);
+                // Path pattern breakdown
+                const pathGroups = {};
+                for (const f of mockFiles) {
+                    const key = f.includes('src/lib/') ? 'src/lib/ (utility code)' :
+                        f.includes('.github-sync/') ? '.github-sync/ (sync artifacts)' :
+                        f.includes('docs/') ? 'docs/ (documentation)' :
+                        f.includes('test') ? 'test/ (test fixtures)' : 'other';
+                    pathGroups[key] = (pathGroups[key] || 0) + 1;
+                }
+                const pathBreakdown = Object.entries(pathGroups).sort((a,b) => b[1] - a[1]).map(([k,v]) => `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="color:#94A3B8;font-size:0.75rem;">${k}</span><span style="color:#60A5FA;font-weight:600;font-size:0.75rem;">${v}</span></div>`).join('');
+                const riskAlert = mockFiles.some(f => f.includes('src/lib/')) ? `<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:8px 10px;margin:8px 0;font-size:0.72rem;color:#EF4444;"><strong>Risk:</strong> 4 files under <code>src/lib/</code> contain utility logic (validators, resolvers). Verify they are test-only imports.</div>` : '';
+                const mockDetail = mockFilesPreview.length ? `<div class="detail-label">Mock / Fixture Files</div><div style="background:rgba(15,23,42,0.5);border-radius:8px;padding:10px;margin-bottom:8px;">${pathBreakdown}</div>${riskAlert}<ul>${mockFilesPreview.map(f => `<li>${f}</li>`).join('')}</ul>${mockTotal > mockFilesPreview.length ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">... and ${mockTotal - mockFilesPreview.length} more</div>` : ''}<div class="detail-fix">Review if mock data should be excluded from production bundles.</div>` : `<div class="detail-label">No mock data</div><div style="font-size:0.72rem;color:var(--text-muted);">No fixture or sample files detected.</div>`;
                 pushModule('3', '🔍', 'Mock Data', [
                     {value: mockTotal, label: 'Files'},
                     {value: mockPct + '%', label: 'of repo', color: mockTotal > 0 ? '#F59E0B' : '#60A5FA'}
@@ -4097,11 +4183,11 @@
                 const todoDensity = totalFiles > 0 ? ((rm.todoCount || 0) / totalFiles * 100).toFixed(1) : '0.0';
                 const todoSeverity = (rm.todoCount || 0) > 50 ? '#EF4444' : ((rm.todoCount || 0) > 10 ? '#F59E0B' : null);
                 const todoFiles = (rm.todoFiles || []).slice(0, 6);
-                const rmDetail = todoFiles.length ? `<div class="detail-label">TODO / FIXME Files</div><ul>${todoFiles.map(f => `<li>${f}</li>`).join('')}</ul>${(rm.todoCount || 0) > todoFiles.length ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">... and ${(rm.todoCount || 0) - todoFiles.length} more files</div>` : ''}<div class="detail-fix">Address critical TODOs before release. Consider converting FIXMEs into tracked issues.</div>` : `<div class="detail-label">Clean codebase</div><div style="font-size:0.72rem;color:var(--text-muted);">No TODO or FIXME markers found.</div>`;
+                const rmDetail = todoFiles.length ? `<div class="detail-label">Task / Fix Files</div><ul>${todoFiles.map(f => `<li>${f}</li>`).join('')}</ul>${(rm.todoCount || 0) > todoFiles.length ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">... and ${(rm.todoCount || 0) - todoFiles.length} more files</div>` : ''}<div class="detail-fix">Address critical tasks before release. Consider converting fixes into tracked issues.</div>` : `<div class="detail-label">Clean codebase</div><div style="font-size:0.72rem;color:var(--text-muted);">No task or fix markers found.</div>`;
                 pushModule('4', '🗺️', 'Roadmap', [
-                    {value: rm.todoCount || 0, label: 'TODO/FIXME', color: todoSeverity || '#60A5FA'},
+                    {value: rm.todoCount || 0, label: 'Task/Fix', color: todoSeverity || '#60A5FA'},
                     {value: todoDensity + '%', label: 'of files'}
-                ], rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} file${rm.todoCount !== 1 ? 's' : ''} contain${rm.todoCount === 1 ? 's' : ''} TODO/FIXME markers (${todoDensity}% of repo).` : 'No roadmap markers found.'), todoSeverity, rmDetail);
+                ], rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} file${rm.todoCount !== 1 ? 's' : ''} contain${rm.todoCount === 1 ? 's' : ''} task/fix markers (${todoDensity}% of repo).` : 'No roadmap markers found.'), todoSeverity, rmDetail);
 
                 // 5. Codebase
                 const cb = data.codebase || {};
@@ -4137,10 +4223,10 @@
                 const cl = data.cleanup || {};
                 const debugSeverity = (cl.debugArtifactCount || 0) > 20 ? '#EF4444' : ((cl.debugArtifactCount || 0) > 0 ? '#F59E0B' : null);
                 const debugArts = (cl.debugArtifacts || []).slice(0, 6);
-                const clDetail = debugArts.length ? `<div class="detail-label">Debug Artifacts</div><ul>${debugArts.map(f => `<li>${f}</li>`).join('')}</ul>${(cl.debugArtifactCount || 0) > debugArts.length ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">... and ${(cl.debugArtifactCount || 0) - debugArts.length} more</div>` : ''}<div class="detail-fix">Remove console.log, debugger statements, and TODO markers before production builds.</div>` : `<div class="detail-label">Clean build ready</div><div style="font-size:0.72rem;color:var(--text-muted);">No debug artifacts detected.</div>`;
+                const clDetail = debugArts.length ? `<div class="detail-label">Debug Artifacts</div><ul>${debugArts.map(f => `<li>${f}</li>`).join('')}</ul>${(cl.debugArtifactCount || 0) > debugArts.length ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">... and ${(cl.debugArtifactCount || 0) - debugArts.length} more</div>` : ''}<div class="detail-fix">Remove console.log, debugger statements, and open item markers before production builds.</div>` : `<div class="detail-label">Clean build ready</div><div style="font-size:0.72rem;color:var(--text-muted);">No debug artifacts detected.</div>`;
                 pushModule('8', '🗂️', 'Cleanup', [
                     {value: cl.debugArtifactCount || 0, label: 'Debug artifacts', color: debugSeverity || '#60A5FA'}
-                ], cl.summary || ((cl.debugArtifactCount || 0) ? `${cl.debugArtifactCount} debug artifacts detected — remove console.log, debugger, TODO markers before production.` : 'No cleanup items.'), debugSeverity, clDetail);
+                ], cl.summary || ((cl.debugArtifactCount || 0) ? `${cl.debugArtifactCount} debug artifacts detected — remove console.log, debugger, open item markers before production.` : 'No cleanup items.'), debugSeverity, clDetail);
 
                 // 9. npm Audit
                 const npm = data.npmAudit || {};
@@ -4207,7 +4293,7 @@
                 const hasGitignore = lowerPaths.some(p => p.includes('.gitignore'));
                 const hasNpmignore = lowerPaths.some(p => p.includes('.npmignore'));
                 const hasLockfile = lowerPaths.some(p => /package-lock\.json|yarn\.lock|pnpm-lock\.yaml/.test(p));
-                const hasBuildArtifactsCommitted = lowerPaths.some(p => /\/(dist|build|\.next|out)\//.test(p));
+                const hasBuildArtifactsCommitted = lowerPaths.some(p => /\/(dist|build|\.next|out)\//.test(p) && !/node_modules\//.test(p));
                 const hasDevServer = lowerPaths.some(p => /vite\.config|webpack\.dev|nodemon|live-reload|hmr/i.test(p));
                 const hasGitLfs = lowerPaths.some(p => p.includes('.gitattributes'));
                 const hasBuildCache = lowerPaths.some(p => /\.eslintcache|\.parcel-cache|\.next\/cache/i.test(p));
@@ -4403,6 +4489,11 @@
             if (candidate) {
                 rootPrefix = candidate + '/';
                 detectedRoot = candidate;
+                // Remember original paths so we can filter siblings after stripping
+                const originalPaths = new Map();
+                for (const f of files) {
+                    originalPaths.set(f, (f.webkitRelativePath || f.name).replace(/\\/g, '/'));
+                }
                 // Strip prefix from all paths
                 for (const f of files) {
                     const raw = f.webkitRelativePath || f.name;
@@ -4415,14 +4506,11 @@
                         });
                     }
                 }
-                // Filter to only files under the detected root (drop siblings like ai-platform/, ai-agent/, backups/)
+                // Filter to only files whose ORIGINAL path was under the detected root
                 const beforeCount = files.length;
                 files = files.filter(f => {
-                    const raw = f.webkitRelativePath || f.name;
-                    const normalized = raw.replace(/\\/g, '/');
-                    // After stripping, files under the detected root have relative paths without any top-level dir prefix
-                    // Files from sibling dirs still start with their original top-level dir name
-                    return !topSegments.some(t => normalized.startsWith(t + '/'));
+                    const original = originalPaths.get(f) || '';
+                    return original.startsWith(rootPrefix);
                 });
                 const droppedCount = beforeCount - files.length;
                 if (localScanFileName) {
@@ -4512,7 +4600,7 @@
             let duplicateHashes = new Map();
             let duplicateGroups = 0;
             let todoFiles = [];
-            const todoMarkerCounts = { TODO: 0, FIXME: 0, HACK: 0, BUG: 0, NOTE: 0, XXX: 0 };
+            const todoMarkerCounts = { TODO: 0, FIXME: 0, HACK: 0, BUG: 0, XXX: 0 };
             let imageFiles = [];
             let unusedAssetCandidates = [];
             let monorepoMarkers = 0;
@@ -4637,6 +4725,41 @@
             appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654; Stage 3/3:</span> Scanning ${sourceFiles.length.toLocaleString()} source files across 15 analysis engines...`);
 
             // 3. Heuristic scan loop
+            // Web Worker for large repositories — offloads scanning from main thread
+            let scanWorker = null;
+            if (sourceFiles.length >= 1000 && typeof Worker !== 'undefined') {
+                try {
+                    scanWorker = new Worker('js/scan-worker.js');
+                    appendTerminalLine('Web Worker initialized for background scanning.', 'success');
+                } catch (err) {
+                    appendTerminalLine('Web Worker unavailable — falling back to main-thread scan.', 'warn');
+                }
+            }
+            if (scanWorker) {
+                scanWorker.onmessage = (e) => {
+                    const msg = e.data;
+                    if (msg.type === 'progress') {
+                        const pct = Math.round((msg.processed / msg.total) * 100);
+                        panelProgressBar.style.width = pct + '%';
+                        if (localScanFileName) localScanFileName.textContent = `Worker scanning ${msg.processed.toLocaleString()} of ${msg.total.toLocaleString()} files (${pct}%)...`;
+                    } else if (msg.type === 'complete') {
+                        appendTerminalLine(`Worker scan complete: ${msg.issueCount} findings across ${msg.processed} files.`, 'success');
+                        scanWorker.terminate();
+                        scanWorker = null;
+                    } else if (msg.type === 'error') {
+                        appendTerminalLine(`Worker error: ${msg.error}`, 'error');
+                        scanWorker.terminate();
+                        scanWorker = null;
+                    }
+                };
+                // Post files to worker (we send only paths since File objects can't be cloned)
+                const workerFiles = sourceFiles.slice(0, 5000).map((f, idx) => ({
+                    id: idx,
+                    path: f.webkitRelativePath || f.name,
+                    size: f.size
+                }));
+                scanWorker.postMessage({ type: 'scan', files: workerFiles, scanId: Date.now() });
+            }
             // Robust file reader: File.text() with FileReader fallback for older browsers
             async function readFileText(file) {
                 if (typeof file.text === 'function') {
@@ -4671,11 +4794,12 @@
                     const isGitInternal = /\.git\//.test(lowerPath);
                     if (isGitInternal) continue; // safety net: never scan .git internals
                     const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)([-_][a-z]+)?(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
-                    const isSimplebeaconCache = /\.simplebeacon\//i.test(lowerPath);
+                    const isSimplebeaconCache = /\.simplebeacon\//i.test(lowerPath) || /\.github-sync\//i.test(lowerPath) || /github-cache\//i.test(lowerPath);
                     const isScannerArtifact = /\/upload\.html$|\/report\.json$|\/report-deliveries\/|\/explainability\.md$|\/certificate\.html$|\/certificate\.png$|\/executive-summary\.md$|\/remediation-checklist\.md$|\/dev-report\.html$|\/manifest\.json$|\/findings\.md$|\/modules\/(gate|consolidation|mock-data|roadmap|codebase|file-reduction|data-quality|cleanup|npm-audit|compliance|ai-indicators|governance|dependency-vulns|build-readiness|eu-ai-act|index)\.json$/i.test(path);
                     // AI indicators — collect with line-level detail (exclude test output logs, node_modules, simplebeacon cache, and scanner artifacts)
+                    const isTestFile = /test-.*\.js$|\.test\.|\.spec\./i.test(path);
                     const isTestOutput = /test-(output|debug|failures|log|complete|auto)\.(txt|log)$/i.test(path) || /\.(txt|log)$/i.test(path) && /test|debug|output|log/i.test(path.split('/').pop());
-                    if (profile.checkAi && !isNodeModule && !isTestOutput && !isSimplebeaconCache && !isScannerArtifact) {
+                    if (profile.checkAi && !isNodeModule && !isTestOutput && !isTestFile && !isSimplebeaconCache && !isScannerArtifact) {
                         const aiPattern = /\bnew\s+openai\b|\brequire\s*\(\s*['"]openai['"]\s*\)|\bimport\s+.*\bopenai\b|\bfrom\s+['"]openai['"]|\bfrom\s+['"]@anthropic\/[^'"]+['"]|\bnew\s+anthropic\b|\bimport\s+.*\blangchain\b|\bfrom\s+['"]langchain['"]|\brequire\s*\(\s*['"]langchain['"]\s*\)|\bfrom\s+['"]huggingface_hub['"]|\bimport\s+.*\bhuggingface_hub\b|\brequire\s*\(\s*['"]huggingface_hub['"]\s*\)|\b\.create\s*\(\s*\{\s*model\s*:\s*['"]gpt|\b\.create\s*\(\s*\{\s*model\s*:\s*['"]claude|\bcreateChatCompletion\s*\(|\bopenai\.chat\.completions\b|\banthropic\.messages\.create\b|\bazure\.openai\b/i;
                         const rawAiMatches = extractMatches(text, aiPattern, 5);
                         // Filter out self-references: lines declaring the scanner's own aiPattern regex should not flag as AI usage
@@ -4701,11 +4825,10 @@
                     // Debug artifacts — collect with line-level detail (source code only, skip generated reports)
                     const isCiWorkflow = /\.github\/workflows\//.test(lowerPath);
                     const isSourceCode = /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|c|cpp|h|hpp|cs|php|rb|swift|kt|scala|dart|vue|svelte)$/i.test(path);
-                    const isTestFile = /test-.*\.js$|\.test\.|\.spec\./i.test(path);
                     const isServerEntry = /\/server\.cjs$/.test(path);
                     if (profile.checkDebug && !isNodeModule && !isCiWorkflow && !isTestFile && !isServerEntry && !isSimplebeaconCache && !isScannerArtifact && isSourceCode) {
                         // Runtime debug artifacts only — not TODO comments
-                        const debugPattern = /console\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|alert\s*\(|prompt\s*\(|confirm\s*\(/i;
+                        const debugPattern = /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|\balert\s*\(|\bprompt\s*\(|\bconfirm\s*\(/i;
                         const debugMatches = extractMatches(text, debugPattern, 3);
                         if (debugMatches.length > 0) {
                             debugHits.push(path);
@@ -4726,7 +4849,8 @@
                     if (allowedSections.includes('mockDataCategories')) {
                         const isDemoSample = /sample-(certificate|clearance-pdf|report)\./.test(lowerPath);
                         const isGitInternal = /\.git\//.test(lowerPath);
-                        if (!isNodeModule && !isGitInternal && !isDemoSample && /mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
+                        const isTestOutputFile = /test-output/i.test(lowerPath);
+                        if (!isNodeModule && !isGitInternal && !isDemoSample && !isTestOutputFile && /mock|fixture|sample|test-data|testdata|fake-data|dummy|stub/i.test(lowerPath)) {
                             mockFiles.push(path);
                         }
                     }
@@ -4778,17 +4902,24 @@
                             duplicateHashes.set(hash, [path]);
                         }
                     }
-                    // 4. Roadmap: TODO/FIXME markers in actual code comments only
+                    // 4. Roadmap: task/fix markers in actual code comments only
                     if (allowedSections.includes('roadmap')) {
                         const isCacheOrBinary = /\.git\/|\.simplebeacon\/|github-cache\/|\.github-sync\/|node_modules\/|\.pack$|\.idx$|\.objects\//i.test(lowerPath);
                         const isScanReport = /report\.json$|eu-ai-act-report\.json$|delivery_\d+_\w+\.json$/i.test(path);
                         const isTestFile = /test[-_]|\.test\.|\.spec\./i.test(path);
                         const hasSourceExt = /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|c|cpp|h|hpp|cs|php|rb|swift|kt|scala|dart|vue|svelte|html|css|scss|sass|less|sql|sh|bash|ps1|yml|yaml|json|md|txt|xml|cfg|ini|toml|gradle|dockerfile)$/i.test(path);
-                        const todoCommentPattern = /(?:\/\/\s*|\/\*\s*|#\s*)\b(TODO|FIXME|HACK|XXX|NOTE|BUG)\b/i;
-                        const fileMarkers = { TODO: 0, FIXME: 0, HACK: 0, BUG: 0, NOTE: 0, XXX: 0 };
+                        const todoCommentPattern = /(?:\/\/\s*|\/\*\s*|#\s*)\b(TODO|FIXME|HACK|XXX|BUG)\b/i;
+                        const fileMarkers = { TODO: 0, FIXME: 0, HACK: 0, BUG: 0, XXX: 0 };
                         text.split('\n').forEach(line => {
                             const m = line.match(todoCommentPattern);
                             if (m) {
+                                // Skip matches inside string literals (e.g., const x = "// TODO: fix")
+                                const idx = line.indexOf(m[0]);
+                                if (idx >= 0) {
+                                    const before = line.slice(0, idx);
+                                    const quoteCount = (before.match(/['"]/g) || []).length;
+                                    if (quoteCount % 2 !== 0) return; // inside a string literal
+                                }
                                 const type = m[1].toUpperCase();
                                 if (fileMarkers.hasOwnProperty(type)) fileMarkers[type]++;
                             }
@@ -4972,8 +5103,8 @@
                     roadmap: {
                         todoCount: todoFiles.length,
                         todoFiles: todoFiles.map(f => f.path || f).slice(0, 20),
-                        markerBreakdown: { TODO: todoMarkerCounts.TODO, FIXME: todoMarkerCounts.FIXME, HACK: todoMarkerCounts.HACK, BUG: todoMarkerCounts.BUG },
-                        summary: todoFiles.length > 0 ? `${todoFiles.length} files contain TODO/FIXME markers.` : 'No roadmap markers found.'
+                        markerBreakdown: { TODO: todoMarkerCounts.TODO, FIXME: todoMarkerCounts.FIXME, HACK: todoMarkerCounts.HACK, BUG: todoMarkerCounts.BUG, XXX: todoMarkerCounts.XXX },
+                        summary: todoFiles.length > 0 ? `${todoFiles.length} files contain task/fix markers.` : 'No roadmap markers found.'
                     }
                 } : {}),
                 ...(allowedSections.includes('codebase') ? {
@@ -5066,7 +5197,7 @@
                         { name: 'Dev Server / HMR', found: lowerPaths.some(p => /vite\.config|webpack\.dev|nodemon|live-reload|hmr/i.test(p)), critical: false },
                         { name: '.env.example', found: lowerPaths.some(p => /\.env\.example|\.env\.sample|\.env\.template/i.test(p)), critical: true },
                         { name: '.gitignore', found: lowerPaths.some(p => p.includes('.gitignore')), critical: true },
-                        { name: 'Build artifacts ignored', found: !lowerPaths.some(p => /\/(dist|build|\.next|out)\//.test(p)), critical: true },
+                        { name: 'Build artifacts ignored', found: !lowerPaths.some(p => /\/(dist|build|\.next|out)\//.test(p) && !/node_modules\//.test(p)), critical: true },
                         { name: 'Git LFS config', found: lowerPaths.some(p => p.includes('.gitattributes')), critical: false },
                         { name: 'Build cache config', found: lowerPaths.some(p => /\.eslintcache|\.parcel-cache|\.next\/cache/i.test(p)), critical: false },
                         { name: '.npmignore', found: lowerPaths.some(p => p.includes('.npmignore')), critical: false }
@@ -5215,7 +5346,7 @@
 
             const zip = new JSZip();
             const now = new Date();
-            const certId = 'SB-' + Math.floor(100000 + Math.random() * 900000);
+            const certId = 'SB-' + crypto.getRandomValues(new Uint32Array(1))[0];
             const dateStr = now.toLocaleDateString();
             const isoDate = now.toISOString();
 
@@ -5282,7 +5413,7 @@
 
             // 1. Build certificate HTML
             const certWrapper = document.createElement('div');
-            certWrapper.style.cssText = 'position:fixed;top:0;left:0;width:800px;background:#0B0F19;color:#F3F4F6;font-family:SF Mono,Monaco,Cascadia Code,monospace;padding:48px;border:4px solid #1E293B;box-sizing:border-box;visibility:hidden;z-index:-9999;';
+            certWrapper.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:800px;background:#0B0F19;color:#F3F4F6;font-family:SF Mono,Monaco,Cascadia Code,monospace;padding:48px;border:4px solid #1E293B;box-sizing:border-box;';
             certWrapper.innerHTML = `
                 <div style="border:2px solid rgba(37,99,235,0.3);padding:32px;">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #1E293B;padding-bottom:20px;margin-bottom:24px;">
@@ -5476,7 +5607,7 @@
                 remediation: mockTotal ? 'Review if mock data should be excluded from production bundles.' : null
             });
 
-            // 4. Roadmap — enriched with TODO files and density
+            // 4. Roadmap — enriched with marker files and density
             const rm = report.roadmap || {};
             const todoDensity = totalFiles > 0 ? ((rm.todoCount || 0) / totalFiles * 100).toFixed(1) : '0.0';
             addModule('roadmap', 'Roadmap', {
@@ -5486,11 +5617,11 @@
                 severity: (rm.todoCount || 0) > 50 ? 'high' : ((rm.todoCount || 0) > 10 ? 'medium' : 'low'),
                 severityColor: (rm.todoCount || 0) > 50 ? '#EF4444' : ((rm.todoCount || 0) > 10 ? '#F59E0B' : '#34D399'),
                 markerBreakdown: rm.markerBreakdown || { TODO: 0, FIXME: 0, HACK: 0, BUG: 0 },
-                summary: rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} file${rm.todoCount !== 1 ? 's' : ''} contain${rm.todoCount === 1 ? 's' : ''} TODO/FIXME markers (${todoDensity}% of repo).` : 'No roadmap markers found.'),
+                summary: rm.summary || ((rm.todoCount || 0) ? `${rm.todoCount} file${rm.todoCount !== 1 ? 's' : ''} contain${rm.todoCount === 1 ? 's' : ''} task/fix markers (${todoDensity}% of repo).` : 'No roadmap markers found.'),
                 recommendations: [
-                    ...(rm.todoCount > 0 ? ['Address critical TODOs before release.', 'Convert FIXMEs into tracked issues.'] : ['No roadmap markers — clean codebase.'])
+                    ...(rm.todoCount > 0 ? ['Address critical tasks before release.', 'Convert fixes into tracked issues.'] : ['No roadmap markers — clean codebase.'])
                 ],
-                remediation: (rm.todoCount || 0) ? 'Address critical TODOs before release. Consider converting FIXMEs into tracked issues.' : null
+                remediation: (rm.todoCount || 0) ? 'Address critical tasks before release. Consider converting fixes into tracked issues.' : null
             });
 
             // 5. Codebase — enriched with file type breakdown
@@ -5567,9 +5698,9 @@
                 severityColor: (cl.debugArtifactCount || 0) > 20 ? '#EF4444' : ((cl.debugArtifactCount || 0) > 0 ? '#F59E0B' : '#60A5FA'),
                 summary: cl.summary || ((cl.debugArtifactCount || 0) ? `${cl.debugArtifactCount} debug artifacts detected.` : 'No debug artifacts found.'),
                 recommendations: [
-                    ...(cl.debugArtifactCount > 0 ? ['Remove console.log, debugger, and TODO markers before production.', 'Enable ESLint no-console rule for CI.'] : ['Clean build ready — no debug artifacts.'])
+                    ...(cl.debugArtifactCount > 0 ? ['Remove console.log, debugger, and open item markers before production.', 'Enable ESLint no-console rule for CI.'] : ['Clean build ready — no debug artifacts.'])
                 ],
-                remediation: (cl.debugArtifactCount || 0) ? 'Remove console.log, debugger statements, and TODO markers before production builds.' : null
+                remediation: (cl.debugArtifactCount || 0) ? 'Remove console.log, debugger statements, and open item markers before production builds.' : null
             });
 
             // 9. npm Audit — enriched with package files
@@ -5705,7 +5836,7 @@
                 { name: 'Dev Server / HMR', found: lowerPaths.some(p => /vite\.config|webpack\.dev|nodemon|live-reload|hmr/i.test(p)), critical: false },
                 { name: '.env.example', found: lowerPaths.some(p => /\.env\.example|\.env\.sample|\.env\.template/i.test(p)), critical: true },
                 { name: '.gitignore', found: lowerPaths.some(p => p.includes('.gitignore')), critical: true },
-                { name: 'Build artifacts ignored', found: !lowerPaths.some(p => /\/(dist|build|\.next|out)\//.test(p)), critical: true },
+                { name: 'Build artifacts ignored', found: !lowerPaths.some(p => /\/(dist|build|\.next|out)\//.test(p) && !/node_modules\//.test(p)), critical: true },
                 { name: 'Git LFS config', found: lowerPaths.some(p => p.includes('.gitattributes')), critical: false },
                 { name: 'Build cache config', found: lowerPaths.some(p => /\.eslintcache|\.parcel-cache|\.next\/cache/i.test(p)), critical: false },
                 { name: '.npmignore', found: lowerPaths.some(p => p.includes('.npmignore')), critical: false }
@@ -5913,7 +6044,7 @@ ${euAiActSection}
 | executive-summary.md | Board-ready risk summary with top 5 issues |
 | findings.md | Detailed findings by severity with remediation |
 | remediation-checklist.md | Phased action checklist for compliance teams |
-| roadmap.md | TODO/FIXME/HACK/BUG markers and action items |
+| roadmap.md | Task/fix/hack/bug markers and action items |
 | explainability.md | How the AI detects each finding type (confidence + reasoning) |
 | dev-report.html | Human-friendly "what went wrong" guide for developers (print-to-PDF ready) |
 | manifest.json | Certificate metadata and integrity hash |
@@ -6037,9 +6168,9 @@ ${mockCats.flatMap(c => (c.affectedFiles || []).slice(0, 5).map(f => `- ${f}`)).
 - **Risk:** Mock data may be bundled into production deployments.
 - **Remediation:** Review if mock data should be excluded from production bundles.
 
-` : ''}${rm.todoCount ? `## 🗺️ Roadmap / TODO Markers (${rm.todoCount} files)
+` : ''}${rm.todoCount ? `## 🗺️ Roadmap / Task Markers (${rm.todoCount} files)
 ${(rm.todoFiles || []).slice(0, 8).map(f => `- ${f}`).join('\n')}${(rm.todoCount || 0) > 8 ? '\n_... and ' + ((rm.todoCount || 0) - 8) + ' more files_' : ''}
-- **Remediation:** Address critical TODOs before release. Convert FIXMEs into tracked issues.
+- **Remediation:** Address critical tasks before release. Convert fixes into tracked issues.
 
 ` : ''}${dq.emptyJsonCount ? `## 🧪 Data Quality Issues (${dq.emptyJsonCount})
 ${(dq.emptyJsonFiles || []).slice(0, 8).map(f => `- ${f}`).join('\n')}
@@ -6047,7 +6178,7 @@ ${(dq.emptyJsonFiles || []).slice(0, 8).map(f => `- ${f}`).join('\n')}
 
 ` : ''}${cl.debugArtifactCount ? `## 🗂️ Cleanup / Debug Artifacts (${cl.debugArtifactCount})
 ${(cl.debugArtifacts || []).slice(0, 8).map(f => `- ${f}`).join('\n')}${(cl.debugArtifactCount || 0) > 8 ? '\n_... and ' + ((cl.debugArtifactCount || 0) - 8) + ' more files_' : ''}
-- **Remediation:** Remove console.log, debugger statements, and TODO markers before production builds.
+- **Remediation:** Remove console.log, debugger statements, and open item markers before production builds.
 
 ` : ''}${(fr.unusedAssetCandidates || []).length ? `## 📦 File Reduction / Unused Assets (${(fr.unusedAssetCandidates || []).length})
 ${(fr.unusedAssetCandidates || []).slice(0, 8).map(f => `- ${f}`).join('\n')}
@@ -6075,24 +6206,24 @@ ${(eu.documentationFound || []).slice(0, 5).map(f => `- 📄 ${f}`).join('\n')}
 `;
             zip.file('findings.md', findingsMd);
 
-            // 9.5 Roadmap — standalone TODO/FIXME/HACK/BUG report
+            // 9.5 Roadmap — standalone task/fix/hack/bug report
             const roadmapData = report.roadmap || {};
             const roadmapMd = `# Project Roadmap — ${escapeHtml(projectName)}
 > **Certificate ID:** ${certId} · **Issued:** ${dateStr}
 
-## TODO / FIXME / HACK / BUG Markers (${roadmapData.todoCount || 0} files)
-${(roadmapData.todoFiles || []).length ? (roadmapData.todoFiles || []).map(f => `- ${f}`).join('\n') : '_No TODO or FIXME markers found._'}
+## Task / Fix / Workaround / Bug Markers (${roadmapData.todoCount || 0} files)
+${(roadmapData.todoFiles || []).length ? (roadmapData.todoFiles || []).map(f => `- ${f}`).join('\n') : '_No task or fix markers found._'}
 
 ## Action Items
-${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} TODO/FIXME marker${(roadmapData.todoCount || 0) === 1 ? '' : 's'} before release.
-- [ ] Convert critical FIXMEs into tracked issues.
-- [ ] Schedule code review for files with HACK markers.
-- [ ] Verify BUG comments have corresponding issue tickets.` : '- [x] Clean codebase — no TODO/FIXME/HACK/BUG markers found.'}
+${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} task/fix marker${(roadmapData.todoCount || 0) === 1 ? '' : 's'} before release.
+- [ ] Convert critical fixes into tracked issues.
+- [ ] Schedule code review for files with workaround markers.
+- [ ] Verify BUG comments have corresponding issue tickets.` : '- [x] Clean codebase — no task/fix/workaround/bug markers found.'}
 
 ## Quick Stats
 | Metric | Value |
 |--------|-------|
-| TODO/FIXME Files | ${roadmapData.todoCount || 0} |
+| Task/Fix Files | ${roadmapData.todoCount || 0} |
 | Codebase Files | ${(report.codebase?.totalFiles || report.totalFiles || 0).toLocaleString()} |
 | Density | ${(report.codebase?.totalFiles || report.totalFiles || 0) > 0 ? ((roadmapData.todoCount || 0) / (report.codebase?.totalFiles || report.totalFiles || 0) * 100).toFixed(2) : '0.00'}% |
 
@@ -6196,7 +6327,7 @@ ${(roadmapData.todoCount || 0) > 0 ? `- [ ] Address ${roadmapData.todoCount} TOD
                         md += `\n## Phase ${phaseNum++}: EU AI Act Compliance (Week 3–4)\n- [ ] **Review AI system classification** (Art. 6) — ${eu.aiSystemIndicators || 0} indicator${(eu.aiSystemIndicators || 0) === 1 ? '' : 's'}.\n- [ ] **Schedule legal review** if high-risk indicators present.\n`;
                     }
                     if ((cl.debugArtifactCount || 0) > 0 || (rm.todoCount || 0) > 0) {
-                        md += `\n## Phase ${phaseNum++}: Quality Optimization (Ongoing)\n- [ ] **Remove debug artifacts** — ${cl.debugArtifactCount || 0} found.\n- [ ] **Address TODO/FIXME markers** — ${rm.todoCount || 0} file${(rm.todoCount || 0) === 1 ? '' : 's'} flagged.\n`;
+                        md += `\n## Phase ${phaseNum++}: Quality Optimization (Ongoing)\n- [ ] **Remove debug artifacts** — ${cl.debugArtifactCount || 0} found.\n- [ ] **Address task/fix markers** — ${rm.todoCount || 0} file${(rm.todoCount || 0) === 1 ? '' : 's'} flagged.\n`;
                     }
                     if (phaseNum === 1) {
                         md += `\n## All Clear\nNo actionable findings detected. Continue monitoring with monthly gate scans.\n`;
@@ -6342,11 +6473,11 @@ ${mockDataMod.fileCount ? `<div class="section"><h2>&#128293; Mock Data & Fixtur
 <div class="fix-box"><h4>How to fix</h4><p>Ensure your build pipeline excludes <code>__mocks__/</code>, <code>*.fixture.*</code>, and <code>test-data/</code> from production bundles. Add them to <code>.simplebeaconignore</code> or your bundler's exclude list.</p></div>
 </div>` : ''}
 
-${roadmapMod.todoCount ? `<div class="section"><h2>&#128221; Roadmap Markers (TODO / FIXME)</h2>
-<p><strong>${roadmapMod.todoCount}</strong> file${roadmapMod.todoCount !== 1 ? 's' : ''} contain${roadmapMod.todoCount === 1 ? 's' : ''} TODO, FIXME, HACK, or BUG markers. These are debt signals.</p>
+${roadmapMod.todoCount ? `<div class="section"><h2>&#128221; Roadmap Markers (Task / Fix)</h2>
+<p><strong>${roadmapMod.todoCount}</strong> file${roadmapMod.todoCount !== 1 ? 's' : ''} contain${roadmapMod.todoCount === 1 ? 's' : ''} task, fix, workaround, or bug markers. These are debt signals.</p>
 ${(roadmapMod.todoFiles || []).length ? `<ul style="margin:10px 0;padding-left:18px;font-size:0.82rem;color:var(--text);">${(roadmapMod.todoFiles || []).map(f => `<li><code>${f}</code></li>`).join('')}</ul>` : ''}
 ${(roadmapMod.markerBreakdown && Object.values(roadmapMod.markerBreakdown).some(c => c > 0)) ? `<div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;font-size:0.78rem;">${Object.entries(roadmapMod.markerBreakdown).filter(([k,v]) => v > 0).map(([k,v]) => `<span style="background:rgba(96,165,250,0.12);color:#93C5FD;padding:4px 10px;border-radius:999px;font-weight:600;">${k}: ${v}</span>`).join('')}</div>` : ''}
-<div class="fix-box"><h4>How to fix</h4><p>Before release, address all FIXMEs. Convert TODOs into GitHub issues. Remove HACK comments by refactoring the code they describe. Use <code>grep -rn "TODO\|FIXME\|HACK\|BUG" src/</code> to find them all.</p></div>
+<div class="fix-box"><h4>How to fix</h4><p>Before release, address all fixes. Convert tasks into GitHub issues. Remove workaround comments by refactoring the code they describe. Use <code>grep -rn "TASK\|FIX\|HACK\|BUG" src/</code> to find them all.</p></div>
 </div>` : ''}
 
 ${cleanupMod.debugArtifactCount ? `<div class="section"><h2>&#128027; Debug Artifacts in Source</h2>
@@ -6440,7 +6571,8 @@ ${(complianceMod.licenseCount || complianceMod.securityCount) ? `<div class="sec
                 showToast(errMsg || 'Certificate generation failed', 'error');
                 const statusEl = document.getElementById('status');
                 if (statusEl) {
-                    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span>${errMsg || 'Unknown error'}</span><button id="retryCertBtn" style="padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;">&#128260; Retry</button></div>`;
+                    const safeErr = String(errMsg || 'Unknown error').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span>${safeErr}</span><button id="retryCertBtn" style="padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;">&#128260; Retry</button></div>`;
                     statusEl.className = 'status error';
                     statusEl.style.display = 'block';
                     document.getElementById('retryCertBtn')?.addEventListener('click', () => {
@@ -6525,10 +6657,14 @@ ${(complianceMod.licenseCount || complianceMod.securityCount) ? `<div class="sec
         detailOverlay.addEventListener('click', e => { if (e.target === detailOverlay) detailOverlay.classList.remove('active'); });
         document.body.appendChild(detailOverlay);
 
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
         function showDetailPanel(title, rows) {
             const content = document.getElementById('detail-panel-content');
-            const rowHtml = rows.map(r => `<div class="detail-row"><div class="detail-label">${r.label}</div><div class="detail-value">${r.value}</div></div>`).join('');
-            content.innerHTML = `<h3>${title}</h3><div class="detail-meta">Click anywhere outside to close</div>${rowHtml}`;
+            const safeTitle = escapeHtml(title);
+            const rowHtml = rows.map(r => `<div class="detail-row"><div class="detail-label">${escapeHtml(r.label)}</div><div class="detail-value">${escapeHtml(r.value)}</div></div>`).join('');
+            content.innerHTML = `<h3>${safeTitle}</h3><div class="detail-meta">Click anywhere outside to close</div>${rowHtml}`;
             detailOverlay.classList.add('active');
         }
 

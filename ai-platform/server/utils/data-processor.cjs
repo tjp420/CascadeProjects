@@ -128,10 +128,10 @@ async function runLocalScan(sandboxDir, options = {}) {
             env: { ...process.env, FORCE_COLOR: '0' }
         });
     } catch (err) {
-        if (!fs.existsSync(reportOut)) throw err;
+        try { await fs.promises.access(reportOut); } catch { throw err; }
     }
 
-    const raw = fs.readFileSync(reportOut, 'utf8');
+    const raw = await fs.promises.readFile(reportOut, 'utf8');
     return JSON.parse(raw);
 }
 
