@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@babel/parser": "^7.26.9",
-    "@babel/traverse": "^7.26.9"
+    "@babel/traverse": "^8.0.0"
   },
   "optionalDependencies": {
     "@simplebeacon/intelligence": "1.0.0"
