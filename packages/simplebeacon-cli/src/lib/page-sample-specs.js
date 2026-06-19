@@ -1,5 +1,6 @@
 /**
  * Expected shape for each self-contained dashboard page sample JSON.
+ * simplebeacon:production-leak-intent — Registry of dashboard page sample JSON filenames; references are intentional spec definitions, not production data leaks.
  */
 const PAGE_SAMPLE_SPECS = {
     'ai-analysis-sample.json': {

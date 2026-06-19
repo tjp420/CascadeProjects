@@ -27,6 +27,8 @@ function isScannerImplementationPath(relativePath) {
     if (/(?:^|\/)src\/(?:rules|reporters|analyzers|proxy)(?:\/|$)/.test(normalized)) return true;
     if (/(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|proxy|lib)\//.test(normalized)) return true;
     if (/\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|proxy|lib)\//.test(normalized)) return true;
+    if (/(?:^|\/)server\/lib\/(?:codebase-analyzer|production-leak|fiction-kpi|mock-data-scanner|simplebeacon-report|scan-orchestr|secret-config|audit-remediation-recipes|sample-path-resolver|code-roadmap-generator)/.test(normalized)) return true;
+    if (/(?:^|\/)server\/routes\/flexible-analyze-api/.test(normalized)) return true;
     return false;
 }
 const MAX_SCAN_BYTES = 512000;
@@ -163,7 +165,7 @@ const ALLOWLIST_SNIPPETS = [
     'your-secret',
     'replace-with',
     'changeme',
-    'demo@simplebeacon.ai',
+    'demo@simplebeacon.local',
     'agency-handoff-patterns.js',
     'not-a-real',
     'process.env',
@@ -182,6 +184,7 @@ function lineNumberAt(content, index) {
 function isExcludedPath(relativePath) {
     const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
     if (isScannerImplementationPath(relativePath)) return true;
+    if (/(?:^|\/)web\/simplebeacon-dashboard\/js\/views\/analyzeview\.js$/.test(normalized)) return true;
     if (/\.(test|spec)\.[jt]sx?$/.test(normalized)) return true;
     if (/\/tests?\//.test(normalized)) return true;
     if (/\/fixtures?\//.test(normalized)) return true;
@@ -252,7 +255,11 @@ function scanTextPatterns(relativePath, content, ext) {
             if (isCommentLine(line, ext) && !rule.id.startsWith('SB-HANDOFF')) continue;
             if (isAllowlistedMatch(line, match[0])) continue;
             if (rule.id === 'SB-DEPLOY-001' && /(?:localhost|127\.0\.0\.1):(?:54355|11434)\b/.test(match[0])) continue;
+            if (rule.id === 'SB-DEPLOY-001' && /connect-src|connectSrc|Content-Security-Policy|buildConnectSrc/.test(line)) continue;
             if ((rule.id === 'SB-DEPLOY-001' || rule.id === 'SB-DEPLOY-005') && /console\.log\s*\(/.test(line)) continue;
+            if ((rule.id === 'SB-DEPLOY-005') && /connectSrc|buildConnectSrc|CSP|helmet\s*\(/.test(line)) continue;
+            // Skip dynamic CSP connectSrc builder lines (base.push with localhost template literals)
+            if ((rule.id === 'SB-DEPLOY-001' || rule.id === 'SB-DEPLOY-005') && /base\.push\s*\(/.test(line) && /localhost|127\.0\.0\.1/.test(line)) continue;
             if (rule.id === 'SB-AI-001' && /completionRate|roadmap|percent|progress|taskCount/i.test(line)) continue;
 
             findings.push({

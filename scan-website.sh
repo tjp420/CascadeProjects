@@ -30,9 +30,9 @@ usage() {
 Usage: $0 <URL> [options]
 
 Examples:
-  $0 https://example.com
-  $0 https://example.com --depth 2
-  $0 https://example.com --output report.json
+  $0 https://your-domain.com
+  $0 https://your-domain.com --depth 2
+  $0 https://your-domain.com --output report.json
 
 Options:
   --depth <n>        Pages to fetch (default: 1, just the homepage)

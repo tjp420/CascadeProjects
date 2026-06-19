@@ -8,6 +8,11 @@ const { resolveLogoSrc } = require('./agency-branding-store.cjs');
 
 const SIMPLEBEACON_BADGE_SVG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxODAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCAxODAgNDAiPjxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSIjMTExODI3Ii8+PHRleHQgeD0iMTAiIHk9IjI2IiBmaWxsPSIjNTg2NkZmIiBmb250LWZhbWlseT0iSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlNpbXBsZUJlYWNvbjwvdGV4dD48dGV4dCB4PSIxMTAiIHk9IjI2IiBmaWxsPSIjOUI5QTA0IiBmb250LWZhbWlseT0iSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+VkVSSUZJRUQ8L3RleHQ+PC9zdmc+';
 
+/**
+ * Classify issue.
+ * @param {boolean} issue
+ * @returns {any}
+ */
 function classifyIssue(issue = {}) {
   const blob = `${issue.type || ''} ${issue.rule || ''} ${issue.description || ''}`.toLowerCase();
   if (/credential|secret|aws|jwt|api.key/.test(blob)) return 'credential';
@@ -16,6 +21,11 @@ function classifyIssue(issue = {}) {
   return 'other';
 }
 
+/**
+ * Summarize report.
+ * @param {number} report
+ * @returns {any}
+ */
 function summarizeReport(report = {}) {
   const issues = Array.isArray(report.rawIssues) ? report.rawIssues : [];
   const buckets = { credential: [], leak: [], fiction: [], other: [] };
@@ -23,6 +33,11 @@ function summarizeReport(report = {}) {
     buckets[classifyIssue(issue)].push(issue);
   }
 
+/**
+ * Max severity.
+ * @param {any} list
+ * @returns {any}
+ */
   const maxSeverity = (list) => {
     const order = { critical: 4, high: 3, moderate: 2, medium: 2, low: 1 };
     let max = 'none';
@@ -63,6 +78,11 @@ function summarizeReport(report = {}) {
   };
 }
 
+/**
+ * Build certificate model.
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildCertificateModel(options = {}) {
   const report = options.report || {};
   const summary = summarizeReport(report);
@@ -76,8 +96,8 @@ function buildCertificateModel(options = {}) {
     generatedAt: options.generated_at || report.generatedAt || new Date().toISOString(),
     branding: options.branding || {},
     project: {
-      client_name: options.client_name || options.project?.client_name || 'Client',
-      project_name: options.project_name || options.project?.project_name || 'Project',
+      client_name: options.credentials?.projectName || options.client_name || options.project?.client_name || 'Client',
+      project_name: options.credentials?.projectName || options.project_name || options.project?.project_name || 'Project',
       agency_name: options.agency_name || options.branding?.agency_name || options.project?.agency_name || 'Agency'
     },
     summary,
@@ -85,6 +105,11 @@ function buildCertificateModel(options = {}) {
   };
 }
 
+/**
+ * Render findings table.
+ * @param {Array} findings
+ * @returns {any}
+ */
 function renderFindingsTable(findings = []) {
   if (!findings.length) {
     return '<p class="muted">No blocking findings at configured gate severities.</p>';
@@ -99,6 +124,11 @@ function renderFindingsTable(findings = []) {
   return `<table class="findings"><thead><tr><th>Severity</th><th>Category</th><th>Path</th><th>Summary</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
+/**
+ * Render certificate html.
+ * @param {any} model
+ * @returns {any}
+ */
 function renderCertificateHtml(model) {
   const branding = model.branding || {};
   const brandColor = branding.brand_color_hex || '#2563EB';

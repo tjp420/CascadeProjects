@@ -2,6 +2,11 @@
  * Server-side executive HTML export for code roadmap scans.
  */
 
+/**
+ * Escape html.
+ * @param {any} value
+ * @returns {any}
+ */
 function escapeHtml(value) {
     return String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -10,6 +15,11 @@ function escapeHtml(value) {
         .replace(/"/g, '&quot;');
 }
 
+/**
+ * Render executive html.
+ * @param {any} roadmap
+ * @returns {any}
+ */
 function renderExecutiveHtml(roadmap) {
     const es = roadmap.executiveSummary || {};
     const po = roadmap.projectOverview || {};

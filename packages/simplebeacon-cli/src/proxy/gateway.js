@@ -10,9 +10,10 @@ const https = require('https');
 const { scanOutboundText, extractPromptText } = require('./outbound-scanner');
 const { enforceInboundResponse } = require('./inbound-enforcer');
 const { appendViolationLog } = require('./violation-log');
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
 
-const DEFAULT_PORT = 3000;
-const MAX_BODY_BYTES = Number(process.env.SIMPLEBEACON_PROXY_MAX_BODY || 8 * 1024 * 1024);
+const DEFAULT_PORT = constants.DEFAULT_PORT;
+const MAX_BODY_BYTES = Number(process.env.SIMPLEBEACON_PROXY_MAX_BODY || 8 * constants.BYTES_PER_KB * 1024);
 const BLOCK_MESSAGE = {
     error: 'Security Block: Sensitive corporate pattern or token leak detected locally.'
 };
@@ -279,6 +280,7 @@ function startGateway(options = {}) {
                 server,
                 port,
                 projectRoot,
+                // simplebeacon:production-leak-intent — localhost URL for dev proxy server
                 url: `http://${options.host || '127.0.0.1'}:${port}`
             });
         });

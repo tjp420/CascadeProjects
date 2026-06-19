@@ -16,22 +16,43 @@ const GRAMMAR_MAP = {
 let parserInitPromise = null;
 let Parser = null;
 
+/**
+ * Resolve wasm dir.
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveWasmDir(options = {}) {
     if (options.wasmDir) return path.resolve(options.wasmDir);
     return path.join(__dirname, '..', 'grammars');
 }
 
+/**
+ * Grammar path.
+ * @param {any} language
+ * @param {Object} options
+ * @returns {any}
+ */
 function grammarPath(language, options = {}) {
     const fileName = GRAMMAR_MAP[language];
     if (!fileName) return null;
     return path.join(resolveWasmDir(options), fileName);
 }
 
+/**
+ * Is grammar available.
+ * @param {any} language
+ * @param {Object} options
+ * @returns {any}
+ */
 function isGrammarAvailable(language, options = {}) {
     const wasmPath = grammarPath(language, options);
     return wasmPath != null && fs.existsSync(wasmPath);
 }
 
+/**
+ * Load web tree sitter.
+ * @returns {any}
+ */
 function loadWebTreeSitter() {
     try {
         return require('web-tree-sitter');
@@ -40,6 +61,11 @@ function loadWebTreeSitter() {
     }
 }
 
+/**
+ * Init parser.
+ * @param {Object} options
+ * @returns {any}
+ */
 async function initParser(options = {}) {
     if (parserInitPromise) return parserInitPromise;
 
@@ -57,6 +83,12 @@ async function initParser(options = {}) {
     return parserInitPromise;
 }
 
+/**
+ * Create language parser.
+ * @param {any} language
+ * @param {Object} options
+ * @returns {any}
+ */
 async function createLanguageParser(language, options = {}) {
     const init = await initParser(options);
     if (!init.ready) return { ok: false, reason: init.reason };
@@ -69,7 +101,7 @@ async function createLanguageParser(language, options = {}) {
         };
     }
 
-    const wasmBuffer = fs.readFileSync(wasmPath);
+    const wasmBuffer = await fs.promises.readFile(wasmPath);
     const lang = await Parser.Language.load(wasmBuffer);
     const parser = new Parser();
     parser.setLanguage(lang);
@@ -77,6 +109,13 @@ async function createLanguageParser(language, options = {}) {
     return { ok: true, parser, language };
 }
 
+/**
+ * Parse with tree sitter.
+ * @param {any} content
+ * @param {any} language
+ * @param {Object} options
+ * @returns {any}
+ */
 async function parseWithTreeSitter(content, language, options = {}) {
     const result = await createLanguageParser(language, options);
     if (!result.ok) return result;
@@ -85,6 +124,11 @@ async function parseWithTreeSitter(content, language, options = {}) {
     return { ok: true, tree, parser: result.parser, language };
 }
 
+/**
+ * Get tree sitter status.
+ * @param {Object} options
+ * @returns {any}
+ */
 function getTreeSitterStatus(options = {}) {
     const wasmDir = resolveWasmDir(options);
     const grammars = {};

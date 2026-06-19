@@ -1,9 +1,13 @@
 {
   "type": "fictional-patterns-report",
   "overview": {
-    "totalPatterns": 15
+    "totalPatterns": 1
   },
   "patterns": [
-    {}
+    {
+      "id": "sample-pattern",
+      "name": "Example Pattern",
+      "description": "Sample pattern for dashboard preview"
+    }
   ]
 }

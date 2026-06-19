@@ -7,9 +7,10 @@
  * sanitizes PII locally, runs analysis via local Ollama, and exports reports.
  * 
  * Privacy guarantee: All PII is stripped before data reaches the AI engine.
- * Offline-only: Processes strictly on http://127.0.0.1:11434 (local Ollama).
+ * Offline-only: Processes strictly via local Ollama (OLLAMA_BASE_URL env var).
  */
 
+const constants = require('./server/config/constants.cjs');
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -30,15 +31,10 @@ const ARCHIVE_DIR = path.resolve(__dirname, './processed_archive');
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'unbreakable-oracle:latest';
 const OFFLINE_MODE = process.env.SIMPLEBEACON_OFFLINE === 'true' || process.env.NODE_ENV === 'production';
-const DEBUG = process.env.DEBUG === 'true' || process.env.NODE_ENV !== 'production';
-
-const log = DEBUG ? console.log.bind(console) : () => {};
-const logError = DEBUG ? console.error.bind(console) : () => {};
-
-// Privacy enforcement
-if (!OFFLINE_MODE) {
-  console.warn('⚠️  WARNING: Offline mode not enforced. Set SIMPLEBEACON_OFFLINE=true for maximum privacy.');
-}
+const PROCESSOR_DEBUG = process.env.PROCESSOR_DEBUG === 'true';
+const MAX_FILE_SIZE_MB = parseInt(process.env.PROCESSOR_MAX_FILE_SIZE_MB || '50', 10);
+const log = (...args) => { if (PROCESSOR_DEBUG) console.log(...args); };
+const logError = (...args) => { if (PROCESSOR_DEBUG) console.error(...args); };
 
 // Ensure directories exist
 [WATCH_DIR, OUTPUT_DIR, ARCHIVE_DIR].forEach(dir => {
@@ -64,7 +60,7 @@ async function analyzeWithOllama(prompt) {
       options: {
         temperature: 0.1,
         top_p: 0.9,
-        num_predict: 1024
+        num_predict: constants.BYTES_PER_KB
       }
     })
   });
@@ -87,7 +83,11 @@ async function processFile(filePath) {
   try {
     log(`[${new Date().toISOString()}] Processing: ${filename}`);
 
-    // 1. Read input file
+    // 1. Read input file (with size guard)
+    const stats = fs.statSync(filePath);
+    if (stats.size > MAX_FILE_SIZE_MB * constants.BYTES_PER_KB * constants.BYTES_PER_KB) {
+      throw new Error(`File exceeds ${MAX_FILE_SIZE_MB}MB limit: ${filename} (${Math.round(stats.size / 1024 / 1024)}MB)`);
+    }
     const rawData = fs.readFileSync(filePath, 'utf8');
 
     // 2. Absolute Privacy: Strip PII before AI processing
@@ -155,7 +155,7 @@ Provide a structured report with findings and recommendations.`;
 /**
  * Process all existing files in watch directory on startup
  */
-function processExistingFiles() {
+async function processExistingFiles() {
   const files = fs.readdirSync(WATCH_DIR);
   if (files.length === 0) {
     log(`[${new Date().toISOString()}] No existing files to process in ${WATCH_DIR}`);
@@ -163,12 +163,16 @@ function processExistingFiles() {
   }
 
   log(`[${new Date().toISOString()}] Processing ${files.length} existing file(s)...`);
-  files.forEach(file => {
+  for (const file of files) {
     const fullPath = path.join(WATCH_DIR, file);
     if (fs.statSync(fullPath).isFile()) {
-      processFile(fullPath);
+      try {
+        await processFile(fullPath);
+      } catch (err) {
+        logError(`[${new Date().toISOString()}] Failed to process existing file ${file}:`, err.message);
+      }
     }
-  });
+  }
 }
 
 /**
@@ -181,7 +185,7 @@ function setupFileWatcher() {
     ignored: /(^|[\\/])\../, // ignore dotfiles
     persistent: true,
     awaitWriteFinish: {
-      stabilityThreshold: 2000,
+      stabilityThreshold: constants.MAX_RATE_LIMIT,
       pollInterval: 100
     }
   });
@@ -191,7 +195,9 @@ function setupFileWatcher() {
       // Debounce: only process if file is stable (not being written)
       setTimeout(() => {
         if (fs.existsSync(filePath)) {
-          processFile(filePath);
+          processFile(filePath).catch(err => {
+            logError(`[${new Date().toISOString()}] Unhandled error processing ${filePath}:`, err.message);
+          });
         }
       }, 2500);
     })
@@ -228,7 +234,7 @@ async function main() {
   }
 
   // Process existing files
-  processExistingFiles();
+  await processExistingFiles();
 
   // Start file watcher
   setupFileWatcher();

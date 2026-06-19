@@ -116,17 +116,17 @@ redis-cli -h localhost -p 6379 ping
 ### Service Health Checks
 ```bash
 # Check database connection
-curl http://localhost:54355/api/health
+curl http://localhost:3002/api/health
 
 # Check Redis status
-curl http://localhost:54355/api/platform/status
+curl http://localhost:3002/api/platform/status
 ```
 
 ## Security Configuration
 
 ### Required Security Headers
 - **Helmet**: Security headers enabled
-- **CORS**: Configured for localhost:54355
+- **CORS**: Configured for localhost:3002
 - **Rate Limiting**: 2000 requests per 15 minutes
 - **Audit Logging**: All API calls logged
 
@@ -176,6 +176,21 @@ npm run smoke:test:production
 
 ## Deployment Checklist
 
+### Deploy Gates (Mandatory)
+The deploy script enforces three gates before any production deployment:
+
+1. **Production Readiness Gate**: `npm run verify:production-deploy`
+   - Validates environment variables, security config, database, infrastructure
+   - Fails the deploy if any critical check does not pass
+
+2. **v1-Internal Profile Gate**: `npm run verify:v1-internal-profile`
+   - Confirms `.env.v1-internal` exists and contains valid values
+   - Checks JWT secret length, auth configuration, Phase 2 readiness
+
+3. **Smoke Test Gate**: `npm run smoke:test:production`
+   - Runs route smoke tests against the production profile
+   - Warnings are interactive (requires confirmation to proceed)
+
 ### Pre-deployment Checks
 - [ ] Environment variables configured in `.env.v1-internal`
 - [ ] JWT secrets are strong (32+ characters)
@@ -186,6 +201,7 @@ npm run smoke:test:production
 
 ### Health Verification
 - [ ] `npm run verify:v1-internal-profile` passes
+- [ ] `npm run verify:production-deploy` passes
 - [ ] `npm run smoke:test:production` passes
 - [ ] Database connectivity confirmed
 - [ ] Redis connectivity confirmed
@@ -207,7 +223,7 @@ npm run smoke:test:production
 #### Authentication Failures
 ```bash
 # Check JWT configuration
-curl http://localhost:54355/api/platform/status | jq .authRequired
+curl http://localhost:3002/api/platform/status | jq .authRequired
 
 # Verify JWT secrets are set
 env | grep JWT
@@ -264,7 +280,7 @@ docker stats
 redis-cli --latency-history
 
 # Check application metrics
-curl http://localhost:54355/api/metrics/path-health
+curl http://localhost:3002/api/metrics/path-health
 ```
 
 #### Memory Issues

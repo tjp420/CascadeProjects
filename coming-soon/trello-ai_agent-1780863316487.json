@@ -1,0 +1,592 @@
+{
+  "name": "SimpleBeacon Roadmap — ai_agent",
+  "desc": "Auto-generated from SimpleBeacon scan summary. Generated 6/7/2026",
+  "labels": [
+    {
+      "id": "label_critical",
+      "name": "Critical",
+      "color": "red"
+    },
+    {
+      "id": "label_high",
+      "name": "High Priority",
+      "color": "orange"
+    },
+    {
+      "id": "label_medium",
+      "name": "Medium",
+      "color": "yellow"
+    },
+    {
+      "id": "label_low",
+      "name": "Low Priority",
+      "color": "green"
+    }
+  ],
+  "lists": [
+    {
+      "id": "list_todo",
+      "name": "To Do",
+      "pos": 65536
+    },
+    {
+      "id": "list_progress",
+      "name": "In Progress",
+      "pos": 131072
+    },
+    {
+      "id": "list_review",
+      "name": "Under Review",
+      "pos": 196608
+    },
+    {
+      "id": "list_done",
+      "name": "Done",
+      "pos": 262144
+    }
+  ],
+  "cards": [
+    {
+      "id": "card_0",
+      "name": "Phase 1: Consistency & Deduplication",
+      "desc": "Phase: Phase 1: Consistency & Deduplication\\nSeverity: high\\nProgress: 55%\\n\\n4 task(s) remaining.",
+      "idList": "list_todo",
+      "pos": 1024,
+      "idLabels": [
+        "label_high"
+      ],
+      "idChecklists": [
+        "check_0"
+      ]
+    },
+    {
+      "id": "card_1",
+      "name": "Phase 2: Cleanup & Hygiene",
+      "desc": "Phase: Phase 2: Cleanup & Hygiene\\nSeverity: high\\nProgress: 43%\\n\\n12 task(s) remaining.",
+      "idList": "list_progress",
+      "pos": 2048,
+      "idLabels": [
+        "label_high"
+      ],
+      "idChecklists": [
+        "check_1"
+      ]
+    },
+    {
+      "id": "card_2",
+      "name": "Phase 3: Security Hardening",
+      "desc": "Phase: Phase 3: Security Hardening\\nSeverity: medium\\nProgress: 100%\\n\\n5 task(s) remaining.",
+      "idList": "list_done",
+      "pos": 3072,
+      "idLabels": [
+        "label_medium"
+      ],
+      "idChecklists": [
+        "check_2"
+      ]
+    },
+    {
+      "id": "card_3",
+      "name": "Phase 4: Data Integrity",
+      "desc": "Phase: Phase 4: Data Integrity\\nSeverity: medium\\nProgress: 100%\\n\\n2 task(s) remaining.",
+      "idList": "list_done",
+      "pos": 4096,
+      "idLabels": [
+        "label_medium"
+      ],
+      "idChecklists": [
+        "check_3"
+      ]
+    },
+    {
+      "id": "card_4",
+      "name": "Phase 5: Governance & Compliance",
+      "desc": "Phase: Phase 5: Governance & Compliance\\nSeverity: medium\\nProgress: 100%\\n\\n4 task(s) remaining.",
+      "idList": "list_done",
+      "pos": 5120,
+      "idLabels": [
+        "label_medium"
+      ],
+      "idChecklists": [
+        "check_4"
+      ]
+    },
+    {
+      "id": "card_5",
+      "name": "Phase 6: Quality Optimization",
+      "desc": "Phase: Phase 6: Quality Optimization\\nSeverity: low\\nProgress: 40%\\n\\n8 task(s) remaining.",
+      "idList": "list_todo",
+      "pos": 6144,
+      "idLabels": [
+        "label_low"
+      ],
+      "idChecklists": [
+        "check_5"
+      ]
+    },
+    {
+      "id": "card_6",
+      "name": "Phase 7: Mock Data Review",
+      "desc": "Phase: Phase 7: Mock Data Review\\nSeverity: low\\nProgress: 55%\\n\\n3 task(s) remaining.",
+      "idList": "list_todo",
+      "pos": 7168,
+      "idLabels": [
+        "label_low"
+      ],
+      "idChecklists": [
+        "check_6"
+      ]
+    },
+    {
+      "id": "card_7",
+      "name": "Phase 8: npm Audit",
+      "desc": "Phase: Phase 8: npm Audit\\nSeverity: low\\nProgress: 50%\\n\\n9 task(s) remaining.",
+      "idList": "list_todo",
+      "pos": 8192,
+      "idLabels": [
+        "label_low"
+      ],
+      "idChecklists": [
+        "check_7"
+      ]
+    },
+    {
+      "id": "card_8",
+      "name": "Phase 9: Dependency Vulnerability Audit",
+      "desc": "Phase: Phase 9: Dependency Vulnerability Audit\\nSeverity: low\\nProgress: 100%\\n\\n3 task(s) remaining.",
+      "idList": "list_done",
+      "pos": 9216,
+      "idLabels": [
+        "label_low"
+      ],
+      "idChecklists": [
+        "check_8"
+      ]
+    },
+    {
+      "id": "card_9",
+      "name": "Phase 10: EU AI Act Compliance",
+      "desc": "Phase: Phase 10: EU AI Act Compliance\\nSeverity: critical\\nProgress: 40%\\n\\n6 task(s) remaining.",
+      "idList": "list_progress",
+      "pos": 10240,
+      "idLabels": [
+        "label_critical"
+      ],
+      "idChecklists": [
+        "check_9"
+      ]
+    }
+  ],
+  "checklists": [
+    {
+      "id": "check_0",
+      "idCard": "card_0",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_0_0",
+          "name": "Task 1 of 4",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_0_1",
+          "name": "Task 2 of 4",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_0_2",
+          "name": "Task 3 of 4",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_0_3",
+          "name": "Task 4 of 4",
+          "pos": 3072,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_1",
+      "idCard": "card_1",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_1_0",
+          "name": "Task 1 of 12",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_1",
+          "name": "Task 2 of 12",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_2",
+          "name": "Task 3 of 12",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_3",
+          "name": "Task 4 of 12",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_4",
+          "name": "Task 5 of 12",
+          "pos": 4096,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_5",
+          "name": "Task 6 of 12",
+          "pos": 5120,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_6",
+          "name": "Task 7 of 12",
+          "pos": 6144,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_7",
+          "name": "Task 8 of 12",
+          "pos": 7168,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_8",
+          "name": "Task 9 of 12",
+          "pos": 8192,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_9",
+          "name": "Task 10 of 12",
+          "pos": 9216,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_10",
+          "name": "Task 11 of 12",
+          "pos": 10240,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_11",
+          "name": "Task 12 of 12",
+          "pos": 11264,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_2",
+      "idCard": "card_2",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_2_0",
+          "name": "Task 1 of 5",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_1",
+          "name": "Task 2 of 5",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_2",
+          "name": "Task 3 of 5",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_3",
+          "name": "Task 4 of 5",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_4",
+          "name": "Task 5 of 5",
+          "pos": 4096,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_3",
+      "idCard": "card_3",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_3_0",
+          "name": "Task 1 of 2",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_3_1",
+          "name": "Task 2 of 2",
+          "pos": 1024,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_4",
+      "idCard": "card_4",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_4_0",
+          "name": "Task 1 of 4",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_4_1",
+          "name": "Task 2 of 4",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_4_2",
+          "name": "Task 3 of 4",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_4_3",
+          "name": "Task 4 of 4",
+          "pos": 3072,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_5",
+      "idCard": "card_5",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_5_0",
+          "name": "Task 1 of 8",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_5_1",
+          "name": "Task 2 of 8",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_5_2",
+          "name": "Task 3 of 8",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_5_3",
+          "name": "Task 4 of 8",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_5_4",
+          "name": "Task 5 of 8",
+          "pos": 4096,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_5_5",
+          "name": "Task 6 of 8",
+          "pos": 5120,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_5_6",
+          "name": "Task 7 of 8",
+          "pos": 6144,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_5_7",
+          "name": "Task 8 of 8",
+          "pos": 7168,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_6",
+      "idCard": "card_6",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_6_0",
+          "name": "Task 1 of 3",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_6_1",
+          "name": "Task 2 of 3",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_6_2",
+          "name": "Task 3 of 3",
+          "pos": 2048,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_7",
+      "idCard": "card_7",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_7_0",
+          "name": "Task 1 of 9",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_7_1",
+          "name": "Task 2 of 9",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_7_2",
+          "name": "Task 3 of 9",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_7_3",
+          "name": "Task 4 of 9",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_7_4",
+          "name": "Task 5 of 9",
+          "pos": 4096,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_7_5",
+          "name": "Task 6 of 9",
+          "pos": 5120,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_7_6",
+          "name": "Task 7 of 9",
+          "pos": 6144,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_7_7",
+          "name": "Task 8 of 9",
+          "pos": 7168,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_7_8",
+          "name": "Task 9 of 9",
+          "pos": 8192,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_8",
+      "idCard": "card_8",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_8_0",
+          "name": "Task 1 of 3",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_8_1",
+          "name": "Task 2 of 3",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_8_2",
+          "name": "Task 3 of 3",
+          "pos": 2048,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_9",
+      "idCard": "card_9",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_9_0",
+          "name": "Task 1 of 6",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_9_1",
+          "name": "Task 2 of 6",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_9_2",
+          "name": "Task 3 of 6",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_9_3",
+          "name": "Task 4 of 6",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_9_4",
+          "name": "Task 5 of 6",
+          "pos": 4096,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_9_5",
+          "name": "Task 6 of 6",
+          "pos": 5120,
+          "state": "incomplete"
+        }
+      ]
+    }
+  ],
+  "customFields": [],
+  "actions": [],
+  "members": [],
+  "memberships": []
+}

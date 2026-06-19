@@ -5,6 +5,11 @@
 const HISTORY_KEY = 'roadmap-analysis-history';
 const MAX_ENTRIES = 25;
 
+/**
+ * Load roadmap history from db.
+ * @param {any} db
+ * @returns {any}
+ */
 async function loadRoadmapHistoryFromDb(db) {
     if (!db) {
         return { entries: [] };
@@ -23,6 +28,12 @@ async function loadRoadmapHistoryFromDb(db) {
     };
 }
 
+/**
+ * Write history.
+ * @param {any} db
+ * @param {Array} entries
+ * @returns {any}
+ */
 async function writeHistory(db, entries) {
     if (!db) return false;
 
@@ -35,6 +46,12 @@ async function writeHistory(db, entries) {
     return true;
 }
 
+/**
+ * Append history entry.
+ * @param {any} db
+ * @param {any} entry
+ * @returns {any}
+ */
 async function appendHistoryEntry(db, entry) {
     const current = await loadRoadmapHistoryFromDb(db);
     const entries = [entry, ...current.entries.filter((item) => item.id !== entry.id)].slice(0, MAX_ENTRIES);
@@ -42,11 +59,21 @@ async function appendHistoryEntry(db, entry) {
     return entries;
 }
 
+/**
+ * Clear history.
+ * @param {any} db
+ * @returns {any}
+ */
 async function clearHistory(db) {
     await writeHistory(db, []);
     return [];
 }
 
+/**
+ * Setup roadmap analysis history routes.
+ * @param {any} app
+ * @returns {any}
+ */
 function setupRoadmapAnalysisHistoryRoutes(app) {
     app.get('/api/dynamic-roadmap/history', async (req, res) => {
         try {

@@ -22,6 +22,11 @@ const { readJsonFileCached } = require('../../server/lib/json-file-cache.cjs');
 const PROJECT_ROOT = path.join(__dirname, '..', '..');
 const PUBLIC_TRUST_PATH = path.join(PROJECT_ROOT, 'public', 'trust-verification.json');
 
+/**
+ * Wants html response.
+ * @param {any} req
+ * @returns {any}
+ */
 function wantsHtmlResponse(req) {
     if (String(req.query.format || '').toLowerCase() === 'html') return true;
     if (String(req.query.format || '').toLowerCase() === 'json') return false;
@@ -29,16 +34,31 @@ function wantsHtmlResponse(req) {
     return accept.includes('text/html') && !accept.includes('application/json');
 }
 
+/**
+ * Wants raw svg.
+ * @param {any} req
+ * @returns {any}
+ */
 function wantsRawSvg(req) {
     const raw = String(req.query.raw || '').toLowerCase().trim();
     return raw === '1' || raw === 'true' || raw === 'yes';
 }
 
+/**
+ * Read published trust payload.
+ * @returns {any}
+ */
 function readPublishedTrustPayload() {
     if (!fs.existsSync(PUBLIC_TRUST_PATH)) return null;
     return readJsonFileCached(PUBLIC_TRUST_PATH);
 }
 
+/**
+ * Build live trust payload.
+ * @param {any} platformRoot
+ * @param {any} monorepoRoot
+ * @returns {any}
+ */
 function buildLiveTrustPayload(platformRoot, monorepoRoot) {
     return buildTrustVerificationPayload({
         platformRoot,
@@ -46,6 +66,12 @@ function buildLiveTrustPayload(platformRoot, monorepoRoot) {
     });
 }
 
+/**
+ * Build verification envelope.
+ * @param {any} live
+ * @param {any} published
+ * @returns {any}
+ */
 function buildVerificationEnvelope(live, published) {
     return {
         success: true,
@@ -54,11 +80,22 @@ function buildVerificationEnvelope(live, published) {
     };
 }
 
+/**
+ * Parse positive integer.
+ * @param {any} value
+ * @param {any} fallback
+ * @returns {any}
+ */
 function parsePositiveInteger(value, fallback) {
     const parsed = Number.parseInt(String(value || ''), 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+/**
+ * Build scope transparency.
+ * @param {any} payload
+ * @returns {any}
+ */
 function buildScopeTransparency(payload) {
     const primary = payload?.headlineSource === 'monorepo' ? payload?.monorepo : payload?.platform;
     const repositoryFilesTotal = primary?.repositoryFilesTotal ?? payload?.headline?.repositoryFilesTotal ?? null;
@@ -82,6 +119,11 @@ function buildScopeTransparency(payload) {
     };
 }
 
+/**
+ * Build badge unavailable svg.
+ * @param {string} message
+ * @returns {any}
+ */
 function buildBadgeUnavailableSvg(message = 'trust badge unavailable') {
     const safeMessage = String(message)
         .replace(/&/g, '&amp;')
@@ -96,6 +138,12 @@ function buildBadgeUnavailableSvg(message = 'trust badge unavailable') {
 </svg>`;
 }
 
+/**
+ * Setup trust a p i.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function setupTrustAPI(app, options = {}) {
     const platformRoot = options.platformRoot || PROJECT_ROOT;
     const monorepoRoot = options.monorepoRoot || path.join(platformRoot, '..');

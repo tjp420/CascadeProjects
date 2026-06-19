@@ -6,6 +6,7 @@
 const path = require('path');
 const fs = require('fs');
 
+const constants = require('./server/config/constants.cjs');
 // Prefer v1-internal env when present (start script or direct node simplebeacon-server.js)
 const v1InternalEnvPath = path.join(__dirname, '.env.v1-internal');
 const envPath = process.env.DOTENV_CONFIG_PATH
@@ -13,7 +14,7 @@ const envPath = process.env.DOTENV_CONFIG_PATH
     ? v1InternalEnvPath
     : path.join(__dirname, '.env'));
 if (fs.existsSync(envPath)) {
-  require('dotenv').config({ path: envPath, override: true });
+  require('dotenv').config({ path: envPath });
   if (envPath.endsWith('.env.v1-internal')) {
     const { applyLocalV1InternalDevProfile } = require('./server/lib/secret-config.cjs');
     applyLocalV1InternalDevProfile();
@@ -21,6 +22,7 @@ if (fs.existsSync(envPath)) {
 }
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const http = require('http');
 const WebSocket = require('ws');
 const cors = require('cors');
@@ -36,15 +38,18 @@ const setupLocalModelsAPI = require('./server/routes/local-models-api.cjs');
 const { setupFlexibleAnalyzeAPI } = require('./server/routes/flexible-analyze-api.cjs');
 const { setupChatbotAPI } = require('./server/routes/chatbot-api.cjs');
 const { setupPhase2Integration } = require('./server/bootstrap/phase2-integration.cjs');
+const { setupRealtimeAnalysisAPI } = require('./server/routes/realtime-analysis-api.cjs');
 const pathHealthRouter = require('./server/api/metrics/path-health.cjs');
 const { registerLegacyPageRedirects } = require('./server/lib/legacy-page-redirects.cjs');
 const uploadRoutes = require('./server/routes/upload.cjs');
 const { setupRepositoryScannerAPIs } = require('./server/routes/repository-scanner-api.cjs');
 const { uploadSecurity, contentValidation } = require('./server/middleware/upload-security.cjs');
 const { authenticate, optionalAuthenticate } = require('./server/middleware/auth.cjs');
+const authRoutes = require('./server/routes/auth.cjs');
 
 const app = express();
-const PORT = 54355;
+app.set('trust proxy', 1);
+const PORT = process.env.PORT || constants.DEFAULT_PORT;
 const WS_PORT = 8081;
 
 // CORS for dev — allow any origin when not in production
@@ -52,6 +57,33 @@ app.use(cors({
     origin: process.env.NODE_ENV === 'production' ? false : true,
     credentials: true
 }));
+
+// Security headers (lightweight helmet alternative — zero dependencies)
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  // Allow iframe embedding in dev (for IDE previews like Windsurf/Cursor)
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('X-Frame-Options', 'DENY');
+  }
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+  // Content-Security-Policy — allow local dev scripts, block inline eval
+  // Production connect-src uses SIMPLEBEACON_CSP_CONNECT_ORIGINS (space-separated) instead of hardcoded localhosts
+  const SCANNER_BRIDGE_PORT = 3456;
+  const LIVE_SERVER_PORT = 55000;
+  const DEFAULT_PORTS = [3000, 3002, 8080, 5000];
+  const prodConnectOrigins = process.env.SIMPLEBEACON_CSP_CONNECT_ORIGINS || "'self'";
+  const devConnectOrigins = process.env.SIMPLEBEACON_CSP_CONNECT_ORIGINS || "'self' ws: wss: http: https: http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " http://127.0.0.1:" + LIVE_SERVER_PORT + DEFAULT_PORTS.map(p => " http://127.0.0.1:" + p).join("");
+  const csp = process.env.NODE_ENV === 'production'
+    ? `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src ${prodConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';`
+    : `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; connect-src ${devConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'self';`
+  res.setHeader('Content-Security-Policy', csp);
+  next();
+});
 
 // HTTPS redirect for production — respect health checks and local development
 app.use((req, res, next) => {
@@ -89,8 +121,12 @@ function sendLandingFile(res, relativePath, type) {
   return true;
 }
 
-function sendSampleReport(res) {
-  return sendLandingFile(res, 'sample-report.html', 'text/html');
+function sendDemoReport(res) {
+  // Only serve demo report in non-production or when explicitly enabled
+  if (process.env.NODE_ENV === 'production' && !process.env.SIMPLEBEACON_ENABLE_DEMO_REPORT) {
+    return false;
+  }
+  return sendLandingFile(res, 'demo-report.html', 'text/html');
 }
 
 const internalDashboard = String(process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || '').trim().toLowerCase() === 'true';
@@ -162,11 +198,56 @@ registerOutreachRoutes(app, {
 setupBuildFromPathRoute(app);
 registerLegacyPageRedirects(app);
 
+// Setup enhanced real-time analysis API
+setupRealtimeAnalysisAPI(app, {
+    baseDir: __dirname,
+    monorepoRoot: path.join(__dirname, '..')
+});
+
 const { registerDataCleanupAnalyzeRoute } = require('./server/lib/data-cleanup-scan.cjs');
 registerDataCleanupAnalyzeRoute(app, {
   baseDir: __dirname,
   monorepoRoot: path.join(__dirname, '..')
 });
+app.post('/api/ai-context', express.json({ limit: '10mb' }), (req, res) => {
+  try {
+    const { projectPath, notes, reportSummary, issues } = req.body;
+    if (!reportSummary || !issues) {
+      return res.status(400).json({ success: false, error: 'Missing report data' });
+    }
+    // Build markdown summary for AI agent
+    const lines = [
+      '# SimpleBeacon Scan Summary',
+      `**Project:** ${projectPath || 'Unknown'}`,
+      `**Quality Score:** ${reportSummary.qualityScore ?? 'N/A'}`,
+      `**Gate Pass:** ${reportSummary.gatePass ?? 'N/A'}`,
+      `**Total Issues:** ${reportSummary.totalIssues ?? issues.length}`,
+      `**Files Scanned:** ${reportSummary.filesScanned ?? 'N/A'}`,
+      ''
+    ];
+    if (notes) {
+      lines.push(`**Notes:** ${notes}`, '');
+    }
+    lines.push('## Issues');
+    for (const issue of issues.slice(0, 200)) {
+      lines.push(`- **[${issue.severity || 'low'}]** ${issue.type || 'Issue'}: ${issue.description || ''}`);
+      if (issue.filePath || issue.file) {
+        lines.push(`  - Location: \`${issue.filePath || issue.file}${issue.line ? ':' + issue.line : ''}\``);
+      }
+    }
+    lines.push('', '_Paste this into your AI coding agent for remediation guidance._');
+    const content = lines.join('\n');
+    res.json({ success: true, content });
+  } catch (err) {
+    console.error('[AI-Context] Error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
 app.get('/api/health/routes', (_req, res) => {
   res.json({
     status: 'ok',
@@ -180,17 +261,18 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 const dashboardPath = path.join(webRoot, 'simplebeacon-dashboard/index.html');
-let cachedDashboardHtml = null;
-function loadDashboardHtml() {
-  if (cachedDashboardHtml !== null) return cachedDashboardHtml;
-  if (!fs.existsSync(dashboardPath)) return null;
-  cachedDashboardHtml = fs.readFileSync(dashboardPath, 'utf8');
-  return cachedDashboardHtml;
+async function loadDashboardHtml() {
+  try {
+    await fs.promises.access(dashboardPath);
+    return await fs.promises.readFile(dashboardPath, 'utf8');
+  } catch {
+    return null;
+  }
 }
 
-function sendSimplebeaconDashboard(res) {
+async function sendSimplebeaconDashboard(res) {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-  const html = loadDashboardHtml();
+  const html = await loadDashboardHtml();
   if (html === null) {
     return res.status(404).send('Simplebeacon dashboard not found');
   }
@@ -206,7 +288,7 @@ function sendLandingIndex(res) {
   return true;
 }
 
-function redirectPublicToLanding(req, res) {
+async function redirectPublicToLanding(req, res) {
   if (landingAtRoot) {
     return res.redirect(302, '/');
   }
@@ -217,9 +299,10 @@ function redirectPublicToLanding(req, res) {
 }
 
 // Dashboard SPA — internal operator only when landing serves sales gate at /
-app.get(/^\/demo(\/.*)?$/, (req, res) => redirectPublicToLanding(req, res));
-app.get(/^\/signin(\/.*)?$/, (req, res) => redirectPublicToLanding(req, res));
-app.get(/^\/app(\/.*)?$/, (req, res) => redirectPublicToLanding(req, res));
+app.get(/^\/demo(\/.*)?$/, async (req, res) => redirectPublicToLanding(req, res));
+app.get(/^\/signin(\/.*)?$/, async (req, res) => redirectPublicToLanding(req, res));
+app.get(/^\/app(\/.*)?$/, async (req, res) => redirectPublicToLanding(req, res));
+app.get(/^\/upload(\.html)?(\/.*)?$/, (req, res) => res.redirect(302, '/#/upload'));
 app.get(/^\/trust(\/.*)?$/, (req, res) => {
   if (landingAtRoot) return res.redirect(302, '/');
   if (internalDashboard && !isVaultAuthenticated(req)) return res.redirect(302, '/');
@@ -227,7 +310,7 @@ app.get(/^\/trust(\/.*)?$/, (req, res) => {
   res.redirect(302, trustHash);
 });
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
   // For internal dashboard, prioritize dashboard over landing page
   if (internalDashboard) {
     return sendSimplebeaconDashboard(res);
@@ -265,12 +348,12 @@ app.get('/private-dashboard-vault', (req, res) => {
     return res.redirect(302, returnTo);
   }
 
-  // Redirect to dashboard by default instead of showing sample report
+  // Redirect to dashboard by default instead of showing demo report
   return res.redirect(302, '/');
 });
 
-app.get(['/sample-report', '/sample-report/', '/sample-report.html'], (req, res, next) => {
-  if (sendSampleReport(res)) return;
+app.get(['/demo-report', '/demo-report/', '/demo-report.html'], (req, res, next) => {
+  if (sendDemoReport(res)) return;
   next();
 });
 
@@ -370,7 +453,15 @@ if (landingRootExists) {
     next();
   });
 
-  app.post('/api/waitlist', async (req, res) => {
+  const waitlistRateLimiter = rateLimit({
+    windowMs: constants.ONE_MINUTE_MS || 60 * 1000,
+    max: 10,
+    message: { error: 'rate_limited' },
+    standardHeaders: true,
+    legacyHeaders: false
+  });
+
+  app.post('/api/waitlist', waitlistRateLimiter, async (req, res) => {
     if (!landingEnabled) return res.status(404).json({ error: 'not_found' });
     const email = String(req.body?.email || '').trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -411,7 +502,7 @@ if (landingRootExists) {
     }
   });
 
-  app.post('/api/waitlist/event', async (req, res) => {
+  app.post('/api/waitlist/event', waitlistRateLimiter, async (req, res) => {
     if (!landingEnabled) return res.status(404).json({ error: 'not_found' });
     const event = {
       event: req.body?.event || 'unknown',
@@ -428,7 +519,7 @@ if (landingRootExists) {
         rows = JSON.parse(data);
       } catch { /* file does not exist yet */ }
       rows.push(event);
-      if (rows.length > 5000) rows = rows.slice(-5000);
+      if (rows.length > constants.TIMEOUT_5S) rows = rows.slice(-constants.TIMEOUT_5S);
       await fs.promises.writeFile(eventsFile, JSON.stringify(rows, null, 2));
     } catch (err) {
       console.warn('[waitlist] event persist failed:', err.message);
@@ -445,6 +536,14 @@ if (landingRootExists) {
     }
     express.static(landingRoot, { index: false, redirect: false })(req, res, next);
   });
+}
+
+// Serve landing pages from root
+app.use('/', express.static(landingRoot, { index: false }));
+
+// Development-only route for scan artifacts (gated in production)
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/data', express.static(path.join(__dirname, 'web', 'data'), { index: false }));
 }
 
 // Simplebeacon API + billing routes registered after Phase 2 auth in bootstrapPhase2Routes()
@@ -506,6 +605,14 @@ app.use((req, res, next) => {
   return res.redirect(302, '/');
 });
 
+// Serve dashboard assets from root when internal dashboard is active
+if (internalDashboard) {
+  const dashDir = path.join(webRoot, 'simplebeacon-dashboard');
+  ['/css', '/js', '/images', '/fonts', '/assets'].forEach(p => {
+    app.use(p, express.static(path.join(dashDir, p.substring(1))));
+  });
+}
+
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return next();
@@ -563,6 +670,7 @@ async function bootstrapPhase2Routes() {
         require('./server/api/assessment/routes.cjs').setupAssessmentRoutes(app);
         setupRepositoryScannerAPIs(app, { platformRoot: __dirname });
         setupChatbotAPI(app);
+        app.use('/api/auth', authRoutes);
 
         app.use('/api/metrics/path-health', pathHealthRouter);
 
@@ -592,6 +700,14 @@ async function bootstrapPhase2Routes() {
 async function startServer() {
   await bootstrapPhase2Routes();
 
+  // Free community token generation (shared with coming-soon)
+  try {
+    const freeTokenRoutes = require('../coming-soon/routes/free-token.cjs');
+    app.use(freeTokenRoutes);
+  } catch (e) {
+    console.warn('[FreeToken] free-token routes not loaded:', e.message);
+  }
+
   // JSON 404 for unknown API routes (must be after Phase 2 + stub registration)
   app.use('/api', (req, res) => {
     res.status(404).json({
@@ -614,7 +730,7 @@ async function startServer() {
     throw err;
   });
 
-  server.listen(PORT, () => {
+  server.listen(PORT, '127.0.0.1', () => {
     console.log(`🚀 Simplebeacon server running on http://localhost:${PORT}`);
     console.log(`✉️ Outreach API at: http://localhost:${PORT}/api/simplebeacon/outreach/config`);
     try {
@@ -633,13 +749,17 @@ async function startServer() {
     } else if (landingEnabled && internalDashboard && fs.existsSync(path.join(landingRoot, 'index.html'))) {
       console.log(`🌐 Paywall at: http://localhost:${PORT}/`);
       console.log(`🌐 Marketing preview at: http://localhost:${PORT}/landing`);
-      console.log(`📄 Sample report at: http://localhost:${PORT}/sample-report`);
+      if (process.env.NODE_ENV !== 'production' || process.env.SIMPLEBEACON_ENABLE_DEMO_REPORT) {
+        console.log(`📄 Demo report at: http://localhost:${PORT}/demo-report`);
+      }
       console.log(`📥 Operator booking inbox at: http://localhost:${PORT}/operator/bookings`);
       if (!String(process.env.RESEND_API_KEY || '').trim()) {
         console.log(`✉️ Email alerts OFF — set RESEND_API_KEY in .env.v1-internal (bookings still save to operator inbox)`);
       }
       console.log(`🛡️ Vault unlock at: http://localhost:${PORT}/private-dashboard-vault?password=<DASHBOARD_VAULT_PASSWORD>`);
-      console.log(`   → opens sample report (same layout as simplebeacon.ai/sample-report)`);
+      if (process.env.NODE_ENV !== 'production' || process.env.SIMPLEBEACON_ENABLE_DEMO_REPORT) {
+        console.log(`   → opens demo report (same layout as simplebeacon.ai/demo-report)`);
+      }
     } else {
       console.log(`🛡️ Simplebeacon dashboard at: http://localhost:${PORT}/`);
     }
@@ -729,7 +849,7 @@ function setupWebSocketServer(httpServer) {
         }
       });
     }
-  }, 5000);
+  }, constants.TIMEOUT_5S);
 
   return wss;
 }

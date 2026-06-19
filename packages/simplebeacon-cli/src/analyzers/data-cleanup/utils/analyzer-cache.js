@@ -5,8 +5,9 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const constants = require('../../../../../../ai-platform/server/config/constants.cjs');
 
-const DEFAULT_TTL_MS = 60 * 60 * 1000;
+const DEFAULT_TTL_MS = 60 * 60 * constants.MS_PER_SECOND;
 
 class AnalyzerCache {
     constructor(projectRoot, options = {}) {

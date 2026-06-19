@@ -20,6 +20,11 @@ const DEDICATED_LANGUAGE_IDS = new Set([
     'sql'
 ]);
 
+/**
+ * Create generic baseline plugin.
+ * @param {any} entry
+ * @returns {any}
+ */
 function createGenericBaselinePlugin(entry) {
     const patterns = getBaselinePatternsForFamily(entry.family);
     const plugin = new LanguagePlugin({
@@ -43,6 +48,10 @@ function createGenericBaselinePlugin(entry) {
     return plugin;
 }
 
+/**
+ * Create unknown file fallback plugin.
+ * @returns {any}
+ */
 function createUnknownFileFallbackPlugin() {
     const patterns = getBaselinePatternsForFamily('domain');
     const plugin = new LanguagePlugin({
@@ -64,6 +73,11 @@ function createUnknownFileFallbackPlugin() {
     return plugin;
 }
 
+/**
+ * Register generic fallback plugins.
+ * @param {any} manager
+ * @returns {any}
+ */
 function registerGenericFallbackPlugins(manager) {
     let registered = 0;
 

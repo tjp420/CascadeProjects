@@ -1,32 +1,31 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-06-06T05:50:32.733Z",
+  "generatedAt": "2026-06-16T08:09:31.124Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
-  "scanTargetRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\.simplebeacon\\config.json",
   "scanPaths": [
-    "C:\\Users\\Trevor\\CascadeProjects\\coming-soon"
+    "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\data"
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
-    "totalFiles": 37,
-    "totalFolders": 1,
-    "profile": "audit"
+    "totalFiles": 177,
+    "totalFolders": 16,
+    "profile": "universal"
   },
-  "mockSampleFiles": 3,
-  "totalFiles": 37,
-  "ruleScopedFilesAnalyzed": 37,
-  "repositoryFilesTotal": 37,
-  "repositoryFoldersTotal": 1,
-  "filesAnalyzed": 37,
-  "totalSizeBytes": 669166,
-  "totalSizeLabel": "653.5KB",
-  "issueCount": 7,
+  "mockSampleFiles": 0,
+  "totalFiles": 1,
+  "ruleScopedFilesAnalyzed": 12,
+  "repositoryFilesTotal": 177,
+  "repositoryFoldersTotal": 16,
+  "filesAnalyzed": 12,
+  "totalSizeBytes": 133,
+  "totalSizeLabel": "133B",
+  "issueCount": 69,
   "invalidJson": 0,
   "emptyFiles": 0,
-  "qualityScore": 76,
+  "qualityScore": 100,
   "schemaCompliance": null,
   "schemaChecked": 0,
   "schemaPassed": 0,
@@ -35,425 +34,1488 @@
   "duplicateGroups": 0,
   "roadmapSchemaChecked": 0,
   "roadmapSchemaPassed": 0,
-  "consistencyChecked": 3,
-  "consistencyPassed": 3,
+  "consistencyChecked": 29,
+  "consistencyPassed": 29,
   "consistencyScore": 100,
-  "fictionJsonFilesScanned": 3,
+  "fictionJsonFilesScanned": 29,
   "fictionSampleFilesScanned": 0,
   "fictionScope": "repository-json",
   "credentialScanned": 12,
   "credentialFindings": 0,
-  "productionLeakScanned": 4,
+  "productionLeakScanned": 11,
   "productionLeakFindings": 0,
   "productionLeakSuppressedIntent": 0,
   "sourceCodeFilesScanned": 0,
   "sourceFictionPatternHits": 0,
-  "llmSlopFilesScanned": 25,
+  "llmSlopFilesScanned": 21,
   "llmSlopPatternHits": 0,
-  "euAiActScanned": 35,
-  "euAiActFindings": 1,
+  "euAiActScanned": 11,
+  "euAiActFindings": 0,
   "euAiActSummary": {
     "highRiskIndicators": 0,
-    "aiSystemIndicators": 1,
+    "aiSystemIndicators": 0,
     "transparencyGaps": 0,
-    "documentationArtifacts": 31,
+    "documentationArtifacts": 83,
     "documentationFound": [
+      "model-card.md",
+      "risk-assessment.md",
+      "conformity-declaration.md",
+      ".simplebeaconignore",
+      "AI-SYSTEM.md",
       "app-links.js",
+      "AUTOPILOT_ROADMAP.md",
+      "bin-roadmap.json",
+      "CERTIFICATE-REMEDIATION-PLAN.md",
       "certificate-upload.html",
+      "certification-post-fix.html",
+      "CHANGELOG.md",
+      "coming-soon-roadmap.json",
       "contact.html",
       "contact.js",
+      "cross-reference-report.md",
+      "EU_AI_ACT_SPRINT_IMPLEMENTATION_PLAN.md",
+      "generate-token.js",
+      "github-issues-ai_agent.md",
+      "jira-ai_agent.csv",
+      "jira-row-vulns.csv",
+      "local-scanner-bridge.cjs",
       "pricing.html",
+      "README.md",
       "refund.html",
+      "roadmap.html",
       "sample-certificate.html",
       "scan-status.html",
-      "server.cjs",
+      "simplebeacon-platform-gate.json",
+      "simplebeacon-platform-roadmap.json",
       "site-config.js",
       "styles.css",
+      "technical-documentation.md",
       "terms.html",
+      "test-generate-roadmap.js",
+      "test-report.json",
+      "trello-ai_agent-1780863316487.json",
+      "trello-board-ai_agent-full.json",
+      "trello-board-ai_agent.json",
+      "trello-export-1780859087255.json",
+      "trello-roadmap-export.js",
+      "unlock.html",
+      "upload-file-list.txt",
       "upload.html",
+      ".simplebeacon/bridge-report-scan-1781164483194.json",
       ".simplebeacon/config.json",
-      ".simplebeacon/eu-ai-act-assessment.json",
-      ".simplebeacon/eu-ai-act-compliance.json",
-      ".simplebeacon/eu-ai-act-report.json",
-      ".simplebeacon/report.json",
-      ".simplebeacon/verify-final.json",
-      ".simplebeacon/verify-scan.json",
-      ".simplebeacon/verify-scan2.json",
-      ".simplebeacon/verify-scan3.json"
+      ".simplebeacon/report.json"
     ],
     "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
   },
-  "enterpriseGuardrailScanned": 4,
-  "enterpriseGuardrailFindings": 0,
-  "fileNamingScanned": 0,
-  "fileNamingFindings": 0,
-  "structuralIntentScanned": 0,
-  "structuralIntentFindings": 0,
-  "structuralIntentEnabled": false,
-  "structuralIntentEngine": null,
-  "structuralIntentSlmReviewCount": 0,
-  "structuralIntentSlmReviews": [],
   "jestBaselineChecked": false,
   "jestBaselinePassed": true,
   "jestSummary": null,
   "severityCounts": {
-    "critical": 1,
-    "high": 2,
-    "medium": 4,
-    "low": 0
+    "critical": 0,
+    "high": 0,
+    "medium": 66,
+    "low": 3
   },
   "mockDataCategories": [
     {
-      "category": "Stale inventory (full-tree scan)",
-      "fileCount": 3,
-      "totalSize": "653.5KB",
-      "qualityScore": null,
-      "issues": null,
+      "category": "JSON Files",
+      "fileCount": 1,
+      "totalSize": "133B",
+      "qualityScore": 100,
+      "issues": 0,
       "confidence": null,
-      "description": "Re-run scan to refresh — current categories reflect an outdated full-repo walk, not web/data samples."
+      "description": "JSON Files discovered during filesystem scan"
     }
   ],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
   "detectedIssues": [
     {
-      "severity": "critical",
-      "severityBand": "critical",
-      "type": "Handoff Integrity",
-      "count": 1,
-      "description": "server.cjs:1033 — Unresolved Git merge conflict marker",
-      "pattern": "SB-HANDOFF-001",
-      "line": 1033,
-      "recommendation": "Resolve merge conflict markers before client handoff.",
-      "recommendedAction": "Resolve merge conflict markers before client handoff.",
-      "affectedFiles": [
-        "server.cjs"
-      ],
-      "filePaths": [
-        "server.cjs"
-      ],
-      "file": "server.cjs"
-    },
-    {
-      "severity": "high",
-      "severityBand": "high",
-      "type": "Deploy Leak",
-      "count": 1,
-      "description": "upload.html:1234 — Localhost or loopback URL with port in production-eligible code",
-      "pattern": "SB-DEPLOY-001",
-      "line": 1234,
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "upload.html"
-      ],
-      "filePaths": [
-        "upload.html"
-      ],
-      "file": "upload.html"
-    },
-    {
-      "severity": "high",
-      "severityBand": "high",
-      "type": "Deploy Leak",
-      "count": 1,
-      "description": "upload.html:1240 — Localhost or loopback URL with port in production-eligible code",
-      "pattern": "SB-DEPLOY-001",
-      "line": 1240,
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "upload.html"
-      ],
-      "filePaths": [
-        "upload.html"
-      ],
-      "file": "upload.html"
-    },
-    {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "Deploy Leak",
+      "type": "missing-env-key",
       "count": 1,
-      "description": "upload.html:1502 — Debug logging flag enabled in config or source",
-      "pattern": "SB-DEPLOY-004",
-      "line": 1502,
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "upload.html"
-      ],
-      "filePaths": [
-        "upload.html"
-      ],
-      "file": "upload.html"
-    },
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "count": 1,
-      "description": "upload.html:1535 — Debug logging flag enabled in config or source",
-      "pattern": "SB-DEPLOY-004",
-      "line": 1535,
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "upload.html"
-      ],
-      "filePaths": [
-        "upload.html"
-      ],
-      "file": "upload.html"
-    },
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "count": 1,
-      "description": "upload.html:1546 — Debug logging flag enabled in config or source",
-      "pattern": "SB-DEPLOY-004",
-      "line": 1546,
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "upload.html"
-      ],
-      "filePaths": [
-        "upload.html"
-      ],
-      "file": "upload.html"
-    },
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "count": 1,
-      "description": "Generative AI or LLM integration detected (14 matches in file)",
-      "pattern": "EUAI-AI-001",
+      "description": "missing-env-key finding",
+      "pattern": null,
       "line": null,
-      "recommendation": "Review EU AI Act transparency and documentation obligations for this AI integration",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "upload.html"
+        ".env"
       ],
       "filePaths": [
-        "upload.html"
+        ".env"
       ],
-      "file": "upload.html"
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "filePaths": [
+        ".env"
+      ],
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "filePaths": [
+        ".env"
+      ],
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "filePaths": [
+        ".env"
+      ],
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "filePaths": [
+        ".env"
+      ],
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "filePaths": [
+        ".env"
+      ],
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "filePaths": [
+        ".env"
+      ],
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "filePaths": [
+        ".env"
+      ],
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "filePaths": [
+        ".env"
+      ],
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "filePaths": [
+        ".env"
+      ],
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "unused-file",
+      "count": 1,
+      "description": "unused-file finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".eslintrc.cjs"
+      ],
+      "filePaths": [
+        ".eslintrc.cjs"
+      ],
+      "file": ".eslintrc.cjs"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "unused-file",
+      "count": 1,
+      "description": "unused-file finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "404.html"
+      ],
+      "filePaths": [
+        "404.html"
+      ],
+      "file": "404.html"
     }
   ],
   "rawIssues": [
     {
-      "id": "agency-handoff-SB-HANDOFF-001-server.cjs-60114",
-      "severity": "critical",
-      "severityBand": "critical",
-      "type": "Handoff Integrity",
-      "category": "handoff-integrity",
-      "filePath": "server.cjs",
-      "file": "server.cjs",
-      "line": 1033,
-      "pattern": "SB-HANDOFF-001",
-      "count": 1,
-      "description": "server.cjs:1033 — Unresolved Git merge conflict marker",
-      "recommendation": "Resolve merge conflict markers before client handoff.",
-      "recommendedAction": "Resolve merge conflict markers before client handoff.",
-      "affectedFiles": [
-        "server.cjs"
-      ],
-      "metadata": {
-        "patternId": "SB-HANDOFF-001",
-        "category": "handoff-integrity",
-        "offset": 60114,
-        "match": "======="
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-001-upload.html-45097",
-      "severity": "high",
-      "severityBand": "high",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "upload.html",
-      "file": "upload.html",
-      "line": 1234,
-      "pattern": "SB-DEPLOY-001",
-      "count": 1,
-      "description": "upload.html:1234 — Localhost or loopback URL with port in production-eligible code",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "upload.html"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-001",
-        "category": "deploy-leak",
-        "offset": 45097,
-        "match": "127.0.0.1:61130"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-001-upload.html-45556",
-      "severity": "high",
-      "severityBand": "high",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "upload.html",
-      "file": "upload.html",
-      "line": 1240,
-      "pattern": "SB-DEPLOY-001",
-      "count": 1,
-      "description": "upload.html:1240 — Localhost or loopback URL with port in production-eligible code",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "upload.html"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-001",
-        "category": "deploy-leak",
-        "offset": 45556,
-        "match": "127.0.0.1:61130"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-004-upload.html-64432",
+      "id": "file-reduction-missing-env-key-300fcb",
       "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "upload.html",
-      "file": "upload.html",
-      "line": 1502,
-      "pattern": "SB-DEPLOY-004",
+      "type": "missing-env-key",
+      "filePath": ".env",
       "count": 1,
-      "description": "upload.html:1502 — Debug logging flag enabled in config or source",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "upload.html"
+        ".env"
       ],
       "metadata": {
-        "patternId": "SB-DEPLOY-004",
-        "category": "deploy-leak",
-        "offset": 64432,
-        "match": "Debug: true"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-004-upload.html-66068",
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "upload.html",
-      "file": "upload.html",
-      "line": 1535,
-      "pattern": "SB-DEPLOY-004",
-      "count": 1,
-      "description": "upload.html:1535 — Debug logging flag enabled in config or source",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "upload.html"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-004",
-        "category": "deploy-leak",
-        "offset": 66068,
-        "match": "Debug: true"
-      }
-    },
-    {
-      "id": "agency-handoff-SB-DEPLOY-004-upload.html-66703",
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Deploy Leak",
-      "category": "deploy-leak",
-      "filePath": "upload.html",
-      "file": "upload.html",
-      "line": 1546,
-      "pattern": "SB-DEPLOY-004",
-      "count": 1,
-      "description": "upload.html:1546 — Debug logging flag enabled in config or source",
-      "recommendation": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "recommendedAction": "Use environment variables for host URLs; set NODE_ENV=production and REQUIRE_AUTH=true on deploy hosts.",
-      "affectedFiles": [
-        "upload.html"
-      ],
-      "metadata": {
-        "patternId": "SB-DEPLOY-004",
-        "category": "deploy-leak",
-        "offset": 66703,
-        "match": "Debug: true"
-      }
-    },
-    {
-      "id": "EUAI-AI-001-upload.html",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "upload.html",
-      "count": 1,
-      "description": "Generative AI or LLM integration detected (14 matches in file)",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
-      "affectedFiles": [
-        "upload.html"
-      ],
-      "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "generative AI",
-        "matchCount": 14,
-        "matches": [
-          "generative AI",
-          "openai",
-          "anthropic",
-          "gpt-4",
-          "claude",
-          "inference endpoint",
-          "huggingface"
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "API_KEY",
+        "references": [
+          "js/dashboard/pattern-documentation.js",
+          "js/dashboard/quick-actions.js",
+          "js/dashboard/scanner-engine.js"
         ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-576572",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "DB_PASSWORD",
+        "references": [
+          "js/dashboard/pattern-documentation.js",
+          "js/dashboard/quick-actions.js"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-996d56",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "SECRET_KEY",
+        "references": [
+          "js/dashboard/pattern-documentation.js",
+          "js/dashboard/quick-actions.js"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-14a008",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "API_URL",
+        "references": [
+          "js/dashboard/pattern-documentation.js"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-9c4347",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "DEBUG",
+        "references": [
+          "js/dashboard/pattern-documentation.js"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-10107c",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "DATABASE_URL",
+        "references": [
+          "js/dashboard/quick-actions.js"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-8c06bf",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "X",
+        "references": [
+          "js/dashboard/scanner-engine.js"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-056bd8",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "SIMPLEBEACON_TEST_DB",
+        "references": [
+          "lib/db.cjs"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-b59de6",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "SCANNER_BRIDGE_PORT",
+        "references": [
+          "local-scanner-bridge.cjs"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-ea6178",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "DEBUG_BRIDGE",
+        "references": [
+          "local-scanner-bridge.cjs"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-e89cc4",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": ".eslintrc.cjs",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".eslintrc.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-360817",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "404.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "404.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-e2bcd8",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "ai-agent-gate.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-agent-gate.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-ab771e",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "ai-agent-roadmap.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-agent-roadmap.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-b57ceb",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "ai-agent-roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-agent-roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-7bbc31",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "ai-slop-cop-report.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-slop-cop-report.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-e362e6",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "ai-tools-roadmap.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-tools-roadmap.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-49f4cd",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "bin-roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "bin-roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-36ab94",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "blog-roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "blog-roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-0e5c94",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "certification-post-fix.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "certification-post-fix.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-16fc00",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "coming-soon-roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "coming-soon-roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-80b048",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "count-all-files.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "count-all-files.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-a6a99c",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "count-files.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "count-files.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-745e7c",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "dashboard.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "dashboard.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-83315f",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "demo-report.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "demo-report.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-fe8678",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "downloads/diagnostic-prep.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "downloads/diagnostic-prep.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-f3c847",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "downloads/repo-handoff.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "downloads/repo-handoff.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-ae4ade",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "generate-account-token.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "generate-account-token.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-5ae59c",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "generate-token.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "generate-token.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-09a06b",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "js/scan-worker.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "js/scan-worker.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-6e2630",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "lib/account-types.cjs",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "lib/account-types.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-440272",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "local-scanner-bridge.cjs",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "local-scanner-bridge.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-6a595a",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "report-editor.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "report-editor.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-803de7",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "run-cli-scan.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "run-cli-scan.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-a3d879",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "sample-clearance-pdf.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "sample-clearance-pdf.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-f47dd0",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "scan-directory.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "scan-directory.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-51b941",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "scripts-roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "scripts-roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-0da9a2",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "services/certificate-generator.cjs",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "services/certificate-generator.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-3df373",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-frameworkless-roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-frameworkless-roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-e193f5",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-platform-gate.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-platform-gate.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-089023",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-platform-roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-platform-roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-a67900",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "src-roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "src-roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-385462",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "subscriptions.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "subscriptions.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-74765d",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "test-all-patterns.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "test-all-patterns.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-cb5425",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "test-certificate.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "test-certificate.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-177b28",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "test-generate-roadmap.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "test-generate-roadmap.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-197874",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "test-normalize.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "test-normalize.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-b8a6b5",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "test-renderPreview.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "test-renderPreview.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-ecbf90",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "test-report.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "test-report.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-a33e9f",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "test-roadmap.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "test-roadmap.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-cc4ab0",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "test-roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "test-roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-3d203c",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "test-technical-audit.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "test-technical-audit.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-08309b",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "test-zip-data.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "test-zip-data.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-0eed0c",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "trello-ai_agent-1780863316487.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "trello-ai_agent-1780863316487.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-8b56a7",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "trello-board-ai_agent-full.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "trello-board-ai_agent-full.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-0ced10",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "trello-board-ai_agent-v2.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "trello-board-ai_agent-v2.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-d1fcc4",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "trello-board-ai_agent.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "trello-board-ai_agent.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-73ec3f",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "trello-card-consistency.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "trello-card-consistency.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-49a694",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "trello-card-vulns.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "trello-card-vulns.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-545280",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "trello-export-1780859087255.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "trello-export-1780859087255.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-6d1769",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "trello-export-ai_agent-1780863207806.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "trello-export-ai_agent-1780863207806.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-e9ffff",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "trello-roadmap-export.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "trello-roadmap-export.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-06b408",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "unlock.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "unlock.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-4902ff",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "update-cache.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "update-cache.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-d56ede",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "vscode-extension-roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension-roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-9021d0",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "zip-for-upload.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "zip-for-upload.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-env-key-21cbd7",
+      "severity": "low",
+      "type": "unused-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "unused-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "STRIPE_PRICE_ID_EXECUTIVE_CLEARANCE",
+        "files": [
+          ".env",
+          ".env.example"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-db0e4d",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "js/dashboard/phase-registry.js",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "js/dashboard/phase-registry.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "computePhaseMetrics",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-5e46fe",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "js/dashboard/phase-registry.js",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "js/dashboard/phase-registry.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "PHASE_REGISTRY",
+        "kind": "named"
       }
     }
   ],
   "benchmarkCacheIssues": [],
   "sampleFiles": [
-    ".env",
-    ".env.example",
-    ".gitignore",
-    ".simplebeaconignore",
-    "404.html",
-    "app-links.js",
-    "certificate-upload.html",
-    "cloud-scan.html",
-    "community.html",
-    "contact.html",
-    "contact.js",
-    "diagnostic-prep.html",
-    "repo-handoff.html",
-    "email-template-universal.html",
-    "error.log",
-    "favicon.svg",
-    "index.html",
-    "landing.html",
-    "package-lock.json",
-    "package.json",
-    "pricing.html",
-    "privacy.html",
-    "refund.html",
-    "robots.txt",
-    "sample-certificate.html",
-    "sample-clearance-pdf.html",
-    "sample-report.html",
-    "scan-status.html",
-    "server.cjs",
-    "site-config.js",
-    "sitemap.xml",
-    "start-server.bat",
-    "stop-server.bat",
-    "styles.css",
-    "subscriptions.json",
-    "terms.html",
-    "upload.html"
+    "re-attestation-metadata.json"
   ],
   "scanScope": {
     "profile": "eu-ai-act",
@@ -467,6 +1529,9 @@
       "agency-handoff-patterns",
       "fiction-kpi-patterns",
       "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "file-reduction",
       "eu-ai-act-patterns"
     ],
     "gatePolicy": {
@@ -478,72 +1543,46 @@
         "low"
       ]
     },
-    "mockSampleFilesInScanPaths": 37,
+    "mockSampleFilesInScanPaths": 1,
     "pageSpecCatalogSize": 50,
     "pageSpecsValidated": 0,
     "pageSpecsFromScanPaths": 0,
     "pageSpecsFromAliasPaths": 0,
-    "productionDirsScanned": 4,
+    "productionDirsScanned": 11,
     "productionPaths": [
-      "."
+      "lib/",
+      "services/"
     ],
-    "sourceCodeScanPaths": [
-      "."
-    ],
+    "sourceCodeScanPaths": [],
     "sourceCodeFilesScanned": 0,
     "sourceFictionPatternHits": 0,
-    "llmSlopFilesScanned": 25,
+    "llmSlopFilesScanned": 21,
     "llmSlopPatternHits": 0,
-    "euAiActFilesScanned": 35,
-    "euAiActPatternHits": 1,
+    "euAiActFilesScanned": 11,
+    "euAiActPatternHits": 0,
     "euAiActHighRiskIndicators": 0,
-    "enterpriseGuardrailFilesScanned": 4,
-    "enterpriseGuardrailHits": 0,
-    "fileNamingFilesScanned": 0,
-    "fileNamingHits": 0,
-    "structuralIntentEnabled": false,
-    "structuralIntentAvailable": false,
-    "structuralIntentFilesScanned": 0,
-    "structuralIntentHits": 0,
-    "structuralIntentEngine": null,
-    "structuralIntentSlmReviewCount": 0,
-    "tokenBleedFilesScanned": 0,
-    "tokenBleedPatternHits": 0,
-    "architectureDriftFilesScanned": 0,
-    "architectureDriftPatternHits": 0,
-    "pythonAstFilesScanned": 0,
-    "pythonAstPatternHits": 0,
-    "pythonAstScanOk": true,
-    "javascriptAstFilesScanned": 0,
-    "javascriptAstPatternHits": 0,
-    "javascriptAstScanOk": true,
     "jestExecutedDuringScan": false,
     "consistencyAnchorCount": 0,
     "fictionScope": "repository-json",
-    "fictionJsonFilesScanned": 3,
+    "fictionJsonFilesScanned": 29,
     "fictionSampleFilesScanned": 0,
-    "ruleScopedFilesAnalyzed": 37,
-    "repositoryFilesTotal": 37,
-    "repositoryFoldersTotal": 1,
-    "fullDirectoryScan": false,
-    "fullDirectoryStats": null,
+    "ruleScopedFilesAnalyzed": 12,
+    "repositoryFilesTotal": 177,
+    "repositoryFoldersTotal": 16,
     "benchmarkCacheIssuesExcluded": 0,
     "excludedPathsNote": null,
     "limitations": [
-      "Repository inventory: 37 files — gate rules checked 37 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 177 files — gate rules checked 12 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-      "Fiction/KPI rules scan repository JSON (3) plus source code (0 files in .).",
-      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
-      "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
-      "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
+      "Fiction/KPI rules scan repository JSON (29) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
     ],
     "resultsViewScope": "platform-only",
-    "reportHealth": "stale-full-tree-scan",
-    "rescanRecommended": true,
-    "inventoryMetricsStale": true
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
   },
   "gate": {
-    "pass": false,
+    "pass": true,
     "failOn": [
       "high"
     ],
@@ -551,9 +1590,239 @@
       "medium",
       "low"
     ],
-    "blockingCount": 3,
-    "warningCount": 4
+    "blockingCount": 0,
+    "warningCount": 0,
+    "blockingIssues": [],
+    "warningIssues": [],
+    "allIssues": [],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed — no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "tier": "community",
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 1,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "1 file analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 0,
+    "summary": "No mock data found."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 92,
+    "readinessStatus": "READY",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": true,
+        "critical": false
+      }
+    ],
+    "missingCritical": [],
+    "missingRecommended": [
+      "Build Tool Config"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 11,
+    "summary": "READY — 11 of 12 checklist items present.",
+    "recommendations": [
+      "Add recommended files to improve maintainability.",
+      "Consider Docker, linting config, and CHANGELOG."
+    ],
+    "remediation": "Missing recommended: Build Tool Config."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2–4 days",
+      "description": "Data integrity verified — no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3–5 days",
+      "description": "Consistency verified — no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2–3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        "Audit 1 open-source license file",
+        "Review 1 security/governance file",
+        "Verify license compatibility with distribution model",
+        "Add LICENSE and SECURITY.md if missing",
+        "Document governance policies"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5–10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "low",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 100/100 toward 95+.",
+      "tasks": [
+        "Add test coverage for uncovered modules",
+        "Install pre-commit hooks for automated scanning",
+        "Schedule monthly quality gate reviews"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "qualityScore": 100,
+    "totalFiles": 1,
+    "totalLines": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-06T05:50:32.735Z"
+  "sanitizedAt": "2026-06-16T08:09:31.133Z"
 }

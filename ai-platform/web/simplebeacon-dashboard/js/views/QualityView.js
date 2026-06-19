@@ -1,12 +1,25 @@
 import { escapeHtml, showToast, formatNumber } from '../utils.js';
 import { resolveJestTestsLabel } from '../services/analyzeService.js';
 
+/**
+ * Parse jest total.
+ * @param {any} jestTestsLabel
+ * @param {any} fallback
+ * @returns {any}
+ */
 function parseJestTotal(jestTestsLabel, fallback) {
   if (!jestTestsLabel) return fallback ?? null;
   const match = String(jestTestsLabel).match(/\/(\d+)/);
   return match ? Number(match[1]) : fallback ?? null;
 }
 
+/**
+ * Resolve coverage snapshot.
+ * @param {any} coverage
+ * @param {any} baseline
+ * @param {any} dashboardHome
+ * @returns {any}
+ */
 function resolveCoverageSnapshot(coverage, baseline, dashboardHome) {
   const merged = { ...(coverage || {}) };
   if (merged.passedTests != null && merged.totalTests != null) return merged;
@@ -23,12 +36,22 @@ function resolveCoverageSnapshot(coverage, baseline, dashboardHome) {
   return merged;
 }
 
+/**
+ * Coverage pending message.
+ * @param {any} coverage
+ * @returns {any}
+ */
 function coveragePendingMessage(coverage) {
   if (coverage?.branchCoverage != null || coverage?.lineCoverage != null) return '';
   return coverage?.notes
     || 'Run npm run test:coverage for Istanbul percentages. Sync Jest counts via Tools → Baseline sync.';
 }
 
+/**
+ * Npm audit summary.
+ * @param {any} audit
+ * @returns {any}
+ */
 function npmAuditSummary(audit) {
   const summary = audit?.summary || audit?.metadata?.vulnerabilities || {};
   const deps = audit?.dependencies || audit?.metadata?.dependencies || {};
@@ -45,10 +68,24 @@ function npmAuditSummary(audit) {
   };
 }
 
+/**
+ * Quality view.
+ */
 export class QualityView {
   constructor(app) {
     this.app = app;
     this.auditLoading = false;
+  }
+
+  _getVscodeApi() {
+    if (this._vscodeApiCached) return this._vscodeApiCached;
+    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
+    try {
+      this._vscodeApiCached = window.acquireVsCodeApi();
+      return this._vscodeApiCached;
+    } catch {
+      return null;
+    }
   }
 
   render() {
@@ -68,8 +105,17 @@ export class QualityView {
     const el = document.createElement('div');
     el.className = 'fade-in';
     el.innerHTML = `
-      <h1 class="page-title">Quality & Security</h1>
-      <p class="text-muted mb-6">Measured coverage, security checklist, and live npm audit.</p>
+      <div class="analyze-hero">
+        <h1 class="page-title">Quality & Security</h1>
+        <p class="text-muted analyze-hero-sub">Measured coverage, security checklist, and live npm audit.</p>
+      </div>
+
+      <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-4);">
+        <div class="analyze-action-info"></div>
+        <div class="flex gap-2">
+          <button class="btn btn-ghost btn-sm" id="quality-send-ai-btn" type="button" title="Send quality and security data to AI coding agent">🤖 Send to AI Agent</button>
+        </div>
+      </div>
 
       <div class="grid-3 mb-6">
         <div class="card insight-stat">
@@ -104,7 +150,6 @@ export class QualityView {
             <div class="settings-row"><span class="settings-label">Tests</span><span class="settings-value">${coverage.passedTests ?? '—'}/${coverage.totalTests ?? '—'}</span></div>
           </div>
           ${coverageHint ? `<p class="text-muted text-sm mt-4">${escapeHtml(coverageHint)}</p>` : ''}
-          <button class="btn btn-secondary btn-sm mt-4" data-scroll="coverage">Coverage details ↑</button>
         </div>
         <div class="card">
           <div class="card-header"><span class="card-title">Security Overview</span></div>
@@ -118,21 +163,52 @@ export class QualityView {
     `;
 
     el.querySelector('#run-audit-btn')?.addEventListener('click', () => this.runAudit());
-    el.querySelector('[data-scroll="coverage"]')?.addEventListener('click', (event) => this.handleCoverageScroll(event));
+    el.querySelector('#quality-send-ai-btn')?.addEventListener('click', async () => {
+      const security = this.app.state.security || {};
+      const coverage = resolveCoverageSnapshot(this.app.state.coverage, this.app.state.baseline, this.app.state.dashboardHome);
+      const quality = this.app.state.quality || {};
+      const npmAudit = this.app.state.npmAudit;
+      const auditStats = npmAudit && !npmAudit.error ? npmAuditSummary(npmAudit) : null;
+      // Extract individual vulnerability details for the AI agent
+      const vulnList = [];
+      const rawVulns = npmAudit?.vulnerabilities || npmAudit?.advisories || {};
+      if (typeof rawVulns === 'object' && rawVulns !== null) {
+        for (const [pkg, info] of Object.entries(rawVulns)) {
+          if (info && typeof info === 'object') {
+            const sev = info.severity || info.via?.[0]?.severity || 'unknown';
+            const title = info.via?.[0]?.title || info.title || info.overview || '';
+            vulnList.push({ package: pkg, severity: sev, title });
+          }
+        }
+      }
+      const payload = {
+        projectPath: this.app.state.lastProjectPath || window.location.origin,
+        reportType: 'quality-security',
+        reportSummary: {
+          lineCoverage: coverage.overallCoverage ?? coverage.lineCoverage ?? 'N/A',
+          branchCoverage: coverage.branchCoverage ?? 'N/A',
+          securityScore: security.securityScore ?? 'N/A',
+          qualityScore: quality.overallScore ?? quality.qualityScore ?? 'N/A',
+          npmVulnerabilities: auditStats?.vulnerabilityTotal ?? 'N/A',
+          openEngineeringFindings: security.openEngineeringFindings ?? 'N/A'
+        },
+        issues: vulnList.slice(0, 200),
+        notes: 'Quality & Security — coverage, security checklist, and npm audit'
+      };
+      const vscode = this._getVscodeApi();
+      if (vscode) {
+        try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Quality & Security data sent to AI agent', 'success'); return; }
+        catch (err) { console.warn('[Quality-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+      }
+      try {
+        const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const json = await res.json();
+        if (json.success && json.content) { await navigator.clipboard.writeText(json.content); showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success'); }
+        else { showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success'); }
+      } catch (err) { showToast('Failed to send: ' + err.message, 'error'); }
+    });
 
     return el;
-  }
-
-  handleCoverageScroll(event) {
-    event?.preventDefault?.();
-    const target = document.getElementById('coverage-details')
-      || document.querySelector('[data-section="coverage"]')
-      || document.querySelector('[data-scroll-target="coverage"]');
-    if (target && typeof target.scrollIntoView === 'function') {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    showToast('Coverage details are not available yet.', 'info');
   }
 
   renderAudit(audit) {
@@ -140,18 +216,19 @@ export class QualityView {
       return '<p class="text-muted card">Click “Run audit” to fetch live npm audit results from the project root.</p>';
     }
 
-    if (audit.error) {
+    if (audit.error || audit.success === false) {
       return `
         <div class="card">
           <p class="text-warning mb-2"><strong>npm audit failed</strong></p>
-          <p class="text-muted">${escapeHtml(audit.error)}</p>
+          <p class="text-muted">${escapeHtml(audit.error || audit.message || 'Unknown error')}</p>
           ${audit.stdout ? `<pre class="audit-log">${escapeHtml(String(audit.stdout).slice(-1500))}</pre>` : ''}
         </div>
       `;
     }
 
     const s = npmAuditSummary(audit);
-    const vulnerabilities = audit.vulnerabilities || audit.advisories || [];
+    const rawVulns = audit.vulnerabilities || audit.advisories;
+    const vulnerabilities = Array.isArray(rawVulns) ? rawVulns : (rawVulns ? Object.values(rawVulns) : []);
     const clean = s.vulnerabilityTotal === 0;
 
     return `
@@ -177,7 +254,7 @@ export class QualityView {
             <tbody>
               ${vulnerabilities.slice(0, 20).map((v) => `
                 <tr>
-                  <td><span class="severity-pill ${v.severity}">${escapeHtml(v.severity)}</span></td>
+                  <td><span class="severity-pill ${escapeHtml(v.severity || 'unknown')}">${escapeHtml(v.severity || 'unknown')}</span></td>
                   <td><code>${escapeHtml(v.component || v.name || v.module_name || '—')}</code></td>
                   <td>${escapeHtml(v.title || v.overview || v.url || '—')}</td>
                 </tr>

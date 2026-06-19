@@ -121,6 +121,10 @@ Hi {{FirstName}}, I help CCOs find AI-generated slop and shadow models in produc
 - **Goal**: 10 audits requested / month → 3 convert to paid ($499–$1,499)
 - **Break-even**: 6 paid conversions / month = ~$3,000 MRR
 
+## EU AI Act Compliance Disclaimer
+
+SimpleBeacon is a **deterministic code-scanning and audit tool** operated by human analysts. It does not make autonomous employment, credit, or healthcare decisions. All scan results are reviewed by qualified personnel before any compliance certification is issued. Clients retain full authority to override, challenge, or disregard any automated finding. Human-in-the-loop review is mandatory for every Executive Risk Certificate.
+
 ## Industries to Prioritize (EU AI Act High-Risk)
 1. **Financial Services** — credit scoring, fraud detection (Annex III, Section 5)
 2. **HR Tech** — resume screening, hiring algorithms (Annex III, Section 4)

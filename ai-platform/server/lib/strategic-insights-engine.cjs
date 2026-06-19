@@ -3,16 +3,28 @@
  * LLMs analyze aggregated numbers only; roadmap data stays filesystem-derived.
  */
 
+const constants = require('../config/constants.cjs');
 const {
     summarizeScanWithProvider,
     providerConfigured
 } = require('../services/cloud-inference-service.cjs');
 
+/**
+ * Num.
+ * @param {any} value
+ * @param {any} fallback
+ * @returns {any}
+ */
 function num(value, fallback = null) {
     const n = Number(value);
     return Number.isFinite(n) ? n : fallback;
 }
 
+/**
+ * Aggregate roadmap metrics.
+ * @param {any} roadmap
+ * @returns {any}
+ */
 function aggregateRoadmapMetrics(roadmap = {}) {
     const structure = roadmap.codeAnalysis?.structure || {};
     const metrics = roadmap.codeAnalysis?.metrics || roadmap.progressMetrics?.metrics || {};
@@ -52,12 +64,22 @@ function aggregateRoadmapMetrics(roadmap = {}) {
     };
 }
 
+/**
+ * Score performance.
+ * @param {Array} metrics
+ * @returns {any}
+ */
 function scorePerformance(metrics) {
-    if (metrics.totalFiles != null && metrics.totalFiles > 30000) return 'MODERATE';
-    if (metrics.totalFiles != null && metrics.totalFiles > 15000) return 'LOW';
+    if (metrics.totalFiles != null && metrics.totalFiles > constants.TIMEOUT_30S) return 'MODERATE';
+    if (metrics.totalFiles != null && metrics.totalFiles > constants.TIMEOUT_15S) return 'LOW';
     return 'MINIMAL';
 }
 
+/**
+ * Score maintainability.
+ * @param {Array} metrics
+ * @returns {any}
+ */
 function scoreMaintainability(metrics) {
     const cov = metrics.testCoverage ?? metrics.lineCoverage;
     if (cov != null && cov < 60) return 'MODERATE';
@@ -65,6 +87,11 @@ function scoreMaintainability(metrics) {
     return 'LOW';
 }
 
+/**
+ * Build deterministic strategic insights.
+ * @param {Array} metrics
+ * @returns {any}
+ */
 function buildDeterministicStrategicInsights(metrics) {
     const perf = scorePerformance(metrics);
     const maint = scoreMaintainability(metrics);
@@ -176,6 +203,12 @@ function buildDeterministicStrategicInsights(metrics) {
     };
 }
 
+/**
+ * Build strategic metrics payload.
+ * @param {Array} metrics
+ * @param {string} _projectPath
+ * @returns {any}
+ */
 function buildStrategicMetricsPayload(metrics, _projectPath) {
     return {
         reportKind: 'roadmap-strategic-metrics',
@@ -202,6 +235,13 @@ function buildStrategicMetricsPayload(metrics, _projectPath) {
     };
 }
 
+/**
+ * Sanitize llm strategic summary.
+ * @param {any} summary
+ * @param {any} deterministic
+ * @param {Array} metrics
+ * @returns {any}
+ */
 function sanitizeLlmStrategicSummary(summary, deterministic, metrics) {
     let text = String(summary || '').trim();
     if (!text) return deterministic.executiveSummary;
@@ -269,6 +309,11 @@ function sanitizeLlmStrategicSummary(summary, deterministic, metrics) {
     return text;
 }
 
+/**
+ * Analyze strategic insights.
+ * @param {Object} options
+ * @returns {any}
+ */
 async function analyzeStrategicInsights(options = {}) {
     const roadmap = options.roadmap || {};
     const mode = String(options.mode || 'deterministic').toLowerCase();

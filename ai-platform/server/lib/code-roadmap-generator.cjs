@@ -37,10 +37,20 @@ const CODE_EXTENSIONS = getCodeExtensions();
 
 const API_ROUTE_SOURCE_PREFIXES = ['server/', 'src/'];
 
+/**
+ * Normalize relative path.
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function normalizeRelativePath(relativePath) {
     return String(relativePath || '').replace(/\\/g, '/');
 }
 
+/**
+ * Should ignore roadmap path.
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function shouldIgnoreRoadmapPath(relativePath) {
     const normalized = normalizeRelativePath(relativePath);
     if (!normalized) return false;
@@ -49,6 +59,13 @@ function shouldIgnoreRoadmapPath(relativePath) {
     return normalized.split('/').some((segment) => ROADMAP_NOISE_DIR_NAMES.has(segment));
 }
 
+/**
+ * Should skip walk directory.
+ * @param {string} relativeDirPath
+ * @param {string} dirName
+ * @param {Array} excludePatterns
+ * @returns {any}
+ */
 function shouldSkipWalkDirectory(relativeDirPath, dirName, excludePatterns = []) {
     if (SKIP_DIRS.has(dirName)) return true;
     if (ROADMAP_NOISE_DIR_NAMES.has(dirName)) return true;
@@ -61,10 +78,24 @@ function shouldSkipWalkDirectory(relativeDirPath, dirName, excludePatterns = [])
     return shouldIgnoreRoadmapPath(relativeDirPath);
 }
 
+/**
+ * Filter roadmap analysis files.
+ * @param {Array} files
+ * @returns {any}
+ */
 function filterRoadmapAnalysisFiles(files) {
     return files.filter((file) => !shouldIgnoreRoadmapPath(file.relativePath));
 }
 
+/**
+ * Walk project.
+ * @param {any} projectRoot
+ * @param {Object} options
+ * @param {Array} results
+ * @param {any} depth
+ * @param {string} relativeDir
+ * @returns {any}
+ */
 async function walkProject(projectRoot, options = {}, results = [], depth = 0, relativeDir = '') {
     if (depth > 8) return results;
     let entries;
@@ -116,6 +147,11 @@ async function walkProject(projectRoot, options = {}, results = [], depth = 0, r
     return results;
 }
 
+/**
+ * Read json safe.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function readJsonSafe(filePath) {
     try {
         return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -124,12 +160,22 @@ function readJsonSafe(filePath) {
     }
 }
 
+/**
+ * Count test files.
+ * @param {Array} files
+ * @returns {any}
+ */
 function countTestFiles(files) {
     return files.filter((file) =>
         /\.(test|spec)\.(js|ts|jsx|tsx)$/.test(file.name)
     ).length;
 }
 
+/**
+ * Count api routes.
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function countApiRoutes(projectRoot) {
     const targets = [
         path.join(projectRoot, 'src/api/dashboard-stub-api.cjs'),
@@ -150,6 +196,11 @@ function countApiRoutes(projectRoot) {
     return routes;
 }
 
+/**
+ * Extract api routes from files.
+ * @param {Array} files
+ * @returns {any}
+ */
 function extractApiRoutesFromFiles(files) {
     const apis = new Set();
     const routePattern = /(?:app|router)\.(get|post|put|delete|patch)\(\s*['"`]([^'"`]+)/g;
@@ -191,6 +242,12 @@ function sanitizeApiRouteList(apis) {
     return cleaned.sort().slice(0, 48);
 }
 
+/**
+ * Extract js dependencies.
+ * @param {Array} files
+ * @param {any} _projectRoot
+ * @returns {any}
+ */
 function extractJsDependencies(files, _projectRoot) {
     const internal = new Set();
     const external = new Set();
@@ -230,10 +287,20 @@ function extractJsDependencies(files, _projectRoot) {
     };
 }
 
+/**
+ * Read env file flags.
+ * @param {string} envPath
+ * @returns {any}
+ */
 function readEnvFileFlags(envPath) {
     if (!fs.existsSync(envPath)) return null;
     try {
         const content = fs.readFileSync(envPath, 'utf8');
+/**
+ * Get.
+ * @param {any} key
+ * @returns {any}
+ */
         const get = (key) => {
             const match = content.match(new RegExp(`^${key}=(.*)$`, 'm'));
             return match ? match[1].trim().replace(/^["']|["']$/g, '') : null;
@@ -269,6 +336,11 @@ function readEnvFileFlags(envPath) {
     }
 }
 
+/**
+ * Is configured secret.
+ * @param {any} value
+ * @returns {any}
+ */
 function isConfiguredSecret(value) {
     if (!value) return false;
     const normalized = String(value).trim();
@@ -277,6 +349,11 @@ function isConfiguredSecret(value) {
     return true;
 }
 
+/**
+ * Detect v1 internal readiness at.
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function detectV1InternalReadinessAt(projectRoot) {
     const root = projectRoot;
     const localEnv = readEnvFileFlags(path.join(root, '.env.v1-internal'));
@@ -350,6 +427,11 @@ function detectV1InternalReadinessAt(projectRoot) {
     };
 }
 
+/**
+ * Detect npm audit status at.
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function detectNpmAuditStatusAt(projectRoot) {
     const pkg = readJsonSafe(path.join(projectRoot, 'package.json'));
     const lock = readJsonSafe(path.join(projectRoot, 'package-lock.json'));
@@ -364,6 +446,11 @@ function detectNpmAuditStatusAt(projectRoot) {
     };
 }
 
+/**
+ * Detect platform signals at.
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function detectPlatformSignalsAt(projectRoot) {
     const root = projectRoot;
     const parent = path.dirname(root);
@@ -379,12 +466,12 @@ function detectPlatformSignalsAt(projectRoot) {
 
     return {
         serverEntry: fs.existsSync(path.join(root, 'simplebeacon-server.js')),
-        phase2Auth: fs.existsSync(path.join(root, 'server/bootstrap/phase2-integration.js')),
+        phase2Auth: fs.existsSync(path.join(root, 'server/bootstrap/phase2-integration.cjs')) || fs.existsSync(path.join(root, 'server/bootstrap/phase2-integration.js')),
         stubApi: fs.existsSync(path.join(root, 'src/api/dashboard-stub-api.cjs')),
         fixtureScanner: fs.existsSync(path.join(root, FIXTURE_SCANNER_PATH)),
         codeRoadmapGenerator: fs.existsSync(path.join(root, 'server/lib/code-roadmap-generator.cjs')),
-        fileMergerScanner: fs.existsSync(path.join(root, 'server/lib/file-merger-reduction-scanner.js')),
-        npmAudit: fs.existsSync(path.join(root, 'server/lib/npm-audit-runner.js')),
+        fileMergerScanner: fs.existsSync(path.join(root, 'server/lib/file-merger-reduction-scanner.cjs')) || fs.existsSync(path.join(root, 'server/lib/file-merger-reduction-scanner.js')),
+        npmAudit: fs.existsSync(path.join(root, 'server/lib/npm-audit-runner.cjs')) || fs.existsSync(path.join(root, 'server/lib/npm-audit-runner.js')),
         dockerPhase2: fs.existsSync(path.join(root, 'docker-compose.phase2.yml')),
         githubCi: ciContent.length > 0,
         istanbulInCi: /test:coverage|istanbul/i.test(ciContent),
@@ -396,10 +483,20 @@ function detectPlatformSignalsAt(projectRoot) {
     };
 }
 
+/**
+ * Detect platform signals.
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function detectPlatformSignals(projectRoot) {
     return detectPlatformSignalsAt(resolvePlatformRoot(projectRoot).platformRoot);
 }
 
+/**
+ * Resolve platform root.
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function resolvePlatformRoot(projectRoot) {
     const scanRoot = path.resolve(projectRoot);
     const direct = detectPlatformSignalsAt(scanRoot);
@@ -421,6 +518,13 @@ function resolvePlatformRoot(projectRoot) {
     return { scanRoot, platformRoot: scanRoot };
 }
 
+/**
+ * Scope files to platform.
+ * @param {Array} files
+ * @param {any} scanRoot
+ * @param {any} platformRoot
+ * @returns {any}
+ */
 function scopeFilesToPlatform(files, scanRoot, platformRoot) {
     if (scanRoot === platformRoot) return files;
     const prefix = path.relative(scanRoot, platformRoot).replace(/\\/g, '/');
@@ -437,6 +541,11 @@ function scopeFilesToPlatform(files, scanRoot, platformRoot) {
         .filter((file) => file.relativePath !== '');
 }
 
+/**
+ * Count page samples.
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function countPageSamples(projectRoot) {
     const dataDir = path.join(projectRoot, FIXTURE_BASE_DIR);
     const onDisk = fs.existsSync(dataDir)
@@ -455,6 +564,14 @@ function countPageSamples(projectRoot) {
     };
 }
 
+/**
+ * Build sprint model.
+ * @param {Array} signals
+ * @param {Array} metrics
+ * @param {Array} samples
+ * @param {number} scanReport
+ * @returns {any}
+ */
 function buildSprintModel(signals, metrics, samples, scanReport = null) {
     const scanBlocking = scanReport?.gate?.blockingCount || 0;
     const scanPass = scanReport?.gate?.pass ?? null;
@@ -553,6 +670,14 @@ function buildSprintModel(signals, metrics, samples, scanReport = null) {
     };
 }
 
+/**
+ * Sprint deliverable description.
+ * @param {string} sprintId
+ * @param {Array} signals
+ * @param {Array} samples
+ * @param {Array} metrics
+ * @returns {any}
+ */
 function sprintDeliverableDescription(sprintId, signals, samples, metrics) {
     if (sprintId === 'sprint-1') return 'Canonical server entry and optional JWT auth';
     if (sprintId === 'sprint-2') {
@@ -565,6 +690,14 @@ function sprintDeliverableDescription(sprintId, signals, samples, metrics) {
     return 'Docker Phase2, CI smoke test, Istanbul coverage, production profile';
 }
 
+/**
+ * Sprint feature list.
+ * @param {string} sprintId
+ * @param {Array} signals
+ * @param {Array} samples
+ * @param {Array} metrics
+ * @returns {any}
+ */
 function sprintFeatureList(sprintId, signals, samples, metrics) {
     if (sprintId === 'sprint-1') {
         return [
@@ -596,6 +729,13 @@ function sprintFeatureList(sprintId, signals, samples, metrics) {
     ];
 }
 
+/**
+ * Sprint milestones.
+ * @param {string} sprintId
+ * @param {Array} signals
+ * @param {Array} metrics
+ * @returns {any}
+ */
 function sprintMilestones(sprintId, signals, metrics) {
     if (sprintId === 'sprint-1') return ['Single server entry', 'Auth routes live'];
     if (sprintId === 'sprint-2') return ['dashboard-stub-api.js', metrics.jestTestsLabel || `${metrics.testFiles} tests`];
@@ -603,6 +743,12 @@ function sprintMilestones(sprintId, signals, metrics) {
     return ['phase2-smoke CI job', 'Production runbook'];
 }
 
+/**
+ * Analyze codebase.
+ * @param {any} projectRoot
+ * @param {Object} options
+ * @returns {any}
+ */
 async function analyzeCodebase(projectRoot, options = {}) {
     const { scanRoot, platformRoot } = resolvePlatformRoot(projectRoot);
     const walkRoot = platformRoot;
@@ -631,7 +777,7 @@ async function analyzeCodebase(projectRoot, options = {}) {
         jestTestsPassing: baseline.jestTestsPassing,
         jestTestsLabel: baseline.jestTestsLabel,
         jestSuites: baseline.jestSuites,
-        apiRoutes: countApiRoutes(platformRoot),
+        apiRoutes: apiPaths.length,
         languages: countByExtension(analysisFiles),
         dependencies,
         codebaseMetrics
@@ -650,6 +796,7 @@ async function analyzeCodebase(projectRoot, options = {}) {
         sprintModel,
         phase2,
         features: extractDetectedFeatures(signals, metrics, samples),
+        codebaseMetrics,
         aiIntegration: {
             apis: apiPaths,
             apiRouteCount: apiPaths.length,
@@ -661,6 +808,11 @@ async function analyzeCodebase(projectRoot, options = {}) {
     };
 }
 
+/**
+ * Count by extension.
+ * @param {Array} files
+ * @returns {any}
+ */
 function countByExtension(files) {
     const counts = {};
     for (const file of files) {
@@ -670,12 +822,16 @@ function countByExtension(files) {
     return counts;
 }
 
+/**
+ * Compute codebase metrics.
+ * @param {Array} files
+ * @returns {any}
+ */
 function computeCodebaseMetrics(files) {
     const CODE_EXTS = new Set(['.js', '.cjs', '.mjs', '.ts', '.py', '.sql']);
     const codeFiles = files.filter((f) => CODE_EXTS.has(f.ext) && f.size < 300000).slice(0, 200);
     let totalLines = 0;
     const languages = {};
-    let docsCount = 0;
     for (const file of codeFiles) {
         let content;
         try {
@@ -689,17 +845,25 @@ function computeCodebaseMetrics(files) {
         if (!languages[ext]) languages[ext] = { files: 0, lines: 0 };
         languages[ext].files += 1;
         languages[ext].lines += lines;
-        if (/\.(md|rst|txt)$/i.test(file.name)) docsCount++;
     }
     const docFiles = files.filter((f) => /\.(md|rst|txt)$/i.test(f.name)).length;
+    const testFiles = files.filter((f) => /\.(test|spec)\.(js|ts|jsx|tsx)$/i.test(f.name)).length;
     const total = files.length || 1;
     return {
         totalLinesOfCode: totalLines,
         languages,
+        testFiles,
         documentation: { readmeFiles: docFiles, totalDocs: docFiles, coverage: Math.round((docFiles / total) * 100) }
     };
 }
 
+/**
+ * Extract detected features.
+ * @param {Array} signals
+ * @param {Array} metrics
+ * @param {Array} samples
+ * @returns {any}
+ */
 function extractDetectedFeatures(signals, metrics, samples) {
     const list = [];
     if (signals.serverEntry) list.push({ name: 'Dashboard Server', category: 'Infrastructure', status: 'implemented' });
@@ -728,6 +892,13 @@ function extractDetectedFeatures(signals, metrics, samples) {
     return list;
 }
 
+/**
+ * Generate code roadmap.
+ * @param {any} projectRoot
+ * @param {Array} priorAnalysis
+ * @param {Object} options
+ * @returns {any}
+ */
 function generateCodeRoadmap(projectRoot, priorAnalysis = {}, options = {}) {
     return analyzeCodebase(projectRoot, options).then((codeAnalysis) => {
         const {
@@ -943,6 +1114,11 @@ function summarizeProjectStructureForExport(structure) {
     };
 }
 
+/**
+ * Group features by category.
+ * @param {Array} features
+ * @returns {any}
+ */
 function groupFeaturesByCategory(features) {
     const groups = {};
     for (const feature of features) {
@@ -957,12 +1133,28 @@ function groupFeaturesByCategory(features) {
     }));
 }
 
+/**
+ * Build progress metrics.
+ * @param {any} sprintModel
+ * @param {Array} metrics
+ * @param {boolean} istanbul
+ * @param {any} baseline
+ * @param {Array} priorProgress
+ * @param {Array} samples
+ * @returns {any}
+ */
 function buildProgressMetrics(sprintModel, metrics, istanbul, baseline, priorProgress, samples = {}) {
     const lineCoverage = istanbul.available ? istanbul.totals.lines : null;
     const branchCoverage = istanbul.available ? istanbul.totals.branches : null;
     const priorMetrics = priorProgress?.metrics || {};
     const priorTestCoverage = typeof priorMetrics.testCoverage === 'number'
         ? priorMetrics.testCoverage
+        : null;
+    const priorLineCoverage = typeof priorMetrics.lineCoverage === 'number'
+        ? priorMetrics.lineCoverage
+        : null;
+    const priorBranchCoverage = typeof priorMetrics.branchCoverage === 'number'
+        ? priorMetrics.branchCoverage
         : null;
     const pageSamplesLabel = samples.pageSamplesLabel
         || (samples.withSpecs != null && samples.specTotal
@@ -993,8 +1185,8 @@ function buildProgressMetrics(sprintModel, metrics, istanbul, baseline, priorPro
             featureCompleteness: sprintModel.completionRate,
             documentationCoverage: priorMetrics.documentationCoverage || null,
             testCoverage: lineCoverage ?? priorTestCoverage,
-            lineCoverage,
-            branchCoverage,
+            lineCoverage: lineCoverage ?? priorLineCoverage,
+            branchCoverage: branchCoverage ?? priorBranchCoverage,
             jestTests: baseline.jestTestsLabel,
             jestSuites: baseline.jestSuites,
             pageSamples: pageSamplesLabel,
@@ -1003,10 +1195,24 @@ function buildProgressMetrics(sprintModel, metrics, istanbul, baseline, priorPro
     };
 }
 
+/**
+ * Signals complete.
+ * @param {any} sprintModel
+ * @returns {any}
+ */
 function signalsComplete(sprintModel) {
     return sprintModel.completionRate >= 95;
 }
 
+/**
+ * Build recommendations.
+ * @param {Array} signals
+ * @param {any} sprintModel
+ * @param {any} baseline
+ * @param {any} v1Internal
+ * @param {number} scanReport
+ * @returns {any}
+ */
 function buildRecommendations(signals, sprintModel, baseline, v1Internal = {}, scanReport = null) {
     const immediate = [];
     const shortTerm = [];
@@ -1073,7 +1279,8 @@ function buildRecommendations(signals, sprintModel, baseline, v1Internal = {}, s
     if (!signals.phase2SmokeInCi) immediate.push('Add docker-compose.phase2.yml smoke test to CI');
     if (!signals.istanbulInCi) immediate.push('Enable Istanbul coverage in CI (npm run test:coverage)');
     if (sprintModel.plannedFeatures > 0) shortTerm.push('Complete remaining sprint deliverables');
-    shortTerm.push(`Wire ${baseline.jestTestsLabel} deploy gate before production profile`);
+    const deployGateLabel = baseline.jestTestsLabel || 'pre-deploy';
+    shortTerm.push(`Wire ${deployGateLabel} deploy gate before production profile`);
     shortTerm.push('Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)');
 
     return {
@@ -1088,6 +1295,11 @@ function buildRecommendations(signals, sprintModel, baseline, v1Internal = {}, s
     };
 }
 
+/**
+ * Build scan risks.
+ * @param {number} scanReport
+ * @returns {any}
+ */
 function buildScanRisks(scanReport) {
     if (!scanReport || typeof scanReport !== 'object') return [];
     const risks = [];
@@ -1124,6 +1336,11 @@ function buildScanRisks(scanReport) {
     return risks;
 }
 
+/**
+ * Build scan action plan.
+ * @param {number} scanReport
+ * @returns {any}
+ */
 function buildScanActionPlan(scanReport) {
     if (!scanReport || typeof scanReport !== 'object') return [];
     const plan = [];

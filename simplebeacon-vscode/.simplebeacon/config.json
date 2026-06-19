@@ -1,0 +1,24 @@
+{
+  "profile": "standard",
+  "scanPaths": ["."],
+  "productionPaths": ["src/"],
+  "allowedAnalysisRoots": [
+    "C:/Users/Trevor/CascadeProjects",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode"
+  ],
+  "ignore": [
+    "node_modules/**",
+    "coverage/**",
+    "dist/**",
+    "build/**",
+    "out/**",
+    ".vscode/**",
+    ".github/**",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/*.vsix",
+    "simplebeacon-*.vsix"
+  ]
+}

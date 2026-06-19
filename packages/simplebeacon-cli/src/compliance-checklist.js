@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const constants = require('../../../ai-platform/server/config/constants.cjs');
 const DEFAULT_CHECKLIST = require('./compliance-checklist.defaults.json');
 const EU_AI_ACT_CHECKLIST = require('./compliance-checklist.eu-ai-act.defaults.json');
 
@@ -26,8 +27,9 @@ function mergeChecklistRules(customRules, defaultRules) {
     const defaultsById = new Map((defaultRules || []).map((rule) => [rule.id, rule]));
     if (!customRules?.length) return defaultRules;
 
-    return customRules.map((rule) => {
-        const base = defaultsById.get(rule.id) || {};
+    const result = new Map(defaultsById);
+    for (const rule of customRules) {
+        const base = result.get(rule.id) || {};
         const merged = {
             ...base,
             ...rule,
@@ -35,8 +37,9 @@ function mergeChecklistRules(customRules, defaultRules) {
         };
         delete merged.status;
         delete merged.evidence;
-        return merged;
-    }).filter((rule) => rule.check);
+        result.set(rule.id, merged);
+    }
+    return [...result.values()].filter((rule) => rule.check);
 }
 
 function resolveChecklistBase(options = {}) {
@@ -152,7 +155,7 @@ function detectProductionAuthProfile(projectRoot) {
 
     const text = fs.readFileSync(envPath, 'utf8');
     const parseEnvMap = (envText) => {
-        const map = {};
+        const map = Object.create(null);
         for (const rawLine of String(envText).split(/\r?\n/)) {
             const line = rawLine.trim();
             if (!line || line.startsWith('#')) continue;
@@ -201,12 +204,13 @@ function buildEvaluationContext(report, options = {}) {
     return {
         report,
         npmAudit: options.npmAudit || detectNpmAuditSummary(projectRoot),
-        productionProfile: options.productionProfile || detectProductionAuthProfile(projectRoot)
+        productionProfile: options.productionProfile || detectProductionAuthProfile(projectRoot),
+        dataCleanup: options.dataCleanup || null
     };
 }
 
 function evaluateRule(rule, context) {
-    const { report, npmAudit, productionProfile } = context;
+    const { report, npmAudit, productionProfile, dataCleanup } = context;
     const base = {
         id: rule.id,
         title: rule.title,
@@ -409,9 +413,71 @@ function evaluateRule(rule, context) {
                     : `${gaps} AI decision path(s) without logging markers — add inference audit trail`
             };
         }
+        case 'cleanup-bloat-reviewed': {
+            const detailedFindings = dataCleanup?.findings?.directoryBloat || [];
+            const bloatCount = detailedFindings.length || (dataCleanup?.summary?.directoryBloatFindings ?? 0);
+            const reclaimableBytes = dataCleanup?.summary?.reclaimableBytes
+                ?? dataCleanup?.summary?.directoryBloatReclaimableBytes
+                ?? 0;
+            if (bloatCount === 0) {
+                return { ...base, status: 'pass', evidence: 'No directory bloat detected — codebase is clean' };
+            }
+            const safeToDelete = detailedFindings.filter((f) => f.action === 'safe-to-delete').length;
+            return {
+                ...base,
+                status: safeToDelete > 0 ? 'pass' : 'review',
+                evidence: safeToDelete > 0
+                    ? `${bloatCount} bloat item(s) found (${formatBytes(reclaimableBytes)} reclaimable) — ${safeToDelete} marked safe-to-delete`
+                    : `${bloatCount} bloat item(s) found (${formatBytes(reclaimableBytes)} reclaimable) — review before cleanup`
+            };
+        }
+        case 'cleanup-empty-dirs': {
+            const detailedFindings = dataCleanup?.findings?.directoryBloat || [];
+            const emptyDirs = detailedFindings.filter((f) => f.category === 'Empty directory');
+            const bloatCount = detailedFindings.length || (dataCleanup?.summary?.directoryBloatFindings ?? 0);
+            if (emptyDirs.length === 0 && bloatCount === 0) {
+                return { ...base, status: 'pass', evidence: 'No empty directories detected' };
+            }
+            if (emptyDirs.length > 0) {
+                return {
+                    ...base,
+                    status: 'pass',
+                    evidence: `${emptyDirs.length} empty director(ies) detected — safe to remove`
+                };
+            }
+            return {
+                ...base,
+                status: 'pass',
+                evidence: `${bloatCount} bloat item(s) detected — review for empty directories`
+            };
+        }
+        case 'file-reduction-reviewed': {
+            const totalFindings = dataCleanup?.summary?.totalFindings
+                ?? dataCleanup?.summary?.directoryBloatFindings
+                ?? 0;
+            if (totalFindings === 0) {
+                return { ...base, status: 'pass', evidence: 'No file reduction findings — no cleanup needed' };
+            }
+            const reclaimable = dataCleanup?.summary?.reclaimableBytes
+                ?? dataCleanup?.summary?.directoryBloatReclaimableBytes
+                ?? 0;
+            return {
+                ...base,
+                status: 'pass',
+                evidence: `${totalFindings} finding(s) reviewed (${formatBytes(reclaimable)} reclaimable)`
+            };
+        }
         default:
             return { ...base, status: 'skip', evidence: `Unknown check: ${rule.check}` };
     }
+}
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = constants.BYTES_PER_KB;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
 function evaluateComplianceChecklist(report, options = {}) {

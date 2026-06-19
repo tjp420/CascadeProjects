@@ -1,0 +1,50 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-18T05:18:43.595Z",
+  "generatedBy": "SimpleBeacon",
+  "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "totalFiles": 1296,
+  "filesAnalyzed": 165,
+  "ruleScopedFilesAnalyzed": 165,
+  "issueCount": 4,
+  "qualityScore": 100,
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 4,
+    "blockingIssues": [],
+    "warningIssues": []
+  },
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 4
+  },
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "type": "build-artifact",
+      "description": "build-artifact finding",
+      "file": "",
+      "line": 1
+    }
+  ],
+  "rawIssues": [
+    {
+      "severity": "low",
+      "type": "build-artifact",
+      "description": "build-artifact finding",
+      "file": "",
+      "line": 1
+    }
+  ]
+}

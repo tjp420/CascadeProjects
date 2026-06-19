@@ -7,3 +7,26 @@ dist/
 build/
 .simplebeacon/
 test-output*.txt
+
+# Sample / fixture / mock data (not production)
+sample-*.html
+sample-*.json
+sample-*.pdf
+test-all-patterns.js
+test-*.js
+test-*.txt
+test-*.json
+
+# Test directories (not shipped to npm consumers)
+test/
+tests/
+
+# Playwright test artifacts
+test-results/
+playwright-report/
+e2e/
+
+# Local scanner artifacts
+scan-report.json
+upload-bundle.zip
+upload-file-list.txt

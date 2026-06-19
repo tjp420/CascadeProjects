@@ -12,6 +12,12 @@ const CREDENTIAL_PATTERNS = [
   { id: 'jwt-token', regex: /\\beyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\b/g, severity: 'high' }
 ];
 
+/**
+ * Scan text content.
+ * @param {string} fileName
+ * @param {any} content
+ * @returns {any}
+ */
 function scanTextContent(fileName, content) {
   const findings = [];
   for (const pattern of CREDENTIAL_PATTERNS) {
@@ -25,6 +31,9 @@ function scanTextContent(fileName, content) {
   return findings;
 }`;
 
+/**
+ * About view.
+ */
 export class AboutView {
   constructor(app) {
     this.app = app;
@@ -32,10 +41,13 @@ export class AboutView {
 
   mount(container) {
     container.innerHTML = `
+      <div class="analyze-hero">
+        <h1 class="page-title">About</h1>
+        <p class="text-muted analyze-hero-sub">Free · local · zero runtime dependencies</p>
+      </div>
       <section class="about-hero card mb-6" id="install">
-        <p class="about-kicker">Free · local · zero runtime dependencies</p>
-        <h1 class="page-title">Stop AI-generated fake data from slipping into production</h1>
-        <p class="page-subtitle">
+        <p class="about-kicker">Stop AI-generated fake data from slipping into production</p>
+        <p class="page-subtitle" style="margin:0;">
           A solo-engineered CLI that pattern-matches credentials, fiction KPIs, and mock paths before merge.
           No account. No cloud upload by default.
         </p>

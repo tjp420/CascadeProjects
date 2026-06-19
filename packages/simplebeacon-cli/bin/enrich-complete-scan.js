@@ -32,7 +32,7 @@ function main() {
     const analysis = enriched.completeScanAnalysis;
     console.log(`Enriched complete scan written to ${target}`);
     console.log(`File reduction immediate savings: ${analysis.fileReduction?.immediateSavingsBytes ?? '—'} bytes`);
-    console.log(`Safe to delete: ${analysis.fileReduction?.safeToDeleteBytes ?? '—'} bytes`);
+    console.log('Safe to delete: ' + (analysis.fileReduction?.safeToDeleteBytes ?? '—') + ' bytes');
     console.log(`Data quality PII needing review: ${analysis.dataQuality?.piiNeedingReview ?? '—'}`);
     console.log(`Data quality credentials needing review: ${analysis.dataQuality?.credentialsNeedingReview ?? '—'}`);
 }

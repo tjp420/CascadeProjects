@@ -1,0 +1,20 @@
+You are a code hygiene expert. Analyze this SimpleBeacon scan report and propose specific, safe remediation steps.
+
+SCAN SUMMARY
+- Gate: FAIL
+- Critical: 0, High: 1, Medium: 21, Low: 35
+
+TOP ISSUES
+No medium+ issues found.
+
+INSTRUCTIONS
+1. For each issue, propose a concrete code change or deletion.
+2. Only touch files that exist; never invent paths.
+3. Prefer single-line fixes over rewrites.
+4. If an issue is a false positive, mark it as such.
+5. Return your analysis as a JSON array of actions with shape:
+   { "op": "read_file", "path": "<relative-path>" }
+   { "op": "patch_file", "path": "<relative-path>", "search": "<exact-string>", "replace": "<exact-string>" }
+   { "op": "run_tests" }
+
+Output ONLY the JSON array. No explanations outside the JSON.

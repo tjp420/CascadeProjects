@@ -1,4 +1,4 @@
-import { formatNumber, formatPercent } from '../utils.js';
+import { formatNumber, formatPercent, escapeHtml, renderEmptyState, showToast } from '../utils.js';
 import {
   buildScanConclusion,
   getScanFileMetrics,
@@ -7,13 +7,21 @@ import {
   resolvePageSpecsLabel,
   renderScanScopePanel
 } from '../services/analyzeService.js';
-import { renderScanStatus, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js';
+import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260613dropfix2';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
 import { fetchRepositoryHealth, renderRepositoryHealthSection } from './RepositoryHealthView.js';
 import { renderPathHealthDashboard, cleanupPathHealthDashboard } from '../components/PathHealthDashboard.js';
+import { isDemoMode } from '../demoMode.js';
 
+/**
+ * Render insights.
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} dashboardHome
+ * @returns {any}
+ */
 export function renderInsights(report, baseline, dashboardHome) {
   const sev = report?.severityCounts || {};
   const totalIssues = (sev.high || 0) + (sev.medium || 0) + (sev.low || 0);
@@ -47,13 +55,49 @@ export function renderInsights(report, baseline, dashboardHome) {
   `;
 }
 
+/**
+ * Render re attestation preview.
+ * @param {any} meta
+ * @returns {any}
+ */
+function renderReAttestationPreview(meta) {
+  const gate = meta.currentGate || {};
+  const hygiene = meta.hygieneSummary || {};
+  const gateClass = gate.pass ? 'success' : gate.blockingCount > 0 ? 'danger' : 'warning';
+  return `
+    <div class="dashboard-panel">
+      <div class="dashboard-panel-header">
+        <h3 class="dashboard-panel-title-sm">Re-attestation</h3>
+        <a class="btn btn-ghost btn-xs" href="#/trust">Trust →</a>
+      </div>
+      <div class="metrics-row mb-2">
+        <div class="metric-chip"><span class="gate-badge ${gateClass}">${gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN'}</span></div>
+        <div class="metric-chip"><strong>${formatNumber(gate.blockingCount ?? 0)}</strong> blocking</div>
+        <div class="metric-chip"><strong>${gate.qualityScore ?? '—'}%</strong> quality</div>
+        <div class="metric-chip"><strong>${formatNumber(gate.ruleScopedFilesAnalyzed ?? hygiene.ruleScopedFilesAnalyzed ?? 0)}</strong> checked</div>
+        <div class="metric-chip"><strong>${formatNumber(gate.repositoryFilesTotal ?? hygiene.repositoryFilesTotal ?? 0)}</strong> repo files</div>
+      </div>
+      <p class="text-muted" style="font-size:var(--font-size-xs);margin:0;">
+        ${escapeHtml(meta.message || '')}
+        ${meta.workflowStatus ? `· Status: <strong>${escapeHtml(meta.workflowStatus)}</strong>` : ''}
+      </p>
+    </div>
+  `;
+}
+
+/**
+ * Render scan metrics.
+ * @param {number} report
+ * @returns {any}
+ */
 function renderScanMetrics(report) {
   const metrics = getScanFileMetrics(report);
   return `
     <div class="metrics-row">
-      ${metrics.repositoryFiles != null ? `<div class="metric-chip" title="Explorer-style inventory of project root"><strong>${formatNumber(metrics.repositoryFiles)}</strong> repo files</div>` : ''}
-      <div class="metric-chip"><strong>${formatNumber(metrics.ruleScopedFilesAnalyzed ?? metrics.credentialScanned ?? metrics.mockSampleFiles)}</strong> gate rules checked</div>
-      <div class="metric-chip"><strong>${formatNumber(metrics.mockSampleFiles ?? report?.totalFiles)}</strong> mock/sample</div>
+      ${metrics.repositoryFiles != null ? `<div class="metric-chip" title="Repository inventory (skips node_modules, .git, build artifacts)"><strong>${formatNumber(metrics.repositoryFiles)}</strong> repo files</div>` : ''}
+      <div class="metric-chip"><strong>${formatNumber(metrics.filesAnalyzed ?? 0)}</strong> files analyzed</div>
+      <div class="metric-chip"><strong>${formatNumber(metrics.mockSampleFiles ?? 0)}</strong> mock/sample</div>
+      <div class="metric-chip"><strong>${formatNumber(report?.fictionKpiHits ?? 0)}</strong> fiction scanned</div>
       <div class="metric-chip"><strong>${formatPercent(report?.schemaCompliance)}</strong> schema compliance</div>
       <div class="metric-chip"><strong>${resolvePageSpecsLabel(report) ?? '—'}</strong> page specs</div>
       <div class="metric-chip"><strong>${formatPercent(report?.consistencyScore)}</strong> consistency</div>
@@ -63,6 +107,9 @@ function renderScanMetrics(report) {
   `;
 }
 
+/**
+ * Dashboard view.
+ */
 export class DashboardView {
   constructor(app) {
     this.app = app;
@@ -76,101 +123,246 @@ export class DashboardView {
     const el = document.createElement('div');
     el.className = 'fade-in';
 
-    if (dataLoading && !report) {
-      el.innerHTML = `
-        <h1 class="page-title">Dashboard</h1>
-        <div class="empty-state card">
-          <div class="loading-spinner" style="width: 32px; height: 32px; margin: 0 auto var(--space-4);"></div>
-          <p>Loading scan data…</p>
-          <p class="text-muted mt-2">If this takes more than a few seconds, restart with <code>npm run dashboard</code></p>
-        </div>
-      `;
-      return el;
-    }
-
     if (!report) {
-      el.innerHTML = `
-        <h1 class="page-title">Dashboard</h1>
-        <div class="empty-state card">
-          <div class="empty-state-icon">⚠️</div>
-          <p>No scan report loaded.</p>
-          <p class="text-muted mb-4">Set your repo folder on <a href="#/analyze">Analyze → Project path</a>, then run a scan. Gate mock folders live in <a href="#/settings">Settings → Scan paths</a>.</p>
-          <div class="flex gap-2" style="justify-content: center;">
-            <button class="btn btn-primary" id="dash-run-scan">Run Scan</button>
-            <button class="btn btn-secondary" id="dash-goto-analyze">Open Analyze</button>
-          </div>
-        </div>
-      `;
+      const emptyState = scanning
+        ? renderEmptyState({
+            icon: '<path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-dasharray="2 2"/><polyline points="9 12 12 15 22 5"/>',
+            title: 'Scanning…',
+            body: 'Analysis is running. Switch to <a href="#/analyze">Analyze</a> to watch progress.',
+            actions: [
+              { label: 'Open Analyze', id: 'dash-goto-analyze', className: 'btn-secondary' }
+            ]
+          })
+        : renderEmptyState({
+            icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+            title: 'No scan report loaded',
+            body: 'Set your repo folder on <a href="#/analyze">Analyze → Project path</a>, then run a scan. Gate mock folders live in <a href="#/settings">Settings → Scan paths</a>.',
+            actions: [
+              { label: 'Run Scan', id: 'dash-run-scan', className: 'btn-primary' },
+              { label: 'Open Analyze', id: 'dash-goto-analyze', className: 'btn-secondary' }
+            ]
+          });
+      el.innerHTML = `<h1 class="page-title">Dashboard</h1>${emptyState}`;
       return el;
     }
 
     const conclusion = buildScanConclusion(report);
+    const sev = report?.severityCounts || {};
+    const totalIssues = (sev.high || 0) + (sev.medium || 0) + (sev.low || 0);
+    const healthClass = totalIssues === 0 ? 'success' : totalIssues <= 5 ? 'warning' : 'danger';
+    const healthLabel = totalIssues === 0 ? 'Healthy' : totalIssues <= 5 ? 'Review' : 'Attention';
+    const gate = report?.gate || {};
+    const gateClass = gate.pass ? 'success' : gate.blockingCount > 0 ? 'danger' : 'warning';
+    const gateLabel = gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN';
 
     el.innerHTML = `
-      <h1 class="page-title">Dashboard</h1>
-      <div class="grid-3">
+      <div class="dashboard-header">
+        <h1 class="page-title">Dashboard</h1>
+        <div class="dashboard-header-actions">
+          <button class="btn btn-ghost btn-sm" id="dash-open-settings">
+            <i data-lucide="settings-2" class="icon-16"></i> Settings
+          </button>
+          <button class="btn btn-primary btn-sm" id="view-all-results">
+            <i data-lucide="arrow-right" class="icon-16"></i> View all results
+          </button>
+        </div>
+      </div>
+
+      <div class="dashboard-stats-row">
+        <div class="dashboard-stat-card">
+          <div class="dashboard-stat-icon-wrapper ${gateClass}">
+            <i data-lucide="shield-check" class="icon-20"></i>
+          </div>
+          <div class="dashboard-stat-body">
+            <div class="dashboard-stat-value ${gateClass}">${gateLabel}</div>
+            <div class="dashboard-stat-label">Gate status</div>
+          </div>
+        </div>
+        <div class="dashboard-stat-card">
+          <div class="dashboard-stat-icon-wrapper ${healthClass}">
+            <i data-lucide="alert-circle" class="icon-20"></i>
+          </div>
+          <div class="dashboard-stat-body">
+            <div class="dashboard-stat-value ${healthClass}">${totalIssues}</div>
+            <div class="dashboard-stat-label">${totalIssues === 1 ? 'Open issue' : 'Open issues'}</div>
+          </div>
+        </div>
+        <div class="dashboard-stat-card">
+          <div class="dashboard-stat-icon-wrapper success">
+            <i data-lucide="check-circle-2" class="icon-20"></i>
+          </div>
+          <div class="dashboard-stat-body">
+            <div class="dashboard-stat-value success">${formatPercent(resolveDisplayScore(report))}</div>
+            <div class="dashboard-stat-label">Consistency</div>
+          </div>
+        </div>
+        <div class="dashboard-stat-card">
+          <div class="dashboard-stat-icon-wrapper">
+            <i data-lucide="flask-conical" class="icon-20"></i>
+          </div>
+          <div class="dashboard-stat-body">
+            <div class="dashboard-stat-value">${resolveJestTestsLabel(baseline, this.app.state.dashboardHome) ?? '—'}</div>
+            <div class="dashboard-stat-label">Tests</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-hero">
         <div id="slot-scan-status"></div>
         <div id="slot-quick-actions"></div>
-        <div id="slot-insights">${renderInsights(report, baseline, this.app.state.dashboardHome)}</div>
       </div>
-      <div class="card mb-4" style="padding: var(--space-4);">
-        <p class="text-muted mb-1" style="margin-top: 0; font-size: var(--font-size-xs);">Scan summary</p>
-        <p style="margin: 0;">${conclusion}</p>
-      </div>
-      ${renderScanScopePanel(report)}
-      <div class="section-block" id="slot-repo-health">
-        <div class="section-heading">
-          <h2>Repository health</h2>
-          <a class="btn btn-ghost btn-sm" href="#/repository-health">Details →</a>
+
+      <div class="dashboard-body">
+        <div class="dashboard-body-primary">
+          <div class="dashboard-panel">
+            <div class="dashboard-panel-header">
+              <h2 class="dashboard-panel-title">
+                <i data-lucide="list" class="icon-18"></i>
+                Scan Results
+              </h2>
+            </div>
+            <div id="slot-issue-list"></div>
+          </div>
+          <div class="dashboard-panel" id="slot-trend"></div>
         </div>
-        <p class="text-muted"><span class="loading-spinner"></span> Loading optimization metrics…</p>
-      </div>
-      <div class="section-block" id="slot-path-health">
-        <div class="section-heading">
-          <h2>System Path Health</h2>
+        <div class="dashboard-body-side">
+          <div class="dashboard-panel dashboard-panel-accent">
+            <div class="dashboard-panel-header">
+              <h3 class="dashboard-panel-title-sm">Scan summary</h3>
+            </div>
+            <p class="dashboard-panel-text">${conclusion}</p>
+          </div>
+          ${renderScanScopePanel(report)}
+          <div class="dashboard-panel">
+            <div class="dashboard-panel-header">
+              <h3 class="dashboard-panel-title-sm">Scan Metrics</h3>
+              <button class="btn btn-ghost btn-xs" id="dash-open-analyze">Analyze →</button>
+            </div>
+            ${renderScanMetrics(report)}
+          </div>
+          ${this.app.state.reAttestation ? renderReAttestationPreview(this.app.state.reAttestation) : ''}
         </div>
-        <p class="text-muted"><span class="loading-spinner"></span> Loading path health metrics…</p>
       </div>
-      <div class="section-block">
-        <div class="section-heading">
-          <h2>Scan Metrics</h2>
-          <button class="btn btn-ghost btn-sm" id="dash-open-analyze">Deep analyze →</button>
+
+      <div class="dashboard-bottom-grid">
+        <div class="dashboard-panel" id="slot-repo-health">
+          <div class="dashboard-panel-header">
+            <h3 class="dashboard-panel-title-sm">Repository health</h3>
+            <a class="btn btn-ghost btn-xs" href="#/repository-health">Details →</a>
+          </div>
+          <p class="text-muted"><span class="loading-spinner"></span> Loading optimization metrics…</p>
         </div>
-        ${renderScanMetrics(report)}
-      </div>
-      <div class="section-block">
-        <div class="section-heading">
-          <h2>Scan Results</h2>
-          <button class="btn btn-secondary" id="view-all-results">View all →</button>
+        <div class="dashboard-panel" id="slot-path-health">
+          <div class="dashboard-panel-header">
+            <h3 class="dashboard-panel-title-sm">System Path Health</h3>
+          </div>
+          <p class="text-muted"><span class="loading-spinner"></span> Loading path health metrics…</p>
         </div>
-        <div id="slot-issue-list"></div>
       </div>
-      <div class="section-block" id="slot-trend"></div>
     `;
 
     const scanSlot = el.querySelector('#slot-scan-status');
-    scanSlot.innerHTML = renderScanStatus(report, {
-      scanning,
-      config: this.app.state.config,
-      lastProjectPath: this.app.state.lastProjectPath,
-      defaultProjectPath: this.app.state.defaultProjectPath
-    });
     const scanHandlers = {
-      defaultProjectPath: this.app.state.defaultProjectPath,
       getLastProjectPath: () => this.app.state.lastProjectPath,
       setLastProjectPath: (path) => { this.app.state.lastProjectPath = path; },
+      getDefaultProjectPath: () => this.app.state.defaultProjectPath,
       onRescan: (path) => this.app.runScan(path)
     };
-    bindScanStatus(scanSlot, scanHandlers);
+    // Use surgical DOM update if card already exists to prevent flicker
+    const updated = updateScanStatusDom(scanSlot, report);
+    if (!updated) {
+      scanSlot.innerHTML = renderScanStatus(report, {
+        scanning,
+        config: this.app.state.config,
+        lastProjectPath: this.app.state.lastProjectPath,
+        defaultProjectPath: this.app.state.defaultProjectPath
+      });
+      bindScanStatus(scanSlot, scanHandlers);
+    }
 
     const actionsSlot = el.querySelector('#slot-quick-actions');
-    actionsSlot.innerHTML = renderQuickActions({});
+    actionsSlot.innerHTML = renderQuickActions({ showSendAi: true });
     bindQuickActions(actionsSlot, {
       onRunScan: () => runDashboardScanFromInput(
         scanSlot.querySelector('#scan-root-input'),
         scanHandlers
       ),
-      onExport: () => this.app.scanService.exportReport(),
+      onExport: () => {
+        if (isDemoMode()) {
+          this.app.scanService.exportDashboard({
+            report: this.app.state.report,
+            baseline: this.app.state.baseline,
+            config: this.app.state.config,
+            history: this.app.state.history,
+            dashboardHome: this.app.state.dashboardHome
+          });
+        } else {
+          this.app.scanService.exportReport();
+        }
+      },
+      onSendAi: async () => {
+        const report = this.app.state.report;
+        if (!report) { showToast('No report loaded — run a scan first', 'error'); return; }
+        const allIssues = report.rawIssues || report.detectedIssues || [];
+        const reportSummary = {
+          gatePass: report.gate?.pass ?? 'N/A',
+          qualityScore: report.qualityScore ?? 'N/A',
+          totalIssues: allIssues.length,
+          filesScanned: report.repositoryFilesTotal ?? report.totalFiles ?? 'N/A',
+          reportType: report.type || 'simplebeacon'
+        };
+
+        // If running inside a VS Code-family webview, message the extension directly
+        const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
+        if (hasVsCodeApi) {
+          try {
+            const vscode = window.acquireVsCodeApi();
+            vscode.postMessage({
+              command: 'sendToAI',
+              data: {
+                projectPath: report.projectRoot || report.projectPath || window.location.origin,
+                notes: '',
+                reportSummary,
+                issues: allIssues
+              }
+            });
+            showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
+            return;
+          } catch (err) {
+            console.warn('[AI-Send] vscode.postMessage failed:', err);
+          }
+        }
+
+        try {
+          const res = await fetch('/api/ai-context', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              projectPath: report.projectRoot || report.projectPath || window.location.origin,
+              notes: '',
+              reportSummary,
+              issues: allIssues
+            })
+          });
+          const json = await res.json();
+          if (json.success) {
+            if (json.content) {
+              try {
+                await navigator.clipboard.writeText(json.content);
+                showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+              } catch (clipErr) {
+                showToast('AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md', 'success');
+              }
+            } else {
+              showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+            }
+          } else {
+            showToast('Failed: ' + (json.error || 'Unknown'), 'error');
+          }
+        } catch (err) {
+          showToast('Network error: ' + err.message, 'error');
+        }
+      },
       onLegacy: () => { this.app.navigate('platform'); }
     });
 
@@ -181,6 +373,9 @@ export class DashboardView {
 
     el.querySelector('#view-all-results')?.addEventListener('click', () => {
       this.app.navigate('results');
+    });
+    el.querySelector('#dash-open-settings')?.addEventListener('click', () => {
+      this.app.navigate('settings');
     });
     el.querySelector('#dash-open-analyze')?.addEventListener('click', () => {
       this.app.navigate('analyze');
@@ -199,8 +394,42 @@ export class DashboardView {
     if (enriched !== report) {
       this.app.state.report = enriched;
       this.app.scanService.report = enriched;
-      this.app.refreshCurrentView();
+      // Surgical DOM update avoids full re-render flicker
+      const scanSlot = document.querySelector('#slot-scan-status');
+      if (scanSlot) {
+        updateScanStatusDom(scanSlot, enriched);
+      } else {
+        this.app.refreshCurrentView();
+      }
     }
+  }
+
+  /**
+   * Surgical scan-status refresh — avoids full mount flicker during active scans.
+   * Returns true if the scan slot was updated in-place.
+   */
+  refreshScanStatus() {
+    const scanSlot = document.querySelector('#slot-scan-status');
+    if (!scanSlot) return false;
+    const report = this.app.state.report;
+    const scanning = this.app.state.scanning;
+    const updated = updateScanStatusDom(scanSlot, report);
+    if (updated) {
+      // Update scanning state on rescan button
+      const rescanBtn = scanSlot.querySelector('#rescan-btn');
+      if (rescanBtn) {
+        const expectedHtml = scanning
+          ? '<span class="loading-spinner"></span> Scanning…'
+          : '<i data-lucide="play" class="icon-16"></i> Scan';
+        if (rescanBtn.innerHTML !== expectedHtml) {
+          rescanBtn.innerHTML = expectedHtml;
+        }
+        if (rescanBtn.disabled !== scanning) {
+          rescanBtn.disabled = scanning;
+        }
+      }
+    }
+    return updated;
   }
 
   mount(container) {
@@ -222,6 +451,8 @@ export class DashboardView {
       const trendSlot = view.querySelector('#slot-trend');
       this._trendCleanup = mountTrendChart(trendSlot, this.app.state.history) || null;
     });
+
+    if (typeof window.lucide !== 'undefined') window.lucide.createIcons();
   }
 
   async loadRepositoryHealth(view) {

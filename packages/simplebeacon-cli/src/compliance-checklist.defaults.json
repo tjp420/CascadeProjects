@@ -67,6 +67,30 @@
       "category": "Access control",
       "severity": "medium",
       "remediation": "Set REQUIRE_AUTH=true and real JWT secrets in .env.production on the deploy host"
+    },
+    {
+      "id": "CLEANUP-001",
+      "check": "cleanup-bloat-reviewed",
+      "title": "Directory bloat reviewed and safe-to-delete items identified",
+      "category": "Cleanup",
+      "severity": "medium",
+      "remediation": "Review directory bloat findings in data-cleanup scan and remove safe-to-delete items"
+    },
+    {
+      "id": "CLEANUP-002",
+      "check": "cleanup-empty-dirs",
+      "title": "Empty directories identified for removal",
+      "category": "Cleanup",
+      "severity": "low",
+      "remediation": "Remove empty directories flagged by the directory scanner"
+    },
+    {
+      "id": "CLEANUP-003",
+      "check": "file-reduction-reviewed",
+      "title": "File reduction findings reviewed",
+      "category": "Cleanup",
+      "severity": "medium",
+      "remediation": "Review file reduction scan results and clean up unused files, duplicates, and build artifacts"
     }
   ]
 }

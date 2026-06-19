@@ -43,7 +43,7 @@ test('buildFileReductionPlan groups safe and review categories', async () => {
     const root = makeTempProject({
         'node_modules/pkg/index.js': 'module.exports = {};\n',
         'coverage/lcov.info': 'TN:\n',
-        'logs/audit.log': 'entry\n',
+        'src/audit.log': 'entry\n',
         'assets/a.png': 'same',
         'assets/b.png': 'same'
     });

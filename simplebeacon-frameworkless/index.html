@@ -64,7 +64,7 @@
         </div>
         <div class="flex items-center justify-between bg-dark-bg border border-dark-border rounded p-3">
           <code class="terminal-text text-sm md:text-base text-accent-green" id="terminalCommand">npx --yes simplebeacon init --starter</code>
-          <button onclick="copyToClipboard()" class="ml-3 p-2 hover:bg-dark-card rounded transition-colors" title="Copy to clipboard">
+          <button type="button" onclick="copyToClipboard()" class="ml-3 p-2 hover:bg-dark-card rounded transition-colors" title="Copy to clipboard">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-dark-muted hover:text-dark-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
@@ -93,8 +93,8 @@
         ></textarea>
       </div>
       
-      <button 
-        onclick="runDiagnostic()" 
+      <button type="button"
+        onclick="runDiagnostic()"
         id="diagnosticButton"
         class="bg-accent-green hover:bg-accent-greenHover text-white font-semibold px-6 py-3 rounded-lg transition-colors mb-6"
       >
@@ -364,7 +364,9 @@
             <label class="block text-sm font-semibold mb-2">Client delivery date</label>
             <input 
               type="date" 
-              name="deliveryDate" 
+              name="deliveryDate"
+              id="deliveryDate"
+              aria-label="Client delivery date"
               class="w-full bg-dark-bg border border-dark-border rounded-lg p-3 text-dark-text focus:outline-none focus:border-accent-blue"
             >
           </div>

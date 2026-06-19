@@ -45,17 +45,17 @@ simplebeacon-mcp --offline
 # ═══════ SCAN A WEBSITE ═══════
 # Option A: CLI (terminal)
 cd /media/$USER/YOUR_DRIVE_NAME/CascadeProjects
-./scan-website.sh https://example.com --gate
+./scan-website.sh https://your-domain.com --gate
 
 # Option B: Dashboard (browser)
 # Open the dashboard, go to Analyze, click "Website URL" tab,
-# enter https://example.com, then click Run analysis.
+# enter https://your-domain.com, then click Run analysis.
 
 # With JSON report output:
-./scan-website.sh https://example.com --gate --output report.json
+./scan-website.sh https://your-domain.com --gate --output report.json
 
 # Keep downloaded files for manual inspection:
-./scan-website.sh https://example.com --keep
+./scan-website.sh https://your-domain.com --keep
 
 # ═══════ DASHBOARD (optional, runs from thumb drive) ═══════
 # One command — starts server + waits for ready + opens browser:

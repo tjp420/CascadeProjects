@@ -1,5 +1,10 @@
 import { escapeHtml } from '../utils.js';
 
+/**
+ * Render understanding panel.
+ * @param {any} codeUnderstanding
+ * @returns {any}
+ */
 export function renderUnderstandingPanel(codeUnderstanding) {
   if (!codeUnderstanding || codeUnderstanding.mode === 'off') {
     return '';
@@ -56,6 +61,11 @@ export function renderUnderstandingPanel(codeUnderstanding) {
   `;
 }
 
+/**
+ * Build understanding conclusion.
+ * @param {any} codeUnderstanding
+ * @returns {any}
+ */
 export function buildUnderstandingConclusion(codeUnderstanding) {
   if (!codeUnderstanding || codeUnderstanding.mode === 'off') return '';
   const count = codeUnderstanding.fileInsights?.length || 0;

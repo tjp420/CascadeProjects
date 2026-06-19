@@ -6,6 +6,9 @@ const path = require('path');
 const { createLanguageDetector } = require('../universal-language-detector.cjs');
 const { resolveLanguageFromPath } = require('../universal-language-registry.cjs');
 
+/**
+ * Plugin manager.
+ */
 class PluginManager {
     constructor(options = {}) {
         this.plugins = new Map();
@@ -76,6 +79,10 @@ class PluginManager {
 
 let builtinManager;
 
+/**
+ * Get builtin plugin manager.
+ * @returns {any}
+ */
 function getBuiltinPluginManager() {
     if (!builtinManager) {
         const { registerBuiltinPlugins } = require('./builtin-plugins.cjs');

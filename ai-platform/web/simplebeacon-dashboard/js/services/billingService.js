@@ -30,6 +30,9 @@ const COMMUNITY_STATUS = {
 const EMAIL_KEY = 'simplebeacon_billing_email';
 const TOKEN_KEY = 'simplebeacon_billing_api_token';
 
+/**
+ * Billing service.
+ */
 export class BillingService {
   constructor() {
     this.plan = COMMUNITY_PLAN;
@@ -158,5 +161,8 @@ export class BillingService {
   }
 }
 
+/**
+ * Billing service.
+ */
 export const billingService = new BillingService();
 

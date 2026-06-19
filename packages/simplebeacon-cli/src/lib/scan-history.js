@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { countFictionIssues } = require('../rules/ai-fiction-detection');
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
 
 function repairHistoryEntry(entry = {}) {
     if (!entry || typeof entry !== 'object') return entry;
@@ -56,7 +57,7 @@ function resolveHistoryEntryForReport(history = [], report = {}) {
         if (!Number.isNaN(reportMs)) {
             const closeMatches = entries.filter((entry) => {
                 const entryMs = Date.parse(entry.date);
-                return !Number.isNaN(entryMs) && Math.abs(entryMs - reportMs) <= 5000;
+                return !Number.isNaN(entryMs) && Math.abs(entryMs - reportMs) <= constants.TIMEOUT_5S;
             });
             if (closeMatches.length) return closeMatches[closeMatches.length - 1];
         }

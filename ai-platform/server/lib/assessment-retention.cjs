@@ -11,10 +11,16 @@ const {
     readJsonFileSyncOrNull,
     statMtimeMsOrNull
 } = require('./recoverable-io.cjs');
+const constants = require('../config/constants.cjs');
 
-const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
-const DEFAULT_INTERVAL_MS = 60 * 60 * 1000;
+const DEFAULT_TTL_MS = constants.HOURS_PER_DAY * constants.MINUTES_PER_HOUR * constants.SECONDS_PER_MINUTE * constants.MS_PER_SECOND;
+const DEFAULT_INTERVAL_MS = constants.MINUTES_PER_HOUR * constants.SECONDS_PER_MINUTE * constants.MS_PER_SECOND;
 
+/**
+ * Parse assessment created at.
+ * @param {string} assessmentDir
+ * @returns {any}
+ */
 function parseAssessmentCreatedAt(assessmentDir) {
     const assessmentMetaPath = path.join(assessmentDir, 'assessment.json');
     const assessmentMeta = readJsonFileSyncOrNull(assessmentMetaPath, assessmentMetaPath);
@@ -26,6 +32,12 @@ function parseAssessmentCreatedAt(assessmentDir) {
     return statMtimeMsOrNull(assessmentDir, assessmentDir);
 }
 
+/**
+ * Purge expired assessments.
+ * @param {string} assessmentsDir
+ * @param {Object} options
+ * @returns {any}
+ */
 async function purgeExpiredAssessments(assessmentsDir, options = {}) {
     const maxAgeMs = options.maxAgeMs ?? DEFAULT_TTL_MS;
     const now = Date.now();
@@ -51,12 +63,21 @@ async function purgeExpiredAssessments(assessmentsDir, options = {}) {
     return { removed, skipped: entries.length - removed.length };
 }
 
+/**
+ * Resolve assessment ttl ms.
+ * @returns {any}
+ */
 function resolveAssessmentTtlMs() {
     const hours = parseFloat(process.env.ASSESSMENT_TTL_HOURS || '24', 10);
     if (!Number.isFinite(hours) || hours <= 0) return DEFAULT_TTL_MS;
-    return Math.round(hours * 60 * 60 * 1000);
+    return Math.round(hours * 60 * constants.ONE_MINUTE_MS);
 }
 
+/**
+ * Start assessment retention job.
+ * @param {Object} options
+ * @returns {any}
+ */
 function startAssessmentRetentionJob(options = {}) {
     const assessmentsDir = options.assessmentsDir;
     if (!assessmentsDir) {
@@ -66,6 +87,10 @@ function startAssessmentRetentionJob(options = {}) {
     const maxAgeMs = options.maxAgeMs ?? resolveAssessmentTtlMs();
     const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
 
+/**
+ * Run.
+ * @returns {any}
+ */
     const run = async () => {
         try {
             const result = await purgeExpiredAssessments(assessmentsDir, { maxAgeMs });

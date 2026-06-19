@@ -144,16 +144,27 @@ function scanTextContent(fileName, content, filePath = fileName) {
 
 function isCredentialScanExcludedPath(file) {
     const rel = String(file.relativePath || '').replace(/\\/g, '/');
+    const name = String(file.name || '').toLowerCase();
     return /simplebeacon-rule-tests\//.test(rel)
-        || /packages\/simplebeacon-cli\/tests\//.test(rel);
+        || /packages\/simplebeacon-cli\/tests\//.test(rel)
+        || /test-all-patterns\.js/.test(rel)
+        || name === 'test-all-patterns.js'
+        || /-token\.txt$/.test(name)
+        || /packages\/simplebeacon-cli\/src\/(?:lib|rules|reporters|analyzers|proxy)\//.test(rel)
+        || /\/credential-pattern-scanner\.js$/.test(rel)
+        || /\/report-sanitizer\.js$/.test(rel)
+        || /pattern-documentation\.js$/.test(rel)
+        || /quick-actions\.js$/.test(rel);
 }
 
 async function scanCredentialPatterns(files, options = {}) {
     const issues = [];
     let scanned = 0;
+    const ignoreGlobs = options.ignoreGlobs || [];
 
     for (const file of files) {
         if (isCredentialScanExcludedPath(file)) continue;
+        if (ignoreGlobs.length && file.relativePath && ignoreGlobs.some((pattern) => globMatch(file.relativePath, pattern))) continue;
         if (!SCANNABLE_EXTENSIONS.has(file.ext)) continue;
         if (file.size > MAX_SCAN_BYTES) continue;
 

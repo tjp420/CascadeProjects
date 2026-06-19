@@ -43,10 +43,28 @@ const CATEGORY_DEFINITIONS = [
   }
 ];
 
+/**
+ * To id.
+ * @param {string} name
+ * @returns {any}
+ */
 function toId(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
+/**
+ * Create analyzer.
+ * @param {any} category
+ * @param {string} name
+ * @param {any} purpose
+ * @param {any} inputData
+ * @param {any} methodology
+ * @param {Array} outputMetrics
+ * @param {string} scoringDirection
+ * @param {any} implementationHint
+ * @param {Array} status
+ * @returns {any}
+ */
 function createAnalyzer(category, name, purpose, inputData, methodology, outputMetrics, scoringDirection, implementationHint, status = 'stub') {
   return {
     id: toId(name),
@@ -62,6 +80,9 @@ function createAnalyzer(category, name, purpose, inputData, methodology, outputM
   };
 }
 
+/**
+ * A n a l y z e r  c a t a l o g.
+ */
 export const ANALYZER_CATALOG = [
   createAnalyzer('Technical AI Issues', 'Hallucination Analyzer', 'Detect and measure AI-generated false information.', ['AI responses with source references', 'Ground truth evidence', 'Claim confidence metadata'], ['Extract factual claims', 'Check evidence support for each claim', 'Measure confidence-evidence mismatch'], ['Hallucination rate', 'Confidence-evidence mismatch score', 'Unsupported claim count'], 'lower_better', 'Use deterministic claim/evidence rules and confidence thresholds.', 'implemented'),
   createAnalyzer('Technical AI Issues', 'Bias Detection Analyzer', 'Identify and quantify bias differences across demographic variants.', ['Prompt/response pairs by subgroup', 'Protected subgroup labels', 'Outcome quality scores'], ['Compare subgroup outcome rates', 'Compute parity gap', 'Flag subgroup disparity over threshold'], ['Subgroup parity score', 'Max disparity gap', 'Flagged subgroup count'], 'higher_better', 'Run deterministic subgroup parity checklist over labeled outcomes.', 'implemented'),
@@ -120,6 +141,9 @@ export const ANALYZER_CATALOG = [
   createAnalyzer('Everyday Reliability Problems', 'AI Output Reliability Analyzer', 'Detect overconfident or unverified AI claims that need human verification.', ['AI-generated code or text', 'Claim confidence metadata', 'Verification evidence markers'], ['Flag overconfidence without evidence', 'Score technical plausibility gaps', 'Require verification for vague assurances'], ['Reliability score', 'Verification requirement flag', 'Overconfidence flag count'], 'higher_better', 'Use deterministic pattern rules for overconfidence, plausibility, and verification gaps.', 'implemented')
 ];
 
+/**
+ * A i  s y s t e m  i s s u e s.
+ */
 export const AI_SYSTEM_ISSUES = ANALYZER_CATALOG.map((item, index) => ({
   id: `A-${String(index + 1).padStart(2, '0')}`,
   analyzerId: item.id,
@@ -132,6 +156,11 @@ const ISSUE_BY_ID = new Map(AI_SYSTEM_ISSUES.map((entry) => [entry.id, entry]));
 const ANALYZER_BY_ID = new Map(ANALYZER_CATALOG.map((entry) => [entry.id, entry]));
 const ANALYZER_BY_ISSUE_ID = new Map(AI_SYSTEM_ISSUES.map((entry) => [entry.id, ANALYZER_BY_ID.get(entry.analyzerId)]));
 
+/**
+ * Clamp score.
+ * @param {any} value
+ * @returns {any}
+ */
 export function clampScore(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 0;
@@ -140,6 +169,12 @@ export function clampScore(value) {
   return Number(numeric.toFixed(2));
 }
 
+/**
+ * Normalize risk score.
+ * @param {any} score
+ * @param {string} scoringDirection
+ * @returns {any}
+ */
 export function normalizeRiskScore(score, scoringDirection) {
   const clamped = clampScore(score);
   if (scoringDirection === 'higher_better') {
@@ -148,6 +183,11 @@ export function normalizeRiskScore(score, scoringDirection) {
   return clamped;
 }
 
+/**
+ * Severity from risk.
+ * @param {any} riskScore
+ * @returns {any}
+ */
 export function severityFromRisk(riskScore) {
   if (riskScore >= 75) return 'critical';
   if (riskScore >= 55) return 'high';
@@ -155,6 +195,11 @@ export function severityFromRisk(riskScore) {
   return 'low';
 }
 
+/**
+ * Risk band from risk.
+ * @param {any} riskScore
+ * @returns {any}
+ */
 export function riskBandFromRisk(riskScore) {
   if (riskScore >= 75) return 'High';
   if (riskScore >= 55) return 'Elevated';
@@ -162,6 +207,13 @@ export function riskBandFromRisk(riskScore) {
   return 'Low';
 }
 
+/**
+ * Finalize risk assessment.
+ * @param {any} score
+ * @param {string} scoringDirection
+ * @param {Object} options
+ * @returns {any}
+ */
 function finalizeRiskAssessment(score, scoringDirection, options = {}) {
   const {
     evidenceCount = Number.POSITIVE_INFINITY,
@@ -192,6 +244,11 @@ function finalizeRiskAssessment(score, scoringDirection, options = {}) {
   };
 }
 
+/**
+ * Normalize selected ids.
+ * @param {Array} selectedIssueIds
+ * @returns {any}
+ */
 function normalizeSelectedIds(selectedIssueIds = []) {
   const seen = new Set();
   const valid = [];
@@ -204,10 +261,21 @@ function normalizeSelectedIds(selectedIssueIds = []) {
   return valid;
 }
 
+/**
+ * Is scan report context.
+ * @param {any} input
+ * @returns {any}
+ */
 function isScanReportContext(input = {}) {
   return input.scanReportContext === true || input.inputKind === 'scan-report';
 }
 
+/**
+ * Build stub result.
+ * @param {any} definition
+ * @param {string} issueId
+ * @returns {any}
+ */
 function buildStubResult(definition, issueId) {
   const neutralScore = 50;
   return {
@@ -251,6 +319,11 @@ function buildStubResult(definition, issueId) {
   };
 }
 
+/**
+ * Parse claims.
+ * @param {any} input
+ * @returns {any}
+ */
 function parseClaims(input = {}) {
   if (isScanReportContext(input) && !(Array.isArray(input.claims) && input.claims.length)) {
     return [];
@@ -279,6 +352,13 @@ function parseClaims(input = {}) {
     }));
 }
 
+/**
+ * Run hallucination analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runHallucinationAnalyzer(definition, issueId, input = {}) {
   const claims = parseClaims(input);
   const text = extractAnalyzerText(input);
@@ -384,6 +464,11 @@ const CREDIBLE_SOURCE_MARKERS = [
   /\b(WHO|CDC|FDA|Reuters|Associated Press|AP News)\b/
 ];
 
+/**
+ * Parse misinformation claims.
+ * @param {any} input
+ * @returns {any}
+ */
 function parseMisinformationClaims(input = {}) {
   if (isScanReportContext(input) && !(Array.isArray(input.claims) && input.claims.length)) {
     return [];
@@ -414,6 +499,11 @@ function parseMisinformationClaims(input = {}) {
     }));
 }
 
+/**
+ * Assess misinformation claim.
+ * @param {any} claim
+ * @returns {any}
+ */
 function assessMisinformationClaim(claim = {}) {
   const text = String(claim.text || '');
   const narrativeHit = MISINFORMATION_NARRATIVE_PATTERNS.some((pattern) => pattern.test(text));
@@ -428,6 +518,13 @@ function assessMisinformationClaim(claim = {}) {
   return { misleading, narrativeHit, statWithoutSource, credible };
 }
 
+/**
+ * Run misinformation generation analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runMisinformationGenerationAnalyzer(definition, issueId, input = {}) {
   const claims = parseMisinformationClaims(input);
   if (!claims.length) {
@@ -550,6 +647,12 @@ const COPYRIGHT_DOMAIN_PATTERNS = [
   /\blicensed (content|material|code|asset)\b/i
 ];
 
+/**
+ * Has copyright domain signals.
+ * @param {any} input
+ * @param {string} text
+ * @returns {any}
+ */
 function hasCopyrightDomainSignals(input = {}, text = '') {
   if (Array.isArray(input.sourceLicenses) && input.sourceLicenses.length) return true;
   if (Array.isArray(input.similaritySignatures) && input.similaritySignatures.length) return true;
@@ -593,6 +696,12 @@ const DEEPFAKE_DOMAIN_PATTERNS = [
   /\b(video|audio|image|photo|voice|facial|multimedia|media asset)\b/i
 ];
 
+/**
+ * Has deepfake domain signals.
+ * @param {any} input
+ * @param {string} text
+ * @returns {any}
+ */
 function hasDeepfakeDomainSignals(input = {}, text = '') {
   if (input.mediaMetadata && (
     (typeof input.mediaMetadata === 'object' && Object.keys(input.mediaMetadata).length)
@@ -605,6 +714,11 @@ function hasDeepfakeDomainSignals(input = {}, text = '') {
   return DEEPFAKE_DOMAIN_PATTERNS.some((pattern) => pattern.test(haystack));
 }
 
+/**
+ * Collect copyright scan text.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectCopyrightScanText(input = {}) {
   const signatures = Array.isArray(input.similaritySignatures)
     ? input.similaritySignatures.map((item) => String(item || '')).join('\n')
@@ -616,6 +730,12 @@ function collectCopyrightScanText(input = {}) {
   ].filter((part) => part.trim()).join('\n');
 }
 
+/**
+ * Detect copyright licenses.
+ * @param {string} text
+ * @param {any} explicit
+ * @returns {any}
+ */
 function detectCopyrightLicenses(text = '', explicit = []) {
   const detected = [...explicit];
   for (const licenseDef of COPYRIGHT_LICENSE_DEFS) {
@@ -637,6 +757,13 @@ function detectCopyrightLicenses(text = '', explicit = []) {
   });
 }
 
+/**
+ * Run copyright infringement analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runCopyrightInfringementAnalyzer(definition, issueId, input = {}) {
   const text = collectCopyrightScanText(input);
   const explicitLicenses = Array.isArray(input.sourceLicenses) ? input.sourceLicenses : [];
@@ -751,6 +878,11 @@ function runCopyrightInfringementAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Collect deepfake scan text.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectDeepfakeScanText(input = {}) {
   const metadata = input.mediaMetadata && typeof input.mediaMetadata === 'object'
     ? JSON.stringify(input.mediaMetadata)
@@ -763,6 +895,13 @@ function collectDeepfakeScanText(input = {}) {
   ].filter((part) => part.trim()).join('\n');
 }
 
+/**
+ * Run deepfake detection analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runDeepfakeDetectionAnalyzer(definition, issueId, input = {}) {
   const text = collectDeepfakeScanText(input);
   if (!text.trim()) {
@@ -913,6 +1052,12 @@ const AUTONOMOUS_WEAPON_DOMAIN_PATTERNS = [
   /\bengage (hostile|target|threat)\b/i
 ];
 
+/**
+ * Has autonomous weapon domain signals.
+ * @param {any} input
+ * @param {string} text
+ * @returns {any}
+ */
 export function hasAutonomousWeaponDomainSignals(input = {}, text = '') {
   if (Array.isArray(input.overrideControls) && input.overrideControls.length) return true;
   if (Array.isArray(input.failureModeTests) && input.failureModeTests.length) return true;
@@ -956,16 +1101,32 @@ const SURVEILLANCE_DOMAIN_PATTERNS = [
   /\btracking (system|network|grid)\b/i
 ];
 
+/**
+ * Has surveillance domain signals.
+ * @param {any} input
+ * @param {string} text
+ * @returns {any}
+ */
 function hasSurveillanceDomainSignals(input = {}, text = '') {
   const haystack = String(text || collectSocietalImpactText(input) || '').trim();
   if (!haystack) return false;
   return SURVEILLANCE_DOMAIN_PATTERNS.some((pattern) => pattern.test(haystack));
 }
 
+/**
+ * Collect societal impact text.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectSocietalImpactText(input = {}) {
   return combineAnalyzerText(input);
 }
 
+/**
+ * Collect role tasks.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectRoleTasks(input = {}) {
   if (Array.isArray(input.roleTasks) && input.roleTasks.length) {
     return input.roleTasks.map((row) => ({
@@ -990,6 +1151,13 @@ function collectRoleTasks(input = {}) {
   return tasks;
 }
 
+/**
+ * Run job displacement impact analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runJobDisplacementImpactAnalyzer(definition, issueId, input = {}) {
   const tasks = collectRoleTasks(input);
   const text = collectSocietalImpactText(input);
@@ -1074,6 +1242,14 @@ function runJobDisplacementImpactAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Build autonomous weapon insufficient result.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {string} findingMessage
+ * @param {string} evidenceDetail
+ * @returns {any}
+ */
 function buildAutonomousWeaponInsufficientResult(definition, issueId, findingMessage, evidenceDetail) {
   const risk = finalizeRiskAssessment(0, definition.scoringDirection, {
     evidenceCount: 0,
@@ -1112,6 +1288,13 @@ function buildAutonomousWeaponInsufficientResult(definition, issueId, findingMes
   };
 }
 
+/**
+ * Run autonomous weapon safety analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runAutonomousWeaponSafetyAnalyzer(definition, issueId, input = {}) {
   const text = collectSocietalImpactText(input);
   if (!text.trim()) {
@@ -1184,6 +1367,13 @@ function runAutonomousWeaponSafetyAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Run surveillance impact analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runSurveillanceImpactAnalyzer(definition, issueId, input = {}) {
   const text = collectSocietalImpactText(input);
   if (!text.trim()) {
@@ -1316,6 +1506,12 @@ const MARKET_MONOPOLIZATION_DOMAIN_PATTERNS = [
   /\bsingle vendor\b/i
 ];
 
+/**
+ * Has market monopolization domain signals.
+ * @param {any} input
+ * @param {string} text
+ * @returns {any}
+ */
 function hasMarketMonopolizationDomainSignals(input = {}, text = '') {
   if (collectMarketShares(input).length) return true;
   const haystack = String(text || collectSocietalImpactText(input) || '').trim();
@@ -1375,6 +1571,11 @@ const IP_PROVENANCE_NEGATIVE_MARKERS = [
   /\bunlicensed training data\b/i
 ];
 
+/**
+ * Collect access segments.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectAccessSegments(input = {}) {
   if (Array.isArray(input.accessSegments) && input.accessSegments.length) {
     return input.accessSegments.map((row) => ({
@@ -1386,6 +1587,11 @@ function collectAccessSegments(input = {}) {
   return [];
 }
 
+/**
+ * Collect market shares.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectMarketShares(input = {}) {
   if (Array.isArray(input.marketShares) && input.marketShares.length) {
     return input.marketShares.map((row) => ({
@@ -1396,6 +1602,11 @@ function collectMarketShares(input = {}) {
   return [];
 }
 
+/**
+ * Compute hhi.
+ * @param {Array} shares
+ * @returns {any}
+ */
 function computeHhi(shares = []) {
   if (!shares.length) return 0;
   const total = shares.reduce((sum, row) => sum + row.share, 0) || 1;
@@ -1405,6 +1616,13 @@ function computeHhi(shares = []) {
   }, 0);
 }
 
+/**
+ * Run digital divide analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runDigitalDivideAnalyzer(definition, issueId, input = {}) {
   const segments = collectAccessSegments(input);
   const text = collectSocietalImpactText(input);
@@ -1482,6 +1700,13 @@ function runDigitalDivideAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Run market monopolization analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runMarketMonopolizationAnalyzer(definition, issueId, input = {}) {
   const shares = collectMarketShares(input);
   const text = collectSocietalImpactText(input);
@@ -1518,6 +1743,13 @@ function runMarketMonopolizationAnalyzer(definition, issueId, input = {}) {
   ], ['Diversify critical AI provider dependencies.', 'Document switching-cost mitigation plans.', 'Track provider concentration quarterly.'], `Analyzed ${shares.length} provider share(s) and ${lockInHits} lock-in marker(s).`, 'marketShares|responseText');
 }
 
+/**
+ * Run environmental impact analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runEnvironmentalImpactAnalyzer(definition, issueId, input = {}) {
   const metrics = input.metrics || input.environmentalMetrics || {};
   const text = collectSocietalImpactText(input);
@@ -1553,6 +1785,13 @@ function runEnvironmentalImpactAnalyzer(definition, issueId, input = {}) {
   ], ['Track energy per request in runtime telemetry.', 'Prefer renewable-powered compute regions.', 'Set carbon budget targets per workload tier.'], 'Reviewed sustainability telemetry and workload markers.', 'metrics|responseText');
 }
 
+/**
+ * Run regulatory compliance analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runRegulatoryComplianceAnalyzer(definition, issueId, input = {}) {
   const controls = Array.isArray(input.complianceControls) ? input.complianceControls.map(String) : [];
   const text = collectSocietalImpactText(input);
@@ -1586,6 +1825,13 @@ function runRegulatoryComplianceAnalyzer(definition, issueId, input = {}) {
   ], ['Map controls to applicable AI regulations.', 'Close control gaps with auditable evidence.', 'Run pre-release compliance checklists.'], `Matched ${matched.length}/${REGULATORY_CONTROL_CATALOG.length} control(s).`, 'complianceControls|responseText');
 }
 
+/**
+ * Run liability assessment analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runLiabilityAssessmentAnalyzer(definition, issueId, input = {}) {
   const text = collectSocietalImpactText(input);
   if (!text.trim()) {
@@ -1618,6 +1864,13 @@ function runLiabilityAssessmentAnalyzer(definition, issueId, input = {}) {
   ], ['Document decision ownership for AI-assisted outcomes.', 'Publish escalation paths for incident response.', 'Align terms of service with liability boundaries.'], `Detected ${hits} liability clarity marker(s).`, 'responseText|codeText|logs');
 }
 
+/**
+ * Run market manipulation analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runMarketManipulationAnalyzer(definition, issueId, input = {}) {
   const text = [collectSocietalImpactText(input), String(input.logs || '')].filter(Boolean).join('\n');
   if (!text.trim()) {
@@ -1643,6 +1896,13 @@ function runMarketManipulationAnalyzer(definition, issueId, input = {}) {
   ], ['Monitor anomalous trading behavior signatures.', 'Apply deterministic manipulation rule checks.', 'Escalate repeated anomaly clusters for review.'], `Detected ${hits.length} manipulation signature(s).`, 'responseText|logs');
 }
 
+/**
+ * Run intellectual property analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runIntellectualPropertyAnalyzer(definition, issueId, input = {}) {
   const text = collectCopyrightScanText(input);
   if (!text.trim()) {
@@ -1676,6 +1936,16 @@ function runIntellectualPropertyAnalyzer(definition, issueId, input = {}) {
   ], ['Maintain provenance records for training and generated assets.', 'Validate rights coverage for all source materials.', 'Complete attribution logs before distribution.'], `Reviewed IP provenance markers: positive=${positiveHits}, negative=${negativeHits}.`, 'responseText|codeText');
 }
 
+/**
+ * Build insufficient result.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} pointer
+ * @param {any} detail
+ * @param {Array} metrics
+ * @param {Array} recommendations
+ * @returns {any}
+ */
 function buildInsufficientResult(definition, issueId, pointer, detail, metrics, recommendations) {
   const risk = finalizeRiskAssessment(0, definition.scoringDirection, { evidenceCount: 0, minEvidence: 1, criticalRequiresMinEvidence: true });
   return {
@@ -1697,6 +1967,19 @@ function buildInsufficientResult(definition, issueId, pointer, detail, metrics, 
   };
 }
 
+/**
+ * Build lower better result.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} score
+ * @param {any} risk
+ * @param {Array} metrics
+ * @param {Array} findings
+ * @param {Array} recommendations
+ * @param {string} evidenceDetail
+ * @param {any} pointer
+ * @returns {any}
+ */
 function buildLowerBetterResult(definition, issueId, score, risk, metrics, findings, recommendations, evidenceDetail, pointer) {
   return {
     id: issueId,
@@ -1717,10 +2000,30 @@ function buildLowerBetterResult(definition, issueId, score, risk, metrics, findi
   };
 }
 
+/**
+ * Build higher better result.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} score
+ * @param {any} risk
+ * @param {Array} metrics
+ * @param {Array} findings
+ * @param {Array} recommendations
+ * @param {string} evidenceDetail
+ * @param {any} pointer
+ * @returns {any}
+ */
 function buildHigherBetterResult(definition, issueId, score, risk, metrics, findings, recommendations, evidenceDetail, pointer) {
   return buildLowerBetterResult(definition, issueId, score, risk, metrics, findings, recommendations, evidenceDetail, pointer);
 }
 
+/**
+ * Run bias detection analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runBiasDetectionAnalyzer(definition, issueId, input = {}) {
   const outcomes = Array.isArray(input.subgroupOutcomes) ? input.subgroupOutcomes : [];
   const normalized = outcomes.map((row) => ({
@@ -1814,6 +2117,13 @@ function runBiasDetectionAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Run security risk analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runSecurityRiskAnalyzer(definition, issueId, input = {}) {
   const prompt = String(input.prompt || '').toLowerCase();
   const response = String(input.responseText || '').toLowerCase();
@@ -1950,6 +2260,12 @@ const PRIVACY_UNAUTHORIZED_ACCESS_MARKERS = [
   /\bunapproved export\b/i
 ];
 
+/**
+ * Is allowlisted privacy match.
+ * @param {string} text
+ * @param {any} match
+ * @returns {any}
+ */
 function isAllowlistedPrivacyMatch(text, match) {
   const snippet = String(text || '').slice(
     Math.max(0, match.index - 24),
@@ -1958,6 +2274,11 @@ function isAllowlistedPrivacyMatch(text, match) {
   return PRIVACY_PII_ALLOWLIST.some((allowed) => snippet.includes(allowed.toLowerCase()));
 }
 
+/**
+ * Collect adversarial probes.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectAdversarialProbes(input = {}) {
   if (Array.isArray(input.adversarialPrompts) && input.adversarialPrompts.length) {
     return input.adversarialPrompts.map((entry, index) => ({
@@ -1980,6 +2301,11 @@ function collectAdversarialProbes(input = {}) {
   return probes.filter((entry) => entry.prompt.trim() && entry.response.trim());
 }
 
+/**
+ * Evaluate adversarial probe.
+ * @param {any} probe
+ * @returns {any}
+ */
 function evaluateAdversarialProbe(probe = {}) {
   const prompt = String(probe.prompt || '');
   const response = String(probe.response || '');
@@ -1999,6 +2325,13 @@ function evaluateAdversarialProbe(probe = {}) {
   };
 }
 
+/**
+ * Run adversarial vulnerability analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runAdversarialVulnerabilityAnalyzer(definition, issueId, input = {}) {
   const probes = collectAdversarialProbes(input);
   const relevant = probes.map(evaluateAdversarialProbe).filter((entry) => entry.relevant);
@@ -2085,6 +2418,11 @@ function runAdversarialVulnerabilityAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Collect privacy scan surfaces.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectPrivacyScanSurfaces(input = {}) {
   return [
     { pointer: 'responseText', text: String(input.responseText || '') },
@@ -2093,6 +2431,11 @@ function collectPrivacyScanSurfaces(input = {}) {
   ].filter((surface) => surface.text.trim());
 }
 
+/**
+ * Scan privacy surface.
+ * @param {string} text
+ * @returns {any}
+ */
 function scanPrivacySurface(text = '') {
   const hits = [];
   for (const patternDef of PRIVACY_PII_PATTERNS) {
@@ -2113,6 +2456,13 @@ function scanPrivacySurface(text = '') {
   return hits;
 }
 
+/**
+ * Run privacy violation analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runPrivacyViolationAnalyzer(definition, issueId, input = {}) {
   const surfaces = collectPrivacyScanSurfaces(input);
   if (!surfaces.length) {
@@ -2213,6 +2563,11 @@ function runPrivacyViolationAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Tokenize.
+ * @param {any} value
+ * @returns {any}
+ */
 function tokenize(value) {
   return String(value || '')
     .toLowerCase()
@@ -2221,6 +2576,12 @@ function tokenize(value) {
     .filter(Boolean);
 }
 
+/**
+ * Jaccard.
+ * @param {any} a
+ * @param {any} b
+ * @returns {any}
+ */
 function jaccard(a, b) {
   const setA = new Set(a);
   const setB = new Set(b);
@@ -2232,6 +2593,13 @@ function jaccard(a, b) {
   return intersection / (setA.size + setB.size - intersection);
 }
 
+/**
+ * Run response consistency analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runResponseConsistencyAnalyzer(definition, issueId, input = {}) {
   const responses = Array.isArray(input.responses) ? input.responses.map((item) => String(item || '')).filter(Boolean) : [];
   const tokens = responses.map(tokenize);
@@ -2293,6 +2661,11 @@ const REASONING_FALLACY_MARKERS = [
   /\bnon sequitur\b/i
 ];
 
+/**
+ * Normalize confidence value.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizeConfidenceValue(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 0;
@@ -2300,6 +2673,11 @@ function normalizeConfidenceValue(value) {
   return clampScore(numeric);
 }
 
+/**
+ * Collect calibration records.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectCalibrationRecords(input = {}) {
   const source = Array.isArray(input.calibrationRecords)
     ? input.calibrationRecords
@@ -2313,6 +2691,11 @@ function collectCalibrationRecords(input = {}) {
   }));
 }
 
+/**
+ * Collect context checkpoints.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectContextCheckpoints(input = {}) {
   if (Array.isArray(input.contextCheckpoints) && input.contextCheckpoints.length) {
     return input.contextCheckpoints.map((row, index) => ({
@@ -2331,6 +2714,11 @@ function collectContextCheckpoints(input = {}) {
   return [];
 }
 
+/**
+ * Collect freshness tests.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectFreshnessTests(input = {}) {
   if (Array.isArray(input.freshnessTests) && input.freshnessTests.length) {
     return input.freshnessTests.map((row) => ({
@@ -2345,6 +2733,11 @@ function collectFreshnessTests(input = {}) {
   return [];
 }
 
+/**
+ * Collect reasoning tasks.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectReasoningTasks(input = {}) {
   if (Array.isArray(input.reasoningTasks) && input.reasoningTasks.length) {
     return input.reasoningTasks.map((row) => {
@@ -2370,6 +2763,13 @@ function collectReasoningTasks(input = {}) {
   return [];
 }
 
+/**
+ * Run confidence accuracy analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runConfidenceAccuracyAnalyzer(definition, issueId, input = {}) {
   const records = collectCalibrationRecords(input);
   if (records.length < 2) {
@@ -2400,6 +2800,13 @@ function runConfidenceAccuracyAnalyzer(definition, issueId, input = {}) {
   ], ['Log claimed confidence alongside verification outcomes.', 'Review overconfidence cases in evaluation datasets.', 'Track calibration drift over repeated runs.'], `Evaluated ${records.length} confidence record(s).`, 'calibrationRecords|confidenceSignals');
 }
 
+/**
+ * Run context retention analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runContextRetentionAnalyzer(definition, issueId, input = {}) {
   const checkpoints = collectContextCheckpoints(input);
   if (checkpoints.length < 2) {
@@ -2438,6 +2845,13 @@ function runContextRetentionAnalyzer(definition, issueId, input = {}) {
   ], ['Inject recall prompts at fixed conversation intervals.', 'Track retained facts across long sessions.', 'Reduce context window drift with explicit summaries.'], `Reviewed ${checkpoints.length} retention checkpoint(s).`, 'contextCheckpoints|conversationTranscript');
 }
 
+/**
+ * Run knowledge freshness analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runKnowledgeFreshnessAnalyzer(definition, issueId, input = {}) {
   const tests = collectFreshnessTests(input);
   const knowledgeCutoff = String(input.knowledgeCutoff || input.cutoffDate || '').trim();
@@ -2469,6 +2883,13 @@ function runKnowledgeFreshnessAnalyzer(definition, issueId, input = {}) {
   ], ['Maintain dated benchmark facts for recent topics.', 'Track knowledge cutoff metadata in evaluations.', 'Flag stale answers against verified references.'], `Evaluated ${tests.length} freshness test(s).`, 'freshnessTests|knowledgeCutoff');
 }
 
+/**
+ * Run reasoning capability analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runReasoningCapabilityAnalyzer(definition, issueId, input = {}) {
   const tasks = collectReasoningTasks(input);
   if (!tasks.length) {
@@ -2504,6 +2925,11 @@ function runReasoningCapabilityAnalyzer(definition, issueId, input = {}) {
 
 const UX_LATENCY_THRESHOLD_MS = 3000;
 
+/**
+ * Is batch latency label.
+ * @param {any} label
+ * @returns {any}
+ */
 function isBatchLatencyLabel(label = '') {
   const normalized = String(label).toLowerCase();
   return normalized.includes('scan_duration')
@@ -2512,10 +2938,20 @@ function isBatchLatencyLabel(label = '') {
     || normalized.includes('file_reduction');
 }
 
+/**
+ * Exclude batch duration from ux latency.
+ * @param {any} input
+ * @returns {any}
+ */
 function excludeBatchDurationFromUxLatency(input = {}) {
   return isScanReportContext(input);
 }
 
+/**
+ * Collect latency samples.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectLatencySamples(input = {}) {
   const skipBatchDuration = excludeBatchDurationFromUxLatency(input);
   if (Array.isArray(input.latencySamples) && input.latencySamples.length) {
@@ -2555,6 +2991,13 @@ function collectLatencySamples(input = {}) {
   });
 }
 
+/**
+ * Run response latency analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runResponseLatencyAnalyzer(definition, issueId, input = {}) {
   let samples = collectLatencySamples(input);
   if (isScanReportContext(input)) {
@@ -2603,6 +3046,11 @@ function runResponseLatencyAnalyzer(definition, issueId, input = {}) {
   ], ['Publish p50/p95 latency dashboards for user-facing flows.', 'Set UX SLO alerts for p95 above 3 seconds.', 'Profile slow requests and cache repeat workloads.'], `Evaluated ${samples.length} latency sample(s); p95=${p95}ms.`, 'latencySamples|metrics|responseText');
 }
 
+/**
+ * Collect classification pairs.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectClassificationPairs(input = {}) {
   if (Array.isArray(input.classificationLabels) && input.classificationLabels.length) {
     return input.classificationLabels.map((row) => ({
@@ -2627,6 +3075,13 @@ function collectClassificationPairs(input = {}) {
   return [];
 }
 
+/**
+ * Run false positive negative analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runFalsePositiveNegativeAnalyzer(definition, issueId, input = {}) {
   const pairs = collectClassificationPairs(input);
   if (pairs.length < 2) {
@@ -2675,6 +3130,11 @@ const EVIDENCE_MARKERS = {
   productionSignals: /\b(test(?:s|ed|ing)?|logging|log(?:ged|s)?|error handling|try[\s/-]catch|monitoring|observability)\b/i
 };
 
+/**
+ * Extract analyzer text.
+ * @param {any} input
+ * @returns {any}
+ */
 function extractAnalyzerText(input = {}) {
   if (typeof input.responseText === 'string' && input.responseText.trim()) {
     return input.responseText.trim();
@@ -2688,14 +3148,30 @@ function extractAnalyzerText(input = {}) {
   return '';
 }
 
+/**
+ * Quote snippet.
+ * @param {string} text
+ * @param {any} match
+ * @returns {any}
+ */
 function quoteSnippet(text, match) {
   const snippet = String(match || '').trim();
   if (!snippet) return 'claim';
   return snippet.length > 48 ? `${snippet.slice(0, 45)}...` : snippet;
 }
 
+/**
+ * Detect reliability flags.
+ * @param {string} text
+ * @returns {any}
+ */
 function detectReliabilityFlags(text) {
   const flags = [];
+/**
+ * Add flag.
+ * @param {any} flag
+ * @returns {any}
+ */
   const addFlag = (flag) => {
     if (!flags.includes(flag)) flags.push(flag);
   };
@@ -2791,6 +3267,11 @@ function detectReliabilityFlags(text) {
   return flags;
 }
 
+/**
+ * Build verification checklist.
+ * @param {Array} flags
+ * @returns {any}
+ */
 function buildVerificationChecklist(flags) {
   return flags.map((flag) => {
     if (flag.startsWith('Overconfidence detected:')) {
@@ -2803,6 +3284,12 @@ function buildVerificationChecklist(flags) {
   });
 }
 
+/**
+ * Build reliability recommendation.
+ * @param {any} reliabilityScore
+ * @param {Array} flags
+ * @returns {any}
+ */
 function buildReliabilityRecommendation(reliabilityScore, flags) {
   if (!flags.length) {
     return 'Output appears reliable; routine spot-checks recommended for critical use.';
@@ -2816,6 +3303,9 @@ function buildReliabilityRecommendation(reliabilityScore, flags) {
   return 'Spot-check flagged claims; overall reliability is acceptable pending verification.';
 }
 
+/**
+ * Confidence calibration registry.
+ */
 export const confidenceCalibrationRegistry = {
   _records: [],
   register(entry = {}) {
@@ -2845,6 +3335,11 @@ export const confidenceCalibrationRegistry = {
   }
 };
 
+/**
+ * Analyze ai output reliability.
+ * @param {any} input
+ * @returns {any}
+ */
 export function analyzeAiOutputReliability(input = {}) {
   const text = extractAnalyzerText(input);
   const flags = text ? detectReliabilityFlags(text) : [];
@@ -2867,6 +3362,13 @@ export function analyzeAiOutputReliability(input = {}) {
   };
 }
 
+/**
+ * Run ai output reliability analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runAiOutputReliabilityAnalyzer(definition, issueId, input = {}) {
   const text = extractAnalyzerText(input);
   const assessment = analyzeAiOutputReliability(input);
@@ -2924,6 +3426,11 @@ function runAiOutputReliabilityAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Combine analyzer text.
+ * @param {any} input
+ * @returns {any}
+ */
 function combineAnalyzerText(input = {}) {
   const parts = [
     extractAnalyzerText(input),
@@ -2933,6 +3440,11 @@ function combineAnalyzerText(input = {}) {
   return parts.join('\n');
 }
 
+/**
+ * Parse log error lines.
+ * @param {string} text
+ * @returns {any}
+ */
 function parseLogErrorLines(text) {
   const lines = String(text || '').split(/\r?\n/);
   const cases = [];
@@ -2953,6 +3465,11 @@ function parseLogErrorLines(text) {
   return cases;
 }
 
+/**
+ * Parse text error sentences.
+ * @param {string} text
+ * @returns {any}
+ */
 function parseTextErrorSentences(text) {
   const sentences = String(text || '')
     .split(/[\n.!?]+/)
@@ -2974,6 +3491,11 @@ function parseTextErrorSentences(text) {
   return cases;
 }
 
+/**
+ * Parse code error patterns.
+ * @param {string} codeText
+ * @returns {any}
+ */
 function parseCodeErrorPatterns(codeText) {
   const code = String(codeText || '');
   if (!code.trim()) return [];
@@ -3010,6 +3532,11 @@ function parseCodeErrorPatterns(codeText) {
   return cases;
 }
 
+/**
+ * Collect error cases.
+ * @param {any} input
+ * @returns {any}
+ */
 function collectErrorCases(input = {}) {
   const structured = Array.isArray(input.errorCases)
     ? input.errorCases.map((row) => ({ ...row, source: row.source || 'structured' }))
@@ -3032,6 +3559,11 @@ function collectErrorCases(input = {}) {
   });
 }
 
+/**
+ * Compute mttr minutes.
+ * @param {Array} errorCases
+ * @returns {any}
+ */
 function computeMttrMinutes(errorCases) {
   const durations = [];
   for (const row of errorCases) {
@@ -3053,6 +3585,11 @@ function computeMttrMinutes(errorCases) {
   return durations.reduce((sum, value) => sum + value, 0) / durations.length;
 }
 
+/**
+ * Normalize error case.
+ * @param {any} row
+ * @returns {any}
+ */
 function normalizeErrorCase(row) {
   const message = String(row.message || row.error || '').toLowerCase();
   const code = String(row.code || row.errorCode || '');
@@ -3075,6 +3612,13 @@ function normalizeErrorCase(row) {
   };
 }
 
+/**
+ * Run interpretability analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runInterpretabilityAnalyzer(definition, issueId, input = {}) {
   const traces = Array.isArray(input.traces) ? input.traces : [];
   if (isScanReportContext(input) && !traces.length) {
@@ -3204,6 +3748,13 @@ function runInterpretabilityAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Run data quality analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runDataQualityAnalyzer(definition, issueId, input = {}) {
   const samples = Array.isArray(input.datasetSamples) ? input.datasetSamples : [];
   if (isScanReportContext(input) && !samples.length) {
@@ -3320,6 +3871,13 @@ function runDataQualityAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Run scalability analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runScalabilityAnalyzer(definition, issueId, input = {}) {
   const metrics = input.metrics || {};
   if (isScanReportContext(input) && !Object.keys(metrics).length) {
@@ -3443,6 +4001,13 @@ function runScalabilityAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Run generalization analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runGeneralizationAnalyzer(definition, issueId, input = {}) {
   const benchmarks = input.benchmarks || {};
   if (isScanReportContext(input) && !Object.keys(benchmarks).length) {
@@ -3556,6 +4121,13 @@ function runGeneralizationAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Run error handling analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function runErrorHandlingAnalyzer(definition, issueId, input = {}) {
   const errors = collectErrorCases(input);
   if (!errors.length) {
@@ -3674,6 +4246,11 @@ function runErrorHandlingAnalyzer(definition, issueId, input = {}) {
   };
 }
 
+/**
+ * Derive scan issues.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveScanIssues(context = {}) {
   if (Array.isArray(context.scanIssues) && context.scanIssues.length) return context.scanIssues;
   if (Array.isArray(context.rawIssues) && context.rawIssues.length) return context.rawIssues;
@@ -3681,6 +4258,12 @@ function deriveScanIssues(context = {}) {
   return [];
 }
 
+/**
+ * Bucket issues for parity.
+ * @param {Array} issues
+ * @param {any} keyFn
+ * @returns {any}
+ */
 function bucketIssuesForParity(issues, keyFn) {
   const buckets = new Map();
   for (const issue of issues) {
@@ -3703,6 +4286,11 @@ function bucketIssuesForParity(issues, keyFn) {
   }));
 }
 
+/**
+ * Derive subgroup outcomes.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveSubgroupOutcomes(context = {}) {
   if (Array.isArray(context.subgroupOutcomes) && context.subgroupOutcomes.length) {
     return context.subgroupOutcomes;
@@ -3714,6 +4302,11 @@ function deriveSubgroupOutcomes(context = {}) {
     || undefined;
 }
 
+/**
+ * Derive claims from context.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveClaimsFromContext(context = {}) {
   if (Array.isArray(context.claims) && context.claims.length) return context.claims;
   const sources = [
@@ -3747,6 +4340,11 @@ function deriveClaimsFromContext(context = {}) {
   }));
 }
 
+/**
+ * Derive traces from context.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveTracesFromContext(context = {}) {
   if (Array.isArray(context.traces) && context.traces.length) return context.traces;
   const traces = [];
@@ -3780,6 +4378,11 @@ function deriveTracesFromContext(context = {}) {
   return traces.length ? traces : undefined;
 }
 
+/**
+ * Derive dataset samples.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveDatasetSamples(context = {}) {
   if (Array.isArray(context.datasetSamples) && context.datasetSamples.length) return context.datasetSamples;
   const issues = deriveScanIssues(context);
@@ -3792,6 +4395,11 @@ function deriveDatasetSamples(context = {}) {
   }));
 }
 
+/**
+ * Derive scalability metrics.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveScalabilityMetrics(context = {}) {
   const existing = context.scalabilityMetrics || context.metrics;
   const derived = { ...(existing && typeof existing === 'object' ? existing : {}) };
@@ -3815,6 +4423,11 @@ function deriveScalabilityMetrics(context = {}) {
   return Object.keys(derived).length ? derived : undefined;
 }
 
+/**
+ * Derive benchmarks.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveBenchmarks(context = {}) {
   if (context.benchmarks && Object.keys(context.benchmarks).length) return context.benchmarks;
   const explicit = context.healthScore ?? context.scan?.healthScore ?? context.report?.healthScore;
@@ -3850,6 +4463,11 @@ function deriveBenchmarks(context = {}) {
   };
 }
 
+/**
+ * Derive responses.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveResponses(context = {}) {
   if (Array.isArray(context.responses) && context.responses.length) {
     return context.responses.map((item) => String(item || '')).filter(Boolean);
@@ -3880,6 +4498,11 @@ function deriveResponses(context = {}) {
   return unique.length >= 2 ? unique : undefined;
 }
 
+/**
+ * Combine scan narrative.
+ * @param {string} context
+ * @returns {any}
+ */
 function combineScanNarrative(context = {}) {
   return [
     context.responseText,
@@ -3891,6 +4514,11 @@ function combineScanNarrative(context = {}) {
   ].map((value) => String(value || '').trim()).filter(Boolean).join(' ');
 }
 
+/**
+ * Derive calibration records.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveCalibrationRecords(context = {}) {
   if (Array.isArray(context.calibrationRecords) && context.calibrationRecords.length) return context.calibrationRecords;
   const issues = deriveScanIssues(context);
@@ -3905,6 +4533,11 @@ function deriveCalibrationRecords(context = {}) {
   });
 }
 
+/**
+ * Derive context checkpoints.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveContextCheckpoints(context = {}) {
   if (Array.isArray(context.contextCheckpoints) && context.contextCheckpoints.length >= 2) {
     return context.contextCheckpoints;
@@ -3924,6 +4557,11 @@ function deriveContextCheckpoints(context = {}) {
   }));
 }
 
+/**
+ * Derive freshness tests.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveFreshnessTests(context = {}) {
   if (Array.isArray(context.freshnessTests) && context.freshnessTests.length) return context.freshnessTests;
   const text = combineScanNarrative(context);
@@ -3936,6 +4574,11 @@ function deriveFreshnessTests(context = {}) {
   }];
 }
 
+/**
+ * Derive reasoning tasks.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveReasoningTasks(context = {}) {
   if (Array.isArray(context.reasoningTasks) && context.reasoningTasks.length) return context.reasoningTasks;
   const issues = deriveScanIssues(context);
@@ -3950,6 +4593,11 @@ function deriveReasoningTasks(context = {}) {
   }));
 }
 
+/**
+ * Derive compliance controls.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveComplianceControls(context = {}) {
   if (Array.isArray(context.complianceControls) && context.complianceControls.length) return context.complianceControls;
   const text = combineScanNarrative(context);
@@ -3961,6 +4609,11 @@ function deriveComplianceControls(context = {}) {
   return controls.length ? controls : undefined;
 }
 
+/**
+ * Derive classification labels.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveClassificationLabels(context = {}) {
   if (Array.isArray(context.classificationLabels) && context.classificationLabels.length >= 2) {
     return context.classificationLabels;
@@ -3977,6 +4630,11 @@ function deriveClassificationLabels(context = {}) {
   });
 }
 
+/**
+ * Derive latency samples.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveLatencySamples(context = {}) {
   if (Array.isArray(context.latencySamples) && context.latencySamples.length) return context.latencySamples;
   const metrics = deriveScalabilityMetrics(context) || {};
@@ -3992,6 +4650,11 @@ function deriveLatencySamples(context = {}) {
   return derived.length ? derived : undefined;
 }
 
+/**
+ * Derive error cases from context.
+ * @param {string} context
+ * @returns {any}
+ */
 function deriveErrorCasesFromContext(context = {}) {
   if (Array.isArray(context.errorCases) && context.errorCases.length) {
     return context.errorCases;
@@ -4015,6 +4678,11 @@ function deriveErrorCasesFromContext(context = {}) {
   return derived.length ? derived : undefined;
 }
 
+/**
+ * Enrich scan context for analyzers.
+ * @param {string} context
+ * @returns {any}
+ */
 export function enrichScanContextForAnalyzers(context = {}) {
   const next = { ...context };
   const claims = deriveClaimsFromContext(next);
@@ -4069,6 +4737,11 @@ const EXTENDED_STRUCTURED_CONTEXT_KEYS = [
   'customizationOptions'
 ];
 
+/**
+ * Pick extended structured context fields.
+ * @param {string} context
+ * @returns {any}
+ */
 function pickExtendedStructuredContextFields(context = {}) {
   return Object.fromEntries(
     EXTENDED_STRUCTURED_CONTEXT_KEYS
@@ -4077,6 +4750,11 @@ function pickExtendedStructuredContextFields(context = {}) {
   );
 }
 
+/**
+ * Resolve analyzer context.
+ * @param {Array} analyzerInputs
+ * @returns {any}
+ */
 function resolveAnalyzerContext(analyzerInputs = {}) {
   const { context: nestedContext, default: defaultInput, ...rest } = analyzerInputs;
   const reserved = new Set(['default', 'context', ...Object.keys(IMPLEMENTED_RUNNERS)]);
@@ -4090,6 +4768,11 @@ function resolveAnalyzerContext(analyzerInputs = {}) {
   };
 }
 
+/**
+ * Collect analyzer inputs.
+ * @param {string} context
+ * @returns {any}
+ */
 export function collectAnalyzerInputs(context = {}) {
   const enriched = enrichScanContextForAnalyzers(context);
   const snippets = {
@@ -4294,10 +4977,19 @@ export function collectAnalyzerInputs(context = {}) {
   return perAnalyzer;
 }
 
+/**
+ * I m p l e m e n t e d  a n a l y z e r  i s s u e  i d s.
+ */
 export const IMPLEMENTED_ANALYZER_ISSUE_IDS = AI_SYSTEM_ISSUES
   .filter((issue) => ANALYZER_BY_ID.get(issue.analyzerId)?.status === 'implemented')
   .map((issue) => issue.id);
 
+/**
+ * Run all analyzers.
+ * @param {string} context
+ * @param {Array} selectedIssueIds
+ * @returns {any}
+ */
 export function runAllAnalyzers(context = {}, selectedIssueIds = IMPLEMENTED_ANALYZER_ISSUE_IDS) {
   return buildAiSystemsIssueAnalysis(selectedIssueIds, { context });
 }
@@ -4366,6 +5058,12 @@ const IMPLEMENTED_RUNNERS = {
   'customization-limit-analyzer': EXTENDED_ANALYZERS.runCustomizationLimitAnalyzer
 };
 
+/**
+ * Execute analyzer.
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
 function executeAnalyzer(issueId, input = {}) {
   const definition = ANALYZER_BY_ISSUE_ID.get(issueId);
   if (!definition) return null;
@@ -4376,6 +5074,11 @@ function executeAnalyzer(issueId, input = {}) {
   return buildStubResult(definition, issueId);
 }
 
+/**
+ * Summarize execution status.
+ * @param {Array} results
+ * @returns {any}
+ */
 function summarizeExecutionStatus(results) {
   let measured = 0;
   let insufficientData = 0;
@@ -4392,6 +5095,12 @@ function summarizeExecutionStatus(results) {
   return { measured, insufficientData, stub };
 }
 
+/**
+ * Build coverage gaps.
+ * @param {Array} analyzerResults
+ * @param {number} limit
+ * @returns {any}
+ */
 function buildCoverageGaps(analyzerResults, limit = 8) {
   return analyzerResults
     .filter((result) => result.status === 'implemented' && result.evidenceStatus === 'insufficient_data')
@@ -4412,6 +5121,11 @@ function buildCoverageGaps(analyzerResults, limit = 8) {
     .slice(0, limit);
 }
 
+/**
+ * Summarize risk.
+ * @param {Array} results
+ * @returns {any}
+ */
 function summarizeRisk(results) {
   const severityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
   let totalRisk = 0;
@@ -4438,6 +5152,11 @@ function summarizeRisk(results) {
   };
 }
 
+/**
+ * Build category distribution.
+ * @param {Array} selectedIssues
+ * @returns {any}
+ */
 function buildCategoryDistribution(selectedIssues) {
   const counts = new Map(CATEGORY_DEFINITIONS.map((item) => [item.name, 0]));
   for (const issue of selectedIssues) {
@@ -4455,6 +5174,10 @@ function buildCategoryDistribution(selectedIssues) {
   });
 }
 
+/**
+ * Group issues by category.
+ * @returns {any}
+ */
 export function groupIssuesByCategory() {
   return CATEGORY_DEFINITIONS.map((category) => ({
     categoryId: category.id,
@@ -4464,6 +5187,11 @@ export function groupIssuesByCategory() {
   }));
 }
 
+/**
+ * Enrich analyzer context from code insights.
+ * @param {string} context
+ * @returns {any}
+ */
 export function enrichAnalyzerContextFromCodeInsights(context = {}) {
   const next = { ...context };
   const understanding = context.codeUnderstanding;
@@ -4510,6 +5238,12 @@ export function enrichAnalyzerContextFromCodeInsights(context = {}) {
   return next;
 }
 
+/**
+ * Build ai systems issue analysis.
+ * @param {Array} selectedIssueIds
+ * @param {Array} analyzerInputs
+ * @returns {any}
+ */
 export function buildAiSystemsIssueAnalysis(selectedIssueIds = [], analyzerInputs = {}) {
   const normalized = normalizeSelectedIds(selectedIssueIds);
   const selectedIssues = normalized.map((id) => ISSUE_BY_ID.get(id));

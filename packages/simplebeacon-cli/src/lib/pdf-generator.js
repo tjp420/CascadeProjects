@@ -190,7 +190,7 @@ function buildExecutiveHtml(report, licenseClaims) {
             <p><strong>Business impact:</strong> ${pillar.businessPitch}.</p>
             <p><strong>Estimated financial exposure:</strong> $${liability.breakdown.find(b => b.pillar === pillar.name)?.amount.toLocaleString() || '0'}.</p>
             <ol>
-                ${data.issues.slice(0, 3).map(i => `<li>Delete or replace: ${(i.recommendedAction || i.recommendation || 'Review manually').slice(0, 120)}.</li>`).join('')}
+                ${data.issues.slice(0, 3).map(i => '<li>Delete or replace: ' + (i.recommendedAction || i.recommendation || 'Review manually').slice(0, 120) + '.</li>').join('')}
                 ${data.issues.length > 3 ? `<li>...and ${data.issues.length - 3} additional item(s). Run <code>npx simplebeacon scan --gate</code> for full detail.</li>` : ''}
             </ol>
         </div>`);

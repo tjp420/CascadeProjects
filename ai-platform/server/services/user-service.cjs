@@ -7,12 +7,21 @@ const { hashPassword, verifyPassword } = require('../middleware/auth.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { readJsonFileCached } = require('../lib/json-file-cache.cjs');
 
+const constants = require('../config/constants.cjs');
 const DEMO_USERS_PATH = path.join(__dirname, '..', 'db', 'demo-users.json');
 
+/**
+ * Should log runtime info.
+ * @returns {any}
+ */
 function shouldLogRuntimeInfo() {
     return process.env.LOG_RUNTIME_INFO === 'true' || process.env.RUNTIME_DEBUG === 'true';
 }
 
+/**
+ * Load demo users.
+ * @returns {any}
+ */
 function loadDemoUsers() {
     try {
         const users = readJsonFileCached(DEMO_USERS_PATH);
@@ -23,6 +32,11 @@ function loadDemoUsers() {
     }
 }
 
+/**
+ * To auth user.
+ * @param {any} row
+ * @returns {any}
+ */
 function toAuthUser(row) {
     return {
         id: row.id,
@@ -37,6 +51,12 @@ function toAuthUser(row) {
     };
 }
 
+/**
+ * Find user by email.
+ * @param {any} db
+ * @param {string} email
+ * @returns {any}
+ */
 async function findUserByEmail(db, email) {
     const emailLookupQuery = await db.query(
         `SELECT id, email, password_hash, name, trust_level, successful_analyses,
@@ -47,6 +67,11 @@ async function findUserByEmail(db, email) {
     return emailLookupQuery.rows[0] || null;
 }
 
+/**
+ * Seed demo users.
+ * @param {any} db
+ * @returns {any}
+ */
 async function seedDemoUsers(db) {
     const demoUsers = loadDemoUsers();
     for (const user of demoUsers) {
@@ -75,6 +100,13 @@ async function seedDemoUsers(db) {
     }
 }
 
+/**
+ * Authenticate with database.
+ * @param {any} db
+ * @param {string} email
+ * @param {string} password
+ * @returns {any}
+ */
 async function authenticateWithDatabase(db, email, password) {
     const row = await findUserByEmail(db, email);
     if (!row) return null;
@@ -85,6 +117,12 @@ async function authenticateWithDatabase(db, email, password) {
     return toAuthUser(row);
 }
 
+/**
+ * Authenticate with demo file.
+ * @param {string} email
+ * @param {string} password
+ * @returns {any}
+ */
 async function authenticateWithDemoFile(email, password) {
     const demoUsers = loadDemoUsers();
     const match = demoUsers.find((user) => user.email.toLowerCase() === email.toLowerCase());
@@ -102,7 +140,7 @@ async function authenticateWithDemoFile(email, password) {
         email: match.email,
         name: match.name,
         trustLevel: match.trustLevel || 'bronze',
-        createdAt: match.createdAt || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        createdAt: match.createdAt || new Date(Date.now() - 30 * 24 * 60 * constants.ONE_MINUTE_MS).toISOString(),
         successfulAnalyses: match.successfulAnalyses || 0,
         securityIncidents: match.securityIncidents || 0,
         communityContributions: match.communityContributions || 0,
@@ -110,6 +148,13 @@ async function authenticateWithDemoFile(email, password) {
     };
 }
 
+/**
+ * Authenticate user.
+ * @param {any} db
+ * @param {string} email
+ * @param {string} password
+ * @returns {any}
+ */
 async function authenticateUser(db, email, password) {
     if (db) {
         const user = await authenticateWithDatabase(db, email, password);
@@ -122,11 +167,46 @@ async function authenticateUser(db, email, password) {
     return null;
 }
 
+/**
+ * Register a new user in the demo-users.json file.
+ * @param {string} email
+ * @param {string} password
+ * @param {string} name
+ * @returns {any}
+ */
+async function registerUser(email, password, name) {
+    const demoUsers = loadDemoUsers();
+    const existing = demoUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (existing) {
+        return { error: 'An account with this email already exists' };
+    }
+
+    const passwordHash = await hashPassword(password);
+    const userRecord = {
+        id: 'user-' + Date.now(),
+        email,
+        passwordHash,
+        name: name || email.split('@')[0],
+        trustLevel: 'bronze',
+        successfulAnalyses: 0,
+        securityIncidents: 0,
+        communityContributions: 0,
+        verificationStatus: 'email'
+    };
+
+    demoUsers.push(userRecord);
+    const fs = require('fs');
+    fs.writeFileSync(DEMO_USERS_PATH, JSON.stringify(demoUsers, null, 2));
+
+    return { user: toAuthUser(userRecord) };
+}
+
 module.exports = {
     loadDemoUsers,
     seedDemoUsers,
     findUserByEmail,
     authenticateUser,
     authenticateWithDemoFile,
-    toAuthUser
+    toAuthUser,
+    registerUser
 };

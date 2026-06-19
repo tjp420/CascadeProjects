@@ -1,0 +1,20 @@
+{
+  "type": "simplebeacon-complete-scan",
+  "generatedAt": "2026-06-11T00:00:00.000Z",
+  "projectRoot": "C:/Users/Trevor/CascadeProjects",
+  "totalFiles": 16991,
+  "totalIssues": 7,
+  "issues": [],
+  "phases": [
+    {
+      "id": "integrity",
+      "title": "Data Integrity",
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "mockData": {
+    "fileCount": 93,
+    "summary": "CascadeProjects scan stub"
+  }
+}

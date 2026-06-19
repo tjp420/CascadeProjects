@@ -1,36 +1,5 @@
 {
   "dataSource": "repository-audit",
   "rejectedFiction": {},
-  "syncedAt": "2026-06-06T20:07:40.915Z",
-  "lastScanMetrics": {
-    "date": "2026-06-06T20:07:40.915Z",
-    "projectRoot": "coming-soon",
-    "totalFiles": 6221,
-    "totalLines": 768873,
-    "qualityScore": 87,
-    "grade": "B",
-    "gatePass": true,
-    "issueCount": 19,
-    "blockingCount": 0,
-    "severityCounts": {
-      "critical": 0,
-      "high": 0,
-      "medium": 0,
-      "low": 19
-    }
-  },
-  "issueBaseline": [
-    { "type": "AI System Indicator", "severity": "low", "fileCount": 5, "matchCount": 13 },
-    { "type": "Debug Artifact", "severity": "low", "fileCount": 6, "matchCount": 18 },
-    { "type": "License/Governance Marker", "severity": "low", "fileCount": 8, "matchCount": 14 }
-  ],
-  "moduleBaseline": {
-    "consolidation": { "duplicateGroups": 24, "monorepoMarkers": 0, "duplicateSource": "public/ deploy copy of root files", "resolution": "Added public/** to .simplebeacon/config.json ignore and public/ to .simplebeaconignore" },
-    "roadmap": { "todoCount": 2, "todoFiles": ["coming-soon/public/upload.html", "coming-soon/upload.html"] },
-    "cleanup": { "debugArtifactCount": 6, "debugArtifacts": ["coming-soon/server.cjs", "coming-soon/test-certificate.js", "coming-soon/test-normalize.js", "coming-soon/test-renderPreview.js", "coming-soon/test-technical-audit.js"] },
-    "npmAudit": { "packageJsonCount": 1, "dependencyCount": 23 },
-    "compliance": { "licenseCount": 0, "securityCount": 0 },
-    "dependencyAudit": { "vulnerabilityCount": 0 },
-    "buildReadiness": { "readinessScore": 92, "readinessStatus": "READY", "totalChecks": 12, "passedChecks": 11, "missingRecommended": ["Docker"] }
-  }
+  "syncedAt": null
 }

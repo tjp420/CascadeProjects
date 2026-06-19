@@ -15,9 +15,10 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const Joi = require('joi');
 
+const constants = require('../config/constants.cjs');
 // Security configuration
 const securityConfig = {
-  rateLimitWindowMs: 15 * 60 * 1000, // 15 minutes
+  rateLimitWindowMs: constants.RATE_LIMIT_WINDOW_MS, // 15 minutes
   rateLimitMax: 100, // limit each IP to 100 requests per windowMs
   rateLimitSkipSuccessfulRequests: false,
   rateLimitSkipFailedRequests: false,
@@ -26,14 +27,27 @@ const securityConfig = {
 };
 
 // Rate limiting middleware
+/**
+ * Create rate limiter.
+ * @param {Object} options
+ * @returns {any}
+ */
 const createRateLimiter = (options = {}) => {
   return rateLimit({
     windowMs: options.windowMs || securityConfig.rateLimitWindowMs,
     max: options.max || securityConfig.rateLimitMax,
+    skip: (req) => {
+      // Bypass rate limiting for localhost in development
+      if (process.env.NODE_ENV !== 'production') {
+        const ip = req.ip || req.connection?.remoteAddress || '';
+        return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip.startsWith('::ffff:127.');
+      }
+      return false;
+    },
     message: {
       error: 'Too many requests',
       message: 'Rate limit exceeded. Please try again later.',
-      retryAfter: Math.ceil(securityConfig.rateLimitWindowMs / 1000)
+      retryAfter: Math.ceil(securityConfig.rateLimitWindowMs / constants.MS_PER_SECOND)
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -86,6 +100,11 @@ const validationSchemas = {
 };
 
 // Input validation middleware
+/**
+ * Validate input.
+ * @param {string} schemaName
+ * @returns {any}
+ */
 const validateInput = (schemaName) => {
   return (req, res, next) => {
     const schema = validationSchemas[schemaName];
@@ -119,29 +138,51 @@ const validateInput = (schemaName) => {
   };
 };
 
+// Build connectSrc dynamically from env — avoid hardcoding localhost in production
+const buildConnectSrc = () => {
+  const base = ["'self'", "ws:", "wss:"];
+  const isProd = process.env.NODE_ENV === 'production';
+  const publicUrl = process.env.PUBLIC_APP_URL || process.env.SIMPLEBEACON_APP_URL;
+  const dashUrl = process.env.OPERATOR_DASHBOARD_BASE_URL || process.env.DASHBOARD_BASE_URL;
+  if (publicUrl) base.push(publicUrl);
+  if (dashUrl) base.push(dashUrl);
+  if (!isProd) {
+    const apiPort = process.env.PORT || 3000;
+    const dashPort = process.env.DASHBOARD_PORT || 3002;
+    base.push(`http://127.0.0.1:${apiPort}`, `http://localhost:${apiPort}`);
+    if (dashPort !== apiPort) {
+      base.push(`http://127.0.0.1:${dashPort}`, `http://localhost:${dashPort}`);
+    }
+  }
+  return base;
+};
+
 // Security headers middleware
+const isDev = process.env.NODE_ENV !== 'production';
 const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
+      scriptSrcAttr: null,
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "ws:", "wss:"],
+      connectSrc: buildConnectSrc(),
       fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
-      childSrc: ["'none'"],
+      frameSrc: ["'self'"],
+      childSrc: ["'self'"],
       workerSrc: ["'self'"],
       manifestSrc: ["'self'"],
-      upgradeInsecureRequests: []
+      upgradeInsecureRequests: [],
+      frameAncestors: isDev ? null : ["'none'"]
     }
   },
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" },
   dnsPrefetchControl: { allow: false },
-  frameguard: { action: 'deny' },
+  frameguard: isDev ? false : { action: 'sameorigin' },
   hidePoweredBy: true,
   hsts: {
     maxAge: 31536000,
@@ -157,6 +198,13 @@ const securityHeaders = helmet({
 });
 
 // Request logging and monitoring
+/**
+ * Request logger.
+ * @param {any} req
+ * @param {Array} res
+ * @param {any} next
+ * @returns {any}
+ */
 const requestLogger = (req, res, next) => {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substring(2, 15);
@@ -194,6 +242,11 @@ const BODY_SUSPICIOUS_SCAN_SKIP_PREFIXES = [
   '/api/ai-validation/audit'
 ];
 
+/**
+ * Should skip body suspicious scan.
+ * @param {any} req
+ * @returns {any}
+ */
 function shouldSkipBodySuspiciousScan(req) {
   if (!['POST', 'PUT', 'PATCH'].includes(req.method)) return false;
   const routePath = String(req.path || req.originalUrl || '').split('?')[0];
@@ -201,6 +254,13 @@ function shouldSkipBodySuspiciousScan(req) {
 }
 
 // IP-based protection
+/**
+ * Ip protection.
+ * @param {any} req
+ * @param {Array} res
+ * @param {any} next
+ * @returns {any}
+ */
 const ipProtection = (req, res, next) => {
   const clientIP = req.ip;
   
@@ -212,6 +272,11 @@ const ipProtection = (req, res, next) => {
     /\.\.\//g, // Directory traversal
   ];
   
+/**
+ * Check suspicious content.
+ * @param {any} obj
+ * @returns {any}
+ */
   const checkSuspiciousContent = (obj) => {
     for (const key in obj) {
       if (typeof obj[key] === 'string') {
@@ -249,6 +314,14 @@ const ipProtection = (req, res, next) => {
 };
 
 // Error handling for security violations
+/**
+ * Security error handler.
+ * @param {any} err
+ * @param {any} req
+ * @param {Array} res
+ * @param {any} next
+ * @returns {any}
+ */
 const securityErrorHandler = (err, req, res, next) => {
   if (err.name === 'UnauthorizedError') {
     return res.status(401).json({

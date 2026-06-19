@@ -4,6 +4,7 @@ import { billingService } from './billingService.js';
 import { fetchDataCleanupScan as fetchDataCleanupAnalysis } from './analyzeService.js';
 import { spaUrl } from '../platformRoutes.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
+import { DEMO_EMAIL } from '../demoMode.js';
 
 // simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path detection for platform service functionality
 
@@ -20,11 +21,23 @@ const PLATFORM = {
   help: '/api/help'
 };
 
+/**
+ * Build network error message.
+ * @param {any} target
+ * @param {any} error
+ * @returns {any}
+ */
 function buildNetworkErrorMessage(target, error) {
   const detail = error?.message ? ` (${error.message})` : '';
   return `Network request failed for ${target}${detail}. Verify the dashboard API server is running and reachable, then retry.`;
 }
 
+/**
+ * Fetch json.
+ * @param {string} url
+ * @param {Array} timeoutMs
+ * @returns {any}
+ */
 async function fetchJson(url, timeoutMs = 10000) {
   let httpResponse;
   try {
@@ -34,7 +47,7 @@ async function fetchJson(url, timeoutMs = 10000) {
   }
   if (httpResponse.status === 401) {
     authService.clearSession();
-    throw new Error('Session expired — sign in again at #/signin (dev@simplebeacon.ai / demo123).');
+    throw new Error(`Session expired — sign in again at #/signin (${DEMO_EMAIL}).`);
   }
   if (!httpResponse.ok) {
     const body = await httpResponse.text().catch(() => '');
@@ -43,6 +56,9 @@ async function fetchJson(url, timeoutMs = 10000) {
   return readJsonResponseBody(httpResponse, {});
 }
 
+/**
+ * Platform service.
+ */
 export class PlatformService {
   constructor() {
     this.dashboardHome = null;
@@ -120,6 +136,9 @@ export class PlatformService {
   }
 }
 
+/**
+ * Platform service.
+ */
 export const platformService = new PlatformService();
 
 /** Consolidated feature catalog — one card per distinct SPA destination */
@@ -215,7 +234,7 @@ export const FEATURE_CATALOG = [
         icon: '🗺️',
         route: 'analyze',
         analyzeMode: 'roadmap',
-        description: 'Filesystem sprint scan for planning — exports belong in reports/, not web/data/'
+        description: 'Filesystem sprint scan for planning — exports belong in reports/, not sample directories'
       },
       {
         id: 'auto-scan',
@@ -223,7 +242,7 @@ export const FEATURE_CATALOG = [
         icon: '🤖',
         route: 'analyze',
         analyzeMode: 'auto',
-        description: 'Picks Simplebeacon for ai-platform/mock paths; roadmap for other directories'
+        description: 'Picks Simplebeacon for platform or mock paths; roadmap for other directories'
       }
     ]
   },

@@ -4,11 +4,18 @@
 
 const path = require('path');
 const fs = require('fs');
-const { resolvePlatformRoot } = require('../../packages/simplebeacon-cli/src/project-detect');
+
 const { assertSafeProjectPath, resolveDefaultAllowedRoots } = require('../lib/path-safety.cjs');
 const { toClientError } = require('../lib/client-error.cjs');
 const logger = require('../lib/app-logger.cjs');
+const { resolvePlatformRoot } = require('../lib/simplebeacon-proxy.cjs');
 
+/**
+ * Resolve project path.
+ * @param {string} baseDir
+ * @param {string} rawPath
+ * @returns {any}
+ */
 function resolveProjectPath(baseDir, rawPath) {
   const value = String(rawPath || '').trim();
   if (!value) return null;
@@ -16,12 +23,23 @@ function resolveProjectPath(baseDir, rawPath) {
   return path.normalize(path.join(baseDir, value));
 }
 
+/**
+ * Resolve eu ai act project path.
+ * @param {string} rawPath
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveEuAiActProjectPath(rawPath, options = {}) {
   const { baseDir, monorepoRoot, allowedRoots } = options;
   const value = String(rawPath || '').trim();
   if (!value) return path.resolve(baseDir);
 
   const candidates = [];
+/**
+ * Push.
+ * @param {string} candidate
+ * @returns {any}
+ */
   const push = (candidate) => {
     if (!candidate) return;
     const resolved = path.resolve(candidate);
@@ -75,6 +93,12 @@ function resolveEuAiActProjectPath(rawPath, options = {}) {
   return assertSafeProjectPath(fallback, allowedRoots);
 }
 
+/**
+ * Register eu ai act audit route.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function registerEuAiActAuditRoute(app, options = {}) {
   if (app.__euAiActAuditRouteRegistered) return;
   app.__euAiActAuditRouteRegistered = true;
@@ -86,10 +110,19 @@ function registerEuAiActAuditRoute(app, options = {}) {
     || process.env.SIMPLEBEACON_AUDIT_CHECKOUT_URL
     || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 
+/**
+ * Get allowed roots.
+ * @returns {any}
+ */
   function getAllowedRoots() {
     return resolveDefaultAllowedRoots(baseDir, { monorepoRoot });
   }
 
+/**
+ * Resolve safe project path.
+ * @param {string} rawPath
+ * @returns {any}
+ */
   function resolveSafeProjectPath(rawPath) {
     return resolveEuAiActProjectPath(rawPath, {
       baseDir,
@@ -115,6 +148,7 @@ function registerEuAiActAuditRoute(app, options = {}) {
         delete require.cache[reportModulePath];
       }
       const { buildEuAiActAuditReport } = require('../lib/eu-ai-act-audit-report.cjs');
+
       const projectPath = body.projectPath
         ? resolveSafeProjectPath(body.projectPath)
         : baseDir;
@@ -122,7 +156,8 @@ function registerEuAiActAuditRoute(app, options = {}) {
         projectPath,
         clientName: body.client || body.company || undefined,
         deliverableSku: body.deliverableSku || body.productSku || 'euai2499',
-        artifacts: body.sprintArtifacts || undefined
+        artifacts: body.sprintArtifacts || undefined,
+        credentials: body.credentials
       });
       res.set('Cache-Control', 'no-store');
       return res.json({

@@ -1,0 +1,10 @@
+[
+  {
+    "timestamp": "2026-06-18T20:34:05.701Z",
+    "action": "admin_token_created",
+    "details": {
+      "email": "trevor_punt@live.com"
+    },
+    "source": "admin"
+  }
+]

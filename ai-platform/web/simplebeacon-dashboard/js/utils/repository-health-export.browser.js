@@ -4,10 +4,20 @@
 
 import { redactProjectPathForExport, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260531qualityexport8';
 
+/**
+ * Dedupe export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeExportNotes(notes = []) {
   return [...new Set(notes.filter(Boolean))].slice(0, 8);
 }
 
+/**
+ * Dedupe disclaimers.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeDisclaimers(notes = []) {
   const seen = new Set();
   const out = [];
@@ -31,6 +41,12 @@ function dedupeDisclaimers(notes = []) {
   return out;
 }
 
+/**
+ * Redact snapshot path.
+ * @param {any} value
+ * @param {any} defaultLabel
+ * @returns {any}
+ */
 function redactSnapshotPath(value, defaultLabel = 'ai-platform') {
   if (value == null || value === '') return null;
   const normalized = String(value).replace(/\\/g, '/');
@@ -50,10 +66,24 @@ function redactSnapshotPath(value, defaultLabel = 'ai-platform') {
   return normalized;
 }
 
+/**
+ * Resolve headline metric.
+ * @param {any} headline
+ * @param {any} platform
+ * @param {any} key
+ * @returns {any}
+ */
 function resolveHeadlineMetric(headline, platform, key) {
   return headline[key] ?? platform[key] ?? null;
 }
 
+/**
+ * Headline monorepo metrics diverge.
+ * @param {any} headline
+ * @param {any} platform
+ * @param {any} monorepo
+ * @returns {any}
+ */
 function headlineMonorepoMetricsDiverge(headline, platform, monorepo) {
   if (!monorepo?.generatedAt) return false;
   const pairs = [
@@ -68,6 +98,13 @@ function headlineMonorepoMetricsDiverge(headline, platform, monorepo) {
     && headlineVal !== monorepo[key]);
 }
 
+/**
+ * Build repository health summary.
+ * @param {any} health
+ * @param {Object} options
+ * @param {any} preview }
+ * @returns {any}
+ */
 export function buildRepositoryHealthSummary(health = {}, { candidates, preview } = {}) {
   const headline = health.headline || {};
   const platform = health.platform || {};
@@ -109,6 +146,11 @@ export function buildRepositoryHealthSummary(health = {}, { candidates, preview 
   };
 }
 
+/**
+ * Sanitize snapshot export.
+ * @param {any} snapshot
+ * @returns {any}
+ */
 function sanitizeSnapshotExport(snapshot) {
   if (!snapshot) return null;
   return {
@@ -133,6 +175,11 @@ function sanitizeSnapshotExport(snapshot) {
   };
 }
 
+/**
+ * Sanitize recommendations export.
+ * @param {Array} recommendations
+ * @returns {any}
+ */
 function sanitizeRecommendationsExport(recommendations = []) {
   if (!Array.isArray(recommendations) || !recommendations.length) return [];
   return recommendations.map((item) => ({
@@ -145,6 +192,11 @@ function sanitizeRecommendationsExport(recommendations = []) {
   }));
 }
 
+/**
+ * Sanitize candidates export.
+ * @param {Array} candidates
+ * @returns {any}
+ */
 function sanitizeCandidatesExport(candidates = []) {
   if (!Array.isArray(candidates) || !candidates.length) return [];
   return candidates.map((item) => ({
@@ -161,6 +213,11 @@ function sanitizeCandidatesExport(candidates = []) {
   }));
 }
 
+/**
+ * Sanitize preview export.
+ * @param {any} preview
+ * @returns {any}
+ */
 function sanitizePreviewExport(preview) {
   if (!preview) return null;
   return {
@@ -178,6 +235,14 @@ function sanitizePreviewExport(preview) {
   };
 }
 
+/**
+ * Build export provenance.
+ * @param {any} health
+ * @param {Object} options
+ * @param {any} preview
+ * @param {string} candidatesScope }
+ * @returns {any}
+ */
 function buildExportProvenance(health = {}, { candidates, preview, candidatesScope } = {}) {
   let mergeCandidatesProvenance = 'missing';
   if (Array.isArray(candidates) && candidates.length) {
@@ -200,6 +265,15 @@ function buildExportProvenance(health = {}, { candidates, preview, candidatesSco
   };
 }
 
+/**
+ * Build export notes.
+ * @param {any} health
+ * @param {any} summary
+ * @param {Object} options
+ * @param {string} candidatesScope
+ * @param {any} preview }
+ * @returns {any}
+ */
 function buildExportNotes(health = {}, summary = {}, { candidates, candidatesScope, preview } = {}) {
   const monorepo = health?.monorepo || {};
   const platform = health?.platform || {};
@@ -233,7 +307,17 @@ function buildExportNotes(health = {}, summary = {}, { candidates, candidatesSco
   return dedupeExportNotes(notes.map((line) => normalizeSimpleBeaconBranding(line)));
 }
 
+/**
+ * Build export disclaimers.
+ * @param {any} health
+ * @returns {any}
+ */
 function buildExportDisclaimers(health = {}) {
+/**
+ * From health.
+ * @param {any} health.disclaimers || []
+ * @returns {any}
+ */
   const fromHealth = (health.disclaimers || []).filter((note) => {
     const text = String(note).toLowerCase();
     return !/merge candidates and previews are advisory/i.test(text);
@@ -289,10 +373,20 @@ export function buildRepositoryHealthExportBundle({
   };
 }
 
+/**
+ * Csv escape.
+ * @param {any} cell
+ * @returns {any}
+ */
 function csvEscape(cell) {
   return `"${String(cell ?? '').replace(/"/g, '""')}"`;
 }
 
+/**
+ * Build repository health summary csv.
+ * @param {any} summary
+ * @returns {any}
+ */
 function buildRepositoryHealthSummaryCsv(summary) {
   if (!summary) return null;
   const header = ['metric', 'value'];
@@ -303,6 +397,11 @@ function buildRepositoryHealthSummaryCsv(summary) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build recommendations csv.
+ * @param {Array} recommendations
+ * @returns {any}
+ */
 function buildRecommendationsCsv(recommendations = []) {
   if (!recommendations.length) return null;
   const header = ['priority', 'action', 'savings', 'effort', 'risk', 'description'];
@@ -317,6 +416,12 @@ function buildRecommendationsCsv(recommendations = []) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build snapshots csv.
+ * @param {any} platform
+ * @param {any} monorepo
+ * @returns {any}
+ */
 function buildSnapshotsCsv(platform, monorepo) {
   const snaps = [
     platform ? { scope: 'platform', ...platform } : null,
@@ -337,6 +442,14 @@ function buildSnapshotsCsv(platform, monorepo) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build repository health csv.
+ * @param {Object} options
+ * @param {Array} recommendations
+ * @param {any} platform
+ * @param {any} monorepo }
+ * @returns {any}
+ */
 export function buildRepositoryHealthCsv({ summary, recommendations, platform, monorepo } = {}) {
   const parts = [];
   const summaryCsv = buildRepositoryHealthSummaryCsv(summary);
@@ -360,6 +473,11 @@ export function buildRepositoryHealthCsv({ summary, recommendations, platform, m
   return parts.length ? parts.join('\n') : null;
 }
 
+/**
+ * Repository health export filename.
+ * @param {any} ext
+ * @returns {any}
+ */
 export function repositoryHealthExportFilename(ext = 'json') {
   const stamp = new Date().toISOString().slice(0, 10);
   if (ext === 'csv') return `repository-health-metrics-${stamp}.csv`;

@@ -1,3 +1,6 @@
+/**
+ * Trend chart.
+ */
 export class TrendChart {
   constructor(canvas) {
     this.canvas = canvas;
@@ -94,6 +97,11 @@ export class TrendChart {
   }
 }
 
+/**
+ * Render trend section.
+ * @param {any} history
+ * @returns {any}
+ */
 export function renderTrendSection(history) {
   return `
     <div class="card">
@@ -118,11 +126,21 @@ export function renderTrendSection(history) {
   `;
 }
 
+/**
+ * Mount trend chart.
+ * @param {any} container
+ * @param {any} history
+ * @returns {any}
+ */
 export function mountTrendChart(container, history) {
   const canvas = container.querySelector('#trend-canvas');
   if (!canvas) return null;
   const chart = new TrendChart(canvas);
   chart.render(history);
+/**
+ * On resize.
+ * @returns {any}
+ */
   const onResize = () => chart.render(history);
   window.addEventListener('resize', onResize);
   return () => window.removeEventListener('resize', onResize);

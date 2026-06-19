@@ -1,0 +1,19 @@
+[Simplebeacon] SIMPLEBEACON_LANDING=(unset) internalDashboard=true → /=dashboard
+[Realtime API] WebSocket server started on port 8082
+[Simplebeacon] Registered GET /api/analyze/data-cleanup
+[Simplebeacon] Registered POST /api/analyze/eu-ai-act-audit-report
+🌐 Legacy WebSocket server running on ws://localhost:8081
+[Chatbot API] Registered POST /api/chatbot/message
+[Chatbot API] Registered GET /api/chatbot/providers
+[Chatbot API] Registered GET /api/chatbot/disclosure
+🚀 Simplebeacon server running on http://localhost:3000
+✉️ Outreach API at: http://localhost:3000/api/simplebeacon/outreach/config
+📂 Allowed analysis roots: C:\Users\Trevor; C:\Users\Trevor\CascadeProjects; C:\Users\Trevor\CascadeProjects_BACKUP_20260521; C:\Users\Trevor\AI-Guardrail-system; J:\AI project backup; E:\Ai; I:\AGI Chatbot\agi-chatbot; C:\Users\Trevor\CascadeProjects\coming-soon
+🛡️ Simplebeacon dashboard at: http://localhost:3000/
+🔒 /app and dashboard APIs require vault session (24h cookie after vault login)
+🧪 STAGING: see coming-soon/STAGING.md (payments flag in site-config.js)
+🔧 Simplebeacon API at: http://localhost:3000/api/simplebeacon/
+🌐 WebSocket available at: ws://localhost:3000/ws (legacy: ws://localhost:8081)
+🔐 Phase 2 auth: optional (set REQUIRE_AUTH=true)
+🗄️ Phase 2 database: disabled
+⚡ Phase 2 redis: disabled

@@ -203,8 +203,7 @@ async function main() {
   console.log('Project:     ', projectName);
   console.log('Expires:     ', days, 'days');
   console.log('Features:    ', features.length ? features.join(', ') : '(none)');
-  console.log('\nToken:');
-  console.log(token);
+  console.log('\nToken: ***REDACTED*** (set DEBUG_TOKENS=true to reveal)');
   console.log('\nCertificate Upload URL:');
   console.log(certUrl);
   console.log('\nTo verify:');

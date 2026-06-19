@@ -6,11 +6,17 @@
 const fs = require('fs');
 const { spawnSync } = require('child_process');
 
+const constants = require('../../../server/config/constants.cjs');
 const DEFAULT_PROMPT_TEMPLATE = `You are a code hygiene auditor. Reply with JSON only: {"risk":"low|medium|high","reason":"..."}.
 Does this snippet look like unchecked AI-generated boilerplate, mock API stub, or placeholder credentials?
 Snippet:
 `;
 
+/**
+ * Probe slm bin.
+ * @param {Object} options
+ * @returns {any}
+ */
 function probeSlmBin(options = {}) {
     const binPath = options.binPath
         || process.env.LLAMA_CPP_BIN
@@ -31,11 +37,23 @@ function probeSlmBin(options = {}) {
     return { configured: true, executable, path: binPath };
 }
 
+/**
+ * Build slm prompt.
+ * @param {any} content
+ * @param {string} filePath
+ * @returns {any}
+ */
 function buildSlmPrompt(content, filePath) {
     const trimmed = String(content || '').slice(0, 4000);
     return `${DEFAULT_PROMPT_TEMPLATE}File: ${filePath || 'snippet'}\n---\n${trimmed}\n---`;
 }
 
+/**
+ * Run slm review.
+ * @param {any} content
+ * @param {Object} options
+ * @returns {any}
+ */
 function runSlmReview(content, options = {}) {
     const probe = probeSlmBin(options);
     if (!probe.configured) {
@@ -69,8 +87,8 @@ function runSlmReview(content, options = {}) {
     try {
         const result = spawnSync(probe.path, args, {
             encoding: 'utf8',
-            timeout: options.timeoutMs || 30000,
-            maxBuffer: 1024 * 512
+            timeout: options.timeoutMs || constants.TIMEOUT_30S,
+            maxBuffer: constants.BYTES_PER_KB * 512
         });
 
         if (result.error) {

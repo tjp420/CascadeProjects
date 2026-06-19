@@ -23,12 +23,20 @@ try {
 const QUEUE_DIR = process.env.EMAIL_QUEUE_DIR
   || path.join(process.cwd(), '.simplebeacon', 'email-queue');
 
+/**
+ * Ensure queue dir.
+ * @returns {any}
+ */
 function ensureQueueDir() {
   if (!fs.existsSync(QUEUE_DIR)) {
     fs.mkdirSync(QUEUE_DIR, { recursive: true });
   }
 }
 
+/**
+ * Get resend config.
+ * @returns {any}
+ */
 function getResendConfig() {
   const key = process.env.RESEND_API_KEY || process.env.SMTP_PASS || '';
   if (!key.startsWith('re_')) return null;
@@ -36,18 +44,26 @@ function getResendConfig() {
   return { key, from };
 }
 
+/**
+ * Get smtp config.
+ * @returns {any}
+ */
 function getSmtpConfig() {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT) || 587;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || 'trevor_punt@live.com';
+  const from = process.env.SMTP_FROM || 'certificates@simplebeacon.ai';
   const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
   if (!host || !user || !pass) return null;
   return { host, port, user, pass, from, secure };
 }
 
+/**
+ * Create transporter.
+ * @returns {any}
+ */
 function createTransporter() {
   const cfg = getSmtpConfig();
   if (!cfg || !nodemailer) return null;
@@ -59,6 +75,16 @@ function createTransporter() {
   });
 }
 
+/**
+ * Send via resend.
+ * @param {Object} options
+ * @param {any} from
+ * @param {any} subject
+ * @param {string} text
+ * @param {any} html
+ * @param {Array} attachments
+ * @returns {any}
+ */
 function sendViaResend({ to, from, subject, text, html, attachments = [] }) {
   return new Promise((resolve, reject) => {
     const cfg = getResendConfig();
@@ -110,6 +136,15 @@ function sendViaResend({ to, from, subject, text, html, attachments = [] }) {
   });
 }
 
+/**
+ * Queue email to disk.
+ * @param {Object} options
+ * @param {any} subject
+ * @param {string} text
+ * @param {any} html
+ * @param {Array} attachments
+ * @returns {any}
+ */
 function queueEmailToDisk({ to, subject, text, html, attachments = [] }) {
   ensureQueueDir();
   const id = `email_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

@@ -7,16 +7,36 @@ import { escapeHtml, formatNumber } from '../utils.js';
 const MAX_ROWS = 200;
 
 
+/**
+ * Normalize rel path.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizeRelPath(value) {
   return String(value || '').replace(/\\/g, '/').replace(/^\.\//, '');
 }
 
+/**
+ * Is excluded analyze path.
+ * @param {any} value
+ * @returns {any}
+ */
 function isExcludedAnalyzePath(value) {
   const rel = normalizeRelPath(value);
   return rel.startsWith('.github-sync/') || rel.includes('/.github-sync/');
 }
 
+/**
+ * Is intentional consolidation candidate.
+ * @param {any} item
+ * @returns {any}
+ */
 function isIntentionalConsolidationCandidate(item) {
+/**
+ * Paths.
+ * @param {string} item?.files || []
+ * @returns {any}
+ */
   const paths = (item?.files || []).map((file) =>
     normalizeRelPath(typeof file === 'string' ? file : (file.path || file.relativePath || file.name))
   ).filter(Boolean);
@@ -24,12 +44,27 @@ function isIntentionalConsolidationCandidate(item) {
   if (paths.length !== 2) return false;
   const [a, b] = paths;
   const browserRe = /\.browser\.(js|mjs|cjs|ts|tsx)$/i;
+/**
+ * To source.
+ * @param {any} p
+ * @returns {any}
+ */
   const toSource = (p) => p.replace(/\.browser\.(js|mjs|cjs|ts|tsx)$/i, '.$1');
   if ((browserRe.test(a) || browserRe.test(b)) && (toSource(a) === b || toSource(b) === a)) return true;
+/**
+ * Is mcp config.
+ * @param {any} p
+ * @returns {any}
+ */
   const isMcpConfig = (p) => p.endsWith('mcp.json') || /\/examples\/mcp\//.test(p);
   return isMcpConfig(a) && isMcpConfig(b);
 }
 
+/**
+ * Issue paths.
+ * @param {boolean} issue
+ * @returns {any}
+ */
 function issuePaths(issue) {
   const paths = [
     issue?.filePath,
@@ -40,6 +75,11 @@ function issuePaths(issue) {
   return [...new Set(paths)];
 }
 
+/**
+ * Severity to status.
+ * @param {any} severity
+ * @returns {any}
+ */
 function severityToStatus(severity) {
   const s = String(severity || '').toLowerCase();
   if (s === 'critical' || s === 'high') return 'fail';
@@ -47,6 +87,13 @@ function severityToStatus(severity) {
   return 'warn';
 }
 
+/**
+ * Upsert row.
+ * @param {any} map
+ * @param {string} path
+ * @param {any} row
+ * @returns {any}
+ */
 function upsertRow(map, path, row) {
   const key = normalizeRelPath(path);
   if (!key) return;
@@ -64,6 +111,12 @@ function upsertRow(map, path, row) {
   map.set(key, { ...existing, ...row, detail: [existing.detail, row.detail].filter(Boolean).join(' · ') });
 }
 
+/**
+ * Rows from issues.
+ * @param {Array} issues
+ * @param {any} ruleLabel
+ * @returns {any}
+ */
 function rowsFromIssues(issues = [], ruleLabel = 'gate') {
   const map = new Map();
   for (const issue of issues) {
@@ -80,6 +133,11 @@ function rowsFromIssues(issues = [], ruleLabel = 'gate') {
   return [...map.values()];
 }
 
+/**
+ * Rows from gate report.
+ * @param {number} report
+ * @returns {any}
+ */
 function rowsFromGateReport(report) {
   if (!report) return [];
   const issues = report.rawIssues || report.detectedIssues || [];
@@ -109,6 +167,11 @@ function rowsFromGateReport(report) {
   }])]).values()] : rows;
 }
 
+/**
+ * Rows from gate report fixed.
+ * @param {number} report
+ * @returns {any}
+ */
 function rowsFromGateReportFixed(report) {
   if (!report) return { rows: [], summary: null };
   const map = new Map();
@@ -147,6 +210,12 @@ function rowsFromGateReportFixed(report) {
   };
 }
 
+/**
+ * Rows from findings.
+ * @param {Array} findings
+ * @param {any} rulePrefix
+ * @returns {any}
+ */
 function rowsFromFindings(findings = [], rulePrefix = 'finding') {
   const map = new Map();
   for (const finding of findings) {
@@ -162,6 +231,11 @@ function rowsFromFindings(findings = [], rulePrefix = 'finding') {
   return [...map.values()];
 }
 
+/**
+ * Rows from consolidation.
+ * @param {any} scan
+ * @returns {any}
+ */
 function rowsFromConsolidation(scan) {
   const map = new Map();
   for (const item of scan?.mergeCandidates || []) {
@@ -199,6 +273,11 @@ function rowsFromConsolidation(scan) {
   return [...map.values()];
 }
 
+/**
+ * Rows from npm audit.
+ * @param {any} npmAudit
+ * @returns {any}
+ */
 function rowsFromNpmAudit(npmAudit) {
   const map = new Map();
   const vulns = npmAudit?.vulnerabilities || npmAudit?.advisories || [];
@@ -224,6 +303,11 @@ function rowsFromNpmAudit(npmAudit) {
   return [...map.values()];
 }
 
+/**
+ * Rows from compliance.
+ * @param {any} checklist
+ * @returns {any}
+ */
 function rowsFromCompliance(checklist) {
   return (checklist?.rules || []).map((rule) => ({
     path: rule.id,
@@ -233,6 +317,11 @@ function rowsFromCompliance(checklist) {
   }));
 }
 
+/**
+ * Rows from cleanup brief.
+ * @param {any} brief
+ * @returns {any}
+ */
 function rowsFromCleanupBrief(brief) {
   const map = new Map();
   const tiers = brief?.tiers || {};
@@ -263,6 +352,12 @@ function rowsFromCleanupBrief(brief) {
   return [...map.values()];
 }
 
+/**
+ * Step payload.
+ * @param {string} lastResult
+ * @param {string} stepId
+ * @returns {any}
+ */
 function stepPayload(lastResult, stepId) {
   if (lastResult?.kind === 'complete') {
     return lastResult.steps?.find((step) => step.id === stepId) ?? null;
@@ -270,6 +365,13 @@ function stepPayload(lastResult, stepId) {
   return null;
 }
 
+/**
+ * Resolve payload.
+ * @param {any} mode
+ * @param {string} lastResult
+ * @param {number} report
+ * @returns {any}
+ */
 function resolvePayload(mode, lastResult, report) {
   switch (mode) {
     case 'simplebeacon':
@@ -331,6 +433,12 @@ function resolvePayload(mode, lastResult, report) {
   }
 }
 
+/**
+ * Build rows.
+ * @param {any} mode
+ * @param {any} payload
+ * @returns {any}
+ */
 function buildRows(mode, payload) {
   if (!payload) return { rows: [], summary: null, note: null };
 
@@ -424,6 +532,11 @@ function buildRows(mode, payload) {
       if (subMode === 'roadmap') subPayload = { kind: 'roadmap', data: step.data };
       const built = buildRows(subMode, subPayload);
       for (const row of built.rows) {
+        const detail = String(row.detail || '');
+        const path = String(row.path || '');
+        const isDotfileNoise = /^\.[a-z]/i.test(path) && detail === '—';
+        const isStaleMerge = subMode === 'consolidation' && path.includes('roadmap.html');
+        if (isDotfileNoise || isStaleMerge) continue;
         upsertRow(map, `${step.id}:${row.path}`, { ...row, path: row.path, rule: `${step.id} · ${row.rule}` });
       }
     }
@@ -432,6 +545,11 @@ function buildRows(mode, payload) {
   return { rows: [], summary: null, note: null };
 }
 
+/**
+ * Status badge.
+ * @param {Array} status
+ * @returns {any}
+ */
 function statusBadge(status) {
   if (status === 'pass') return '<span class="gate-badge pass">PASS</span>';
   if (status === 'fail') return '<span class="gate-badge warn">FAIL</span>';
@@ -440,6 +558,11 @@ function statusBadge(status) {
   return '<span class="gate-badge">—</span>';
 }
 
+/**
+ * Sort rows.
+ * @param {Array} rows
+ * @returns {any}
+ */
 function sortRows(rows) {
   const order = { fail: 0, warn: 1, skip: 2, pass: 3 };
   return [...rows].sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9) || a.path.localeCompare(b.path));
@@ -448,6 +571,12 @@ function sortRows(rows) {
 /**
  * @param {string} modeValue
  * @param {{ lastResult?: object, report?: object }} context
+ */
+/**
+ * Render mode file results panel.
+ * @param {any} modeValue
+ * @param {string} context
+ * @returns {any}
  */
 export function renderModeFileResultsPanel(modeValue, context = {}) {
   const payload = resolvePayload(modeValue, context.lastResult, context.report);
@@ -464,7 +593,9 @@ export function renderModeFileResultsPanel(modeValue, context = {}) {
     `;
   }
 
-  const sorted = sortRows(rows);
+  const nodeModulesRows = rows.filter((r) => String(r.path).includes('node_modules'));
+  const visibleRows = rows.filter((r) => !String(r.path).includes('node_modules'));
+  const sorted = sortRows(visibleRows);
   const passN = sorted.filter((r) => r.status === 'pass').length;
   const failN = sorted.filter((r) => r.status === 'fail').length;
   const warnN = sorted.filter((r) => r.status === 'warn').length;
@@ -483,6 +614,7 @@ export function renderModeFileResultsPanel(modeValue, context = {}) {
       <h3 class="analyze-mode-scope-title">Per-file / per-target results</h3>
       <p class="text-muted analyze-mode-scope-intro">
         ${formatNumber(sorted.length)} listed · ${passN} pass · ${failN} fail · ${warnN} warn
+        ${nodeModulesRows.length > 0 ? ` · ${formatNumber(nodeModulesRows.length)} node_modules hidden` : ''}
         ${scopedNote ? ` · ${escapeHtml(scopedNote)}` : ''}
       </p>
       ${note ? `<p class="text-muted" style="font-size:var(--font-size-xs);margin:0 0 0.5rem;">${escapeHtml(note)}</p>` : ''}

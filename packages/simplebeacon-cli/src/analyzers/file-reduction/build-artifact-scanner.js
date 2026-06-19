@@ -9,6 +9,17 @@ const {
     selectTopLevelArtifactDirectories
 } = require('./utils/artifact-path-utils');
 
+const DEFAULT_SKIP_PATH_PATTERNS = [
+    /(?:^|\/)simplebeacon-vscode\//,
+    /(?:^|\/)coming-soon\//,
+    /(?:^|\/)ai-agent\//,
+    /(?:^|\/)ai-tools\//,
+    new RegExp('(?:^|/)New folder/'),
+    /server\.log$/,
+    // Skip vendor libraries in media/ directories — these are third-party assets, not build output
+    /(?:^|\/)media\/.+\.min\.js$/
+];
+
 class BuildArtifactScanner {
     constructor(config = {}) {
         this.patterns = {
@@ -17,6 +28,7 @@ class BuildArtifactScanner {
             extensions: config.extensions || defaultPatterns.extensions,
             ignorePaths: config.ignorePaths || defaultPatterns.ignorePaths
         };
+        this.skipPathPatterns = config.skipPathPatterns || DEFAULT_SKIP_PATH_PATTERNS;
     }
 
     async scan(projectRoot, options = {}) {
@@ -30,6 +42,7 @@ class BuildArtifactScanner {
 
         for (const file of inventory.files) {
             if (isUnderArtifactRoot(file.relativePath, artifactRoots)) continue;
+            if (this.skipPathPatterns.some((re) => re.test(file.relativePath))) continue;
             if (!this.matchesArtifactFile(file)) continue;
             if (file.ext === '.log' && file.size === 0) continue;
             findings.push({
@@ -84,6 +97,15 @@ class BuildArtifactScanner {
     }
 }
 
+function shouldSkipRuntimeLogFile(filePath) {
+    if (!filePath) return false;
+    const basename = String(filePath).split(/[/\\]/).pop().toLowerCase();
+    return basename.endsWith('.log')
+        || /server-?(out|err)\.log/.test(basename)
+        || /audit\.log/.test(basename);
+}
+
 module.exports = {
-    BuildArtifactScanner
+    BuildArtifactScanner,
+    shouldSkipRuntimeLogFile
 };

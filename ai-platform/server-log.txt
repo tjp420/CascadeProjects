@@ -1,0 +1,74 @@
+[Chatbot API] SUPPORT_EMAIL env var not set ΓÇö appeal process will be unavailable
+[Simplebeacon] SIMPLEBEACON_LANDING=(unset) internalDashboard=true ΓåÆ /=dashboard
+[Simplebeacon] Registered GET /api/analyze/data-cleanup
+[Simplebeacon] Registered POST /api/analyze/eu-ai-act-audit-report
+[Simplebeacon] Legacy WebSocket port 8081 already in use ΓÇö skipping duplicate bind
+Γ¥î Phase 2 bootstrap failed, using stub APIs only: Cannot find module '....configconstants.cjs'
+Require stack:
+- C:\Users\Trevor\CascadeProjects\ai-platform\server\api\assessment\index.cjs
+- C:\Users\Trevor\CascadeProjects\ai-platform\server\api\assessment\routes.cjs
+- C:\Users\Trevor\CascadeProjects\ai-platform\simplebeacon-server.cjs
+Stack: Error: Cannot find module '....configconstants.cjs'
+Require stack:
+- C:\Users\Trevor\CascadeProjects\ai-platform\server\api\assessment\index.cjs
+- C:\Users\Trevor\CascadeProjects\ai-platform\server\api\assessment\routes.cjs
+- C:\Users\Trevor\CascadeProjects\ai-platform\simplebeacon-server.cjs
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)
+    at Module._load (node:internal/modules/cjs/loader:1226:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)
+    at Module.require (node:internal/modules/cjs/loader:1503:12)
+    at require (node:internal/modules/helpers:152:16)
+    at Object.<anonymous> (C:\Users\Trevor\CascadeProjects\ai-platform\server\api\assessment\index.cjs:17:19)
+    at Module._compile (node:internal/modules/cjs/loader:1760:14)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module._load (node:internal/modules/cjs/loader:1299:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)
+    at Module.require (node:internal/modules/cjs/loader:1503:12)
+Γ¥î Port 3000 is already in use. Run: npm run dashboard:kill-ports
+[Chatbot API] SUPPORT_EMAIL env var not set ΓÇö appeal process will be unavailable
+[Simplebeacon] SIMPLEBEACON_LANDING=(unset) internalDashboard=true ΓåÆ /=dashboard
+[Simplebeacon] Registered GET /api/analyze/data-cleanup
+[Simplebeacon] Registered POST /api/analyze/eu-ai-act-audit-report
+≡ƒîÉ Legacy WebSocket server running on ws://localhost:8081
+Γ¥î Phase 2 bootstrap failed, using stub APIs only: Cannot find module '....configconstants.cjs'
+Require stack:
+- C:\Users\Trevor\CascadeProjects\ai-platform\server\api\assessment\index.cjs
+- C:\Users\Trevor\CascadeProjects\ai-platform\server\api\assessment\routes.cjs
+- C:\Users\Trevor\CascadeProjects\ai-platform\simplebeacon-server.cjs
+Stack: Error: Cannot find module '....configconstants.cjs'
+Require stack:
+- C:\Users\Trevor\CascadeProjects\ai-platform\server\api\assessment\index.cjs
+- C:\Users\Trevor\CascadeProjects\ai-platform\server\api\assessment\routes.cjs
+- C:\Users\Trevor\CascadeProjects\ai-platform\simplebeacon-server.cjs
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)
+    at Module._load (node:internal/modules/cjs/loader:1226:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)
+    at Module.require (node:internal/modules/cjs/loader:1503:12)
+    at require (node:internal/modules/helpers:152:16)
+    at Object.<anonymous> (C:\Users\Trevor\CascadeProjects\ai-platform\server\api\assessment\index.cjs:17:19)
+    at Module._compile (node:internal/modules/cjs/loader:1760:14)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module._load (node:internal/modules/cjs/loader:1299:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)
+    at Module.require (node:internal/modules/cjs/loader:1503:12)
+≡ƒÜÇ Simplebeacon server running on http://localhost:3000
+Γ£ë∩╕Å Outreach API at: http://localhost:3000/api/simplebeacon/outreach/config
+≡ƒôé Allowed analysis roots: C:\Users\Trevor\CascadeProjects; C:\Users\Trevor\CascadeProjects_BACKUP_20260521; C:\Users\Trevor\AI-Guardrail-system; C:\Users\Trevor\CascadeProjects\ai-platform
+≡ƒ¢í∩╕Å Simplebeacon dashboard at: http://localhost:3000/
+≡ƒöÆ /app and dashboard APIs require vault session (24h cookie after vault login)
+≡ƒº¬ STAGING: see coming-soon/STAGING.md (payments flag in site-config.js)
+≡ƒöº Simplebeacon API at: http://localhost:3000/api/simplebeacon/
+≡ƒîÉ WebSocket available at: ws://localhost:3000/ws (legacy: ws://localhost:8081)
+≡ƒöÉ Phase 2 auth: optional (set REQUIRE_AUTH=true)
+≡ƒùä∩╕Å Phase 2 database: disabled
+ΓÜí Phase 2 redis: disabled

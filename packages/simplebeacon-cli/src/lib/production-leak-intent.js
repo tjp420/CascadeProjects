@@ -17,7 +17,7 @@ const REPOSITORY_AUDIT_INFRA_FILES = new Set([
     'dev-tools-workflows.js'
 ]);
 
-const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)ai-platform\/packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
+const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)ai-platform\/packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)server\/lib\/(?:codebase-analyzer|production-leak|fiction-kpi|mock-data-scanner|simplebeacon-report|scan-orchestr|secret-config|audit-remediation-recipes|sample-path-resolver|code-roadmap-generator|dashboard-vault-auth|eu-ai-act-sprint-route)(?:\.|$)|(?:^|\/)server\/routes\/flexible-analyze-api(?:\.|$)/;
 
 const OSS_SCANNER_ROOT_FILES = new Set([
     'src/scan.js',

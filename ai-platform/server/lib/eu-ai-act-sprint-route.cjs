@@ -2,6 +2,12 @@ const path = require('path');
 const { runEuAiActSprint } = require('./eu-ai-act-sprint-service.cjs');
 const { toClientError } = require('./client-error.cjs');
 
+/**
+ * Register eu ai act sprint route.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function registerEuAiActSprintRoute(app, options = {}) {
   const projectRoot = options.projectRoot || path.join(__dirname, '../..');
 

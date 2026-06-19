@@ -13,11 +13,22 @@ import {
 } from '../services/analyzeService.js';
 import { pipelineStats, prospectsWithSentLog, OUTREACH_PROSPECTS } from '../data/outreach-prospects.js?v=20260531pageexport1';
 
+/**
+ * Page export filename.
+ * @param {string} pageId
+ * @returns {any}
+ */
 export function pageExportFilename(pageId) {
   const stamp = new Date().toISOString().slice(0, 10);
   return `simplebeacon-${pageId}-export-${stamp}.json`;
 }
 
+/**
+ * Download page export.
+ * @param {string} pageId
+ * @param {any} payload
+ * @returns {any}
+ */
 export function downloadPageExport(pageId, payload) {
   if (!payload || typeof payload !== 'object') {
     throw new Error('Nothing to export yet.');
@@ -25,6 +36,13 @@ export function downloadPageExport(pageId, payload) {
   downloadJson(payload, pageExportFilename(pageId));
 }
 
+/**
+ * Render page export button.
+ * @param {string} pageId
+ * @param {Object} options
+ * @param {any} label
+ * @returns {any}
+ */
 export function renderPageExportButton(pageId, { disabled = false, label = 'Export reports' } = {}) {
   return `
     <button type="button" class="btn btn-secondary btn-sm" data-page-export="${pageId}" ${disabled ? 'disabled' : ''} title="Download page data as JSON">
@@ -33,6 +51,14 @@ export function renderPageExportButton(pageId, { disabled = false, label = 'Expo
   `;
 }
 
+/**
+ * Bind page export button.
+ * @param {any} root
+ * @param {string} pageId
+ * @param {any} buildPayload
+ * @param {Object} options
+ * @returns {any}
+ */
 export function bindPageExportButton(root, pageId, buildPayload, options = {}) {
   root.querySelector(`[data-page-export="${pageId}"]`)?.addEventListener('click', async () => {
     try {
@@ -49,6 +75,11 @@ export function bindPageExportButton(root, pageId, buildPayload, options = {}) {
   });
 }
 
+/**
+ * Summarize gate report.
+ * @param {number} report
+ * @returns {any}
+ */
 function summarizeGateReport(report) {
   if (!report) return null;
   return {
@@ -63,6 +94,11 @@ function summarizeGateReport(report) {
   };
 }
 
+/**
+ * Summarize baseline.
+ * @param {any} baseline
+ * @returns {any}
+ */
 function summarizeBaseline(baseline) {
   if (!baseline) return null;
   return {
@@ -73,6 +109,13 @@ function summarizeBaseline(baseline) {
   };
 }
 
+/**
+ * Build scan snapshot.
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} dashboardHome
+ * @returns {any}
+ */
 function buildScanSnapshot(report, baseline, dashboardHome) {
   if (!report) return null;
   const metrics = getScanFileMetrics(report);
@@ -87,6 +130,11 @@ function buildScanSnapshot(report, baseline, dashboardHome) {
   };
 }
 
+/**
+ * Build trust page export.
+ * @param {any} trustData
+ * @returns {any}
+ */
 export function buildTrustPageExport(trustData) {
   return {
     type: 'simplebeacon-trust-page-export',
@@ -98,6 +146,11 @@ export function buildTrustPageExport(trustData) {
   };
 }
 
+/**
+ * Build tools page export.
+ * @param {any} app
+ * @returns {any}
+ */
 export function buildToolsPageExport(app) {
   const { report, baseline, devTools, devWorkflows, mergerReductionScan, npmAudit, dashboardHome } = app.state;
   return {
@@ -113,6 +166,11 @@ export function buildToolsPageExport(app) {
   };
 }
 
+/**
+ * Build help page export.
+ * @param {any} app
+ * @returns {any}
+ */
 export function buildHelpPageExport(app) {
   const help = app.state.help || {};
   const { report, baseline, dashboardHome } = app.state;
@@ -130,6 +188,11 @@ export function buildHelpPageExport(app) {
   };
 }
 
+/**
+ * Build features page export.
+ * @param {any} filter
+ * @returns {any}
+ */
 export function buildFeaturesPageExport(filter = '') {
   const q = String(filter || '').trim().toLowerCase();
   const catalog = !q
@@ -153,6 +216,12 @@ export function buildFeaturesPageExport(filter = '') {
   };
 }
 
+/**
+ * Build settings page export.
+ * @param {any} app
+ * @param {Object} draftConfig
+ * @returns {any}
+ */
 export function buildSettingsPageExport(app, draftConfig = null) {
   const config = draftConfig || app.state.config || null;
   const sanitized = config ? JSON.parse(JSON.stringify(config)) : null;
@@ -172,6 +241,11 @@ export function buildSettingsPageExport(app, draftConfig = null) {
   };
 }
 
+/**
+ * Build assessments page export.
+ * @param {any} view
+ * @returns {any}
+ */
 export function buildAssessmentsPageExport(view) {
   return {
     type: 'simplebeacon-assessments-portal-export',
@@ -183,6 +257,11 @@ export function buildAssessmentsPageExport(view) {
   };
 }
 
+/**
+ * Build outreach page export.
+ * @param {any} view
+ * @returns {any}
+ */
 export function buildOutreachPageExport(view) {
   const sent = view.sent || [];
   const prospects = prospectsWithSentLog(OUTREACH_PROSPECTS, sent);
@@ -205,6 +284,11 @@ export function buildOutreachPageExport(view) {
   };
 }
 
+/**
+ * Build deliverables page export.
+ * @param {any} view
+ * @returns {any}
+ */
 export function buildDeliverablesPageExport(view) {
   return {
     type: 'simplebeacon-deliverables-export',

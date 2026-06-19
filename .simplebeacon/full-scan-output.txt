@@ -1,0 +1,28 @@
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+[Starter] JSON export requires Pro. Upgrade at https://simplebeacon.io/pricing
+Simplebeacon
+==================
+Root: C:\Users\Trevor\CascadeProjects
+Repository files: 21,203
+Gate rules checked: 21203 files
+Mock/sample files: 105
+Quality score: [HIDDEN ΓÇö upgrade to see]
+
+ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+  FREE TIER ΓÇö showing first 5 findings only
+  Upgrade: https://simplebeacon.ai/pricing
+ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+Critical: 0  High: 0  Medium: 1  Low: 1
+Production files scanned: 259 (0 leak(s))
+Credential files scanned: 898 (0 finding(s))
+
+Gate: PASS
+
+Issues:
+  [medium] unused-file: unused-file finding
+  [low] duplicate-config-type: duplicate-config-type finding

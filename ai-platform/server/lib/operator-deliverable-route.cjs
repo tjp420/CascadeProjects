@@ -7,6 +7,12 @@ const {
 } = require('./operator-deliverable-service.cjs');
 const { loadBookings } = require('./audit-booking-route.cjs');
 
+/**
+ * Register operator deliverable route.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function registerOperatorDeliverableRoute(app, options = {}) {
   const projectRoot = options.projectRoot || path.join(__dirname, '../..');
   const bookingsPath = options.bookingsPath

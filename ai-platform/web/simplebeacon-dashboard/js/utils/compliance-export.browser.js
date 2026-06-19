@@ -4,12 +4,23 @@
 
 import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260601npmaudit5';
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Redact project path for export.
+ * @param {string} rawPath
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = String(rawPath).replace(/\\/g, '/');
@@ -20,6 +31,12 @@ function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   return normalized;
 }
 
+/**
+ * Redact compliance project path.
+ * @param {any} value
+ * @param {Object} options
+ * @returns {any}
+ */
 function redactComplianceProjectPath(value, options = {}) {
   if (value == null || value === '') return value;
   const normalized = String(value).replace(/\\/g, '/');
@@ -34,6 +51,12 @@ function redactComplianceProjectPath(value, options = {}) {
   return redactProjectPathForExport(normalized, label);
 }
 
+/**
+ * Resolve compliance export path context.
+ * @param {string} projectPath
+ * @param {string} context
+ * @returns {any}
+ */
 function resolveComplianceExportPathContext(projectPath, context = {}) {
   const productPlatformRoot = context.productPlatformRoot
     || (isBenchmarkCacheProjectPath(projectPath) ? resolveProductPlatformRoot(projectPath) : null);
@@ -48,15 +71,30 @@ function resolveComplianceExportPathContext(projectPath, context = {}) {
   };
 }
 
+/**
+ * Normalize rel.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function normalizeRel(projectPath) {
   return String(projectPath || '').replace(/\\/g, '/').toLowerCase();
 }
 
+/**
+ * Is benchmark cache project path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function isBenchmarkCacheProjectPath(projectPath) {
   const rel = normalizeRel(projectPath);
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/');
 }
 
+/**
+ * Resolve product platform root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(projectPath) {
   const normalized = String(projectPath || '').replace(/\\/g, '/');
   const idx = normalized.toLowerCase().indexOf('/github-cache/');
@@ -64,22 +102,43 @@ function resolveProductPlatformRoot(projectPath) {
   return normalized.slice(0, idx);
 }
 
+/**
+ * Rule scoped from gate.
+ * @param {number} gateReport
+ * @returns {any}
+ */
 function ruleScopedFromGate(gateReport) {
   return gateReport?.ruleScopedFilesAnalyzed
     ?? gateReport?.scanScope?.ruleScopedFilesAnalyzed
     ?? 0;
 }
 
+/**
+ * Has hollow gate.
+ * @param {number} gateReport
+ * @returns {any}
+ */
 function hasHollowGate(gateReport) {
   return Boolean(gateReport?.gate?.pass) && ruleScopedFromGate(gateReport) === 0;
 }
 
+/**
+ * Schema compliance ok.
+ * @param {number} gateReport
+ * @returns {any}
+ */
 function schemaComplianceOk(gateReport) {
   const checked = gateReport?.schemaChecked ?? gateReport?.pageSampleSchemaChecked ?? 0;
   const passed = gateReport?.schemaPassed ?? gateReport?.pageSampleSchemaPassed ?? 0;
   return checked > 0 && passed === checked;
 }
 
+/**
+ * Checklist has stale fail rows.
+ * @param {any} checklist
+ * @param {number} gateReport
+ * @returns {any}
+ */
 function checklistHasStaleFailRows(checklist, gateReport) {
   if (!checklist?.rules?.length || !gateReport) return false;
   if (gateReport.gate?.pass !== true) return false;
@@ -95,6 +154,12 @@ function checklistHasStaleFailRows(checklist, gateReport) {
   });
 }
 
+/**
+ * Recompute checklist summary.
+ * @param {Array} rules
+ * @param {any} prior
+ * @returns {any}
+ */
 function recomputeChecklistSummary(rules, prior = {}) {
   const passed = rules.filter((r) => r.status === 'pass').length;
   const failed = rules.filter((r) => r.status === 'fail').length;
@@ -111,6 +176,12 @@ function recomputeChecklistSummary(rules, prior = {}) {
   };
 }
 
+/**
+ * Refresh compliance checklist from gate.
+ * @param {any} checklist
+ * @param {number} gateReport
+ * @returns {any}
+ */
 function refreshComplianceChecklistFromGate(checklist, gateReport) {
   if (!checklist?.rules?.length || !gateReport || !checklistHasStaleFailRows(checklist, gateReport)) {
     return checklist;
@@ -118,6 +189,11 @@ function refreshComplianceChecklistFromGate(checklist, gateReport) {
   const schemaOk = schemaComplianceOk(gateReport);
   const schemaChecked = gateReport.schemaChecked ?? gateReport.pageSampleSchemaChecked ?? 0;
   const schemaPassed = gateReport.schemaPassed ?? gateReport.pageSampleSchemaPassed ?? 0;
+/**
+ * Rules.
+ * @param {any} checklist.rules || []
+ * @returns {any}
+ */
   const rules = (checklist.rules || []).map((rule) => {
     if (rule.status !== 'fail') return rule;
     if (rule.id === 'GATE-001' && gateReport.gate?.pass) {
@@ -138,6 +214,12 @@ function refreshComplianceChecklistFromGate(checklist, gateReport) {
   return { ...checklist, rules, summary: recomputeChecklistSummary(rules, checklist.summary) };
 }
 
+/**
+ * Pick fresh gate report.
+ * @param {number} stepReport
+ * @param {number} liveReport
+ * @returns {any}
+ */
 export function pickFreshGateReport(stepReport, liveReport) {
   if (!liveReport) return stepReport || null;
   if (!stepReport) return liveReport;
@@ -149,11 +231,23 @@ export function pickFreshGateReport(stepReport, liveReport) {
   return stepReport;
 }
 
+/**
+ * Reconcile compliance with gate.
+ * @param {any} checklist
+ * @param {number} gateReport
+ * @returns {any}
+ */
 export function reconcileComplianceWithGate(checklist, gateReport) {
   if (!checklist || !gateReport) return checklist;
   return refreshComplianceChecklistFromGate(checklist, gateReport);
 }
 
+/**
+ * Patch supply rules from npm audit.
+ * @param {Array} rules
+ * @param {any} npmAudit
+ * @returns {any}
+ */
 function patchSupplyRulesFromNpmAudit(rules, npmAudit) {
   if (!Array.isArray(rules) || !npmAudit) return rules;
   const source = npmAudit.source || npmAudit.dataSource || 'npm-audit';
@@ -192,6 +286,12 @@ function patchSupplyRulesFromNpmAudit(rules, npmAudit) {
   });
 }
 
+/**
+ * Resolve bundle handoff eligible.
+ * @param {any} checklist
+ * @param {string} context
+ * @returns {any}
+ */
 function resolveBundleHandoffEligible(checklist, context) {
   if (context.benchmarkScan || context.hollowGate) return false;
   const summary = checklist?.summary || {};
@@ -202,10 +302,23 @@ function resolveBundleHandoffEligible(checklist, context) {
   return (summary.passed ?? 0) > 0 && (summary.failed ?? 0) === 0;
 }
 
+/**
+ * Normalize compliance branding.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizeComplianceBranding(value) {
   return String(value ?? '').replace(/\bSimplebeacon\b/g, 'SimpleBeacon');
 }
 
+/**
+ * Build compliance hygiene summary.
+ * @param {any} checklist
+ * @param {number} gateReport
+ * @param {any} npmAudit
+ * @param {string} context
+ * @returns {any}
+ */
 function buildComplianceHygieneSummary(checklist, gateReport, npmAudit, context) {
   const summary = checklist?.summary || {};
   const gateProfile = gateReport?.scanScope?.profile
@@ -257,6 +370,12 @@ function buildComplianceHygieneSummary(checklist, gateReport, npmAudit, context)
   };
 }
 
+/**
+ * Build compliance scan scope.
+ * @param {number} gateReport
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildComplianceScanScope(gateReport, options = {}) {
   const checklist = options.checklist || null;
   const repoTotal = options.repositoryFilesTotal
@@ -282,6 +401,14 @@ function buildComplianceScanScope(gateReport, options = {}) {
   };
 }
 
+/**
+ * Build export notes.
+ * @param {any} checklist
+ * @param {number} gateReport
+ * @param {any} npmAudit
+ * @param {string} context
+ * @returns {any}
+ */
 function buildExportNotes(checklist, gateReport, npmAudit, context) {
   const notes = [];
   if (!context.benchmarkScan) {
@@ -338,6 +465,11 @@ function buildExportNotes(checklist, gateReport, npmAudit, context) {
   }
   const complianceStatus = context.benchmarkScan ? 'benchmark-cache' : context.hollowGate ? 'limited-gate-scope' : (summary.failed ?? 0) > 0 ? 'failed' : 'pass';
   if (complianceStatus === 'failed' && gateReport?.gate?.pass === false) {
+/**
+ * Failed ids.
+ * @param {any} checklist?.rules || []
+ * @returns {any}
+ */
     const failedIds = (checklist?.rules || []).filter((rule) => rule.status === 'fail').map((rule) => rule.id);
     const blocking = gateReport.gate?.blockingCount ?? gateReport.issueCount ?? null;
     if (failedIds.length) {
@@ -352,6 +484,12 @@ function buildExportNotes(checklist, gateReport, npmAudit, context) {
   return [...new Set(notes)].slice(0, 10);
 }
 
+/**
+ * Sanitize compliance for export.
+ * @param {any} compliance
+ * @param {string} context
+ * @returns {any}
+ */
 function sanitizeComplianceForExport(compliance, context) {
   if (!compliance) return compliance;
   const benchmarkScan = context.benchmarkScan;
@@ -388,6 +526,11 @@ function sanitizeComplianceForExport(compliance, context) {
   return next;
 }
 
+/**
+ * Unwrap compliance checklist.
+ * @param {any} checklist
+ * @returns {any}
+ */
 function unwrapComplianceChecklist(checklist) {
   if (!checklist || typeof checklist !== 'object') return checklist;
   if (Array.isArray(checklist.rules) && checklist.rules.length > 0) {
@@ -400,6 +543,12 @@ function unwrapComplianceChecklist(checklist) {
   return checklist;
 }
 
+/**
+ * Sanitize compliance checklist artifact export.
+ * @param {any} checklist
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeComplianceChecklistArtifactExport(checklist, options = {}) {
   const projectPath = options.projectPath || checklist?.projectRoot || '';
   const gateReport = options.gateReport || null;
@@ -459,6 +608,11 @@ export function sanitizeComplianceChecklistArtifactExport(checklist, options = {
   };
 }
 
+/**
+ * Sanitize compliance bundle export.
+ * @param {any} payload
+ * @returns {any}
+ */
 export function sanitizeComplianceBundleExport(payload = {}) {
   const projectPath = payload.projectPath
     || payload.checklist?.projectRoot

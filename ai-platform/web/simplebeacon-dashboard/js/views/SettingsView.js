@@ -1,9 +1,11 @@
-import { escapeHtml, showToast, downloadJson } from '../utils.js';
+import { escapeHtml, showToast, downloadJson, renderEmptyState } from '../utils.js';
 import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
 import { scanService } from '../services/scanService.js';
 import { platformService } from '../services/platformService.js';
 import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels } from '../services/aiKeysService.js?v=20260525aikeysguard1';
+import { authService } from '../services/authService.js';
+import { OLLAMA_DEFAULT_URL } from '../config.js';
 
 const AI_KEY_FIELDS = [
   { id: 'openai', label: 'OpenAI API key', placeholder: 'sk-...' },
@@ -24,6 +26,9 @@ const RULE_ORDER = [
 const SEVERITIES = ['high', 'medium', 'low'];
 const PROFILES = ['minimal', 'standard', 'cascade'];
 
+/**
+ * Settings view.
+ */
 export class SettingsView {
   constructor(app) {
     this.app = app;
@@ -41,6 +46,101 @@ export class SettingsView {
     this.ollamaModelsLoading = false;
     this.ollamaModelsError = null;
     this._ollamaModelsTimer = null;
+    this.tokenVault = this.loadTokenVault();
+  }
+
+  loadTokenVault() {
+    try {
+      const raw = localStorage.getItem('sb-token-vault');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  saveTokenVault() {
+    localStorage.setItem('sb-token-vault', JSON.stringify(this.tokenVault));
+  }
+
+  addToVault(token, user) {
+    // Dedupe by token prefix/suffix
+    const exists = this.tokenVault.some((v) => v.token === token);
+    if (!exists) {
+      this.tokenVault.push({ token, user, addedAt: new Date().toISOString(), usedAt: null });
+      this.saveTokenVault();
+    }
+  }
+
+  markTokenUsed(token) {
+    const entry = this.tokenVault.find((v) => v.token === token);
+    if (entry && !entry.usedAt) {
+      entry.usedAt = new Date().toISOString();
+      this.saveTokenVault();
+    }
+  }
+
+  canReturnToken(index) {
+    const entry = this.tokenVault[index];
+    if (!entry) return false;
+    const activeToken = authService.getToken();
+    if (entry.token === activeToken) return false;
+    if (entry.usedAt || entry.activatedAt) return false;
+    return true;
+  }
+
+  returnVaultToken(index, rerender) {
+    const entry = this.tokenVault[index];
+    if (!entry) return;
+    if (!this.canReturnToken(index)) {
+      showToast('This token has already been used and cannot be returned', 'error');
+      return;
+    }
+    const tHint = entry.token.length > 24 ? `${entry.token.slice(0, 8)}…${entry.token.slice(-8)}` : entry.token;
+    if (!globalThis.confirm(`Return unused token ${tHint}?\n\nThis will remove it from your vault. Tokens that have been activated or used cannot be returned.`)) return;
+    this.removeFromVault(index);
+    showToast('Token returned and removed from vault', 'success');
+    rerender();
+  }
+
+  removeFromVault(index) {
+    this.tokenVault.splice(index, 1);
+    this.saveTokenVault();
+  }
+
+  activateVaultToken(index) {
+    const entry = this.tokenVault[index];
+    if (!entry) return;
+    entry.activatedAt = new Date().toISOString();
+    entry.usedAt = new Date().toISOString();
+    this.saveTokenVault();
+    authService.setSession(entry.token, entry.user);
+    showToast('Switched to stored token', 'success');
+  }
+
+  _formatRelativeTime(iso) {
+    if (!iso) return '';
+    const then = new Date(iso).getTime();
+    const now = Date.now();
+    const diff = Math.max(0, now - then);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  }
+
+  clearVault() {
+    this.tokenVault = [];
+    localStorage.removeItem('sb-token-vault');
+  }
+
+  computeVaultMetrics() {
+    const total = this.tokenVault.length;
+    const activeToken = authService.getToken();
+    const activeIndex = this.tokenVault.findIndex((v) => v.token === activeToken);
+    return { total, activeIndex };
   }
 
   matchOllamaModelOption(selected, models = []) {
@@ -108,7 +208,7 @@ export class SettingsView {
     root.querySelector('#settings-ai-refresh-models')?.addEventListener('click', () => {
       const baseUrl = root.querySelector('#settings-ai-ollama')?.value?.trim()
         || this.displayAiKeys().ollamaBaseUrl
-        || 'http://127.0.0.1:11434';
+        || OLLAMA_DEFAULT_URL;
       void this.loadOllamaModels(baseUrl);
     });
   }
@@ -121,7 +221,7 @@ export class SettingsView {
   }
 
   async loadOllamaModels(baseUrl, options = {}) {
-    const url = String(baseUrl || 'http://127.0.0.1:11434').trim() || 'http://127.0.0.1:11434';
+    const url = String(baseUrl || OLLAMA_DEFAULT_URL).trim() || OLLAMA_DEFAULT_URL;
     this.ollamaModelsLoading = true;
     this.ollamaModelsError = null;
     this.refreshOllamaModelSelect();
@@ -187,16 +287,25 @@ export class SettingsView {
 
     if (this.loading && !this.draft) {
       el.innerHTML = `
-        <h1 class="page-title">Settings</h1>
-        <div class="empty-state card"><div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div><p>Loading config…</p></div>
+        <div class="analyze-hero"><h1 class="page-title">Settings</h1><p class="text-muted analyze-hero-sub">Loading configuration…</p></div>
+        ${renderEmptyState({
+          icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+          title: 'Loading configuration…',
+          body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
+        })}
       `;
       return el;
     }
 
     if (this.error && !this.draft) {
       el.innerHTML = `
-        <h1 class="page-title">Settings</h1>
-        <div class="empty-state card"><p>${escapeHtml(this.error)}</p><button class="btn btn-primary mt-4" id="settings-reload">Retry</button></div>
+        <div class="analyze-hero"><h1 class="page-title">Settings</h1><p class="text-muted analyze-hero-sub">Configuration unavailable</p></div>
+        ${renderEmptyState({
+          icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+          title: 'Configuration unavailable',
+          body: escapeHtml(this.error),
+          actions: [{ label: 'Retry', id: 'settings-reload', className: 'btn-primary' }]
+        })}
       `;
       el.querySelector('#settings-reload')?.addEventListener('click', () => {
         const container = el.parentElement;
@@ -206,57 +315,75 @@ export class SettingsView {
     }
 
     el.innerHTML = `
-      <div class="settings-header">
+      <div class="analyze-hero">
         <h1 class="page-title">Settings</h1>
-        <div class="settings-actions">
-          <button type="button" class="btn btn-secondary btn-sm" id="settings-reset" ${!dirty || this.busy ? 'disabled' : ''}>Reset</button>
-          <button type="button" class="btn btn-secondary btn-sm" id="settings-export">Export</button>
-          <button type="button" class="btn btn-primary btn-sm" id="settings-save" ${!dirty || this.busy ? 'disabled' : ''}>
-            ${this.busy === 'save' ? 'Saving…' : 'Save changes'}
-          </button>
-        </div>
+        <p class="text-muted analyze-hero-sub">Scan paths, rule profiles, and AI provider keys.</p>
       </div>
+      ${this.renderSettingsNav(dirty)}
 
       <p class="text-muted mb-4">Edits write to <code>.simplebeacon/config.json</code> on the server. Save before running a scan.</p>
       ${dirty ? '<p class="settings-dirty-hint">You have unsaved changes.</p>' : ''}
 
-      <div class="card settings-grid mb-6">
+      <div class="card settings-grid mb-6" id="settings-section-scan">
         <h2 class="card-title">Scan Configuration</h2>
-        <div class="settings-field">
-          <label class="settings-label" for="settings-profile">Profile</label>
-          <select class="settings-input" id="settings-profile">
-            ${PROFILES.map((p) => `
-              <option value="${p}" ${config.profile === p ? 'selected' : ''}>${p}</option>
-            `).join('')}
-          </select>
-          <p class="text-muted" style="font-size:var(--font-size-xs);margin:var(--space-1) 0 0">Changing profile applies rule presets — scan paths stay unless you edit them below.</p>
-        </div>
         <div class="settings-field">
           <span class="settings-label">Config path</span>
           <span class="settings-value">.simplebeacon/config.json</span>
         </div>
+        <div class="settings-field">
+          <label class="settings-label" for="settings-profile-select">Profile</label>
+          <select class="settings-input" id="settings-profile-select" style="max-width:200px;">
+            ${PROFILES.map((p) => `<option value="${escapeHtml(p)}" ${config.profile === p ? 'selected' : ''}>${escapeHtml(p.charAt(0).toUpperCase() + p.slice(1))}</option>`).join('')}
+          </select>
+          <span class="text-muted" style="font-size:var(--font-size-xs);margin-left:var(--space-2);">Choose a preset rule profile</span>
+        </div>
         <div class="settings-field settings-field-stack">
-          <label class="settings-label" for="settings-scan-paths">Scan paths</label>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2);">
+            <label class="settings-label" for="settings-scan-paths">Scan paths</label>
+            <span class="text-muted" style="font-size:var(--font-size-xs);">Auto-detected from project structure</span>
+          </div>
           <textarea class="settings-textarea" id="settings-scan-paths" rows="4" placeholder="One path per line">${escapeHtml(pathsToText(config.scanPaths))}</textarea>
         </div>
         <div class="settings-field settings-field-stack">
-          <label class="settings-label" for="settings-production-paths">Production paths</label>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2);">
+            <label class="settings-label" for="settings-production-paths">Production paths</label>
+            <span class="text-muted" style="font-size:var(--font-size-xs);">Auto-detected from project structure</span>
+          </div>
           <textarea class="settings-textarea" id="settings-production-paths" rows="3" placeholder="One path per line">${escapeHtml(pathsToText(config.productionPaths))}</textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:var(--space-2);gap:var(--space-2);">
+            <button type="button" class="btn btn-ghost btn-sm" id="settings-discover-paths" ${this.busy ? 'disabled' : ''}>
+              ${this.busy === 'discover-paths' ? 'Discovering…' : 'Auto-discover paths'}
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" id="settings-sync-paths" ${this.busy ? 'disabled' : ''}>
+              ${this.busy === 'sync-paths' ? 'Syncing…' : 'Sync from current project'}
+            </button>
+          </div>
         </div>
         <div class="settings-field">
           <label class="settings-label" for="settings-sample-dir">Sample directory</label>
           <input class="settings-input" id="settings-sample-dir" type="text" value="${escapeHtml(config.sampleDir || '')}" />
         </div>
+        <div class="settings-field">
+          <label class="settings-label" style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;">
+            <input type="checkbox" id="settings-full-directory-scan" ${config.fullDirectoryScan ? 'checked' : ''} />
+            Full directory scan
+          </label>
+          <span class="text-muted" style="font-size:var(--font-size-xs);margin-left:var(--space-5);">
+            When enabled, all text files are content-scanned by rule engines. When disabled, only files in Scan paths are scanned.
+          </span>
+        </div>
       </div>
 
+      ${this.renderDownloadSettingsSection()}
       ${this.renderAiKeysSection()}
+      ${this.renderTokenSection()}
 
-      <div class="card settings-grid mb-6">
+      <div class="card settings-grid mb-6" id="settings-section-rules">
         <h2 class="card-title">Rules</h2>
         ${RULE_ORDER.map((name) => renderRuleRow(name, config.rules?.[name])).join('')}
       </div>
 
-      <div class="card settings-grid mb-6">
+      <div class="card settings-grid mb-6" id="settings-section-gate">
         <h2 class="card-title">Gate Policy</h2>
         <div class="settings-field settings-field-stack">
           <span class="settings-label">Fail on</span>
@@ -272,7 +399,7 @@ export class SettingsView {
         </div>
       </div>
 
-      <div class="card settings-grid mb-6">
+      <div class="card settings-grid mb-6" id="settings-section-advanced">
         <h2 class="card-title">Advanced (read-only)</h2>
         <div class="settings-row">
           <span class="settings-label">Ignore patterns</span>
@@ -289,7 +416,7 @@ export class SettingsView {
         <p class="text-muted" style="font-size:var(--font-size-sm);margin:0">Edit these in <code>.simplebeacon/config.json</code> directly or via Export → edit → manual merge.</p>
       </div>
 
-      <div class="card settings-grid mb-6">
+      <div class="card settings-grid mb-6" id="settings-section-baseline">
         <h2 class="card-title">Baseline</h2>
         <div class="settings-row">
           <span class="settings-label">Jest tests</span>
@@ -317,7 +444,7 @@ export class SettingsView {
         </div>
       </div>
 
-      <div class="card settings-grid">
+      <div class="card settings-grid" id="settings-section-shortcuts">
         <h2 class="card-title">Keyboard Shortcuts</h2>
         <div class="settings-row">
           <span class="settings-label">Focus search</span>
@@ -335,6 +462,425 @@ export class SettingsView {
     `;
 
     return el;
+  }
+
+  renderSettingsNav(dirty) {
+    const sections = [
+      { id: 'settings-section-scan', label: 'Scan' },
+      { id: 'settings-download-card', label: 'Downloads' },
+      { id: 'settings-ai-keys-card', label: 'AI Keys' },
+      { id: 'settings-token-card', label: 'Token' },
+      { id: 'settings-section-rules', label: 'Rules' },
+      { id: 'settings-section-gate', label: 'Gate' },
+      { id: 'settings-section-advanced', label: 'Advanced' },
+      { id: 'settings-section-baseline', label: 'Baseline' },
+      { id: 'settings-section-shortcuts', label: 'Shortcuts' }
+    ];
+    return `
+      <nav class="settings-nav" style="
+        position:sticky;
+        top:0;
+        z-index:10;
+        background:var(--surface-elevated);
+        border:1px solid var(--border);
+        border-radius:var(--radius-md);
+        padding:var(--space-2) var(--space-3);
+        margin-bottom:var(--space-4);
+        display:flex;
+        align-items:center;
+        gap:var(--space-1);
+        flex-wrap:wrap;">
+        <span style="font-weight:600;font-size:0.875rem;margin-right:var(--space-2);color:var(--text-secondary);">Jump to:</span>
+        ${sections.map((s) => `
+          <a href="#${s.id}" class="settings-nav-link" data-scroll-to="${s.id}" style="
+            padding:4px 10px;
+            border-radius:999px;
+            font-size:0.8rem;
+            text-decoration:none;
+            color:var(--text-secondary);
+            background:var(--surface);
+            border:1px solid var(--border);
+            transition:all 150ms;
+            white-space:nowrap;
+            cursor:pointer;">
+            ${escapeHtml(s.label)}
+          </a>
+        `).join('')}
+        <div style="margin-left:auto;display:flex;gap:var(--space-2);align-items:center;">
+          <button type="button" class="btn btn-secondary btn-sm" id="settings-reset" ${!dirty || this.busy ? 'disabled' : ''}>Reset</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="settings-export">Export</button>
+          <button type="button" class="btn btn-primary btn-sm" id="settings-save" ${!dirty || this.busy ? 'disabled' : ''}>
+            ${this.busy === 'save' ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+      </nav>
+    `;
+  }
+
+  renderTokenSection() {
+    const token = authService.getToken();
+    const user = authService.getUser();
+
+    let payload = null;
+    if (token) {
+      try {
+        const [, payloadB64] = token.split('.');
+        if (payloadB64) {
+          payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
+        }
+      } catch {
+        payload = null;
+      }
+    }
+
+    const hint = token && token.length > 24 ? `${token.slice(0, 8)}…${token.slice(-8)}` : (token || '—');
+    const expiresAt = payload?.exp
+      ? new Date(payload.exp * 1000).toLocaleString()
+      : '—';
+    const email = user?.email || payload?.sub || '—';
+    const plan = user?.plan || payload?.plan || payload?.tier || '—';
+    const { total, activeIndex } = this.computeVaultMetrics();
+
+    const vaultRows = this.tokenVault.map((entry, idx) => {
+      const isActive = idx === activeIndex;
+      const tHint = entry.token.length > 24 ? `${entry.token.slice(0, 8)}…${entry.token.slice(-8)}` : entry.token;
+      const u = entry.user?.email || entry.user?.sub || '—';
+      const activeLabel = isActive
+        ? `<span class="badge badge-success" style="margin-left:var(--space-2);">active</span>`
+        : '';
+      const timeLabel = entry.activatedAt
+        ? `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:var(--space-2);">• ${this._formatRelativeTime(entry.activatedAt)}</span>`
+        : '';
+      const canReturn = this.canReturnToken(idx);
+      const returnBtn = canReturn
+        ? `<button type="button" class="btn btn-ghost btn-sm" data-vault-return="${idx}" style="white-space:nowrap;color:var(--success);">Return</button>`
+        : `<span class="text-muted" style="font-size:0.7rem;white-space:nowrap;padding:var(--space-1) var(--space-2);">Used • no return</span>`;
+      return `
+        <div class="settings-row" style="align-items:center;gap:var(--space-2);">
+          <span class="settings-value" style="flex:1;min-width:0;">
+            <code>${escapeHtml(tHint)}</code>
+            <span style="color:var(--text-muted);font-size:0.75rem;margin-left:var(--space-2);">${escapeHtml(u)}</span>
+            ${activeLabel}${timeLabel}
+          </span>
+          ${returnBtn}
+          <button type="button" class="btn btn-secondary btn-sm" data-vault-activate="${idx}" ${isActive ? 'disabled' : ''} style="white-space:nowrap;">Use</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-vault-remove="${idx}" style="white-space:nowrap;color:var(--danger);">Remove</button>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="card settings-grid mb-6" id="settings-token-card">
+        <h2 class="card-title">Token</h2>
+        <div class="settings-row">
+          <span class="settings-label">Current token</span>
+          <span class="settings-value"><code>${escapeHtml(hint)}</code></span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">User</span>
+          <span class="settings-value">${escapeHtml(email)}</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Plan</span>
+          <span class="settings-value">${escapeHtml(plan)}</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Expires</span>
+          <span class="settings-value">${escapeHtml(expiresAt)}</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Token vault</span>
+          <span class="settings-value">${total} stored</span>
+        </div>
+        <div class="settings-field settings-field-stack" style="margin-top:var(--space-3)">
+          <label class="settings-label" for="settings-token-input">Paste new token</label>
+          <input
+            class="settings-input"
+            id="settings-token-input"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="enter token">
+        </div>
+        <div class="settings-field-actions">
+          <button type="button" class="btn btn-primary btn-sm" id="settings-token-update">Add / update token</button>
+          <button type="button" class="btn btn-sm" id="settings-token-get">Get token</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="settings-token-clear">Clear active token</button>
+          <button type="button" class="btn btn-info btn-sm" id="settings-token-register-email">Register with email</button>
+          ${total > 0 ? `<button type="button" class="btn btn-ghost btn-sm" id="settings-token-clear-vault" style="color:var(--danger);">Clear vault (${total})</button>` : ''}
+        </div>
+        ${total > 0 ? `
+          <div style="margin-top:var(--space-4);border-top:1px solid var(--border);padding-top:var(--space-3);">
+            <p class="text-muted" style="font-size:0.75rem;margin:0 0 var(--space-2);">Stored tokens — click Use to switch active token</p>
+            ${vaultRows}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  updateToken(root, rerender) {
+    const input = (root || this._root)?.querySelector('#settings-token-input');
+    const newToken = input?.value?.trim() || '';
+    if (!newToken) {
+      showToast('Paste a token first', 'error');
+      return;
+    }
+    const parts = newToken.split('.');
+    if (parts.length !== 3) {
+      showToast('Invalid token format — expected JWT with 3 parts', 'error');
+      return;
+    }
+    let payload;
+    try {
+      payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    } catch {
+      showToast('Invalid token — could not decode JWT payload', 'error');
+      return;
+    }
+    const user = {
+      email: payload.sub || 'token-user',
+      plan: payload.plan || payload.tier || 'free',
+      tokenSession: true
+    };
+    // Save current token to vault before replacing (if different)
+    const currentToken = authService.getToken();
+    if (currentToken && currentToken !== newToken) {
+      const currentUser = authService.getUser() || { email: payload.sub || 'token-user', plan: payload.plan || payload.tier || 'free' };
+      this.addToVault(currentToken, currentUser);
+    }
+    authService.setSession(newToken, user);
+    this.addToVault(newToken, user);
+    showToast('Token updated and saved to vault', 'success');
+    if (input) input.value = '';
+    rerender();
+  }
+
+  clearToken(rerender) {
+    if (!globalThis.confirm('Remove saved active token?')) return;
+    authService.clearSession();
+    showToast('Active token cleared', 'info');
+    rerender();
+  }
+
+  registerTokenWithEmail(rerender) {
+    const token = authService.getToken();
+    if (!token) {
+      showToast('No active token to register. Add a token first.', 'error');
+      return;
+    }
+    const email = window.prompt('Enter email address to associate with this token (for recovery):', '');
+    if (!email || !email.trim()) {
+      showToast('Registration cancelled', 'info');
+      return;
+    }
+    const trimmed = email.trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(trimmed)) {
+      showToast('Invalid email address format', 'error');
+      return;
+    }
+    const user = authService.getUser() || {};
+    user.email = trimmed;
+    authService.setSession(token, user);
+    this.updateVaultEmail(token, trimmed);
+    showToast(`Token registered to ${trimmed}`, 'success');
+    rerender();
+  }
+
+  updateVaultEmail(token, email) {
+    const entry = this.tokenVault.find((e) => e.token === token);
+    if (entry) {
+      entry.user = entry.user || {};
+      entry.user.email = email;
+      this.saveVault();
+    }
+  }
+
+  confirmAndClearVault(rerender) {
+    if (!globalThis.confirm('Remove all stored tokens from vault?')) return;
+    this.clearVault();
+    showToast('Token vault cleared', 'info');
+    rerender();
+  }
+
+  loadDownloadSettings() {
+    try {
+      const raw = localStorage.getItem('sb-download-settings');
+      const parsed = raw ? JSON.parse(raw) : {};
+      const today = new Date().toISOString().split('T')[0];
+      return {
+        autoGeneratePdf: parsed.autoGeneratePdf === true,
+        promptForCredentials: parsed.promptForCredentials !== false,
+        credentials: {
+          projectName: parsed.credentials?.projectName || '',
+          signatoryName: parsed.credentials?.signatoryName || '',
+          signatoryTitle: parsed.credentials?.signatoryTitle || '',
+          contactEmail: parsed.credentials?.contactEmail || ''
+        },
+        agency: {
+          projectName: parsed.agency?.projectName || 'CascadeProjects',
+          devAgency: parsed.agency?.devAgency || 'Agency',
+          client: parsed.agency?.client || '',
+          milestone: parsed.agency?.milestone || 'Release',
+          date: parsed.agency?.date || today,
+          scanId: parsed.agency?.scanId || '',
+          score: parsed.agency?.score ?? 100,
+          status: parsed.agency?.status || 'PASS'
+        },
+        executive: {
+          projectName: parsed.executive?.projectName || 'CascadeProjects',
+          assessor: parsed.executive?.assessor || 'SimpleBeacon Operator',
+          date: parsed.executive?.date || today,
+          reportId: parsed.executive?.reportId || '',
+          summary: parsed.executive?.summary || '',
+          verdict: parsed.executive?.verdict || 'READY'
+        }
+      };
+    } catch {
+      return { promptForCredentials: true, credentials: {}, agency: {}, executive: {} };
+    }
+  }
+
+  saveDownloadSettings(settings) {
+    localStorage.setItem('sb-download-settings', JSON.stringify(settings));
+  }
+
+  renderDownloadSettingsSection() {
+    const settings = this.loadDownloadSettings();
+    const creds = settings.credentials || {};
+    const agency = settings.agency || {};
+    const executive = settings.executive || {};
+    return `
+      <div class="card settings-grid mb-6" id="settings-download-card">
+        <h2 class="card-title">Report Credentials</h2>
+        <p class="text-muted" style="font-size:var(--font-size-sm);margin:0 0 var(--space-3)">
+          Configure credentials injected into ZIP, PDF, and certificate reports.
+        </p>
+        <div class="settings-field">
+          <label class="settings-label" style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;">
+            <input type="checkbox" id="settings-download-auto-pdf" ${settings.autoGeneratePdf ? 'checked' : ''} />
+            Auto-generate audit PDF after every complete scan
+          </label>
+          <span class="text-muted" style="font-size:var(--font-size-xs);margin-left:var(--space-5);">
+            When enabled, a well-written PDF report of all findings is automatically generated and opened after each complete scan finishes.
+          </span>
+        </div>
+        <div class="settings-field">
+          <label class="settings-label" style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;">
+            <input type="checkbox" id="settings-download-prompt-credentials" ${settings.promptForCredentials ? 'checked' : ''} />
+            Prompt for credentials before each download
+          </label>
+          <span class="text-muted" style="font-size:var(--font-size-xs);margin-left:var(--space-5);">
+            When enabled, a modal asks for project name, signatory, and email before building ZIP or PDF reports.
+          </span>
+        </div>
+
+        <div class="settings-tabs" id="cred-tabs">
+          <button type="button" class="settings-tab active" data-cred-tab="basic">Basic</button>
+          <button type="button" class="settings-tab" data-cred-tab="agency">Agency Certificate</button>
+          <button type="button" class="settings-tab" data-cred-tab="executive">Executive Audit</button>
+        </div>
+
+        <div class="cred-panel active" data-cred-panel="basic">
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-download-default-project">Project / Company Name</label>
+            <input class="settings-input" id="settings-download-default-project" type="text" value="${escapeHtml(creds.projectName || '')}" placeholder="Acme Corp" />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-download-default-signatory">Signatory Name</label>
+            <input class="settings-input" id="settings-download-default-signatory" type="text" value="${escapeHtml(creds.signatoryName || '')}" placeholder="Jane Smith" />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-download-default-title">Signatory Title</label>
+            <input class="settings-input" id="settings-download-default-title" type="text" value="${escapeHtml(creds.signatoryTitle || '')}" placeholder="Chief Technology Officer" />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-download-default-email">Contact Email</label>
+            <input class="settings-input" id="settings-download-default-email" type="text" inputmode="email" value="${escapeHtml(creds.contactEmail || '')}" placeholder="Contact email address" />
+          </div>
+        </div>
+
+        <div class="cred-panel" data-cred-panel="agency">
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-agency-project">Project Name</label>
+            <input class="settings-input" id="settings-agency-project" type="text" value="${escapeHtml(agency.projectName || '')}" />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-agency-dev">Development Agency</label>
+            <input class="settings-input" id="settings-agency-dev" type="text" value="${escapeHtml(agency.devAgency || '')}" />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-agency-client">Target Client</label>
+            <input class="settings-input" id="settings-agency-client" type="text" value="${escapeHtml(agency.client || '')}" />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-agency-milestone">Scan Milestone</label>
+            <select class="settings-input" id="settings-agency-milestone">
+              <option value="Alpha" ${agency.milestone === 'Alpha' ? 'selected' : ''}>Alpha</option>
+              <option value="Beta" ${agency.milestone === 'Beta' ? 'selected' : ''}>Beta</option>
+              <option value="Release" ${agency.milestone === 'Release' ? 'selected' : ''}>Release</option>
+              <option value="Patch" ${agency.milestone === 'Patch' ? 'selected' : ''}>Patch</option>
+            </select>
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-agency-date">Date Generated</label>
+            <input class="settings-input" id="settings-agency-date" type="date" value="${escapeHtml(agency.date || '')}" />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-agency-scan-id">Scan Integrity ID</label>
+            <input class="settings-input" id="settings-agency-scan-id" type="text" value="${escapeHtml(agency.scanId || '')}" placeholder="sb_auth_..." />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-agency-score">Quality Score</label>
+            <input class="settings-input" id="settings-agency-score" type="number" min="0" max="100" value="${Number(agency.score ?? 100)}" />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-agency-status">Status</label>
+            <select class="settings-input" id="settings-agency-status">
+              <option value="PASS" ${agency.status === 'PASS' ? 'selected' : ''}>PASSED SECURE HYGIENE GATE</option>
+              <option value="REVIEW" ${agency.status === 'REVIEW' ? 'selected' : ''}>REVIEW RECOMMENDED</option>
+              <option value="FAIL" ${agency.status === 'FAIL' ? 'selected' : ''}>FAILED HYGIENE GATE</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="cred-panel" data-cred-panel="executive">
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-exec-project">Project Name</label>
+            <input class="settings-input" id="settings-exec-project" type="text" value="${escapeHtml(executive.projectName || '')}" />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-exec-assessor">Assessor Name</label>
+            <input class="settings-input" id="settings-exec-assessor" type="text" value="${escapeHtml(executive.assessor || '')}" />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-exec-date">Report Date</label>
+            <input class="settings-input" id="settings-exec-date" type="date" value="${escapeHtml(executive.date || '')}" />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-exec-report-id">Report ID</label>
+            <input class="settings-input" id="settings-exec-report-id" type="text" value="${escapeHtml(executive.reportId || '')}" placeholder="SB-AUD-..." />
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-exec-summary">Executive Summary</label>
+            <textarea class="settings-textarea" id="settings-exec-summary" rows="3">${escapeHtml(executive.summary || '')}</textarea>
+          </div>
+          <div class="settings-field settings-field-stack">
+            <label class="settings-label" for="settings-exec-verdict">Overall Verdict</label>
+            <select class="settings-input" id="settings-exec-verdict">
+              <option value="READY" ${executive.verdict === 'READY' ? 'selected' : ''}>READY FOR RELEASE</option>
+              <option value="CONDITIONAL" ${executive.verdict === 'CONDITIONAL' ? 'selected' : ''}>CONDITIONAL — MINOR REVIEW</option>
+              <option value="BLOCKED" ${executive.verdict === 'BLOCKED' ? 'selected' : ''}>BLOCKED — CRITICAL ISSUES</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-field-actions">
+          <button type="button" class="btn btn-primary btn-sm" id="settings-download-save">Save download settings</button>
+        </div>
+      </div>
+    `;
   }
 
   renderAiKeysSection() {
@@ -416,7 +962,10 @@ export class SettingsView {
       if (generation !== this._aiKeysLoadGen) return null;
       this.aiKeys = normalizeAiKeysRecord(null);
       this.syncAiKeysFormDraft(this.aiKeys);
-      console.warn('AI keys unavailable:', err.message);
+      const isAuthError = err.code === 'auth_required' || /Authentication required|Unauthorized/i.test(err.message);
+      if (!isAuthError) {
+        console.warn('AI keys unavailable:', err.message);
+      }
       return null;
     }
   }
@@ -527,8 +1076,9 @@ export class SettingsView {
     container.appendChild(this.render());
 
     try {
+      const projectPath = this.app.state.lastProjectPath || null;
       const [config, presets] = await Promise.all([
-        scanService.fetchConfig(),
+        scanService.fetchConfig(projectPath),
         this.presets ? Promise.resolve(this.presets) : scanService.fetchConfigPresets(),
         this.loadAiKeys()
       ]);
@@ -587,6 +1137,10 @@ export class SettingsView {
 
   bindEvents(root) {
     const container = root.parentElement;
+/**
+ * Rerender.
+ * @returns {any}
+ */
     const rerender = () => {
       this.captureAiKeysFormDraft(this._root);
       if (container) this.mount(container);
@@ -598,18 +1152,33 @@ export class SettingsView {
     });
     this.bindOllamaModelEvents(root);
 
+    root.querySelectorAll('.settings-nav-link[data-scroll-to]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.dataset.scrollTo;
+        const target = root.querySelector(`#${targetId}`);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+/**
+ * On field change.
+ * @returns {any}
+ */
     const onFieldChange = () => {
       this.draft = this.buildConfigFromDom(this.draft, root);
       rerender();
     };
 
-    root.querySelector('#settings-profile')?.addEventListener('change', async (e) => {
-      const profile = e.target.value;
-      await this.applyProfilePreset(profile, rerender);
+    root.querySelector('#settings-profile-select')?.addEventListener('change', (e) => {
+      this.applyProfilePreset(e.target.value, rerender);
     });
     root.querySelector('#settings-sample-dir')?.addEventListener('input', onFieldChange);
     root.querySelector('#settings-scan-paths')?.addEventListener('input', onFieldChange);
     root.querySelector('#settings-production-paths')?.addEventListener('input', onFieldChange);
+    root.querySelector('#settings-full-directory-scan')?.addEventListener('change', onFieldChange);
 
     root.querySelectorAll('[data-rule-toggle]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -638,11 +1207,97 @@ export class SettingsView {
     });
 
     root.querySelector('#settings-save')?.addEventListener('click', () => this.save(rerender));
+    root.querySelector('#settings-discover-paths')?.addEventListener('click', () => this.discoverPathsFromProject(rerender));
+    root.querySelector('#settings-sync-paths')?.addEventListener('click', () => this.syncPathsFromProject(rerender));
     root.querySelector('#settings-baseline-sync')?.addEventListener('click', () => this.syncBaseline(rerender));
     root.querySelector('#settings-run-scan')?.addEventListener('click', () => this.runScan(rerender));
     root.querySelector('#settings-ai-save')?.addEventListener('click', () => this.saveAiKeys(root, rerender));
     root.querySelector('#settings-ai-clear')?.addEventListener('click', () => this.clearAllAiKeys(rerender));
     root.querySelector('#settings-ai-test-ollama')?.addEventListener('click', () => this.testOllamaConnection(root, rerender));
+
+    root.querySelector('#settings-download-save')?.addEventListener('click', () => {
+      const autoPdfCheckbox = root.querySelector('#settings-download-auto-pdf');
+      const promptCheckbox = root.querySelector('#settings-download-prompt-credentials');
+      const projectInput = root.querySelector('#settings-download-default-project');
+      const signatoryInput = root.querySelector('#settings-download-default-signatory');
+      const titleInput = root.querySelector('#settings-download-default-title');
+      const emailInput = root.querySelector('#settings-download-default-email');
+      this.saveDownloadSettings({
+        autoGeneratePdf: autoPdfCheckbox ? autoPdfCheckbox.checked : false,
+        promptForCredentials: promptCheckbox ? promptCheckbox.checked : true,
+        credentials: {
+          projectName: projectInput ? projectInput.value.trim() : '',
+          signatoryName: signatoryInput ? signatoryInput.value.trim() : '',
+          signatoryTitle: titleInput ? titleInput.value.trim() : '',
+          contactEmail: emailInput ? emailInput.value.trim() : ''
+        },
+        agency: {
+          projectName: root.querySelector('#settings-agency-project')?.value.trim() || '',
+          devAgency: root.querySelector('#settings-agency-dev')?.value.trim() || '',
+          client: root.querySelector('#settings-agency-client')?.value.trim() || '',
+          milestone: root.querySelector('#settings-agency-milestone')?.value || 'Release',
+          date: root.querySelector('#settings-agency-date')?.value || '',
+          scanId: root.querySelector('#settings-agency-scan-id')?.value.trim() || '',
+          score: Number(root.querySelector('#settings-agency-score')?.value || 100),
+          status: root.querySelector('#settings-agency-status')?.value || 'PASS'
+        },
+        executive: {
+          projectName: root.querySelector('#settings-exec-project')?.value.trim() || '',
+          assessor: root.querySelector('#settings-exec-assessor')?.value.trim() || '',
+          date: root.querySelector('#settings-exec-date')?.value || '',
+          reportId: root.querySelector('#settings-exec-report-id')?.value.trim() || '',
+          summary: root.querySelector('#settings-exec-summary')?.value || '',
+          verdict: root.querySelector('#settings-exec-verdict')?.value || 'READY'
+        }
+      });
+      showToast('Report credentials saved', 'success');
+    });
+
+    // Credential editor tab switching
+    root.querySelectorAll('[data-cred-tab]').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.credTab;
+        root.querySelectorAll('[data-cred-tab]').forEach((t) => t.classList.remove('active'));
+        root.querySelectorAll('[data-cred-panel]').forEach((p) => p.classList.remove('active'));
+        tab.classList.add('active');
+        root.querySelector(`[data-cred-panel="${target}"]`)?.classList.add('active');
+      });
+    });
+    root.querySelector('#settings-token-update')?.addEventListener('click', () => {
+      const discountCode = 'SB-FRIEND-25';
+      const salesUrl = `https://simplebeacon.ai/checkout/tokens?code=${encodeURIComponent(discountCode)}&ref=dashboard`;
+      window.open(salesUrl, '_blank', 'noopener,noreferrer');
+    });
+    root.querySelector('#settings-token-get')?.addEventListener('click', () => {
+      const discountCode = 'SB-FRIEND-25';
+      const salesUrl = `https://simplebeacon.ai/checkout/tokens?code=${encodeURIComponent(discountCode)}&ref=dashboard`;
+      window.open(salesUrl, '_blank', 'noopener,noreferrer');
+    });
+    root.querySelector('#settings-token-clear')?.addEventListener('click', () => this.clearToken(rerender));
+    root.querySelector('#settings-token-register-email')?.addEventListener('click', () => this.registerTokenWithEmail(rerender));
+    root.querySelector('#settings-token-clear-vault')?.addEventListener('click', () => this.confirmAndClearVault(rerender));
+
+    root.querySelectorAll('[data-vault-activate]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.vaultActivate, 10);
+        this.activateVaultToken(idx);
+        rerender();
+      });
+    });
+    root.querySelectorAll('[data-vault-return]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.vaultReturn, 10);
+        this.returnVaultToken(idx, rerender);
+      });
+    });
+    root.querySelectorAll('[data-vault-remove]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.vaultRemove, 10);
+        this.removeFromVault(idx);
+        showToast('Token removed from vault', 'info');
+        rerender();
+      });
+    });
 
     if (root.querySelector('#settings-ai-keys-card')) {
       const baseUrl = this.displayAiKeys().ollamaBaseUrl || 'http://127.0.0.1:11434';
@@ -688,12 +1343,12 @@ export class SettingsView {
     const config = cloneConfig(base);
 
     if (root) {
-      config.profile = root.querySelector('#settings-profile')?.value || config.profile;
       config.sampleDir = root.querySelector('#settings-sample-dir')?.value?.trim() || config.sampleDir;
       const scanPaths = textToPaths(root.querySelector('#settings-scan-paths')?.value);
       const productionPaths = textToPaths(root.querySelector('#settings-production-paths')?.value);
-      if (scanPaths.length) config.scanPaths = scanPaths;
-      if (productionPaths.length) config.productionPaths = productionPaths;
+      config.scanPaths = scanPaths;
+      config.productionPaths = productionPaths;
+      config.fullDirectoryScan = root.querySelector('#settings-full-directory-scan')?.checked ?? config.fullDirectoryScan;
 
       config.gate = config.gate || { failOn: [], warnOn: [] };
       config.gate.failOn = readGateSelection(root, 'fail');
@@ -737,6 +1392,78 @@ export class SettingsView {
     }
   }
 
+  async syncPathsFromProject(rerender) {
+    this.busy = 'sync-paths';
+    rerender();
+    try {
+      const projectPath = this.app.state.lastProjectPath || null;
+      const config = await scanService.fetchConfig(projectPath);
+      this.app.state.config = config;
+      this.draft = cloneConfig(config);
+      this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
+      showToast('Scan paths synced from current project', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      this.busy = false;
+      rerender();
+    }
+  }
+
+  inferScanPaths(dirs, root) {
+    const rootNorm = String(root || '').replace(/\\/g, '/').replace(/\/+$/, '');
+    const candidates = new Set();
+    const scanPatterns = ['src', 'server', 'web', 'lib', 'app', 'api', 'routes', 'services', 'packages', 'js', 'ts', 'client', 'frontend', 'core', 'ui', 'components', 'utils', 'helpers'];
+    for (const dir of dirs) {
+      const rel = String(dir).replace(/\\/g, '/').replace(rootNorm, '').replace(/^\/+/, '');
+      const firstPart = rel.split('/')[0];
+      if (scanPatterns.includes(firstPart)) candidates.add(firstPart);
+    }
+    return Array.from(candidates);
+  }
+
+  inferProductionPaths(dirs, root) {
+    const rootNorm = String(root || '').replace(/\\/g, '/').replace(/\/+$/, '');
+    const candidates = new Set();
+    const prodPatterns = ['dist', 'build', 'public', 'out', '.next', 'static', 'deploy', 'release', 'bundle', 'production', 'prod'];
+    for (const dir of dirs) {
+      const rel = String(dir).replace(/\\/g, '/').replace(rootNorm, '').replace(/^\/+/, '');
+      const firstPart = rel.split('/')[0];
+      if (prodPatterns.includes(firstPart)) candidates.add(firstPart);
+    }
+    return Array.from(candidates);
+  }
+
+  async discoverPathsFromProject(rerender) {
+    this.busy = 'discover-paths';
+    rerender();
+    try {
+      const projectPath = this.app.state.lastProjectPath;
+      if (!projectPath) {
+        showToast('Set a project path on the Analyze page first', 'error');
+        return;
+      }
+      const inventory = await this.app.scanService.fetchRepositoryInventory(projectPath);
+      if (!inventory?.directoryTree) {
+        showToast('Could not read project structure', 'error');
+        return;
+      }
+      const dirs = inventory.directoryTree.map((d) => String(d.path || d.name || ''));
+      const scanPaths = this.inferScanPaths(dirs, projectPath);
+      const productionPaths = this.inferProductionPaths(dirs, projectPath);
+      this.draft = this.draft || cloneConfig(this.app.state.config || {});
+      this.draft.scanPaths = scanPaths;
+      this.draft.productionPaths = productionPaths;
+      this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
+      showToast(`Discovered ${scanPaths.length} scan path(s), ${productionPaths.length} production path(s)`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      this.busy = false;
+      rerender();
+    }
+  }
+
   async syncBaseline(rerender) {
     this.busy = 'baseline';
     rerender();
@@ -765,7 +1492,8 @@ export class SettingsView {
     rerender();
     try {
       showToast('Running Simplebeacon scan…', 'info');
-      await scanService.runScan();
+      const config = this.app.state.config || {};
+      await scanService.runScan(null, { fullDirectoryScan: config.fullDirectoryScan === true });
       const data = await scanService.fetchAll();
       Object.assign(this.app.state, data);
       showToast('Scan complete — dashboard metrics updated', 'success');
@@ -778,6 +1506,12 @@ export class SettingsView {
   }
 }
 
+/**
+ * Render rule row.
+ * @param {string} name
+ * @param {any} rule
+ * @returns {any}
+ */
 function renderRuleRow(name, rule = {}) {
   const enabled = rule.enabled !== false;
   return `
@@ -797,16 +1531,29 @@ function renderRuleRow(name, rule = {}) {
   `;
 }
 
+/**
+ * Checkbox.
+ * @param {any} group
+ * @param {any} severity
+ * @param {any} list
+ * @returns {any}
+ */
 function checkbox(group, severity, list = []) {
   const checked = (list || []).includes(severity);
   return `
     <label class="settings-checkbox">
-      <input type="checkbox" data-gate-group="${group}" value="${severity}" ${checked ? 'checked' : ''} />
+      <input type="checkbox" data-gate-group="${group}" value="${severity}" ${checked ? 'checked' : ''} aria-label="${severity} severity filter" />
       <span>${severity}</span>
     </label>
   `;
 }
 
+/**
+ * Read gate selection.
+ * @param {any} root
+ * @param {any} group
+ * @returns {any}
+ */
 function readGateSelection(root, group) {
   return SEVERITIES.filter((sev) => {
     const input = root.querySelector(`[data-gate-group="${group}"][value="${sev}"]`);
@@ -814,6 +1561,12 @@ function readGateSelection(root, group) {
   });
 }
 
+/**
+ * Merge rules.
+ * @param {any} existing
+ * @param {any} preset
+ * @returns {any}
+ */
 function mergeRules(existing = {}, preset = {}) {
   const merged = { ...existing };
   for (const [name, rule] of Object.entries(preset)) {
@@ -822,14 +1575,29 @@ function mergeRules(existing = {}, preset = {}) {
   return merged;
 }
 
+/**
+ * Format rule name.
+ * @param {string} name
+ * @returns {any}
+ */
 function formatRuleName(name) {
   return name.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/**
+ * Paths to text.
+ * @param {Array} paths
+ * @returns {any}
+ */
 function pathsToText(paths) {
   return (paths || []).join('\n');
 }
 
+/**
+ * Text to paths.
+ * @param {string} text
+ * @returns {any}
+ */
 function textToPaths(text) {
   return String(text || '')
     .split(/\r?\n/)
@@ -837,6 +1605,11 @@ function textToPaths(text) {
     .filter(Boolean);
 }
 
+/**
+ * Clone config.
+ * @param {Object} config
+ * @returns {any}
+ */
 function cloneConfig(config) {
   return JSON.parse(JSON.stringify(config || {}));
 }

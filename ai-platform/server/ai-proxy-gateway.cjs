@@ -1,7 +1,7 @@
 /**
  * HTTP forward proxy gateway that screens AI API request bodies for sensitive data.
  *
- * Usage: point clients at http://localhost:8080 with Host header set to api.openai.com
+ * Usage: point clients at http://localhost:constants.AI_PROXY_PORT with Host header set to api.openai.com
  * (or configure HTTP_PROXY). This is an application-layer forward proxy, not TLS MITM.
  *
  * EU AI Act Documentation Marker:
@@ -15,10 +15,12 @@
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
-const { scanTextContent } = require('../packages/simplebeacon-cli/src/lib/credential-pattern-scanner');
 const { scanEnterprisePatterns, isBlockingFinding } = require('./enterprise-patterns');
 const logger = require('./lib/app-logger');
+const { scanTextContent } = require('./lib/simplebeacon-proxy.cjs');
 
+
+const constants = require('./config/constants.cjs');
 const AI_DOMAINS = new Set([
     'api.openai.com',
     'api.anthropic.com',
@@ -31,15 +33,18 @@ const AI_DOMAINS = new Set([
 const AI_PATHS = ['/v1/chat/completions', '/v1/messages', '/v1/generate', '/v1/completions'];
 
 const DEFAULT_CONFIG = {
-    port: Number(process.env.PROXY_PORT) || 8080,
-    maxRequestSize: 10 * 1024 * 1024,
-    requestTimeout: 30000,
+    port: Number(process.env.PROXY_PORT) || constants.AI_PROXY_PORT,
+    maxRequestSize: 10 * constants.BYTES_PER_KB * constants.BYTES_PER_KB,
+    requestTimeout: constants.TIMEOUT_30S,
     logViolations: true,
     violationLogPath: process.env.VIOLATION_LOG_PATH || './ai-violations.log',
     blockOnMatch: process.env.BLOCK_ON_MATCH !== 'false',
     alertWebhook: process.env.ALERT_WEBHOOK || null
 };
 
+/**
+ * A i proxy gateway.
+ */
 class AIProxyGateway {
     constructor(config = {}) {
         this.config = { ...DEFAULT_CONFIG, ...config };
@@ -339,4 +344,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { AIProxyGateway, AI_DOMAINS, AI_PATHS };
+module.exports = { AIProxyGateway };

@@ -1,5 +1,162 @@
 # Simplebeacon Development Notes
 
+## Pre-Commit Hook Configuration
+
+The project has automated pre-commit hooks configured to ensure code quality before commits:
+
+### Root Pre-Commit Hooks
+- **Unix/Linux/Mac**: `.husky/pre-commit` - Syntax checks staged JS/CJS files + runs SimpleBeacon gate scan
+- **Windows**: `.husky/pre-commit.cmd` - Runs SimpleBeacon gate scan with high severity failure threshold
+
+### ai-platform Pre-Commit Hook
+- **Location**: `ai-platform/.husky/pre-commit`
+- **Current**: Runs `npm test`
+- **Enhancement Needed**: Should also include SimpleBeacon gate scan for consistency
+
+### coming-soon Pre-Commit Hook
+- **Location**: `coming-soon/pre-commit-hook.sh`
+- **Current**: Comprehensive with syntax checks + SimpleBeacon gate scan
+- **Status**: Well-configured, can be installed to `.git/hooks/pre-commit`
+
+### Installation Commands
+```bash
+# Install root hooks (if husky is set up)
+npx husky install
+
+# Manual installation for coming-soon
+cp coming-soon/pre-commit-hook.sh .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+### Hook Enhancement Recommendations
+1. ✅ **ai-platform**: Added SimpleBeacon gate scan to existing test run
+2. ✅ **Standardize**: All hooks now run syntax checks and quality gates (root `.husky/pre-commit`, `.husky/pre-commit.cmd`, `ai-platform/.husky/pre-commit`, `coming-soon/pre-commit-hook.sh`)
+3. ✅ **CI Integration**: GitHub Actions run `npm audit` on every PR (builds fail on high/critical); SimpleBeacon gate scan runs in CI via `npx simplebeacon scan --gate --format json`
+
+---
+
+## Monthly Quality Gate Review Schedule
+
+### Review Cadence
+- **Frequency**: Monthly (first business day of each month)
+- **Owner**: Engineering Team Lead
+- **Duration**: 1-2 hours
+- **Participants**: Tech Lead, Senior Developers, QA Engineer
+
+### Review Agenda
+
+#### 1. Gate Status Review (15 min)
+- Review previous month's gate pass/fail rates
+- Analyze trends in blocking issues
+- Identify recurring patterns or false positives
+
+#### 2. Dependency Health Check (20 min)
+- Run `npm audit` across all packages
+- Review DEPENDENCY-POLICY.md compliance
+- Plan dependency updates for the month
+- Address any security vulnerabilities
+
+#### 3. Test Coverage Analysis (20 min)
+- Review test coverage reports
+- Identify modules with low coverage
+- Plan test additions for uncovered modules
+- Review test flakiness and reliability
+
+#### 4. Documentation Updates (15 min)
+- Update AGENTS.md with any new learnings
+- Review and update technical documentation
+- Ensure all TODOs are addressed or documented
+
+#### 5. Action Items (10 min)
+- Assign owners to identified issues
+- Set deadlines for remediation
+- Schedule follow-up reviews if needed
+
+### Monthly Review Checklist
+
+- [ ] Run full SimpleBeacon gate scan: `npx simplebeacon scan --gate --full`
+- [ ] Run dependency audit: `npm audit` in each package directory
+- [ ] Generate test coverage report: `npm run test:coverage`
+- [ ] Review pre-commit hook effectiveness
+- [ ] Check for new security vulnerabilities
+- [ ] Update DEPENDENCY-POLICY.md review log
+- [ ] Document any new patterns or learnings in AGENTS.md
+- [ ] Verify CI/CD pipeline quality gates
+- [ ] Review and address any technical debt items
+- [ ] Plan next month's quality improvements
+
+### Automated Monthly Report
+
+Generate automated monthly quality report using:
+
+```bash
+# From project root
+npm run quality:check
+```
+
+This runs:
+- SimpleBeacon gate scan
+- Dependency audit
+- Test coverage analysis
+- Security vulnerability check
+- Documentation validation
+
+### Review Templates
+
+#### Monthly Quality Review Report Template
+
+```markdown
+# Monthly Quality Review - [Month Year]
+
+## Executive Summary
+- Gate Pass Rate: X%
+- Critical Issues: X
+- High Severity Issues: X
+- Test Coverage: X%
+
+## Dependency Health
+- Vulnerabilities Found: X
+- Packages Updated: X
+- Deprecated Packages: X
+
+## Test Coverage
+- Overall Coverage: X%
+- Modules Below Threshold: X
+- New Tests Added: X
+
+## Action Items
+1. [ ] Issue description - Owner - Due date
+2. [ ] Issue description - Owner - Due date
+
+## Next Month Focus
+- Priority areas for improvement
+- Planned tooling upgrades
+- Team training needs
+```
+
+### Quality Metrics Tracking
+
+Track these metrics month-over-month:
+
+| Metric | Month 1 | Month 2 | Month 3 | Trend |
+|--------|---------|---------|---------|-------|
+| Gate Pass Rate | % | % | % | ↗/↘ |
+| Critical Issues | # | # | # | ↗/↘ |
+| Test Coverage | % | % | % | ↗/↘ |
+| Vulnerabilities | # | # | # | ↗/↘ |
+| False Positive Rate | % | % | % | ↗/↘ |
+
+### Escalation Procedures
+
+If critical issues are found during monthly review:
+
+1. **Immediate**: Block deployments until resolved
+2. **24 hours**: Engineering lead assessment
+3. **48 hours**: Remediation plan developed
+4. **1 week**: Resolution implemented and verified
+
+---
+
 ## AI Agent Rules — The Broom Strategy (Quick Reference)
 
 > Read this first. It takes 10 seconds and prevents 90% of AI hallucinations.
@@ -308,3 +465,108 @@ Before ending a session:
 ### Bottom Line
 
 The best fix is the one that uses the existing patterns, the existing imports, and the existing test infrastructure. The codebase already has the answers. The AI's job is to help find them, not to build a parallel universe.
+
+---
+
+## Canonical File Locations
+
+### Package Directories
+
+| Package | Canonical Path | Notes |
+|---------|---------------|-------|
+| simplebeacon-cli | `packages/simplebeacon-cli/` | Root-level canonical package |
+| simplebeacon-intelligence | `ai-platform/packages/simplebeacon-intelligence/` | Optional tree-sitter grammar package |
+| ai-platform | `ai-platform/` | Main platform workspace |
+| ai-agent | `ai-agent/` | 0-dependency local agent |
+| ai-tools | `ai-tools/` | 0-dependency syntax/test wrapper |
+| coming-soon | `coming-soon/` | Landing page with backend |
+| vscode-extension | `vscode-extension/` | VS Code extension |
+
+### Generated Artifacts
+
+| Artifact Type | Canonical Location | Archive Location |
+|---------------|-------------------|------------------|
+| SimpleBeacon reports | `.simplebeacon/report.json` | `.simplebeacon/archive/` |
+| Scan outputs | `.simplebeacon/scan-*.json` | `.simplebeacon/archive/` |
+| Gate test reports | `.simplebeacon/gate-test-report.json` | `.simplebeacon/archive/` |
+| Backup files | N/A — do not commit | `.simplebeacon/archive/` |
+| Phase export files | Root `phase-*.json` (temporary) | `.simplebeacon/archive/` after completion |
+
+### Deprecated / Removed Locations
+
+| Old Location | Reason | Action Taken |
+|-------------|--------|--------------|
+| `ai-platform/.github-sync/simplebeacon/` | Sync artifact, duplicate of `packages/simplebeacon-cli/` | Removed 2026-06-10 |
+| `ai-platform/github-cache/tjp420-simplebeacon/` | Cache artifact | Previously removed |
+| Root `*-report.json`, `scan_*.json` | Generated artifacts cluttering root | Archived to `.simplebeacon/archive/` 2026-06-10 |
+
+---
+
+## Naming Conventions
+
+### Files
+
+| Type | Convention | Examples |
+|------|-----------|----------|
+| Source files (JS/CJS) | kebab-case | `scan-engine.js`, `path-sanitizer.cjs` |
+| Test files | kebab-case with `.test.` suffix | `scan-engine.test.js` |
+| Config files | kebab-case | `config.json`, `config-full-coverage.json` |
+| Documentation | UPPER-KEBAB-CASE for top-level | `DEPENDENCY-POLICY.md`, `AGENTS.md` |
+| Scripts (shell/batch) | kebab-case | `scan-website.sh`, `start-all-servers.bat` |
+| Generated reports | kebab-case with type prefix | `report.json`, `gate-test-report.json`, `scan-clean.json` |
+| Phase export files | `phase-{phase}-{project}-{date}.json` | `phase-npmaudit-ai_agent-2026-06-10.json` |
+
+### Directories
+
+| Type | Convention | Examples |
+|------|-----------|----------|
+| Packages | kebab-case | `simplebeacon-cli`, `coming-soon` |
+| Source | kebab-case or plural | `src/`, `tests/`, `docs/` |
+| Config | dot-prefixed | `.simplebeacon/`, `.husky/` |
+
+### Inconsistencies to Avoid
+
+- Do not mix `_` and `-` in the same project path
+- Do not create root-level generated artifacts; use `.simplebeacon/`
+- Do not duplicate package code in `.github-sync/` or `github-cache/` directories
+
+---
+
+## ai-platform Session Fixes — 2026-06-12
+
+### Issues Fixed
+
+1. **Dead service worker reference**
+   - `web/simplebeacon-dashboard/index.html` contained a `navigator.serviceWorker.register('/simplebeacon-dashboard/sw.js')` block, but `sw.js` never existed on disk.
+   - **Fix:** Removed the entire service worker registration script block.
+
+2. **`.simplebeaconignore` duplicate entry**
+   - `web/simplebeacon-dashboard/sw.js` was listed twice (lines 104–105).
+   - **Fix:** Deduplicated and updated the comment to note the file was removed.
+
+3. **Folder drop not updating path input**
+   - Dropping a folder on the path area set `lastProjectPath` but `runPathAnalysis()` triggered a full `refresh()` re-render.
+   - `pageRepoScan.js::getPathInputDisplayValue()` **always returned `''`**, so the re-render blanked the input.
+   - Chip clicks worked because they never triggered `refresh()` / `runPathAnalysis()`.
+   - **Fix:** Changed `getPathInputDisplayValue` to return `app.state.pathInputDraft || app.state.lastProjectPath || ''` so re-renders preserve the current path.
+
+4. **Clear button did not clear recent chips**
+   - The `#clear-path-btn` handler only blanked the input and `lastProjectPath` — it did not touch `localStorage` (`simplebeaconRecentPaths`) or re-render the chips section.
+   - **Fix:** Added `localStorage.removeItem('simplebeaconRecentPaths')` and re-rendered `renderPathSourceSections()` so chips disappear immediately.
+
+### Post-Fix Gate Status
+
+```json
+{
+  "gate": { "pass": true, "blockingCount": 0 },
+  "qualityScore": 100,
+  "repositoryFilesTotal": 475,
+  "ruleScopedFilesAnalyzed": 557,
+  "profile": "eu-ai-act"
+}
+```
+
+### Exported Metadata
+
+Re-attestation workflow metadata saved to:
+`ai-platform/.simplebeacon/re-attestation-export-2026-06-12.json`

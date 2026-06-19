@@ -12,6 +12,18 @@ const fs = require('fs');
 const http = require('http');
 const logger = require('./lib/app-logger');
 
+const constants = require('./config/constants.cjs');
+// i18n stub — replace with real translation framework when available
+/**
+ * T.
+ * @param {string} str
+ * @returns {any}
+ */
+function t(str) { return str; }
+
+/**
+ * D l p dashboard.
+ */
 class DLPDashboard {
     constructor(config = {}) {
         this.port = config.port || Number(process.env.DASHBOARD_PORT) || 3000;
@@ -60,36 +72,45 @@ class DLPDashboard {
         res.end(this.generateDashboardHTML());
     }
 
-    serveViolations(req, res) {
+    async serveViolations(req, res) {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 100);
+        const page = Math.max(parseInt(url.searchParams.get('page') || '1', 10), 1);
+        const offset = (page - 1) * limit;
+        const all = await this.loadViolations(false);
+        const paginated = all.slice(offset, offset + limit);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(this.loadViolations()));
+        res.end(JSON.stringify({
+            violations: paginated,
+            pagination: { page, limit, total: all.length, pages: Math.ceil(all.length / limit) }
+        }));
     }
 
-    serveStats(req, res) {
+    async serveStats(req, res) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(this.generateStats()));
+        res.end(JSON.stringify(await this.generateStats()));
     }
 
-    serveCompliance(req, res) {
+    async serveCompliance(req, res) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(this.generateComplianceReport()));
+        res.end(JSON.stringify(await this.generateComplianceReport()));
     }
 
-    loadViolations() {
+    async loadViolations(paginated = true) {
         try {
-            const data = fs.readFileSync(this.violationLogPath, 'utf8');
-            return data.split('\n')
+            const data = await fs.promises.readFile(this.violationLogPath, 'utf8');
+            const all = data.split('\n')
                 .filter((line) => line.trim())
                 .map((line) => JSON.parse(line))
-                .reverse()
-                .slice(0, 100);
+                .reverse();
+            return paginated ? all.slice(0, 100) : all;
         } catch {
             return [];
         }
     }
 
-    generateStats() {
-        const violations = this.loadViolations();
+    async generateStats() {
+        const violations = await this.loadViolations();
         const stats = {
             total: violations.length,
             bySeverity: {
@@ -127,9 +148,9 @@ class DLPDashboard {
         return Math.min(100, Math.round(score / violations.length));
     }
 
-    generateComplianceReport() {
-        const violations = this.loadViolations();
-        const stats = this.generateStats();
+    async generateComplianceReport() {
+        const violations = await this.loadViolations();
+        const stats = await this.generateStats();
 
         return {
             overallRisk: this.assessOverallRisk(stats),
@@ -234,7 +255,7 @@ class DLPDashboard {
         return {
             start: new Date(oldest).toISOString(),
             end: new Date(newest).toISOString(),
-            days: Math.ceil((newest - oldest) / (1000 * 60 * 60 * 24))
+            days: Math.ceil((newest - oldest) / constants.ONE_DAY_MS)
         };
     }
 
@@ -271,13 +292,84 @@ class DLPDashboard {
   </div>
   <div class="card">
     <h2>Compliance Score: <span id="score">--</span></h2>
-    <div id="status">Loading...</div>
+    <div id="status" data-label="Overall risk">Loading...</div>
   </div>
   <div class="card">
     <h2>Recent Violations</h2>
     <div id="violations">Loading...</div>
+    <div id="pagination" style="margin-top:12px;display:flex;gap:8px;align-items:center;"></div>
   </div>
   <script>
+    let currentPage = 1;
+    let currentLimit = 20;
+/**
+ * Load violations.
+ * @param {any} page
+ * @returns {any}
+ */
+    async function loadViolations(page = 1) {
+      const res = await fetch('/api/violations?page=' + page + '&limit=' + currentLimit);
+      return res.json();
+    }
+/**
+ * Render violations.
+ * @param {any} data
+ * @returns {any}
+ */
+    function renderViolations(data) {
+      const violationsEl = document.getElementById('violations');
+      const paginationEl = document.getElementById('pagination');
+      const violations = data.violations || [];
+      const p = data.pagination || {};
+      violationsEl.replaceChildren();
+      if (violations.length) {
+        violations.forEach((v) => {
+          const div = document.createElement('div');
+          div.className = 'violation ' + v.severity;
+          const strong = document.createElement('strong');
+          strong.textContent = v.severity;
+          div.appendChild(strong);
+          div.appendChild(document.createTextNode(' ' + v.timestamp));
+          const br = document.createElement('br');
+          div.appendChild(br);
+          div.appendChild(document.createTextNode('Patterns: ' + (v.patterns || []).join(', ')));
+          violationsEl.appendChild(div);
+        });
+      } else {
+        violationsEl.textContent = t('No violations detected.');
+      }
+      paginationEl.replaceChildren();
+      if (p.pages > 1) {
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = '← Prev';
+        prevBtn.disabled = p.page <= 1;
+        prevBtn.addEventListener('click', () => changePage(p.page - 1));
+        const span = document.createElement('span');
+        span.textContent = 'Page ' + p.page + ' of ' + p.pages;
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = 'Next →';
+        nextBtn.disabled = p.page >= p.pages;
+        nextBtn.addEventListener('click', () => changePage(p.page + 1));
+        paginationEl.appendChild(prevBtn);
+        paginationEl.appendChild(span);
+        paginationEl.appendChild(nextBtn);
+      }
+    }
+/**
+ * Change page.
+ * @param {any} page
+ * @returns {any}
+ */
+    async function changePage(page) {
+      if (page < 1) return;
+      const data = await loadViolations(page);
+      currentPage = data.pagination?.page || 1;
+      renderViolations(data);
+    }
+/**
+ * Refresh.
+ * @returns {any}
+ */
     async function refresh() {
       const stats = await fetch('/api/stats').then(r => r.json());
       document.getElementById('total').textContent = stats.total;
@@ -287,15 +379,14 @@ class DLPDashboard {
 
       const compliance = await fetch('/api/compliance').then(r => r.json());
       document.getElementById('score').textContent = compliance.complianceScore;
-      document.getElementById('status').textContent = 'Overall risk: ' + compliance.overallRisk;
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = statusEl.dataset.label + ': ' + compliance.overallRisk;
 
-      const violations = await fetch('/api/violations').then(r => r.json());
-      document.getElementById('violations').innerHTML = violations.length
-        ? violations.map(v => '<div class="violation ' + v.severity + '"><strong>' + v.severity + '</strong> ' + v.timestamp + '<br>Patterns: ' + (v.patterns || []).join(', ') + '</div>').join('')
-        : '<p>No violations detected.</p>';
+      const data = await loadViolations(currentPage);
+      renderViolations(data);
     }
     refresh();
-    setInterval(refresh, 30000);
+    setInterval(refresh, constants.TIMEOUT_30S);
   </script>
 </body>
 </html>`;

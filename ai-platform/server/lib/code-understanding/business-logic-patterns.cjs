@@ -53,6 +53,12 @@ const DOMAIN_PATTERNS = {
     }
 };
 
+/**
+ * Infer domain hints.
+ * @param {string} filePath
+ * @param {any} language
+ * @returns {any}
+ */
 function inferDomainHints(filePath, language) {
     const rel = String(filePath || '').replace(/\\/g, '/').toLowerCase();
     const hints = [];
@@ -66,6 +72,12 @@ function inferDomainHints(filePath, language) {
     return [...new Set(hints)];
 }
 
+/**
+ * Detect business logic patterns.
+ * @param {any} content
+ * @param {Object} options
+ * @returns {any}
+ */
 function detectBusinessLogicPatterns(content, options = {}) {
     const language = String(options.language || 'generic').toLowerCase();
     const domainHints = options.domainHints || inferDomainHints(options.filePath, language);

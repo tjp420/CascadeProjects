@@ -12,6 +12,10 @@ try {
   nodeLogger = null;
 }
 
+/**
+ * Is dev environment.
+ * @returns {any}
+ */
 function isDevEnvironment() {
   if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production') {
     return false;
@@ -25,6 +29,12 @@ function isDevEnvironment() {
   return false;
 }
 
+/**
+ * Write.
+ * @param {any} level
+ * @param {Array} args
+ * @returns {any}
+ */
 function write(level, args) {
   if (nodeLogger) {
     nodeLogger[level](...args);

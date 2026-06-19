@@ -66,7 +66,7 @@
 
 5. **Access the dashboard**
    ```
-   http://localhost:54355
+   http://localhost:3002
    ```
 
 ### Docker Installation
@@ -89,7 +89,7 @@ Create a `.env` file with the following variables:
 
 ```bash
 # Server Configuration
-PORT=54355
+PORT=3002
 NODE_ENV=development
 REQUIRE_AUTH=true
 SIMPLEBEACON_INTERNAL_DASHBOARD=true
@@ -151,7 +151,7 @@ npm run security:scan
 
 ### Dashboard Usage
 
-1. **Navigate to the dashboard**: `http://localhost:54355`
+1. **Navigate to the dashboard**: `http://localhost:3002`
 2. **Sign in** with credentials:
    - Email: `dev@simplebeacon.ai`
    - Password: `dev-password`
@@ -162,13 +162,13 @@ npm run security:scan
 
 ```bash
 # Get platform status
-curl http://localhost:54355/api/platform/status
+curl http://localhost:3002/api/platform/status
 
 # Get user entitlements
-curl http://localhost:54355/api/simplebeacon/entitlements
+curl http://localhost:3002/api/simplebeacon/entitlements
 
 # Run a scan
-curl -X POST http://localhost:54355/api/analyze/scan \
+curl -X POST http://localhost:3002/api/analyze/scan \
   -H "Content-Type: application/json" \
   -d '{"projectPath": "/path/to/project", "profile": "eu-ai-act"}'
 ```
@@ -235,13 +235,13 @@ docker compose -f docker-compose.simplebeacon.yml up -d --scale app=3
 
 ```bash
 # Application health
-curl http://localhost:54355/api/health
+curl http://localhost:3002/api/health
 
 # Platform status
-curl http://localhost:54355/api/platform/status
+curl http://localhost:3002/api/platform/status
 
 # Path health metrics
-curl http://localhost:54355/api/metrics/path-health
+curl http://localhost:3002/api/metrics/path-health
 ```
 
 ### Audit Logs

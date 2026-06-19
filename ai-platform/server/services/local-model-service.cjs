@@ -8,21 +8,41 @@ const crypto = require('crypto');
 const { ollamaListModels } = require('./ollama-client.cjs');
 const logger = require('../lib/app-logger.cjs');
 
-const DEFAULT_OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
+const constants = require('../config/constants.cjs');
+const DEFAULT_OLLAMA_URL = process.env.OLLAMA_BASE_URL || ('http://127.0.0.1:' + '11434');
 
+/**
+ * Get models root.
+ * @param {string} baseDir
+ * @returns {any}
+ */
 function getModelsRoot(baseDir) {
     return process.env.LOCAL_MODELS_DIR
         || path.join(baseDir, 'data-central', 'ai-tools', 'ai-models');
 }
 
+/**
+ * Get registry path.
+ * @param {string} baseDir
+ * @returns {any}
+ */
 function getRegistryPath(baseDir) {
     return path.join(getModelsRoot(baseDir), 'registry.json');
 }
 
+/**
+ * Get uploads dir.
+ * @param {string} baseDir
+ * @returns {any}
+ */
 function getUploadsDir(baseDir) {
     return path.join(getModelsRoot(baseDir), 'uploads');
 }
 
+/**
+ * Default registry.
+ * @returns {any}
+ */
 function defaultRegistry() {
     return {
         version: 1,
@@ -50,6 +70,11 @@ function defaultRegistry() {
     };
 }
 
+/**
+ * Ensure registry.
+ * @param {string} baseDir
+ * @returns {any}
+ */
 async function ensureRegistry(baseDir) {
     const _root = getModelsRoot(baseDir);
     const registryPath = getRegistryPath(baseDir);
@@ -65,11 +90,22 @@ async function ensureRegistry(baseDir) {
     return JSON.parse(raw);
 }
 
+/**
+ * Save registry.
+ * @param {string} baseDir
+ * @param {string} registry
+ * @returns {any}
+ */
 async function saveRegistry(baseDir, registry) {
     const registryPath = getRegistryPath(baseDir);
     await fs.promises.writeFile(registryPath, JSON.stringify(registry, null, 2), 'utf8');
 }
 
+/**
+ * Slugify.
+ * @param {any} value
+ * @returns {any}
+ */
 function slugify(value) {
     return String(value || 'model')
         .toLowerCase()
@@ -78,22 +114,37 @@ function slugify(value) {
         .slice(0, 48) || 'model';
 }
 
+/**
+ * Make model id.
+ * @param {string} name
+ * @returns {any}
+ */
 function makeModelId(name) {
     return `${slugify(name)}-${Date.now().toString(36)}`;
 }
 
+/**
+ * Format bytes.
+ * @param {Array} bytes
+ * @returns {any}
+ */
 function formatBytes(bytes) {
     if (!bytes || bytes <= 0) return null;
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
     let size = bytes;
     let unit = 0;
-    while (size >= 1024 && unit < units.length - 1) {
-        size /= 1024;
+    while (size >= constants.BYTES_PER_KB && unit < units.length - 1) {
+        size /= constants.BYTES_PER_KB;
         unit += 1;
     }
     return `${size.toFixed(unit === 0 ? 0 : 1)}${units[unit]}`;
 }
 
+/**
+ * Hash file sha256.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function hashFileSha256(filePath) {
     return new Promise((resolve, reject) => {
         const hash = crypto.createHash('sha256');
@@ -104,10 +155,23 @@ function hashFileSha256(filePath) {
     });
 }
 
+/**
+ * Normalize path key.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function normalizePathKey(filePath) {
     return path.normalize(String(filePath || '')).toLowerCase();
 }
 
+/**
+ * Find upload file by hash.
+ * @param {string} uploadsDir
+ * @param {string} fileHash
+ * @param {number} fileSize
+ * @param {Object} options
+ * @returns {any}
+ */
 async function findUploadFileByHash(uploadsDir, fileHash, fileSize, { excludePath } = {}) {
     const excludeKey = excludePath ? normalizePathKey(excludePath) : null;
     const entries = await fs.promises.readdir(uploadsDir, { withFileTypes: true });
@@ -130,11 +194,21 @@ async function findUploadFileByHash(uploadsDir, fileHash, fileSize, { excludePat
     return null;
 }
 
+/**
+ * Get active model.
+ * @param {string} registry
+ * @returns {any}
+ */
 function getActiveModel(registry) {
     const active = registry.models.find((m) => m.id === registry.activeModelId);
     return active || registry.models.find((m) => m.isDefault) || registry.models[0] || null;
 }
 
+/**
+ * List models.
+ * @param {string} baseDir
+ * @returns {any}
+ */
 async function listModels(baseDir) {
     const registry = await ensureRegistry(baseDir);
     return {
@@ -145,6 +219,11 @@ async function listModels(baseDir) {
     };
 }
 
+/**
+ * Get active model info.
+ * @param {string} baseDir
+ * @returns {any}
+ */
 async function getActiveModelInfo(baseDir) {
     const registry = await ensureRegistry(baseDir);
     const active = getActiveModel(registry);
@@ -166,6 +245,12 @@ async function getActiveModelInfo(baseDir) {
     };
 }
 
+/**
+ * Register model.
+ * @param {string} baseDir
+ * @param {any} input
+ * @returns {any}
+ */
 async function registerModel(baseDir, input) {
     const registry = await ensureRegistry(baseDir);
     const provider = input.provider || 'path';
@@ -222,6 +307,12 @@ async function registerModel(baseDir, input) {
     return { model, deduplicated: false };
 }
 
+/**
+ * Refresh model hash.
+ * @param {string} baseDir
+ * @param {string} modelId
+ * @returns {any}
+ */
 async function refreshModelHash(baseDir, modelId) {
     const registry = await ensureRegistry(baseDir);
     const model = registry.models.find((m) => m.id === modelId);
@@ -233,6 +324,13 @@ async function refreshModelHash(baseDir, modelId) {
     return { model, hash: model.hash };
 }
 
+/**
+ * Get model hash.
+ * @param {string} baseDir
+ * @param {string} modelId
+ * @param {Object} options
+ * @returns {any}
+ */
 async function getModelHash(baseDir, modelId, { refresh = false } = {}) {
     const registry = await ensureRegistry(baseDir);
     const model = registry.models.find((m) => m.id === modelId);
@@ -243,6 +341,13 @@ async function getModelHash(baseDir, modelId, { refresh = false } = {}) {
     return { model, hash: model.hash || null };
 }
 
+/**
+ * Register uploaded model.
+ * @param {string} baseDir
+ * @param {string} file
+ * @param {any} meta
+ * @returns {any}
+ */
 async function registerUploadedModel(baseDir, file, meta = {}) {
     const registry = await ensureRegistry(baseDir);
     const name = String(meta.name || path.parse(file.originalname || file.filename).name).trim();
@@ -297,6 +402,11 @@ async function registerUploadedModel(baseDir, file, meta = {}) {
     return { model, deduplicated: false };
 }
 
+/**
+ * List orphaned uploads.
+ * @param {string} baseDir
+ * @returns {any}
+ */
 async function listOrphanedUploads(baseDir) {
     const registry = await ensureRegistry(baseDir);
     const registeredPaths = new Set(
@@ -330,6 +440,12 @@ async function listOrphanedUploads(baseDir) {
     return orphans;
 }
 
+/**
+ * Register orphaned upload.
+ * @param {string} baseDir
+ * @param {string} filename
+ * @returns {any}
+ */
 async function registerOrphanedUpload(baseDir, filename) {
     const uploadsDir = getUploadsDir(baseDir);
     const safeName = path.basename(String(filename || ''));
@@ -355,6 +471,12 @@ async function registerOrphanedUpload(baseDir, filename) {
     return result;
 }
 
+/**
+ * Activate model.
+ * @param {string} baseDir
+ * @param {string} modelId
+ * @returns {any}
+ */
 async function activateModel(baseDir, modelId) {
     const registry = await ensureRegistry(baseDir);
     const model = registry.models.find((m) => m.id === modelId);
@@ -369,6 +491,12 @@ async function activateModel(baseDir, modelId) {
     return getActiveModel(registry);
 }
 
+/**
+ * Remove model.
+ * @param {string} baseDir
+ * @param {string} modelId
+ * @returns {any}
+ */
 async function removeModel(baseDir, modelId) {
     const registry = await ensureRegistry(baseDir);
     const model = registry.models.find((m) => m.id === modelId);
@@ -394,6 +522,12 @@ async function removeModel(baseDir, modelId) {
     return { removed: modelId, activeModel: getActiveModel(registry) };
 }
 
+/**
+ * Update settings.
+ * @param {string} baseDir
+ * @param {Array} settings
+ * @returns {any}
+ */
 async function updateSettings(baseDir, settings) {
     const registry = await ensureRegistry(baseDir);
     if (settings.ollamaBaseUrl) {
@@ -406,6 +540,12 @@ async function updateSettings(baseDir, settings) {
     };
 }
 
+/**
+ * Test ollama connection.
+ * @param {string} baseUrl
+ * @param {string} modelName
+ * @returns {any}
+ */
 async function testOllamaConnection(baseUrl, modelName) {
     const url = String(baseUrl || DEFAULT_OLLAMA_URL).replace(/\/$/, '');
     const startedAt = Date.now();
@@ -451,6 +591,12 @@ async function testOllamaConnection(baseUrl, modelName) {
     }
 }
 
+/**
+ * Test model.
+ * @param {string} baseDir
+ * @param {string} modelId
+ * @returns {any}
+ */
 async function testModel(baseDir, modelId) {
     const registry = await ensureRegistry(baseDir);
     const model = registry.models.find((m) => m.id === modelId);

@@ -4,21 +4,41 @@
 
 import { redactProjectPathForExport } from './quality-export.browser.js?v=20260531qualityexport8';
 
+/**
+ * Normalize rel.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function normalizeRel(filePath) {
   return String(filePath || '').replace(/\\/g, '/').toLowerCase();
 }
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Is benchmark cache project path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function isBenchmarkCacheProjectPath(projectPath) {
   const rel = normalizeRel(projectPath);
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/');
 }
 
+/**
+ * Resolve product platform root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(projectPath) {
   const normalized = String(projectPath || '').replace(/\\/g, '/');
   const idx = normalized.toLowerCase().indexOf('/github-cache/');
@@ -26,6 +46,12 @@ function resolveProductPlatformRoot(projectPath) {
   return normalized.slice(0, idx);
 }
 
+/**
+ * Redact npm audit export paths.
+ * @param {any} audit
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function redactNpmAuditExportPaths(audit, projectPath = '') {
   const raw = String(projectPath || audit.projectPath || audit.auditRoot || '').replace(/\\/g, '/');
   const label = projectLabelFromPath(raw);
@@ -44,6 +70,11 @@ function redactNpmAuditExportPaths(audit, projectPath = '') {
   };
 }
 
+/**
+ * Resolve supply chain status.
+ * @param {any} audit
+ * @returns {any}
+ */
 function resolveSupplyChainStatus(audit) {
   if (!audit || audit.error) return 'error';
   if (audit.skipped) return 'skipped';
@@ -56,6 +87,12 @@ function resolveSupplyChainStatus(audit) {
   return 'review';
 }
 
+/**
+ * Resolve npm audit gate context.
+ * @param {any} audit
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveNpmAuditGateContext(audit, options = {}) {
   const gateReport = options.gateReport || {};
   const hygiene = audit?.hygieneSummary || {};
@@ -107,6 +144,12 @@ function resolveNpmAuditGateContext(audit, options = {}) {
   };
 }
 
+/**
+ * Build npm audit hygiene summary.
+ * @param {any} audit
+ * @param {string} context
+ * @returns {any}
+ */
 function buildNpmAuditHygieneSummary(audit, context = {}) {
   const gateContext = resolveNpmAuditGateContext(audit, context);
   const { repositoryFilesTotal: gateTotal, credentialScanned, contentScanned, gateProfile, gateReport,
@@ -141,6 +184,12 @@ function buildNpmAuditHygieneSummary(audit, context = {}) {
   };
 }
 
+/**
+ * Build product npm audit scan scope.
+ * @param {any} audit
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildProductNpmAuditScanScope(audit, options = {}) {
   const gateContext = resolveNpmAuditGateContext(audit, options);
   const { repositoryFilesTotal: gateTotal, gateProfile } = gateContext;
@@ -156,6 +205,12 @@ function buildProductNpmAuditScanScope(audit, options = {}) {
   };
 }
 
+/**
+ * Build npm audit export notes.
+ * @param {any} audit
+ * @param {string} context
+ * @returns {any}
+ */
 function buildNpmAuditExportNotes(audit, context = {}) {
   const { benchmarkScan, skipped, supplyChainStatus, deps, summary = {} } = context;
   const gateContext = resolveNpmAuditGateContext(audit, {
@@ -237,6 +292,13 @@ function buildNpmAuditExportNotes(audit, context = {}) {
   return [...new Set(notes)].slice(0, 14);
 }
 
+/**
+ * Sanitize npm audit export.
+ * @param {any} audit
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeNpmAuditExport(audit, projectPath = '', options = {}) {
   if (!audit || typeof audit !== 'object') return audit;
 

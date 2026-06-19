@@ -1,0 +1,175 @@
+{
+  "type": "simplebeacon-report",
+  "generatedAt": "2026-06-14T19:05:28.351Z",
+  "projectRoot": "CascadeProjects",
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 0,
+    "blockingIssues": [],
+    "warningIssues": []
+  },
+  "issueCount": 0,
+  "qualityScore": 100,
+  "schemaCompliance": 100,
+  "schemaChecked": 50,
+  "schemaPassed": 50,
+  "consistencyChecked": 93,
+  "repositoryFilesTotal": 20885,
+  "ruleScopedFilesAnalyzed": 20885,
+  "credentialScanned": 631,
+  "credentialFindings": 0,
+  "productionLeakScanned": 0,
+  "productionLeakFindings": 0,
+  "fictionJsonFilesScanned": 93,
+  "sourceCodeFilesScanned": 0,
+  "mockSampleFiles": 105,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "consistencyPassed": 93,
+  "consistencyScore": 100,
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "file-reduction",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 20885,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 50,
+    "pageSpecsFromScanPaths": 50,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 0,
+    "productionPaths": [
+      "src/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 1,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 93,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 20885,
+    "repositoryFilesTotal": 20885,
+    "repositoryFoldersTotal": 2747,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "resultsViewScope": "platform-only",
+    "reportHealth": "stale-full-tree-scan",
+    "rescanRecommended": true,
+    "inventoryMetricsStale": true,
+    "limitations": [
+      "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
+      "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
+    ],
+    "securityHandoffEligible": false,
+    "gateExportNote": "Gate report export — run Complete scan for unified clearance bundle; gate pass alone is not vendor handoff.",
+    "gateRuleBundleProfile": "eu-ai-act",
+    "gateRuleBundleNote": "EU AI Act pattern rules included in gate bundle — see json/eu-ai-act-sprint.json for sprint export."
+  },
+  "detectedIssues": [],
+  "benchmarkCacheIssues": [],
+  "invalidJson": 0,
+  "duplicateGroups": 0,
+  "mockDataCategories": [
+    {
+      "category": "Stale inventory (full-tree scan)",
+      "fileCount": 105,
+      "totalSize": null,
+      "qualityScore": null,
+      "issues": null,
+      "confidence": null,
+      "description": "Re-run scan to refresh — current categories reflect an outdated full-repo walk, not web/data samples."
+    }
+  ],
+  "scanPaths": [],
+  "exportSanitized": true,
+  "jestBaselinePassed": null,
+  "jestSummary": null,
+  "exportVersion": "1.1.0",
+  "exportNormalized": true,
+  "benchmarkScan": false,
+  "scanTargetProfile": "product",
+  "securityHandoffEligible": false,
+  "handoffEligible": false,
+  "generatedBy": "SimpleBeacon",
+  "title": "SimpleBeacon Platform Gate Scan",
+  "gateHealthStatus": "clean-gate-pass",
+  "gateAttestation": "platform-gate-pass",
+  "hygieneSummary": {
+    "gatePass": true,
+    "blockingCount": 0,
+    "mockSampleFiles": 105,
+    "fictionJsonFilesScanned": 93,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 20885,
+    "repositoryFilesTotal": 20885,
+    "gateRepositoryFilesTotal": 20885,
+    "credentialScanned": 631,
+    "contentFilesScanned": 631,
+    "gateMetadataOnlyFiles": 20254,
+    "llmSlopPatternHits": 0,
+    "qualityScore": 100,
+    "gateRuleBundleProfile": "eu-ai-act",
+    "gateFailureNote": null,
+    "jestBaselineChecked": false,
+    "jestBaselinePassed": null,
+    "jestTests": null,
+    "jestScanSummary": null,
+    "attestationNote": "Deterministic gate hygiene — not legal conformity or Complete scan clearance certification."
+  },
+  "scanTargetRoot": "CascadeProjects",
+  "exportNotes": [
+    "Jest was not run during this scan — use `npm run simplebeacon:full` or `npm test` for live test verification.",
+    "Repository inventory 20,885 files; gate rules evaluated 20,885 scoped paths (credentials, production dirs, mock samples).",
+    "Gate pass on configured severities — hygiene attestation only, not SimpleBeacon vendor security handoff or Complete scan clearance.",
+    "Credential/production-leak rules scanned 631 production-path file(s) in server/ and src/ — repository inventory is 20,885 paths.",
+    "631 file(s) content-scanned; 20,254 binary/metadata-only path(s) hashed for inventory only.",
+    "Fiction KPI rules evaluated 93 repository JSON path(s) — 50 *-sample.json KPI file(s) matched.",
+    "scanScope.profile eu-ai-act names the gate rule bundle — use json/eu-ai-act-sprint.json for the EU AI Act sprint export."
+  ],
+  "disclaimers": [
+    "Gate report export — credential, production-leak, schema, and fiction KPI rules in configured scan scope.",
+    "detectedIssues is the operator-facing issue list; rawIssues are omitted from exports.",
+    "Absolute host paths are redacted to project label in product exports."
+  ]
+}

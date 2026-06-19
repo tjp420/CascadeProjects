@@ -10,6 +10,7 @@ const { redactProjectPathForExport, projectLabelFromPath } = require('./assessme
 const { shouldSkipDataAccessScan } = require('../analyzers/data-cleanup/data-access-pattern-analyzer');
 const { isPlannedEnvKey } = require('../analyzers/data-cleanup/utils/env-profile-utils');
 const { shouldSkipRuntimeLogFile } = require('../analyzers/file-reduction/build-artifact-scanner');
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
 
 function resolveProductPlatformRoot(projectPath) {
     const normalized = String(projectPath || '').replace(/\\/g, '/');
@@ -489,7 +490,7 @@ function resolveFileReductionRemediationHint(fr = {}) {
     const safeBytes = fr.safeToDeleteBytes ?? 0;
     const reviewBytes = fr.reviewBeforeDeleteBytes ?? 0;
     if (safeBytes > 0) {
-        return `Phase 1 safe-delete: ~${Number(safeBytes).toLocaleString()} B in regenerable artifact directories — see fileReductionPlan.safeToDelete before deleting.`;
+        return 'Phase 1 safe-delete: ~' + Number(safeBytes).toLocaleString() + ' B in regenerable artifact directories — see fileReductionPlan.safeToDelete before deleting.';
     }
     if (fr.unusedFileCandidates || fr.duplicateAssetBytes) {
         return 'No measured phase-1 safe-delete bytes — use priorityActions for investigate list and optional duplicate consolidation.';
@@ -1075,7 +1076,7 @@ function sanitizeExecutiveSummaryForFileReduction(executiveSummary, context) {
             actions.unshift({
                 priority: 'medium',
                 title: 'Review duplicate doc assets',
-                detail: `${fr.duplicateAssetGroups || 'Many'} duplicate group(s), ~${Math.round((fr.duplicateAssetBytes || 0) / (1024 * 1024))} MB — mostly versioned geedocs PNG copies; not auto-delete.`
+                detail: `${fr.duplicateAssetGroups || 'Many'} duplicate group(s), ~${Math.round((fr.duplicateAssetBytes || 0) / (constants.BYTES_PER_KB * 1024))} MB — mostly versioned geedocs PNG copies; not auto-delete.`
             });
         }
         if (fr.unusedFileCandidates > 0 && !actions.some((a) => /unused/i.test(a.title))) {

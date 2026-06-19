@@ -1,0 +1,2 @@
+Issue Type,Summary,Description,Priority,Status,Labels,Linked Issues
+Task,"[Phase 9: Dependency Vulnerability Audit] Run npm audit fix","0 vulnerable dependency(ies) detected.",Low,Done,simplebeacon low,euaiact

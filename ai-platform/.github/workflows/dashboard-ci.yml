@@ -337,9 +337,9 @@ jobs:
       run: |
         # Test critical endpoints
         ENDPOINTS=(
-          "http://localhost:54355/api/health"
-          "http://localhost:54355/api/platform/status"
-          "http://localhost:54355/api/simplebeacon/entitlements"
+          "http://localhost:55000/api/health"
+          "http://localhost:55000/api/platform/status"
+          "http://localhost:55000/api/simplebeacon/entitlements"
         )
         
         for endpoint in "${ENDPOINTS[@]}"; do
@@ -355,11 +355,44 @@ jobs:
         
         echo "✅ All API endpoints respond within acceptable time limits"
 
+  # Pre-Deploy Gate — must pass before any deployment
+  predeploy-gate:
+    name: Pre-Deploy Gate
+    runs-on: ubuntu-latest
+    needs: [hygiene-gate, test-coverage, phase2-tests, security-audit]
+    if: always() && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run pre-deploy gate
+      run: npm run verify:predeploy
+
+    - name: Upload gate report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: predeploy-gate-report
+        path: .simplebeacon/
+        retention-days: 30
+
   # Build and Deploy Test
   build-test:
     name: Build Test
     runs-on: ubuntu-latest
-    
+    needs: [predeploy-gate]
+    if: always() && (needs.predeploy-gate.result == 'success' || needs.predeploy-gate.result == 'skipped')
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -394,25 +427,25 @@ jobs:
   gate-summary:
     name: Gate Summary
     runs-on: ubuntu-latest
-    needs: [hygiene-gate, test-coverage, phase2-tests, security-audit, performance-tests, build-test]
+    needs: [hygiene-gate, test-coverage, phase2-tests, security-audit, performance-tests, predeploy-gate, build-test]
     if: always()
-    
+
     steps:
     - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
         name: simplebeacon-report
         path: .simplebeacon/
-    
+
     - name: Generate summary
       run: |
         echo "# 🚪 Simplebeacon Gate Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "| Job | Status | Details |" >> $GITHUB_STEP_SUMMARY
         echo "|-----|--------|---------|" >> $GITHUB_STEP_SUMMARY
-        
+
         # Check each job status
-        JOBS=("hygiene-gate" "test-coverage" "phase2-tests" "security-audit" "performance-tests" "build-test")
+        JOBS=("hygiene-gate" "test-coverage" "phase2-tests" "security-audit" "performance-tests" "predeploy-gate" "build-test")
         
         for job in "${JOBS[@]}"; do
           status="${{ needs.${job}.result }}"

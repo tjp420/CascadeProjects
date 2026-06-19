@@ -1,5 +1,8 @@
+// SPDX-License-Identifier: MIT
 /**
  * @simplebeacon/intelligence — local hybrid intent analysis for SimpleBeacon.
+ *
+ * @license MIT
  */
 
 const { scanIntent, scanIntentAsync, resolveLanguage, isLanguageSupported, engine } = require('./intent-scanner');

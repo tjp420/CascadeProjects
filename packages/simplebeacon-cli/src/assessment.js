@@ -76,6 +76,7 @@ function buildAssessmentReport(report, options = {}) {
     const complianceChecklist = evaluateComplianceChecklist(report, {
         projectRoot: report.projectRoot || options.projectRoot || '',
         npmAudit: options.npmAudit,
+        dataCleanup: options.dataCleanup,
         productionProfile: options.productionProfile,
         checklistProfile: options.checklistProfile
     });

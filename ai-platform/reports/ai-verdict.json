@@ -1,0 +1,10 @@
+{
+  "complianceGrade": "B",
+  "estimatedLiability": "Low Risk",
+  "verdictSummary": "Deterministic scan found 1 issues (0 critical, 0 high). Gate result: PASS.",
+  "remediationSteps": [
+    "Review all critical and high-severity findings in the detailed report.",
+    "Apply the remediation checklist exported by the CLI.",
+    "Re-scan after fixes to validate gate passage."
+  ]
+}

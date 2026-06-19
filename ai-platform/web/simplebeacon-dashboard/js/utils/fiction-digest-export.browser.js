@@ -4,6 +4,11 @@
 
 import { redactProjectPathForExport } from './quality-export.browser.js?v=20260531qualityexport8';
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
@@ -21,10 +26,20 @@ const SUPPRESSED_PRODUCTION_LEAK_INTENTS = new Set([
   'demo-tool-sample'
 ]);
 
+/**
+ * Normalize rel.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function normalizeRel(filePath) {
   return String(filePath || '').replace(/\\/g, '/');
 }
 
+/**
+ * Is scanner implementation path.
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function isScannerImplementationPath(relativePath) {
   const rel = normalizeRel(relativePath);
   if (SCANNER_IMPL_PATH_RE.test(rel.toLowerCase())) return true;
@@ -32,12 +47,22 @@ function isScannerImplementationPath(relativePath) {
   return false;
 }
 
+/**
+ * Is benchmark path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function isBenchmarkPath(filePath) {
   const rel = normalizeRel(filePath).toLowerCase();
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/')
     || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
 }
 
+/**
+ * Resolve product platform root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(projectPath) {
   const normalized = String(projectPath || '').replace(/\\/g, '/');
   const idx = normalized.toLowerCase().indexOf('/github-cache/');
@@ -45,6 +70,12 @@ function resolveProductPlatformRoot(projectPath) {
   return normalized.slice(0, idx);
 }
 
+/**
+ * Resolve digest project path.
+ * @param {any} digest
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveDigestProjectPath(digest, options = {}) {
   return String(
     options.projectPath
@@ -55,11 +86,22 @@ function resolveDigestProjectPath(digest, options = {}) {
   ).replace(/\\/g, '/');
 }
 
+/**
+ * Is benchmark fiction digest.
+ * @param {any} digest
+ * @param {Object} options
+ * @returns {any}
+ */
 function isBenchmarkFictionDigest(digest, options = {}) {
   if (options.benchmarkScan != null) return Boolean(options.benchmarkScan);
   return isBenchmarkPath(resolveDigestProjectPath(digest, options));
 }
 
+/**
+ * Is benchmark clone noise issue.
+ * @param {boolean} issue
+ * @returns {any}
+ */
 function isBenchmarkCloneNoiseIssue(issue) {
   if (!issue) return false;
   const pattern = String(issue.pattern || issue.metadata?.patternId || '');
@@ -70,6 +112,11 @@ function isBenchmarkCloneNoiseIssue(issue) {
   return false;
 }
 
+/**
+ * Is benchmark scanner meta issue.
+ * @param {boolean} issue
+ * @returns {any}
+ */
 function isBenchmarkScannerMetaIssue(issue) {
   if (!issue) return false;
   const intent = String(issue.metadata?.intent || issue.intent || '');
@@ -79,12 +126,24 @@ function isBenchmarkScannerMetaIssue(issue) {
   return filePath ? isScannerImplementationPath(filePath) : false;
 }
 
+/**
+ * Is benchmark digest excluded issue.
+ * @param {boolean} issue
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function isBenchmarkDigestExcludedIssue(issue, benchmarkScan) {
   if (!benchmarkScan || !issue) return false;
   if (isBenchmarkCloneNoiseIssue(issue)) return true;
   return isBenchmarkScannerMetaIssue(issue);
 }
 
+/**
+ * Filter digest issues.
+ * @param {Array} issues
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function filterDigestIssues(issues = [], benchmarkScan) {
   return issues.filter((issue) => {
     const filePath = issue.filePath || issue.file || '';
@@ -94,6 +153,13 @@ function filterDigestIssues(issues = [], benchmarkScan) {
   });
 }
 
+/**
+ * Build benchmark fiction conclusion.
+ * @param {Array} fictionIssues
+ * @param {Array} nonFictionIssues
+ * @param {number} sourceReport
+ * @returns {any}
+ */
 function buildBenchmarkFictionConclusion(fictionIssues, nonFictionIssues, sourceReport) {
   const repoFiles = sourceReport?.repositoryFilesTotal ?? sourceReport?.scanScope?.repositoryFilesTotal;
   const ruleScoped = sourceReport?.ruleScopedFilesAnalyzed ?? sourceReport?.scanScope?.ruleScopedFilesAnalyzed ?? 0;
@@ -117,18 +183,34 @@ function buildBenchmarkFictionConclusion(fictionIssues, nonFictionIssues, source
   return `${parts.join('. ')}.`;
 }
 
+/**
+ * Is stale full tree scan.
+ * @param {number} report
+ * @returns {any}
+ */
 function isStaleFullTreeScan(report) {
   if (report.fullDirectoryScan || report.scanScope?.fullDirectoryScan) {
     return false;
   }
   const mock = report.mockSampleFiles ?? report.totalFiles ?? 0;
   const repoFiles = report.repositoryFilesTotal ?? 0;
+/**
+ * Paths.
+ * @param {number} report.scanPaths || []
+ * @returns {any}
+ */
   const paths = (report.scanPaths || []).map((p) => String(p).replace(/\\/g, '/').toLowerCase());
   const platformKey = String(report.projectRoot || '').replace(/\\/g, '/').toLowerCase();
   const scanIsPlatformRootOnly = paths.length === 1 && paths[0] === platformKey;
   return mock > 500 || scanIsPlatformRootOnly || repoFiles > 15000;
 }
 
+/**
+ * Normalize digest project paths.
+ * @param {string} projectPath
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function normalizeDigestProjectPaths(projectPath, projectLabel) {
   const normalized = String(projectPath || '').replace(/\\/g, '/');
   if (!normalized) return undefined;
@@ -136,6 +218,12 @@ function normalizeDigestProjectPaths(projectPath, projectLabel) {
   return redactProjectPathForExport(normalized, label);
 }
 
+/**
+ * Reconcile product digest scan scope.
+ * @param {any} scanScope
+ * @param {number} report
+ * @returns {any}
+ */
 function reconcileProductDigestScanScope(scanScope = {}, report = {}) {
   const fullTree = Boolean(report.fullDirectoryScan || scanScope.fullDirectoryScan);
   if (!fullTree) return scanScope;
@@ -167,6 +255,12 @@ function reconcileProductDigestScanScope(scanScope = {}, report = {}) {
   };
 }
 
+/**
+ * Infer digest scan target from hints.
+ * @param {any} digest
+ * @param {Object} options
+ * @returns {any}
+ */
 function inferDigestScanTargetFromHints(digest, options = {}) {
   const filename = String(options.exportFilename || options.filename || '').toLowerCase();
   if (!filename.includes('github-cache')) return '';
@@ -179,6 +273,11 @@ function inferDigestScanTargetFromHints(digest, options = {}) {
   return `${platformRoot.replace(/\/$/, '')}/github-cache/${cloneName}`;
 }
 
+/**
+ * Dedupe fiction digest export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeFictionDigestExportNotes(notes = []) {
   const seen = new Set();
   const out = [];
@@ -200,6 +299,12 @@ function dedupeFictionDigestExportNotes(notes = []) {
   return out.slice(0, 6);
 }
 
+/**
+ * Build benchmark fiction export notes.
+ * @param {Array} existingNotes
+ * @param {Array} extras
+ * @returns {any}
+ */
 function buildBenchmarkFictionExportNotes(existingNotes = [], extras = []) {
   const canonical = [
     'Agency-handoff and EU AI Act blog matches removed from fiction digest for github-cache/ benchmark target.',
@@ -215,6 +320,11 @@ function buildBenchmarkFictionExportNotes(existingNotes = [], extras = []) {
   return dedupeFictionDigestExportNotes([...filtered, ...extras, ...canonical]);
 }
 
+/**
+ * Reconcile benchmark digest scan metrics.
+ * @param {number} report
+ * @returns {any}
+ */
 function reconcileBenchmarkDigestScanMetrics(report) {
   const repoTotal = report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles ?? null;
   const ruleScoped = report.ruleScopedFilesAnalyzed ?? report.scanScope?.ruleScopedFilesAnalyzed ?? null;
@@ -240,6 +350,12 @@ function reconcileBenchmarkDigestScanMetrics(report) {
   };
 }
 
+/**
+ * Sanitize benchmark digest scan scope.
+ * @param {any} scanScope
+ * @param {number} report
+ * @returns {any}
+ */
 function sanitizeBenchmarkDigestScanScope(scanScope, report) {
   if (!scanScope) return scanScope;
   const repoTotal = report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles ?? null;
@@ -253,6 +369,11 @@ function sanitizeBenchmarkDigestScanScope(scanScope, report) {
   return next;
 }
 
+/**
+ * Resolve benchmark digest gate attestation.
+ * @param {number} sourceReport
+ * @returns {any}
+ */
 function resolveBenchmarkDigestGateAttestation(sourceReport) {
   if (!sourceReport) return 'benchmark-clone';
   if (sourceReport.gateAttestation === 'benchmark-clone') return 'benchmark-clone';
@@ -262,6 +383,11 @@ function resolveBenchmarkDigestGateAttestation(sourceReport) {
   return 'benchmark-clone';
 }
 
+/**
+ * Build benchmark fiction scope summary.
+ * @param {number} sourceReport
+ * @returns {any}
+ */
 function buildBenchmarkFictionScopeSummary(sourceReport) {
   const scope = sourceReport?.scanScope || {};
   const repoTotal = sourceReport?.repositoryFilesTotal ?? scope.repositoryFilesTotal ?? null;
@@ -281,6 +407,11 @@ function buildBenchmarkFictionScopeSummary(sourceReport) {
   };
 }
 
+/**
+ * Resolve product fiction digest gate attestation.
+ * @param {number} sourceReport
+ * @returns {any}
+ */
 function resolveProductFictionDigestGateAttestation(sourceReport) {
   if (!sourceReport) return 'limited-scope';
   const ruleScoped = sourceReport.ruleScopedFilesAnalyzed ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed ?? 0;
@@ -290,6 +421,11 @@ function resolveProductFictionDigestGateAttestation(sourceReport) {
   return 'limited-scope';
 }
 
+/**
+ * Summarize ancillary pattern hits.
+ * @param {number} sourceReport
+ * @returns {any}
+ */
 function summarizeAncillaryPatternHits(sourceReport) {
   const totals = sourceReport?.scanScope?.fullDirectoryStats?.ruleHitTotals
     ?? sourceReport?.fullDirectoryStats?.ruleHitTotals;
@@ -313,6 +449,11 @@ function summarizeAncillaryPatternHits(sourceReport) {
   return Object.keys(ancillary).length ? { fictionKpi: 0, ancillary } : null;
 }
 
+/**
+ * Format ancillary pattern hits note.
+ * @param {number} sourceReport
+ * @returns {any}
+ */
 function formatAncillaryPatternHitsNote(sourceReport) {
   const summary = summarizeAncillaryPatternHits(sourceReport);
   if (!summary?.ancillary) return null;
@@ -332,6 +473,13 @@ function formatAncillaryPatternHitsNote(sourceReport) {
   return `${total} ancillary pattern hit(s) in full-tree scan (${parts.join(', ')}) — not fiction-KPI digest rows; ${gateClause}.`;
 }
 
+/**
+ * Resolve fiction digest gate context.
+ * @param {number} sourceReport
+ * @param {any} digest
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveFictionDigestGateContext(sourceReport, digest, options = {}) {
   const gate = options.gateReport || {};
   const scope = sourceReport?.scanScope || {};
@@ -360,6 +508,13 @@ function resolveFictionDigestGateContext(sourceReport, digest, options = {}) {
   };
 }
 
+/**
+ * Build product fiction hygiene summary.
+ * @param {number} sourceReport
+ * @param {any} digest
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildProductFictionHygieneSummary(sourceReport, digest, options = {}) {
   const gateContext = resolveFictionDigestGateContext(sourceReport, digest, options);
   const { repositoryFilesTotal: repoTotal, contentScanned, gateProfile, gateReport } = gateContext;
@@ -395,6 +550,13 @@ function buildProductFictionHygieneSummary(sourceReport, digest, options = {}) {
   };
 }
 
+/**
+ * Build product fiction scan scope.
+ * @param {number} sourceReport
+ * @param {any} digest
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildProductFictionScanScope(sourceReport, digest, options = {}) {
   const gateContext = resolveFictionDigestGateContext(sourceReport, digest, options);
   const scope = sourceReport?.scanScope || {};
@@ -412,6 +574,13 @@ function buildProductFictionScanScope(sourceReport, digest, options = {}) {
   };
 }
 
+/**
+ * Build product fiction export notes.
+ * @param {any} digest
+ * @param {number} sourceReport
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
   const notes = [
     'securityHandoffEligible is false — fiction/KPI digest is hygiene attestation only, not vendor security handoff.',
@@ -489,6 +658,11 @@ function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
   return [...new Set(notes)].slice(0, 12);
 }
 
+/**
+ * Enrich product source report.
+ * @param {number} sourceReport
+ * @returns {any}
+ */
 function enrichProductSourceReport(sourceReport) {
   if (!sourceReport || sourceReport.type !== 'simplebeacon-report') return sourceReport;
   const { gateAttestation: _gateAttestation, ...reportRest } = sourceReport;
@@ -522,6 +696,13 @@ function enrichProductSourceReport(sourceReport) {
   };
 }
 
+/**
+ * Resolve digest trust.
+ * @param {any} benchmarkScan
+ * @param {Array} fictionIssues
+ * @param {number} sourceReport
+ * @returns {any}
+ */
 function resolveDigestTrust(benchmarkScan, fictionIssues, sourceReport) {
   if (benchmarkScan) return 'benchmark-clone';
   const fictionN = fictionIssues.reduce((sum, issue) => sum + (issue.count || 1), 0);
@@ -531,6 +712,12 @@ function resolveDigestTrust(benchmarkScan, fictionIssues, sourceReport) {
   return 'trustworthy';
 }
 
+/**
+ * Sanitize source report for digest.
+ * @param {number} report
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function sanitizeSourceReportForDigest(report, projectPath) {
   if (!report || report.type !== 'simplebeacon-report') return report;
   const projectKey = String(report.projectRoot || projectPath || '').replace(/\\/g, '/');
@@ -621,6 +808,12 @@ function sanitizeSourceReportForDigest(report, projectPath) {
   };
 }
 
+/**
+ * Sanitize fiction digest export.
+ * @param {any} digest
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeFictionDigestExport(digest, options = {}) {
   if (!digest || digest.type !== 'simplebeacon-fiction-digest') return digest;
 

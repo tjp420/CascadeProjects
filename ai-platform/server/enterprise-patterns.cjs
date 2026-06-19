@@ -89,6 +89,12 @@ const PRIVACY_PATTERNS = [
     }
 ];
 
+/**
+ * Scan enterprise patterns.
+ * @param {string} text
+ * @param {string} context
+ * @returns {any}
+ */
 function scanEnterprisePatterns(text, context = {}) {
     const findings = [];
 
@@ -116,6 +122,11 @@ function scanEnterprisePatterns(text, context = {}) {
     return findings;
 }
 
+/**
+ * Get regulatory summary.
+ * @param {Array} findings
+ * @returns {any}
+ */
 function getRegulatorySummary(findings) {
     const regulations = {};
 
@@ -129,6 +140,11 @@ function getRegulatorySummary(findings) {
     return regulations;
 }
 
+/**
+ * Is blocking finding.
+ * @param {any} finding
+ * @returns {any}
+ */
 function isBlockingFinding(finding) {
     return finding.severityBand === 'critical'
         || finding.severity === 'critical'

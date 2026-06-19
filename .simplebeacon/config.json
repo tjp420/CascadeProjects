@@ -1,12 +1,36 @@
 {
   "profile": "eu-ai-act",
+  "allowedAnalysisRoots": [
+    "C:\\Users\\Trevor\\CascadeProjects",
+    "C:\\Users\\Trevor\\CascadeProjects\\google-earthenterprise",
+    "C:\\Users\\Trevor\\CascadeProjects_BACKUP_20260521",
+    "C:\\Users\\Trevor\\CascadeProjects_BACKUP_20260521\\google-earthenterprise",
+    "C:\\Users\\Trevor\\AI-Guardrail-system",
+    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web",
+    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web\\coming-soon",
+    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server",
+    "J:\\AI project backup",
+    "C:\\tmp"
+  ],
   "scanPaths": [
-    "coming-soon"
+    "."
   ],
   "productionPaths": [
-    "coming-soon"
+    "src/",
+    "lib/",
+    "server/",
+    "web/",
+    "routes/",
+    "api/",
+    "middleware/",
+    "components/",
+    "views/",
+    "js/",
+    "css/",
+    "packages/"
   ],
-  "sampleDir": "fixtures",
+  "sampleDir": "data",
   "consistencyAnchorSamples": [],
   "ignore": [
     "node_modules/**",
@@ -19,39 +43,17 @@
     "**/*.spec.ts",
     "tests/**",
     "test/**",
-    "**/.gitkeep",
-    "**/test-output*.txt",
-    "**/.github-sync/**",
-    "**/bin/**",
-    "packages/simplebeacon-cli/**",
-    "ai-platform/**",
-    "ai-agent/**",
-    "ai-tools/**",
-    "backups/**",
     "coming-soon-dev/**",
-    "deployments/**",
-    "full-cert/**",
-    "full-certificate/**",
-    "logs/**",
     "simplebeacon-frameworkless/**",
-    "simplebeacon-rule-tests/**",
-    "CHANGELOG.md",
-    "instructions.txt",
+    "sales/**",
+    "marketing/**",
+    "logs/**",
+    "github-action/**",
+    "browser-local/**",
+    ".vscode/**",
     "report.json",
-    "report-fresh.json",
-    "error-check.log",
-    "error-check2.log",
-    "scan-website.sh",
-    "setup-zorin.sh",
-    "start-dashboard.sh",
-    "ZORIN-LINUX-SETUP.md",
-    "HANDOFF-*.md",
-    "*.zip",
-    "*.bat",
-    "*.log",
-    "*.sh",
-    "tmp-*.txt",
-    "public/**"
+    "cli-test-report*.json",
+    "test-output.txt"
   ],
   "rules": {
     "credentials": {
@@ -88,29 +90,71 @@
       "enabled": true,
       "severity": "medium"
     },
-    "file-naming-patterns": {
-      "enabled": false,
-      "severity": "medium"
-    },
     "jest-baseline": {
       "enabled": false,
       "runTests": false
     },
     "token-bleed-patterns": {
-      "enabled": false,
+      "enabled": true,
       "severity": "medium"
     },
     "architecture-drift-patterns": {
-      "enabled": false,
-      "severity": "high"
-    },
-    "python-ast-patterns": {
-      "enabled": false,
+      "enabled": true,
       "severity": "medium"
     },
-    "javascript-ast-patterns": {
+    "performance": {
+      "enabled": true,
+      "severity": "low",
+      "reason": "Detect synchronous file ops and performance anti-patterns"
+    },
+    "type-safety": {
+      "enabled": true,
+      "severity": "medium",
+      "reason": "Detect excessive any types and missing type annotations"
+    },
+    "ai-residue": {
+      "enabled": true,
+      "severity": "low",
+      "reason": "Detect leftover AI-generated stubs and placeholder code"
+    },
+    "config-drift": {
+      "enabled": true,
+      "severity": "medium",
+      "reason": "Detect hardcoded URLs, secrets, and env var drift"
+    },
+    "security-headers": {
+      "enabled": true,
+      "severity": "low",
+      "reason": "Detect missing security headers in HTTP responses"
+    },
+    "quality": {
+      "enabled": true,
+      "severity": "low",
+      "reason": "Detect debug artifacts, TODOs, and code quality issues"
+    },
+    "file-reduction": {
       "enabled": false,
-      "severity": "medium"
+      "dryRun": true,
+      "suppressions": [
+        { "type": "env-inconsistency", "path": "ai-platform/.env.v1-internal", "reason": "Intentional dev profile with documented differences from production" },
+        { "type": "version-drift", "path": "ai-platform/package.json", "reason": "Standard npm semver ranges; drift vs lockfile is expected" },
+        { "type": "duplicate-config-type", "path": "ai-platform/vite.config.js", "reason": "Single vite config with no actual duplicate keys" },
+        { "type": "orphaned-export", "path": "simplebeacon-vscode-merged/src/", "reason": "VS Code extension public API exports — used dynamically by extension host" },
+        { "type": "dead-export", "path": "simplebeacon-vscode-merged/src/", "reason": "VS Code extension public API exports — used dynamically by extension host" },
+        { "type": "version-drift", "path": "simplebeacon-vscode/package.json", "reason": "Legacy backup extension — separate version from active merged extension" },
+        { "type": "version-drift", "path": "ai-platform/simplebeacon-vscode/package.json", "reason": "Platform-specific extension wrapper — separate version" },
+        { "type": "version-drift", "path": "packages/simplebeacon-cli/package.json", "reason": "CLI tool — separate version from VS Code extension" },
+        { "type": "build-artifact", "path": "simplebeacon-vscode/out/", "reason": "Compiled extension output — generated by build process" },
+        { "type": "build-artifact", "path": "simplebeacon-vscode-OLD/out/", "reason": "Legacy compiled output — to be removed" },
+        { "type": "duplicate-data", "path": "simplebeacon-vscode/", "reason": "Legacy backup extension — duplicate configs expected" },
+        { "type": "duplicate-data", "path": "simplebeacon-vscode-OLD/", "reason": "Legacy backup extension — duplicate configs expected" },
+        { "type": "synchronous-file-operation", "path": "coming-soon/build-public.js", "reason": "Build script — fs.mkdirSync is intentional for deployment" },
+        { "type": "sensitive-data-in-logs", "path": "coming-soon/routes/admin.cjs", "reason": "Logs missing env var name, not the secret value" },
+        { "type": "sensitive-data-in-logs", "path": "coming-soon/routes/token-validate.cjs", "reason": "Standard error logging, no secrets exposed" },
+        { "type": "unhandled-promise", "path": "simplebeacon-vscode/src/extension.ts", "reason": "Legacy backup extension — promise chain pattern with catch handler" },
+        { "type": "type-safety-gap", "path": "simplebeacon-vscode/src/codeMapProvider.ts", "reason": "Legacy backup extension — any types at API boundaries are standard" },
+        { "type": "type-safety-gap", "path": "simplebeacon-vscode/src/extension.ts", "reason": "Legacy backup extension — any types at API boundaries are standard" }
+      ]
     }
   },
   "gate": {
@@ -121,15 +165,5 @@
       "medium",
       "low"
     ]
-  },
-  "sourceCodeScanPaths": [
-    "."
-  ],
-  "fullDirectoryScan": false,
-  "fullDirectoryScanSkipDirs": [
-    ".git",
-    ".github-sync",
-    "github-cache",
-    "node_modules"
-  ]
+  }
 }

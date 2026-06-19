@@ -88,7 +88,7 @@ class EnvironmentVariableAnalyzer {
             }
         }
 
-        for (const file of sourceFiles.slice(0, 2000)) {
+        for (const file of sourceFiles.slice(0, 5000)) {
             let content = '';
             try {
                 content = fs.readFileSync(file.path, 'utf8');
@@ -143,7 +143,7 @@ class EnvironmentVariableAnalyzer {
             if (!bucketKey) continue;
             const sample = envKeys.get(bucketKey);
             if (!sample) continue;
-            if (sample.every((entry) => isPhase2ExampleEnvFile(entry.file))) continue;
+            if (sample.every((entry) => isPhase2ExampleEnvFile(entry.file) || isExampleEnvFile(entry.file))) continue;
             findings.push({
                 type: 'unused-env-key',
                 path: sample[0].file,

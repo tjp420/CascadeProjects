@@ -1,8 +1,9 @@
+const constants = require('../../../ai-platform/server/config/constants.cjs');
 /**
  * EU AI Act export eligibility and sprint freshness checks.
  */
 
-const DEFAULT_MAX_STALE_MS = 72 * 60 * 60 * 1000;
+const DEFAULT_MAX_STALE_MS = 72 * 60 * 60 * constants.MS_PER_SECOND;
 
 function parseTimestamp(value) {
   const ms = Date.parse(String(value || ''));

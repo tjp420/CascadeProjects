@@ -10,6 +10,12 @@ const SAMPLE_FILE_OVERRIDES = require('./sample-overrides.json');
 
 const SAMPLE_BASE = ['web', 'data'].join('/');
 
+/**
+ * Resolve sample file path.
+ * @param {any} platformRoot
+ * @param {string} sampleFileName
+ * @returns {any}
+ */
 function resolveSampleFilePath(platformRoot, sampleFileName) {
     const relative = SAMPLE_FILE_OVERRIDES[sampleFileName]
         || path.join(SAMPLE_BASE, sampleFileName).replace(/\\/g, '/');

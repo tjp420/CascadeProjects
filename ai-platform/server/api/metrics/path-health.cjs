@@ -13,6 +13,12 @@ const MONITORED_DIRECTORIES = process.env.MONITORED_DIRECTORIES?.split(',') || [
   'src/'
 ];
 
+/**
+ * Get directory health.
+ * @param {string} baseDir
+ * @param {string} dirPath
+ * @returns {any}
+ */
 async function getDirectoryHealth(baseDir, dirPath) {
   const fullPath = path.join(baseDir, dirPath);
   try {
@@ -31,6 +37,11 @@ async function getDirectoryHealth(baseDir, dirPath) {
   }
 }
 
+/**
+ * Get scan metrics.
+ * @param {string} baseDir
+ * @returns {any}
+ */
 async function getScanMetrics(baseDir) {
   const productionPaths = process.env.PRODUCTION_PATHS?.split(',') || ['server/', 'src/'];
   let totalFiles = 0;

@@ -17,6 +17,7 @@ const path = require('path');
 const winston = require('winston');
 const EventEmitter = require('events');
 
+const constants = require('../config/constants.cjs');
 const logLevels = {
   debug: 0,
   info: 1,
@@ -28,7 +29,7 @@ const logLevels = {
 // Enhanced audit configuration
 const auditConfig = {
   logFile: process.env.AUDIT_LOG_FILE || 'logs/audit.log',
-  maxLogSize: 100 * 1024 * 1024, // 100MB
+  maxLogSize: 100 * constants.BYTES_PER_KB * constants.BYTES_PER_KB, // 100MB
   backupCount: 5,
   logLevel: process.env.AUDIT_LEVEL || 'info',
   enableConsole: process.env.NODE_ENV !== 'production',
@@ -126,11 +127,23 @@ const eventTypes = {
 };
 
 // Generate unique event ID
+/**
+ * Generate event id.
+ * @returns {any}
+ */
 const generateEventId = () => {
   return crypto.randomUUID();
 };
 
 // Format audit entry
+/**
+ * Format audit entry.
+ * @param {any} level
+ * @param {any} eventType
+ * @param {string} message
+ * @param {any} metadata
+ * @returns {any}
+ */
 const formatAuditEntry = (level, eventType, message, metadata = {}) => {
   const entry = {
     eventId: generateEventId(),
@@ -150,6 +163,11 @@ const formatAuditEntry = (level, eventType, message, metadata = {}) => {
 };
 
 // Write to audit log file
+/**
+ * Write to file.
+ * @param {any} entry
+ * @returns {any}
+ */
 const writeToFile = async (entry) => {
   if (!auditConfig.enableFile) return;
 
@@ -178,6 +196,10 @@ const writeToFile = async (entry) => {
 };
 
 // Rotate log file
+/**
+ * Rotate log file.
+ * @returns {any}
+ */
 const rotateLogFile = async () => {
   try {
     // Move existing log files
@@ -200,11 +222,15 @@ const rotateLogFile = async () => {
 };
 
 // Clean up old log files
+/**
+ * Cleanup old logs.
+ * @returns {any}
+ */
 const cleanupOldLogs = async () => {
   try {
     const logDir = path.dirname(auditConfig.logFile);
     const files = await fs.readdir(logDir);
-    const cutoffDate = new Date(Date.now() - auditConfig.retentionDays * 24 * 60 * 60 * 1000);
+    const cutoffDate = new Date(Date.now() - auditConfig.retentionDays * 24 * 60 * constants.ONE_MINUTE_MS);
     
     for (const file of files) {
       if (file.startsWith('audit.log.') || file === 'audit.log') {
@@ -223,6 +249,14 @@ const cleanupOldLogs = async () => {
 };
 
 // Audit logging function
+/**
+ * Audit log.
+ * @param {any} level
+ * @param {any} eventType
+ * @param {string} message
+ * @param {any} metadata
+ * @returns {any}
+ */
 const auditLog = (level, eventType, message, metadata = {}) => {
   const entry = formatAuditEntry(level, eventType, message, metadata);
   
@@ -248,6 +282,12 @@ const auditLog = (level, eventType, message, metadata = {}) => {
 };
 
 // Middleware factory for audit logging
+/**
+ * Create audit middleware.
+ * @param {any} eventType
+ * @param {string} getMessage
+ * @returns {any}
+ */
 const createAuditMiddleware = (eventType, getMessage) => {
   return (req, res, next) => {
     const startTime = Date.now();
@@ -313,6 +353,14 @@ const auditSecurity = createAuditMiddleware(eventTypes.SECURITY, (req, phase) =>
 });
 
 // AI operation specific logging
+/**
+ * Log a i operation.
+ * @param {any} operation
+ * @param {any} user
+ * @param {any} result
+ * @param {any} metadata
+ * @returns {any}
+ */
 const logAIOperation = (operation, user, result, metadata = {}) => {
   auditLog('info', eventTypes.AI_OPERATION, `AI operation completed: ${operation}`, {
     userId: user?.id,
@@ -329,6 +377,14 @@ const logAIOperation = (operation, user, result, metadata = {}) => {
 };
 
 // Security event logging
+/**
+ * Log security event.
+ * @param {any} eventType
+ * @param {Array} details
+ * @param {any} user
+ * @param {any} req
+ * @returns {any}
+ */
 const logSecurityEvent = (eventType, details, user = null, req = null) => {
   auditLog('warn', eventTypes.SECURITY, `Security event: ${eventType}`, {
     userId: user?.id,
@@ -341,6 +397,13 @@ const logSecurityEvent = (eventType, details, user = null, req = null) => {
 };
 
 // Compliance event logging
+/**
+ * Log compliance event.
+ * @param {any} complianceType
+ * @param {Array} details
+ * @param {any} user
+ * @returns {any}
+ */
 const logComplianceEvent = (complianceType, details, user = null) => {
   auditLog('info', eventTypes.COMPLIANCE, `Compliance event: ${complianceType}`, {
     userId: user?.id,
@@ -351,6 +414,15 @@ const logComplianceEvent = (complianceType, details, user = null) => {
 };
 
 // Data access logging
+/**
+ * Log data access.
+ * @param {any} resource
+ * @param {any} action
+ * @param {any} user
+ * @param {any} result
+ * @param {any} metadata
+ * @returns {any}
+ */
 const logDataAccess = (resource, action, user, result, metadata = {}) => {
   auditLog('info', eventTypes.DATA_ACCESS, `Data access: ${action} on ${resource}`, {
     userId: user?.id,
@@ -367,6 +439,13 @@ const logDataAccess = (resource, action, user, result, metadata = {}) => {
 };
 
 // System event logging
+/**
+ * Log system event.
+ * @param {any} eventType
+ * @param {Array} details
+ * @param {any} severity
+ * @returns {any}
+ */
 const logSystemEvent = (eventType, details, severity = 'info') => {
   auditLog(severity, eventTypes.SYSTEM, `System event: ${eventType}`, {
     ...details
@@ -374,6 +453,13 @@ const logSystemEvent = (eventType, details, severity = 'info') => {
 };
 
 // User action logging
+/**
+ * Log user action.
+ * @param {any} action
+ * @param {any} user
+ * @param {Array} details
+ * @returns {any}
+ */
 const logUserAction = (action, user, details = {}) => {
   auditLog('info', eventTypes.USER_ACTION, `User action: ${action}`, {
     userId: user?.id,
@@ -384,6 +470,10 @@ const logUserAction = (action, user, details = {}) => {
 };
 
 // Initialize audit system
+/**
+ * Initialize audit.
+ * @returns {any}
+ */
 const initializeAudit = async () => {
   logger.debug('[AUDIT] Initializing audit logging system');
   
@@ -396,7 +486,7 @@ const initializeAudit = async () => {
   }
   
   // Schedule cleanup of old logs
-  setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000); // Daily cleanup
+  setInterval(cleanupOldLogs, 24 * 60 * constants.ONE_MINUTE_MS); // Daily cleanup
   
   // Log system startup
   logSystemEvent('startup', {
@@ -407,6 +497,11 @@ const initializeAudit = async () => {
 };
 
 // Query audit logs (for admin/monitoring)
+/**
+ * Query audit logs.
+ * @param {Array} filters
+ * @returns {any}
+ */
 const queryAuditLogs = async (filters = {}) => {
   try {
     const logContent = await fs.readFile(auditConfig.logFile, 'utf8');

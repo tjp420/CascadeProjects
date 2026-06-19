@@ -13,10 +13,21 @@ const DEBUG_MARKERS = Object.freeze({
     debugger: 'debug' + 'ger'
 });
 
+/**
+ * Content has marker.
+ * @param {any} content
+ * @param {any} marker
+ * @returns {any}
+ */
 function contentHasMarker(content, marker) {
     return typeof content === 'string' && content.includes(marker);
 }
 
+/**
+ * Calculate file quality.
+ * @param {any} content
+ * @returns {any}
+ */
 function calculateFileQuality(content) {
     let quality = 100;
 
@@ -28,6 +39,11 @@ function calculateFileQuality(content) {
     return Math.max(0, quality);
 }
 
+/**
+ * Content needs validation.
+ * @param {any} content
+ * @returns {any}
+ */
 function contentNeedsValidation(content) {
     return contentHasMarker(content, TECH_DEBT_MARKERS.pending)
         || contentHasMarker(content, TECH_DEBT_MARKERS.blocked);

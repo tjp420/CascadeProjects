@@ -5,12 +5,22 @@
 import { normalizeDuplicateGroupForBrief } from './cleanup-brief-export.browser.js?v=20260601cleanupbrief9';
 import { redactProjectPathForExport } from './quality-export.browser.js?v=20260531qualityexport8';
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Resolve file reduction remediation hint.
+ * @param {any} fr
+ * @returns {any}
+ */
 function resolveFileReductionRemediationHint(fr = {}) {
   const safeBytes = fr.safeToDeleteBytes ?? 0;
   const reviewBytes = fr.reviewBeforeDeleteBytes ?? 0;
@@ -26,6 +36,12 @@ function resolveFileReductionRemediationHint(fr = {}) {
   return 'No file-reduction actions required in this export.';
 }
 
+/**
+ * Redact data cleanup export paths.
+ * @param {number} report
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function redactDataCleanupExportPaths(report, projectPath) {
   const label = projectLabelFromPath(projectPath);
   const redacted = redactProjectPathForExport(projectPath, label);
@@ -55,11 +71,21 @@ function redactDataCleanupExportPaths(report, projectPath) {
   return next;
 }
 
+/**
+ * Is benchmark report.
+ * @param {number} report
+ * @returns {any}
+ */
 function isBenchmarkReport(report) {
   const root = String(report?.projectRoot || report?.projectPath || '').replace(/\\/g, '/').toLowerCase();
   return root.includes('/github-cache/') || root.startsWith('github-cache/');
 }
 
+/**
+ * Resolve product platform root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(projectPath) {
   const normalized = String(projectPath || '').replace(/\\/g, '/');
   const idx = normalized.toLowerCase().indexOf('/github-cache/');
@@ -67,6 +93,11 @@ function resolveProductPlatformRoot(projectPath) {
   return normalized.slice(0, idx);
 }
 
+/**
+ * Benchmark limitation note.
+ * @param {string} profile
+ * @returns {any}
+ */
 function benchmarkLimitationNote(profile) {
   if (profile === 'file-reduction') {
     return 'Scanning OSS benchmark clone under github-cache/ — file-reduction hygiene only; duplicate doc assets across versioned geedocs folders and unused-file hits require manual review.';
@@ -74,6 +105,11 @@ function benchmarkLimitationNote(profile) {
   return 'Scanning OSS benchmark clone under github-cache/ — Simplebeacon workspace scanners (package.json, .env) target product layout, not this C++/Python OSS tree.';
 }
 
+/**
+ * Benchmark export note.
+ * @param {string} profile
+ * @returns {any}
+ */
 function benchmarkExportNote(profile) {
   if (profile === 'file-reduction') {
     return 'Benchmark clone file-reduction export — not valid for Simplebeacon platform cleanup handoff. Run file-reduction on ai-platform root for product artifact tiers.';
@@ -88,6 +124,11 @@ const BENCHMARK_FILE_REDUCTION_RECOMMENDATIONS = [
   'Unused-file candidates use static import graphs — HTML entrypoints, Python CGI, and integration tests are frequently loaded dynamically.'
 ];
 
+/**
+ * Resolve file reduction status.
+ * @param {number} report
+ * @returns {any}
+ */
 function resolveFileReductionStatus(report) {
   const safeBytes = report.fileReductionPlan?.totals?.safeToDeleteBytes ?? 0;
   const unused = report.summary?.unusedFileCandidates ?? 0;
@@ -97,6 +138,13 @@ function resolveFileReductionStatus(report) {
   return 'no-immediate-reclaim';
 }
 
+/**
+ * Enrich product inventory for export.
+ * @param {any} inventory
+ * @param {Object} options
+ * @param {string} profile
+ * @returns {any}
+ */
 function enrichProductInventoryForExport(inventory, options = {}, profile = '') {
   if (!inventory) return inventory;
   const auditFiles = options.repositoryFilesTotal ?? options.auditRepositoryFiles ?? null;
@@ -116,11 +164,21 @@ function enrichProductInventoryForExport(inventory, options = {}, profile = '') 
   return base;
 }
 
+/**
+ * Is mirror cli consumer path.
+ * @param {string} consumerPath
+ * @returns {any}
+ */
 function isMirrorCliConsumerPath(consumerPath) {
   const normalized = String(consumerPath || '').replace(/\\/g, '/');
   return normalized.startsWith('.github-sync/') || normalized.startsWith('github-cache/');
 }
 
+/**
+ * Sanitize data lineage for export.
+ * @param {any} dataLineage
+ * @returns {any}
+ */
 function sanitizeDataLineageForExport(dataLineage = []) {
   if (!Array.isArray(dataLineage) || !dataLineage.length) {
     return { dataLineage, mirrorConsumersExcluded: 0 };
@@ -141,6 +199,12 @@ function sanitizeDataLineageForExport(dataLineage = []) {
   return { dataLineage: rows, mirrorConsumersExcluded };
 }
 
+/**
+ * Resolve data cleanup gate context.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveDataCleanupGateContext(report, options = {}) {
   const gateReport = options.gateReport || {};
   const repositoryFilesTotal = options.repositoryFilesTotal
@@ -182,6 +246,12 @@ function resolveDataCleanupGateContext(report, options = {}) {
   };
 }
 
+/**
+ * Build data quality hygiene summary.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildDataQualityHygieneSummary(report, options = {}) {
   const gateContext = resolveDataCleanupGateContext(report, options);
   const { repositoryFilesTotal: gateTotal, credentialScanned, contentScanned, gateProfile, gateReport,
@@ -219,6 +289,13 @@ function buildDataQualityHygieneSummary(report, options = {}) {
   };
 }
 
+/**
+ * Enrich product data quality scan scope.
+ * @param {any} scanScope
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function enrichProductDataQualityScanScope(scanScope, report, options = {}) {
   const gateContext = resolveDataCleanupGateContext(report, options);
   const { repositoryFilesTotal: gateTotal, gateProfile } = gateContext;
@@ -233,6 +310,12 @@ function enrichProductDataQualityScanScope(scanScope, report, options = {}) {
   };
 }
 
+/**
+ * Build file reduction hygiene summary.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildFileReductionHygieneSummary(report, options = {}) {
   const gateContext = resolveDataCleanupGateContext(report, options);
   const { repositoryFilesTotal: gateTotal, credentialScanned, contentScanned, gateProfile, gateReport,
@@ -276,6 +359,13 @@ function buildFileReductionHygieneSummary(report, options = {}) {
   };
 }
 
+/**
+ * Enrich product file reduction scan scope.
+ * @param {any} scanScope
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function enrichProductFileReductionScanScope(scanScope, report, options = {}) {
   const gateContext = resolveDataCleanupGateContext(report, options);
   const { repositoryFilesTotal: gateTotal, gateProfile } = gateContext;
@@ -293,6 +383,12 @@ function enrichProductFileReductionScanScope(scanScope, report, options = {}) {
   };
 }
 
+/**
+ * Build product file reduction export notes.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildProductFileReductionExportNotes(report, options = {}) {
   const notes = [
     'securityHandoffEligible is false — file-reduction is reclaim guidance only, not vendor security handoff.',
@@ -371,6 +467,11 @@ function buildProductFileReductionExportNotes(report, options = {}) {
   return [...new Set(notes)].slice(0, 13);
 }
 
+/**
+ * Sanitize file reduction plan for product.
+ * @param {any} plan
+ * @returns {any}
+ */
 function sanitizeFileReductionPlanForProduct(plan) {
   if (!plan || plan.omitted) return plan;
   let next = { ...plan, profile: 'file-reduction' };
@@ -401,6 +502,12 @@ function sanitizeFileReductionPlanForProduct(plan) {
   return next;
 }
 
+/**
+ * Enrich product file reduction executive summary.
+ * @param {any} executiveSummary
+ * @param {number} _report
+ * @returns {any}
+ */
 function enrichProductFileReductionExecutiveSummary(executiveSummary, _report) {
   if (!executiveSummary) return executiveSummary;
   const fr = executiveSummary.fileReduction || {};
@@ -452,6 +559,11 @@ function enrichProductFileReductionExecutiveSummary(executiveSummary, _report) {
   };
 }
 
+/**
+ * Resolve data quality status.
+ * @param {number} report
+ * @returns {any}
+ */
 function resolveDataQualityStatus(report) {
   const total = report.summary?.totalFindings ?? 0;
   const critical = report.aggregation?.bySeverity?.critical ?? 0;
@@ -461,6 +573,12 @@ function resolveDataQualityStatus(report) {
   return 'clean';
 }
 
+/**
+ * Build product data quality export notes.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildProductDataQualityExportNotes(report, options = {}) {
   const notes = [
     'securityHandoffEligible is false — data-quality hygiene is supplementary, not vendor security handoff.',
@@ -552,6 +670,12 @@ function buildProductDataQualityExportNotes(report, options = {}) {
   return [...new Set(notes)].slice(0, 14);
 }
 
+/**
+ * Fix estimated reduction pct.
+ * @param {any} summary
+ * @param {any} inventory
+ * @returns {any}
+ */
 function fixEstimatedReductionPct(summary, inventory) {
   if (!summary || !inventory?.totalFiles) return summary;
   if (summary.estimatedReductionPct == null || summary.estimatedReductionPct <= 100) return summary;
@@ -561,9 +685,19 @@ function fixEstimatedReductionPct(summary, inventory) {
   };
 }
 
+/**
+ * Repair compact asset findings.
+ * @param {number} report
+ * @returns {any}
+ */
 function repairCompactAssetFindings(report) {
   const topGroups = report.fileReductionPlan?.duplicateAssets?.topGroups || [];
   if (!topGroups.length) return report.findings;
+/**
+ * Repaired.
+ * @param {number} report.findings?.assetConsolidation || []
+ * @returns {any}
+ */
   const repaired = (report.findings?.assetConsolidation || []).map((finding, index) => {
     const group = topGroups[index] || topGroups.find((g) => g.reclaimableBytes === finding.reclaimableBytes);
     return normalizeDuplicateGroupForBrief({ ...finding, ...group }) || finding;
@@ -574,6 +708,11 @@ function repairCompactAssetFindings(report) {
   return report.findings;
 }
 
+/**
+ * Reaggregate top files.
+ * @param {number} report
+ * @returns {any}
+ */
 function reaggregateTopFiles(report) {
   const all = Object.values(report.findings || {}).flat().filter(Boolean);
   const byFile = new Map();
@@ -590,6 +729,12 @@ function reaggregateTopFiles(report) {
   return { ...(report.aggregation || {}), topFiles };
 }
 
+/**
+ * Sanitize data cleanup report export.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeDataCleanupReportExport(report, options = {}) {
   if (!report || report.type !== 'data-cleanup-report') return report;
 

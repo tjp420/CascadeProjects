@@ -37,6 +37,7 @@
   ],
   "ignorePaths": [
     ".git",
-    ".simplebeacon"
+    ".simplebeacon",
+    "node_modules"
   ]
 }

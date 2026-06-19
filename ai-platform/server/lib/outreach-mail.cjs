@@ -5,36 +5,71 @@
 const fs = require('fs');
 const path = require('path');
 
+const constants = require('../config/constants.cjs');
 const fsp = fs.promises;
 
+/**
+ * Get outreach from.
+ * @returns {any}
+ */
 function getOutreachFrom() {
-  return String(process.env.OUTREACH_FROM || 'Trevor Punt <trevor@simplebeacon.ai>').trim();
+  return String(process.env.OUTREACH_FROM || 'outreach@simplebeacon.ai').trim();
 }
 
+/**
+ * Get outreach reply to.
+ * @returns {any}
+ */
 function getOutreachReplyTo() {
-  return String(process.env.OUTREACH_REPLY_TO || 'trevor@simplebeacon.ai').trim();
+  return String(process.env.OUTREACH_REPLY_TO || 'outreach@simplebeacon.ai').trim();
 }
 
+/**
+ * Is outreach configured.
+ * @returns {any}
+ */
 function isOutreachConfigured() {
   return Boolean(String(process.env.RESEND_API_KEY || '').trim());
 }
 
+/**
+ * Sent log path.
+ * @param {Object} options
+ * @returns {any}
+ */
 function sentLogPath(options) {
   const dataDir = options.dataDir || path.join(__dirname, '..', '..', 'data');
   return path.join(dataDir, 'outreach-sent.json');
 }
 
+/**
+ * Write sent log.
+ * @param {Array} rows
+ * @param {Object} options
+ * @returns {any}
+ */
 async function writeSentLog(rows, options) {
   const file = sentLogPath(options);
   await fsp.mkdir(path.dirname(file), { recursive: true });
   await fsp.writeFile(file, JSON.stringify(rows, null, 2));
 }
 
+/**
+ * Sent entry id.
+ * @param {any} row
+ * @param {number} index
+ * @returns {any}
+ */
 function sentEntryId(row, index = 0) {
   if (row?.id) return String(row.id);
   return `${row.sentAt || 'unknown'}|${row.to || ''}|${index}`;
 }
 
+/**
+ * Load sent log.
+ * @param {Object} options
+ * @returns {any}
+ */
 async function loadSentLog(options) {
   const file = sentLogPath(options);
   try {
@@ -52,6 +87,12 @@ async function loadSentLog(options) {
   }
 }
 
+/**
+ * Remove sent log entry.
+ * @param {string} id
+ * @param {Object} options
+ * @returns {any}
+ */
 async function removeSentLogEntry(id, options) {
   const needle = String(id || '').trim();
   if (!needle) {
@@ -71,6 +112,12 @@ async function removeSentLogEntry(id, options) {
   return { removed: needle, remaining: rows.length };
 }
 
+/**
+ * Append sent log.
+ * @param {any} entry
+ * @param {Object} options
+ * @returns {any}
+ */
 async function appendSentLog(entry, options) {
   const file = sentLogPath(options);
   await fsp.mkdir(path.dirname(file), { recursive: true });
@@ -80,10 +127,21 @@ async function appendSentLog(entry, options) {
   return rows.length;
 }
 
+/**
+ * Validate email.
+ * @param {any} value
+ * @returns {any}
+ */
 function validateEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
 }
 
+/**
+ * Send outreach email.
+ * @param {any} payload
+ * @param {Object} options
+ * @returns {any}
+ */
 async function sendOutreachEmail(payload, options = {}) {
   const to = String(payload.to || '').trim().toLowerCase();
   const subject = String(payload.subject || '').trim();
@@ -104,7 +162,7 @@ async function sendOutreachEmail(payload, options = {}) {
     err.code = 'message_too_short';
     throw err;
   }
-  if (text.length > 12000) {
+  if (text.length > constants.TIMEOUT_12S) {
     const err = new Error('message_too_long');
     err.code = 'message_too_long';
     throw err;

@@ -2,10 +2,21 @@
 
 export const SECURITY_ISSUE_PATTERN = /credential|production leak/i;
 
+/**
+ * Is security issue.
+ * @param {boolean} issue
+ * @returns {any}
+ */
 export function isSecurityIssue(issue) {
   return SECURITY_ISSUE_PATTERN.test(String(issue?.type || ''));
 }
 
+/**
+ * Normalize security finding.
+ * @param {boolean} issue
+ * @param {number} index
+ * @returns {any}
+ */
 export function normalizeSecurityFinding(issue, index = 0) {
   const filePath = issue.filePath
     || issue.filePaths?.[0]
@@ -24,11 +35,22 @@ export function normalizeSecurityFinding(issue, index = 0) {
   };
 }
 
+/**
+ * Extract security findings.
+ * @param {number} report
+ * @returns {any}
+ */
 export function extractSecurityFindings(report) {
   const raw = report?.rawIssues ?? report?.detectedIssues ?? [];
   return raw.filter(isSecurityIssue).map((issue, index) => normalizeSecurityFinding(issue, index));
 }
 
+/**
+ * Build security summary.
+ * @param {number} report
+ * @param {Array} findings
+ * @returns {any}
+ */
 export function buildSecuritySummary(report, findings = []) {
   const severityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
 
@@ -58,6 +80,13 @@ export function buildSecuritySummary(report, findings = []) {
   };
 }
 
+/**
+ * Build security export payload.
+ * @param {number} report
+ * @param {Array} findings
+ * @param {any} compliance
+ * @returns {any}
+ */
 export function buildSecurityExportPayload(report, findings, compliance = null) {
   return {
     type: 'simplebeacon-security-scan-export',
@@ -74,6 +103,10 @@ export function buildSecurityExportPayload(report, findings, compliance = null) 
   };
 }
 
+/**
+ * Fetch compliance headline.
+ * @returns {any}
+ */
 export async function fetchComplianceHeadline() {
   const complianceHttpResponse = await fetch('/api/optimization/compliance', {
     headers: { Accept: 'application/json' }

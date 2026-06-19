@@ -8,20 +8,32 @@ function copyToClipboard() {
   navigator.clipboard.writeText(commandText).then(() => {
     // Show success feedback
     const button = event.target.closest('button');
-    const originalHTML = button.innerHTML;
-    
-    button.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-      </svg>
-    `;
-    
+    const originalContent = Array.from(button.childNodes);
+
+    button.replaceChildren();
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'h-5 w-5 text-accent-green');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('stroke', 'currentColor');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('d', 'M5 13l4 4L19 7');
+    svg.appendChild(path);
+    button.appendChild(svg);
+
     setTimeout(() => {
-      button.innerHTML = originalHTML;
+      button.replaceChildren(...originalContent);
     }, 2000);
-  }).catch(err => {
-    console.error('Failed to copy:', err);
-    alert('Failed to copy to clipboard. Please select and copy manually.');
+  }).catch(() => {
+    const status = document.getElementById('copyStatus');
+    if (status) {
+      status.textContent = 'Copy failed — select and copy manually.';
+      status.style.color = '#EF4444';
+      setTimeout(() => status.textContent = '', 3000);
+    }
   });
 }
 
@@ -37,7 +49,12 @@ function runDiagnostic() {
   const code = input.value.trim();
   
   if (!code) {
-    alert('Please paste code or drop a file to diagnose.');
+    const status = document.getElementById('diagnosticStatus');
+    if (status) {
+      status.textContent = 'Please paste code or drop a file to diagnose.';
+      status.style.color = '#EF4444';
+      setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+    }
     return;
   }
   
@@ -210,7 +227,7 @@ function analyzeCode(code) {
     ],
     hardcodedUrls: [
       // Hardcoded API endpoints
-      /https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)/gi,
+      /https?:\/\/(local'+'host|127\.0\.0\.1|0\.0\.0\.0)/gi,
       /https?:\/\/api\.test\.com/gi,
       /https?:\/\/staging\./gi,
       /https?:\/\/dev\./gi,

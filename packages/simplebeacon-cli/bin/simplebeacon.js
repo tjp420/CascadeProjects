@@ -10,15 +10,14 @@ const {
     initSimplebeacon,
     runScan,
     evaluateGate,
-    formatTextReport,
-    formatActionPlanReport,
     formatJsonReport,
     compileAuditReportMarkdown,
     syncJestBaseline,
     detectProjectProfile,
     resolvePlatformRoot,
-    writeManagedFileSync
+    writeManagedFileSync,
 } = require('../src/index');
+const { validateFormat, selectPayload } = require('../src/lib/format-utils');
 const { formatGithubComment, postGithubComment } = require('../src/reporters/github-comment');
 const { buildAssessmentReport } = require('../src/assessment');
 const { sanitizeReportForCloudUpload } = require('../src/lib/report-sanitizer');
@@ -50,7 +49,7 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'mcp']);
+const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'mcp', 'ai-plan']);
 
 function writeStdoutLine(message = '') {
     process.stdout.write(`${message}\n`);
@@ -82,6 +81,11 @@ function parseArgs(argv) {
         flagStart = 2;
     }
 
+    if (command === 'ai-plan') {
+        command = 'ai-plan';
+        flagStart = 1;
+    }
+
     const options = {
         command,
         path: process.cwd(),
@@ -96,6 +100,7 @@ function parseArgs(argv) {
         repo: null,
         profile: null,
         verbose: false,
+        quiet: false,
         help: false,
         company: null,
         client: null,
@@ -127,13 +132,14 @@ function parseArgs(argv) {
         withAnalyzerSuite: false,
         version: false,
         complete: false,
-        watch: false
+        watch: false,
+        exclude: null
     };
 
     const knownFlags = new Set([
         '--path', '-p', '--config', '-c', '--format', '-f', '--output', '-o',
         '--report', '-r', '--issue-number', '--repo', '--profile', '--fail-on',
-        '--gate', '--with-jest', '--verbose', '-v', '--company', '--assessor',
+        '--gate', '--with-jest', '--verbose', '-v', '--quiet', '-q', '--company', '--assessor',
         '--client', '--branch', '--assessment', '--print-only', '--api-token',
         '--upload', '--type', '--husky', '--offline', '--no-trust-banner',
         '--dry-run', '--force', '--enhance', '--enhance-model', '--scanner',
@@ -141,7 +147,7 @@ function parseArgs(argv) {
         '--fix', '--fix-provider', '--fix-dry-run', '--with-analyzer-suite',
         '--fullDirectoryScan', '--full', '--email', '--server', '--poll-seconds',
         '--max-polls', '--max-fixes', '--mcp-mode', '--help', '-h', '--version',
-        '-V', '--complete', '--watch'
+        '-V', '--complete', '--watch', '--tier', '--exclude'
     ]);
 
     for (let i = flagStart; i < args.length; i += 1) {
@@ -200,6 +206,8 @@ function parseArgs(argv) {
             options.withJest = true;
         } else if (arg === '--verbose' || arg === '-v') {
             options.verbose = true;
+        } else if (arg === '--quiet' || arg === '-q') {
+            options.quiet = true;
         } else if (arg === '--company') {
             options.company = requireNext('--company');
         } else if (arg === '--assessor') {
@@ -276,6 +284,11 @@ function parseArgs(argv) {
             options.complete = true;
         } else if (arg === '--watch') {
             options.watch = true;
+        } else if (arg === '--tier') {
+            options.tier = requireNext('--tier');
+        } else if (arg === '--exclude') {
+            const val = requireNext('--exclude');
+            options.exclude = val.split(',').map((s) => s.trim()).filter(Boolean);
         }
     }
 
@@ -332,6 +345,7 @@ Usage:
   simplebeacon reduce [options]     Analyze repo for file-reduction opportunities (dry-run)
   simplebeacon pdf [options]        Generate Executive Risk Certificate (requires license token)
   simplebeacon buy-clearance        Purchase executive clearance and receive license token
+  simplebeacon ai-plan [options]   Generate AI-friendly remediation plan from scan results
 
 buy-clearance options:
   --email <addr>      Email address for checkout (required)
@@ -430,6 +444,12 @@ Profiles:
 Compliance options:
   --checklist <id>    Checklist profile: default | eu-ai-act
 
+AI Plan options:
+  --path, -p <dir>    Project root (default: cwd)
+  --config, -c <f>    Config path (default: .simplebeacon/config.json)
+  --output, -o <file> Write AI plan to file
+  --complete          Run all 11 analyzers for comprehensive analysis
+
 Examples:
   npx simplebeacon init
   npx simplebeacon init --profile minimal
@@ -447,6 +467,8 @@ Examples:
   npx simplebeacon hook install
   npx simplebeacon reduce
   npx simplebeacon reduce --format json --output .simplebeacon/file-reduction.json
+  npx simplebeacon ai-plan --output .simplebeacon/ai-remediation-plan.md
+  npx simplebeacon ai-plan --complete --output .simplebeacon/comprehensive-ai-plan.md
 `);
 }
 
@@ -503,7 +525,7 @@ async function executeOneScan(options, networkGuard) {
     const scanRoot = options.path;
     const { platformRoot } = resolvePlatformRoot(scanRoot);
     const config = loadSimplebeaconConfig(platformRoot, options.config);
-    if (options.complete) {
+    if (options.complete || options.fullDirectoryScan) {
         config.fullDirectoryScan = true;
         if (options.verbose) console.error('[scan] --complete enabled: full directory scan + all analyzers');
     }
@@ -518,9 +540,7 @@ async function executeOneScan(options, networkGuard) {
         console.error(`Profile: ${config.profile || 'standard'}`);
     }
 
-    if (options.format !== 'text' && options.format !== 'json' && options.format !== 'action-plan') {
-        throw new Error(`Invalid --format "${options.format}" — use text, json, or action-plan`);
-    }
+    validateFormat(options.format);
 
     const spinner = createScanSpinner('Scanning');
     spinner.start();
@@ -529,7 +549,12 @@ async function executeOneScan(options, networkGuard) {
         const report = await runScan(sanitizedScanRoot, {
             config,
             configPath: options.config,
-            withJest: options.withJest
+            withJest: options.withJest,
+            fullDirectoryScan: options.fullDirectoryScan,
+            ci: options.withCi,
+            tier: options.tier || 'developer',
+            tierLimits: options.tierLimits || undefined,
+            exclude: options.exclude
         });
         networkGuard.assertOfflineClean();
         printTrustCompletion({
@@ -541,6 +566,18 @@ async function executeOneScan(options, networkGuard) {
         const gateResult = evaluateGate(report, config.gate);
         const jsonReport = formatJsonReport(report, gateResult);
         spinner.stop();
+
+        // Developer tier: text output only
+        if ((options.tier || 'developer') === 'developer') {
+            if (options.format === 'json') {
+                console.error('[Developer] JSON export requires Startup+. Upgrade at https://simplebeacon.ai/pricing');
+                options.format = 'text';
+            }
+            if (options.output) {
+                console.error('[Developer] File output requires Startup+. Printing to stdout instead.');
+                options.output = null;
+            }
+        }
 
         if (options.anonymize) {
             options.format = 'json';
@@ -560,12 +597,8 @@ async function executeOneScan(options, networkGuard) {
             const anon = buildAnonymizedExport(report);
             const signed = signAnonymizedExport(anon);
             payload = JSON.stringify(signed, null, 2);
-        } else if (options.format === 'json') {
-            payload = JSON.stringify(jsonReport, null, 2);
-        } else if (options.format === 'action-plan') {
-            payload = formatActionPlanReport(report, gateResult);
         } else {
-            payload = formatTextReport(report, gateResult);
+            payload = selectPayload(report, gateResult, jsonReport, options.format);
         }
 
         if (options.output) {
@@ -798,7 +831,7 @@ async function runReportCommand(options) {
     const assessmentPath = path.resolve(options.assessment || '.simplebeacon/assessment.json');
     if (options.enhance) {
         if (!fs.existsSync(assessmentPath)) {
-            throw new Error(`Assessment required for --enhance: ${assessmentPath}. Run: npx simplebeacon assess --company "..." --assessor "..."`);
+            throw new Error(`Assessment required for --enhance: ${assessmentPath}. Run: npx simplebeacon assess`);
         }
     } else if (options.assessment || fs.existsSync(assessmentPath)) {
         if (!fs.existsSync(assessmentPath)) {
@@ -1237,6 +1270,11 @@ async function main() {
         return;
     }
 
+    if (options.command === 'ai-plan') {
+        await runAiPlanCommand(options);
+        return;
+    }
+
     if (options.command === 'scan') {
         await runScanCommand(options);
         return;
@@ -1251,6 +1289,163 @@ async function main() {
         await runBuyClearanceCommand(options);
         return;
     }
+}
+
+async function runAiPlanCommand(options) {
+    const root = sanitizePath(options.path);
+    const config = loadSimplebeaconConfig(root, options.config);
+    
+    writeStdoutLine('🤖 SimpleBeacon AI Plan Generator');
+    writeStdoutLine('=====================================');
+    writeStdoutLine(`Root: ${root}`);
+    writeStdoutLine(`Profile: ${config.profile || 'standard'}`);
+    writeStdoutLine('');
+
+    // Run a scan to get current issues
+    writeStdoutLine('🔍 Analyzing current codebase for AI issues...');
+    const report = await runScan(root, {
+        config,
+        configPath: options.config,
+        withJest: options.withJest,
+        fullDirectoryScan: options.complete || false,
+        exclude: options.exclude
+    });
+
+    if (!report || !report.rawIssues || report.rawIssues.length === 0) {
+        writeStdoutLine('✅ No issues found. Codebase is clean!');
+        return;
+    }
+
+    writeStdoutLine(`📊 Analysis Complete:`);
+    writeStdoutLine(`   Total Issues: ${report.rawIssues.length}`);
+    writeStdoutLine(`   Quality Score: ${report.qualityScore}/100`);
+    writeStdoutLine(`   Gate Status: ${report.gate?.pass ? 'PASS' : 'FAIL'}`);
+    writeStdoutLine('');
+
+    // Generate AI-friendly issue list
+    const aiIssueList = generateAIIssueList(report);
+    writeStdoutLine('');
+    writeStdoutLine('📋 AI Plan Generated:');
+    writeStdoutLine('=====================================');
+    writeStdoutLine(aiIssueList);
+    
+    // Save to file if output specified
+    if (options.output) {
+        const outputPath = path.resolve(options.output);
+        writeManagedFileSync(outputPath, `${aiIssueList}\n`, {
+            force: true,
+            validators: [validateNotEmpty]
+        });
+        writeStdoutLine(`📄 AI plan saved to: ${outputPath}`);
+    }
+}
+
+function generateAIIssueList(report) {
+    const issues = report.rawIssues || [];
+    
+    // Group issues by category and severity
+    const groupedIssues = issues.reduce((acc, issue) => {
+        const category = issue.type || 'General';
+        const severity = issue.severity || 'medium';
+        
+        if (!acc[category]) acc[category] = { high: [], medium: [], low: [], critical: [] };
+        
+        acc[category][severity].push(issue);
+        return acc;
+    }, {});
+
+    let plan = '# AI Remediation Plan\n\n';
+    plan += `## Summary\n`;
+    plan += `- **Total Issues**: ${issues.length}\n`;
+    plan += `- **Quality Score**: ${report.qualityScore}/100\n`;
+    plan += `- **Gate Status**: ${report.gate?.pass ? 'PASS' : 'FAIL'}\n`;
+    plan += `- **Generated**: ${new Date().toISOString()}\n\n`;
+
+    plan += '## Prioritized Issues\n\n';
+    
+    // Sort categories by severity and issue count
+    const sortedCategories = Object.entries(groupedIssues).sort((a, b) => {
+        const aHighCount = (a[1]?.high || []).length;
+        const bHighCount = (b[1]?.high || []).length;
+        const aTotalCount = Object.values(a[1]).reduce((sum, arr) => sum + arr.length, 0);
+        const bTotalCount = Object.values(b[1]).reduce((sum, arr) => sum + arr.length, 0);
+        
+        // Sort by high severity count first, then by total count
+        if (aHighCount !== bHighCount) return bHighCount - aHighCount;
+        if (aTotalCount !== bTotalCount) return bTotalCount - aTotalCount;
+        return a[0].localeCompare(b[0]);
+    });
+
+    for (const [category, severityGroups] of sortedCategories) {
+        plan += `### ${category}\n\n`;
+        
+        // Sort issues by severity within each category
+        const allIssues = [
+            ...(severityGroups.high || []),
+            ...(severityGroups.medium || []),
+            ...(severityGroups.low || []),
+            ...(severityGroups.critical || [])
+        ].sort((a, b) => {
+            const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+            const aOrder = severityOrder[a.severity] ?? 4;
+            const bOrder = severityOrder[b.severity] ?? 4;
+            return aOrder - bOrder;
+        });
+
+        for (const issue of allIssues) {
+            const fileName = issue.file || issue.path || 'Unknown';
+            const lineNumber = issue.line || 1;
+            const description = issue.description || issue.message || issue.type || 'No description';
+            const recommendation = generateRecommendation(issue);
+            const severity = issue.severity || 'medium';
+            
+            plan += `#### ${severity.toUpperCase()}: ${description}\n`;
+            plan += `   **File**: \`${fileName}:${lineNumber}\n`;
+            plan += `   **Recommendation**: ${recommendation}\n`;
+            plan += `   **Context**: ${issue.context || 'No context available'}\n\n`;
+        }
+    }
+
+    plan += '## Implementation Priority\n\n';
+    plan += '1. **High Priority Issues** (Critical/High severity)\n';
+    plan += '2. **Medium Priority Issues** (Medium severity)\n';
+    plan += '3. **Low Priority Issues** (Low severity)\n\n';
+
+    // Add specific remediation steps
+    plan += '## Suggested Implementation Steps\n\n';
+    plan += '1. **Review High Priority Issues First** - Address blocking issues that prevent gate passage\n';
+    plan += '2. **Implement Medium Priority Issues** - Improve code quality and maintainability\n';
+    plan += '3. **Address Low Priority Issues** - Clean up and optimize\n';
+    plan += '4. **Re-run Scan** - Verify fixes and update quality score\n\n';
+
+    plan += '## Additional Notes\n\n';
+    plan += '- Use the `simplebeacon scan --complete` flag for comprehensive analysis\n';
+    plan += '- Consider integrating with CI/CD pipelines for automated checks\n';
+    plan += '- Review and update SimpleBeacon configuration as needed\n';
+
+    return plan;
+}
+
+function generateRecommendation(issue) {
+    const type = issue.type || 'unknown';
+    const description = issue.description || issue.message || 'No description available';
+    
+    const recommendations = {
+        'missing-env-key': 'Add the missing environment variable to your configuration',
+        'unused-file': 'Remove unused files or add proper usage documentation',
+        'invalid-json': 'Fix JSON syntax errors in the file',
+        'git-sensitive-file': 'Remove sensitive files from git or add to .gitignore',
+        'build-artifact': 'Move build artifacts to a build directory or .gitignore',
+        'orphaned-export': 'Remove unused exports or add proper usage documentation',
+        'dead-export': 'Update or remove dead exports',
+        'duplicate-config-type': 'Consolidate duplicate configuration entries',
+        'credential-pattern': 'Remove or secure the credential pattern',
+        'production-leak': 'Remove or secure production credentials',
+        'ai-fiction': 'Remove AI-generated fiction KPIs and mock data',
+        'complexity': 'Refactor complex code for better maintainability'
+    };
+
+    return recommendations[type] || 'Review and address this issue according to best practices';
 }
 
 main().catch((error) => {

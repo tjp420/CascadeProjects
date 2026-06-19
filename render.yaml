@@ -3,8 +3,8 @@ services:
     name: simplebeacon
     runtime: node
     plan: free
-    buildCommand: npm install
-    startCommand: node coming-soon/server.cjs
+    buildCommand: cd ai-platform && npm install
+    startCommand: node ai-platform/simplebeacon-server.cjs
     envVars:
       - key: NODE_ENV
         value: production
@@ -18,16 +18,44 @@ services:
         value: ""
       - key: PUBLIC_URL
         sync: false
+      - key: PUBLIC_APP_URL
+        sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
-      - key: STRIPE_PRICE_ID_INSTANT
+      - key: STRIPE_PUBLISHABLE_KEY
         sync: false
-      - key: STRIPE_PRICE_ID_EXECUTIVE
+      - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      - key: STRIPE_PRICE_ID_EUAI
+      - key: STRIPE_PRICE_ID_TEAMS_MONTHLY
+        sync: false
+      - key: STRIPE_PRICE_ID_TEAMS_ANNUAL
+        sync: false
+      - key: STRIPE_PRICE_ID_EXECUTIVE_CLEARANCE
+        sync: false
+      - key: STRIPE_PRICE_ID_INSTANT_REPORT
+        sync: false
+      - key: STRIPE_PRICE_ID_EU_AI_ACT_SPRINT
+        sync: false
+      - key: STRIPE_PRICE_ID_CONTINUOUS_SHIELD
+        sync: false
+      - key: STRIPE_PRICE_ID_RUNTIME_SHIELD
         sync: false
       - key: RESEND_API_KEY
         sync: false
+      - key: RESEND_FROM
+        value: certificates@simplebeacon.ai
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
       - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        value: certificates@simplebeacon.ai
+      - key: SIMPLEBEACON_LANDING
+        value: "true"
+      - key: SIMPLEBEACON_APP_URL
         sync: false
     healthCheckPath: /health

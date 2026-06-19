@@ -117,18 +117,18 @@ Simplebeacon normally scans local files. You have two ways to analyze a remote w
 
 ```bash
 # Basic scan
-./scan-website.sh https://example.com --gate
+./scan-website.sh https://your-domain.com --gate
 
 # With JSON report
-./scan-website.sh https://example.com --gate --output report.json
+./scan-website.sh https://your-domain.com --gate --output report.json
 
 # Keep downloaded files for inspection
-./scan-website.sh https://example.com --keep
+./scan-website.sh https://your-domain.com --keep
 ```
 
 **Option B: Dashboard (`#/analyze`)**
 
-Open the dashboard → go to **Analyze** → click the **Website URL** tab → enter `https://example.com` → click **Run analysis**. The dashboard downloads the site and runs the same rule engines automatically.
+Open the dashboard → go to **Analyze** → click the **Website URL** tab → enter `https://your-domain.com` → click **Run analysis**. The dashboard downloads the site and runs the same rule engines automatically.
 
 What it does:
 1. Downloads the page source with `curl` (CLI) or Node.js `https` (dashboard)

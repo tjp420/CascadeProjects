@@ -14,26 +14,41 @@ const os = require('os');
 const crypto = require('crypto');
 const util = require('util');
 const { exec } = require('child_process');
+const constants = require('../config/constants.cjs');
 const execAsync = util.promisify(exec);
 const multer = require('multer');
 const tmp = require('tmp');
 const rateLimit = require('express-rate-limit');
 const unzipper = require('unzipper');
-const { countRepositoryInventory } = require('../../packages/simplebeacon-cli/src/lib/repository-inventory');
-const { resolvePlatformRoot } = require('../../packages/simplebeacon-cli/src/project-detect');
-const { analyzeCodebase } = require('../lib/codebase-analyzer.cjs');
-const { applyPublicGateToAnalyzeResponse } = require('../../packages/simplebeacon-cli/src/lib/report-sanitizer');
+// Dynamic reload wrapper: always load the latest codebase-analyzer.cjs to pick up patches without server restart
+function getAnalyzeCodebase() {
+    const modulePath = require.resolve('../lib/codebase-analyzer.cjs');
+    // Clear cache for the analyzer and its direct submodules so patches take effect immediately
+    const keysToDelete = Object.keys(require.cache).filter((key) => key.includes('server/lib/codebase-analyzer') || key.includes('server/lib/scan-content-patterns') || key.includes('server/lib/universal-language-config'));
+    for (const key of keysToDelete) {
+        delete require.cache[key];
+    }
+    delete require.cache[modulePath];
+    const analyzer = require('../lib/codebase-analyzer.cjs');
+    return analyzer.analyzeCodebase;
+}
 const { resolveScanProfile } = require('../lib/universal-language-config.cjs');
 const { analyzeWithModel } = require('../services/model-inference-service.cjs');
 const { ensureRegistry } = require('../services/local-model-service.cjs');
 const {
     resolveDefaultAllowedRoots,
     assertSafeProjectPath,
+    isPathWithinRoots,
     logResolvedAllowedRoots,
     formatAllowedRootsSummary
 } = require('../lib/path-safety.cjs');
 const { toClientError } = require('../lib/client-error.cjs');
 
+/**
+ * Sanitize http header value.
+ * @param {any} value
+ * @returns {any}
+ */
 function sanitizeHttpHeaderValue(value) {
     return String(value ?? '')
         .replace(/[\r\n]+/g, ' ')
@@ -48,13 +63,21 @@ const {
     summarizeScanWithProvider
 } = require('../services/cloud-inference-service.cjs');
 const { analyzeStrategicInsights } = require('../lib/strategic-insights-engine.cjs');
-const { evaluateComplianceChecklist } = require('../../packages/simplebeacon-cli/src/compliance-checklist');
 const { runNpmAuditAsync } = require('../lib/npm-audit-runner.cjs');
 const { scanFileMergerReduction } = require('../lib/file-merger-reduction-scanner.cjs');
+const { scanRemovableFiles } = require('../lib/removable-files-scanner.cjs');
+const {
+    applyPublicGateToAnalyzeResponse,
+    countRepositoryInventory,
+    evaluateComplianceChecklist,
+    resolvePlatformRoot,
+    sanitizeComplianceBundleExport,
+    verifyLicenseToken
+} = require('../lib/simplebeacon-proxy.cjs');
 const { generateCodeRoadmap } = require('../lib/code-roadmap-generator.cjs');
 const { runDataCleanupScan } = require('../lib/data-cleanup-scan.cjs');
+const { patchRemediationPhases } = require('../lib/scan-report-patch.cjs');
 const { buildCompleteAuditModel } = require('../lib/complete-scan-audit-report.cjs');
-const { sanitizeComplianceBundleExport } = require('../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize');
 const {
     understandCodeSnippet,
     understandFile,
@@ -65,10 +88,11 @@ const {
 } = require('../lib/code-understanding/index.cjs');
 const { listAnalyzeTestSources } = require('../lib/analyze-test-sources.cjs');
 const { scanMockFiles } = require('../routes/repository-scanner-api.cjs');
+const { getLimits } = require('../../../coming-soon/lib/plans.cjs');
 
 // In-memory async scan jobs for /api/analyze/upload-directory polling
 const scanJobs = new Map();
-const SCAN_JOB_TTL_MS = 20 * 60 * 1000; // 20 minutes (covers CLI 15m + analyses timeout)
+const SCAN_JOB_TTL_MS = 20 * constants.ONE_MINUTE_MS; // 20 minutes (covers CLI 15m + analyses timeout)
 setInterval(() => {
     const now = Date.now();
     for (const [id, job] of scanJobs) {
@@ -80,7 +104,7 @@ setInterval(() => {
             scanJobs.delete(id);
         }
     }
-}, 60 * 1000);
+}, constants.ONE_MINUTE_MS);
 const {
     loadAgencyBranding,
     saveAgencyBranding
@@ -92,12 +116,27 @@ const {
 } = require('../lib/code-hygiene-certificate.cjs');
 const { buildAnalyzeExportZipStream } = require('../lib/analyze-export-bundle.cjs');
 const { generateAutomatedVerdict, emailAutomatedVerdict } = require('../lib/ai-analyst.cjs');
+const { DEFAULT_OLLAMA_URL } = require('../services/ollama-client.cjs');
 const { evaluateHumanOversightCompliance } = require('../lib/compliance-rules.cjs');
+const { progressiveAnalysis, ANALYSIS_PROFILES, StreamingAnalyzer } = require('../lib/enhanced-ai-orchestrator.cjs');
+const { getModelManager } = require('../services/enhanced-model-manager.cjs');
+const { detectMLPatterns } = require('../lib/code-understanding/ml-pattern-detector.cjs');
 
+/**
+ * Should log runtime info.
+ * @returns {any}
+ */
 function shouldLogRuntimeInfo() {
     return process.env.LOG_RUNTIME_INFO === 'true' || process.env.RUNTIME_DEBUG === 'true';
 }
 
+/**
+ * With timeout.
+ * @param {any} promise
+ * @param {Array} ms
+ * @param {any} label
+ * @returns {any}
+ */
 function withTimeout(promise, ms, label) {
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
@@ -108,6 +147,11 @@ function withTimeout(promise, ms, label) {
     });
 }
 
+/**
+ * Load user credentials.
+ * @param {any} req
+ * @returns {any}
+ */
 async function loadUserCredentials(req) {
     const email = req.user?.email;
     if (!email) return null;
@@ -118,12 +162,23 @@ async function loadUserCredentials(req) {
     }
 }
 
+/**
+ * Normalize string list.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizeStringList(value) {
     if (!Array.isArray(value)) return [];
     return value.map((item) => String(item || '').trim()).filter(Boolean);
 }
 
-function resolveProjectPath(baseDir, rawPath) {
+/**
+ * Resolve project path.
+ * @param {string} baseDir
+ * @param {string} rawPath
+ * @returns {any}
+ */
+function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
     const trimmedPath = String(rawPath || '').trim();
     if (!trimmedPath) return null;
     if (/^https?:\/\//i.test(trimmedPath)) {
@@ -134,14 +189,32 @@ function resolveProjectPath(baseDir, rawPath) {
         );
     }
     if (path.isAbsolute(trimmedPath)) return path.normalize(trimmedPath);
-    return path.normalize(path.join(baseDir, trimmedPath));
+    const fromBase = path.normalize(path.join(baseDir, trimmedPath));
+    if (fs.existsSync(fromBase)) return fromBase;
+    if (monorepoRoot) {
+        const fromMono = path.normalize(path.join(monorepoRoot, trimmedPath));
+        if (fs.existsSync(fromMono)) return fromMono;
+    }
+    return fromBase;
 }
 
+/**
+ * Is same resolved path.
+ * @param {any} a
+ * @param {any} b
+ * @returns {any}
+ */
 function isSameResolvedPath(a, b) {
     return path.resolve(a).replace(/\\/g, '/').toLowerCase()
         === path.resolve(b).replace(/\\/g, '/').toLowerCase();
 }
 
+/**
+ * Resolve mock scan paths.
+ * @param {string} baseDir
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveMockScanPaths(baseDir, projectPath) {
     if (!projectPath || isSameResolvedPath(projectPath, baseDir)) {
         return [];
@@ -166,17 +239,52 @@ function resolveMockScanPaths(baseDir, projectPath) {
     return [projectPath];
 }
 
+/**
+ * Path looks like mock scan.
+ * @param {string} targetPath
+ * @returns {any}
+ */
 async function pathLooksLikeMockScan(targetPath) {
     try {
         const stat = await fs.promises.stat(targetPath);
         if (!stat.isDirectory()) return false;
-        const entries = await fs.promises.readdir(targetPath);
-        return entries.some((name) => name.endsWith('.json'));
+        const entries = await fs.promises.readdir(targetPath, { withFileTypes: true });
+        const files = entries.filter((e) => e.isFile()).map((e) => e.name);
+        const jsonCount = files.filter((n) => n.endsWith('.json')).length;
+        const sourceCount = files.filter((n) => /\.(js|ts|jsx|tsx|py|cjs|mjs)$/.test(n)).length;
+        // Only a mock-scan directory if it has JSON files but no source code,
+        // or if JSON files dominate and have mock/sample/demo in their names.
+        if (jsonCount === 0) return false;
+        if (sourceCount > 0) return false;
+        const mockNamedCount = files.filter((n) => /mock|sample|demo|fixture/i.test(n)).length;
+        return mockNamedCount > 0 || (jsonCount / files.length) > 0.7;
     } catch {
         return false;
     }
 }
 
+/**
+ * Derive severity counts from an array of findings so the flat response stays consistent.
+ * @param {Array} findings
+ * @returns {Object}
+ */
+function deriveSeverityCounts(findings) {
+    const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    if (!Array.isArray(findings)) return counts;
+    for (const issue of findings) {
+        const band = String(issue.severity || issue.severityBand || 'low').toLowerCase();
+        const increment = typeof issue.count === 'number' && issue.count > 0 ? issue.count : 1;
+        if (counts[band] !== undefined) counts[band] += increment;
+    }
+    return counts;
+}
+
+/**
+ * Resolve analysis type.
+ * @param {any} requestedType
+ * @param {string} targetPath
+ * @returns {any}
+ */
 async function resolveAnalysisType(requestedType, targetPath) {
     const type = String(requestedType || 'auto').toLowerCase();
     const knownTypes = [
@@ -188,6 +296,12 @@ async function resolveAnalysisType(requestedType, targetPath) {
     return (await pathLooksLikeMockScan(targetPath)) ? 'mock-scan' : 'roadmap';
 }
 
+/**
+ * Resolve model id.
+ * @param {string} registry
+ * @param {string} aiProvider
+ * @returns {any}
+ */
 function resolveModelId(registry, aiProvider) {
     const provider = String(aiProvider || 'active').toLowerCase();
     if (provider === 'demo') {
@@ -202,6 +316,12 @@ function resolveModelId(registry, aiProvider) {
     return registry.activeModelId;
 }
 
+/**
+ * Build roadmap from path.
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 async function buildRoadmapFromPath(projectPath, options = {}) {
     const GlobalContextManager = require('../../src/core/GlobalContextManager.cjs');
     const RoadmapDataAnalyzer = require('../../src/core/RoadmapDataAnalyzer.cjs');
@@ -262,12 +382,24 @@ async function buildRoadmapFromPath(projectPath, options = {}) {
     return { roadmap, projectPath: resolvedPath, historyEntry };
 }
 
+/**
+ * Resolve analyze allowed roots.
+ * @param {string} baseDir
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveAnalyzeAllowedRoots(baseDir, options = {}) {
     const monorepoRoot = options.monorepoRoot
         || path.resolve(path.join(baseDir, '..'));
     return resolveDefaultAllowedRoots(baseDir, { monorepoRoot });
 }
 
+/**
+ * Setup flexible analyze a p i.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function setupFlexibleAnalyzeAPI(app, options = {}) {
     const baseDir = options.baseDir || path.join(__dirname, '..', '..');
     const monorepoRoot = options.monorepoRoot || path.resolve(path.join(baseDir, '..'));
@@ -279,6 +411,13 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         || process.env.SIMPLEBEACON_AUDIT_CHECKOUT_URL
         || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 
+/**
+ * Send analyze json.
+ * @param {Array} res
+ * @param {any} payload
+ * @param {any} statusCode
+ * @returns {any}
+ */
     function sendAnalyzeJson(res, payload, statusCode = 200) {
         const stripped = { ...payload };
         delete stripped.projectPath;
@@ -294,6 +433,11 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         return res.status(statusCode).json(body);
     }
 
+/**
+ * Reject paid deliverable.
+ * @param {Array} res
+ * @returns {any}
+ */
     function rejectPaidDeliverable(res) {
         return res.status(402).json({
             success: false,
@@ -339,14 +483,23 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         });
     }
 
+/**
+ * Get allowed roots.
+ * @returns {any}
+ */
     function getAllowedRoots() {
         return resolveAnalyzeAllowedRoots(baseDir, { monorepoRoot });
     }
 
     logResolvedAllowedRoots(getAllowedRoots(), 'analyze-api startup');
 
+/**
+ * Resolve safe project path.
+ * @param {string} rawPath
+ * @returns {any}
+ */
     function resolveSafeProjectPath(rawPath) {
-        const candidate = resolveProjectPath(baseDir, rawPath);
+        const candidate = resolveProjectPath(baseDir, rawPath, monorepoRoot);
         if (!candidate) return null;
         return assertSafeProjectPath(candidate, getAllowedRoots());
     }
@@ -378,7 +531,14 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 understandingModes: [
                     { id: 'off', label: 'Static only', description: 'Pattern-based static analysis without semantic/context layers' },
                     { id: 'deterministic', label: 'Semantic + context', description: 'Business logic heuristics, intent, git/doc context — no LLM' },
-                    { id: 'llm', label: 'AI-enhanced understanding', description: 'Adds AI narrative when a provider is configured' }
+                    { id: 'llm', label: 'AI-enhanced understanding', description: 'Adds AI narrative when a provider is configured' },
+                    { id: 'enhanced', label: 'Enhanced ML patterns', description: 'Machine learning-inspired pattern detection with intelligent fallback' }
+                ],
+                analysisProfiles: [
+                    { id: 'quick', label: 'Quick analysis', description: 'Fast, lightweight analysis for quick feedback' },
+                    { id: 'balanced', label: 'Balanced analysis', description: 'Comprehensive analysis for general use' },
+                    { id: 'comprehensive', label: 'Comprehensive analysis', description: 'Deep analysis with expert reviews' },
+                    { id: 'realtime', label: 'Real-time streaming', description: 'Incremental analysis for live updates' }
                 ],
                 zscriptReport: {
                     endpoint: '/api/analyze/zscript-report',
@@ -433,6 +593,11 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         }
     });
 
+/**
+ * Fetch website to temp.
+ * @param {string} rawUrl
+ * @returns {any}
+ */
     async function fetchWebsiteToTemp(rawUrl) {
         const url = String(rawUrl || '').trim();
         if (!url) throw new Error('URL is required');
@@ -449,7 +614,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         const indexPath = path.join(fetchDir, 'index.html');
         await new Promise((resolve, reject) => {
             const client = parsed.protocol === 'https:' ? https : http;
-            const request = client.get(url, { timeout: 30000, headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' } }, (response) => {
+            const request = client.get(url, { timeout: constants.TIMEOUT_30S, headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' } }, (response) => {
                 if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
                     const redirectUrl = response.headers.location.startsWith('http')
                         ? response.headers.location
@@ -493,7 +658,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 try {
                     const client2 = new URL(assetUrl).protocol === 'https:' ? https : http;
                     await new Promise((res2) => {
-                        const req2 = client2.get(assetUrl, { timeout: 15000, headers: { 'User-Agent': 'Mozilla/5.0' } }, (resp2) => {
+                        const req2 = client2.get(assetUrl, { timeout: constants.TIMEOUT_15S, headers: { 'User-Agent': 'Mozilla/5.0' } }, (resp2) => {
                             if (resp2.statusCode !== 200) return res2();
                             const s2 = fs.createWriteStream(outPath);
                             resp2.pipe(s2);
@@ -514,6 +679,11 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         return fetchDir;
     }
 
+/**
+ * Cleanup website temp.
+ * @param {string} tempDir
+ * @returns {any}
+ */
     async function cleanupWebsiteTemp(tempDir) {
         try {
             await fs.promises.rm(tempDir, { recursive: true, force: true });
@@ -575,11 +745,23 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 const understandingMode = String(body.understandingMode || 'off').toLowerCase();
                 const scanProfile = resolveScanProfile(body, 'dashboard');
                 const scanContext = String(body.context || body.scanContext || body.scanMode || 'dashboard').toLowerCase();
-                let report = await analyzeCodebase(projectPath, {
+                const explicitMaxDeep = Number(body.maxDeepAnalyze);
+                const maxDeepAnalyze = Number.isFinite(explicitMaxDeep) && explicitMaxDeep > 0
+                    ? Math.min(explicitMaxDeep, 10000)
+                    : null;
+                const analyzeOpts = {
                     includeEslint: body.includeEslint === true || scanContext === 'complete',
                     scanProfile,
                     context: scanContext
-                });
+                };
+                if (maxDeepAnalyze != null) {
+                    analyzeOpts.maxDeepAnalyze = maxDeepAnalyze;
+                }
+                let report = await withTimeout(
+                    getAnalyzeCodebase()(projectPath, analyzeOpts),
+                    120_000,
+                    'flexible codebase analysis'
+                );
                 if (understandingMode !== 'off') {
                     const registry = await ensureRegistry(baseDir);
                     const userCredentials = await loadUserCredentials(req);
@@ -599,6 +781,155 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     understandingMode,
                     scanProfile,
                     report
+                });
+            }
+
+            if (analysisType === 'complete') {
+                logger.info(`[Flexible Analyze] Running complete analysis for ${projectPath}`);
+                const results = {};
+                const enginesRun = [];
+
+                // Resolve tier limits for the requesting user
+                const userTier = req.user?.tier || req.body?.tier || 'starter';
+                const tierLimits = getLimits(userTier);
+
+                // Run simplebeacon scan first — its programmatic fallback already calls analyzeCodebase
+                try {
+                    const { runSimplebeaconScan } = require('../../src/api/simplebeacon-api.cjs');
+                    const scanRes = await runSimplebeaconScan(projectPath, {
+                        includeBrowserAnalyzers: true,
+                        tier: userTier
+                    });
+                    results.simplebeacon = scanRes.report || null;
+                    if (scanRes.report) enginesRun.push('simplebeacon');
+                } catch (scanErr) {
+                    logger.warn('[Complete] simplebeacon scan failed:', scanErr.message);
+                }
+
+                // Derive codebase report from simplebeacon scan to avoid double file walk
+                // The simplebeacon programmatic fallback already runs analyzeCodebase
+                const simplebeaconFindings = results.simplebeacon?.findings || results.simplebeacon?.rawIssues || null;
+                if (simplebeaconFindings) {
+                    results.codebase = {
+                        type: 'codebase-analyzer-report',
+                        reportVersion: 1,
+                        title: 'Codebase Analysis Report',
+                        generatedAt: results.simplebeacon.generatedAt,
+                        projectRoot: projectPath,
+                        summary: {
+                            codeFilesAnalyzed: results.simplebeacon.filesAnalyzed ?? results.simplebeacon.ruleScopedFilesAnalyzed ?? results.simplebeacon.repositoryFilesTotal ?? null,
+                            findingsTotal: simplebeaconFindings.length ?? 0,
+                            findingsReturned: simplebeaconFindings.length ?? 0,
+                            healthScore: results.simplebeacon.gate?.score ?? 100,
+                            severityCounts: results.simplebeacon.summary?.severityCounts ?? { high: 0, medium: 0, low: 0 }
+                        },
+                        categories: results.simplebeacon.categories || [],
+                        findings: simplebeaconFindings
+                    };
+                    enginesRun.push('codebase');
+                } else {
+                    // Fallback: run codebase analysis directly if simplebeacon didn't provide findings
+                    try {
+                        results.codebase = await withTimeout(
+                            getAnalyzeCodebase()(projectPath, { includeEslint: false, context: 'complete', scanProfile: 'default', includeBrowserAnalyzers: true }),
+                            90_000,
+                            'complete fallback codebase analysis'
+                        );
+                        enginesRun.push('codebase');
+                    } catch (cbErr) {
+                        logger.warn('[Complete] codebase analysis failed:', cbErr.message);
+                    }
+                }
+
+                // Run file merger reduction, removable files, and npm audit in parallel
+                const [fileReductionResult, removableFilesResult, npmAuditResult] = await Promise.allSettled([
+                    scanFileMergerReduction(projectPath, { includeRepositoryInventory: true }),
+                    scanRemovableFiles(projectPath),
+                    runNpmAuditAsync(projectPath, { force: false })
+                ]);
+
+                if (fileReductionResult.status === 'fulfilled') {
+                    results.fileReduction = fileReductionResult.value;
+                    enginesRun.push('file-reduction');
+                } else {
+                    logger.warn('[Complete] file reduction failed:', fileReductionResult.reason?.message);
+                }
+
+                if (removableFilesResult.status === 'fulfilled') {
+                    results.removableFiles = removableFilesResult.value;
+                    enginesRun.push('removable-files');
+                } else {
+                    logger.warn('[Complete] removable files scan failed:', removableFilesResult.reason?.message);
+                }
+
+                if (npmAuditResult.status === 'fulfilled') {
+                    results.npmAudit = npmAuditResult.value;
+                    enginesRun.push('npm-audit');
+                } else {
+                    logger.warn('[Complete] npm audit failed:', npmAuditResult.reason?.message);
+                }
+
+                // Run data-cleanup scan so compliance can reference cleanup findings
+                try {
+                    results.dataCleanup = await runDataCleanupScan(projectPath, { profile: 'all' });
+                    enginesRun.push('data-cleanup');
+                } catch (cleanupErr) {
+                    logger.warn('[Complete] data-cleanup failed:', cleanupErr.message);
+                }
+
+                // Run compliance checklist after cleanup
+                try {
+                    const dataCleanupForCompliance = results.dataCleanup || results.fileReduction || null;
+                    results.compliance = evaluateComplianceChecklist(results.simplebeacon || {}, {
+                        projectRoot: projectPath,
+                        npmAudit: results.npmAudit,
+                        dataCleanup: dataCleanupForCompliance
+                    });
+                    enginesRun.push('compliance');
+                } catch (complianceErr) {
+                    logger.warn('[Complete] compliance failed:', complianceErr.message);
+                }
+
+                // Build summary
+                const simplebeaconReport = results.simplebeacon;
+                const codebaseReport = results.codebase;
+                const fileReductionReport = results.fileReduction;
+                const dataCleanupReport = results.dataCleanup;
+                const summary = {
+                    stepCount: enginesRun.length,
+                    stepsCompleted: enginesRun.length,
+                    enginesRun,
+                    scanDurationMs: null,
+                    simplebeaconGatePass: simplebeaconReport?.gate?.pass ?? null,
+                    simplebeaconIssues: simplebeaconReport?.gate?.blockingCount ?? simplebeaconReport?.issueCount ?? null,
+                    codebaseHealthScore: tierLimits.showQualityScore ? codebaseReport?.summary?.healthScore ?? null : null,
+                    codebaseFindings: codebaseReport?.summary?.findingsTotal ?? null,
+                    fileReductionFindings: fileReductionReport?.summary?.totalFindings ?? null,
+                    dataCleanupFindings: dataCleanupReport?.summary?.totalFindings ?? null,
+                    compliancePassed: results.compliance?.summary?.passed ?? null,
+                    complianceFailed: results.compliance?.summary?.failed ?? null,
+                    npmVulnerabilities: results.npmAudit?.vulnerabilities?.total ?? null,
+                    handoffEligible: simplebeaconReport?.gate?.pass === true && (codebaseReport?.summary?.healthScore || 100) >= 80,
+                    tier: userTier,
+                    tierLimits: { showQualityScore: tierLimits.showQualityScore }
+                };
+
+                return sendAnalyzeJson(res, {
+                    success: true,
+                    analysisType: 'complete',
+                    aiProvider,
+                    enginesRun,
+                    results,
+                    summary,
+                    completeScan: {
+                        type: 'simplebeacon-complete-scan',
+                        version: '1.3.0',
+                        generatedAt: new Date().toISOString(),
+                        projectPath,
+                        enginesRun,
+                        summary,
+                        results
+                    }
                 });
             }
 
@@ -667,13 +998,271 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         }
     });
 
+    /**
+     * Recursively count files in a directory (for progress tracking).
+     */
+    async function countFiles(dirPath, max = Number.MAX_SAFE_INTEGER) {
+        let count = 0;
+        const queue = [dirPath];
+        const skip = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.cache']);
+        while (queue.length && count < max) {
+            const cur = queue.pop();
+            try {
+                const entries = await fs.promises.readdir(cur, { withFileTypes: true });
+                for (const ent of entries) {
+                    if (ent.isDirectory()) {
+                        if (!skip.has(ent.name)) queue.push(path.join(cur, ent.name));
+                    } else {
+                        count++;
+                    }
+                }
+            } catch { /* ignore permission errors */ }
+        }
+        return Math.min(count, max);
+    }
+
+    /**
+     * Async scan endpoint — creates a scan job and returns scanId immediately.
+     * The client polls /api/analyze/progress?scanId={id} for live updates.
+     */
+    app.post('/api/analyze/scan', async (req, res) => {
+        try {
+            const body = req.body || {};
+            const rawPath = String(body.projectPath || body.path || '').trim();
+            let projectPath;
+            let isWebsite = false;
+            let tempFetchDir = null;
+
+            if (/^https?:\/\//i.test(rawPath)) {
+                isWebsite = true;
+                try {
+                    tempFetchDir = await fetchWebsiteToTemp(rawPath);
+                    projectPath = tempFetchDir;
+                } catch (error) {
+                    return res.status(400).json({ success: false, error: toClientError(error, 'Failed to fetch website') });
+                }
+            } else {
+                try {
+                    projectPath = resolveSafeProjectPath(rawPath);
+                } catch (error) {
+                    return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
+                }
+            }
+            if (!projectPath) {
+                return res.status(400).json({ success: false, error: 'projectPath is required' });
+            }
+
+            const scanId = crypto.randomUUID();
+            const fileCount = isWebsite ? 100 : await countFiles(projectPath);
+            scanJobs.set(scanId, {
+                status: 'scanning',
+                current: 0,
+                total: fileCount,
+                percent: 0,
+                filename: 'Initializing scan…',
+                createdAt: Date.now()
+            });
+
+            // Fire-and-forget background scan
+            (async () => {
+                const startedAt = Date.now();
+                const engines = [];
+                const results = {};
+                let step = 0;
+                const totalSteps = 6;
+
+                const updateProgress = (engineName, detail = '') => {
+                    step++;
+                    scanJobs.set(scanId, {
+                        ...scanJobs.get(scanId),
+                        current: Math.round((step / totalSteps) * fileCount),
+                        percent: Math.round((step / totalSteps) * 100),
+                        filename: detail || `Running ${engineName}…`,
+                        engine: engineName
+                    });
+                };
+
+                try {
+                    // 1. SimpleBeacon scan
+                    updateProgress('simplebeacon', 'Walking files & running rule engines…');
+                    try {
+                        const { runSimplebeaconScan } = require('../../src/api/simplebeacon-api.cjs');
+                        const scanRes = await runSimplebeaconScan(projectPath, {
+                            includeBrowserAnalyzers: true,
+                            fullDirectoryScan: body.fullDirectoryScan === true,
+                            tier: req.user?.tier || body.tier || 'starter'
+                        });
+                        results.simplebeacon = scanRes.report || null;
+                        if (scanRes.report) engines.push('simplebeacon');
+                    } catch (err) {
+                        logger.warn('[Async Scan] simplebeacon failed:', err.message);
+                    }
+
+                    // 2. Codebase analysis (if simplebeacon didn't already do it)
+                    updateProgress('codebase', 'Analyzing code structure & complexity…');
+                    if (!results.simplebeacon?.findings && !results.simplebeacon?.rawIssues) {
+                        try {
+                            results.codebase = await withTimeout(
+                                getAnalyzeCodebase()(projectPath, { includeEslint: false, context: 'complete', scanProfile: 'default', includeBrowserAnalyzers: true }),
+                                90_000,
+                                'async codebase analysis'
+                            );
+                            engines.push('codebase');
+                        } catch (err) {
+                            logger.warn('[Async Scan] codebase failed:', err.message);
+                        }
+                    } else {
+                        const findings = results.simplebeacon.findings || results.simplebeacon.rawIssues || [];
+                        results.codebase = {
+                            type: 'codebase-analyzer-report',
+                            reportVersion: 1,
+                            title: 'Codebase Analysis Report',
+                            generatedAt: results.simplebeacon.generatedAt,
+                            projectRoot: projectPath,
+                            summary: {
+                                codeFilesAnalyzed: results.simplebeacon.filesAnalyzed ?? results.simplebeacon.ruleScopedFilesAnalyzed ?? results.simplebeacon.repositoryFilesTotal ?? null,
+                                findingsTotal: findings.length ?? 0,
+                                findingsReturned: findings.length ?? 0,
+                                healthScore: results.simplebeacon.gate?.score ?? 100,
+                                severityCounts: results.simplebeacon.summary?.severityCounts ?? { high: 0, medium: 0, low: 0 }
+                            },
+                            categories: results.simplebeacon.categories || [],
+                            findings
+                        };
+                        engines.push('codebase');
+                    }
+
+                    // 3. File reduction scan
+                    updateProgress('file-reduction', 'Detecting mergeable & duplicate files…');
+                    try {
+                        results.fileReduction = await scanFileMergerReduction(projectPath, { includeRepositoryInventory: true });
+                        engines.push('file-reduction');
+                    } catch (err) {
+                        logger.warn('[Async Scan] file-reduction failed:', err.message);
+                    }
+
+                    // 4. Removable files scan
+                    updateProgress('removable-files', 'Finding unused & removable assets…');
+                    try {
+                        results.removableFiles = await scanRemovableFiles(projectPath);
+                        engines.push('removable-files');
+                    } catch (err) {
+                        logger.warn('[Async Scan] removable-files failed:', err.message);
+                    }
+
+                    // 5. NPM audit
+                    updateProgress('npm-audit', 'Auditing dependencies for vulnerabilities…');
+                    try {
+                        results.npmAudit = await runNpmAuditAsync(projectPath, { force: false });
+                        engines.push('npm-audit');
+                    } catch (err) {
+                        logger.warn('[Async Scan] npm-audit failed:', err.message);
+                    }
+
+                    // 6. Compliance
+                    updateProgress('compliance', 'Generating compliance checklist…');
+                    try {
+                        results.dataCleanup = await runDataCleanupScan(projectPath, { profile: 'all' });
+                        engines.push('data-cleanup');
+                    } catch (err) {
+                        logger.warn('[Async Scan] data-cleanup failed:', err.message);
+                    }
+                    try {
+                        results.compliance = evaluateComplianceChecklist(results.simplebeacon || {}, {
+                            projectRoot: projectPath,
+                            npmAudit: results.npmAudit,
+                            dataCleanup: results.dataCleanup || results.fileReduction || null
+                        });
+                        engines.push('compliance');
+                    } catch (err) {
+                        logger.warn('[Async Scan] compliance failed:', err.message);
+                    }
+
+                    // Build final report matching the flexible endpoint's complete-scan format
+                    const summary = {
+                        stepCount: engines.length,
+                        stepsCompleted: engines.length,
+                        enginesRun: engines,
+                        scanDurationMs: Date.now() - startedAt,
+                        simplebeaconGatePass: results.simplebeacon?.gate?.pass ?? null,
+                        simplebeaconIssues: results.simplebeacon?.gate?.blockingCount ?? results.simplebeacon?.issueCount ?? null,
+                        codebaseHealthScore: results.codebase?.summary?.healthScore ?? null,
+                        codebaseFindings: results.codebase?.summary?.findingsTotal ?? null,
+                        fileReductionFindings: results.fileReduction?.summary?.totalFindings ?? null,
+                        dataCleanupFindings: results.dataCleanup?.summary?.totalFindings ?? null,
+                        compliancePassed: results.compliance?.summary?.passed ?? null,
+                        complianceFailed: results.compliance?.summary?.failed ?? null,
+                        npmVulnerabilities: results.npmAudit?.vulnerabilities?.total ?? null,
+                        handoffEligible: results.simplebeacon?.gate?.pass === true && (results.codebase?.summary?.healthScore || 100) >= 80,
+                        tier: req.user?.tier || body.tier || 'starter'
+                    };
+
+                    const reportJson = {
+                        success: true,
+                        analysisType: 'complete',
+                        aiProvider: String(body.aiProvider || 'active').toLowerCase(),
+                        enginesRun: engines,
+                        results,
+                        summary,
+                        completeScan: {
+                            type: 'simplebeacon-complete-scan',
+                            version: '1.3.0',
+                            generatedAt: new Date().toISOString(),
+                            projectPath,
+                            enginesRun: engines,
+                            summary,
+                            results
+                        },
+                        // Flatten for backward-compat with extension
+                        detectedIssues: results.simplebeacon?.findings || results.simplebeacon?.rawIssues || results.codebase?.findings || [],
+                        issues: results.simplebeacon?.findings || results.simplebeacon?.rawIssues || results.codebase?.findings || [],
+                        severityCounts: deriveSeverityCounts(results.simplebeacon?.findings || results.simplebeacon?.rawIssues || results.codebase?.findings || []),
+                        integrityScore: results.simplebeacon?.gate?.score ?? results.codebase?.summary?.healthScore ?? 100,
+                        qualityScore: results.simplebeacon?.gate?.score ?? results.codebase?.summary?.healthScore ?? 100,
+                        generatedAt: new Date().toISOString()
+                    };
+
+                    scanJobs.set(scanId, {
+                        ...scanJobs.get(scanId),
+                        status: 'complete',
+                        percent: 100,
+                        current: fileCount,
+                        filename: 'Scan complete',
+                        reportJson
+                    });
+                    logger.info(`[Async Scan] ${scanId} completed in ${Date.now() - startedAt}ms, engines=[${engines.join(',')}]`);
+                } catch (err) {
+                    logger.error('[Async Scan] fatal error:', err.message);
+                    scanJobs.set(scanId, {
+                        ...scanJobs.get(scanId),
+                        status: 'error',
+                        error: err.message || 'Scan failed'
+                    });
+                } finally {
+                    if (tempFetchDir) {
+                        await cleanupWebsiteTemp(tempFetchDir);
+                    }
+                }
+            })();
+
+            return res.json({ success: true, scanId, status: 'scanning' });
+        } catch (error) {
+            res.status(500).json({ success: false, error: toClientError(error, 'Scan request failed') });
+        }
+    });
+
     // ── Directory Upload Analysis ──
 
     const uploadMulter = multer({
         dest: path.join(os.tmpdir(), 'sb-uploads'),
-        limits: { files: 100000, fileSize: 5 * 1024 * 1024 * 1024, fieldSize: 50 * 1024 * 1024 }
+        limits: { files: 100000, fileSize: 5 * constants.BYTES_PER_KB * constants.BYTES_PER_KB * constants.BYTES_PER_KB, fieldSize: 50 * constants.BYTES_PER_KB * constants.BYTES_PER_KB }
     });
 
+/**
+ * Sanitize upload path.
+ * @param {string} rawPath
+ * @returns {any}
+ */
     function sanitizeUploadPath(rawPath) {
         return String(rawPath || '')
             .replace(/^[/\\]+/, '')
@@ -692,6 +1281,11 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         const pathRegex = /[A-Z]:\\Users\\[^\\]+|\\home\\[^/]+|C:\\\\Users\\\\[^\\\\]+/gi;
         const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 
+/**
+ * Scrub.
+ * @param {any} obj
+ * @returns {any}
+ */
         function scrub(obj) {
             if (typeof obj === 'string') {
                 return obj
@@ -717,10 +1311,14 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         return scrub(clone);
     }
 
+/**
+ * Validate license token.
+ * @param {string} token
+ * @returns {any}
+ */
     async function validateLicenseToken(token) {
         const { readStore } = require('../../server/lib/simplebeacon-subscription-store.cjs');
-        const { verifyLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token.js');
-        const store = await readStore();
+                const store = await readStore();
         const record = Object.values(store.subscriptions || {}).find(
             (s) => s.licenseToken === token
         );
@@ -811,7 +1409,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             }
 
             // Write a temp config so the CLI scans everything in the uploaded directory,
-            // instead of inheriting ai-platform's default scanPaths (web/data, tests/fixtures, data)
+            // instead of inheriting ai-platform's default scanPaths (sample dirs, test fixtures, data)
             const tempConfigDir = path.join(projectDir, '.simplebeacon');
             fs.mkdirSync(tempConfigDir, { recursive: true });
             const tempConfigPath = path.join(tempConfigDir, 'config.json');
@@ -866,47 +1464,74 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             (async () => {
                 const scanStart = Date.now();
                 logger.info(`[Upload Directory] Starting scan ${scanId} for ${analysisType}, ${req.files.length} files`);
-                const scanTimeoutMs = 18 * 60 * 1000; // 18 min hard cap for entire scan + analyses
+                const scanTimeoutMs = 18 * constants.ONE_MINUTE_MS; // 18 min hard cap for entire scan + analyses
                 const scanTimer = setTimeout(() => {
                     const job = scanJobs.get(scanId);
                     if (job && job.status === 'scanning') {
                         logger.error(`[Upload Directory] Scan ${scanId} timed out after ${scanTimeoutMs}ms`);
-                        scanJobs.set(scanId, { ...job, status: 'error', error: `Scan timed out after ${scanTimeoutMs / 1000}s` });
+                        scanJobs.set(scanId, { ...job, status: 'error', error: `Scan timed out after ${scanTimeoutMs / constants.MS_PER_SECOND}s` });
                     }
                 }, scanTimeoutMs);
                 let report = null;
                 let cliFailed = false;
-                try {
-                    const cliPath = path.join(baseDir, 'packages/simplebeacon-cli/bin/simplebeacon.js');
-                    const cmd = `node "${cliPath}" scan --path "${projectDir}" --config "${tempConfigPath}" --format json --gate --offline --fullDirectoryScan`;
-                    logger.info(`[Upload Directory] Running CLI scan for ${scanId}...`);
-                    const { stdout } = await execAsync(cmd, {
-                        cwd: baseDir,
-                        maxBuffer: 1024 * 1024 * 1024,
-                        timeout: 900000
-                    });
-                    logger.info(`[Upload Directory] CLI scan completed for ${scanId} in ${(Date.now() - scanStart) / 1000}s`);
-                    try {
-                        report = JSON.parse(stdout);
-                    } catch (parseErr) {
-                        logger.error('[Upload Directory] Failed to parse scan output:', parseErr.message);
-                        scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: 'Scan completed but output parsing failed' });
-                        return;
-                    }
-                } catch (err) {
+                const cliPath = path.join(monorepoRoot, 'packages/simplebeacon-cli/bin/simplebeacon.js');
+                if (!fs.existsSync(cliPath)) {
+                    logger.warn(`[Upload Directory] CLI binary not found at ${cliPath} — falling back to programmatic analysis for ${scanId}`);
                     cliFailed = true;
-                    logger.warn(`[Upload Directory] CLI scan exited non-zero for ${scanId}:`, err.message);
-                    if (err.stdout) {
-                        try {
-                            report = JSON.parse(err.stdout);
-                            logger.info(`[Upload Directory] Parsed gate-fail report for ${scanId}, issues=${report.issueCount || report.gate?.blockingCount || 'n/a'}`);
-                        } catch (parseErr) {
-                            logger.error('[Upload Directory] Failed to parse gate-fail output:', parseErr.message);
-                        }
-                    }
-                    if (!report) {
-                        scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: err.message || 'Analysis failed' });
+                    try {
+                        const analysis = await withTimeout(
+                            getAnalyzeCodebase()(projectDir, { includeEslint: false }),
+                            60_000,
+                            'upload directory codebase analysis'
+                        );
+                        report = {
+                            type: 'simplebeacon-report',
+                            version: '1.0.0',
+                            generatedAt: new Date().toISOString(),
+                            projectPath: projectDir,
+                            summary: analysis.summary || {},
+                            categories: analysis.categories || [],
+                            findings: analysis.findings || [],
+                            gate: { pass: (analysis.summary?.healthScore || 100) >= 80, score: analysis.summary?.healthScore || 100 }
+                        };
+                        logger.info(`[Upload Directory] Programmatic scan completed for ${scanId}, health=${report.gate.score}`);
+                    } catch (progErr) {
+                        logger.error('[Upload Directory] Programmatic fallback failed:', progErr.message);
+                        scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: progErr.message || 'Analysis failed' });
                         return;
+                    }
+                } else {
+                    try {
+                        const cmd = `node "${cliPath}" scan --path "${projectDir}" --config "${tempConfigPath}" --format json --gate --offline --fullDirectoryScan`;
+                        logger.info(`[Upload Directory] Running CLI scan for ${scanId}...`);
+                        const { stdout } = await execAsync(cmd, {
+                            cwd: baseDir,
+                            maxBuffer: constants.BYTES_PER_KB * constants.BYTES_PER_KB * constants.BYTES_PER_KB,
+                            timeout: constants.TIMEOUT_15M
+                        });
+                        logger.info(`[Upload Directory] CLI scan completed for ${scanId} in ${(Date.now() - scanStart) / constants.MS_PER_SECOND}s`);
+                        try {
+                            report = JSON.parse(stdout);
+                        } catch (parseErr) {
+                            logger.error('[Upload Directory] Failed to parse scan output:', parseErr.message);
+                            scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: 'Scan completed but output parsing failed' });
+                            return;
+                        }
+                    } catch (err) {
+                        cliFailed = true;
+                        logger.warn(`[Upload Directory] CLI scan exited non-zero for ${scanId}:`, err.message);
+                        if (err.stdout) {
+                            try {
+                                report = JSON.parse(err.stdout);
+                                logger.info(`[Upload Directory] Parsed gate-fail report for ${scanId}, issues=${report.issueCount || report.gate?.blockingCount || 'n/a'}`);
+                            } catch (parseErr) {
+                                logger.error('[Upload Directory] Failed to parse gate-fail output:', parseErr.message);
+                            }
+                        }
+                        if (!report) {
+                            scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: err.message || 'Analysis failed' });
+                            return;
+                        }
                     }
                 }
 
@@ -915,9 +1540,21 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 const runComplete = analysisType === 'complete';
                 // Tier-aware limits: $19 instant tier does not get executive-tier analyzers
                 const instantTierLimited = licenseTier === 'instant';
+/**
+ * Tier allowed.
+ * @param {any} analyzer
+ * @returns {any}
+ */
                 const tierAllowed = (analyzer) => !instantTierLimited || ['simplebeacon', 'mock-scan', 'codebase'].includes(analyzer);
-                const ANALYZER_TIMEOUT = 600000; // 10 min per analyzer (codebase can be slow)
-                const ANALYZER_TIMEOUT_FAST = 60000; // 1 min for lightweight analyzers
+                const ANALYZER_TIMEOUT = constants.TIMEOUT_10M; // 10 min per analyzer (codebase can be slow)
+                const ANALYZER_TIMEOUT_FAST = constants.TIMEOUT_1M; // 1 min for lightweight analyzers
+/**
+ * Run analyzer.
+ * @param {any} label
+ * @param {Function} fn
+ * @param {Array} timeoutMs
+ * @returns {any}
+ */
                 const runAnalyzer = async (label, fn, timeoutMs = ANALYZER_TIMEOUT) => {
                     const t0 = Date.now();
                     logger.info(`[Upload Directory] Starting analyzer: ${label} (timeout ${timeoutMs}ms)`);
@@ -932,19 +1569,19 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 };
 
                 if ((analysisType === 'codebase' || runComplete) && tierAllowed('codebase')) {
-                    results.codebase = await runAnalyzer('codebase', () => analyzeCodebase(projectDir, { context: 'dashboard', scanProfile: 'default' }));
+                    results.codebase = await runAnalyzer('codebase', () => getAnalyzeCodebase()(projectDir, { context: 'dashboard', scanProfile: 'default' }));
                 }
                 if ((analysisType === 'npm-audit' || runComplete) && tierAllowed('npm-audit')) {
                     results.npmAudit = await runAnalyzer('npm-audit', () => runNpmAuditAsync(projectDir, { force: false }));
                 }
-                if ((analysisType === 'compliance' || runComplete) && tierAllowed('compliance')) {
-                    results.compliance = await runAnalyzer('compliance', () => Promise.resolve(evaluateComplianceChecklist(report)));
-                }
-                if (analysisType === 'data-cleanup' && tierAllowed('data-cleanup')) {
+                if ((analysisType === 'data-cleanup' || runComplete) && tierAllowed('data-cleanup')) {
                     results.dataCleanup = await runAnalyzer('data-cleanup', () => runDataCleanupScan(projectDir, { profile: 'all' }));
                 }
                 if ((analysisType === 'file-reduction' || runComplete) && tierAllowed('file-reduction')) {
                     results.fileReduction = await runAnalyzer('file-reduction', () => scanFileMergerReduction(projectDir, { includeRepositoryInventory: true }));
+                }
+                if ((analysisType === 'removable-files' || runComplete) && tierAllowed('removable-files')) {
+                    results.removableFiles = await runAnalyzer('removable-files', () => scanRemovableFiles(projectDir));
                 }
                 if ((analysisType === 'roadmap' || runComplete) && tierAllowed('roadmap')) {
                     results.roadmap = await runAnalyzer('roadmap', () => generateCodeRoadmap(projectDir, {}, { scanReport: report, includeFiles: true }));
@@ -980,6 +1617,15 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         };
                         return { brief, fileReduction, dataQuality, repositoryInventory: inventory };
                     });
+                }
+                // Compliance runs after cleanup so it can reference cleanup findings
+                if ((analysisType === 'compliance' || runComplete) && tierAllowed('compliance')) {
+                    const dataCleanupForCompliance = results.dataCleanup || results.cleanupAssistant?.fileReduction || results.fileReduction || null;
+                    results.compliance = await runAnalyzer('compliance', () => Promise.resolve(evaluateComplianceChecklist(report, {
+                        projectRoot: projectDir,
+                        npmAudit: results.npmAudit,
+                        dataCleanup: dataCleanupForCompliance
+                    })));
                 }
                 if ((analysisType === 'consolidation' || runComplete) && tierAllowed('consolidation')) {
                     results.consolidation = await runAnalyzer('consolidation', () => buildCompleteAuditModel({ results }));
@@ -1029,6 +1675,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     'codebase': results.codebase, 'npm-audit': results.npmAudit, 'compliance': results.compliance,
                     'data-cleanup': results.dataCleanup, 'data-quality': results.dataQuality, 'cleanup-assistant': results.cleanupAssistant,
                     'file-reduction': results.fileReduction, 'roadmap': results.roadmap,
+                    'removable-files': results.removableFiles,
                     'consolidation': results.consolidation, 'mock-scan': results.mockScan, 'eu-ai-act': results.euAiAct
                 };
                 if (analysisType !== 'simplebeacon' && analysisType !== 'complete' && typeMap[analysisType]) {
@@ -1043,6 +1690,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                             'data-quality': '_dataQualityAnalysis',
                             'cleanup-assistant': '_cleanupAssistantAnalysis',
                             'file-reduction': '_fileReductionAnalysis',
+                            'removable-files': '_removableFilesAnalysis',
                             'roadmap': '_roadmapAnalysis',
                             'consolidation': '_consolidationAnalysis',
                             'mock-scan': '_mockScanAnalysis',
@@ -1058,20 +1706,22 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     reportJson = { ...report, _completeResults: results };
                 }
 
-                // Override temp directory path with original project name from upload
+                // Override temp directory path with original project name from upload for display,
+                // but keep absolute projectDir so downstream fs-based checks (buildReadiness, etc.) work
                 const originalDirName = (filePaths[0] && String(filePaths[0]).includes('/'))
                     ? String(filePaths[0]).split('/')[0]
                     : (filePaths[0] && String(filePaths[0]).includes('\\'))
                         ? String(filePaths[0]).split('\\')[0]
                         : (req.body?.projectName || 'project');
                 if (reportJson && typeof reportJson === 'object') {
-                    if (reportJson.projectRoot) reportJson.projectRoot = originalDirName;
-                    if (reportJson.projectPath) reportJson.projectPath = originalDirName;
-                    if (reportJson.scanTargetRoot) reportJson.scanTargetRoot = originalDirName;
+                    if (reportJson.projectRoot) reportJson.projectRoot = projectDir;
+                    if (reportJson.projectPath) reportJson.projectPath = projectDir;
+                    if (reportJson.scanTargetRoot) reportJson.scanTargetRoot = projectDir;
+                    reportJson.projectName = originalDirName;
                 }
 
                 clearTimeout(scanTimer);
-                logger.info(`[Upload Directory] Scan ${scanId} completed successfully in ${(Date.now() - scanStart) / 1000}s`);
+                logger.info(`[Upload Directory] Scan ${scanId} completed successfully in ${(Date.now() - scanStart) / constants.MS_PER_SECOND}s`);
                 scanJobs.set(scanId, {
                     ...scanJobs.get(scanId),
                     status: 'complete',
@@ -1180,12 +1830,25 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const understandingMode = String(req.query.understandingMode || 'deterministic').toLowerCase();
             const startedAt = Date.now();
             logger.info(`[analyze] codebase start path=${projectPath} profile=${scanProfile} context=${scanContext}`);
-            let report = await analyzeCodebase(projectPath, {
-                includeEslint: req.query.eslint === '1' || req.query.includeEslint === 'true' || scanContext === 'complete',
+            const explicitMaxDeep = Number(req.query.maxDeepAnalyze);
+            const maxDeepAnalyze = Number.isFinite(explicitMaxDeep) && explicitMaxDeep > 0
+                ? Math.min(explicitMaxDeep, 10000)
+                : null;
+            const analyzeOptions = {
+                includeEslint: req.query.includeEslint === 'true',
                 scanProfile,
                 context: scanContext,
-                maxDeepAnalyze: req.query.maxDeepAnalyze ? Number(req.query.maxDeepAnalyze) : undefined
-            });
+                includeBrowserAnalyzers: req.query.includeBrowserAnalyzers === '1' || req.query.includeBrowserAnalyzers === 'true',
+                includeAllFiles: req.query.includeAllFiles === '1' || req.query.includeAllFiles === 'true'
+            };
+            if (maxDeepAnalyze != null) {
+                analyzeOptions.maxDeepAnalyze = maxDeepAnalyze;
+            }
+            let report = await withTimeout(
+                getAnalyzeCodebase()(projectPath, analyzeOptions),
+                120_000,
+                'codebase analysis'
+            );
             logger.info(`[analyze] codebase done path=${projectPath} context=${scanContext} ms=${Date.now() - startedAt} analyzed=${report.summary?.codeFilesAnalyzed ?? '—'}/${report.summary?.codeFilesDiscovered ?? '—'}`);
             if (understandingMode !== 'off') {
                 const registry = await ensureRegistry(baseDir);
@@ -1217,9 +1880,12 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             if (!projectPath) {
                 return res.status(400).json({ success: false, error: 'projectPath is required' });
             }
-            const inventory = await countRepositoryInventory(projectPath, {
-                profile: req.query.profile || 'explorer'
-            });
+            const profile = req.query.profile || 'all';
+            const inventoryOptions = { profile };
+            if (profile !== 'all' && req.query.fullDirectoryScan !== 'true' && req.query.fullDirectoryScan !== '1') {
+                inventoryOptions.skipDirs = ['node_modules', '.git'];
+            }
+            const inventory = await countRepositoryInventory(projectPath, inventoryOptions);
             return res.json({ success: true, inventory });
         } catch (error) {
             return res.status(400).json({ success: false, error: toClientError(error, 'Inventory scan failed') });
@@ -1376,6 +2042,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     });
 
     app.post('/api/analyze/export-bundle', async (req, res) => {
+        console.log('[DEBUG] /api/analyze/export-bundle route entered');
         try {
             const body = req.body || {};
             const {
@@ -1385,12 +2052,14 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const rawScan = body.completeScan || body.report;
             const completeScan = normalizeCompleteScanInput(rawScan) || rawScan;
             if (!completeScan || typeof completeScan !== 'object') {
+                console.log('[DEBUG] export-bundle: missing completeScan');
                 return res.status(400).json({
                     success: false,
                     error: 'completeScan payload is required — run Complete scan first, then export ZIP.'
                 });
             }
             if (!completeScanHasExportableResults(completeScan)) {
+                console.log('[DEBUG] export-bundle: no exportable results');
                 return res.status(400).json({
                     success: false,
                     error: 'Export bundle requires at least one completed scan step with results.'
@@ -1400,6 +2069,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const internalDashboard = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true'
                 || body.internalDashboard === true;
 
+            console.log('[DEBUG] export-bundle: calling buildAnalyzeExportZipStream');
             const { buildAnalyzeExportZipStream } = require('../lib/analyze-export-bundle.cjs');
             let zipResult;
             try {
@@ -1418,9 +2088,18 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     aiProvider: body.aiProvider || 'demo',
                     selectedEngines: normalizeStringList(body.selectedEngines),
                     enginesRun: normalizeStringList(body.enginesRun),
-                    baseDir
+                    credentials: body.credentials,
+                    baseDir,
+                    outputStream: res,
+                    setHeaders: () => {
+                        res.set('Cache-Control', 'no-store');
+                        res.set('Content-Type', 'application/zip');
+                        res.set('Content-Disposition', 'attachment; filename="simplebeacon-export.zip"');
+                    }
                 });
+                console.log('[DEBUG] export-bundle: ZIP streamed, filename', zipResult.filename);
             } catch (error) {
+                console.log('[DEBUG] export-bundle: error during ZIP generation:', error.message);
                 if (error.code === 'export_paywall') {
                     return res.status(402).json({
                         success: false,
@@ -1437,14 +2116,8 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 }
                 throw error;
             }
-            res.set('Cache-Control', 'no-store');
-            res.set('Content-Type', 'application/zip');
-            res.set('Content-Disposition', `attachment; filename="${zipResult.filename}"`);
-            res.set('X-Simplebeacon-Export-Tier', zipResult.tierId || '');
-            if (zipResult.warnings?.length) {
-                res.set('X-Simplebeacon-Export-Warnings', sanitizeHttpHeaderValue(zipResult.warnings.join('|')));
-            }
-            zipResult.stream.pipe(res);
+            // Headers already sent; archive was piped to res by buildAnalyzeExportZipStream
+            console.log('[DEBUG] export-bundle: response streamed');
         } catch (error) {
             logger.warn('[export-bundle] generation failed', { error: error.message });
             return res.status(400).json({ success: false, error: toClientError(error, 'Export bundle generation failed') });
@@ -1622,6 +2295,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 company: clientName,
                 projectName: body.projectName,
                 assessor: body.assessor,
+                credentials: body.credentials,
                 aiProvider: providerOpts?.providerId || aiProvider,
                 summarizeFn: providerOpts
                     ? async (providerId, payload, _opts) => summarizeScanWithProvider(
@@ -1655,6 +2329,46 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         } catch (error) {
             logger.warn('[complete-audit-report] generation failed', { error: error.message });
             return res.status(400).json({ success: false, error: toClientError(error, 'Audit report generation failed') });
+        }
+    });
+
+    app.get('/api/analyze/list-directories', async (req, res) => {
+        try {
+            const rawPath = String(req.query.path || '');
+            if (!rawPath) {
+                return res.status(400).json({ success: false, error: 'path query parameter is required' });
+            }
+            const allowedRoots = resolveDefaultAllowedRoots(baseDir, { monorepoRoot });
+            const candidate = resolveProjectPath(baseDir, rawPath, monorepoRoot);
+            let targetPath;
+            try {
+                targetPath = assertSafeProjectPath(candidate, allowedRoots, 'path');
+            } catch (e) {
+                return res.status(403).json({ success: false, error: e.message });
+            }
+            const stat = await fs.promises.stat(targetPath);
+            if (!stat.isDirectory()) {
+                return res.status(400).json({ success: false, error: 'path is not a directory' });
+            }
+            const entries = await fs.promises.readdir(targetPath, { withFileTypes: true });
+            const dirs = entries
+                .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+                .map((entry) => ({
+                    name: entry.name,
+                    path: path.join(targetPath, entry.name).replace(/\\/g, '/')
+                }))
+                .sort((a, b) => a.name.localeCompare(b.name));
+            const parent = path.dirname(targetPath).replace(/\\/g, '/');
+            const isRoot = targetPath === parent || !isPathWithinRoots(parent, allowedRoots);
+            res.json({
+                success: true,
+                current: targetPath.replace(/\\/g, '/'),
+                parent: isRoot ? null : parent,
+                directories: dirs
+            });
+        } catch (error) {
+            logger.warn('[list-directories] failed', { error: error.message });
+            return res.status(400).json({ success: false, error: toClientError(error, 'Directory listing failed') });
         }
     });
 
@@ -1765,9 +2479,20 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 }
             }
 
+            // Run data-cleanup scan so compliance can reference cleanup findings
+            let dataCleanup = body.dataCleanup || null;
+            if (!dataCleanup) {
+                try {
+                    dataCleanup = await runDataCleanupScan(resolvedRoot, { profile: 'all' });
+                } catch {
+                    dataCleanup = null;
+                }
+            }
+
             const complianceChecklist = evaluateComplianceChecklist(report, {
                 projectRoot: resolvedRoot,
                 npmAudit,
+                dataCleanup,
                 checklistProfile: body.checklistProfile || body.checklist || undefined,
                 productionProfile: body.productionProfile
             });
@@ -1789,6 +2514,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 success: true,
                 complianceChecklist,
                 complianceExport,
+                dataCleanup,
                 npmAuditSource: npmAudit?.dataSource || npmAudit?.source || null
             });
         } catch (error) {
@@ -1796,6 +2522,35 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 success: false,
                 error: toClientError(error, 'Compliance checklist failed')
             });
+        }
+    });
+
+    app.post('/api/analyze/github-clone', async (req, res) => {
+        const body = req.body || {};
+        const repoUrl = String(body.repoUrl || '').trim();
+        if (!repoUrl) {
+            return res.status(400).json({ success: false, error: 'repoUrl is required' });
+        }
+        const refresh = body.refresh === true;
+        const cacheKey = crypto.createHash('sha256').update(repoUrl).digest('hex').slice(0, 16);
+        const cacheDir = path.join(os.tmpdir(), 'sb-github-cache');
+        const projectPath = path.join(cacheDir, cacheKey);
+        try {
+            if (!refresh && fs.existsSync(projectPath)) {
+                return res.json({ success: true, projectPath, cached: true });
+            }
+            fs.mkdirSync(cacheDir, { recursive: true });
+            if (fs.existsSync(projectPath)) {
+                fs.rmSync(projectPath, { recursive: true, force: true });
+            }
+            const { stdout, stderr } = await execAsync(`git clone --depth 1 "${repoUrl.replace(/"/g, '')}" "${projectPath}"`, { timeout: 120000 });
+            if (stderr && !stderr.includes('Cloning into')) {
+                logger.warn('[GitHub Clone] stderr:', stderr);
+            }
+            return res.json({ success: true, projectPath, cached: false });
+        } catch (err) {
+            logger.error('[GitHub Clone] failed:', err.message);
+            return res.status(500).json({ success: false, error: err.message || 'Git clone failed' });
         }
     });
 
@@ -1854,7 +2609,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         next(err);
     });
     const uploadDirLimiter = rateLimit({
-        windowMs: 15 * 60 * 1000,
+        windowMs: constants.RATE_LIMIT_WINDOW_MS,
         max: 5,
         message: { success: false, error: 'Too many upload requests. Please try again in 15 minutes.' },
         standardHeaders: true,
@@ -1862,7 +2617,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     });
     const uploadDirMulter = multer({
         storage: multer.memoryStorage(),
-        limits: { files: 100000, fileSize: 5 * 1024 * 1024 * 1024, fieldSize: 50 * 1024 * 1024 },
+        limits: { files: 100000, fileSize: 5 * constants.BYTES_PER_KB * constants.BYTES_PER_KB * constants.BYTES_PER_KB, fieldSize: 50 * constants.BYTES_PER_KB * constants.BYTES_PER_KB },
         fileFilter: (req, file, cb) => {
             // Accept all file types for directory uploads
             cb(null, true);
@@ -1914,58 +2669,93 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             logger.info(`[Upload Directory] Received ${req.files.length} files, wrote to ${tmpDir}`);
 
             // Run Simplebeacon scan on the temp directory (always run as baseline)
-            const cliBin = path.join(baseDir, 'packages/simplebeacon-cli/bin/simplebeacon.js');
-            const reportOut = path.join(tmpDir, '.simplebeacon', 'report.json'); // simplebeacon:production-leak-intent: scan-output - Defines temp scan report output path
+            const cliBin = path.join(monorepoRoot, 'packages/simplebeacon-cli/bin/simplebeacon.js');
+            const reportOut = path.join(tmpDir, '.simplebeacon', 'report.json');
             fs.mkdirSync(path.dirname(reportOut), { recursive: true });
 
-            // simplebeacon:production-leak-intent: config-comment - Explains temp scan config override behavior
-            // Write a temp config so scanPaths points to the root, not default web/data
-            const tempConfigPath = path.join(tmpDir, '.simplebeacon', 'config.json');
-            fs.writeFileSync(tempConfigPath, JSON.stringify({
-                scanPaths: ['.'],
-                productionPaths: ['.'],
-                fullDirectoryScan: true,
-                ignore: [
-                    '*.log', '*.backup.*', '*.tmp',
-                    'node_modules/**', '.git/**', 'coverage/**',
-                    'dist/**', 'build/**', '.github/**',
-                    '**/*.test.js', '**/*.spec.js',
-                    '**/*.test.ts', '**/*.spec.ts',
-                    '**/*.map', '**/*.min.js', '**/*.min.css',
-                    '**/*.d.ts', '**/*.lock', '**/*.lockb',
-                    'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
-                    '.DS_Store', 'Thumbs.db',
-                    '*.woff', '*.woff2', '*.ttf', '*.eot',
-                    '*.png', '*.jpg', '*.jpeg', '*.gif', '*.svg', '*.ico',
-                    '*.mp4', '*.webm', '*.mp3', '*.wav',
-                    '*.pdf', '*.doc', '*.docx', '*.zip', '*.tar', '*.gz',
-                    '**/cp*.json', '**/euc*.json', '**/gbk*.json',
-                    '**/shiftjis.json', '**/big5*.json', '**/encoding*.json',
-                    '**/codes.json', '**/dbcs*.js', '**/dbcs*.json'
-                ],
-                fullDirectoryScanSkipDirs: ['.git', 'node_modules', 'coverage', 'dist', 'build', '.simplebeacon', 'tmp']
-            }, null, 2));
+            let report = null;
+            if (!fs.existsSync(cliBin)) {
+                logger.warn(`[Upload Directory] CLI binary not found at ${cliBin} — falling back to programmatic analysis`);
+                try {
+                    const analysis = await withTimeout(
+                        getAnalyzeCodebase()(tmpDir, { includeEslint: false, maxDeepAnalyze: 3000, context: 'dashboard', scanProfile: 'universal' }),
+                        60_000,
+                        'upload directory codebase analysis'
+                    );
+                    report = {
+                        type: 'simplebeacon-report',
+                        version: '1.0.0',
+                        generatedAt: new Date().toISOString(),
+                        projectPath: tmpDir,
+                        summary: analysis.summary || {},
+                        categories: analysis.categories || [],
+                        findings: analysis.findings || [],
+                        gate: { pass: (analysis.summary?.healthScore || 100) >= 80, score: analysis.summary?.healthScore || 100 }
+                    };
+                    await fs.promises.writeFile(reportOut, JSON.stringify(report, null, 2));
+                    logger.info(`[Upload Directory] Programmatic scan completed, health=${report.gate.score}`);
+                } catch (progErr) {
+                    logger.error('[Upload Directory] Programmatic fallback failed:', progErr.message);
+                    throw progErr;
+                }
+            } else {
+                // simplebeacon:production-leak-intent: config-comment - Explains temp scan config override behavior
+                // Write a temp config so scanPaths points to the root, not the default sample directories
+                const tempConfigPath = path.join(tmpDir, '.simplebeacon', 'config.json');
+                fs.writeFileSync(tempConfigPath, JSON.stringify({
+                    scanPaths: ['.'],
+                    productionPaths: ['.'],
+                    fullDirectoryScan: true,
+                    ignore: [
+                        '*.log', '*.backup.*', '*.tmp',
+                        'node_modules/**', '.git/**', 'coverage/**',
+                        'dist/**', 'build/**', '.github/**',
+                        '**/*.test.js', '**/*.spec.js',
+                        '**/*.test.ts', '**/*.spec.ts',
+                        '**/*.map', '**/*.min.js', '**/*.min.css',
+                        '**/*.d.ts', '**/*.lock', '**/*.lockb',
+                        'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+                        '.DS_Store', 'Thumbs.db',
+                        '*.woff', '*.woff2', '*.ttf', '*.eot',
+                        '*.png', '*.jpg', '*.jpeg', '*.gif', '*.svg', '*.ico',
+                        '*.mp4', '*.webm', '*.mp3', '*.wav',
+                        '*.pdf', '*.doc', '*.docx', '*.zip', '*.tar', '*.gz',
+                        '**/cp*.json', '**/euc*.json', '**/gbk*.json',
+                        '**/shiftjis.json', '**/big5*.json', '**/encoding*.json',
+                        '**/codes.json', '**/dbcs*.js', '**/dbcs*.json'
+                    ],
+                    fullDirectoryScanSkipDirs: ['.git', 'node_modules', 'coverage', 'dist', 'build', '.simplebeacon', 'tmp']
+                }, null, 2));
 
-            const scanCmd = `node "${cliBin}" scan --path "${tmpDir}" --config "${tempConfigPath}" --format json --output "${reportOut}" --offline --full`;
-            let stdout = '';
-            let stderr = '';
-            try {
-                const result = await execAsync(scanCmd, { cwd: baseDir, timeout: 300000, env: { ...process.env, FORCE_COLOR: '0' } });
-                stdout = result.stdout || '';
-                stderr = result.stderr || '';
-            } catch (err) {
-                stdout = err.stdout || '';
-                stderr = err.stderr || '';
-                try { await fs.promises.access(reportOut); } catch { throw err; }
+                const scanCmd = `node "${cliBin}" scan --path "${tmpDir}" --config "${tempConfigPath}" --format json --output "${reportOut}" --offline --full`;
+                let stdout = '';
+                let stderr = '';
+                try {
+                    const result = await execAsync(scanCmd, { cwd: baseDir, timeout: Number(process.env.SIMPLEBEACON_SCAN_TIMEOUT_MS) || constants.TIMEOUT_10M, env: { ...process.env, FORCE_COLOR: '0' } });
+                    stdout = result.stdout || '';
+                    stderr = result.stderr || '';
+                } catch (err) {
+                    stdout = err.stdout || '';
+                    stderr = err.stderr || '';
+                    try { await fs.promises.access(reportOut); } catch { throw err; }
+                }
+
+                report = JSON.parse(await fs.promises.readFile(reportOut, 'utf8'));
+                report = patchRemediationPhases(report);
+                logger.info(`[Upload Directory] Scan found: totalFiles=${report.totalFiles || report.repositoryFilesTotal || 'n/a'}, scanned=${report.ruleScopedFilesAnalyzed || 'n/a'}, issues=${report.issueCount || report.gate?.blockingCount || 'n/a'}`);
             }
-
-            const report = JSON.parse(await fs.promises.readFile(reportOut, 'utf8'));
-            logger.info(`[Upload Directory] Scan found: totalFiles=${report.totalFiles || report.repositoryFilesTotal || 'n/a'}, scanned=${report.ruleScopedFilesAnalyzed || 'n/a'}, issues=${report.issueCount || report.gate?.blockingCount || 'n/a'}`);
             const results = { simplebeacon: report };
 
             // Run additional analyses based on selected analysis type
             const runComplete = analysisType === 'complete';
-            const ANALYZER_TIMEOUT = 600000; // 10 min per analyzer
+            const ANALYZER_TIMEOUT = constants.TIMEOUT_10M; // 10 min per analyzer
+/**
+ * Run analyzer.
+ * @param {any} label
+ * @param {Function} fn
+ * @param {Array} timeoutMs
+ * @returns {any}
+ */
             const runAnalyzer = async (label, fn, timeoutMs = ANALYZER_TIMEOUT) => {
                 const t0 = Date.now();
                 logger.info(`[Upload Directory] Starting analyzer: ${label} (timeout ${timeoutMs}ms)`);
@@ -1980,19 +2770,27 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             };
 
             if (analysisType === 'codebase' || runComplete) {
-                results.codebase = await runAnalyzer('codebase', () => analyzeCodebase(tmpDir, { context: 'dashboard', scanProfile: 'default' }));
+                results.codebase = await runAnalyzer('codebase', () => getAnalyzeCodebase()(tmpDir, { context: 'dashboard', scanProfile: 'universal' }));
             }
             if (analysisType === 'npm-audit' || runComplete) {
                 results.npmAudit = await runAnalyzer('npm-audit', () => runNpmAuditAsync(tmpDir, { force: false }));
             }
-            if (analysisType === 'compliance' || runComplete) {
-                results.compliance = await runAnalyzer('compliance', () => Promise.resolve(evaluateComplianceChecklist(report)));
-            }
-            if (analysisType === 'data-cleanup') {
+            if (analysisType === 'data-cleanup' || runComplete) {
                 results.dataCleanup = await runAnalyzer('data-cleanup', () => runDataCleanupScan(tmpDir, { profile: 'all' }));
+            }
+            if (analysisType === 'compliance' || runComplete) {
+                const dataCleanupForCompliance = results.dataCleanup || results.cleanupAssistant?.fileReduction || results.fileReduction || null;
+                results.compliance = await runAnalyzer('compliance', () => Promise.resolve(evaluateComplianceChecklist(report, {
+                    projectRoot: tmpDir,
+                    npmAudit: results.npmAudit,
+                    dataCleanup: dataCleanupForCompliance
+                })));
             }
             if (analysisType === 'file-reduction' || runComplete) {
                 results.fileReduction = await runAnalyzer('file-reduction', () => scanFileMergerReduction(tmpDir, { includeRepositoryInventory: true }));
+            }
+            if (analysisType === 'removable-files' || runComplete) {
+                results.removableFiles = await runAnalyzer('removable-files', () => scanRemovableFiles(tmpDir));
             }
             if (analysisType === 'roadmap' || runComplete) {
                 results.roadmap = await runAnalyzer('roadmap', () => generateCodeRoadmap(tmpDir, {}, { scanReport: report, includeFiles: true }));
@@ -2051,6 +2849,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         const reportModulePath = require.resolve('../lib/eu-ai-act-audit-report.cjs');
                         if (process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true') delete require.cache[reportModulePath];
                         const { buildEuAiActAuditReport } = require('../lib/eu-ai-act-audit-report.cjs');
+
                         return await buildEuAiActAuditReport({
                             projectPath: tmpDir,
                             artifacts: {
@@ -2191,16 +2990,19 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 };
             }
 
-            // Override temp directory path with original project name from upload
+            // Override temp directory path with original project name from upload for display,
+            // but keep absolute projectDir so downstream fs-based checks (buildReadiness, etc.) work
             const originalDirName2 = (filePaths2[0] && String(filePaths2[0]).includes('/'))
                 ? String(filePaths2[0]).split('/')[0]
                 : (filePaths2[0] && String(filePaths2[0]).includes('\\'))
                     ? String(filePaths2[0]).split('\\')[0]
                     : (req.body?.projectName || 'project');
             if (reportJson && typeof reportJson === 'object') {
-                if (reportJson.projectRoot) reportJson.projectRoot = originalDirName2;
-                if (reportJson.projectPath) reportJson.projectPath = originalDirName2;
-                if (reportJson.scanTargetRoot) reportJson.scanTargetRoot = originalDirName2;
+                if (reportJson.projectRoot) reportJson.projectRoot = tmpDir;
+                if (reportJson.projectPath) reportJson.projectPath = tmpDir;
+                if (reportJson.scanTargetRoot) reportJson.scanTargetRoot = tmpDir;
+                // Add display-friendly name separately
+                reportJson.projectName = originalDirName2;
             }
 
             res.json({
@@ -2228,7 +3030,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 } catch (e) {
                     logger.warn('[Upload Directory] Cleanup failed:', e.message);
                 }
-            }, 5000);
+            }, constants.TIMEOUT_5S);
         }
     });
 
@@ -2237,12 +3039,23 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     }
 }
 
+/**
+ * Count issues by kind.
+ * @param {Array} issues
+ * @param {any} pattern
+ * @returns {any}
+ */
 function countIssuesByKind(issues, pattern) {
     return (issues || [])
         .filter((item) => pattern.test(String(item.type || '')))
         .reduce((sum, item) => sum + (item.count || 1), 0);
 }
 
+/**
+ * Issue breakdown from list.
+ * @param {Array} issues
+ * @returns {any}
+ */
 function issueBreakdownFromList(issues) {
     return {
         productionLeaks: countIssuesByKind(issues, /production leak/i),
@@ -2252,6 +3065,12 @@ function issueBreakdownFromList(issues) {
     };
 }
 
+/**
+ * Normalize report for summary.
+ * @param {number} report
+ * @param {number} reportType
+ * @returns {any}
+ */
 function normalizeReportForSummary(report, reportType = '') {
     const type = reportType || report.type || '';
 
@@ -2374,6 +3193,12 @@ function normalizeReportForSummary(report, reportType = '') {
     };
 }
 
+/**
+ * Resolve ollama summary provider.
+ * @param {string} registry
+ * @param {Array} userCredentials
+ * @returns {any}
+ */
 function resolveOllamaSummaryProvider(registry, userCredentials = null) {
     const ollamaModel = userCredentials?.ollamaModel
         || process.env.OLLAMA_MODEL
@@ -2383,13 +3208,20 @@ function resolveOllamaSummaryProvider(registry, userCredentials = null) {
     const baseUrl = userCredentials?.ollamaBaseUrl
         || registry?.ollamaBaseUrl
         || process.env.OLLAMA_BASE_URL
-        || 'http://127.0.0.1:11434';
+        || DEFAULT_OLLAMA_URL;
     if (!baseUrl) return null;
     return ollamaModel
         ? { providerId: 'ollama', ollamaModel }
         : { providerId: 'ollama' };
 }
 
+/**
+ * Resolve summary provider.
+ * @param {string} aiProvider
+ * @param {string} registry
+ * @param {Array} userCredentials
+ * @returns {any}
+ */
 function resolveSummaryProvider(aiProvider, registry, userCredentials = null) {
     if (aiProvider === 'demo') return null;
 
@@ -2417,5 +3249,5 @@ module.exports = {
     buildRoadmapFromPath,
     normalizeReportForSummary,
     resolveSummaryProvider,
-    analyzeCodebase
+    analyzeCodebase: getAnalyzeCodebase
 };

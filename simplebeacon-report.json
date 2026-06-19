@@ -1,0 +1,508 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-19T03:24:26.678Z",
+  "generatedBy": "SimpleBeacon",
+  "totalFiles": 1771,
+  "filesAnalyzed": 482,
+  "ruleScopedFilesAnalyzed": 482,
+  "issueCount": 0,
+  "qualityScore": 100,
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high",
+      "critical"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 0,
+    "blockingIssues": [],
+    "warningIssues": []
+  },
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "type": "security",
+      "description": "security finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "security",
+      "description": "security finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "security",
+      "description": "security finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "security",
+      "description": "security finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "security",
+      "description": "security finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "debug",
+      "description": "debug finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "debug",
+      "description": "debug finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "debug",
+      "description": "debug finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "debug",
+      "description": "debug finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "debug",
+      "description": "debug finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "accessibility",
+      "description": "accessibility finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "accessibility",
+      "description": "accessibility finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "accessibility",
+      "description": "accessibility finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    }
+  ],
+  "rawIssues": [
+    {
+      "severity": "low",
+      "type": "security",
+      "description": "security finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "security",
+      "description": "security finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "security",
+      "description": "security finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "security",
+      "description": "security finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "security",
+      "description": "security finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "typeSafety",
+      "description": "typeSafety finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "debug",
+      "description": "debug finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "debug",
+      "description": "debug finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "debug",
+      "description": "debug finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "debug",
+      "description": "debug finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "debug",
+      "description": "debug finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "accessibility",
+      "description": "accessibility finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "accessibility",
+      "description": "accessibility finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    },
+    {
+      "severity": "low",
+      "type": "accessibility",
+      "description": "accessibility finding",
+      "file": "",
+      "line": 1,
+      "patternId": ""
+    }
+  ],
+  "categories": {
+    "security": [
+      {
+        "severity": "low",
+        "type": "security",
+        "file": "",
+        "message": "security finding"
+      },
+      {
+        "severity": "low",
+        "type": "security",
+        "file": "",
+        "message": "security finding"
+      },
+      {
+        "severity": "low",
+        "type": "security",
+        "file": "",
+        "message": "security finding"
+      },
+      {
+        "severity": "low",
+        "type": "security",
+        "file": "",
+        "message": "security finding"
+      },
+      {
+        "severity": "low",
+        "type": "security",
+        "file": "",
+        "message": "security finding"
+      }
+    ],
+    "typeSafety": [
+      {
+        "severity": "low",
+        "type": "typeSafety",
+        "file": "",
+        "message": "typeSafety finding"
+      },
+      {
+        "severity": "low",
+        "type": "typeSafety",
+        "file": "",
+        "message": "typeSafety finding"
+      },
+      {
+        "severity": "low",
+        "type": "typeSafety",
+        "file": "",
+        "message": "typeSafety finding"
+      },
+      {
+        "severity": "low",
+        "type": "typeSafety",
+        "file": "",
+        "message": "typeSafety finding"
+      },
+      {
+        "severity": "low",
+        "type": "typeSafety",
+        "file": "",
+        "message": "typeSafety finding"
+      },
+      {
+        "severity": "low",
+        "type": "typeSafety",
+        "file": "",
+        "message": "typeSafety finding"
+      },
+      {
+        "severity": "low",
+        "type": "typeSafety",
+        "file": "",
+        "message": "typeSafety finding"
+      },
+      {
+        "severity": "low",
+        "type": "typeSafety",
+        "file": "",
+        "message": "typeSafety finding"
+      }
+    ],
+    "debug": [
+      {
+        "severity": "low",
+        "type": "debug",
+        "file": "",
+        "message": "debug finding"
+      },
+      {
+        "severity": "low",
+        "type": "debug",
+        "file": "",
+        "message": "debug finding"
+      },
+      {
+        "severity": "low",
+        "type": "debug",
+        "file": "",
+        "message": "debug finding"
+      },
+      {
+        "severity": "low",
+        "type": "debug",
+        "file": "",
+        "message": "debug finding"
+      },
+      {
+        "severity": "low",
+        "type": "debug",
+        "file": "",
+        "message": "debug finding"
+      }
+    ],
+    "accessibility": [
+      {
+        "severity": "low",
+        "type": "accessibility",
+        "file": "",
+        "message": "accessibility finding"
+      },
+      {
+        "severity": "low",
+        "type": "accessibility",
+        "file": "",
+        "message": "accessibility finding"
+      },
+      {
+        "severity": "low",
+        "type": "accessibility",
+        "file": "",
+        "message": "accessibility finding"
+      }
+    ]
+  }
+}

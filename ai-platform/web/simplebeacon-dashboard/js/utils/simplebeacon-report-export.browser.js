@@ -18,6 +18,11 @@ import { normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=202
 
 
 
+/**
+ * Is benchmark path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function isBenchmarkPath(filePath) {
 
   const rel = String(filePath || '').replace(/\\/g, '/').toLowerCase();
@@ -49,6 +54,12 @@ const PRODUCT_MOCK_PATH_MARKERS = [
 
 const DEFAULT_FALLBACK_MOCK_PATHS = new Set(['fixtures', '__mocks__', 'data']);
 
+/**
+ * Redact project path for export.
+ * @param {string} rawPath
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = String(rawPath).replace(/\\/g, '/');
@@ -59,12 +70,22 @@ function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   return normalized;
 }
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Strip internal report export fields.
+ * @param {number} report
+ * @returns {any}
+ */
 function stripInternalReportExportFields(report) {
   if (!report || typeof report !== 'object') return report;
   const {
@@ -78,6 +99,11 @@ function stripInternalReportExportFields(report) {
 
 
 
+/**
+ * Is absolute host path.
+ * @param {any} value
+ * @returns {any}
+ */
 function isAbsoluteHostPath(value) {
   const normalized = String(value || '').replace(/\\/g, '/');
   return /^[a-zA-Z]:\//.test(normalized)
@@ -86,6 +112,12 @@ function isAbsoluteHostPath(value) {
     || normalized.includes('CascadeProjects');
 }
 
+/**
+ * Resolve report project path.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveReportProjectPath(report, options = {}) {
   if (report.benchmarkScan && report.projectRoot && !isAbsoluteHostPath(report.projectRoot)) {
     return String(report.projectRoot).replace(/\\/g, '/');
@@ -123,6 +155,12 @@ function resolveReportProjectPath(report, options = {}) {
 
 
 
+/**
+ * Infer gate scan target from hints.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function inferGateScanTargetFromHints(report, options = {}) {
 
   const filename = String(options.exportFilename || options.filename || '').toLowerCase();
@@ -153,6 +191,11 @@ function inferGateScanTargetFromHints(report, options = {}) {
 
 
 
+/**
+ * Filter stale gate export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function filterStaleGateExportNotes(notes = []) {
   return (notes || []).filter((note) => {
     const text = String(note);
@@ -161,6 +204,11 @@ function filterStaleGateExportNotes(notes = []) {
   });
 }
 
+/**
+ * Dedupe export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeExportNotes(notes = []) {
 
   const seen = new Set();
@@ -217,6 +265,11 @@ function dedupeExportNotes(notes = []) {
 
 }
 
+/**
+ * Split eu ai act summary for export.
+ * @param {any} euAiActSummary
+ * @returns {any}
+ */
 function splitEuAiActSummaryForExport(euAiActSummary) {
 
   if (!euAiActSummary?.documentationFound?.length) return euAiActSummary;
@@ -255,6 +308,12 @@ function splitEuAiActSummaryForExport(euAiActSummary) {
   return next;
 }
 
+/**
+ * Sanitize benchmark gate scan scope.
+ * @param {any} scanScope
+ * @param {number} report
+ * @returns {any}
+ */
 function sanitizeBenchmarkGateScanScope(scanScope, report) {
   if (!scanScope) return scanScope;
   const scanned = scanScope.llmSlopFilesScanned ?? report.llmSlopFilesScanned ?? null;
@@ -267,6 +326,12 @@ function sanitizeBenchmarkGateScanScope(scanScope, report) {
   return next;
 }
 
+/**
+ * Build product hygiene summary.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildProductHygieneSummary(report, options = {}) {
   const jestSummary = report.jestSummary;
   const jestExecuted = report.jestBaselineChecked !== false
@@ -311,6 +376,11 @@ function buildProductHygieneSummary(report, options = {}) {
   };
 }
 
+/**
+ * Build product size note.
+ * @param {number} report
+ * @returns {any}
+ */
 function buildProductSizeNote(report) {
   const mockN = report.mockSampleFiles ?? report.totalFiles ?? 0;
   const repoTotal = report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles ?? 0;
@@ -321,6 +391,11 @@ function buildProductSizeNote(report) {
   return null;
 }
 
+/**
+ * Build benchmark gate hygiene summary.
+ * @param {number} report
+ * @returns {any}
+ */
 function buildBenchmarkGateHygieneSummary(report) {
   const rawLlm = report.llmSlopScanRaw;
   const scanned = report.llmSlopFilesScanned ?? report.scanScope?.llmSlopFilesScanned ?? null;
@@ -343,6 +418,13 @@ function buildBenchmarkGateHygieneSummary(report) {
   };
 }
 
+/**
+ * Assemble benchmark gate export notes.
+ * @param {Array} existingNotes
+ * @param {number} report
+ * @param {string} context
+ * @returns {any}
+ */
 function assembleBenchmarkGateExportNotes(existingNotes = [], report, context = {}) {
   const dynamic = buildBenchmarkGateExportNotes(report, context);
   const scopeNote = 'Gate export scoped to github-cache/ OSS clone — not Simplebeacon ai-platform product handoff.';
@@ -361,6 +443,11 @@ function assembleBenchmarkGateExportNotes(existingNotes = [], report, context = 
   return dedupeExportNotes([...filtered, scopeNote, ...dynamic]);
 }
 
+/**
+ * Is product default mock scan path.
+ * @param {any} entry
+ * @returns {any}
+ */
 function isProductDefaultMockScanPath(entry) {
 
   const rel = String(entry).replace(/\\/g, '/').replace(/^\.\//, '');
@@ -373,6 +460,12 @@ function isProductDefaultMockScanPath(entry) {
 
 
 
+/**
+ * Is product default mock scan paths.
+ * @param {Array} scanPaths
+ * @param {Array} mockSampleFiles
+ * @returns {any}
+ */
 function isProductDefaultMockScanPaths(scanPaths, mockSampleFiles) {
 
   if (!Array.isArray(scanPaths) || scanPaths.length === 0) return false;
@@ -385,6 +478,11 @@ function isProductDefaultMockScanPaths(scanPaths, mockSampleFiles) {
 
 
 
+/**
+ * Reconcile benchmark scan metrics.
+ * @param {number} report
+ * @returns {any}
+ */
 function reconcileBenchmarkScanMetrics(report) {
 
   const repoTotal = report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles ?? null;
@@ -429,6 +527,12 @@ function reconcileBenchmarkScanMetrics(report) {
 
 
 
+/**
+ * Is benchmark gate report.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function isBenchmarkGateReport(report, options = {}) {
 
   if (options.benchmarkScan != null) return Boolean(options.benchmarkScan);
@@ -443,6 +547,12 @@ function isBenchmarkGateReport(report, options = {}) {
 
 
 
+/**
+ * Relativize scan paths.
+ * @param {Array} scanPaths
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function relativizeScanPaths(scanPaths, projectRoot) {
 
   const root = String(projectRoot || '').replace(/\\/g, '/').replace(/\/$/, '');
@@ -467,6 +577,12 @@ function relativizeScanPaths(scanPaths, projectRoot) {
 
 
 
+/**
+ * Normalize config path.
+ * @param {Object} configPath
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function normalizeConfigPath(configPath, projectRoot) {
 
   if (!configPath) return configPath;
@@ -487,6 +603,11 @@ function normalizeConfigPath(configPath, projectRoot) {
 
 
 
+/**
+ * Resolve product platform root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(projectPath) {
 
   const normalized = String(projectPath || '').replace(/\\/g, '/');
@@ -501,6 +622,11 @@ function resolveProductPlatformRoot(projectPath) {
 
 
 
+/**
+ * Resolve gate health status.
+ * @param {number} report
+ * @returns {any}
+ */
 function resolveGateHealthStatus(report) {
 
   const gate = report.gate || {};
@@ -521,6 +647,12 @@ function resolveGateHealthStatus(report) {
 
 
 
+/**
+ * Resolve gate attestation.
+ * @param {number} report
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function resolveGateAttestation(report, benchmarkScan) {
 
   if (benchmarkScan) return 'benchmark-clone';
@@ -537,6 +669,12 @@ function resolveGateAttestation(report, benchmarkScan) {
 
 
 
+/**
+ * Build product gate export notes.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildProductGateExportNotes(report, options = {}) {
   const notes = [];
   const scope = report.scanScope || {};
@@ -636,6 +774,12 @@ function buildProductGateExportNotes(report, options = {}) {
 
 
 
+/**
+ * Build benchmark gate export notes.
+ * @param {number} report
+ * @param {string} context
+ * @returns {any}
+ */
 function buildBenchmarkGateExportNotes(report, context = {}) {
 
   const notes = [];
@@ -693,6 +837,12 @@ function buildBenchmarkGateExportNotes(report, context = {}) {
 
 
 
+/**
+ * Redact benchmark export path fields.
+ * @param {any} scanTargetRoot
+ * @param {any} productPlatformRoot
+ * @returns {any}
+ */
 function redactBenchmarkExportPathFields(scanTargetRoot, productPlatformRoot) {
   const cloneLabel = projectLabelFromPath(scanTargetRoot);
   const platformLabel = projectLabelFromPath(productPlatformRoot) || 'ai-platform';
@@ -707,6 +857,13 @@ function redactBenchmarkExportPathFields(scanTargetRoot, productPlatformRoot) {
   };
 }
 
+/**
+ * Apply benchmark gate export fields.
+ * @param {any} next
+ * @param {number} report
+ * @param {string} context
+ * @returns {any}
+ */
 function applyBenchmarkGateExportFields(next, report, context = {}) {
   const gateHealthStatus = next.gate?.pass ? 'benchmark-clone-pass' : 'benchmark-clone-needs-attention';
   const exportNotes = assembleBenchmarkGateExportNotes(report.exportNotes, next, context);
@@ -771,6 +928,11 @@ function applyBenchmarkGateExportFields(next, report, context = {}) {
 
 
 
+/**
+ * Reconcile product full directory mock metrics.
+ * @param {number} report
+ * @returns {any}
+ */
 function reconcileProductFullDirectoryMockMetrics(report) {
   if (!report || report.benchmarkScan) return report;
   const fullTree = Boolean(report.fullDirectoryScan || report.scanScope?.fullDirectoryScan);
@@ -809,6 +971,13 @@ function reconcileProductFullDirectoryMockMetrics(report) {
   };
 }
 
+/**
+ * Enrich product scan scope.
+ * @param {any} scanScope
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function enrichProductScanScope(scanScope, report = {}, options = {}) {
   const intentionalFullTree = Boolean(report.fullDirectoryScan || scanScope.fullDirectoryScan);
   return {
@@ -834,6 +1003,12 @@ function enrichProductScanScope(scanScope, report = {}, options = {}) {
 
 
 
+/**
+ * Sanitize simplebeacon report export.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeSimplebeaconReportExport(report, options = {}) {
 
   if (!report || report.type !== 'simplebeacon-report') return report;
@@ -1039,6 +1214,11 @@ export function sanitizeSimplebeaconReportExport(report, options = {}) {
 
 
 
+/**
+ * Simplebeacon report export filename.
+ * @param {any} date
+ * @returns {any}
+ */
 export function simplebeaconReportExportFilename(date = new Date()) {
 
   const stamp = date.toISOString().slice(0, 10);

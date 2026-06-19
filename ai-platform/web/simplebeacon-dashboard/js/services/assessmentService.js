@@ -4,6 +4,10 @@ import { readJsonResponseBody, logRecoverableDashboardError } from '../lib/recov
 const RECENT_KEY = 'simplebeaconRecentAssessments';
 const MAX_RECENT = 20;
 
+/**
+ * Read recent assessments from storage.
+ * @returns {any}
+ */
 function readRecentAssessmentsFromStorage() {
   try {
     const storedJson = localStorage.getItem(RECENT_KEY);
@@ -14,10 +18,18 @@ function readRecentAssessmentsFromStorage() {
   }
 }
 
+/**
+ * Write recent assessments to storage.
+ * @param {Array} assessmentEntries
+ * @returns {any}
+ */
 function writeRecentAssessmentsToStorage(assessmentEntries) {
   localStorage.setItem(RECENT_KEY, JSON.stringify(assessmentEntries.slice(0, MAX_RECENT)));
 }
 
+/**
+ * Assessment service.
+ */
 export class AssessmentService {
   getRecentAssessments() {
     return readRecentAssessmentsFromStorage();
@@ -78,4 +90,7 @@ export class AssessmentService {
   }
 }
 
+/**
+ * Assessment service.
+ */
 export const assessmentService = new AssessmentService();

@@ -1,0 +1,290 @@
+{
+  "name": "SimpleBeacon Roadmap — ai_agent",
+  "desc": "Auto-generated from SimpleBeacon scan summary. Generated 6/7/2026",
+  "labels": [
+    {
+      "id": "label_critical",
+      "name": "Critical",
+      "color": "red"
+    },
+    {
+      "id": "label_high",
+      "name": "High Priority",
+      "color": "orange"
+    },
+    {
+      "id": "label_medium",
+      "name": "Medium",
+      "color": "yellow"
+    },
+    {
+      "id": "label_low",
+      "name": "Low Priority",
+      "color": "green"
+    }
+  ],
+  "lists": [
+    {
+      "id": "list_todo",
+      "name": "To Do",
+      "pos": 65536
+    },
+    {
+      "id": "list_progress",
+      "name": "In Progress",
+      "pos": 131072
+    },
+    {
+      "id": "list_review",
+      "name": "Under Review",
+      "pos": 196608
+    },
+    {
+      "id": "list_done",
+      "name": "Done",
+      "pos": 262144
+    }
+  ],
+  "cards": [
+    {
+      "id": "card_0",
+      "name": "Security Hardening",
+      "desc": "Phase: Security Hardening\nSeverity: medium\nProgress: 100%\n\n0 task(s) remaining.",
+      "idList": "list_done",
+      "pos": 1024,
+      "idLabels": [
+        "label_medium"
+      ],
+      "idChecklists": [
+        "check_0"
+      ]
+    },
+    {
+      "id": "card_1",
+      "name": "Data Integrity",
+      "desc": "Phase: Data Integrity\nSeverity: medium\nProgress: 100%\n\n0 task(s) remaining.",
+      "idList": "list_done",
+      "pos": 2048,
+      "idLabels": [
+        "label_medium"
+      ],
+      "idChecklists": [
+        "check_1"
+      ]
+    },
+    {
+      "id": "card_2",
+      "name": "Governance & Compliance",
+      "desc": "Phase: Governance & Compliance\nSeverity: medium\nProgress: 100%\n\n20 task(s) remaining.",
+      "idList": "list_done",
+      "pos": 3072,
+      "idLabels": [
+        "label_medium"
+      ],
+      "idChecklists": [
+        "check_2"
+      ]
+    },
+    {
+      "id": "card_3",
+      "name": "Dependency Vulnerability Audit",
+      "desc": "Phase: Dependency Vulnerability Audit\nSeverity: low\nProgress: 100%\n\n6 task(s) remaining.",
+      "idList": "list_done",
+      "pos": 4096,
+      "idLabels": [
+        "label_low"
+      ],
+      "idChecklists": [
+        "check_3"
+      ]
+    }
+  ],
+  "checklists": [
+    {
+      "id": "check_0",
+      "idCard": "card_0",
+      "name": "Remediation Tasks",
+      "checkItems": []
+    },
+    {
+      "id": "check_1",
+      "idCard": "card_1",
+      "name": "Remediation Tasks",
+      "checkItems": []
+    },
+    {
+      "id": "check_2",
+      "idCard": "card_2",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_2_0",
+          "name": "Task 1 of 8",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_1",
+          "name": "Task 2 of 8",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_2",
+          "name": "Task 3 of 8",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_3",
+          "name": "Task 4 of 8",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_4",
+          "name": "Task 5 of 8",
+          "pos": 4096,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_5",
+          "name": "Task 6 of 8",
+          "pos": 5120,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_6",
+          "name": "Task 7 of 8",
+          "pos": 6144,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_7",
+          "name": "Task 8 of 8",
+          "pos": 7168,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_8",
+          "name": "Task 1 of 3",
+          "pos": 8192,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_9",
+          "name": "Task 2 of 3",
+          "pos": 9216,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_10",
+          "name": "Task 3 of 3",
+          "pos": 10240,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_11",
+          "name": "Task 1 of 9",
+          "pos": 11264,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_12",
+          "name": "Task 2 of 9",
+          "pos": 12288,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_13",
+          "name": "Task 3 of 9",
+          "pos": 13312,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_14",
+          "name": "Task 4 of 9",
+          "pos": 14336,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_15",
+          "name": "Task 5 of 9",
+          "pos": 15360,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_16",
+          "name": "Task 6 of 9",
+          "pos": 16384,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_17",
+          "name": "Task 7 of 9",
+          "pos": 17408,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_18",
+          "name": "Task 8 of 9",
+          "pos": 18432,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_19",
+          "name": "Task 9 of 9",
+          "pos": 19456,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_3",
+      "idCard": "card_3",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_3_0",
+          "name": "Task 1 of 6",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_3_1",
+          "name": "Task 2 of 6",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_3_2",
+          "name": "Task 3 of 6",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_3_3",
+          "name": "Task 4 of 6",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_3_4",
+          "name": "Task 5 of 6",
+          "pos": 4096,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_3_5",
+          "name": "Task 6 of 6",
+          "pos": 5120,
+          "state": "incomplete"
+        }
+      ]
+    }
+  ],
+  "customFields": [],
+  "actions": [],
+  "members": [],
+  "memberships": []
+}

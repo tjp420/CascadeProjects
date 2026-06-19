@@ -1,0 +1,203 @@
+{
+  "name": "simplebeacon",
+  "displayName": "SimpleBeacon Scanner",
+  "description": "Scan your codebase for issues, credentials, and quality gates directly from VS Code",
+  "version": "1.0.0",
+  "publisher": "simplebeacon",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tjp420/simplebeacon"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Testing",
+    "Debuggers",
+    "Other"
+  ],
+  "keywords": [
+    "security",
+    "linting",
+    "code-quality",
+    "scanner",
+    "simplebeacon"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "simplebeacon.scanWorkspace",
+        "title": "Scan Workspace",
+        "icon": "$(shield)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.scanFolder",
+        "title": "Scan Folder...",
+        "icon": "$(folder-opened)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.uploadReport",
+        "title": "Upload & Validate Report",
+        "icon": "$(cloud-upload)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.refreshResults",
+        "title": "Refresh",
+        "icon": "$(refresh)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.openIssue",
+        "title": "Open Issue",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.clearResults",
+        "title": "Clear Results",
+        "icon": "$(clear-all)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.toggleRealtimeMonitoring",
+        "title": "Toggle AI Slop Real-time Monitoring",
+        "icon": "$(eye)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.openBrowser",
+        "title": "Open Browser in IDE",
+        "icon": "$(globe)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.openAnalyze",
+        "title": "Open Analyze Page",
+        "icon": "$(graph)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.openUpload",
+        "title": "Open Upload Page",
+        "icon": "$(cloud-upload)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.openPreview",
+        "title": "Open Preview",
+        "icon": "$(browser)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.openAiContext",
+        "title": "Open AI Context File",
+        "icon": "$(comment-discussion)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.sendToAi",
+        "title": "Send Scan to AI Agent",
+        "icon": "$(robot)",
+        "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.refreshDashboard",
+        "title": "Refresh Dashboard",
+        "category": "SimpleBeacon"
+      }
+    ],
+    "views": {
+      "simplebeacon": [
+        {
+          "type": "webview",
+          "id": "simplebeaconDashboard",
+          "name": "Dashboard",
+          "icon": "$(shield)"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "simplebeacon",
+          "title": "SimpleBeacon",
+          "icon": "resources/shield.svg"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "simplebeacon.scanWorkspace",
+          "when": "view == simplebeaconDashboard",
+          "group": "navigation"
+        },
+        {
+          "command": "simplebeacon.refreshResults",
+          "when": "view == simplebeaconDashboard",
+          "group": "navigation"
+        },
+        {
+          "command": "simplebeacon.clearResults",
+          "when": "view == simplebeaconDashboard",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "simplebeacon.scanFolder",
+          "when": "explorerResourceIsFolder",
+          "group": "simplebeacon"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SimpleBeacon",
+      "properties": {
+        "simplebeacon.apiUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:3001",
+          "description": "SimpleBeacon API server URL"
+        },
+        "simplebeacon.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for authenticated scans"
+        },
+        "simplebeacon.autoScanOnOpen": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically scan workspace when opening VS Code"
+        },
+        "simplebeacon.severityFilter": {
+          "type": "string",
+          "default": "medium",
+          "enum": ["critical", "high", "medium", "low", "info"],
+          "description": "Minimum severity to show in the issues panel"
+        },
+        "simplebeacon.autoMonitorAI": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start AI slop real-time monitoring when opening VS Code"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.74.0",
+    "typescript": "^5.0.0"
+  }
+}

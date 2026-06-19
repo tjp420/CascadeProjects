@@ -4,7 +4,7 @@
 **Manufacturer**: SimpleBeacon Infrastructure Team  
 **Address**: https://simplebeacon.ai  
 **Version**: 1.0.0  
-**Date**: 2026-06-03  
+**Date**: 2026-06-14  
 
 ---
 
@@ -72,5 +72,5 @@ The undersigned declares under sole responsibility that the SimpleBeacon AI Plat
 ---
 
 **Signed**: SimpleBeacon Infrastructure Team  
-**Date**: 2026-06-03  
+**Date**: 2026-06-14  
 **Contact**: compliance@simplebeacon.ai

@@ -15,7 +15,7 @@ def process_user_metrics_v2(user_id):
 const CREDENTIAL_STUB_JS = `
 const config = {
     api_key: "abc",
-    secret_token: "your_secret_here"
+    secret_token: "test_placeholder_token_12345"
 };
 `;
 

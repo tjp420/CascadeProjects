@@ -26,3 +26,19 @@ build/
 .next/
 out/
 coverage/
+
+# Demo / fixture data (not production)
+web/data/*-sample.json
+web/data/phase-ai-*.json
+web/data/complete-scan-report-*.json
+web/data/roadmap-from-scan-*.json
+web/data/roadmap-ai*-*.json
+coming-soon/sample-report.html
+
+# Runtime logs
+*.log
+logs/
+
+# Accidental files
+p.id
+backups/

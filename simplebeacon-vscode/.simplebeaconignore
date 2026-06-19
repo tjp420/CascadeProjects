@@ -1,0 +1,42 @@
+# SimpleBeacon Ignore Patterns
+# Exclude backup/merge directories and non-production paths
+
+simplebeacon-vscode-merged/
+ai-platform/
+ai-agent/
+ai-tools/
+scripts/
+packages/
+node_modules/
+.git/
+dist/
+build/
+.next/
+out/
+coverage/
+frontend-build/
+vendor/
+.vscode-test/
+
+# Build artifacts
+*.map
+*.min.js
+*.min.css
+*.bundle.js
+*.bundle.css
+*.lock
+code-map.json
+
+# One-off scripts
+build-extension.js
+replace-dashboard.js
+generate-*.js
+run-*.cjs
+export-*.js
+trello-*.js
+
+# Debug artifact: message template strings and console.error inside catch blocks (not stray debug code)
+src/roadmapProvider.ts
+
+# Type Safety Gap: VS Code extension adapter code using `any` for API boundary types (acceptable)
+src/extension.ts

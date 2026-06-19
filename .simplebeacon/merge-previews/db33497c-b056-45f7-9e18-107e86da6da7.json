@@ -1,0 +1,60 @@
+{
+  "type": "simplebeacon-merge-preview",
+  "previewId": "db33497c-b056-45f7-9e18-107e86da6da7",
+  "generatedAt": "2026-06-17T13:40:31.213Z",
+  "expiresAt": "2026-06-17T14:40:31.213Z",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "strategy": "keep-one-delete-others",
+  "mergeType": "exact-duplicate",
+  "candidateId": "exact-dup-1",
+  "keepFile": "New folder/simplebeacon-export-operator-2026-06-16/report.json",
+  "removeFiles": [
+    "New folder/simplebeacon-export-operator-2026-06-16/json/simplebeacon-gate.json"
+  ],
+  "affectedFiles": [
+    "New folder/simplebeacon-export-operator-2026-06-16/json/simplebeacon-gate.json",
+    "New folder/simplebeacon-export-operator-2026-06-16/report.json"
+  ],
+  "conflicts": [],
+  "safeToExecute": true,
+  "requiresConfirmation": true,
+  "riskAssessment": {
+    "level": "low",
+    "autoMergeAllowed": false,
+    "requiresConfirmation": true,
+    "factors": [
+      "Byte-identical duplicate group"
+    ],
+    "quarantineOnly": true
+  },
+  "confirmationPhrase": "QUARANTINE_DUPLICATES",
+  "gracePeriodHours": 24,
+  "executionMode": "quarantine-not-delete",
+  "rollbackPlan": {
+    "method": "restore-from-quarantine-or-backup",
+    "backupDir": ".simplebeacon/merge-backups",
+    "quarantineDir": ".simplebeacon/merge-quarantine",
+    "instructions": [
+      "Duplicates are moved to merge-quarantine — not permanently deleted.",
+      "Backups are written before any move.",
+      "Grace window: 24 hours before manual purge (no auto-delete in v1)."
+    ]
+  },
+  "savingsBytes": 5962,
+  "snapshots": [
+    {
+      "path": "New folder/simplebeacon-export-operator-2026-06-16/json/simplebeacon-gate.json",
+      "exists": true,
+      "validJson": true,
+      "sizeBytes": 5962,
+      "preview": "{\n  \"type\": \"simplebeacon-report\",\n  \"generatedAt\": \"2026-06-14T19:05:28.351Z\",\n  \"projectRoot\": \"CascadeProjects\",\n  \"gate\": {\n    \"pass\": true,\n    \"failOn\": [\n      \"high\"\n    ],\n    \"warnOn\": [\n      \"medium\",\n      \"low\"\n    ],\n    \"blockingCount\": 0,\n    \"warningCount\": 0,\n    \"blockingIssues\": [],\n    \"warningIssues\": []\n  },\n  \"issueCount\": 0,\n  \"qualityScore\": 100,\n  \"schemaCompliance\": 100,\n  \"schemaChecked\": 50,\n  \"schemaPassed\": 50,\n  \"consistencyChecked\": 93,\n  \"repositoryFilesTotal\": 20885,\n  \"ruleScopedFilesAnalyzed\": 20885,\n  \"credentialScanned\": 631,\n  \"credentialFindings\": 0,\n  \"productionLeakScanned\": 0,\n  \"productionLeakFindings\": 0,\n  \"fictionJsonFilesScanned\": 93,\n  \"sourceCodeFilesScanned\": 0,\n  \"mockSampleFiles\": 105,\n  \"severityCounts\": {\n    \"critical\": 0,\n    \"high\": 0,\n    \"medium\": 0,\n    \"low\": 0\n  },\n  \"consistencyPassed\": 93,\n  \"consistencyScore\": 100,\n  \"scanScope\": {\n    \"profile\": \"eu-ai-act\",\n    \"scannerVersion\": \"1.0.0\",\n    \"rulesEnabled\": [\n      \"credentials\",\n      \"json-schema\",\n      \"sample-consistency\",\n      \"roadmap\",\n      \"production-leak\",\n      \"agency-handoff-patterns\",\n      \"fiction-kpi-patterns\",\n      \"llm-slop-patterns\",\n   \n…"
+    },
+    {
+      "path": "New folder/simplebeacon-export-operator-2026-06-16/report.json",
+      "exists": true,
+      "validJson": true,
+      "sizeBytes": 5962,
+      "preview": "{\n  \"type\": \"simplebeacon-report\",\n  \"generatedAt\": \"2026-06-14T19:05:28.351Z\",\n  \"projectRoot\": \"CascadeProjects\",\n  \"gate\": {\n    \"pass\": true,\n    \"failOn\": [\n      \"high\"\n    ],\n    \"warnOn\": [\n      \"medium\",\n      \"low\"\n    ],\n    \"blockingCount\": 0,\n    \"warningCount\": 0,\n    \"blockingIssues\": [],\n    \"warningIssues\": []\n  },\n  \"issueCount\": 0,\n  \"qualityScore\": 100,\n  \"schemaCompliance\": 100,\n  \"schemaChecked\": 50,\n  \"schemaPassed\": 50,\n  \"consistencyChecked\": 93,\n  \"repositoryFilesTotal\": 20885,\n  \"ruleScopedFilesAnalyzed\": 20885,\n  \"credentialScanned\": 631,\n  \"credentialFindings\": 0,\n  \"productionLeakScanned\": 0,\n  \"productionLeakFindings\": 0,\n  \"fictionJsonFilesScanned\": 93,\n  \"sourceCodeFilesScanned\": 0,\n  \"mockSampleFiles\": 105,\n  \"severityCounts\": {\n    \"critical\": 0,\n    \"high\": 0,\n    \"medium\": 0,\n    \"low\": 0\n  },\n  \"consistencyPassed\": 93,\n  \"consistencyScore\": 100,\n  \"scanScope\": {\n    \"profile\": \"eu-ai-act\",\n    \"scannerVersion\": \"1.0.0\",\n    \"rulesEnabled\": [\n      \"credentials\",\n      \"json-schema\",\n      \"sample-consistency\",\n      \"roadmap\",\n      \"production-leak\",\n      \"agency-handoff-patterns\",\n      \"fiction-kpi-patterns\",\n      \"llm-slop-patterns\",\n   \n…"
+    }
+  ]
+}

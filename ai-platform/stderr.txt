@@ -1,0 +1,1 @@
+[Chatbot API] SUPPORT_EMAIL env var not set — appeal process will be unavailable

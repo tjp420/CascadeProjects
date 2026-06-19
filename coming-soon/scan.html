@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimpleBeacon Server Scan</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0;
+            background: #0B0F19; color: #F3F4F6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh;
+        }
+        .card {
+            background: #151A27;
+            border: 1px solid #1E293B;
+            border-radius: 12px;
+            padding: 32px;
+            width: 100%; max-width: 560px;
+            margin: 20px;
+        }
+        h1 { margin: 0 0 8px; font-size: 1.4rem; color: #F3F4F6; }
+        p.subtitle { margin: 0 0 20px; font-size: 0.85rem; color: #64748B; }
+        .input-group {
+            display: flex; gap: 8px; margin-bottom: 16px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #1E293B;
+            background: #0B0F19;
+            color: #F3F4F6;
+            font-size: 0.9rem;
+        }
+        button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background: #2563EB;
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        button:disabled {
+            background: #374151;
+            cursor: not-allowed;
+        }
+        .status {
+            font-size: 0.85rem;
+            color: #64748B;
+            min-height: 1.2em;
+            margin-bottom: 16px;
+        }
+        .status.error { color: #EF4444; }
+        .status.success { color: #10B981; }
+        .status.pending { color: #F59E0B; }
+        .results {
+            display: none;
+            background: #0B0F19;
+            border: 1px solid #1E293B;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .results.active { display: block; }
+        .metric-row {
+            display: flex; justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #1E293B;
+            font-size: 0.85rem;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-label { color: #64748B; }
+        .metric-value { color: #F3F4F6; font-weight: 600; }
+        .gate-pass { color: #10B981; }
+        .gate-fail { color: #EF4444; }
+        .issues { margin-top: 12px; }
+        .issue-item {
+            font-size: 0.8rem;
+            padding: 4px 0;
+            color: #9CA3AF;
+        }
+        .send-ai-btn {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            width: 100%;
+            margin-top: 16px;
+            font-size: 0.9rem;
+        }
+        .send-ai-btn:disabled {
+            background: #374151;
+            cursor: not-allowed;
+        }
+        .send-ai-status {
+            font-size: 0.8rem;
+            margin-top: 8px;
+            color: #64748B;
+        }
+        a.back { color: #64748B; font-size: 0.8rem; text-decoration: none; }
+        a.back:hover { color: #F3F4F6; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>SimpleBeacon Server Scan</h1>
+        <p class="subtitle">Scan any local directory. No browser file-count limits.</p>
+
+        <div class="input-group">
+            <input type="text" id="scanPath" value="C:\Users\Trevor\CascadeProjects" placeholder="C:\path\to\project">
+            <button id="scanBtn">Scan Directory</button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="results" id="results">
+            <div class="metric-row">
+                <span class="metric-label">Total Files</span>
+                <span class="metric-value" id="resTotalFiles">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Files Analyzed</span>
+                <span class="metric-value" id="resScanned">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Quality Score</span>
+                <span class="metric-value" id="resQuality">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Issues Found</span>
+                <span class="metric-value" id="resIssues">-</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Gate Status</span>
+                <span class="metric-value" id="resGate">-</span>
+            </div>
+            <div class="issues" id="issueList"></div>
+            <button class="send-ai-btn" id="sendAiBtn" style="display:none;">&#129302; Send to AI (Copy to Clipboard)</button>
+            <div class="send-ai-status" id="sendAiStatus"></div>
+        </div>
+
+        <p style="margin-top:16px;"><a class="back" href="audit.html">&larr; Back to Audit</a></p>
+    </div>
+
+    <script>
+    document.getElementById('scanBtn').addEventListener('click', async function() {
+        const pathInput = document.getElementById('scanPath');
+        const statusEl = document.getElementById('status');
+        const resultsEl = document.getElementById('results');
+        const projectPath = pathInput.value.trim();
+
+        if (!projectPath) {
+            statusEl.textContent = 'Enter a directory path.';
+            statusEl.className = 'status error';
+            return;
+        }
+
+        statusEl.textContent = 'Scanning... this may take 30-60 seconds for large directories.';
+        statusEl.className = 'status pending';
+        this.disabled = true;
+        resultsEl.classList.remove('active');
+
+        try {
+            const res = await fetch('/api/scan-directory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectPath })
+            });
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                statusEl.textContent = 'Error: ' + (data.error || res.statusText);
+                statusEl.className = 'status error';
+                this.disabled = false;
+                return;
+            }
+
+            const r = data.report;
+            document.getElementById('resTotalFiles').textContent = data.totalFiles.toLocaleString();
+            document.getElementById('resScanned').textContent = data.scanned.toLocaleString();
+            document.getElementById('resQuality').textContent = r.qualityScore + '/100';
+            document.getElementById('resIssues').textContent = r.issueCount.toLocaleString();
+
+            const gateEl = document.getElementById('resGate');
+            gateEl.textContent = r.gate.pass ? 'PASS' : 'BLOCKED';
+            gateEl.className = 'metric-value ' + (r.gate.pass ? 'gate-pass' : 'gate-fail');
+
+            // Top issues
+            const issueList = document.getElementById('issueList');
+            issueList.innerHTML = '';
+            if (r.detectedIssues && r.detectedIssues.length > 0) {
+                const top = r.detectedIssues.slice(0, 5);
+                top.forEach(issue => {
+                    const div = document.createElement('div');
+                    div.className = 'issue-item';
+                    div.textContent = issue.severity.toUpperCase() + ' — ' + issue.type + ': ' + issue.count + ' in ' + (issue.filePath ? issue.filePath.length : 0) + ' file(s)';
+                    issueList.appendChild(div);
+                });
+            } else {
+                issueList.innerHTML = '<div class="issue-item">No issues detected.</div>';
+            }
+
+            resultsEl.classList.add('active');
+            statusEl.textContent = 'Scan complete!';
+            statusEl.className = 'status success';
+
+            // Store for certificate generation on upload page
+            localStorage.setItem('simplebeacon_server_scan', JSON.stringify(r));
+
+            // Show Send to AI button
+            const sendAiBtn = document.getElementById('sendAiBtn');
+            sendAiBtn.style.display = 'block';
+            sendAiBtn.onclick = async function() {
+                sendAiBtn.disabled = true;
+                document.getElementById('sendAiStatus').textContent = 'Writing AI request file...';
+                try {
+                    const res = await fetch('/api/send-to-ai', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ projectPath: projectPath, report: r })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        document.getElementById('sendAiStatus').innerHTML = '<span style="color:#10B981;">&#10003; AI request written to <code>.simplebeacon/ai-request.json</code></span><br><span style="color:#64748B;font-size:0.75rem;">Switch to VS Code and press Ctrl+V in the AI chat.</span>';
+                    } else {
+                        document.getElementById('sendAiStatus').innerHTML = '<span style="color:#EF4444;">Error: ' + (data.error || 'Unknown error') + '</span>';
+                    }
+                } catch (err) {
+                    document.getElementById('sendAiStatus').innerHTML = '<span style="color:#EF4444;">Network error: ' + err.message + '</span>';
+                }
+                sendAiBtn.disabled = false;
+            };
+        } catch (err) {
+            statusEl.textContent = 'Network error: ' + err.message;
+            statusEl.className = 'status error';
+        }
+        this.disabled = false;
+    });
+    </script>
+</body>
+</html>

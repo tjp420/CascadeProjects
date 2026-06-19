@@ -12,17 +12,35 @@ const { probeSlmBin, runSlmReview } = require('./slm-bridge');
 
 const ENGINE = '@simplebeacon/intelligence';
 
+/**
+ * Resolve language.
+ * @param {string} filePath
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveLanguage(filePath, options = {}) {
     if (options.language) return options.language;
     const ext = path.extname(String(filePath || '')).toLowerCase();
     return LANGUAGE_BY_EXT[ext] || 'javascript';
 }
 
+/**
+ * Is language supported.
+ * @param {any} language
+ * @param {Object} options
+ * @returns {any}
+ */
 function isLanguageSupported(language, options = {}) {
     const allowed = options.languages || ['javascript', 'typescript', 'python', 'go'];
     return allowed.includes(language);
 }
 
+/**
+ * Scan intent async.
+ * @param {any} content
+ * @param {Object} options
+ * @returns {any}
+ */
 async function scanIntentAsync(content, options = {}) {
     const filePath = options.filePath || 'snippet.txt';
     const language = resolveLanguage(filePath, options);
@@ -93,6 +111,12 @@ async function scanIntentAsync(content, options = {}) {
     };
 }
 
+/**
+ * Scan intent.
+ * @param {any} content
+ * @param {Object} options
+ * @returns {any}
+ */
 function scanIntent(content, options = {}) {
     const filePath = options.filePath || 'snippet.txt';
     const language = resolveLanguage(filePath, options);

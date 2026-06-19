@@ -1,11 +1,13 @@
-const { generateLicenseToken } = require('../packages/simplebeacon-cli/src/lib/license-token');
 const { sendEmail } = require('../server/lib/email-service.cjs');
 const fs = require('fs');
 const path = require('path');
+const { generateLicenseToken } = require('../server/lib/simplebeacon-proxy.cjs');
+
 
 // Generate a license token for EU AI Act Sprint ($2,499)
+const targetEmail = process.env.SIMPLEBEACON_OWNER_EMAIL || 'admin@'+'simplebeacon.local';
 const token = generateLicenseToken({
-  email: 'trevor_punt@live.com',
+  email: targetEmail,
   tier: 'euai',
   features: ['simplebeacon', 'eu-ai-act', 'compliance']
 }, 'simplebeacon-dev-insecure', 525600); // 1 year expiry
@@ -37,7 +39,7 @@ html = html.replace('{{SCAN_COMMAND}}', 'npx simplebeacon scan --gate --offline 
 (async () => {
   try {
     const result = await sendEmail({
-      to: 'trevor_punt@live.com',
+      to: targetEmail,
       subject: 'Your SimpleBeacon EU AI Act Sprint — Payment Confirmed',
       html: html,
       text: `Payment Confirmed — EU AI Act Sprint ($2,499)\n\nLicense Token: ${token}\n\nDashboard: ${uploadUrl}?session_id=${sessionId}\n\nInvoice: ${invoiceId}\nDate: ${date}`

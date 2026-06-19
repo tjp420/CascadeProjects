@@ -4,6 +4,7 @@
 
 const { createLanguageDetector } = require('../universal-language-detector.cjs');
 const { detectBusinessLogicPatterns } = require('./business-logic-patterns.cjs');
+const constants = require('../../config/constants.cjs');
 const {
     explainCodeWithProvider,
     providerConfigured
@@ -26,6 +27,14 @@ const INTENT_TEMPLATES = {
     }
 };
 
+/**
+ * Classify purpose.
+ * @param {any} content
+ * @param {any} language
+ * @param {any} businessLogic
+ * @param {string} filePath
+ * @returns {any}
+ */
 function classifyPurpose(content, language, businessLogic, filePath) {
     const rel = String(filePath || '').replace(/\\/g, '/').toLowerCase();
     const purposes = [];
@@ -62,6 +71,12 @@ function classifyPurpose(content, language, businessLogic, filePath) {
     };
 }
 
+/**
+ * Assess assumptions.
+ * @param {any} content
+ * @param {any} language
+ * @returns {any}
+ */
 function assessAssumptions(content, language) {
     const assumptions = [];
     if (/\bprocess\.env\./.test(content)) {
@@ -79,6 +94,13 @@ function assessAssumptions(content, language) {
     return assumptions.slice(0, 6);
 }
 
+/**
+ * Analyze semantic layer.
+ * @param {any} content
+ * @param {string} context
+ * @param {Object} options
+ * @returns {any}
+ */
 async function analyzeSemanticLayer(content, context = {}, options = {}) {
     const filePath = context.filePath || '';
     const detection = context.languageDetection
@@ -115,7 +137,7 @@ async function analyzeSemanticLayer(content, context = {}, options = {}) {
     if (mode === 'llm' && aiProvider !== 'demo' && providerConfigured(aiProvider, options.registry, options.userCredentials)) {
         try {
             const ai = await explainCodeWithProvider(aiProvider, {
-                code: content.slice(0, 12000),
+                code: content.slice(0, constants.TIMEOUT_12S),
                 filePath,
                 language,
                 purpose: intent.summary,

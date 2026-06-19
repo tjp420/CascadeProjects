@@ -6,12 +6,23 @@
 const fs = require('fs');
 const path = require('path');
 const { readJsonFileCached } = require('./json-file-cache.cjs');
-const { isConsolidationExcludedPair } = require('../../packages/simplebeacon-cli/src/lib/consolidation-path-exclusions');
+const { isConsolidationExcludedPair } = require('./simplebeacon-proxy.cjs');
 
+
+/**
+ * Read json if exists.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function readJsonIfExists(filePath) {
     return readJsonFileCached(filePath);
 }
 
+/**
+ * Redact path.
+ * @param {any} value
+ * @returns {any}
+ */
 function redactPath(value) {
     const normalized = String(value || '').replace(/\\/g, '/');
     const parts = normalized.split('/').filter(Boolean);
@@ -39,6 +50,11 @@ function computeRepositoryHealthScore(summary = {}) {
     return Math.max(0, Math.min(100, Math.round(score)));
 }
 
+/**
+ * Filter stale mirror recommendations.
+ * @param {Array} recommendations
+ * @returns {any}
+ */
 function filterStaleMirrorRecommendations(recommendations = []) {
     return recommendations.filter((item) => {
         const files = item.files || [];
@@ -49,6 +65,12 @@ function filterStaleMirrorRecommendations(recommendations = []) {
     });
 }
 
+/**
+ * Build repository health snapshot.
+ * @param {number} report
+ * @param {any} label
+ * @returns {any}
+ */
 function buildRepositoryHealthSnapshot(report, label) {
     if (!report || report.type !== 'file-merger-reduction-report') return null;
 
@@ -90,6 +112,11 @@ function buildRepositoryHealthSnapshot(report, label) {
     };
 }
 
+/**
+ * Resolve consolidation report paths.
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveConsolidationReportPaths(options = {}) {
     const platformRoot = path.resolve(options.platformRoot || options.projectRoot || process.cwd());
     const monorepoRoot = options.monorepoRoot
@@ -106,6 +133,11 @@ function resolveConsolidationReportPaths(options = {}) {
     };
 }
 
+/**
+ * Build repository health payload.
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildRepositoryHealthPayload(options = {}) {
     const paths = resolveConsolidationReportPaths(options);
     const platformReport = readJsonIfExists(paths.platformReportPath);
@@ -149,6 +181,12 @@ function buildRepositoryHealthPayload(options = {}) {
     };
 }
 
+/**
+ * Save consolidation report.
+ * @param {number} report
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function saveConsolidationReport(report, projectRoot) {
     const dir = path.join(path.resolve(projectRoot), '.simplebeacon');
     fs.mkdirSync(dir, { recursive: true });

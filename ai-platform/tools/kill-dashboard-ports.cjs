@@ -6,7 +6,8 @@
 
 const { execSync } = require('child_process');
 
-const PORTS = [54355, 8081];
+const constants = require('../server/config/constants.cjs');
+const PORTS = [constants.DASHBOARD_PORT, 8081];
 
 function listListeningPids(port) {
     try {

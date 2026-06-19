@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>simplebeacon-platform — Project Roadmap Dashboard</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-hover: #27354f;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #818cf8;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  header {
+    padding: 2rem 1.5rem 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  header h1 { margin: 0 0 .25rem; font-size: 1.75rem; }
+  header .sub { color: var(--text-dim); font-size: .95rem; }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem 3rem;
+  }
+  .grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: .75rem;
+    padding: 1.25rem;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .card:hover { background: var(--card-hover); }
+  .card h3 { margin: 0 0 .5rem; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
+  .metric { font-size: 2rem; font-weight: 700; }
+  .metric.small { font-size: 1.35rem; }
+  .health-good { color: var(--success); }
+  .health-moderate { color: var(--warning); }
+  .health-bad { color: var(--danger); }
+  .progress-bg {
+    background: #334155;
+    border-radius: .5rem;
+    height: .75rem;
+    overflow: hidden;
+    margin-top: .5rem;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: .5rem;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width .8s ease;
+  }
+  .section { margin-top: 2rem; }
+  .section h2 { font-size: 1.15rem; margin: 0 0 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+  .tag {
+    display: inline-block;
+    padding: .2rem .55rem;
+    border-radius: .35rem;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+  }
+  .tag.completed { background: rgba(34,197,94,.15); color: var(--success); }
+  .tag.in-progress { background: rgba(56,189,248,.15); color: var(--accent); }
+  .tag.planned { background: rgba(148,163,184,.15); color: var(--text-dim); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: .55rem .5rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-dim); font-weight: 600; font-size: .8rem; text-transform: uppercase; }
+  td { font-size: .9rem; }
+  .recommendation { display: flex; align-items: baseline; gap: .5rem; padding: .4rem 0; }
+  .recommendation .badge { min-width: 4.2rem; text-align: center; }
+  .badge-medium { background: rgba(245,158,11,.15); color: var(--warning); }
+  .badge-low { background: rgba(148,163,184,.15); color: var(--text-dim); }
+  .list { list-style: none; padding: 0; margin: 0; }
+  .list li { padding: .35rem 0; }
+  .list li::before { content: "•"; color: var(--accent); margin-right: .5rem; }
+  .chart-row { display: flex; align-items: center; gap: .75rem; padding: .35rem 0; }
+  .chart-bar { height: .6rem; border-radius: .3rem; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>simplebeacon-platform</h1>
+  <div class="sub">Roadmap Dashboard &mdash; generated 2026-06-11T05:41:17.712Z &mdash; filesystem-scan v3.1.0</div>
+</header>
+
+<div class="container">
+  <div class="grid" id="summary-cards"></div>
+
+  <div class="section">
+    <h2>Sprint Progress</h2>
+    <div id="sprints"></div>
+  </div>
+
+  <div class="two-col section">
+    <div class="card">
+      <h3>Feature Categories</h3>
+      <div id="categories"></div>
+    </div>
+    <div class="card">
+      <h3>Risk Assessment</h3>
+      <div id="risk"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Recommendations</h2>
+    <div id="recommendations"></div>
+  </div>
+
+  <div class="section">
+    <h2>Key Metrics</h2>
+    <div class="card">
+      <table id="metrics-table">
+        <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Development Phases</h2>
+    <div id="phases"></div>
+  </div>
+
+  <div class="section">
+    <h2>API Routes Inventory</h2>
+    <div class="card">
+      <p style="margin:0 0 .5rem;color:var(--text-dim)">48 routes scraped from server/ and src/.</p>
+      <ul class="list" id="api-list"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROADMAP = {"type":"dynamic-project-roadmap-analysis","timestamp":"2026-06-11T05:41:17.712Z","generatedAt":"2026-06-11T05:41:17.712Z","generatedBy":"code-roadmap-generator","dataSource":"filesystem-scan","version":"3.1.0","roadmapExportProfile":"filtered-v3.1","inferenceMode":"filesystem + fuzzy-match + strategic-insights-rules","projectTitle":"simplebeacon-platform","projectName":"simplebeacon-platform","executiveSummary":{"totalFeatures":4,"completedFeatures":3,"inProgressFeatures":1,"plannedFeatures":0,"completionRate":92,"projectHealth":"Good","aiConfidence":null,"analysisDuration":null,"lastUpdated":"2026-06-11T05:41:17.712Z","teamSize":1,"notes":"Sprint model from filesystem signals + repository-audit baselines — not 47-feature enterprise fiction"},"developmentPhases":[{"phase":"Sprint 1: Server & Auth","status":"in-progress","progress":50,"description":"Canonical server entry and optional JWT auth","features":["Root server delegate","Auth pending"],"milestones":["Single server entry","Auth routes live"]},{"phase":"Sprint 2: Stub APIs & Tests","status":"completed","progress":100,"description":"Stub API routes (5 detected) and undefined Jest tests (undefined suites)","features":["Tier-1 stub API routes","Tests pending"],"milestones":["dashboard-stub-api.js","15 tests"]},{"phase":"Sprint 3: Honest Dashboard Data","status":"completed","progress":100,"description":"50/50 page samples with repository-audit analyzers","features":["50/50 PAGE_SAMPLE_SPECS samples","npm audit pending","Mock scanner pending","Merger scanner pending"],"milestones":["Repository-audit samples","Mock-data + merger scanners"]},{"phase":"Sprint 4: Production Profile","status":"completed","progress":100,"description":"Docker Phase2, CI smoke test, Istanbul coverage, production profile","features":["docker-compose.phase2.yml present","Istanbul collected in CI","GGUF inference (LLAMA_CPP_BIN/Ollama) — optional","REQUIRE_AUTH production profile"],"milestones":["phase2-smoke CI job","Production runbook"]}],"projectOverview":{"projectName":"simplebeacon-platform","projectType":"Scanned Codebase","totalFeatures":4,"completedFeatures":3,"inProgressFeatures":1,"plannedFeatures":0,"completionRate":92,"overallProgress":"In Progress","projectHealth":"Good","developmentVelocity":"Measured","teamProductivity":"Filesystem scan"},"codeAnalysis":{"structure":{"totalFiles":423,"codeFiles":384,"languages":{"other":7,".example":4,".production":1,".v1-internal":1,".md":14,".yml":3,".txt":4,".js":129,".html":7,".json":62,".wasm":4,".yaml":1,".ps1":1,".sh":1,".cjs":164,".sql":3,".bat":8,".svg":1,".css":6,".mjs":2},"topDirectories":["ai-agent","ai-platform","ai-tools","coming-soon","coming-soon-dev","deployments","github-action","java-ai-vulnerable","logs","marketing","packages","sales"]},"dependencies":{"internalCount":573,"externalCount":43,"externalPackages":["fs","path","url","chokidar","module","@eslint/js","globals","https","os","child_process","web-tree-sitter","http","util","express","express-rate-limit","cors","dotenv","crypto","archiver","stream","vm","pg","nodemailer","redis"],"sampleInternal":["auto-processor.js -> ./server/lib/privacy-utils.cjs","packages/simplebeacon-intelligence/scripts/postinstall.js -> ../src/tree-sitter-loader","packages/simplebeacon-intelligence/scripts/postinstall.js -> ../src/slm-bridge","packages/simplebeacon-intelligence/src/index.js -> ./intent-scanner","packages/simplebeacon-intelligence/src/index.js -> ./structural-intent-scanner","packages/simplebeacon-intelligence/src/index.js -> ./tree-sitter-loader","packages/simplebeacon-intelligence/src/index.js -> ./slm-bridge","packages/simplebeacon-intelligence/src/index.js -> ./constants"]},"features":[{"name":"Dashboard Server","category":"Infrastructure","status":"implemented"},{"name":"Dashboard Stub API","category":"API","status":"implemented"},{"name":"Code Roadmap Generator","category":"Planning","status":"implemented"},{"name":"Assessment API","category":"API","status":"implemented"},{"name":"Page Sample Baselines","category":"Data","status":"implemented","count":50},{"name":"Jest Test Files","category":"Testing","status":"implemented","count":15},{"name":"Phase2 Docker Compose","category":"Infrastructure","status":"implemented"},{"name":"GitHub Actions CI","category":"CI","status":"implemented"}],"samples":{"onDisk":0,"withSpecs":50,"specTotal":50,"pageSamplesLabel":"50/50"},"signals":{"serverEntry":true,"phase2Auth":false,"stubApi":true,"fixtureScanner":false,"codeRoadmapGenerator":true,"fileMergerScanner":false,"npmAudit":false,"dockerPhase2":true,"githubCi":true,"istanbulInCi":true,"phase2SmokeInCi":true,"pageSampleDir":true,"buildFromPath":true,"assessmentApi":true,"npmAuditClean":false},"phase2":{"phase":"Phase 2 — Code intelligence","status":"active","dependencyGraph":{"summary":{"nodes":139,"edges":42,"circularCycles":0},"circularDependencies":[],"sampleEdges":[{"from":"auto-processor.js","to":"server/lib/privacy-utils.cjs","type":"require"},{"from":"packages/simplebeacon-intelligence/scripts/postinstall.js","to":"packages/simplebeacon-intelligence/src/tree-sitter-loader.js","type":"require"},{"from":"packages/simplebeacon-intelligence/scripts/postinstall.js","to":"packages/simplebeacon-intelligence/src/slm-bridge.js","type":"require"},{"from":"packages/simplebeacon-intelligence/src/index.js","to":"packages/simplebeacon-intelligence/src/intent-scanner.js","type":"require"},{"from":"packages/simplebeacon-intelligence/src/index.js","to":"packages/simplebeacon-intelligence/src/structural-intent-scanner.js","type":"require"},{"from":"packages/simplebeacon-intelligence/src/index.js","to":"packages/simplebeacon-intelligence/src/tree-sitter-loader.js","type":"require"},{"from":"packages/simplebeacon-intelligence/src/index.js","to":"packages/simplebeacon-intelligence/src/slm-bridge.js","type":"require"},{"from":"packages/simplebeacon-intelligence/src/index.js","to":"packages/simplebeacon-intelligence/src/constants.js","type":"require"},{"from":"packages/simplebeacon-intelligence/src/intent-scanner.js","to":"packages/simplebeacon-intelligence/src/constants.js","type":"require"},{"from":"packages/simplebeacon-intelligence/src/intent-scanner.js","to":"packages/simplebeacon-intelligence/src/structural-intent-scanner.js","type":"require"},{"from":"packages/simplebeacon-intelligence/src/intent-scanner.js","to":"packages/simplebeacon-intelligence/src/vector-cache.js","type":"require"},{"from":"packages/simplebeacon-intelligence/src/intent-scanner.js","to":"packages/simplebeacon-intelligence/src/tree-sitter-queries.js","type":"require"}]},"fuzzySimilarity":{"method":"token-jaccard","threshold":0.92,"pairsFound":0,"pairs":[],"gguf":{"available":false,"executable":false,"llamaCppBin":null,"mode":"filesystem-only","semanticSimilarity":"Fuzzy token match only — set LLAMA_CPP_BIN for optional hints","note":"No embedding model run during filesystem scan unless analyze uses model.path"}},"semanticHints":{"enabled":false,"mode":"filesystem-only","hints":[],"note":"Set LLAMA_CPP_BIN for optional semantic review hints on fuzzy pairs"},"resourceEstimate":{"teamSize":1,"role":"Solo maintainer","remainingSprints":1,"estimatedHours":20,"hourlyRateUsd":75,"internalBudgetUsd":1500,"budgetNote":"Internal notional estimate — not $204k enterprise fiction","sprintBreakdown":[{"phase":"Sprint 1: Server & Auth","progress":50,"estimatedHours":20}]},"visualization":{"circularDependencyGraph":{"nodes":[],"edges":[]}},"rejectedFiction":{"claims":["85-95% roadmap accuracy guarantees","Multi-FTE team composition from GGUF","$204k budget forecasts from scan"]}},"aiIntegration":{"apis":["/api/:provider","/api/agent/execute","/api/agent/status","/api/ai-validation/audit","/api/ai-validation/dashboard","/api/ai-validation/results/:scanId","/api/ai-validation/scan","/api/analyze/codebase","/api/analyze/complete-audit-report","/api/analyze/compliance-checklist","/api/analyze/data-cleanup","/api/analyze/eu-ai-act-audit-report","/api/analyze/expert-review","/api/analyze/export-bundle","/api/analyze/flexible","/api/analyze/inventory","/api/analyze/list-directories","/api/analyze/npm-audit","/api/analyze/progress","/api/analyze/providers","/api/analyze/summary","/api/analyze/test-sources","/api/analyze/understand","/api/analyze/upload-directory","/api/analyze/zscript-report","/api/audit-booking","/api/audit-bookings","/api/auth/login","/api/auth/logout","/api/auth/me","/api/auth/refresh","/api/backlog","/api/chatbot/disclosure","/api/chatbot/message","/api/chatbot/providers","/api/code-roadmap/analyze","/api/code-roadmap/export/html","/api/config/pricing","/api/dynamic-roadmap/build-from-path","/api/dynamic-roadmap/health","/api/dynamic-roadmap/history","/api/health","/api/health/db","/api/health/redis","/api/mock-analysis","/api/mock-cleaning","/api/mock-conversion","/api/mock-export"],"apiRouteCount":48,"notes":"Routes scraped from server/ and src/ — docs and archive paths excluded"}},"resourceEstimate":{"teamSize":1,"role":"Solo maintainer","remainingSprints":1,"estimatedHours":20,"hourlyRateUsd":75,"internalBudgetUsd":1500,"budgetNote":"Internal notional estimate — not $204k enterprise fiction","sprintBreakdown":[{"phase":"Sprint 1: Server & Auth","progress":50,"estimatedHours":20}]},"implementationPhases":[{"phase":"Phase 1 — Sprint detection","status":"complete","items":["Filesystem signals","Sprint roadmap","API route counts"]},{"phase":"Phase 2 — Code intelligence","status":"active","items":["Circular dependency detection","Fuzzy similarity pairs","Solo resource estimate","HTML executive export"]},{"phase":"Phase 3 — Optional GGUF","status":"planned","items":["Semantic hints when analyze endpoint wired","Not 85-95% accuracy claims"]}],"featureCategories":[{"category":"Infrastructure","completed":2,"total":2,"completionRate":100},{"category":"API","completed":2,"total":2,"completionRate":100},{"category":"Planning","completed":1,"total":1,"completionRate":100},{"category":"Data","completed":1,"total":1,"completionRate":100},{"category":"Testing","completed":1,"total":1,"completionRate":100},{"category":"CI","completed":1,"total":1,"completionRate":100}],"progressMetrics":{"overall":92,"phases":{"Sprint 1: Server & Auth":50,"Sprint 2: Stub APIs & Tests":100,"Sprint 3: Honest Dashboard Data":100,"Sprint 4: Production Profile":100},"categories":{"AI Tools":100,"Analytics":100,"Development Tools":100,"Infrastructure":45},"metrics":{"codebaseMaturity":38,"featureCompleteness":92,"documentationCoverage":14.298093587521663,"testCoverage":32.48847926267281,"lineCoverage":null,"branchCoverage":null,"pageSamples":"50/50","apiRouteCount":5}},"recommendations":{"immediate":[],"shortTerm":["Wire undefined deploy gate before production profile","Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)","Improve documentation coverage"],"longTerm":["Define enterprise scope only after v1.0-internal"],"priorities":{"high":[],"medium":["Wire undefined deploy gate before production profile","Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)"],"low":["Optional GGUF semantic feature extraction"]}},"risks":[],"actionPlan":[],"v1InternalDeploy":{"localStatus":"code_ready","productionStatus":"artifacts_ready","localEnvConfigured":false,"productionEnvConfigured":false,"stripeConfigured":true,"gateRemaining":true,"runbook":"docs/v1-internal-runbook.md","verifyLocal":"npm run verify:v1-internal-profile","verifyProduction":"npm run verify:production-deploy","deploy":"npm run simplebeacon:deploy"},"sourceProjectPath":"C:\\Users\\Trevor\\CascadeProjects","platformRoot":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform","rejectedFiction":{"warning":"Enterprise roadmap design claims not produced by this scanner","claims":["Hardcoded GGUF confidence or prediction accuracy percentages","Hardcoded feature totals or completion-rate defaults","85-95% accuracy enhancement guarantees","Multi-FTE team and budget estimation from GGUF","Auto-merge roadmap executor"],"replacedBy":"Sprint deliverable detection from filesystem + package.json + API route counts"},"deprecatedNarrative":{"warning":"RoadmapDataAnalyzer previously returned hardcoded feature totals and completion defaults.","previousTotalFeatures":null,"previousCompletionRate":null},"projectStructure":{"projectRoot":"C:\\Users\\Trevor\\CascadeProjects","platformRoot":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform","totalDirectories":74,"totalFiles":242,"mainCategories":{}},"note":"Top-level categories only — use platformRoot for sprint metrics; full tree omitted from export"};
+
+function pctColor(v){ return v>=80?'health-good':v>=60?'health-moderate':'health-bad'; }
+
+function render(){
+  const es = ROADMAP.executiveSummary;
+  const pm = ROADMAP.progressMetrics;
+  const ca = ROADMAP.codeAnalysis;
+
+  // Summary cards
+  const cards = [
+    { title: 'Completion Rate', value: es.completionRate+'%', cls: pctColor(es.completionRate) },
+    { title: 'Project Health', value: es.projectHealth, cls: 'health-good' },
+    { title: 'Total Files', value: ca.structure.totalFiles },
+    { title: 'Code Files', value: ca.structure.codeFiles },
+    { title: 'API Routes', value: ca.aiIntegration.apiRouteCount },
+    { title: 'Test Coverage', value: pm.metrics.testCoverage.toFixed(1)+'%', cls: pctColor(pm.metrics.testCoverage) },
+    { title: 'Doc Coverage', value: pm.metrics.documentationCoverage.toFixed(1)+'%', cls: pctColor(pm.metrics.documentationCoverage) },
+    { title: 'Solo Budget', value: '$'+ROADMAP.resourceEstimate.internalBudgetUsd, cls: 'small' }
+  ];
+  document.getElementById('summary-cards').innerHTML = cards.map(c =>
+    `<div class="card"><h3>${c.title}</h3><div class="metric ${c.cls||''} ${c.small?'small':''}">${c.value}</div></div>`
+  ).join('');
+
+  // Sprints
+  const sprints = ROADMAP.developmentPhases;
+  document.getElementById('sprints').innerHTML = sprints.map(sp => {
+    const tag = sp.status==='completed'?'completed':sp.status==='in-progress'?'in-progress':'planned';
+    return `<div class="card" style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+        <div><strong>${sp.phase}</strong> <span class="tag ${tag}">${sp.status}</span></div>
+        <div style="color:var(--text-dim);font-size:.85rem">${sp.progress}%</div>
+      </div>
+      <div class="progress-bg"><div class="progress-fill" style="width:${sp.progress}%"></div></div>
+      <div style="margin-top:.5rem;color:var(--text-dim);font-size:.85rem">${sp.description}</div>
+      <div style="margin-top:.35rem;font-size:.85rem">Features: ${sp.features.join(' • ')}</div>
+    </div>`;
+  }).join('');
+
+  // Categories
+  const cats = ROADMAP.featureCategories;
+  document.getElementById('categories').innerHTML = cats.map(cat => {
+    return `<div class="chart-row">
+      <div style="min-width:7.5rem;font-size:.9rem">${cat.category}</div>
+      <div class="progress-bg" style="flex:1;margin:0">
+        <div class="progress-fill" style="width:${cat.completionRate}%"></div>
+      </div>
+      <div style="min-width:3.5rem;text-align:right;font-size:.85rem">${cat.completionRate}%</div>
+    </div>`;
+  }).join('');
+
+  // Risk
+  const risk = ROADMAP.strategicInsights?.riskAssessment || { overallRisk:'MODERATE', riskCategories:{security:'MINIMAL',compliance:'MODERATE',performance:'MINIMAL',maintainability:'MODERATE'} };
+  const rc = risk.riskCategories;
+  document.getElementById('risk').innerHTML = `
+    <div style="font-size:1.25rem;font-weight:700;margin-bottom:.75rem" class="${risk.overallRisk==='MINIMAL'?'health-good':risk.overallRisk==='MODERATE'?'health-moderate':'health-bad'}">
+      ${risk.overallRisk} Risk
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;font-size:.9rem">
+      <div>Security: <span class="${rc.security==='MINIMAL'?'health-good':'health-moderate'}">${rc.security}</span></div>
+      <div>Compliance: <span class="${rc.compliance==='MINIMAL'?'health-good':'health-moderate'}">${rc.compliance}</span></div>
+      <div>Performance: <span class="${rc.performance==='MINIMAL'?'health-good':'health-moderate'}">${rc.performance}</span></div>
+      <div>Maintainability: <span class="${rc.maintainability==='MINIMAL'?'health-good':'health-moderate'}">${rc.maintainability}</span></div>
+    </div>
+  `;
+
+  // Recommendations
+  const recs = ROADMAP.recommendations;
+  const allRecs = [
+    ...recs.immediate.map(r => ({text:r, level:'high'})),
+    ...recs.shortTerm.map(r => ({text:r, level:'medium'})),
+    ...recs.longTerm.map(r => ({text:r, level:'low'}))
+  ];
+  document.getElementById('recommendations').innerHTML = allRecs.map(r => {
+    const badge = r.level==='high'?'badge-medium':r.level==='medium'?'badge-medium':'badge-low';
+    return `<div class="recommendation"><span class="tag ${badge}">${r.level}</span><span>${r.text}</span></div>`;
+  }).join('');
+
+  // Metrics table
+  const metrics = [
+    ['Overall Progress', pm.overall+'%'],
+    ['Feature Completeness', pm.metrics.featureCompleteness+'%'],
+    ['Codebase Maturity', pm.metrics.codebaseMaturity+'%'],
+    ['Documentation Coverage', pm.metrics.documentationCoverage.toFixed(2)+'%'],
+    ['Test Coverage', pm.metrics.testCoverage.toFixed(2)+'%'],
+    ['Page Samples', pm.metrics.pageSamples],
+    ['Internal Dependencies', ca.dependencies.internalCount],
+    ['External Dependencies', ca.dependencies.externalCount],
+    ['Project Type', ROADMAP.projectOverview.projectType],
+    ['Team Size', ROADMAP.resourceEstimate.teamSize+' ('+ROADMAP.resourceEstimate.role+')'],
+    ['Estimated Hours Remaining', ROADMAP.resourceEstimate.estimatedHours+'h'],
+    ['Sprints Remaining', ROADMAP.resourceEstimate.remainingSprints]
+  ];
+  document.querySelector('#metrics-table tbody').innerHTML = metrics.map(m => `<tr><td>${m[0]}</td><td>${m[1]}</td></tr>`).join('');
+
+  // Implementation phases
+  const phases = ROADMAP.implementationPhases;
+  document.getElementById('phases').innerHTML = phases.map(ph => {
+    const tag = ph.status==='complete'?'completed':ph.status==='active'?'in-progress':'planned';
+    return `<div class="card" style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>${ph.phase}</strong>
+        <span class="tag ${tag}">${ph.status}</span>
+      </div>
+      <ul class="list" style="margin-top:.5rem">
+        ${ph.items.map(i => `<li>${i}</li>`).join('')}
+      </ul>
+    </div>`;
+  }).join('');
+
+  // API list (first 16, then toggle)
+  const apis = ca.aiIntegration.apis.slice(0, 20);
+  document.getElementById('api-list').innerHTML = apis.map(a => `<li>${a}</li>`).join('') +
+    `<li style="color:var(--text-dim)">... and ${ca.aiIntegration.apis.length - apis.length} more routes</li>`;
+}
+
+render();
+</script>
+</body>
+</html>

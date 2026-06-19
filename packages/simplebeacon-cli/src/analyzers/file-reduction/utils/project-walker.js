@@ -9,6 +9,7 @@ const DEFAULT_SKIP_DIRS = new Set([
     '.git',
     '.simplebeacon',
     'node_modules',
+    'logs',
     'github-cache',
     'deliverables',
     'java-ai-vulnerable',

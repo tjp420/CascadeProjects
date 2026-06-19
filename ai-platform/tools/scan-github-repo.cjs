@@ -6,9 +6,10 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const TARGET_EMAIL = 'trevor_punt@live.com';
-const REPO_PATH = 'C:\\Users\\Trevor\\temp-chalk';
-const PORT = process.env.PORT || 54355;
+const constants = require('../server/config/constants.cjs');
+const TARGET_EMAIL = process.env.SIMPLEBEACON_OWNER_EMAIL;
+const REPO_PATH = process.env.SIMPLEBEACON_REPO_PATH || process.cwd();
+const PORT = process.env.PORT || constants.DASHBOARD_PORT;
 const PLATFORM_ROOT = path.resolve(__dirname, '..');
 
 const SUBSCRIPTION_STORE = path.join(PLATFORM_ROOT, '.simplebeacon', 'subscriptions.json');
@@ -76,7 +77,7 @@ function uploadReport(report, licenseToken) {
   try {
     const output = execSync(
       `curl -s -X POST http://127.0.0.1:${PORT}/api/reports/upload -H "Content-Type: application/json" -d @"${payloadPath}"`,
-      { cwd: PLATFORM_ROOT, encoding: 'utf8', timeout: 60000 }
+      { cwd: PLATFORM_ROOT, encoding: 'utf8', timeout: constants.TIMEOUT_1M }
     );
     return JSON.parse(output);
   } finally {
@@ -86,7 +87,7 @@ function uploadReport(report, licenseToken) {
 
 function checkServer() {
   try {
-    execSync(`curl -s http://127.0.0.1:${PORT}/api/health`, { timeout: 5000 });
+    execSync(`curl -s http://127.0.0.1:${PORT}/api/health`, { timeout: constants.TIMEOUT_5S });
     return true;
   } catch {
     return false;
@@ -111,7 +112,7 @@ async function main() {
 
   log('BILLING', `Creating subscription for GitHub Analysis / ${repoName}...`);
   const licenseToken = seedSubscription(repoName);
-  log('BILLING', `License: ${licenseToken}`);
+  log('BILLING', `License created for ${repoName}`);
 
   log('DELIVERY', 'Uploading report...');
   const uploadRes = uploadReport(report, licenseToken);

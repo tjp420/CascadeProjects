@@ -193,7 +193,7 @@ describe('anonymized-export', () => {
         it('signs and verifies a valid payload', () => {
             const report = makeMockReport();
             const payload = buildAnonymizedExport(report);
-            const secret = 'test-secret-123';
+            const secret = 'placeholder-secret';
             const signed = signAnonymizedExport(payload, secret);
 
             assert.ok(signed._integrity, 'signature must be present');
@@ -206,7 +206,7 @@ describe('anonymized-export', () => {
         it('rejects tampered payload', () => {
             const report = makeMockReport();
             const payload = buildAnonymizedExport(report);
-            const secret = 'test-secret-123';
+            const secret = 'placeholder-secret';
             const signed = signAnonymizedExport(payload, secret);
 
             signed.gate.pass = true; // tamper

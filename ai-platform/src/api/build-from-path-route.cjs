@@ -16,6 +16,11 @@ const { generateCodeRoadmap } = require('../../server/lib/code-roadmap-generator
 const { renderExecutiveHtml } = require('../../server/lib/code-roadmap-export.cjs');
 const { buildHistoryEntryFromRoadmap } = require('../../server/lib/roadmap-history-metrics.cjs');
 
+/**
+ * Normalize string list.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizeStringList(value) {
     if (!Array.isArray(value)) return [];
     return value
@@ -23,6 +28,11 @@ function normalizeStringList(value) {
         .filter(Boolean);
 }
 
+/**
+ * Setup build from path route.
+ * @param {any} app
+ * @returns {any}
+ */
 function setupBuildFromPathRoute(app) {
     setupRoadmapAnalysisHistoryRoutes(app);
 

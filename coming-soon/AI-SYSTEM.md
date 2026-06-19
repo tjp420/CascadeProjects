@@ -44,20 +44,59 @@ SimpleBeacon includes AI-powered analysis capabilities that scan source code for
 
 ## 5. Risk Assessment
 
-**Article 5 (Prohibited AI Practices):**  
-- No prohibited practices detected
-- No social scoring, biometric-based identification, or manipulation systems
+### Article 5 — Prohibited AI Practices Audit
 
-**Article 6 (Risk Classification):**  
-- AI System indicators reviewed: 5 false-positive pattern matches (scanner self-referencing its own detection regexes in `upload.html` and cached report JSON)
-- No actual AI SDK integration in production code
-- Not classified as high-risk under Annex III
-- Low-risk AI system: code analysis and security scanning
+**Legal Review Date:** 2026-06-07  
+**Reviewer:** SimpleBeacon Development Team  
+**Status:** ✅ CLEARED — No prohibited practices detected
 
-**Article 10 (Transparency):**  
-- This document satisfies transparency requirements
-- Users are informed that pattern matching is heuristic-based
-- Confidence scores indicate detection reliability
+| Prohibited Practice (Art 5.1) | Applicable? | Evidence |
+|---|---|---|
+| (a) Subliminal techniques | No | No manipulation of user consciousness or behavior |
+| (b) Exploitation of vulnerabilities | No | No targeting of age, disability, or social/economic situation |
+| (c) Social scoring by governments | No | No scoring or classification of individuals or groups |
+| (d) Real-time biometric ID in public spaces | No | No biometric data processing or facial recognition |
+
+**Conclusion:** The SimpleBeacon system does not engage in any prohibited AI practices listed in Article 5(1) of Regulation (EU) 2024/1689. The system is a diagnostic code analysis tool that operates on developer-provided source code with no interaction with natural persons in a way that could constitute prohibited practice.
+
+### Article 6 — Risk Classification
+
+**Annex III Classification:** **NOT HIGH-RISK** — Limited-risk AI system
+
+The system includes optional cloud LLM integration (OpenAI, Anthropic, Ollama) for scan summarization. This integration:
+- Is **optional** and **user-configured** (API keys supplied by user)
+- Operates as a **user-facing assistant** with explicit disclosure (Article 50)
+- Does **not** make autonomous decisions affecting individuals
+- Does **not** operate in critical infrastructure, education, employment, law enforcement, or democratic processes
+
+**Risk Level:** Limited risk (Article 52) — user-facing AI system with transparency obligations
+
+### Article 9 — Risk Management System
+
+- Risk assessment documented in `risk-assessment.md`
+- Continuous monitoring via quarterly reviews
+- Human oversight implemented at chatbot route layer (`chatbot-api.cjs`)
+- All inference events logged via `ai-inference-audit-logger.cjs`
+
+### Article 10 — Data Governance
+
+- All scanning occurs locally (Browser Sandbox) or in user-controlled CI/CD
+- `--anonymize` flag strips file paths and code snippets from exported reports
+- AES-256-GCM encryption for stored AI provider credentials
+- AI proxy gateway screens outbound LLM API requests for credential leaks
+
+### Article 12 — Record-Keeping
+
+- Inference events logged with timestamp, provider, model, and token usage
+- Audit logs retained per `ai-inference-audit-logger.cjs` configuration
+- Circuit breaker state tracked for each provider
+
+### Article 50 — Transparency Obligations
+
+- AI disclosure markers embedded in `chatbot-api.cjs` ("This endpoint uses AI systems")
+- Dashboard UI includes AI transparency badges
+- Users are informed they are interacting with AI-generated content
+- All scan logic is open-source and visible in source
 
 ## 6. Compliance Actions
 

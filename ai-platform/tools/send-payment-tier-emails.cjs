@@ -1,7 +1,8 @@
-const { generateLicenseToken } = require('../packages/simplebeacon-cli/src/lib/license-token');
 const { sendEmail } = require('../server/lib/email-service.cjs');
 const fs = require('fs');
 const path = require('path');
+const { generateLicenseToken } = require('../server/lib/simplebeacon-proxy.cjs');
+
 
 const templatePath = path.join(__dirname, '../../coming-soon/email-template-universal.html');
 const templateHtml = fs.readFileSync(templatePath, 'utf8');
@@ -19,7 +20,7 @@ function buildEmail(tier, config) {
   const sessionId = 'sess_' + Date.now() + '_' + tier;
 
   const token = generateLicenseToken({
-    email: 'trevor_punt@live.com',
+    email: process.env.SIMPLEBEACON_OWNER_EMAIL || 'admin@'+'simplebeacon.local',
     tier: tier,
     features: config.features
   }, 'simplebeacon-dev-insecure', config.expiryDays * 24 * 60);
@@ -141,7 +142,7 @@ async function sendAll() {
 
     try {
       const result = await sendEmail({
-        to: 'trevor_punt@live.com',
+        to: process.env.SIMPLEBEACON_OWNER_EMAIL || 'admin@simplebeacon.local',
         subject: email.subject,
         html: email.html,
         text: email.text

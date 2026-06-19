@@ -1,5 +1,7 @@
 /**
  * Central secret resolution — fail-fast in production; dev ephemeral opt-in only.
+ *
+ * @module server/lib/secret-config
  */
 
 const crypto = require('crypto');
@@ -7,6 +9,12 @@ const logger = require('./app-logger.cjs');
 
 const PLACEHOLDER_PATTERN = /replace|changeme|demo|example|xxx|your_|YOUR_.*_HERE|todo|placeholder|dummy|sk_test_your|REPLACE_ME/i;
 
+/**
+ * Check whether a secret value is strong enough for production use.
+ * @param {string} value
+ * @param {number} [minLength=32]
+ * @returns {boolean}
+ */
 function isConfiguredSecret(value, minLength = 32) {
     if (!value) return false;
     const normalized = String(value).trim();
@@ -15,11 +23,24 @@ function isConfiguredSecret(value, minLength = 32) {
     return true;
 }
 
+/**
+ * Determine whether the current environment should be treated as production-like.
+ * @returns {boolean}
+ */
 function isProductionLike() {
     const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
     return nodeEnv === 'production' || process.env.REQUIRE_AUTH === 'true';
 }
 
+/**
+ * Resolve a named secret from environment or ephemeral generation.
+ * Throws in production-like environments when the secret is missing.
+ * @param {string} name
+ * @param {object} [options]
+ * @param {number} [options.minLength]
+ * @returns {string}
+ * @throws {Error} when secret is missing in production or when ephemeral is disallowed
+ */
 function resolveSecret(name, options = {}) {
     const minLength = options.minLength ?? 32;
     const envValue = process.env[name];
@@ -62,6 +83,11 @@ function resolveSecret(name, options = {}) {
     );
 }
 
+/**
+ * Validate that JWT secrets are configured when REQUIRE_AUTH is enabled.
+ * Warns when ephemeral secrets are in use; throws in production.
+ * @throws {Error} if auth is required and secrets are missing in production
+ */
 function assertAuthConfiguration() {
     if (process.env.REQUIRE_AUTH !== 'true') return;
 
@@ -87,6 +113,7 @@ function assertAuthConfiguration() {
 
 /**
  * Local v1-internal preview: allow placeholder JWT secrets + demo users without production safety failures.
+ * @returns {boolean} true if ephemeral dev profile was applied
  */
 function applyLocalV1InternalDevProfile() {
     if (process.env.REQUIRE_AUTH !== 'true') return false;
@@ -117,6 +144,10 @@ function applyLocalV1InternalDevProfile() {
     return true;
 }
 
+/**
+ * Fail-fast checks for production auth safety (REQUIRE_AUTH, SEED_DEMO_USERS, ALLOW_LEGACY_LOGIN).
+ * @throws {Error} if any production auth safety requirement is violated
+ */
 function assertProductionAuthSafety() {
     const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
     if (nodeEnv !== 'production') return;

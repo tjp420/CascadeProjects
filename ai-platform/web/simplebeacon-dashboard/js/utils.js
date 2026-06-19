@@ -1,3 +1,8 @@
+/**
+ * Escape html.
+ * @param {string} str
+ * @returns {any}
+ */
 export function escapeHtml(str) {
   if (str == null) return '';
   return String(str)
@@ -7,6 +12,12 @@ export function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * Show toast.
+ * @param {string} message
+ * @param {any} type
+ * @returns {any}
+ */
 export function showToast(message, type = 'info') {
   let toast = document.getElementById('toast');
   if (!toast) {
@@ -21,6 +32,11 @@ export function showToast(message, type = 'info') {
   toast._timer = setTimeout(() => toast.classList.remove('show'), 3500);
 }
 
+/**
+ * Format number.
+ * @param {any} n
+ * @returns {any}
+ */
 export function formatNumber(n) {
   if (n == null) return '—';
   const numericCount = Number(n);
@@ -28,13 +44,11 @@ export function formatNumber(n) {
   return numericCount.toLocaleString();
 }
 
-/** Parse ISO/RFC timestamps to epoch ms; returns null when input is missing or invalid. */
-export function parseIsoTimestampMs(isoTimestamp) {
-  if (isoTimestamp == null || isoTimestamp === '') return null;
-  const epochMs = Date.parse(String(isoTimestamp));
-  return Number.isFinite(epochMs) ? epochMs : null;
-}
-
+/**
+ * Format percent.
+ * @param {any} value
+ * @returns {any}
+ */
 export function formatPercent(value) {
   if (value == null || value === '') return '—';
   const str = String(value).trim();
@@ -93,6 +107,12 @@ export function formatPathInputValue(projectPath) {
   return String(projectPath).replace(/\\/g, '/');
 }
 
+/**
+ * Format scan path for display.
+ * @param {string} scanPath
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 export function formatScanPathForDisplay(scanPath, projectRoot) {
   if (!scanPath) return '';
   const normalized = String(scanPath).replace(/\\/g, '/');
@@ -106,13 +126,29 @@ export function formatScanPathForDisplay(scanPath, projectRoot) {
   return redactPathForDisplay(scanPath);
 }
 
+/**
+ * Format path label.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export function formatPathLabel(projectPath) {
   const redacted = redactPathForDisplay(projectPath);
   if (redacted && redacted !== projectPath) return redacted;
-  const parts = String(projectPath || '').replace(/\\/g, '/').split('/').filter(Boolean);
+  const normalized = String(projectPath || '').replace(/\\/g, '/');
+  const parts = normalized.split('/').filter(Boolean);
+  // Preserve drive letter for Windows paths that are just a drive + one folder
+  // (e.g. I:/AGI Chatbot should stay readable, not collapse to AGI Chatbot)
+  if (parts.length <= 2 && /^[a-zA-Z]:$/.test(parts[0])) {
+    return normalized;
+  }
   return parts[parts.length - 1] || projectPath || '';
 }
 
+/**
+ * Format ai summary skip message.
+ * @param {string} errorMessage
+ * @returns {any}
+ */
 export function formatAiSummarySkipMessage(errorMessage) {
   const msg = String(errorMessage || '');
   if (/openai is not configured/i.test(msg)) {
@@ -142,6 +178,13 @@ export function formatAiSummarySkipMessage(errorMessage) {
   return `Optional AI narrative skipped: ${msg}`;
 }
 
+/**
+ * Fetch with timeout.
+ * @param {string} url
+ * @param {Object} options
+ * @param {Array} ms
+ * @returns {any}
+ */
 export async function fetchWithTimeout(url, options = {}, ms = 10000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
@@ -157,11 +200,23 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000) {
   }
 }
 
+/**
+ * Download json.
+ * @param {any} data
+ * @param {string} filename
+ * @returns {any}
+ */
 export function downloadJson(data, filename) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   downloadBlob(blob, filename);
 }
 
+/**
+ * Download blob.
+ * @param {any} blob
+ * @param {string} filename
+ * @returns {any}
+ */
 export function downloadBlob(blob, filename) {
   if (!blob || typeof document === 'undefined') {
     throw new Error('Download is unavailable.');
@@ -177,6 +232,13 @@ export function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+/**
+ * Download text.
+ * @param {any} content
+ * @param {string} filename
+ * @param {any} mime
+ * @returns {any}
+ */
 export function downloadText(content, filename, mime = 'text/plain') {
   const blob = new Blob([content], { type: mime });
   downloadBlob(blob, filename);
@@ -186,6 +248,45 @@ export function downloadText(content, filename, mime = 'text/plain') {
  * Sanitizes input strings by replacing sensitive patterns with generic placeholders.
  * @param {string} text - The raw log or user input string.
  * @returns {string} The anonymized text.
+ */
+/**
+ * Render a standardized empty-state block.
+ * @param {Object} opts
+ * @param {string} opts.icon - SVG icon markup (omit <svg> wrapper if providing inner paths only)
+ * @param {string} opts.title - Heading text
+ * @param {string} [opts.body] - Descriptive paragraph (HTML allowed for links)
+ * @param {Array<{label:string,id?:string,className?:string,onClick?:Function}>} [opts.actions] - Button configs
+ * @param {string} [opts.iconWrapper] - 'svg' (default) or 'emoji' for rendering style
+ * @returns {string} HTML string
+ */
+/**
+ * Render empty state.
+ * @param {Object} opts
+ * @returns {any}
+ */
+export function renderEmptyState(opts) {
+  const { icon, title, body = '', actions = [], iconWrapper = 'svg' } = opts;
+  const iconHtml = iconWrapper === 'emoji'
+    ? `<div class="empty-state-icon" style="font-size:3rem;background:none;width:auto;height:auto;">${escapeHtml(icon)}</div>`
+    : `<div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></div>`;
+  const bodyHtml = body ? `<p class="empty-state-body">${body}</p>` : '';
+  const actionsHtml = actions.length
+    ? `<div class="empty-state-actions">${actions.map(a => `<button class="btn ${a.className || 'btn-primary'}"${a.id ? ` id="${a.id}"` : ''}>${escapeHtml(a.label)}</button>`).join('')}</div>`
+    : '';
+  return `
+    <div class="empty-state card">
+      ${iconHtml}
+      <p class="empty-state-title">${escapeHtml(title)}</p>
+      ${bodyHtml}
+      ${actionsHtml}
+    </div>
+  `.trim();
+}
+
+/**
+ * Sanitize privacy data.
+ * @param {string} text
+ * @returns {any}
  */
 export function sanitizePrivacyData(text) {
   if (!text || typeof text !== 'string') return text;

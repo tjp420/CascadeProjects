@@ -19,16 +19,32 @@ const SHARED_MITIGATION_THEMES = [
   'Escalate high-risk findings with clear remediation owners.'
 ];
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Is benchmark path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function isBenchmarkPath(projectPath) {
   return /\/github-cache\//i.test(String(projectPath || '').replace(/\\/g, '/'));
 }
 
+/**
+ * Redact path for export.
+ * @param {string} rawPath
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function redactPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = String(rawPath).replace(/\\/g, '/');
@@ -41,10 +57,20 @@ function redactPathForExport(rawPath, projectLabel = 'ai-platform') {
   return normalized;
 }
 
+/**
+ * Normalize simple beacon branding.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizeSimpleBeaconBranding(value) {
   return String(value ?? '').replace(/\bSimplebeacon\b/g, 'SimpleBeacon');
 }
 
+/**
+ * Clamp score.
+ * @param {any} value
+ * @returns {any}
+ */
 function clampScore(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 0;
@@ -53,6 +79,11 @@ function clampScore(value) {
   return Number(numeric.toFixed(2));
 }
 
+/**
+ * Severity from risk.
+ * @param {any} riskScore
+ * @returns {any}
+ */
 function severityFromRisk(riskScore) {
   if (riskScore >= 75) return 'critical';
   if (riskScore >= 55) return 'high';
@@ -60,6 +91,11 @@ function severityFromRisk(riskScore) {
   return 'low';
 }
 
+/**
+ * Infer scoring direction.
+ * @param {any} result
+ * @returns {any}
+ */
 function inferScoringDirection(result = {}) {
   const score = Number(result.score);
   if (!Number.isFinite(score)) return 'lower_better';
@@ -73,6 +109,11 @@ function inferScoringDirection(result = {}) {
   return 'lower_better';
 }
 
+/**
+ * Enrich analyzer result for export.
+ * @param {any} result
+ * @returns {any}
+ */
 function enrichAnalyzerResultForExport(result) {
   if (!result || typeof result !== 'object') return result;
   const scoringDirection = result.scoringDirection || inferScoringDirection(result);
@@ -96,10 +137,21 @@ function enrichAnalyzerResultForExport(result) {
   };
 }
 
+/**
+ * Enrich analyzer results for export.
+ * @param {Array} results
+ * @returns {any}
+ */
 function enrichAnalyzerResultsForExport(results = []) {
   return results.map(enrichAnalyzerResultForExport);
 }
 
+/**
+ * Enrich top priority issues for export.
+ * @param {Array} issues
+ * @param {Array} analyzerResults
+ * @returns {any}
+ */
 function enrichTopPriorityIssuesForExport(issues = [], analyzerResults = []) {
   const byId = new Map(analyzerResults.map((result) => [result.id, result]));
   return issues.map((issue) => {
@@ -117,6 +169,11 @@ function enrichTopPriorityIssuesForExport(issues = [], analyzerResults = []) {
   });
 }
 
+/**
+ * Slim mitigation themes.
+ * @param {Array} themes
+ * @returns {any}
+ */
 function slimMitigationThemes(themes = []) {
   if (!themes.length) return { sharedThemes: SHARED_MITIGATION_THEMES, categories: [] };
   const categories = themes.map((item) => ({
@@ -126,6 +183,13 @@ function slimMitigationThemes(themes = []) {
   return { sharedThemes: SHARED_MITIGATION_THEMES, categories };
 }
 
+/**
+ * Deep redact.
+ * @param {number} exportNode
+ * @param {any} projectLabel
+ * @param {any} depth
+ * @returns {any}
+ */
 function deepRedact(exportNode, projectLabel, depth = 0) {
   if (depth > 8 || exportNode == null) return exportNode;
   if (typeof exportNode === 'string') {
@@ -151,6 +215,11 @@ function deepRedact(exportNode, projectLabel, depth = 0) {
   return exportNode;
 }
 
+/**
+ * Peak severity from counts.
+ * @param {Array} counts
+ * @returns {any}
+ */
 function peakSeverityFromCounts(counts = {}) {
   if ((counts.critical || 0) > 0) return 'critical';
   if ((counts.high || 0) > 0) return 'high';
@@ -159,6 +228,11 @@ function peakSeverityFromCounts(counts = {}) {
   return 'none';
 }
 
+/**
+ * Reconcile risk summary.
+ * @param {any} riskSummary
+ * @returns {any}
+ */
 function reconcileRiskSummary(riskSummary = {}) {
   const severityCounts = riskSummary.severityCounts || {};
   const peakSeverity = peakSeverityFromCounts(severityCounts);
@@ -180,6 +254,12 @@ function reconcileRiskSummary(riskSummary = {}) {
   };
 }
 
+/**
+ * Slim architecture for export.
+ * @param {any} architecture
+ * @param {any} summary
+ * @returns {any}
+ */
 function slimArchitectureForExport(architecture, summary = null) {
   if (!architecture || typeof architecture !== 'object') return null;
   const slim = { ...architecture };
@@ -203,6 +283,13 @@ function slimArchitectureForExport(architecture, summary = null) {
   return slim;
 }
 
+/**
+ * Build hygiene summary.
+ * @param {any} summary
+ * @param {any} riskSummary
+ * @param {any} healthScore
+ * @returns {any}
+ */
 function buildHygieneSummary(summary, riskSummary, healthScore) {
   const execution = riskSummary?.executionStatus || {};
   return {
@@ -216,6 +303,12 @@ function buildHygieneSummary(summary, riskSummary, healthScore) {
   };
 }
 
+/**
+ * Build export notes.
+ * @param {any} analysisResult
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildExportNotes(analysisResult, options = {}) {
   const notes = [];
   const risk = analysisResult?.riskSummary || {};
@@ -258,6 +351,12 @@ function buildExportNotes(analysisResult, options = {}) {
   return [...new Set(notes)].slice(0, 8);
 }
 
+/**
+ * Build slim payload.
+ * @param {any} sanitized
+ * @param {any} summary
+ * @returns {any}
+ */
 function buildSlimPayload(sanitized, summary) {
   const source = sanitized.payload || {};
   return {
@@ -275,6 +374,11 @@ function buildSlimPayload(sanitized, summary) {
   };
 }
 
+/**
+ * Resolve selected issue ids.
+ * @param {any} sanitized
+ * @returns {any}
+ */
 function resolveSelectedIssueIds(sanitized) {
   if (Array.isArray(sanitized.selectedIssueIds) && sanitized.selectedIssueIds.length) {
     return sanitized.selectedIssueIds;
@@ -286,6 +390,12 @@ function resolveSelectedIssueIds(sanitized) {
   return (sanitized.analyzerResults || []).map((result) => result.id).filter(Boolean);
 }
 
+/**
+ * Sanitize ai problem analyzer export.
+ * @param {any} analysisResult
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeAiProblemAnalyzerExport(analysisResult, options = {}) {
   if (!analysisResult || typeof analysisResult !== 'object') return null;
 
@@ -366,6 +476,12 @@ export function sanitizeAiProblemAnalyzerExport(analysisResult, options = {}) {
   };
 }
 
+/**
+ * Ai problem analyzer export filename.
+ * @param {string} projectPath
+ * @param {any} date
+ * @returns {any}
+ */
 export function aiProblemAnalyzerExportFilename(projectPath, date = new Date()) {
   const slug = projectLabelFromPath(projectPath)
     .replace(/[^a-z0-9]+/gi, '-')
@@ -374,6 +490,11 @@ export function aiProblemAnalyzerExportFilename(projectPath, date = new Date()) 
   return `ai-problem-analyzer-${slug}-${date.toISOString().slice(0, 10)}.json`;
 }
 
+/**
+ * Build ai problem analyzer csv.
+ * @param {number} exportPayload
+ * @returns {any}
+ */
 export function buildAiProblemAnalyzerCsv(exportPayload) {
   const rows = [['id', 'analyzerId', 'title', 'status', 'severity', 'metricScore', 'riskScore', 'scoringDirection', 'riskBand', 'evidenceStatus', 'countsTowardRiskSummary']];
   for (const result of exportPayload?.analyzerResults || []) {

@@ -11,10 +11,20 @@ const {
     buildRepositoryHealthPayload
 } = require('./repository-health-payload.cjs');
 
+/**
+ * Read json if exists.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function readJsonIfExists(filePath) {
     return readJsonFileCached(filePath);
 }
 
+/**
+ * Redact path.
+ * @param {any} value
+ * @returns {any}
+ */
 function redactPath(value) {
     const normalized = String(value || '').replace(/\\/g, '/');
     const parts = normalized.split('/').filter(Boolean);
@@ -25,6 +35,12 @@ function redactPath(value) {
     return `…/${parts.slice(-2).join('/')}`;
 }
 
+/**
+ * Build report snapshot.
+ * @param {number} report
+ * @param {any} label
+ * @returns {any}
+ */
 function buildReportSnapshot(report, label) {
     if (!report || report.type !== 'simplebeacon-report') return null;
 
@@ -64,6 +80,12 @@ function buildReportSnapshot(report, label) {
     };
 }
 
+/**
+ * Build trust disclaimers.
+ * @param {number} platformSnap
+ * @param {any} monorepoSnap
+ * @returns {any}
+ */
 function buildTrustDisclaimers(platformSnap, monorepoSnap) {
     const disclaimers = [
         'Quality score and zero-issue counts apply to configured gate rules and sample paths — not semantic review of every source file.',
@@ -80,6 +102,11 @@ function buildTrustDisclaimers(platformSnap, monorepoSnap) {
     return disclaimers;
 }
 
+/**
+ * Verification digest.
+ * @param {any} payload
+ * @returns {any}
+ */
 function verificationDigest(payload) {
     return crypto
         .createHash('sha256')
@@ -93,11 +120,22 @@ function verificationDigest(payload) {
         .slice(0, 16);
 }
 
+/**
+ * Parse iso time.
+ * @param {any} value
+ * @returns {any}
+ */
 function parseIsoTime(value) {
     const ms = Date.parse(String(value || ''));
     return Number.isFinite(ms) ? ms : 0;
 }
 
+/**
+ * Pick headline snapshot.
+ * @param {any} platform
+ * @param {any} monorepo
+ * @returns {any}
+ */
 function pickHeadlineSnapshot(platform, monorepo) {
     if (!platform && !monorepo) {
         return { primary: null, source: null, reason: 'No trust snapshots available.' };
@@ -137,6 +175,11 @@ function pickHeadlineSnapshot(platform, monorepo) {
     return { primary: platform, source: 'platform', reason: 'Platform snapshot is newer or equally recent.' };
 }
 
+/**
+ * Build fiction scope note.
+ * @param {any} snap
+ * @returns {any}
+ */
 function buildFictionScopeNote(snap) {
     if (!snap) {
         return 'Fiction/KPI rules use fictionScope repository-json when enabled — walk root is ai-platform, not the monorepo parent inventory.';
@@ -156,6 +199,13 @@ function buildFictionScopeNote(snap) {
         + samplePart + '; explorer inventory totals are separate and much larger.';
 }
 
+/**
+ * Build fiction scope block.
+ * @param {number} platformSnap
+ * @param {any} monorepoSnap
+ * @param {any} headlineSource
+ * @returns {any}
+ */
 function buildFictionScopeBlock(platformSnap, monorepoSnap, headlineSource) {
     const primary = headlineSource === 'monorepo' ? monorepoSnap : platformSnap;
     const walkRoot = platformSnap?.platformRoot || platformSnap?.projectRoot || null;
@@ -181,6 +231,13 @@ function buildFictionScopeBlock(platformSnap, monorepoSnap, headlineSource) {
     };
 }
 
+/**
+ * Build trust methodology.
+ * @param {number} platformSnap
+ * @param {any} monorepoSnap
+ * @param {any} headlineSource
+ * @returns {any}
+ */
 function buildTrustMethodology(platformSnap, monorepoSnap, headlineSource) {
     const primary = headlineSource === 'monorepo' ? monorepoSnap : platformSnap;
     return [
@@ -191,6 +248,11 @@ function buildTrustMethodology(platformSnap, monorepoSnap, headlineSource) {
     ];
 }
 
+/**
+ * Build trust verification payload.
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildTrustVerificationPayload(options = {}) {
     const platformRoot = path.resolve(options.platformRoot || options.projectRoot || process.cwd());
     const monorepoRoot = options.monorepoRoot
@@ -245,6 +307,12 @@ function buildTrustVerificationPayload(options = {}) {
     return payload;
 }
 
+/**
+ * Build trust badge svg.
+ * @param {any} payload
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildTrustBadgeSvg(payload, options = {}) {
     const headline = payload.headline || {};
     const score = headline.qualityScore ?? '—';
@@ -264,6 +332,12 @@ function buildTrustBadgeSvg(payload, options = {}) {
 </svg>`;
 }
 
+/**
+ * Build trust badge html.
+ * @param {any} payload
+ * @param {any} origin
+ * @returns {any}
+ */
 function buildTrustBadgeHtml(payload, origin = '') {
     const headline = payload.headline || {};
     const base = origin || '';
@@ -317,6 +391,11 @@ function buildTrustBadgeHtml(payload, origin = '') {
 </html>`;
 }
 
+/**
+ * Esc.
+ * @param {any} value
+ * @returns {any}
+ */
 function esc(value) {
     return String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -325,6 +404,12 @@ function esc(value) {
         .replace(/"/g, '&quot;');
 }
 
+/**
+ * Render snapshot row.
+ * @param {any} label
+ * @param {any} snap
+ * @returns {any}
+ */
 function renderSnapshotRow(label, snap) {
     if (!snap) {
         return `<section class="card"><h2>${esc(label)}</h2><p class="muted">No report on disk — run <code>npm run trust:refresh</code> first.</p></section>`;
@@ -351,6 +436,11 @@ function renderSnapshotRow(label, snap) {
     </section>`;
 }
 
+/**
+ * Build trust verify html.
+ * @param {any} payload
+ * @returns {any}
+ */
 function buildTrustVerifyHtml(payload) {
     const headline = payload.headline || {};
     const gate = headline.gatePass ? 'pass' : 'review';
@@ -367,25 +457,35 @@ function buildTrustVerifyHtml(payload) {
   <title>SimpleBeacon Trust Verification</title>
   <style>
     :root { color-scheme: dark; }
-    body { font-family: Inter, Segoe UI, sans-serif; background: #0d1117; color: #e6edf3; margin: 0; line-height: 1.5; }
-    .wrap { max-width: 880px; margin: 0 auto; padding: 24px 20px 48px; }
-    h1 { font-size: 1.5rem; margin: 0 0 8px; }
-    h2 { font-size: 1rem; margin: 0; }
+    body { font-family: Inter, Segoe UI, -apple-system, sans-serif; background: #0d1117; color: #e6edf3; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 28px 24px 48px; }
+    h1 { font-size: 1.75rem; margin: 0 0 10px; font-weight: 700; }
+    h2 { font-size: 1.05rem; margin: 0; font-weight: 600; }
     .muted { color: #8b949e; font-size: 0.875rem; }
-    .hero { margin-bottom: 20px; }
-    .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-    .pill { font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+    .hero { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #30363d; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+    .pill { font-size: 0.7rem; font-weight: 700; padding: 5px 12px; border-radius: 999px; letter-spacing: 0.03em; text-transform: uppercase; }
     .pill.pass { background: #238636; color: #fff; }
     .pill.review { background: #9e6a03; color: #fff; }
-    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-    .metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin: 12px 0 0; }
-    .metrics div { background: #0d1117; border-radius: 8px; padding: 10px; }
-    .metrics dt { font-size: 0.7rem; color: #8b949e; margin: 0; }
-    .metrics dd { font-size: 1.1rem; font-weight: 600; margin: 4px 0 0; }
-    ul { margin: 8px 0 0; padding-left: 1.2rem; color: #c9d1d9; }
-    code { font-family: ui-monospace, monospace; font-size: 0.85em; }
-    .links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
-    a { color: #58a6ff; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+    .card h2 { margin-bottom: 6px; }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 14px 0 0; }
+    .metrics div { background: #0d1117; border-radius: 10px; padding: 12px; border: 1px solid #21262d; }
+    .metrics dt { font-size: 0.7rem; color: #8b949e; margin: 0; text-transform: uppercase; letter-spacing: 0.04em; }
+    .metrics dd { font-size: 1.15rem; font-weight: 700; margin: 6px 0 0; }
+    ul { margin: 10px 0 0; padding-left: 1.2rem; color: #c9d1d9; font-size: 0.9rem; }
+    li { margin-bottom: 6px; }
+    code { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.85em; background: #21262d; padding: 2px 6px; border-radius: 4px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #30363d; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; text-decoration: none; cursor: pointer; border: none; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #1f6feb; color: #fff; }
+    .btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+    .btn svg { width: 16px; height: 16px; }
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .badge-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .badge { font-size: 0.75rem; padding: 3px 10px; border-radius: 999px; background: #21262d; color: #8b949e; border: 1px solid #30363d; }
   </style>
 </head>
 <body>
@@ -395,15 +495,19 @@ function buildTrustVerifyHtml(payload) {
         <h1>SimpleBeacon Trust Verification</h1>
         <span class="pill ${gate}">${gateLabel}</span>
       </div>
-      <p class="muted">Verification ID <code>${esc(payload.verificationId)}</code> · Headline source: <code>${esc(payload.headlineSource || 'n/a')}</code>.</p>
-      <p class="muted">${esc(payload.headlineReason || '')}</p>
+      <div class="badge-row">
+        <span class="badge">ID <code>${esc(payload.verificationId)}</code></span>
+        <span class="badge">Source <code>${esc(payload.headlineSource || 'n/a')}</code></span>
+        <span class="badge">${esc((headline.lastScan || '').replace('T', ' ').slice(0, 19))}</span>
+      </div>
+      <p class="muted">${esc(payload.headlineReason || 'Scoped scan results — not marketing claims.')}</p>
       <dl class="metrics">
         <div><dt>Quality</dt><dd>${esc(headline.qualityScore)}%</dd></div>
         <div><dt>Issues</dt><dd>${esc(headline.issueCount)}</dd></div>
         <div><dt>Schema</dt><dd>${esc(headline.schemaCompliance)}%</dd></div>
         <div><dt>Repo files</dt><dd>${esc(headline.repositoryFilesTotal)}</dd></div>
         <div><dt>Gate checked</dt><dd>${esc(headline.ruleScopedFilesAnalyzed)}</dd></div>
-        <div><dt>Last scan</dt><dd>${esc((headline.lastScan || '').replace('T', ' ').slice(0, 19))}</dd></div>
+        <div><dt>Consistency</dt><dd>${esc(headline.consistencyScore ?? '—')}%</dd></div>
       </dl>
     </div>
     ${renderSnapshotRow('Platform gate (ai-platform)', payload.platform)}
@@ -426,17 +530,25 @@ function buildTrustVerifyHtml(payload) {
       <h2>Disclaimers</h2>
       <ul>${disclaimers}</ul>
     </section>
-    <div class="links">
-      <a href="/app#/trust">Full trust dashboard</a>
-      <a href="/api/trust/verification">JSON (full payload)</a>
-      <a href="/api/trust/verify?format=json">JSON (compact)</a>
-      <a href="/api/trust/badge.svg">Badge SVG</a>
+    <div class="actions">
+      <a class="btn btn-primary" href="/api/trust/verify?format=json" download="trust-verification.json">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download JSON
+      </a>
+      <a class="btn btn-secondary" href="/app#/trust">Full dashboard</a>
+      <a class="btn btn-secondary" href="/api/trust/badge.svg" target="_blank">Badge SVG</a>
+      <a class="btn btn-secondary" href="/api/trust/verification">Full payload</a>
     </div>
   </div>
 </body>
 </html>`;
 }
 
+/**
+ * Build trust verify compact.
+ * @param {any} payload
+ * @returns {any}
+ */
 function buildTrustVerifyCompact(payload) {
     const headline = payload.headline || {};
     return {

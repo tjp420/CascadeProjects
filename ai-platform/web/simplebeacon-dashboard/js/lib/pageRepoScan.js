@@ -4,6 +4,40 @@ import { isDemoMode, demoReadOnlyMessage } from '../demoMode.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
 
+/** Known artifact / export directory suffixes that should not be part of a project path. */
+const ARTIFACT_SUFFIXES = [
+  /[/\\]simplebeacon-export-[^/\\]+$/i,
+  /[/\\]complete-scan-[^/\\]+\.json$/i,
+  /[/\\]cleanup-export-[^/\\]+\.json$/i,
+  /[/\\]fiction-digest-[^/\\]+\.json$/i,
+  /[/\\]file-reduction-[^/\\]+\.json$/i,
+  /[/\\]data-quality-[^/\\]+\.json$/i,
+  /[/\\]roadmap-[^/\\]+\.json$/i,
+  /[/\\]consolidation-[^/\\]+\.json$/i,
+  /[/\\]codebase-[^/\\]+\.json$/i,
+  /[/\\]npm-audit-[^/\\]+\.json$/i,
+];
+
+/**
+ * Strip artifact suffixes.
+ * @param {string} path
+ * @returns {any}
+ */
+function stripArtifactSuffixes(path) {
+  const raw = String(path || '').trim().replace(/\\/g, '/');
+  for (const pattern of ARTIFACT_SUFFIXES) {
+    if (pattern.test(raw)) {
+      return raw.replace(pattern, '');
+    }
+  }
+  return path;
+}
+
+/**
+ * Is plausible project path.
+ * @param {any} value
+ * @returns {any}
+ */
 function isPlausibleProjectPath(value) {
   const raw = String(value || '').trim();
   if (!raw || raw.length > 280) return false;
@@ -11,9 +45,10 @@ function isPlausibleProjectPath(value) {
   if (/outside allowed analysis roots|projectPath is required|projectPath is outside/i.test(raw)) {
     return false;
   }
-  if (/^[a-zA-Z]:[\\/]/.test(raw)) return true;
-  if (raw.startsWith('\\\\') || raw.startsWith('/')) return true;
-  if (/^[\w.-]+([\\/]|$)/.test(raw)) return true;
+  const cleaned = stripArtifactSuffixes(raw);
+  if (/^[a-zA-Z]:[\\/]/.test(cleaned)) return true;
+  if (cleaned.startsWith('\\\\') || cleaned.startsWith('/')) return true;
+  if (/^[\w.-]+([\\/]|$)/.test(cleaned)) return true;
   return false;
 }
 
@@ -28,14 +63,32 @@ export function readProjectPathInput(root) {
  * Resolve the repo path for dashboard page scans — uses the typed path as-is
  * (no silent upgrade to the server default / nested ai-platform folder).
  */
+/**
+ * Resolve page project path.
+ * @param {any} inputValue
+ * @param {any} app
+ * @returns {any}
+ */
 export function resolvePageProjectPath(inputValue, app) {
-  const trimmed = String(inputValue || '').trim();
+  const trimmed = stripArtifactSuffixes(String(inputValue || '').trim());
   const defaultPath = String(app.state.defaultProjectPath || '').trim();
+
+  // Resolve bare directory names (no drive letter or slash prefix) against default path
   if (trimmed && !trimmed.startsWith('…') && isPlausibleProjectPath(trimmed)) {
+    const cleaned = stripArtifactSuffixes(trimmed);
+    const isBareName = cleaned && !/^[a-zA-Z]:[\\/]/.test(cleaned) && !cleaned.startsWith('//') && !cleaned.startsWith('/');
+    if (isBareName && defaultPath) {
+      const resolved = defaultPath.replace(/\\/g, '/').replace(/\/$/, '') + '/' + cleaned;
+      if (resolved.startsWith(defaultPath.replace(/\\/g, '/'))) {
+        return resolved;
+      }
+    }
     return trimmed;
   }
-  if (app.state.lastProjectPath && isPlausibleProjectPath(app.state.lastProjectPath)) {
-    return app.state.lastProjectPath;
+
+  const cleanedLast = stripArtifactSuffixes(app.state.lastProjectPath || '');
+  if (cleanedLast && isPlausibleProjectPath(cleanedLast)) {
+    return cleanedLast;
   }
   if (trimmed.startsWith('…')) {
     return defaultPath;
@@ -43,10 +96,11 @@ export function resolvePageProjectPath(inputValue, app) {
   return trimmed || defaultPath || '';
 }
 
-/** Value to show in path inputs before the user scans (last scan or server default). */
+/** Value to show in path inputs — returns the current path so re-renders preserve it. */
 export function getPathInputDisplayValue(app) {
-  if (app.state.lastProjectPath) return app.state.lastProjectPath;
-  return String(app.state.defaultProjectPath || '').trim();
+  if (!app || !app.state) return '';
+  const candidate = app.state.pathInputDraft || app.state.lastProjectPath || '';
+  return stripArtifactSuffixes(candidate);
 }
 
 /** Active path for the current page — prefers typed input, then last scan, then default. */
@@ -66,6 +120,12 @@ export function productPlatformRootFromBenchmarkPath(projectPath) {
  * EU compliance / handoff scans must target product code — not OSS benchmark clones.
  * Falls back to server default when the typed or remembered path is under github-cache/.
  */
+/**
+ * Resolve product compliance path.
+ * @param {any} inputValue
+ * @param {any} app
+ * @returns {any}
+ */
 export function resolveProductCompliancePath(inputValue, app) {
   const resolved = resolvePageProjectPath(inputValue, app);
   const defaultPath = String(app.state.defaultProjectPath || '').trim();
@@ -81,6 +141,12 @@ export function resolveProductCompliancePath(inputValue, app) {
   return resolved || defaultPath;
 }
 
+/**
+ * Ensure product compliance path.
+ * @param {any} app
+ * @param {any} root
+ * @returns {any}
+ */
 export function ensureProductCompliancePath(app, root) {
   const current = getPageProjectPath(app, root);
   const defaultPath = String(app.state.defaultProjectPath || '').trim();
@@ -94,6 +160,12 @@ export function ensureProductCompliancePath(app, root) {
   return current;
 }
 
+/**
+ * Report matches page path.
+ * @param {number} report
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export function reportMatchesPagePath(report, projectPath) {
   if (!report?.projectRoot || !projectPath) return false;
   const a = normalizeProjectPath(report.projectRoot);
@@ -120,6 +192,12 @@ export function getPageReport(app, root) {
   return reportForProjectPath(app, getPageProjectPath(app, root));
 }
 
+/**
+ * Sync path chip states.
+ * @param {any} root
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export function syncPathChipStates(root, projectPath) {
   if (!root) return;
   const activeNorm = projectPath ? normalizeProjectPath(projectPath) : '';
@@ -132,6 +210,12 @@ export function syncPathChipStates(root, projectPath) {
   });
 }
 
+/**
+ * Render page scan context.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 export function renderPageScanContext(app, options = {}) {
   const requested = options.requestedPath
     || (options.container ? getPageProjectPath(app, options.container) : getPageProjectPath(app));
@@ -179,6 +263,13 @@ export function renderPageScanContext(app, options = {}) {
   `;
 }
 
+/**
+ * Update page scan context dom.
+ * @param {any} container
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 export function updatePageScanContextDom(container, app, options = {}) {
   if (!container) return;
   const pathInput = container.querySelector('#project-path-input');

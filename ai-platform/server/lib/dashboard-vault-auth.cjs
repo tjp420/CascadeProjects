@@ -4,6 +4,11 @@
 
 const crypto = require('crypto');
 
+/**
+ * Parse request cookies.
+ * @param {any} req
+ * @returns {any}
+ */
 function parseRequestCookies(req) {
   const header = req?.headers?.cookie;
   if (!header) return {};
@@ -15,11 +20,22 @@ function parseRequestCookies(req) {
   }, {});
 }
 
+/**
+ * Get vault session token.
+ * @param {any} secret
+ * @returns {any}
+ */
 function getVaultSessionToken(secret) {
   if (!secret) return null;
   return crypto.createHmac('sha256', secret).update('simplebeacon-vault').digest('hex');
 }
 
+/**
+ * Is vault authenticated.
+ * @param {any} req
+ * @param {Object} options
+ * @returns {any}
+ */
 function isVaultAuthenticated(req, options = {}) {
   const internalDashboard = options.internalDashboard === true;
   if (!internalDashboard) return true;
@@ -31,6 +47,11 @@ function isVaultAuthenticated(req, options = {}) {
   return parseRequestCookies(req).sb_vault === expected;
 }
 
+/**
+ * Is protected dashboard path.
+ * @param {string} reqPath
+ * @returns {any}
+ */
 function isProtectedDashboardPath(reqPath) {
   if (reqPath === '/favicon.svg' || reqPath === '/favicon.ico') return false;
   // Exclude static assets (CSS, JS, images, fonts) from vault protection
@@ -43,6 +64,12 @@ function isPublicDashboardAssetPath(reqPath) {
   return reqPath === '/favicon.svg' || reqPath === '/favicon.ico';
 }
 
+/**
+ * Set vault session cookie.
+ * @param {Array} res
+ * @param {any} secret
+ * @returns {any}
+ */
 function setVaultSessionCookie(res, secret) {
   const token = getVaultSessionToken(secret || process.env.DASHBOARD_VAULT_PASSWORD);
   if (!token) return;

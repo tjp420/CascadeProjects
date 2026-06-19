@@ -4,15 +4,18 @@
  *
  * Usage:
  *   const { createSentinelMiddleware, wrapLlmClient } = require('./runtime-sentinel');
- *   app.use(createSentinelMiddleware({ budgetConfigPath: './simplebeacon.budget.json' }));
- *   const wrappedOpenAI = wrapLlmClient(openai, { budgetConfig });
+ *   const middleware = await createSentinelMiddleware({ budgetConfigPath: './simplebeacon.budget.json' });
+ *   app.use(middleware);
+ *   const wrappedOpenAI = await wrapLlmClient(openai, { budgetConfig });
  */
 
 const fs = require('fs');
 const path = require('path');
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const { access, readFile } = fs.promises;
 
-const DEFAULT_WINDOW_MS = 60 * 1000;        // 1 minute
-const DEFAULT_HOURLY_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const DEFAULT_WINDOW_MS = 60 * constants.MS_PER_SECOND;        // 1 minute
+const DEFAULT_HOURLY_WINDOW_MS = 60 * constants.ONE_MINUTE_MS; // 1 hour
 const DEFAULT_TOKEN_CAP = 4096;
 const DEFAULT_RPM_CAP = 60;
 const DEFAULT_MAX_MONTHLY_SPEND = 1000;
@@ -25,7 +28,14 @@ const _counters = {
 
 function _now() { return Date.now(); }
 
-function _getBudget(baseDir) {
+const _budgetCache = new Map();
+
+async function _getBudget(baseDir) {
+    const cacheKey = baseDir || process.cwd();
+    if (_budgetCache.has(cacheKey)) {
+        return _budgetCache.get(cacheKey);
+    }
+
     const candidates = [
         path.join(baseDir, 'simplebeacon.budget.json'),
         path.join(baseDir, '.simplebeacon.budget.json'),
@@ -33,14 +43,16 @@ function _getBudget(baseDir) {
         path.join(process.cwd(), '.simplebeacon.budget.json')
     ];
     for (const p of candidates) {
-        if (fs.existsSync(p)) {
-            try {
-                return JSON.parse(fs.readFileSync(p, 'utf8'));
-            } catch {
-                return null;
-            }
+        try {
+            await access(p);
+            const budget = JSON.parse(await readFile(p, 'utf8'));
+            _budgetCache.set(cacheKey, budget);
+            return budget;
+        } catch {
+            // file doesn't exist or can't be parsed, try next
         }
     }
+    _budgetCache.set(cacheKey, null);
     return null;
 }
 
@@ -105,8 +117,8 @@ function _logEvent(event, options = {}) {
 /**
  * Express/Fastify middleware that enforces budget caps on LLM API routes.
  */
-function createSentinelMiddleware(options = {}) {
-    const budget = options.budgetConfig || _getBudget(options.baseDir || process.cwd()) || {
+async function createSentinelMiddleware(options = {}) {
+    const budget = options.budgetConfig || (await _getBudget(options.baseDir || process.cwd())) || {
         maxTokensPerRequest: options.maxTokensPerRequest || DEFAULT_TOKEN_CAP,
         maxRequestsPerMinute: options.maxRequestsPerMinute || DEFAULT_RPM_CAP,
         maxMonthlySpend: options.maxMonthlySpend || DEFAULT_MAX_MONTHLY_SPEND
@@ -147,8 +159,8 @@ function createSentinelMiddleware(options = {}) {
 /**
  * Wraps an LLM client (OpenAI, Anthropic, etc.) to enforce budget caps per call.
  */
-function wrapLlmClient(client, options = {}) {
-    const budget = options.budgetConfig || _getBudget(options.baseDir || process.cwd()) || {
+async function wrapLlmClient(client, options = {}) {
+    const budget = options.budgetConfig || (await _getBudget(options.baseDir || process.cwd())) || {
         maxTokensPerRequest: options.maxTokensPerRequest || DEFAULT_TOKEN_CAP,
         maxRequestsPerMinute: options.maxRequestsPerMinute || DEFAULT_RPM_CAP,
         maxMonthlySpend: options.maxMonthlySpend || DEFAULT_MAX_MONTHLY_SPEND
@@ -184,8 +196,8 @@ function wrapLlmClient(client, options = {}) {
 /**
  * Low-level check — useful inside LangChain callbacks or custom orchestrators.
  */
-function checkBudget(options = {}) {
-    const budget = options.budgetConfig || _getBudget(options.baseDir || process.cwd()) || {};
+async function checkBudget(options = {}) {
+    const budget = options.budgetConfig || (await _getBudget(options.baseDir || process.cwd())) || {};
     const tokenCount = options.tokenCount || 0;
     const costEstimateCents = options.costEstimateCents || 0;
     return _checkBudget(budget, tokenCount, costEstimateCents);

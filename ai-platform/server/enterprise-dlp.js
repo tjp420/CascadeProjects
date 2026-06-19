@@ -1,16 +1,28 @@
+// SPDX-License-Identifier: MIT
+/**
+ * Enterprise DLP gateway and dashboard bootstrap.
+ *
+ * @license MIT
+ */
+
 const { AIProxyGateway } = require('./ai-proxy-gateway.cjs');
 const { DLPDashboard } = require('./dlp-dashboard.cjs');
 const logger = require('./lib/app-logger.cjs');
 
+const constants = require('./config/constants.cjs');
+/**
+ * Enterprise d l p.
+ */
 class EnterpriseDLP {
     constructor(config = {}) {
+        const env = process.env;
         this.config = {
-            proxyPort: Number(config.proxyPort || process.env.PROXY_PORT) || 8080,
-            dashboardPort: Number(config.dashboardPort || process.env.DASHBOARD_PORT) || 3000,
-            violationLogPath: config.violationLogPath || process.env.VIOLATION_LOG_PATH || './ai-violations.log',
-            blockOnMatch: config.blockOnMatch !== false && process.env.BLOCK_ON_MATCH !== 'false',
-            alertWebhook: config.alertWebhook || process.env.ALERT_WEBHOOK || null,
-            organizationName: config.organizationName || process.env.ORG_NAME || 'Enterprise'
+            proxyPort: Number(config.proxyPort || env.PROXY_PORT) || constants.AI_PROXY_PORT,
+            dashboardPort: Number(config.dashboardPort || env.DASHBOARD_PORT) || 3000,
+            violationLogPath: config.violationLogPath || env.VIOLATION_LOG_PATH || './ai-violations.log',
+            blockOnMatch: config.blockOnMatch !== false && env.BLOCK_ON_MATCH !== 'false',
+            alertWebhook: config.alertWebhook || env.ALERT_WEBHOOK || null,
+            organizationName: config.organizationName || env.ORG_NAME || 'Enterprise'
         };
 
         this.proxyGateway = new AIProxyGateway({

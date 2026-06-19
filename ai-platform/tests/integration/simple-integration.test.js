@@ -5,6 +5,7 @@
  * without complex module loading issues.
  */
 
+const constants = require('../../server/config/constants.cjs');
 describe('Simple Integration Tests', () => {
   describe('Basic Functionality', () => {
     it('should perform basic arithmetic operations', () => {
@@ -235,7 +236,7 @@ describe('Simple Integration Tests', () => {
       
       try {
         await promise;
-        fail('Should have thrown');
+        throw new Error('Should have thrown');
       } catch (error) {
         expect(error.message).toBe('failure');
       }
@@ -333,7 +334,7 @@ describe('Simple Integration Tests', () => {
       const filtered = largeArray.filter(x => x % 2 === 0);
       const end = Date.now();
       
-      expect(filtered.length).toBe(5000);
+      expect(filtered.length).toBe(constants.TIMEOUT_5S);
       expect(end - start).toBeLessThan(100); // Should be fast
     });
 

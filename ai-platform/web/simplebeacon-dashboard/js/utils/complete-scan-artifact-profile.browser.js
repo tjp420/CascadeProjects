@@ -3,16 +3,31 @@
  * packages/simplebeacon-cli/src/lib/complete-scan-artifact-profile.js (CJS).
  */
 
+/**
+ * Is benchmark cache path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function isBenchmarkCachePath(filePath) {
   const rel = String(filePath || '').replace(/\\/g, '/').toLowerCase();
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/')
     || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
 }
 
+/**
+ * Filter platform artifact paths.
+ * @param {Array} entries
+ * @returns {any}
+ */
 export function filterPlatformArtifactPaths(entries = []) {
   return entries.filter((entry) => !isBenchmarkCachePath(entry.path || entry));
 }
 
+/**
+ * Partition artifact directory entries.
+ * @param {Array} entries
+ * @returns {any}
+ */
 export function partitionArtifactDirectoryEntries(entries = []) {
   const filtered = filterPlatformArtifactPaths(entries);
   const measurable = filtered.filter(
@@ -40,6 +55,11 @@ const REGENERABLE_PATH_SUFFIXES = [
   '/build'
 ];
 
+/**
+ * Is regenerable directory entry.
+ * @param {any} entry
+ * @returns {any}
+ */
 function isRegenerableDirectoryEntry(entry = {}) {
   const category = String(entry.category || '').toLowerCase();
   if (category && REGENERABLE_CATEGORIES.has(category)) return true;
@@ -49,6 +69,11 @@ function isRegenerableDirectoryEntry(entry = {}) {
   ));
 }
 
+/**
+ * Classify regenerable artifacts.
+ * @param {Array} analysis
+ * @returns {any}
+ */
 export function classifyRegenerableArtifacts(analysis = {}) {
   const fr = analysis.fileReduction || {};
   const safeBytes = Number(fr.safeToDeleteBytes) || 0;
@@ -76,6 +101,12 @@ export function classifyRegenerableArtifacts(analysis = {}) {
   return 'mixed';
 }
 
+/**
+ * Soften priority actions.
+ * @param {Array} actions
+ * @param {string} artifactProfile
+ * @returns {any}
+ */
 export function softenPriorityActions(actions = [], artifactProfile = 'mixed') {
   if (artifactProfile !== 'regenerableOnly') return actions;
   return actions.map((action) => {

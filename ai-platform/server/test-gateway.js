@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { AIProxyGateway } = require('./ai-proxy-gateway.cjs');
 const { scanEnterprisePatterns, isBlockingFinding } = require('./enterprise-patterns');
 
+const constants = require('./config/constants.cjs');
 test('scanEnterprisePatterns detects SSN and credit card in prompt text', () => {
     const text = 'Patient note: SSN 123-45-6789, card 4111-1111-1111-1111';
     const findings = scanEnterprisePatterns(text, { requestUrl: 'test' });
@@ -39,11 +40,17 @@ test('AIProxyGateway.scanRequest allows benign prompt', () => {
     assert.equal(result.blocked, false);
 });
 
+/**
+ * Post to gateway.
+ * @param {any} payload
+ * @param {Object} options
+ * @returns {any}
+ */
 function postToGateway(payload, options = {}) {
     return new Promise((resolve, reject) => {
         const req = http.request({
             hostname: 'localhost',
-            port: options.port || 8080,
+            port: options.port || constants.AI_PROXY_PORT,
             path: '/v1/chat/completions',
             method: 'POST',
             headers: {
@@ -62,13 +69,15 @@ function postToGateway(payload, options = {}) {
     });
 }
 
+const TEST_GATEWAY_PORT = 18080;
+
 test('live gateway blocks sensitive prompt when RUN_LIVE_GATEWAY_TEST=1', async (t) => {
     if (process.env.RUN_LIVE_GATEWAY_TEST !== '1') {
         t.skip('Set RUN_LIVE_GATEWAY_TEST=1 to run live gateway integration test');
         return;
     }
 
-    const gateway = new AIProxyGateway({ port: 18080, blockOnMatch: true });
+    const gateway = new AIProxyGateway({ port: TEST_GATEWAY_PORT, blockOnMatch: true });
     gateway.start();
 
     t.after(() => new Promise((resolve) => gateway.server.close(resolve)));
@@ -76,7 +85,7 @@ test('live gateway blocks sensitive prompt when RUN_LIVE_GATEWAY_TEST=1', async 
     const response = await postToGateway({
         model: 'gpt-4',
         messages: [{ role: 'user', content: 'My SSN is 123-45-6789' }]
-    }, { port: 18080 });
+    }, { port: TEST_GATEWAY_PORT });
 
     assert.equal(response.status, 403);
     assert.match(response.body, /Request blocked/);

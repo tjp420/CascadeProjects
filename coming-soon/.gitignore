@@ -26,6 +26,9 @@ npm-debug.log*
 .env.local
 .env.*
 
+# Generated tokens (JWTs — never commit)
+token-*.txt
+
 # OS files
 .DS_Store
 Thumbs.db

@@ -3,33 +3,49 @@
  */
 
 const path = require('path');
+const constants = require('../config/constants.cjs');
 const {
     assessAuditExportTier,
     resolveAuditClientName
 } = require('./audit-export-tier.cjs');
-const {
-    collectIssues,
-    resolveSeverityCounts,
-    buildDetailedFindings,
-    buildComplianceTable,
-    buildHowToFixSection,
-    buildPersonalizedActionPlan,
-    formatRule,
-    defaultRemediation
-} = require('../../packages/simplebeacon-cli/src/reporters/audit-report');
 
 const { escapeHtml } = require('./code-roadmap-export.cjs');
 // simplebeacon:production-leak-intent: fixtures-path - Legitimate fixture data for audit report generation in development/demo mode
 const { buildSampleAuditReportModel: buildSampleAuditReportModelFromFixtures } = require('./fixtures/sample-audit-report-data.cjs');
+const { buildComplianceTable, buildDetailedFindings, buildHowToFixSection, buildPersonalizedActionPlan, defaultRemediation, formatRule, resolveSeverityCounts } = require('./simplebeacon-proxy.cjs');
+
 const {
     enrichRemediationRow,
     buildVerificationCommand
 } = require('./audit-remediation-recipes.cjs');
 
+/**
+ * Collect issues.
+ * @param {number} simplebeaconReport
+ * @returns {any}
+ */
+function collectIssues(simplebeaconReport) {
+  if (!simplebeaconReport) return [];
+  const raw = simplebeaconReport.rawIssues || simplebeaconReport.detectedIssues || [];
+  return raw.map((issue) => ({
+    severity: issue.severity || issue.severityBand || 'low',
+    severityBand: issue.severityBand || issue.severity || 'low',
+    category: issue.category || 'general',
+    filePath: issue.filePath || issue.path || '',
+    description: issue.description || issue.message || '',
+    count: issue.count || 1
+  }));
+}
+
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 const PRODUCTION_PREFIXES = ['server/', 'src/', 'packages/', 'app/', 'lib/', 'client/', 'api/'];
 const NOISE_PREFIXES = ['docs/', 'tests/', 'test/', 'templates/', '.cursor/', 'archive/'];
 
+/**
+ * Normalize finding description.
+ * @param {any} finding
+ * @returns {any}
+ */
 function normalizeFindingDescription(finding) {
     let raw = String(finding.description || finding.match || finding.type || '')
         .toLowerCase()
@@ -49,6 +65,11 @@ function normalizeFindingDescription(finding) {
     return raw.slice(0, 80);
 }
 
+/**
+ * Dedupe findings.
+ * @param {Array} findings
+ * @returns {any}
+ */
 function dedupeFindings(findings = []) {
     const seen = new Set();
     const out = [];
@@ -66,6 +87,11 @@ function dedupeFindings(findings = []) {
     return out;
 }
 
+/**
+ * Sort by severity.
+ * @param {Array} findings
+ * @returns {any}
+ */
 function sortBySeverity(findings) {
     return [...findings].sort((a, b) => {
         const left = SEVERITY_ORDER[a.severity] ?? 9;
@@ -78,6 +104,11 @@ function sortBySeverity(findings) {
     });
 }
 
+/**
+ * Normalize finding path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function normalizeFindingPath(filePath) {
     const rel = String(filePath || '').replace(/\\/g, '/').toLowerCase();
     const marker = 'ai-platform/';
@@ -85,12 +116,22 @@ function normalizeFindingPath(filePath) {
     return idx >= 0 ? rel.slice(idx + marker.length) : rel;
 }
 
+/**
+ * Is documentation path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function isDocumentationPath(filePath) {
     const rel = normalizeFindingPath(filePath);
     if (/\.(md|markdown|rst)$/i.test(rel)) return true;
     return NOISE_PREFIXES.some((prefix) => rel.startsWith(prefix) || rel.includes(`/${prefix}`));
 }
 
+/**
+ * Is production code path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function isProductionCodePath(filePath) {
     const rel = normalizeFindingPath(filePath);
     if (isDocumentationPath(rel)) return false;
@@ -123,6 +164,11 @@ function isAuditProductionRuntimePath(filePath) {
     return false;
 }
 
+/**
+ * Score finding.
+ * @param {any} finding
+ * @returns {any}
+ */
 function scoreFinding(finding) {
     let score = 0;
     if (finding.severity === 'high') score += 40;
@@ -135,6 +181,11 @@ function scoreFinding(finding) {
     return score;
 }
 
+/**
+ * Enrich findings.
+ * @param {Array} findings
+ * @returns {any}
+ */
 function enrichFindings(findings = []) {
     return dedupeFindings(findings).map((f) => ({
         ...f,
@@ -306,6 +357,11 @@ function getAuditReportStyles() {
     }`;
 }
 
+/**
+ * Format report timestamp.
+ * @param {boolean} iso
+ * @returns {any}
+ */
 function formatReportTimestamp(iso) {
     const date = iso ? new Date(iso) : new Date();
     if (Number.isNaN(date.getTime())) {
@@ -314,13 +370,24 @@ function formatReportTimestamp(iso) {
     return date.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
 }
 
+/**
+ * Format scan duration.
+ * @param {Array} durationMs
+ * @returns {any}
+ */
 function formatScanDuration(durationMs) {
     const elapsedMs = Number(durationMs);
     if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) return '—';
-    if (elapsedMs < 1000) return `${(elapsedMs / 1000).toFixed(2)} seconds`;
-    return `${(elapsedMs / 1000).toFixed(1)} seconds`;
+    if (elapsedMs < 1000) return `${(elapsedMs / constants.MS_PER_SECOND).toFixed(2)} seconds`;
+    return `${(elapsedMs / constants.MS_PER_SECOND).toFixed(1)} seconds`;
 }
 
+/**
+ * Truncate for display.
+ * @param {string} text
+ * @param {any} maxLen
+ * @returns {any}
+ */
 function truncateForDisplay(text, maxLen = 96) {
     const clean = String(text || '').replace(/\s+/g, ' ').trim();
     if (!clean) return '—';
@@ -331,6 +398,11 @@ function truncateForDisplay(text, maxLen = 96) {
     return `${cut.trim()}…`;
 }
 
+/**
+ * Redact snippet.
+ * @param {string} text
+ * @returns {any}
+ */
 function redactSnippet(text) {
     if (!text) return '—';
     const redacted = String(text)
@@ -341,6 +413,11 @@ function redactSnippet(text) {
     return truncateForDisplay(redacted, 96);
 }
 
+/**
+ * Format codebase rule.
+ * @param {any} finding
+ * @returns {any}
+ */
 function formatCodebaseRule(finding) {
     const category = finding.category || finding.type || 'scan-rule';
     const map = {
@@ -356,6 +433,11 @@ function formatCodebaseRule(finding) {
     return map[category] || String(category).toUpperCase().replace(/-/g, '_');
 }
 
+/**
+ * Classify gate issue business tier.
+ * @param {boolean} issue
+ * @returns {any}
+ */
 function classifyGateIssueBusinessTier(issue) {
     const type = String(issue.type || '').toLowerCase();
     const severity = String(issue.severity || 'low').toLowerCase();
@@ -365,6 +447,11 @@ function classifyGateIssueBusinessTier(issue) {
     return 'low';
 }
 
+/**
+ * Classify codebase business tier.
+ * @param {any} finding
+ * @returns {any}
+ */
 function classifyCodebaseBusinessTier(finding) {
     if (finding.category === 'meaningless-data') return 'medium';
     if (finding.category === 'broken' || finding.severity === 'high') return 'high';
@@ -373,6 +460,11 @@ function classifyCodebaseBusinessTier(finding) {
     return 'low';
 }
 
+/**
+ * Build business risk counts.
+ * @param {any} model
+ * @returns {any}
+ */
 function buildBusinessRiskCounts(model) {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
     for (const issue of model.issues || []) {
@@ -386,6 +478,11 @@ function buildBusinessRiskCounts(model) {
     return counts;
 }
 
+/**
+ * Dedupe remediation rows.
+ * @param {Array} rows
+ * @returns {any}
+ */
 function dedupeRemediationRows(rows) {
     const seen = new Set();
     return rows.filter((row) => {
@@ -398,6 +495,11 @@ function dedupeRemediationRows(rows) {
 
 const MAX_REMEDIATION_ROWS = 100;
 
+/**
+ * Build developer remediation rows.
+ * @param {any} model
+ * @returns {any}
+ */
 function buildDeveloperRemediationRows(model) {
     const rows = [];
 
@@ -429,6 +531,11 @@ function buildDeveloperRemediationRows(model) {
     return dedupeRemediationRows(rows).slice(0, MAX_REMEDIATION_ROWS);
 }
 
+/**
+ * Format ledger files scanned.
+ * @param {any} summary
+ * @returns {any}
+ */
 function formatLedgerFilesScanned(summary) {
     const parts = [];
     if (summary.codeFilesAnalyzed != null) {
@@ -447,6 +554,11 @@ function formatLedgerFilesScanned(summary) {
     return parts.length ? parts.join(' · ') : '—';
 }
 
+/**
+ *  format report date.
+ * @param {boolean} iso
+ * @returns {any}
+ */
 function _formatReportDate(iso) {
     const date = iso ? new Date(iso) : new Date();
     if (Number.isNaN(date.getTime())) {
@@ -455,6 +567,11 @@ function _formatReportDate(iso) {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+/**
+ * Redact path for display.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function redactPathForDisplay(projectPath) {
     const normalized = String(projectPath || '').replace(/\\/g, '/').trim();
     if (!normalized) return 'Project';
@@ -464,12 +581,22 @@ function redactPathForDisplay(projectPath) {
     return parts.slice(-2).join('/');
 }
 
+/**
+ * Build report id.
+ * @param {boolean} iso
+ * @returns {any}
+ */
 function buildReportId(iso) {
     const d = iso ? new Date(iso) : new Date();
     const stamp = Number.isNaN(d.getTime()) ? '00000000' : d.toISOString().slice(0, 10).replace(/-/g, '');
     return `SB-AUD-${stamp}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
+/**
+ * Count by tier.
+ * @param {Array} findings
+ * @returns {any}
+ */
 function countByTier(findings) {
     return findings.reduce((acc, f) => {
         acc[f.tier] = (acc[f.tier] || 0) + 1;
@@ -477,6 +604,11 @@ function countByTier(findings) {
     }, { production: 0, documentation: 0, general: 0 });
 }
 
+/**
+ * Count by severity.
+ * @param {Array} findings
+ * @returns {any}
+ */
 function countBySeverity(findings) {
     return findings.reduce((acc, f) => {
         const band = String(f.severity || 'low').toLowerCase();
@@ -485,6 +617,11 @@ function countBySeverity(findings) {
     }, { high: 0, medium: 0, low: 0 });
 }
 
+/**
+ * Count production severity.
+ * @param {Array} findings
+ * @returns {any}
+ */
 function countProductionSeverity(findings) {
     return findings
         .filter((f) => f.tier === 'production')
@@ -495,6 +632,12 @@ function countProductionSeverity(findings) {
         }, { high: 0, medium: 0, low: 0 });
 }
 
+/**
+ * Normalize simplebeacon for compliance.
+ * @param {any} simplebeacon
+ * @param {any} summary
+ * @returns {any}
+ */
 function normalizeSimplebeaconForCompliance(simplebeacon, summary = {}) {
     if (!simplebeacon || typeof simplebeacon !== 'object') return simplebeacon;
     const ruleScoped = simplebeacon.ruleScopedFilesAnalyzed
@@ -521,6 +664,11 @@ function normalizeSimplebeaconForCompliance(simplebeacon, summary = {}) {
     };
 }
 
+/**
+ * Is placeholder executive text.
+ * @param {string} executiveText
+ * @returns {any}
+ */
 function isPlaceholderExecutiveText(executiveText) {
     const normalizedText = String(executiveText || '').trim();
     if (!normalizedText) return true;
@@ -529,6 +677,12 @@ function isPlaceholderExecutiveText(executiveText) {
         || /^item\s+\d+$/i.test(normalizedText);
 }
 
+/**
+ * Merge executive summary.
+ * @param {any} deterministic
+ * @param {any} aiParsed
+ * @returns {any}
+ */
 function mergeExecutiveSummary(deterministic, aiParsed) {
     if (!aiParsed) return deterministic;
     const intro = String(aiParsed.intro || '').trim();
@@ -546,6 +700,12 @@ function mergeExecutiveSummary(deterministic, aiParsed) {
     };
 }
 
+/**
+ * Resolve tier counts.
+ * @param {any} codebaseSummary
+ * @param {Array} enrichedFindings
+ * @returns {any}
+ */
 function resolveTierCounts(codebaseSummary, enrichedFindings) {
     if (enrichedFindings?.length) {
         return countByTier(enrichedFindings);
@@ -561,11 +721,22 @@ function resolveTierCounts(codebaseSummary, enrichedFindings) {
     return { production: 0, documentation: 0, general: 0 };
 }
 
+/**
+ * Build category rollup from scan.
+ * @param {any} codebase
+ * @param {Array} enrichedFindings
+ * @returns {any}
+ */
 function buildCategoryRollupFromScan(codebase, enrichedFindings) {
     return buildCategoryRollup(enrichedFindings)
         .sort((a, b) => b.production - a.production || b.count - a.count);
 }
 
+/**
+ * Build category rollup.
+ * @param {Array} findings
+ * @returns {any}
+ */
 function buildCategoryRollup(findings) {
     const buckets = new Map();
     for (const f of findings) {
@@ -586,6 +757,12 @@ function buildCategoryRollup(findings) {
     return [...buckets.values()].sort((a, b) => b.production - a.production || b.count - a.count);
 }
 
+/**
+ * Calculate audit confidence.
+ * @param {any} summary
+ * @param {any} simplebeacon
+ * @returns {any}
+ */
 function calculateAuditConfidence(summary, simplebeacon = {}) {
     const gate = simplebeacon && typeof simplebeacon === 'object' ? simplebeacon : {};
     let score = 100;
@@ -593,13 +770,18 @@ function calculateAuditConfidence(summary, simplebeacon = {}) {
     if (summary.gatePass == null) score -= 10;
     if (summary.codebaseHealth != null && summary.codebaseHealth < 50) score -= 10;
     if (summary.codebaseHealth != null && summary.codebaseHealth < 30) score -= 15;
-    if ((summary.codeFilesAnalyzed || 0) > 1000) score += 5;
+    if ((summary.codeFilesAnalyzed || 0) > constants.DEFAULT_RANDOM_MAX) score += 5;
     const schemaChecked = gate.schemaChecked ?? 0;
     const schemaPassed = gate.schemaPassed ?? 0;
     if (schemaChecked > 0 && schemaPassed < schemaChecked) score -= 5;
     return Math.max(0, Math.min(100, Math.round(score)));
 }
 
+/**
+ * Build executive priorities.
+ * @param {any} summary
+ * @returns {any}
+ */
 function buildExecutivePriorities(summary) {
     if (summary.gatePass === false || summary.severityCounts?.high > 0) {
         return [
@@ -644,6 +826,11 @@ function buildExecutivePriorities(summary) {
     ];
 }
 
+/**
+ * Build clean scan remediation message.
+ * @param {any} summary
+ * @returns {any}
+ */
 function buildCleanScanRemediationMessage(summary = {}) {
     const parts = ['No production-path issues detected under this audit profile.'];
     if (summary.documentationFindings > 0) {
@@ -663,6 +850,11 @@ function buildCleanScanRemediationMessage(summary = {}) {
     return parts.join(' ');
 }
 
+/**
+ * Build launch readiness.
+ * @param {any} model
+ * @returns {any}
+ */
 function buildLaunchReadiness(model) {
     const s = model.summary;
     const sev = s.severityCounts || { critical: 0, high: 0, medium: 0, low: 0 };
@@ -684,6 +876,11 @@ function buildLaunchReadiness(model) {
     return { label: 'Review required', tone: 'conditional', score: 50 };
 }
 
+/**
+ * Build codebase action plan.
+ * @param {any} model
+ * @returns {any}
+ */
 function buildCodebaseActionPlan(model) {
     const prod = model.priorityFindings.filter((f) => f.tier === 'production');
     const high = prod.filter((f) => f.severity === 'high');
@@ -724,6 +921,11 @@ ${week3.join('\n\n')}
 **Note:** ${model.summary.documentationFindings.toLocaleString()} documentation-tier markers are tracked separately and are not release blockers under this audit profile.`;
 }
 
+/**
+ * Normalize complete scan input.
+ * @param {any} completeScan
+ * @returns {any}
+ */
 function normalizeCompleteScanInput(completeScan) {
     if (!completeScan || typeof completeScan !== 'object') return null;
     if (completeScan.results && Object.values(completeScan.results).some(Boolean)) {
@@ -751,6 +953,11 @@ function normalizeCompleteScanInput(completeScan) {
     return hydrateCompleteScanFromSteps(completeScan);
 }
 
+/**
+ * Hydrate complete scan from steps.
+ * @param {any} completeScan
+ * @returns {any}
+ */
 function hydrateCompleteScanFromSteps(completeScan) {
     if (!completeScan || typeof completeScan !== 'object') return null;
     const steps = Array.isArray(completeScan.steps) ? completeScan.steps : [];
@@ -758,6 +965,13 @@ function hydrateCompleteScanFromSteps(completeScan) {
 
     const byId = new Map(steps.filter(Boolean).map((step) => [step.id, step]));
     const results = { ...(completeScan.results || {}) };
+/**
+ * Assign.
+ * @param {string} engineId
+ * @param {any} resultKey
+ * @param {Array} ...fields
+ * @returns {any}
+ */
     const assign = (engineId, resultKey, ...fields) => {
         if (results[resultKey]) return;
         const step = byId.get(engineId);
@@ -793,6 +1007,11 @@ function hydrateCompleteScanFromSteps(completeScan) {
     };
 }
 
+/**
+ * Complete scan has exportable results.
+ * @param {any} completeScan
+ * @returns {any}
+ */
 function completeScanHasExportableResults(completeScan) {
     const normalized = normalizeCompleteScanInput(completeScan);
     if (!normalized) return false;
@@ -803,7 +1022,13 @@ function completeScanHasExportableResults(completeScan) {
     ));
 }
 
-function buildCompleteAuditModel(completeScan, options = {}) {
+/**
+ * Build complete audit model.
+ * @param {any} completeScan
+ * @param {Object} options
+ * @returns {any}
+ */
+async function buildCompleteAuditModel(completeScan, options = {}) {
     const normalizedScan = normalizeCompleteScanInput(completeScan) || completeScan;
     const results = normalizedScan?.results || {};
     const dataQuality = results.dataQuality || null;
@@ -818,6 +1043,7 @@ function buildCompleteAuditModel(completeScan, options = {}) {
       const band = String(issue.severity || issue.severityBand || 'low').toLowerCase();
       if (severityCounts[band] !== undefined) severityCounts[band] += issue.count || 1;
     }
+    await new Promise((resolve) => setImmediate(resolve));
     const allCodeFindings = enrichFindings(codebase?.findings || []);
     const tierCounts = resolveTierCounts(codebase?.summary, allCodeFindings);
     const priorityFindings = sortBySeverity(allCodeFindings.filter((f) => f.tier === 'production')).slice(0, 15);
@@ -838,7 +1064,8 @@ function buildCompleteAuditModel(completeScan, options = {}) {
 
     const normalizedSimplebeacon = normalizeSimplebeaconForCompliance(simplebeacon);
     const projectPath = normalizedScan?.projectPath || simplebeacon?.projectRoot || dataQuality?.projectRoot || '';
-    const resolvedClient = resolveAuditClientName(
+    const creds = options.credentials || {};
+    const resolvedClient = creds.projectName || resolveAuditClientName(
         { ...options, projectName: options.projectName },
         projectPath || redactPathForDisplay(projectPath)
     );
@@ -849,8 +1076,8 @@ function buildCompleteAuditModel(completeScan, options = {}) {
         platformRoot: simplebeacon?.platformRoot || codebase?.platformRoot || null,
         generatedAt: normalizedScan?.generatedAt || new Date().toISOString(),
         client: resolvedClient,
-        company: resolvedClient,
-        assessor: options.assessor || 'Simplebeacon Security Audit Service',
+        company: creds.projectName || resolvedClient,
+        assessor: creds.signatoryName || options.assessor || 'Simplebeacon Security Audit Service',
         branch: options.branch || normalizedScan?.branch || 'main',
         engineLabel: `Simplebeacon Engine v${normalizedScan?.version || ENGINE_VERSION} (Zero-Dependency)`,
         scanDurationMs: normalizedScan?.scanDurationMs
@@ -938,6 +1165,11 @@ function buildCompleteAuditModel(completeScan, options = {}) {
     return model;
 }
 
+/**
+ * Build deterministic executive.
+ * @param {any} model
+ * @returns {any}
+ */
 function buildDeterministicExecutive(model) {
     const s = model.summary;
     const sev = s.severityCounts || { critical: 0, high: 0, medium: 0, low: 0 };
@@ -965,7 +1197,7 @@ function buildDeterministicExecutive(model) {
             businessImpact = 'Config and lineage hygiene reduce operational risk but do not replace gate attestation or production-path deep scan evidence.';
         } else if (stepKey === 'file-reduction') {
             headline = `File reduction dry-run: ${(s.fileReductionFindings ?? 0).toLocaleString()} reclaim candidate(s) identified — review before delete.`;
-            intro = `Supplementary file-reduction scan listing build artifacts, duplicate assets, and unused-file candidates (dry-run). Gate attestation and codebase deep scan are not included.`;
+            intro = `Supplementary file-reduction scan listing build artifacts, duplicate assets, unused-file candidates, and directory bloat (dry-run). Gate attestation and codebase deep scan are not included.`;
             businessImpact = 'Disk reclamation is operational efficiency — it does not attest production security posture for client questionnaires.';
         } else if (stepKey === 'consolidation') {
             headline = `Consolidation scan: ${(s.duplicateGroups ?? 0).toLocaleString()} exact duplicate JSON group(s) — merge candidates only.`;
@@ -1019,6 +1251,11 @@ function buildDeterministicExecutive(model) {
     };
 }
 
+/**
+ * Build executive dashboard banner.
+ * @param {any} model
+ * @returns {any}
+ */
 function buildExecutiveDashboardBanner(model) {
     const tier = model.exportTier || { tier: 'handoff' };
     const s = model.summary;
@@ -1028,7 +1265,8 @@ function buildExecutiveDashboardBanner(model) {
     const scopeNote = '<p class="meta" style="margin-top:10px">Gate attestation not included in this export — run Simplebeacon gate or Complete scan, or attach a gate PDF separately.</p>';
 
     if (tier.tier === 'handoff' || tier.tier === 'gate-only') {
-        return `<div class="gate-banner ${gatePass ? 'pass' : s.gatePass === false ? 'fail' : 'fail'}">
+        const gateClass = gatePass ? 'pass' : s.gatePass === false ? 'fail' : '';
+        return `<div class="gate-banner ${gateClass}">
         <div class="gate-banner-label">Overall gate result</div>
         <div class="gate-banner-value">${escapeHtml(gateLabel)}</div>
       </div>`;
@@ -1090,6 +1328,11 @@ function buildExecutiveDashboardBanner(model) {
       </div>`;
 }
 
+/**
+ * Build executive kpi strip.
+ * @param {any} model
+ * @returns {any}
+ */
 function buildExecutiveKpiStrip(model) {
     const s = model.summary;
     const tier = model.exportTier?.tier || 'handoff';
@@ -1097,6 +1340,12 @@ function buildExecutiveKpiStrip(model) {
     const codeHealthSuffix = s.codebaseHealth != null ? '%' : '';
     const kpis = [];
 
+/**
+ * Push kpi.
+ * @param {any} value
+ * @param {any} label
+ * @returns {any}
+ */
     const pushKpi = (value, label) => {
         kpis.push(`<div class="kpi"><strong>${escapeHtml(String(value))}</strong><span>${escapeHtml(label)}</span></div>`);
     };
@@ -1174,6 +1423,11 @@ function buildExecutiveKpiStrip(model) {
     return kpis.slice(0, 5).join('\n        ');
 }
 
+/**
+ * Build complete audit prompt.
+ * @param {any} model
+ * @returns {any}
+ */
 function buildCompleteAuditPrompt(model) {
     const s = model.summary;
     return `You are writing the executive summary for a premium pre-launch codebase audit ($499 deliverable, enterprise tone). Audience: agency owner presenting to a client stakeholder.
@@ -1203,6 +1457,11 @@ Duplicate groups: ${s.duplicateGroups ?? 0}
 If gate PASS with 0 gate issues, do NOT say the project is blocked. Distinguish gate findings from documentation hygiene.`;
 }
 
+/**
+ * Parse ai executive.
+ * @param {any} raw
+ * @returns {any}
+ */
 function parseAiExecutive(raw) {
     const trimmed = String(raw || '').trim();
     const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
@@ -1222,11 +1481,20 @@ function parseAiExecutive(raw) {
     }
 }
 
+/**
+ * Markdown to html.
+ * @param {any} markdown
+ * @returns {any}
+ */
 function markdownToHtml(markdown) {
     const lines = String(markdown || '').split('\n');
     const html = [];
     let tableRows = [];
 
+/**
+ * Flush table.
+ * @returns {any}
+ */
     function flushTable() {
         if (!tableRows.length) return;
         html.push('<table class="data-table"><tbody>');
@@ -1241,6 +1509,11 @@ function markdownToHtml(markdown) {
         tableRows = [];
     }
 
+/**
+ * Inline markdown.
+ * @param {string} text
+ * @returns {any}
+ */
     function inlineMarkdown(text) {
         return escapeHtml(text)
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -1264,6 +1537,12 @@ function markdownToHtml(markdown) {
     return html.join('\n');
 }
 
+/**
+ *  render finding rows.
+ * @param {Array} findings
+ * @param {string} emptyMessage
+ * @returns {any}
+ */
 function _renderFindingRows(findings, emptyMessage) {
     if (!findings.length) {
         return `<tr><td colspan="5" class="empty">${escapeHtml(emptyMessage)}</td></tr>`;
@@ -1279,6 +1558,11 @@ function _renderFindingRows(findings, emptyMessage) {
     `).join('');
 }
 
+/**
+ * Render category rollup rows.
+ * @param {Array} categories
+ * @returns {any}
+ */
 function renderCategoryRollupRows(categories) {
     if (!categories.length) return '<tr><td colspan="5" class="empty">No codebase categories in bundle.</td></tr>';
     return categories.map((c) => `
@@ -1292,11 +1576,22 @@ function renderCategoryRollupRows(categories) {
     `).join('');
 }
 
+/**
+ * Render recipe html.
+ * @param {any} recipe
+ * @returns {any}
+ */
 function renderRecipeHtml(recipe) {
     const safe = escapeHtml(String(recipe || '—'));
     return safe.replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 
+/**
+ * Render developer remediation rows.
+ * @param {Array} rows
+ * @param {any} summary
+ * @returns {any}
+ */
 function renderDeveloperRemediationRows(rows, summary = {}) {
     if (!rows.length) {
         return `<tr><td colspan="6" class="empty clean-scan">${escapeHtml(buildCleanScanRemediationMessage(summary))}</td></tr>`;
@@ -1312,6 +1607,11 @@ function renderDeveloperRemediationRows(rows, summary = {}) {
     `).join('');
 }
 
+/**
+ * Build cover presentation.
+ * @param {any} model
+ * @returns {any}
+ */
 function buildCoverPresentation(model) {
     const tier = model.exportTier || { tier: 'handoff', showReadinessScore: true, showSignOffBlock: true, label: 'Pre-launch security audit' };
     const s = model.summary;
@@ -1354,6 +1654,12 @@ function buildCoverPresentation(model) {
     return { kicker, subtitle, badges, supplementaryCallout, pageTitle, tier };
 }
 
+/**
+ * Render complete audit html.
+ * @param {any} model
+ * @param {Object} options
+ * @returns {any}
+ */
 function renderCompleteAuditHtml(model, options = {}) {
     const exec = options.executive || buildDeterministicExecutive(model);
     const s = model.summary;
@@ -1556,9 +1862,16 @@ function renderCompleteAuditHtml(model, options = {}) {
 </html>`;
 }
 
+/**
+ * Build complete audit report.
+ * @param {any} completeScan
+ * @param {Object} options
+ * @returns {any}
+ */
 async function buildCompleteAuditReport(completeScan, options = {}) {
     const normalizedScan = normalizeCompleteScanInput(completeScan) || completeScan;
-    const model = buildCompleteAuditModel(normalizedScan, options);
+    const model = await buildCompleteAuditModel(normalizedScan, options);
+    await new Promise((resolve) => setImmediate(resolve));
     const deterministic = buildDeterministicExecutive(model);
     let executive = deterministic;
     let aiEnhanced = false;
@@ -1582,6 +1895,7 @@ async function buildCompleteAuditReport(completeScan, options = {}) {
         }
     }
 
+    await new Promise((resolve) => setImmediate(resolve));
     const html = renderCompleteAuditHtml(model, {
         executive,
         aiEnhanced,
@@ -1603,6 +1917,10 @@ async function buildCompleteAuditReport(completeScan, options = {}) {
     };
 }
 
+/**
+ * Build sample audit report model.
+ * @returns {any}
+ */
 function buildSampleAuditReportModel() {
     const model = buildSampleAuditReportModelFromFixtures(ENGINE_VERSION);
     model.readiness = buildLaunchReadiness(model);
@@ -1618,6 +1936,11 @@ function buildSampleAuditReportModel() {
     return model;
 }
 
+/**
+ * Build sample audit report html.
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildSampleAuditReportHtml(options = {}) {
     const model = buildSampleAuditReportModel();
     const auditHtml = renderCompleteAuditHtml(model, {
@@ -1668,6 +1991,11 @@ function buildSampleAuditReportHtml(options = {}) {
         .replace('<body>', `<body>${siteBar}`);
 }
 
+/**
+ * Wrap sample report for website.
+ * @param {any} _fullHtml
+ * @returns {any}
+ */
 function wrapSampleReportForWebsite(_fullHtml) {
     return buildSampleAuditReportHtml({ siteChrome: true });
 }

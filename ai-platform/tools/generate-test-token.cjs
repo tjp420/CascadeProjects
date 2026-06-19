@@ -1,21 +1,32 @@
 /**
  * Generate a test license token for certificate-upload.html testing
  */
-const { generateLicenseToken } = require('../packages/simplebeacon-cli/src/lib/license-token.js');
 const { upsertSubscription } = require('../server/lib/simplebeacon-subscription-store.cjs');
+const { generateLicenseToken } = require('../server/lib/simplebeacon-proxy.cjs');
 
-const EMAIL = 'trevor_punt@live.com';
+
+const EMAIL = process.env.SIMPLEBEACON_OWNER_EMAIL;
 const TIER = 'executive';
 const PRODUCT = 'executive_clearance';
+const SECRET = process.env.SIMPLEBEACON_LICENSE_SECRET;
+
+if (!SECRET) {
+  console.error('ERROR: SIMPLEBEACON_LICENSE_SECRET is not set. Set it in your environment before generating test tokens.');
+  process.exit(1);
+}
 
 const token = generateLicenseToken(
   { email: EMAIL, tier: TIER, product: PRODUCT, features: ['pdf-generation', 'certificate'] },
-  'simplebeacon-dev-insecure',
+  SECRET,
   60 * 24 * 7 // 7 days
 );
 
 console.log('\n=== Test License Token Generated ===');
-console.log('Token:', token);
+if (process.env.DEBUG_TOKENS === 'true') {
+  console.log('Token:', token);
+} else {
+  console.log('Token: ***REDACTED*** (set DEBUG_TOKENS=true to reveal)');
+}
 console.log('');
 
 // Register in subscription store
@@ -40,8 +51,7 @@ upsertSubscription(EMAIL, {
 }).then((record) => {
   console.log('Registered in subscription store:', record.email);
   console.log('License tier:', record.licenseTier);
-  console.log('\nPaste this token into certificate-upload.html:');
-  console.log(token);
+  console.log('\nToken generated (set DEBUG_TOKENS=true to reveal)');
   console.log('');
 }).catch((err) => {
   console.error('Failed to register:', err.message);

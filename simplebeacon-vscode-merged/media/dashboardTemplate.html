@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src CSP_SRC 'unsafe-inline'; script-src 'nonce-NONCE'; img-src CSP_SRC data:; font-src CSP_SRC;">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SimpleBeacon Dashboard</title>
+<style>
+:root{--pass:#10B981;--fail:#EF4444;--warn:#F59E0B;--info:#3B82F6;--bg:var(--vscode-editor-background);--fg:var(--vscode-foreground);--panel:var(--vscode-panel-background);--border:var(--vscode-panel-border);--muted:var(--vscode-descriptionForeground);--link:var(--vscode-textLink-foreground);--font:var(--vscode-font-family);--focus:var(--vscode-focusBorder);--button-bg:var(--vscode-button-background);--button-fg:var(--vscode-button-foreground)}
+*{box-sizing:border-box}body{font-family:var(--font);background:var(--bg);color:var(--fg);margin:0;padding:0;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+
+/* Header */
+.header{display:flex;align-items:center;gap:20px;margin-bottom:24px;padding:20px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.04));border:1px solid var(--border);border-radius:16px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-icon{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:16px}
+.brand-title{font-size:1.25rem;font-weight:800}
+.brand-sub{color:var(--muted);font-size:.8rem}
+.header-right{display:flex;align-items:center;gap:20px;margin-left:auto}
+.gauge{position:relative;width:90px;height:90px;flex-shrink:0}
+.gauge-bg{fill:none;stroke:rgba(128,128,128,.12);stroke-width:8}
+.gauge-fill{fill:none;stroke:SCORE_COLOR;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1s ease;transform:rotate(-90deg);transform-origin:50% 50%;stroke-dasharray:GAUGE_DASH;stroke-dashoffset:GAUGE_OFFSET}
+.gauge-text{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.gauge-score{font-size:1.5rem;font-weight:800;color:SCORE_COLOR}
+.gauge-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.status-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;background:PASS_BG;color:PASS_COLOR;font-size:.8rem;font-weight:700;border:1px solid PASS_BORDER}
+.status-dot{width:8px;height:8px;border-radius:50%;background:PASS_COLOR;box-shadow:0 0 8px PASS_COLOR}
+
+/* Actions */
+.actions{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+.btn{cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:8px;font-size:.85rem;font-weight:600;font-family:inherit;border:none;transition:all .15s ease;background:var(--panel);color:var(--fg);border:1px solid var(--border)}
+.btn:hover{border-color:var(--focus);transform:translateY(-1px)}
+.btn-primary{background:var(--button-bg);color:var(--button-fg);border-color:transparent;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.btn-primary:hover{box-shadow:0 4px 12px rgba(0,0,0,.18)}
+
+/* Metrics */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+.metric{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;transition:all .2s ease;position:relative;overflow:hidden}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,METRIC_GRAD,transparent)}
+.metric:hover{transform:translateY(-2px);border-color:var(--focus)}
+.metric-value{font-size:1.8rem;font-weight:800;margin-bottom:2px}
+.metric-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+
+/* Cards */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px}
+.card-title{font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:16px}
+
+/* Severity timeline */
+.timeline{display:flex;gap:10px}
+.timeline-item{flex:1;text-align:center;padding:14px 8px;border-radius:10px;background:rgba(128,128,128,.04);border:1px solid var(--border);transition:all .15s}
+.timeline-item:hover{transform:translateY(-2px);border-color:var(--focus)}
+.timeline-count{font-size:1.5rem;font-weight:800;margin-bottom:4px}
+.timeline-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--muted)}
+.timeline-crit{color:var(--fail)}.timeline-high{color:var(--fail)}.timeline-med{color:var(--warn)}.timeline-low{color:var(--pass)}
+
+/* Category list */
+.cat-list{display:flex;flex-direction:column;gap:10px}
+.cat-row{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:8px;background:rgba(128,128,128,.03);border:1px solid transparent;transition:all .12s}
+.cat-row:hover{background:rgba(128,128,128,.06);border-color:var(--border)}
+.cat-color{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cat-name{flex:1;font-size:.85rem;font-weight:600}
+.cat-count{font-size:.85rem;font-weight:700;color:var(--muted)}
+.cat-bar{flex:1;height:6px;background:rgba(128,128,128,.08);border-radius:3px;overflow:hidden;max-width:120px}
+.cat-fill{height:100%;border-radius:3px;transition:width .8s ease}
+
+/* Findings */
+.findings{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.findings-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.findings-title{font-size:1rem;font-weight:700}
+.findings-ctrl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.inp{background:var(--input-bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:inherit;font-size:.8rem;outline:none;width:200px}
+.inp:focus{border-color:var(--focus)}
+.chip{cursor:pointer;padding:5px 10px;border-radius:999px;background:rgba(128,128,128,.06);border:1px solid var(--border);font-size:.72rem;color:var(--muted);transition:all .12s;font-weight:600}
+.chip:hover{border-color:var(--focus);color:var(--fg)}
+.chip.on{background:var(--info);color:#fff;border-color:var(--info)}
+.table-wrap{max-height:360px;overflow:auto}
+.f-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.f-table th{padding:10px 14px;text-align:left;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);font-weight:700;background:rgba(128,128,128,.03)}
+.f-table td{padding:10px 14px;border-bottom:1px solid var(--border)}
+.f-table tr:hover{background:var(--vscode-list-hoverBackground)}
+.badge{display:inline-block;padding:3px 8px;border-radius:6px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.sev-c{background:rgba(239,68,68,.1);color:var(--fail)}.sev-h{background:rgba(245,158,11,.1);color:var(--warn)}.sev-m{background:rgba(59,130,246,.1);color:var(--info)}.sev-l{background:rgba(16,185,129,.1);color:var(--pass)}
+.f-link{color:var(--link);cursor:pointer;font-family:monospace;font-size:.78rem}
+.f-link:hover{text-decoration:underline}
+.fix-btn{padding:3px 10px;font-size:.7rem;border-radius:6px;background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);cursor:pointer;transition:all .12s}
+.fix-btn:hover{background:rgba(99,102,241,.2)}
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty big{display:block;font-size:2.5rem;margin-bottom:12px;opacity:.4}
+
+/* File list */
+.flist-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);transition:background .12s}
+.flist-row:hover{background:var(--vscode-list-hoverBackground)}
+.flist-name{flex:1;font-size:.82rem;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flist-path{color:var(--muted);font-size:.75rem;font-family:monospace}
+.flist-count{display:flex;align-items:center;gap:6px}
+.flist-pill{padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700}
+.flist-actions{flex-shrink:0}
+
+/* AI Session Indicator */
+.ai-session{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ai-session-badge{display:flex;align-items:center;gap:8px;font-size:.85rem;font-weight:600;color:var(--warn)}
+.ai-pulse{width:10px;height:10px;border-radius:50%;background:var(--warn);animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.2)}100%{opacity:1;transform:scale(1)}}
+.ai-files{font-size:.75rem;color:var(--muted);font-family:monospace}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.anim{animation:fadeIn .4s ease both}
+.anim-d1{animation-delay:.05s}.anim-d2{animation-delay:.1s}.anim-d3{animation-delay:.15s}.anim-d4{animation-delay:.2s}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header anim">
+    <div class="brand">
+      <div class="brand-icon">SB</div>
+      <div>
+        <div class="brand-title">SimpleBeacon</div>
+        <div class="brand-sub">AI Slop Cop &mdash; vVERSION</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="gauge">
+        <svg viewBox="0 0 100 100" style="width:100%;height:100%">
+          <circle class="gauge-bg" cx="50" cy="50" r="45"/>
+          <circle class="gauge-fill" cx="50" cy="50" r="45"/>
+        </svg>
+        <div class="gauge-text">
+          <div class="gauge-score">SCORE</div>
+          <div class="gauge-label">Score</div>
+        </div>
+      </div>
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        PASS_TEXT
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Session Status -->
+  <div class="ai-session anim anim-d1" id="aiSessionStatus" style="display:none">
+    <div class="ai-session-badge">
+      <span class="ai-pulse"></span>
+      <span id="aiSessionText">AI is editing...</span>
+    </div>
+    <span class="ai-files" id="aiSessionFiles"></span>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions anim anim-d1">
+    <button class="btn btn-primary" data-cmd="scanWorkspace">&#128256; Scan Workspace</button>
+    <button class="btn" data-cmd="exportReport">&#128196; Export</button>
+    <button class="btn" data-cmd="exportAIReport">&#129302; Export for AI</button>
+    <button class="btn" data-cmd="showRemediationGuide">&#128214; Fix Guide</button>
+    <button class="btn" data-cmd="generateCertificate">&#9989; Certificate</button>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics anim anim-d2">
+    <div class="metric">
+      <div class="metric-value" style="color:var(--fg)">FILES</div>
+      <div class="metric-label">Files Scanned</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value" style="color:var(--fg)">FOLDERS</div>
+      <div class="metric-label">Folders</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value" style="color:var(--fg)">FINDINGS</div>
+      <div class="metric-label">Total Findings</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value" style="color:var(--fg)">CATS</div>
+      <div class="metric-label">Categories</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="grid anim anim-d3">
+    <div class="card">
+      <div class="card-title">Severity Breakdown</div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-count timeline-crit">CRIT</div>
+          <div class="timeline-label">Critical</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-count timeline-high">HIGH</div>
+          <div class="timeline-label">High</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-count timeline-med">MED</div>
+          <div class="timeline-label">Medium</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-count timeline-low">LOW</div>
+          <div class="timeline-label">Low</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Category Breakdown</div>
+      <div class="cat-list" id="catList">CATEGORY_ITEMS</div>
+    </div>
+  </div>
+
+  <!-- Findings -->
+  <div class="findings anim anim-d4">
+    <div class="findings-header">
+      <div class="findings-title">Findings Details</div>
+      <div class="findings-ctrl">
+        <input class="inp" id="searchInput" placeholder="Search findings...">
+        <select class="inp" id="categoryFilter" style="width:140px"><option value="all">All Categories</option>CATEGORY_OPTIONS</select>
+        <div style="display:flex;gap:6px">
+          <span class="chip on" data-sev="all">All</span>
+          <span class="chip" data-sev="high">High</span>
+          <span class="chip" data-sev="medium">Medium</n          <span class="chip" data-sev="low">Low</span>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="f-table">
+        <thead><tr><th>Category</th><th>Sev</th><th>Finding</th><th>Location</th><th>Fix</th></tr></thead>
+        <tbody id="findingsBody"></tbody>
+      </table>
+      <div id="emptyState" class="empty" style="display:none"><big>&#128218;</big><div>No findings match your filters</div></div>
+    </div>
+  </div>
+
+  <!-- Failing Files -->
+  <div class="findings anim anim-d4">
+    <div class="findings-header">
+      <div class="findings-title">Files with Most Issues</div>
+    </div>
+    <div class="table-wrap" id="failingFilesBody">FAILING_FILES</div>
+  </div>
+
+</div>
+
+<script nonce="NONCE">
+const vscode = acquireVsCodeApi();
+const data = FINDINGS_JSON;
+const searchInput = document.getElementById('searchInput');
+const categoryFilter = document.getElementById('categoryFilter');
+const sevChips = document.querySelectorAll('.chip[data-sev]');
+const findingsBody = document.getElementById('findingsBody');
+const emptyState = document.getElementById('emptyState');
+
+const sevColors = {critical:'var(--fail)',high:'var(--fail)',medium:'var(--warn)',low:'var(--pass)'};
+const sevBadges = {critical:'sev-c',high:'sev-h',medium:'sev-m',low:'sev-l'};
+const catColorMap = {
+  'Blocking':'#EF4444','Secrets':'#EF4444','AI Indicators':'#F59E0B','EU AI Act':'#F59E0B',
+  'Vulnerabilities':'#EF4444','Debug Markers':'#3B82F6','AI Residue':'#F59E0B','Performance':'#F59E0B',
+  'Type Safety':'#3B82F6','Test Coverage':'#10B981','Accessibility':'#8B5CF6','i18n':'#EC4899',
+  'Sensitive Data':'#EF4444','Config Drift':'#F59E0B','Security Headers':'#EF4444','Database Patterns':'#EF4444',
+  'Framework Practices':'#F59E0B','Workspace Health':'#3B82F6','Unused Deps':'#10B981','API Contract':'#3B82F6',
+  'Complexity':'#F59E0B','LLM Slop':'#8B5CF6','Token Bleed':'#EC4899','Production Leak':'#EF4444',
+  'Fiction KPI':'#F59E0B','Security':'#EF4444','Quality':'#F59E0B','Maintainability':'#3B82F6'
+};
+
+function getCatColor(c){return catColorMap[c]||'#3B82F6'}
+
+function render(findings){
+  if(!findingsBody)return;
+  if(!findings||!findings.length){findingsBody.innerHTML='';emptyState.style.display='block';return}
+  emptyState.style.display='none';
+  findingsBody.innerHTML='';
+  findings.forEach(f=>{
+    const tr=document.createElement('tr');
+    const c=getCatColor(f.cat);
+    tr.innerHTML='<td><span class="badge" style="background:'+c+'15;color:'+c+'">'+f.cat+'</span></td>'+
+      '<td><span class="badge '+sevBadges[f.sev]+'">'+f.sev+'</span></td>'+
+      '<td>'+esc(f.desc)+'</td>'+
+      '<td><span class="f-link" data-file="'+esc(f.file)+'" data-line="'+(f.line||1)+'">'+(f.file?f.file.split(/[\\/]/).pop()+(f.line?':'+f.line:'') :'—')+'</span></td>'+
+      '<td>'+(f.patternId&&['debugArtifacts','innerHtmlXss','unhandledPromise','dbAntiPattern','typeSafetyAny','insecureRandom'].includes(f.patternId)?'<button class="fix-btn" data-pid="'+f.patternId+'" data-file="'+esc(f.file)+'" data-line="'+(f.line||1)+'">Suggest Fix</button>':'—')+'</td>';
+    findingsBody.appendChild(tr);
+  });
+  findingsBody.querySelectorAll('.f-link').forEach(l=>l.addEventListener('click',()=>{const f=l.dataset.file,ln=Number(l.dataset.line)||1;if(f)vscode.postMessage({command:'openFile',file:f,line:ln})}));
+  findingsBody.querySelectorAll('.fix-btn').forEach(b=>b.addEventListener('click',()=>vscode.postMessage({command:'suggestFix',patternId:b.dataset.pid,file:b.dataset.file,line:Number(b.dataset.line)})));
+}
+
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+
+function filter(){
+  const q=(searchInput?.value||'').toLowerCase();
+  const cat=categoryFilter?.value||'all';
+  const sev=document.querySelector('.chip.on[data-sev]')?.dataset.sev||'all';
+  render(data.filter(f=>{
+    const ms=!q||f.desc.toLowerCase().includes(q)||f.cat.toLowerCase().includes(q)||f.file.toLowerCase().includes(q);
+    const mc=cat==='all'||f.cat===cat;
+    const msv=sev==='all'||f.sev===sev;
+    return ms&&mc&&msv;
+  }));
+}
+
+sevChips.forEach(c=>c.addEventListener('click',()=>{sevChips.forEach(x=>x.classList.remove('on'));c.classList.add('on');filter()}));
+if(searchInput)searchInput.addEventListener('input',filter);
+if(categoryFilter)categoryFilter.addEventListener('change',filter);
+
+// Action bar
+document.querySelectorAll('[data-cmd]').forEach(b=>b.addEventListener('click',()=>{const c=b.dataset.cmd;if(c)vscode.postMessage({command:c})}));
+
+// File links in failing files
+document.querySelectorAll('.f-link').forEach(l=>l.addEventListener('click',()=>{const f=l.dataset.file,ln=Number(l.dataset.line)||1;if(f)vscode.postMessage({command:'openFile',file:f,line:ln})}));
+
+// AI Session Status
+const aiSessionStatus = document.getElementById('aiSessionStatus');
+const aiSessionText = document.getElementById('aiSessionText');
+const aiSessionFiles = document.getElementById('aiSessionFiles');
+
+window.addEventListener('message', (event) => {
+  const msg = event.data;
+  if (msg.command === 'aiSessionStart') {
+    aiSessionStatus.style.display = 'flex';
+    aiSessionText.textContent = 'AI is editing...';
+    aiSessionFiles.textContent = '';
+  } else if (msg.command === 'aiSessionUpdate') {
+    aiSessionStatus.style.display = 'flex';
+    aiSessionText.textContent = `AI editing ${msg.fileCount || 0} file${(msg.fileCount || 0) === 1 ? '' : 's'}...`;
+    if (msg.files && msg.files.length > 0) {
+      aiSessionFiles.textContent = msg.files.slice(0, 3).map((f) => f.split(/[\\/]/).pop()).join(', ') + (msg.files.length > 3 ? ` +${msg.files.length - 3} more` : '');
+    }
+  } else if (msg.command === 'aiSessionEnd') {
+    aiSessionStatus.style.display = 'flex';
+    aiSessionText.textContent = `AI finished — analyzing ${msg.fileCount || 0} file${(msg.fileCount || 0) === 1 ? '' : 's'}`;
+    aiSessionFiles.textContent = '';
+    setTimeout(() => {
+      aiSessionStatus.style.display = 'none';
+    }, 3000);
+  }
+});
+
+filter();
+</script>
+</body>
+</html>

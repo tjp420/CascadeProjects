@@ -14,6 +14,11 @@ const SUPPLEMENTARY_STEP_LABELS = {
     complete: 'Partial complete scan'
 };
 
+/**
+ * Normalize export scan.
+ * @param {any} completeScan
+ * @returns {any}
+ */
 function normalizeExportScan(completeScan) {
     if (!completeScan || typeof completeScan !== 'object') return null;
     if (completeScan.results && Object.values(completeScan.results).some(Boolean)) {
@@ -40,6 +45,11 @@ function normalizeExportScan(completeScan) {
     return completeScan;
 }
 
+/**
+ * Code files analyzed from scan.
+ * @param {any} normalized
+ * @returns {any}
+ */
 function codeFilesAnalyzedFromScan(normalized) {
     const results = normalized?.results || {};
     const fromCodebase = results.codebase?.summary?.codeFilesAnalyzed;
@@ -47,6 +57,11 @@ function codeFilesAnalyzedFromScan(normalized) {
     return null;
 }
 
+/**
+ * Gate pass from scan.
+ * @param {any} normalized
+ * @returns {any}
+ */
 function gatePassFromScan(normalized) {
     const results = normalized?.results || {};
     const fromGate = results.simplebeacon?.gate?.pass;
@@ -56,6 +71,11 @@ function gatePassFromScan(normalized) {
     return null;
 }
 
+/**
+ * Has simplebeacon results.
+ * @param {Array} results
+ * @returns {any}
+ */
 function hasSimplebeaconResults(results) {
     const sb = results.simplebeacon;
     if (!sb || typeof sb !== 'object') return false;
@@ -68,6 +88,11 @@ function hasSimplebeaconResults(results) {
         || sb.repositoryFilesTotal > 0;
 }
 
+/**
+ * Detect supplementary step.
+ * @param {any} normalized
+ * @returns {any}
+ */
 function detectSupplementaryStep(normalized) {
     const results = normalized?.results || {};
     const scanKind = normalized?.summary?.scanKind;
@@ -86,6 +111,12 @@ function detectSupplementaryStep(normalized) {
     return { key: 'complete', label: SUPPLEMENTARY_STEP_LABELS.complete };
 }
 
+/**
+ * Missing for handoff.
+ * @param {boolean} hasGate
+ * @param {boolean} hasCodebase
+ * @returns {any}
+ */
 function missingForHandoff(hasGate, hasCodebase) {
     const missing = [];
     if (!hasGate) missing.push('Simplebeacon gate attestation');
@@ -106,36 +137,41 @@ function missingForHandoff(hasGate, hasCodebase) {
  *   blockReason: string|null
  * }}
  */
+
+function buildTierResult(tier, label, overrides = {}) {
+    return {
+        tier,
+        label,
+        missingForHandoff: overrides.missingForHandoff ?? [],
+        readinessDisplay: overrides.readinessDisplay ?? null,
+        showSignOffBlock: overrides.showSignOffBlock ?? false,
+        showReadinessScore: overrides.showReadinessScore ?? false,
+        handoffHint: overrides.handoffHint ?? '',
+        exportBlocked: overrides.exportBlocked ?? false,
+        blockReason: overrides.blockReason ?? null,
+        ...overrides.extra
+    };
+}
 function assessAuditExportTier(completeScan) {
     const normalized = normalizeExportScan(completeScan);
     if (!normalized) {
-        return {
-            tier: 'insufficient',
-            label: 'Insufficient scan data',
+        return buildTierResult('insufficient', 'Insufficient scan data', {
             missingForHandoff: missingForHandoff(false, false),
-            readinessDisplay: null,
-            showSignOffBlock: false,
-            showReadinessScore: false,
             handoffHint: 'Run a scan before exporting an audit PDF.',
             exportBlocked: true,
             blockReason: 'No scan data available for audit PDF export.'
-        };
+        });
     }
 
     const results = normalized.results || {};
     const hasAnyResult = Object.values(results).some(Boolean);
     if (!hasAnyResult) {
-        return {
-            tier: 'insufficient',
-            label: 'Insufficient scan data',
+        return buildTierResult('insufficient', 'Insufficient scan data', {
             missingForHandoff: missingForHandoff(false, false),
-            readinessDisplay: null,
-            showSignOffBlock: false,
-            showReadinessScore: false,
             handoffHint: 'Run a scan before exporting an audit PDF.',
             exportBlocked: true,
             blockReason: 'Export payload has no scan steps — run Complete scan or an individual analysis first.'
-        };
+        });
     }
 
     const gatePass = gatePassFromScan(normalized);
@@ -146,62 +182,42 @@ function assessAuditExportTier(completeScan) {
     const handoffHint = 'For vendor handoff, run Analyze → Complete (all steps) or combine gate attestation + codebase audit PDFs.';
 
     if (hasGate && hasCodebase) {
-        return {
-            tier: 'handoff',
-            label: 'Pre-launch security audit',
-            missingForHandoff: [],
-            readinessDisplay: null,
+        return buildTierResult('handoff', 'Pre-launch security audit', {
             showSignOffBlock: true,
-            showReadinessScore: true,
-            handoffHint: '',
-            exportBlocked: false,
-            blockReason: null
-        };
+            showReadinessScore: true
+        });
     }
 
     if (hasGate && !hasCodebase) {
-        return {
-            tier: 'gate-only',
-            label: 'Gate attestation',
+        return buildTierResult('gate-only', 'Gate attestation', {
             missingForHandoff: missing,
             readinessDisplay: 'Gate attestation only — run Complete scan for full readiness score',
-            showSignOffBlock: false,
-            showReadinessScore: false,
-            handoffHint,
-            exportBlocked: false,
-            blockReason: null
-        };
+            handoffHint
+        });
     }
 
     if (hasCodebase && !hasGate) {
-        return {
-            tier: 'codebase-only',
-            label: 'Codebase hygiene',
+        return buildTierResult('codebase-only', 'Codebase hygiene', {
             missingForHandoff: missing,
             readinessDisplay: 'Codebase analysis only — attach gate PASS evidence for sign-off',
-            showSignOffBlock: false,
-            showReadinessScore: false,
-            handoffHint,
-            exportBlocked: false,
-            blockReason: null
-        };
+            handoffHint
+        });
     }
 
     const step = detectSupplementaryStep(normalized);
-    return {
-        tier: 'supplementary',
-        label: step.label,
-        stepKey: step.key,
+    return buildTierResult('supplementary', step.label, {
         missingForHandoff: missing,
         readinessDisplay: `Supplementary — ${step.label}`,
-        showSignOffBlock: false,
-        showReadinessScore: false,
         handoffHint,
-        exportBlocked: false,
-        blockReason: null
-    };
+        extra: { stepKey: step.key }
+    });
 }
 
+/**
+ * Normalize client path label.
+ * @param {string} path
+ * @returns {any}
+ */
 function normalizeClientPathLabel(path) {
     let normalized = String(path || '').replace(/\\/g, '/').trim();
     if (!normalized) return '';
@@ -246,10 +262,20 @@ function normalizeClientPathLabel(path) {
     return parts[parts.length - 1] || normalized;
 }
 
+/**
+ * Normalize simple beacon branding.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizeSimpleBeaconBranding(value) {
     return String(value ?? '').replace(/\bSimplebeacon\b/g, 'SimpleBeacon');
 }
 
+/**
+ * Sanitize frozen audit deliverable html.
+ * @param {any} html
+ * @returns {any}
+ */
 function sanitizeFrozenAuditDeliverableHtml(html) {
     if (!html || typeof html !== 'string') return html;
     let next = normalizeSimpleBeaconBranding(html);
@@ -258,10 +284,21 @@ function sanitizeFrozenAuditDeliverableHtml(html) {
     return next;
 }
 
+/**
+ * Is email like.
+ * @param {any} value
+ * @returns {any}
+ */
 function isEmailLike(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(String(value || '').trim());
 }
 
+/**
+ * Resolve audit client name.
+ * @param {Object} options
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveAuditClientName(options = {}, projectPath = '') {
     const raw = String(options.client || options.company || '').trim();
     const isEmail = isEmailLike(raw);
@@ -285,6 +322,11 @@ function resolveAuditClientName(options = {}, projectPath = '') {
     return 'Repository audit';
 }
 
+/**
+ * Audit export button label.
+ * @param {any} tierInfo
+ * @returns {any}
+ */
 function auditExportButtonLabel(tierInfo) {
     if (!tierInfo || tierInfo.exportBlocked) return 'Download audit PDF';
     switch (tierInfo.tier) {

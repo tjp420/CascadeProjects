@@ -4,7 +4,8 @@
  */
 
 const path = require('path');
-const { collectIssues } = require('../../packages/simplebeacon-cli/src/reporters/audit-report');
+const { collectIssues } = require('./simplebeacon-proxy.cjs');
+
 
 const IMPACT_BY_KIND = {
     credentials: 'CRITICAL RISK: Left unchanged, this key can be scraped by automated bots within minutes of a public Git push — leading to immediate cloud wallet drainage and vendor account takeover.',
@@ -34,6 +35,11 @@ const DEFAULT_RECIPES = {
     general: 'Apply the remediation noted in your scan JSON, then re-run the gate command below to confirm zero Critical/High flags remain.'
 };
 
+/**
+ * Classify row kind.
+ * @param {any} row
+ * @returns {any}
+ */
 function classifyRowKind(row = {}) {
     const rule = String(row.rule || '').toLowerCase();
     const snippet = String(row.snippet || '').toLowerCase();
@@ -88,6 +94,12 @@ function classifyRowKind(row = {}) {
     return 'general';
 }
 
+/**
+ * Impact band class.
+ * @param {any} kind
+ * @param {any} severity
+ * @returns {any}
+ */
 function impactBandClass(kind, severity) {
     if (kind === 'credentials' || severity === 'critical') return 'impact-critical';
     if (kind === 'production-leak' || severity === 'high') return 'impact-high';
@@ -95,6 +107,12 @@ function impactBandClass(kind, severity) {
     return 'impact-review';
 }
 
+/**
+ * Build impact risk.
+ * @param {any} kind
+ * @param {any} severity
+ * @returns {any}
+ */
 function buildImpactRisk(kind, severity) {
     const base = IMPACT_BY_KIND[kind] || IMPACT_BY_KIND.general;
     const prefix = kind === 'credentials' || severity === 'critical'
@@ -108,6 +126,14 @@ function buildImpactRisk(kind, severity) {
     return base;
 }
 
+/**
+ * Build code recipe.
+ * @param {any} kind
+ * @param {any} snippet
+ * @param {any} rule
+ * @param {any} fallbackRemediation
+ * @returns {any}
+ */
 function buildCodeRecipe(kind, snippet, rule, fallbackRemediation) {
     const text = String(snippet || '').toLowerCase();
 
@@ -143,6 +169,12 @@ function buildCodeRecipe(kind, snippet, rule, fallbackRemediation) {
     return DEFAULT_RECIPES[kind] || DEFAULT_RECIPES.general;
 }
 
+/**
+ * Build verification command.
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildVerificationCommand(projectPath, options = {}) {
     const platformRoot = options.platformRoot || projectPath;
     const normalized = String(platformRoot || projectPath || '').replace(/\\/g, '/').trim();
@@ -202,10 +234,21 @@ const BUSINESS_IMPACT_BY_KIND = {
 
 const GATE_BLOCKING_KINDS = new Set(['credentials', 'production-leak']);
 
+/**
+ * Normalize path key.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function normalizePathKey(filePath) {
     return String(filePath || '').replace(/\\/g, '/').toLowerCase();
 }
 
+/**
+ * Resolve finding file path.
+ * @param {any} finding
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveFindingFilePath(finding = {}, options = {}) {
     const raw = finding.filePath || finding.path || finding.metadata?.filePath || '';
     const anchor = options.platformRoot || options.projectPath || '';
@@ -223,6 +266,12 @@ function resolveFindingFilePath(finding = {}, options = {}) {
     return '';
 }
 
+/**
+ * Is finding in project scope.
+ * @param {any} finding
+ * @param {Object} options
+ * @returns {any}
+ */
 function isFindingInProjectScope(finding, options = {}) {
     const projectPath = options.projectPath;
     if (!projectPath) return true;
@@ -232,23 +281,44 @@ function isFindingInProjectScope(finding, options = {}) {
     return fileKey === scopeKey || fileKey.startsWith(`${scopeKey}/`);
 }
 
+/**
+ * Should scope findings to project.
+ * @param {Object} options
+ * @returns {any}
+ */
 function shouldScopeFindingsToProject(options = {}) {
     const projectPath = options.projectPath;
     if (!projectPath) return false;
     return /[/\\]github-cache[/\\]/i.test(String(projectPath));
 }
 
+/**
+ * Filter findings by project scope.
+ * @param {Array} findings
+ * @param {Object} options
+ * @returns {any}
+ */
 function filterFindingsByProjectScope(findings = [], options = {}) {
     if (!shouldScopeFindingsToProject(options)) return findings;
     return findings.filter((finding) => isFindingInProjectScope(finding, options));
 }
 
+/**
+ * Is handoff artifact path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function isHandoffArtifactPath(filePath) {
     const normalized = normalizePathKey(filePath);
     return /(^|\/)deliverables\//.test(normalized)
         || /(^|\/)\.simplebeacon\/.*\.html$/.test(normalized);
 }
 
+/**
+ * Is intentional fixture path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function isIntentionalFixturePath(filePath) {
     const normalized = normalizePathKey(filePath);
     return /(^|\/)tests\/fixtures\//.test(normalized)
@@ -256,10 +326,20 @@ function isIntentionalFixturePath(filePath) {
         || /toxic-fixtures/.test(normalized);
 }
 
+/**
+ * Is documentation path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function isDocumentationPath(filePath) {
     return /(^|\/)docs\//.test(normalizePathKey(filePath));
 }
 
+/**
+ * Infer artifact context.
+ * @param {any} row
+ * @returns {any}
+ */
 function inferArtifactContext(row = {}) {
     const file = parseLocation(row.location).file || row.filePath || '';
     if (isHandoffArtifactPath(file)) {
@@ -300,6 +380,11 @@ function inferArtifactContext(row = {}) {
     return null;
 }
 
+/**
+ * Parse location.
+ * @param {any} location
+ * @returns {any}
+ */
 function parseLocation(location) {
     const raw = String(location || '').trim();
     if (!raw) {
@@ -316,6 +401,12 @@ function parseLocation(location) {
     return { file: raw, line: null, column: null };
 }
 
+/**
+ * Infer env key.
+ * @param {any} snippet
+ * @param {any} kind
+ * @returns {any}
+ */
 function inferEnvKey(snippet, kind) {
     const text = String(snippet || '');
     if (/stripe|sk_(live|test)_|rk_(live|test)_/i.test(text)) {
@@ -333,6 +424,13 @@ function inferEnvKey(snippet, kind) {
     return 'API_KEY';
 }
 
+/**
+ * Infer auto fix confidence.
+ * @param {any} kind
+ * @param {any} snippet
+ * @param {any} rule
+ * @returns {any}
+ */
 function inferAutoFixConfidence(kind, snippet, rule) {
     const text = String(snippet || '');
     const ruleText = String(rule || '').toLowerCase();
@@ -347,6 +445,13 @@ function inferAutoFixConfidence(kind, snippet, rule) {
     return 'none';
 }
 
+/**
+ * Infer blocks gate.
+ * @param {any} kind
+ * @param {any} severity
+ * @param {any} row
+ * @returns {any}
+ */
 function inferBlocksGate(kind, severity, row = {}) {
     if (row.blocksGate === false) return false;
     if (row.blocksGate === true) return true;
@@ -366,6 +471,15 @@ function inferBlocksGate(kind, severity, row = {}) {
     return false;
 }
 
+/**
+ * Build structured changes.
+ * @param {any} kind
+ * @param {any} snippet
+ * @param {any} rule
+ * @param {any} location
+ * @param {any} fallbackRemediation
+ * @returns {any}
+ */
 function buildStructuredChanges(kind, snippet, rule, location, fallbackRemediation) {
     const text = String(snippet || '');
     const lower = text.toLowerCase();
@@ -570,6 +684,11 @@ function buildStructuredChanges(kind, snippet, rule, location, fallbackRemediati
     return changes;
 }
 
+/**
+ * Recipe from fix spec.
+ * @param {any} fixSpec
+ * @returns {any}
+ */
 function recipeFromFixSpec(fixSpec) {
     if (!fixSpec || !Array.isArray(fixSpec.changes)) {
         return '';
@@ -593,6 +712,12 @@ function recipeFromFixSpec(fixSpec) {
     return parts.join('\n\n') || DEFAULT_RECIPES[fixSpec.kind] || DEFAULT_RECIPES.general;
 }
 
+/**
+ * Build verify commands.
+ * @param {any} kind
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildVerifyCommands(kind, options = {}) {
     const commands = [buildVerificationCommand(options.projectPath, options)];
     if (kind === 'env-secret') {
@@ -607,6 +732,11 @@ function buildVerifyCommands(kind, options = {}) {
     return [...new Set(commands)];
 }
 
+/**
+ * Build rotation steps.
+ * @param {any} kind
+ * @returns {any}
+ */
 function buildRotationSteps(kind) {
     if (kind !== 'env-secret') {
         return undefined;
@@ -619,6 +749,12 @@ function buildRotationSteps(kind) {
     ];
 }
 
+/**
+ * Build fix spec.
+ * @param {any} row
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildFixSpec(row = {}, options = {}) {
     const artifact = inferArtifactContext(row);
     const kind = row.kind || classifyRowKind(row);
@@ -655,6 +791,12 @@ function buildFixSpec(row = {}, options = {}) {
     };
 }
 
+/**
+ * Enrich remediation row.
+ * @param {any} row
+ * @param {Object} options
+ * @returns {any}
+ */
 function enrichRemediationRow(row = {}, options = {}) {
     const kind = row.kind || classifyRowKind(row);
     const severity = String(row.severity || 'medium').toLowerCase();
@@ -672,6 +814,12 @@ function enrichRemediationRow(row = {}, options = {}) {
     };
 }
 
+/**
+ * Normalize scan finding.
+ * @param {boolean} issue
+ * @param {any} source
+ * @returns {any}
+ */
 function normalizeScanFinding(issue = {}, source = 'Simplebeacon gate') {
     const filePath = issue.filePath || issue.file || issue.path || null;
     const line = issue.line || issue.lineNumber || null;
@@ -687,6 +835,11 @@ function normalizeScanFinding(issue = {}, source = 'Simplebeacon gate') {
     };
 }
 
+/**
+ * Flatten data quality findings.
+ * @param {any} dataQuality
+ * @returns {any}
+ */
 function flattenDataQualityFindings(dataQuality = {}) {
     if (Array.isArray(dataQuality.allFindings)) {
         return dataQuality.allFindings;
@@ -698,6 +851,11 @@ function flattenDataQualityFindings(dataQuality = {}) {
     return Object.values(grouped).flat().filter(Boolean);
 }
 
+/**
+ * Normalize data quality finding.
+ * @param {any} finding
+ * @returns {any}
+ */
 function normalizeDataQualityFinding(finding = {}) {
     const filePath = finding.path || finding.filePath || null;
     const line = finding.metadata?.line || finding.line || null;
@@ -712,6 +870,11 @@ function normalizeDataQualityFinding(finding = {}) {
     };
 }
 
+/**
+ * Extract fix inputs from scan.
+ * @param {any} scanPayload
+ * @returns {any}
+ */
 function extractFixInputsFromScan(scanPayload = {}) {
     if (scanPayload.type === 'simplebeacon-report') {
         return {
@@ -746,6 +909,11 @@ function extractFixInputsFromScan(scanPayload = {}) {
 
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 
+/**
+ * Sort fix rows.
+ * @param {Array} rows
+ * @returns {any}
+ */
 function sortFixRows(rows = []) {
     return [...rows].sort((a, b) => {
         const gateDelta = Number(b.fixSpec?.blocksGate) - Number(a.fixSpec?.blocksGate);
@@ -756,6 +924,12 @@ function sortFixRows(rows = []) {
     });
 }
 
+/**
+ * Build sorted remediation rows.
+ * @param {any} scanPayload
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildSortedRemediationRows(scanPayload = {}, options = {}) {
     const { issues, codebaseFindings, dataQualityFindings } = extractFixInputsFromScan(scanPayload);
     const scopedIssues = filterFindingsByProjectScope(issues, options);
@@ -781,6 +955,12 @@ function buildSortedRemediationRows(scanPayload = {}, options = {}) {
     return sortFixRows(rows);
 }
 
+/**
+ * Build remediation rows from scan.
+ * @param {any} scanPayload
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildRemediationRowsFromScan(scanPayload = {}, options = {}) {
     const sortedRows = buildSortedRemediationRows(scanPayload, options);
     const maxRows = options.maxRows ?? 100;
@@ -799,6 +979,12 @@ function buildRemediationRowsFromScan(scanPayload = {}, options = {}) {
     };
 }
 
+/**
+ * Build fix plan from scan.
+ * @param {any} scanPayload
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildFixPlanFromScan(scanPayload = {}, options = {}) {
     const { gatePass } = extractFixInputsFromScan(scanPayload);
     const sortedRows = buildSortedRemediationRows(scanPayload, options);

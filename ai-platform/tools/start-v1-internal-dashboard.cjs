@@ -13,6 +13,7 @@ if (fs.existsSync(envPath)) {
 }
 
 process.env.SIMPLEBEACON_INTERNAL_DASHBOARD = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || 'true';
+process.env.PORT = '54449';
 
 const { applyLocalV1InternalDevProfile } = require('../server/lib/secret-config.cjs');
 applyLocalV1InternalDevProfile();

@@ -37,3 +37,12 @@ node_modules/
 
 # Package tarballs
 simplebeacon-*.tgz
+
+# Test certification artifacts (not production code)
+packages/simplebeacon-cli/test-cert/
+
+# Test directories (not shipped in production images)
+test/
+tests/
+**/test/
+**/tests/

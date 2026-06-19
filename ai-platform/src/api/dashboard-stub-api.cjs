@@ -11,6 +11,7 @@ const logger = require('../lib/app-logger.cjs');
 const { runNpmAuditAsync } = require('../../server/lib/npm-audit-runner.cjs');
 const { saveConsolidationReport } = require('../../server/lib/repository-health-payload.cjs');
 const { scanFileMergerReduction } = require('../../server/lib/file-merger-reduction-scanner.cjs');
+const constants = require('../../server/config/constants.cjs');
 const {
     resolveDefaultAllowedRoots,
     assertSafeProjectPath
@@ -31,7 +32,7 @@ const allowStubsInProd = process.env.ALLOW_DEV_EPHEMERAL_SECRETS === 'true';
 // Configure a strict Rate Limiter for development tools
 const dashboardLimiter = require('express-rate-limit')({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per window
+  max: isProd ? 100 : constants.TIMEOUT_5S, // Relaxed for local dev dashboard burst
   message: { success: false, error: 'Too many requests from this IP. Access throttled.' }
 });
 
@@ -48,6 +49,11 @@ let qualityDashboardSample = null;
 let securityDashboardRawSample = null;
 let supportDashboardSample = null;
 
+/**
+ * Load dev tools sample.
+ * @param {any} webRoot
+ * @returns {any}
+ */
 async function loadDevToolsSample(webRoot) {
     if (devToolsSample) return devToolsSample;
     try {
@@ -60,6 +66,11 @@ async function loadDevToolsSample(webRoot) {
     return devToolsSample;
 }
 
+/**
+ * Load a p i sample.
+ * @param {any} webRoot
+ * @returns {any}
+ */
 async function loadAPISample(webRoot) {
     if (apiSample) return apiSample;
     try {
@@ -72,6 +83,11 @@ async function loadAPISample(webRoot) {
     return apiSample;
 }
 
+/**
+ * Load merger tool sample.
+ * @param {any} webRoot
+ * @returns {any}
+ */
 async function loadMergerToolSample(webRoot) {
     if (mergerToolSample) return mergerToolSample;
     try {
@@ -84,6 +100,11 @@ async function loadMergerToolSample(webRoot) {
     return mergerToolSample;
 }
 
+/**
+ * Load coverage reports sample.
+ * @param {any} webRoot
+ * @returns {any}
+ */
 async function loadCoverageReportsSample(webRoot) {
     if (!coverageReportsRawSample) {
         try {
@@ -97,6 +118,11 @@ async function loadCoverageReportsSample(webRoot) {
     return buildCoverageReportsModel(path.join(webRoot, '..'), coverageReportsRawSample);
 }
 
+/**
+ * Load settings sample.
+ * @param {any} webRoot
+ * @returns {any}
+ */
 async function loadSettingsSample(webRoot) {
     if (settingsSample) return settingsSample;
     try {
@@ -109,6 +135,11 @@ async function loadSettingsSample(webRoot) {
     return settingsSample;
 }
 
+/**
+ * Load help sample.
+ * @param {any} webRoot
+ * @returns {any}
+ */
 async function loadHelpSample(webRoot) {
     if (helpSample) return helpSample;
     try {
@@ -121,6 +152,11 @@ async function loadHelpSample(webRoot) {
     return helpSample;
 }
 
+/**
+ * Load analytics sample.
+ * @param {any} webRoot
+ * @returns {any}
+ */
 async function loadAnalyticsSample(webRoot) {
     if (analyticsSample) return analyticsSample;
     try {
@@ -133,6 +169,11 @@ async function loadAnalyticsSample(webRoot) {
     return analyticsSample;
 }
 
+/**
+ * Load dashboard home sample.
+ * @param {any} webRoot
+ * @returns {any}
+ */
 async function loadDashboardHomeSample(webRoot) {
     try {
         const filePath = path.join(webRoot, 'data', ['dashboard-home', FIXTURE_SUFFIX].join('')); // simplebeacon:production-leak-intent: stub-data - Dashboard page sample loader
@@ -151,6 +192,11 @@ async function loadDashboardHomeSample(webRoot) {
     }
 }
 
+/**
+ * Load quality dashboard sample.
+ * @param {any} webRoot
+ * @returns {any}
+ */
 async function loadQualityDashboardSample(webRoot) {
     if (qualityDashboardSample) return qualityDashboardSample;
     try {
@@ -166,6 +212,11 @@ async function loadQualityDashboardSample(webRoot) {
     return qualityDashboardSample;
 }
 
+/**
+ * Load security dashboard sample.
+ * @param {any} webRoot
+ * @returns {any}
+ */
 async function loadSecurityDashboardSample(webRoot) {
     if (!securityDashboardRawSample) {
         try {
@@ -179,6 +230,11 @@ async function loadSecurityDashboardSample(webRoot) {
     return await buildSecurityDashboardModel(path.join(webRoot, '..'), securityDashboardRawSample);
 }
 
+/**
+ * Load support dashboard sample.
+ * @param {any} webRoot
+ * @returns {any}
+ */
 async function loadSupportDashboardSample(webRoot) {
     if (supportDashboardSample) return supportDashboardSample;
     try {
@@ -191,11 +247,24 @@ async function loadSupportDashboardSample(webRoot) {
     return supportDashboardSample;
 }
 
+/**
+ * Wrap page model.
+ * @param {any} webRoot
+ * @param {any} loader
+ * @returns {any}
+ */
 async function wrapPageModel(webRoot, loader) {
     const sample = await loader(webRoot);
     return { success: true, data: sample, ...sample };
 }
 
+/**
+ * Setup dashboard stub a p is.
+ * @param {any} app
+ * @param {any} webRoot
+ * @param {Object} options
+ * @returns {any}
+ */
 function setupDashboardStubAPIs(app, webRoot, options = {}) {
     // Completely block mounting these stub endpoints if running in production
     if (isProd && !allowStubsInProd) {
@@ -207,6 +276,8 @@ function setupDashboardStubAPIs(app, webRoot, options = {}) {
     const redis = options.redis || null;
     const authMiddleware = options.authMiddleware || null;
     const { sendSnapshotOrSample } = require('../../server/lib/snapshot-resolver.cjs');
+const { resolvePlatformRoot } = require('../../server/lib/simplebeacon-proxy.cjs');
+
 
     // Define a localized safety scope for all internal metrics and asset paths
     const dashboardRouter = express.Router();
@@ -223,12 +294,30 @@ function setupDashboardStubAPIs(app, webRoot, options = {}) {
         dashboardRouter.use((req, res) => res.status(500).json({ success: false, error: 'Authentication layer misconfiguration.' }));
     }
 
+/**
+ * Snapshot send.
+ * @param {Array} res
+ * @param {any} key
+ * @param {any} fallback
+ * @returns {any}
+ */
     const snapshotSend = (res, key, fallback) => sendSnapshotOrSample(res, db, key, fallback, redis);
+/**
+ * Snapshot get.
+ * @param {any} route
+ * @param {any} key
+ * @param {any} fallback
+ * @returns {any}
+ */
     const snapshotGet = (route, key, fallback) => {
         dashboardRouter.get(route, async (req, res) => snapshotSend(res, key, fallback));
     };
 
     // Helper: read latest real scan report for dynamic overview values
+/**
+ * Load latest report.
+ * @returns {any}
+ */
     async function loadLatestReport() {
         try {
             const reportPath = path.join(webRoot, '..', '.simplebeacon', 'report.json');
@@ -385,8 +474,7 @@ function setupDashboardStubAPIs(app, webRoot, options = {}) {
 
     dashboardRouter.get('/api/merger-tool/reduction-scan', async (req, res) => {
         try {
-            const { resolvePlatformRoot } = require('../../packages/simplebeacon-cli/src/project-detect');
-            const defaultDir = path.join(webRoot, '..');
+                        const defaultDir = path.join(webRoot, '..');
             const allowedRoots = resolveDefaultAllowedRoots(defaultDir, {
                 monorepoRoot: path.join(defaultDir, '..')
             });

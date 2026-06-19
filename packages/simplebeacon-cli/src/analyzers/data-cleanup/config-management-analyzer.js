@@ -38,7 +38,8 @@ class ConfigManagementAnalyzer {
         const operationalEnvFiles = envFiles.filter(
             (file) => !/\.example|\.template|\.sample|env-sample|env_example/i.test(file.name)
         );
-        if (operationalEnvFiles.length > 3) {
+        const envDirs = new Set(operationalEnvFiles.map((f) => f.relativePath.replace(/\\/g, '/').split('/').slice(0, -1).join('/')));
+        if (operationalEnvFiles.length > 3 && envDirs.size <= 1) {
             findings.push({
                 type: 'config-sprawl',
                 path: operationalEnvFiles[0].relativePath,
@@ -53,6 +54,38 @@ class ConfigManagementAnalyzer {
         for (const [category, files] of byCategory.entries()) {
             if (category === 'env-file' || category === 'package-json') continue;
             if (files.length <= 1) continue;
+
+            // For bundler configs, allow multiple if they target different platforms (e.g., web vs node)
+            // or if they live in different packages (monorepo)
+            if (category === 'bundler-config') {
+                const dirs = new Set(files.map((f) => f.relativePath.replace(/\\/g, '/').split('/').slice(0, -1).join('/')));
+                if (dirs.size > 1) continue; // Monorepo — each package has its own config
+                const targets = new Set();
+                for (const file of files) {
+                    try {
+                        const content = fs.readFileSync(file.path, 'utf8');
+                        if (/target\s*:\s*['"]node['"]/.test(content)) targets.add('node');
+                        else if (/target\s*:\s*['"]web['"]/.test(content)) targets.add('web');
+                        else if (/server\s*\{/.test(content) || /proxy\s*\{/.test(content)) targets.add('web');
+                        else targets.add('unknown');
+                    } catch {
+                        targets.add('unknown');
+                    }
+                }
+                if (targets.size > 1) continue; // Different targets — legitimate monorepo pattern
+            }
+
+            // Monorepo: different test runners or tsconfigs in different packages are intentional
+            if (category === 'test-config') {
+                const dirs = new Set(files.map((f) => f.relativePath.replace(/\\/g, '/').split('/').slice(0, -1).join('/')));
+                const basenames = new Set(files.map((f) => f.name.toLowerCase()));
+                if (dirs.size > 1 || basenames.size > 1) continue;
+            }
+            if (category === 'ts-config') {
+                const dirs = new Set(files.map((f) => f.relativePath.replace(/\\/g, '/').split('/').slice(0, -1).join('/')));
+                if (dirs.size > 1) continue;
+            }
+
             findings.push({
                 type: 'duplicate-config-type',
                 path: files[0].relativePath,
@@ -65,7 +98,8 @@ class ConfigManagementAnalyzer {
         }
 
         const packageJsons = byCategory.get('package-json') || [];
-        if (packageJsons.length > 5) {
+        const pkgDirs = new Set(packageJsons.map((f) => f.relativePath.replace(/\\/g, '/').split('/').slice(0, -1).join('/')));
+        if (packageJsons.length > 5 && pkgDirs.size <= 1) {
             findings.push({
                 type: 'config-sprawl',
                 path: packageJsons[0].relativePath,
@@ -119,7 +153,10 @@ class ConfigManagementAnalyzer {
             || base === '.env'
             || base === '.env.example'
             || /^tsconfig(\..+)?\.json$/i.test(base)
-            || /^jest\.config\.(js|mjs|cjs|ts)$/i.test(base);
+            || /^jest\.config\.(js|mjs|cjs|ts)$/i.test(base)
+            || /^playwright\.config\.(js|mjs|cjs|ts)$/i.test(base)
+            || /^vitest\.config\.(js|mjs|cjs|ts)$/i.test(base)
+            || /^cypress\.config\.(js|mjs|cjs|ts)$/i.test(base);
     }
 
     detectConfigReferences(content, configPath) {

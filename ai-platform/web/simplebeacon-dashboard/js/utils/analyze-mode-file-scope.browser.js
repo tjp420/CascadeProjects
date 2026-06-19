@@ -6,6 +6,7 @@
 import { escapeHtml, formatNumber } from '../utils.js';
 import { isBenchmarkCachePath } from './complete-scan-artifact-profile.browser.js';
 
+// simplebeacon:production-leak-intent: web-data-sample - Scan path configuration reference for analysis mode
 const DEFAULT_SCAN_PATHS = ['web/data', 'data/mock', 'tests/fixtures', 'data'];
 const DEFAULT_PRODUCTION_PATHS = ['server/', 'src/', 'app/', 'lib/'];
 const FILE_REDUCTION_SKIP = [
@@ -27,7 +28,7 @@ const DATA_QUALITY_SCANNERS = [
   'duplicate-config',
   'consistency-anchors'
 ];
-const FILE_REDUCTION_SCANNERS = ['build-artifacts', 'asset-consolidation', 'unused-files'];
+const FILE_REDUCTION_SCANNERS = ['build-artifacts', 'asset-consolidation', 'unused-files', 'directory-bloat'];
 
 /** Normalize roadmap payload from analyze API, complete step, or imported export JSON. */
 export function normalizeRoadmapRoot(payload) {
@@ -39,6 +40,11 @@ export function normalizeRoadmapRoot(payload) {
   return null;
 }
 
+/**
+ * Extract roadmap file metrics.
+ * @param {any} payload
+ * @returns {any}
+ */
 export function extractRoadmapFileMetrics(payload) {
   const root = normalizeRoadmapRoot(payload);
   if (!root) return null;
@@ -58,9 +64,19 @@ export function extractRoadmapFileMetrics(payload) {
   };
 }
 
+/**
+ * Resolve scope context.
+ * @param {string} context
+ * @returns {any}
+ */
 function resolveScopeContext(context = {}) {
   const { config, report, projectPath, lastResult } = context;
   const scope = report?.scanScope || {};
+/**
+ * Roadmap metrics.
+ * @param {any} (
+ * @returns {any}
+ */
   const roadmapMetrics = (() => {
     if (!lastResult) return null;
     if (lastResult.kind === 'roadmap') return extractRoadmapFileMetrics(lastResult.data);
@@ -103,6 +119,11 @@ function resolveScopeContext(context = {}) {
   };
 }
 
+/**
+ * Gate file sections.
+ * @param {any} ctx
+ * @returns {any}
+ */
 function gateFileSections(ctx) {
   return [
     {
@@ -137,6 +158,12 @@ function gateFileSections(ctx) {
   ];
 }
 
+/**
+ * Mode sections.
+ * @param {any} modeValue
+ * @param {any} ctx
+ * @returns {any}
+ */
 function modeSections(modeValue, ctx) {
   const gate = gateFileSections(ctx);
 
@@ -225,6 +252,7 @@ function modeSections(modeValue, ctx) {
       return [
         {
           label: 'Repo walk (skips regenerable dirs)',
+          // simplebeacon:production-leak-intent: template-sample - File scope analysis scanner configuration
           paths: FILE_REDUCTION_SKIP.map((p) => `skip ${p}`),
           note: 'Walks project tree excluding regenerable / vendor directories.'
         },
@@ -282,6 +310,7 @@ function modeSections(modeValue, ctx) {
       return [
         {
           label: 'Smart pick (at run time)',
+          // simplebeacon:production-leak-intent: web-data-sample - Auto-mode path configuration reference
           paths: [
             'web/data · data/mock · *ai-platform* → Simplebeacon gate',
             'other paths → Roadmap filesystem scan'
@@ -290,38 +319,46 @@ function modeSections(modeValue, ctx) {
         }
       ];
 
-    case 'complete':
+    case 'complete': {
+      const uniquePaths = Array.from(new Set(gate.flatMap((s) => s.paths)));
       return [
-        { label: 'Step 1 — Simplebeacon gate', paths: gate.flatMap((s) => s.paths).slice(0, 6), note: 'Standard profile — see Simplebeacon mode.' },
+        { label: 'Step 1 — Simplebeacon gate', paths: uniquePaths.slice(0, 6), note: 'Credentials, production-leak, schema, fiction KPI, LLM slop, agency handoff.' },
         { label: 'Step 2 — Consolidation', paths: ['scanPaths sample JSON', '**/*.json repo hash'], note: 'Duplicate groups + merge candidates.' },
-        { label: 'Step 3 — Fiction digest', paths: ['**/*.json (repository-wide)'] },
-        { label: 'Step 4 — Roadmap', paths: ['**/* project tree'] },
-        { label: 'Step 5 — Codebase', paths: ['All discovered code files (full depth)'] },
-        { label: 'Steps 6–8 — File reduction · Data quality · Cleanup', paths: ['Repo walk (see those modes)'] },
-        { label: 'Step 9 — Compliance', paths: ['Gate report + 8-rule checklist'] },
-        { label: 'Step 10 — npm audit', paths: ['package.json + lockfile'] }
+        { label: 'Step 3 — Fiction digest', paths: ['**/*.json (repository-wide)'], note: 'KPI consistency patterns across all repo JSON.' },
+        { label: 'Step 4 — Roadmap', paths: ['**/* project tree'], note: 'Sprint phases, dependency graph, effort estimates.' },
+        { label: 'Step 5 — Codebase', paths: ['All discovered code files (full depth)'], note: 'Tech debt, debug artifacts, ESLint, understanding layers.' },
+        { label: 'Steps 6–8 — File reduction · Data quality · Cleanup', paths: ['Repo walk (see those modes)'], note: 'Dry-run disk hygiene + data-cleanup scanners + tiered safe-delete brief.' },
+        { label: 'Step 9 — Compliance', paths: ['Gate report + 8-rule checklist'], note: 'Corporate safety / EU checklist rules evaluated on gate results.' },
+        { label: 'Step 10 — npm audit', paths: ['package.json + lockfile'], note: 'Live npm audit for supply-chain vulnerabilities.' }
       ];
+    }
 
     default:
       return [];
   }
 }
 
-function renderSection(section) {
+/**
+ * Render section.
+ * @param {any} section
+ * @param {number} index
+ * @returns {any}
+ */
+function renderSection(section, index) {
   const paths = (section.paths || []).filter(Boolean);
-  const countNote = section.count != null && section.countLabel
-    ? `<span class="analyze-mode-scope-count">${formatNumber(section.count)} ${escapeHtml(section.countLabel)}</span>`
-    : '';
+  const hasCount = section.count != null && section.countLabel;
+  const stepNum = section.step ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--primary);color:#fff;font-size:0.7rem;font-weight:700;margin-right:0.5rem;flex-shrink:0;">${section.step}</span>` : '';
   return `
-    <div class="analyze-mode-scope-block">
-      <div class="analyze-mode-scope-head">
-        <strong>${escapeHtml(section.label)}</strong>
-        ${countNote}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:0.75rem 1rem;display:flex;flex-direction:column;gap:0.5rem;">
+      <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+        ${stepNum}
+        <strong style="font-size:0.85rem;color:var(--text-primary);flex:1;">${escapeHtml(section.label)}</strong>
+        ${hasCount ? `<span style="font-size:0.75rem;color:var(--success);background:rgba(var(--success-rgb),0.1);padding:0.15rem 0.5rem;border-radius:999px;font-weight:600;white-space:nowrap;">${formatNumber(section.count)} ${escapeHtml(section.countLabel)}</span>` : ''}
       </div>
-      <ul class="analyze-mode-scope-paths">
-        ${paths.map((p) => `<li><code>${escapeHtml(String(p))}</code></li>`).join('')}
-      </ul>
-      ${section.note ? `<p class="text-muted analyze-mode-scope-note">${escapeHtml(section.note)}</p>` : ''}
+      ${paths.length ? `<div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
+        ${paths.map((p) => `<span style="font-size:0.75rem;background:var(--bg);color:var(--text-secondary);padding:0.2rem 0.5rem;border-radius:var(--radius-sm);border:1px solid var(--border);font-family:var(--font-mono,monospace);">${escapeHtml(String(p))}</span>`).join('')}
+      </div>` : ''}
+      ${section.note ? `<p style="font-size:0.75rem;color:var(--text-muted);margin:0;line-height:1.4;">${escapeHtml(section.note)}</p>` : ''}
     </div>
   `;
 }
@@ -330,32 +367,50 @@ function renderSection(section) {
  * @param {string} modeValue
  * @param {{ projectPath?: string, config?: object, report?: object }} context
  */
+/**
+ * Render mode file scope panel.
+ * @param {any} modeValue
+ * @param {string} context
+ * @returns {any}
+ */
 export function renderModeFileScopePanel(modeValue, context = {}) {
   const ctx = resolveScopeContext(context);
   const sections = modeSections(modeValue, ctx);
   if (!sections.length) return '';
 
-  const profileLine = `Profile: <code>${escapeHtml(ctx.profile)}</code>`;
+  const profileLine = `<span style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.75rem;background:var(--bg);color:var(--text-secondary);padding:0.25rem 0.6rem;border-radius:999px;border:1px solid var(--border);">
+    <span style="width:0.5rem;height:0.5rem;border-radius:50%;background:var(--success);display:inline-block;"></span>
+    ${escapeHtml(ctx.profile)}
+  </span>`;
   const roadmapLive = modeValue === 'roadmap' && ctx.roadmapMetrics;
   const liveLine = roadmapLive
-    ? `Last roadmap walk: ${formatNumber(ctx.roadmapMetrics.totalFiles)} files (${formatNumber(ctx.roadmapMetrics.codeFiles)} code) · ${ctx.roadmapMetrics.generatedAt ? new Date(ctx.roadmapMetrics.generatedAt).toLocaleString() : 'just now'}.`
+    ? `<strong>${formatNumber(ctx.roadmapMetrics.totalFiles)}</strong> files · <strong>${formatNumber(ctx.roadmapMetrics.codeFiles)}</strong> code · ${ctx.roadmapMetrics.generatedAt ? new Date(ctx.roadmapMetrics.generatedAt).toLocaleDateString() : 'just now'}`
     : ctx.reportFresh && ctx.counts.ruleScoped != null
-      ? `Last gate scan: ${formatNumber(ctx.counts.ruleScoped)} rule-scoped files · ${formatNumber(ctx.counts.repositoryFiles)} repo inventory.`
-      : 'Run analysis to attach live file counts from report.json scanScope.';
+      ? `<strong>${formatNumber(ctx.counts.ruleScoped)}</strong> rule-scoped · <strong>${formatNumber(ctx.counts.repositoryFiles)}</strong> repo inventory`
+      : 'Run analysis to attach live file counts';
   const benchmarkLine = ctx.benchmarkScan
     ? 'Benchmark clone under github-cache/ — product scanPaths and production rules are not walked. Use ai-platform root for handoff evidence.'
     : null;
 
   return `
-    <div class="analyze-mode-file-scope">
-      <h3 class="analyze-mode-scope-title">Files analyzed by this mode</h3>
-      <p class="text-muted analyze-mode-scope-intro">${profileLine} · ${escapeHtml(liveLine)}</p>
-      ${benchmarkLine ? `<p class="text-warning analyze-mode-scope-warning" style="font-size:var(--font-size-xs);">${escapeHtml(benchmarkLine)}</p>` : ''}
-      <div class="analyze-mode-scope-grid">
+    <div class="analyze-mode-file-scope" style="margin-top:1rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+        <h3 style="font-size:0.95rem;font-weight:600;color:var(--text-primary);margin:0;display:flex;align-items:center;gap:0.5rem;">
+          <span style="font-size:1rem;">📁</span> Files analyzed by this mode
+        </h3>
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+          ${profileLine}
+          <span style="font-size:0.75rem;color:var(--text-muted);">${liveLine}</span>
+        </div>
+      </div>
+      ${benchmarkLine ? `<div style="font-size:0.75rem;color:var(--warning);background:rgba(var(--warning-rgb),0.08);border:1px solid var(--warning-border, var(--border));border-radius:var(--radius-sm);padding:0.5rem 0.75rem;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;">
+        <span>⚠️</span> ${escapeHtml(benchmarkLine)}
+      </div>` : ''}
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:0.75rem;">
         ${sections.map(renderSection).join('')}
       </div>
-      <p class="text-muted analyze-mode-scope-footer" style="font-size:var(--font-size-xs);margin:0.75rem 0 0;">
-        Paths from <code>.simplebeacon/config.json</code> when present — edit in <a href="#/settings">Settings → Scan paths</a>.
+      <p style="font-size:0.7rem;color:var(--text-muted);margin:0.75rem 0 0;text-align:right;">
+        Config: <code style="font-size:0.7rem;">.simplebeacon/config.json</code> · <a href="#/settings" style="color:var(--primary);">Edit paths</a>
       </p>
     </div>
   `;

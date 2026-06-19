@@ -38,6 +38,7 @@ function isScannerImplementationPath(relativePath) {
     const normalized = String(relativePath || '').replace(/\\/g, '/').toLowerCase();
     if (/(?:^|\/)src\/(?:rules|reporters|analyzers|proxy)(?:\/|$)/.test(normalized)) return true;
     if (/(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|proxy|lib)\//.test(normalized)) return true;
+    if (/(?:^|\/)server\/lib\/(?:codebase-analyzer|production-leak|fiction-kpi|mock-data-scanner|simplebeacon-report|scan-orchestr|secret-config|audit-remediation-recipes|sample-path-resolver|code-roadmap-generator|dashboard-vault-auth|eu-ai-act-sprint-route)/.test(normalized)) return true;
     return false;
 }
 
@@ -57,10 +58,17 @@ function isPlatformScannerMetaPath(relativePath) {
     return /(?:codebase-analyzer|code-roadmap-generator|audit-remediation-recipes|sample-path-resolver|snapshot-|production-leak|fiction-kpi|simplebeacon-report|dev-tools-workflows|page-sample-specs|complete-scan-audit-report|compliance-trail|eu-ai-act-article|file-audit-context|language-patterns|language-registry|scan-orchestr|export-sanitize|remediation-guide|secret-config|mock-data-scanner)/.test(normalized);
 }
 
+/** Dashboard views containing analyzer catalog definitions — not customer application code. */
+function isDashboardAnalyzerCatalogPath(relativePath) {
+    const normalized = String(relativePath || '').replace(/\\/g, '/').toLowerCase();
+    return /(?:^|\/)web\/simplebeacon-dashboard\/js\/views\/analyzeview\.js$/.test(normalized);
+}
+
 function isExcludedPath(relativePath) {
     const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
     if (isScannerImplementationPath(relativePath)) return true;
     if (isPlatformScannerMetaPath(relativePath)) return true;
+    if (isDashboardAnalyzerCatalogPath(relativePath)) return true;
     if (/\.(test|spec)\.[jt]sx?$/.test(normalized)) return true;
     if (/\/tests?\//.test(normalized)) return true;
     if (/\/__tests__\//.test(normalized)) return true;
@@ -71,6 +79,8 @@ function isExcludedPath(relativePath) {
     if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
     if (/(?:^|\/)marketing-content-test\//.test(normalized)) return true;
     if (/(?:^|\/)simplebeacon-frameworkless\//.test(normalized)) return true;
+    if (/(?:^|\/)coming-soon\//.test(normalized)) return true;
+    if (/\.min\.(js|cjs)$/.test(normalized)) return true;
     if (normalized.endsWith('.md')) return true;
     return false;
 }

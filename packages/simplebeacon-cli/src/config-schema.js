@@ -12,9 +12,18 @@ const VALID_RULES = new Set([
     'llm-slop-patterns',
     'agency-handoff-patterns',
     'eu-ai-act-patterns',
-    'jest-baseline'
+    'jest-baseline',
+    'credential_leak',
+    'hallucinated_urls',
+    'fictional_kpis',
+    'mock_data_paths',
+    'debug_artifacts',
+    'eu_ai_act',
+    'token-bleed-patterns',
+    'architecture-drift-patterns'
 ]);
 
+const VALID_SCANNER_ACTIONS = new Set(['BLOCK', 'WARN', 'SKIP']);
 const VALID_SEVERITIES = new Set(['critical', 'high', 'medium', 'low']);
 const VALID_PROFILES = new Set(['minimal', 'standard', 'cascade', 'eu-ai-act']);
 
@@ -81,11 +90,38 @@ function validateConfig(config) {
         }
     }
 
+    if (config.scanners && typeof config.scanners === 'object') {
+        for (const [name, scanner] of Object.entries(config.scanners)) {
+            if (scanner && typeof scanner === 'object') {
+                if (scanner.action && !VALID_SCANNER_ACTIONS.has(scanner.action)) {
+                    warnings.push(`Scanner "${name}" has invalid action "${scanner.action}" — use BLOCK, WARN, or SKIP`);
+                }
+                if (scanner.severity && !VALID_SEVERITIES.has(scanner.severity)) {
+                    warnings.push(`Scanner "${name}" has invalid severity "${scanner.severity}"`);
+                }
+            }
+        }
+    }
+
+    if (config.allowlist != null) {
+        if (!Array.isArray(config.allowlist)) {
+            errors.push('allowlist must be an array of strings');
+        } else {
+            for (const item of config.allowlist) {
+                if (typeof item !== 'string' || !item.trim()) {
+                    errors.push('allowlist entries must be non-empty strings');
+                }
+            }
+        }
+    }
+
     return { valid: errors.length === 0, errors, warnings };
 }
 
 module.exports = {
     VALID_RULES,
     VALID_PROFILES,
+    VALID_SCANNER_ACTIONS,
+    VALID_SEVERITIES,
     validateConfig
 };

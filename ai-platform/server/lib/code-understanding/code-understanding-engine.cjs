@@ -12,6 +12,13 @@ const { loadExpertReviews, summarizeExpertConsensus } = require('./expert-review
 
 const detector = createLanguageDetector();
 
+/**
+ * Build static layer.
+ * @param {any} content
+ * @param {string} filePath
+ * @param {Array} staticFindings
+ * @returns {any}
+ */
 function buildStaticLayer(content, filePath, staticFindings = []) {
     const detection = detector.detectLanguage(filePath || 'snippet.txt', content);
     const plugin = getBuiltinPluginManager().getByLanguage(detection.language);
@@ -33,6 +40,11 @@ function buildStaticLayer(content, filePath, staticFindings = []) {
     };
 }
 
+/**
+ * Synthesize summary.
+ * @param {Array} layers
+ * @returns {any}
+ */
 function synthesizeSummary(layers) {
     const parts = [];
     if (layers.semantic?.purpose) parts.push(layers.semantic.purpose);
@@ -42,6 +54,11 @@ function synthesizeSummary(layers) {
     return parts.join(' ').trim() || 'Insufficient data for a consolidated summary.';
 }
 
+/**
+ * Assess overall confidence.
+ * @param {Array} layers
+ * @returns {any}
+ */
 function assessOverallConfidence(layers) {
     const scores = [
         layers.static?.confidence,
@@ -53,6 +70,13 @@ function assessOverallConfidence(layers) {
     return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) / 100;
 }
 
+/**
+ * Understand code snippet.
+ * @param {any} content
+ * @param {string} context
+ * @param {Object} options
+ * @returns {any}
+ */
 async function understandCodeSnippet(content, context = {}, options = {}) {
     const filePath = context.filePath || 'snippet.txt';
     const staticFindings = context.staticFindings || [];
@@ -108,6 +132,12 @@ async function understandCodeSnippet(content, context = {}, options = {}) {
     };
 }
 
+/**
+ * Understand file.
+ * @param {string} absolutePath
+ * @param {Object} options
+ * @returns {any}
+ */
 async function understandFile(absolutePath, options = {}) {
     const resolved = path.resolve(absolutePath);
     const content = await fs.promises.readFile(resolved, 'utf8');
@@ -120,6 +150,13 @@ async function understandFile(absolutePath, options = {}) {
     }, options);
 }
 
+/**
+ * Attach understanding to codebase report.
+ * @param {number} report
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 async function attachUnderstandingToCodebaseReport(report, projectPath, options = {}) {
     const analysisRoot = report.codeAnalysisRoot || report.platformRoot || report.projectRoot || projectPath;
     const sampleFindings = (report.findings || []).slice(0, 20);

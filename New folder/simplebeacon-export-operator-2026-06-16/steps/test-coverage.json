@@ -1,0 +1,250 @@
+{
+  "id": "test-coverage",
+  "status": "done",
+  "error": null,
+  "metric": "25 findings in 25 files",
+  "findingsCount": 25,
+  "fileCount": 25,
+  "severity": "low",
+  "findings": [
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/build-extension.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/build-extension.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/aiIntegration/aiCodeAnalyzer.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/aiIntegration/aiCodeAnalyzer.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/aiIntegration/aiReportExporter.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/aiIntegration/aiReportExporter.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/analytics/advancedAnalytics.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/analytics/advancedAnalytics.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/codeMapProvider.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/codeMapProvider.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/collaboration/teamDashboard.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/collaboration/teamDashboard.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/designSystem.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/designSystem.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/enhancedAIProvider.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/enhancedAIProvider.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/enhancedDashboard.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/enhancedDashboard.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/enhancedDashboard2_0.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/enhancedDashboard2_0.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/enhancedScanProvider.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/enhancedScanProvider.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/enhancedSidebar.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/enhancedSidebar.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/extension.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/extension.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/fixes/findingConverter.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/fixes/findingConverter.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/fixes/fixRegistry.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/fixes/fixRegistry.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/fixes/remediationProvider.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/fixes/remediationProvider.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/modernSidebarProvider.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/modernSidebarProvider.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/realtimeMonitor.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/realtimeMonitor.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/scanProvider.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/scanProvider.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/settingsProvider.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/settingsProvider.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/summaryProvider.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/summaryProvider.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/utils.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/utils.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/visualSidebarProvider.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/visualSidebarProvider.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/web2Panel.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/web2Panel.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    },
+    {
+      "category": "test-coverage",
+      "type": "missing-test-file",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/webviewPanel.js",
+      "line": 1,
+      "description": "Source file with no corresponding test: simplebeacon-vscode/out/webviewPanel.js",
+      "recommendedAction": "Add unit or integration tests for this module"
+    }
+  ],
+  "category": {
+    "category": "test-coverage",
+    "label": "test-coverage",
+    "count": 25,
+    "severity": "low",
+    "fileCount": 25,
+    "topFiles": [
+      "simplebeacon-vscode/build-extension.js",
+      "simplebeacon-vscode/out/aiIntegration/aiCodeAnalyzer.js",
+      "simplebeacon-vscode/out/aiIntegration/aiReportExporter.js",
+      "simplebeacon-vscode/out/analytics/advancedAnalytics.js",
+      "simplebeacon-vscode/out/codeMapProvider.js"
+    ]
+  }
+}

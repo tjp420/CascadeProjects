@@ -1,17 +1,20 @@
 /**
- * Decentralized license token engine for the $499 Executive PDF pipeline.
+ * Decentralized license token engine for SimpleBeacon's 4-tier pricing model.
  *
+ * Tiers: developer (free), startup ($49), growth ($149), enterprise (custom).
  * The server signs a short-lived JWT after Stripe payment confirmation.
- * The CLI validates it locally — no network call required — and compiles
- * the PDF entirely on the developer's machine.
+ * The CLI validates it locally — no network call required — and enforces
+ * scan quotas and feature limits based on the embedded tier claim.
  *
  * Guarantees:
  *   - Server never sees scan data
  *   - Token is single-use and time-bound
  *   - Validation is purely local (shared secret)
+ *   - Backward-compatible with legacy tokens (defaults to developer tier)
  */
 
 const crypto = require('crypto');
+const path = require('path');
 
 const ALG = 'HS256';
 const TYP = 'JWT';
@@ -51,8 +54,9 @@ function generateLicenseToken(claims, secret, ttlMinutes = 60) {
         iss: 'simplebeacon.ai',
         aud: 'simplebeacon-cli',
         sub: claims.email || 'unknown',
-        tier: claims.tier || 'executive',
-        features: claims.features || ['pdf-generation'],
+        tier: claims.tier || 'developer',
+        scanQuota: claims.scanQuota || 100,
+        features: claims.features || ['scan'],
         iat: now,
         exp: now + (ttlMinutes * 60),
         jti: crypto.randomBytes(16).toString('hex')

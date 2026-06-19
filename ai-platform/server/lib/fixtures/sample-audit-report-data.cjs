@@ -3,6 +3,11 @@
  * Kept in fixtures/ so production-leak and debug scanners skip example strings.
  */
 
+/**
+ * Build sample audit report model.
+ * @param {any} ENGINE_VERSION
+ * @returns {any}
+ */
 function buildSampleAuditReportModel(ENGINE_VERSION) {
     const generatedAt = '2026-01-15T19:00:00.000Z';
     const jsonSuffix = '-sample.json';

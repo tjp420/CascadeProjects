@@ -6,10 +6,21 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+/**
+ * Resolve store path.
+ * @param {any} platformRoot
+ * @returns {any}
+ */
 function resolveStorePath(platformRoot) {
     return path.join(platformRoot, '.simplebeacon', 'expert-reviews.jsonl');
 }
 
+/**
+ * Append expert review.
+ * @param {any} platformRoot
+ * @param {any} review
+ * @returns {any}
+ */
 async function appendExpertReview(platformRoot, review) {
     const storePath = resolveStorePath(platformRoot);
     await fs.promises.mkdir(path.dirname(storePath), { recursive: true });
@@ -22,6 +33,12 @@ async function appendExpertReview(platformRoot, review) {
     return entry;
 }
 
+/**
+ * Load expert reviews.
+ * @param {any} platformRoot
+ * @param {any} filter
+ * @returns {any}
+ */
 async function loadExpertReviews(platformRoot, filter = {}) {
     const storePath = resolveStorePath(platformRoot);
     if (!fs.existsSync(storePath)) return [];
@@ -43,6 +60,11 @@ async function loadExpertReviews(platformRoot, filter = {}) {
     });
 }
 
+/**
+ * Summarize expert consensus.
+ * @param {Array} reviews
+ * @returns {any}
+ */
 async function summarizeExpertConsensus(reviews) {
     if (!reviews.length) {
         return { count: 0, consensus: null, confidence: 0 };

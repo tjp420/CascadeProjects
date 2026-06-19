@@ -6,6 +6,7 @@ const logger = require('../../src/lib/app-logger.cjs');
 
 const path = require('path');
 const multer = require('multer');
+const constants = require('../config/constants.cjs');
 const {
     listModels,
     getActiveModelInfo,
@@ -25,10 +26,20 @@ const {
 } = require('../services/local-model-service.cjs');
 const { analyzeWithModel } = require('../services/model-inference-service.cjs');
 
+/**
+ * Should log runtime info.
+ * @returns {any}
+ */
 function shouldLogRuntimeInfo() {
     return process.env.LOG_RUNTIME_INFO === 'true' || process.env.RUNTIME_DEBUG === 'true';
 }
 
+/**
+ * Setup local models a p i.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function setupLocalModelsAPI(app, options = {}) {
     const baseDir = options.baseDir || path.join(__dirname, '..', '..');
 
@@ -50,7 +61,7 @@ function setupLocalModelsAPI(app, options = {}) {
 
     const upload = multer({
         storage,
-        limits: { fileSize: Number(process.env.MAX_GGUF_UPLOAD_BYTES || 8 * 1024 * 1024 * 1024) },
+        limits: { fileSize: Number(process.env.MAX_GGUF_UPLOAD_BYTES || 8 * constants.BYTES_PER_KB * constants.BYTES_PER_KB * constants.BYTES_PER_KB) },
         fileFilter: (_req, file, cb) => {
             const name = String(file.originalname || '').toLowerCase();
             if (name.endsWith('.gguf') || file.mimetype === 'application/octet-stream') {

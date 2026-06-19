@@ -1,0 +1,15 @@
+# Exclude test directory from npm publishes / production builds
+test/
+
+# Exclude lockfile (already handled by package-lock.json at root)
+package-lock.json
+
+# Exclude IDE configs
+jsconfig.json
+
+# Exclude local environment files
+.env
+.env.*
+
+# Exclude simplebeacon config/metadata
+.simplebeacon/

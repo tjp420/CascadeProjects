@@ -17,11 +17,17 @@ const fs = require('fs').promises;
 const crypto = require('crypto');
 const chokidar = require('chokidar');
 const simpleGit = require('simple-git');
+const constants = require('../config/constants.cjs');
 const router = express.Router();
 
 /** In-memory upload history (persisted per process; sufficient for dashboard wiring). */
 const uploadHistory = [];
 
+/**
+ * Record upload.
+ * @param {any} entry
+ * @returns {any}
+ */
 function recordUpload(entry) {
     uploadHistory.unshift(entry);
     if (uploadHistory.length > 50) uploadHistory.length = 50;
@@ -45,6 +51,10 @@ const uploadConfig = {
 };
 
 // Ensure temp directory exists
+/**
+ * Ensure temp dir.
+ * @returns {any}
+ */
 async function ensureTempDir() {
     try {
         await fs.access(uploadConfig.tempDir);
@@ -67,6 +77,13 @@ const storage = multer.diskStorage({
     }
 });
 
+/**
+ * File filter.
+ * @param {any} req
+ * @param {string} file
+ * @param {Function} cb
+ * @returns {any}
+ */
 const fileFilter = (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase().substring(1);
     if (uploadConfig.allowedTypes.includes(ext)) {
@@ -86,19 +103,34 @@ const upload = multer({
 });
 
 // Parse size string to bytes
+/**
+ * Parse size.
+ * @param {number} sizeStr
+ * @returns {any}
+ */
 function parseSize(sizeStr) {
-    const units = { B: 1, KB: 1024, MB: 1024 * 1024, GB: 1024 * 1024 * 1024 };
+    const units = { B: 1, KB: constants.BYTES_PER_KB, MB: constants.BYTES_PER_KB * constants.BYTES_PER_KB, GB: constants.BYTES_PER_KB * constants.BYTES_PER_KB * constants.BYTES_PER_KB };
     const match = sizeStr.match(/^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB)$/i);
     if (!match) throw new Error('Invalid size format');
     return parseFloat(match[1]) * units[match[2].toUpperCase()];
 }
 
 // Generate unique upload ID
+/**
+ * Generate upload id.
+ * @returns {any}
+ */
 function generateUploadId() {
     return crypto.randomUUID();
 }
 
 // Clean up temporary files
+/**
+ * Cleanup temp dir.
+ * @param {string} dirPath
+ * @param {any} delay
+ * @returns {any}
+ */
 async function cleanupTempDir(dirPath, delay = uploadConfig.cleanupInterval) {
     setTimeout(async () => {
         try {
@@ -478,6 +510,12 @@ router.post('/api/:provider', async (req, res) => {
 
 // Helper functions
 
+/**
+ * Process uploaded files.
+ * @param {Array} files
+ * @param {any} _user
+ * @returns {any}
+ */
 async function processUploadedFiles(files, _user) {
     // This would integrate with your existing GGUF analysis pipeline
     const analysis = {
@@ -511,6 +549,12 @@ async function processUploadedFiles(files, _user) {
     return analysis;
 }
 
+/**
+ * Get repository info.
+ * @param {string} tempDir
+ * @param {any} git
+ * @returns {any}
+ */
 async function getRepositoryInfo(tempDir, git) {
     try {
         const log = await git.log({ maxCount: 1 });
@@ -532,6 +576,13 @@ async function getRepositoryInfo(tempDir, git) {
     }
 }
 
+/**
+ * Analyze git repository.
+ * @param {string} tempDir
+ * @param {any} repoInfo
+ * @param {any} _user
+ * @returns {any}
+ */
 async function analyzeGitRepository(tempDir, repoInfo, _user) {
     // Scan directory for files
     const files = await scanDirectory(tempDir);
@@ -576,6 +627,12 @@ async function analyzeGitRepository(tempDir, repoInfo, _user) {
     return analysis;
 }
 
+/**
+ * Analyze file.
+ * @param {string} filePath
+ * @param {any} _user
+ * @returns {any}
+ */
 async function analyzeFile(filePath, _user) {
     try {
         const stats = await fs.stat(filePath);
@@ -602,11 +659,22 @@ async function analyzeFile(filePath, _user) {
     }
 }
 
+/**
+ * Should watch file.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function shouldWatchFile(filePath) {
     const ext = path.extname(filePath).toLowerCase();
     return uploadConfig.allowedTypes.includes(ext.substring(1));
 }
 
+/**
+ * Scan directory.
+ * @param {string} dirPath
+ * @param {Array} files
+ * @returns {any}
+ */
 async function scanDirectory(dirPath, files = []) {
     const items = await fs.readdir(dirPath, { withFileTypes: true });
     
@@ -623,6 +691,11 @@ async function scanDirectory(dirPath, files = []) {
     return files;
 }
 
+/**
+ * Get directory size.
+ * @param {string} dirPath
+ * @returns {any}
+ */
 async function getDirectorySize(dirPath) {
     let totalSize = 0;
     
@@ -646,6 +719,11 @@ async function getDirectorySize(dirPath) {
     return totalSize;
 }
 
+/**
+ * Detect language.
+ * @param {any} ext
+ * @returns {any}
+ */
 function detectLanguage(ext) {
     const languageMap = {
         '.js': 'JavaScript',
@@ -682,6 +760,13 @@ function detectLanguage(ext) {
 }
 
 // API Integration Handlers (placeholders for now)
+/**
+ * Handle git hub integration.
+ * @param {string} _repoUrl
+ * @param {string} _accessToken
+ * @param {any} _user
+ * @returns {any}
+ */
 async function handleGitHubIntegration(_repoUrl, _accessToken, _user) {
     // GitHub API integration implementation
     return {
@@ -692,6 +777,13 @@ async function handleGitHubIntegration(_repoUrl, _accessToken, _user) {
     };
 }
 
+/**
+ * Handle git lab integration.
+ * @param {string} _repoUrl
+ * @param {string} _accessToken
+ * @param {any} _user
+ * @returns {any}
+ */
 async function handleGitLabIntegration(_repoUrl, _accessToken, _user) {
     // GitLab API integration implementation
     return {
@@ -702,6 +794,13 @@ async function handleGitLabIntegration(_repoUrl, _accessToken, _user) {
     };
 }
 
+/**
+ * Handle bitbucket integration.
+ * @param {string} _repoUrl
+ * @param {string} _accessToken
+ * @param {any} _user
+ * @returns {any}
+ */
 async function handleBitbucketIntegration(_repoUrl, _accessToken, _user) {
     // Bitbucket API integration implementation
     return {

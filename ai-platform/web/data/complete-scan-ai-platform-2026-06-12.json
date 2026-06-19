@@ -1,0 +1,20 @@
+{
+  "type": "simplebeacon-complete-scan",
+  "generatedAt": "2026-06-12T00:00:00.000Z",
+  "projectRoot": "C:/Users/Trevor/CascadeProjects/ai-platform",
+  "totalFiles": 1200,
+  "totalIssues": 3,
+  "issues": [],
+  "phases": [
+    {
+      "id": "integrity",
+      "title": "Data Integrity",
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "mockData": {
+    "fileCount": 0,
+    "summary": "ai-platform scan stub"
+  }
+}

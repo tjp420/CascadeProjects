@@ -9,11 +9,17 @@ const path = require('path');
 const { buildSemanticHints } = require('./llama-cpp-hints.cjs');
 const { isDistinctCanonicalRoadmapPair } = require('./canonical-roadmap-files.cjs');
 
+const constants = require('../config/constants.cjs');
 const DEFAULT_FUZZY_THRESHOLD = 0.85;
 const MAX_FUZZY_PAIRS = 16;
 const MAX_PATTERN_GROUPS = 12;
-const MAX_CONTENT_BYTES = 120000;
+const MAX_CONTENT_BYTES = constants.TIMEOUT_2M;
 
+/**
+ * Normalize audit relative path.
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function normalizeAuditRelativePath(relativePath) {
     const rel = String(relativePath || '').replace(/\\/g, '/');
     const marker = 'ai-platform/';
@@ -22,9 +28,20 @@ function normalizeAuditRelativePath(relativePath) {
     return rel;
 }
 
+/**
+ * Is known generated artifact pair.
+ * @param {string} fileA
+ * @param {string} fileB
+ * @returns {any}
+ */
 function isKnownGeneratedArtifactPair(fileA, fileB) {
     const relA = normalizeAuditRelativePath(fileA);
     const relB = normalizeAuditRelativePath(fileB);
+/**
+ * Is generated simplebeacon json.
+ * @param {any} rel
+ * @returns {any}
+ */
     const isGeneratedSimplebeaconJson = (rel) =>
         rel.includes('.simplebeacon/') && rel.endsWith('.json');
     if (isGeneratedSimplebeaconJson(relA) && isGeneratedSimplebeaconJson(relB)) return true;
@@ -41,10 +58,22 @@ function isCiLogFragmentPath(relativePath) {
     return /^docs\/\d+-(?:stdout|stderr|stdout-stderr)(?:-\d+)?\.txt$/i.test(rel);
 }
 
+/**
+ * Is ci log fragment pair.
+ * @param {string} fileA
+ * @param {string} fileB
+ * @returns {any}
+ */
 function isCiLogFragmentPair(fileA, fileB) {
     return isCiLogFragmentPath(fileA) && isCiLogFragmentPath(fileB);
 }
 
+/**
+ * Has chunk loader for pattern.
+ * @param {Array} files
+ * @param {any} patternKey
+ * @returns {any}
+ */
 function hasChunkLoaderForPattern(files, patternKey) {
     const normalizedPattern = normalizeAuditRelativePath(patternKey);
     const loaderName = path.basename(normalizedPattern);
@@ -54,15 +83,26 @@ function hasChunkLoaderForPattern(files, patternKey) {
     });
 }
 
+/**
+ * Normalize for fuzzy.
+ * @param {any} content
+ * @returns {any}
+ */
 function normalizeForFuzzy(content) {
     return String(content || '')
         .replace(/\/\/.*$/gm, '')
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/\s+/g, ' ')
         .trim()
-        .slice(0, 8000);
+        .slice(0, constants.TIMEOUT_8S);
 }
 
+/**
+ * Token jaccard similarity.
+ * @param {any} a
+ * @param {any} b
+ * @returns {any}
+ */
 function tokenJaccardSimilarity(a, b) {
     if (a === b) return 1;
     if (!a.length || !b.length) return 0;
@@ -77,7 +117,18 @@ function tokenJaccardSimilarity(a, b) {
     return union ? intersection / union : 0;
 }
 
+/**
+ * Line hash jaccard similarity.
+ * @param {any} a
+ * @param {any} b
+ * @returns {any}
+ */
 function lineHashJaccardSimilarity(a, b) {
+/**
+ * Hash lines.
+ * @param {string} text
+ * @returns {any}
+ */
     const hashLines = (text) => new Set(
         String(text || '')
             .split(/\r?\n/)
@@ -96,12 +147,23 @@ function lineHashJaccardSimilarity(a, b) {
     return union ? intersection / union : 0;
 }
 
+/**
+ * Combined similarity.
+ * @param {any} a
+ * @param {any} b
+ * @returns {any}
+ */
 function combinedSimilarity(a, b) {
     const tokenScore = tokenJaccardSimilarity(a, b);
     const lineScore = lineHashJaccardSimilarity(a, b);
     return Math.max(tokenScore, lineScore);
 }
 
+/**
+ * Load file content.
+ * @param {string} file
+ * @returns {any}
+ */
 function loadFileContent(file) {
     try {
         if (file.size > MAX_CONTENT_BYTES) return null;
@@ -111,6 +173,12 @@ function loadFileContent(file) {
     }
 }
 
+/**
+ * Find fuzzy near duplicates.
+ * @param {Array} files
+ * @param {Object} options
+ * @returns {any}
+ */
 function findFuzzyNearDuplicates(files, options = {}) {
     const threshold = options.threshold ?? DEFAULT_FUZZY_THRESHOLD;
     const extensions = new Set(options.extensions || ['.js', '.json', '.txt', '.md', '.html', '.css']);
@@ -147,9 +215,9 @@ function findFuzzyNearDuplicates(files, options = {}) {
             pairs.push({
                 fileA: loaded[i].file.relativePath || loaded[i].file.name,
                 fileB: loaded[j].file.relativePath || loaded[j].file.name,
-                similarity: Math.round(similarity * 1000) / 1000,
-                tokenJaccard: Math.round(tokenScore * 1000) / 1000,
-                lineHashJaccard: Math.round(lineScore * 1000) / 1000,
+                similarity: Math.round(similarity * 1000) / constants.MS_PER_SECOND,
+                tokenJaccard: Math.round(tokenScore * 1000) / constants.MS_PER_SECOND,
+                lineHashJaccard: Math.round(lineScore * 1000) / constants.MS_PER_SECOND,
                 method: lineScore >= tokenScore ? 'line-hash-jaccard' : 'token-jaccard',
                 recommendation: 'Near-duplicate content — review before merge'
             });
@@ -161,6 +229,11 @@ function findFuzzyNearDuplicates(files, options = {}) {
         .slice(0, MAX_FUZZY_PAIRS);
 }
 
+/**
+ * Pattern key.
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function patternKey(relativePath) {
     const normalized = String(relativePath || '').replace(/\\/g, '/');
     const base = path.basename(normalized);
@@ -180,6 +253,11 @@ function patternKey(relativePath) {
     return null;
 }
 
+/**
+ * Find pattern consolidation candidates.
+ * @param {Array} files
+ * @returns {any}
+ */
 function findPatternConsolidationCandidates(files) {
     const groups = new Map();
     for (const file of files) {
@@ -219,6 +297,12 @@ function findPatternConsolidationCandidates(files) {
         .slice(0, MAX_PATTERN_GROUPS);
 }
 
+/**
+ * Build fuzzy merge candidates.
+ * @param {Array} fuzzyPairs
+ * @param {Array} formatBytes
+ * @returns {any}
+ */
 function buildFuzzyMergeCandidates(fuzzyPairs, formatBytes) {
     return fuzzyPairs.map((pair, index) => ({
         id: `fuzzy-near-dup-${index + 1}`,
@@ -243,6 +327,12 @@ function buildFuzzyMergeCandidates(fuzzyPairs, formatBytes) {
     }));
 }
 
+/**
+ * Build advanced analysis.
+ * @param {Array} files
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildAdvancedAnalysis(files, options = {}) {
     const threshold = options.threshold ?? DEFAULT_FUZZY_THRESHOLD;
     const fuzzyPairs = findFuzzyNearDuplicates(files, { ...options, threshold });

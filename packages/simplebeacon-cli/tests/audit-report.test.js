@@ -30,7 +30,7 @@ const sampleReport = {
             pattern: 'aws-access-key',
             description: 'possible aws-access-key',
             recommendedAction: 'Remove and rotate credential',
-            metadata: { snippet: 'const AWS_SECRET = "AKIAIOSFODNN7EXAMPLE";' }
+            metadata: { snippet: 'const AWS_SECRET = "YOUR_AWS_KEY_HERE";' }
         },
         {
             type: 'Production Leak',

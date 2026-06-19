@@ -1,3 +1,8 @@
+/**
+ * Create extended analyzers.
+ * @param {Array} deps
+ * @returns {any}
+ */
 export function createExtendedAnalyzers(deps) {
   const {
     clampScore,
@@ -19,6 +24,11 @@ export function createExtendedAnalyzers(deps) {
   const DEPENDENCE_POSITIVE_MARKERS = [/\bhuman[- ]in[- ]the[- ]loop\b/i, /\bhuman override\b/i, /\bmanual review\b/i, /\bfallback\b/i];
   const DEPENDENCE_NEGATIVE_MARKERS = [/\bfully automated\b/i, /\bwithout review\b/i, /\bno human\b/i, /\bautonomous deployment\b/i];
 
+/**
+ * Collect task sequence scores.
+ * @param {any} input
+ * @returns {any}
+ */
   function collectTaskSequenceScores(input = {}) {
     if (!Array.isArray(input.taskSequenceScores)) return [];
     return input.taskSequenceScores
@@ -30,6 +40,13 @@ export function createExtendedAnalyzers(deps) {
       .filter((row) => row.score > 0);
   }
 
+/**
+ * Run catastrophic forgetting analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runCatastrophicForgettingAnalyzer(definition, issueId, input = {}) {
     const scores = collectTaskSequenceScores(input);
     if (scores.length < 2) {
@@ -71,6 +88,13 @@ export function createExtendedAnalyzers(deps) {
     ], retentionRate < 80 ? [{ level: 'warn', message: 'Knowledge retention dropped below target across sequential tasks.', code: 'LOW_RETENTION' }] : [], ['Compare old-task scores across training checkpoints.', 'Track retention decay per task family.', 'Flag interference when new tasks reduce prior-task performance.'], `Evaluated ${scores.length} task score checkpoint(s) across ${byTask.size} task(s).`, 'taskSequenceScores');
   }
 
+/**
+ * Run prompt engineering difficulty analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runPromptEngineeringDifficultyAnalyzer(definition, issueId, input = {}) {
     const attempts = Array.isArray(input.promptAttempts) ? input.promptAttempts : [];
     if (!attempts.length) {
@@ -98,6 +122,13 @@ export function createExtendedAnalyzers(deps) {
     ], attemptsToSuccess >= 4 ? [{ level: 'warn', message: 'High attempts-to-success indicates prompt engineering friction.', code: 'HIGH_PROMPT_FRICTION' }] : [], ['Log attempts-to-success by prompt variant.', 'Compare novice and expert iteration counts.', 'Reduce prompt complexity with templates and examples.'], `Reviewed ${rows.length} prompt attempt record(s).`, 'promptAttempts');
   }
 
+/**
+ * Run cost barrier analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runCostBarrierAnalyzer(definition, issueId, input = {}) {
     const tiers = Array.isArray(input.pricingTiers) ? input.pricingTiers : [];
     const text = collectSocietalImpactText(input);
@@ -133,6 +164,13 @@ export function createExtendedAnalyzers(deps) {
     ], barrierIndex >= 50 ? [{ level: 'warn', message: 'Cost barrier index exceeds preferred affordability threshold.', code: 'HIGH_COST_BARRIER' }] : [], ['Publish transparent tier pricing.', 'Track cost per successful outcome by segment.', 'Offer subsidized tiers for high-friction segments.'], `Reviewed ${tiers.length} pricing tier(s).`, 'pricingTiers|responseText');
   }
 
+/**
+ * Run usage limit analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runUsageLimitAnalyzer(definition, issueId, input = {}) {
     const events = Array.isArray(input.limitHitEvents) ? input.limitHitEvents : [];
     const text = collectSocietalImpactText(input);
@@ -160,6 +198,13 @@ export function createExtendedAnalyzers(deps) {
     ], workflowDisruptionIndex >= 40 ? [{ level: 'warn', message: 'Quota or rate limits are disrupting workflows.', code: 'LIMIT_DISRUPTION' }] : [], ['Track rate-limit and quota hit frequency.', 'Measure workflow interruption severity.', 'Tune quotas for high-value batch workflows.'], `Reviewed ${events.length} limit-hit event(s).`, 'limitHitEvents|responseText');
   }
 
+/**
+ * Run platform lock in analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runPlatformLockInAnalyzer(definition, issueId, input = {}) {
     const shares = collectMarketShares(input);
     const text = collectSocietalImpactText(input);
@@ -186,6 +231,13 @@ export function createExtendedAnalyzers(deps) {
     ], dependencyRatio >= 50 ? [{ level: 'warn', message: 'Provider dependency ratio indicates platform lock-in risk.', code: 'PLATFORM_LOCKIN' }] : [], ['Document API portability mappings.', 'Reduce provider-specific dependencies.', 'Track migration complexity quarterly.'], `Analyzed ${shares.length} provider share(s) and ${lockInHits} lock-in marker(s).`, 'marketShares|responseText');
   }
 
+/**
+ * Run language limitation analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runLanguageLimitationAnalyzer(definition, issueId, input = {}) {
     const evaluations = Array.isArray(input.localeEvaluations) ? input.localeEvaluations : [];
     if (evaluations.length < 2) {
@@ -211,6 +263,13 @@ export function createExtendedAnalyzers(deps) {
     ], languageParityScore < 75 ? [{ level: 'warn', message: 'Locale quality parity gap exceeds target.', code: 'LOCALE_PARITY_GAP' }] : [], ['Run multilingual benchmark sets per locale.', 'Track parity gaps across locales.', 'Escalate localization failures before release.'], `Compared ${evaluations.length} locale evaluation(s).`, 'localeEvaluations');
   }
 
+/**
+ * Run domain knowledge analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runDomainKnowledgeAnalyzer(definition, issueId, input = {}) {
     const tasks = Array.isArray(input.domainTasks) ? input.domainTasks : [];
     if (!tasks.length) {
@@ -239,6 +298,13 @@ export function createExtendedAnalyzers(deps) {
     ], domainAccuracy < 70 ? [{ level: 'warn', message: 'Domain benchmark accuracy is below target.', code: 'LOW_DOMAIN_ACCURACY' }] : [], ['Maintain domain Q&A benchmarks with expert labels.', 'Validate terminology usage in outputs.', 'Track expert agreement on domain answers.'], `Evaluated ${tasks.length} domain task(s).`, 'domainTasks');
   }
 
+/**
+ * Run output consistency analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runOutputConsistencyAnalyzer(definition, issueId, input = {}) {
     const outputs = Array.isArray(input.structuredOutputs) ? input.structuredOutputs : [];
     if (!outputs.length) {
@@ -260,6 +326,13 @@ export function createExtendedAnalyzers(deps) {
     ], schemaComplianceRate < 90 ? [{ level: 'warn', message: 'Structured output schema compliance is below target.', code: 'SCHEMA_DRIFT' }] : [], ['Validate outputs against expected schema.', 'Track parser success across runs.', 'Flag format drift in release gates.'], `Validated ${outputs.length} structured output sample(s).`, 'structuredOutputs');
   }
 
+/**
+ * Run session management analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runSessionManagementAnalyzer(definition, issueId, input = {}) {
     const transitions = Array.isArray(input.sessionTransitions) ? input.sessionTransitions : [];
     if (transitions.length < 2) {
@@ -284,6 +357,13 @@ export function createExtendedAnalyzers(deps) {
     ], stateIntegrityRate < 80 ? [{ level: 'warn', message: 'Session state integrity falls below target.', code: 'SESSION_INTEGRITY_GAP' }] : [], ['Log session state transitions with integrity checks.', 'Measure recovery after interruptions.', 'Add handoff validation between session steps.'], `Reviewed ${transitions.length} session transition(s).`, 'sessionTransitions');
   }
 
+/**
+ * Run privacy concern analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runPrivacyConcernAnalyzer(definition, issueId, input = {}) {
     const text = collectSocietalImpactText(input);
     const policyHits = text.trim() ? PRIVACY_CONCERN_MARKERS.filter((pattern) => pattern.test(text)).length : 0;
@@ -314,6 +394,13 @@ export function createExtendedAnalyzers(deps) {
     ], policyClarityScore < 60 ? [{ level: 'warn', message: 'Privacy policy clarity signals are incomplete.', code: 'LOW_POLICY_CLARITY' }] : [], ['Publish clear privacy policy coverage.', 'Align runtime behavior with policy statements.', 'Track trust impact from privacy incidents.'], `Scanned ${text.length} privacy narrative character(s).`, 'responseText|privacyPolicy');
   }
 
+/**
+ * Run content filtering analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runContentFilteringAnalyzer(definition, issueId, input = {}) {
     const decisions = Array.isArray(input.moderationDecisions) ? input.moderationDecisions : [];
     if (decisions.length < 2) {
@@ -349,6 +436,13 @@ export function createExtendedAnalyzers(deps) {
     ], ['Track moderation decisions by policy category.', 'Measure harmful-content leakage.', 'Review wrongful blocks via appeals.'], `Reviewed ${decisions.length} moderation decision(s).`, 'moderationDecisions');
   }
 
+/**
+ * Run transparency analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runTransparencyAnalyzer(definition, issueId, input = {}) {
     const text = collectSocietalImpactText(input);
     const markerHits = text.trim() ? TRANSPARENCY_MARKERS.filter((pattern) => pattern.test(text)).length : 0;
@@ -379,6 +473,13 @@ export function createExtendedAnalyzers(deps) {
     ], transparencyScore < 60 ? [{ level: 'info', message: 'Transparency disclosures are partial; expand rationale coverage.', code: 'LOW_TRANSPARENCY' }] : [], ['Include decision rationale in outputs.', 'Disclose known system limitations.', 'Publish transparency docs for high-risk flows.'], `Scanned ${text.length} transparency narrative character(s).`, 'responseText|rationale');
   }
 
+/**
+ * Run dependence risk analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runDependenceRiskAnalyzer(definition, issueId, input = {}) {
     const text = collectSocietalImpactText(input);
     const positiveHits = text.trim() ? DEPENDENCE_POSITIVE_MARKERS.filter((pattern) => pattern.test(text)).length : 0;
@@ -410,6 +511,13 @@ export function createExtendedAnalyzers(deps) {
     ], dependenceRiskScore >= 45 ? [{ level: 'warn', message: 'Overreliance markers exceed preferred dependence threshold.', code: 'HIGH_DEPENDENCE' }] : [], ['Measure AI dependency ratio in critical workflows.', 'Maintain manual fallback paths.', 'Run resilience drills without AI availability.'], `Scanned ${text.length} dependence narrative character(s).`, 'responseText|usageTraces');
   }
 
+/**
+ * Run api complexity analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runApiComplexityAnalyzer(definition, issueId, input = {}) {
     const codeText = String(input.codeText || '').trim();
     const text = collectSocietalImpactText(input);
@@ -444,6 +552,13 @@ export function createExtendedAnalyzers(deps) {
     ], complexityPenalty >= 40 ? [{ level: 'info', message: 'API surface complexity is elevated; simplify integration paths.', code: 'HIGH_API_COMPLEXITY' }] : [], ['Reduce API surface complexity.', 'Publish complete SDK and OpenAPI docs.', 'Track integration failure rates.'], `Reviewed ${codeText.length || text.length} integration signal character(s).`, 'codeText|responseText');
   }
 
+/**
+ * Run compatibility analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runCompatibilityAnalyzer(definition, issueId, input = {}) {
     const matrix = Array.isArray(input.compatibilityMatrix) ? input.compatibilityMatrix : [];
     const text = collectSocietalImpactText(input);
@@ -475,6 +590,13 @@ export function createExtendedAnalyzers(deps) {
     ], matrixCoverage < 80 ? [{ level: 'warn', message: 'Compatibility matrix coverage is below target.', code: 'LOW_COMPATIBILITY_COVERAGE' }] : [], ['Maintain supported platform matrix.', 'Track compatibility failures by version.', 'Publish upgrade migration guides.'], `Reviewed ${matrix.length} compatibility row(s).`, 'compatibilityMatrix|responseText');
   }
 
+/**
+ * Run maintenance overhead analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runMaintenanceOverheadAnalyzer(definition, issueId, input = {}) {
     const events = Array.isArray(input.maintenanceEvents) ? input.maintenanceEvents : [];
     const text = collectSocietalImpactText(input);
@@ -499,6 +621,13 @@ export function createExtendedAnalyzers(deps) {
     ], breakingCount > 0 ? [{ level: 'warn', message: `${breakingCount} breaking maintenance event(s) detected.`, code: 'BREAKING_CHANGE' }] : [], ['Track dependency and API churn.', 'Measure maintenance hours per release.', 'Reduce breaking schema changes.'], `Reviewed ${events.length} maintenance event(s).`, 'maintenanceEvents|responseText');
   }
 
+/**
+ * Run customization limit analyzer.
+ * @param {any} definition
+ * @param {string} issueId
+ * @param {any} input
+ * @returns {any}
+ */
   function runCustomizationLimitAnalyzer(definition, issueId, input = {}) {
     const options = Array.isArray(input.customizationOptions) ? input.customizationOptions : [];
     const text = collectSocietalImpactText(input);

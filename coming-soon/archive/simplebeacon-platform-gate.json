@@ -1,0 +1,119 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "version": "1.3.0",
+  "generatedAt": "2026-06-15T02:55:54.200Z",
+  "generatedBy": "SimpleBeacon Filesystem Scanner",
+  "scanProfileLabel": "Complete Scan",
+  "projectRoot": "simplebeacon-platform",
+  "projectPath": "simplebeacon-platform",
+  "scanTargetRoot": "simplebeacon-platform",
+  "platformRoot": "filesystem-sandbox",
+  "filesAnalyzed": 467,
+  "totalFiles": 20885,
+  "qualityScore": 100,
+  "schemaCompliance": 100,
+  "consistencyScore": 100,
+  "duplicateGroups": 0,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "schemaChecked": 467,
+  "schemaPassed": 467,
+  "issues": [],
+  "issueCount": 0,
+  "simplebeaconIssues": 0,
+  "detectedIssues": [],
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "gate": {
+    "pass": true,
+    "blockingCount": 0,
+    "warningCount": 0,
+    "blockingFindings": []
+  },
+  "gateReport": {
+    "pass": true,
+    "blockingCount": 0,
+    "summary": "0 blocking security issue(s) detected. Gate passes cleanly for security handoff."
+  },
+  "summary": {
+    "gatePass": true,
+    "qualityScore": 100,
+    "repositoryFiles": 20885,
+    "simplebeaconIssues": 0,
+    "totalFindings": 0
+  },
+  "aiContext": {
+    "schemaVersion": "2.1",
+    "projectContext": {
+      "dominantLanguage": "javascript",
+      "totalFiles": 20885,
+      "totalLines": 0,
+      "fileTypes": {
+        "js": 136,
+        "cjs": 180,
+        "json": 68,
+        "md": 28,
+        "html": 4,
+        "css": 6,
+        "mjs": 2,
+        "yml": 3,
+        "yaml": 1,
+        "txt": 6,
+        "sql": 4,
+        "wasm": 4,
+        "bat": 8,
+        "ps1": 1,
+        "sh": 1,
+        "svg": 1,
+        "log": 1
+      },
+      "buildTool": "npm/node",
+      "testFramework": "jest",
+      "scanEnvironment": "filesystem-sandbox"
+    },
+    "suggestedFixes": [],
+    "filesRequiringChanges": {},
+    "moduleDependencies": [
+      { "id": "security", "dependsOn": null, "reason": "No issues found" }
+    ],
+    "completionCriteria": [
+      { "phase": "security", "criteria": ["Gate passes with 0 blocking findings", "No hardcoded credentials", "No secrets in source"] }
+    ],
+    "confidenceThreshold": 0.75,
+    "autoFixable": [],
+    "manualReviewRequired": []
+  },
+  "checkEuAi": true,
+  "fixPreview": {
+    "_note": "Gate passes cleanly — no fixes required."
+  },
+  "hygieneSummary": {
+    "roadmapAuditFiles": 467,
+    "gateRepositoryFilesTotal": 20885,
+    "sprintCompletionRate": 100,
+    "coverageEvidenceSource": "none",
+    "credentialScanned": 631,
+    "contentFilesScanned": 631,
+    "gateMetadataOnlyFiles": 20254,
+    "fictionJsonFilesScanned": 93,
+    "fictionSampleFilesScanned": 105,
+    "gateRuleBundleProfile": "eu-ai-act",
+    "gatePass": true,
+    "blockingCount": 0,
+    "roadmapHealthStatus": "product-advisory",
+    "attestationNote": "Filesystem roadmap + LLM advisory — gate JSON is source of truth for vendor handoff."
+  },
+  "exportNotes": [
+    "securityHandoffEligible is TRUE for this gate report — gate passes with 0 blocking findings.",
+    "Absolute scan paths redacted to project label in operator exports.",
+    "codeAnalysis.structure.totalFiles (467) is roadmap audit scope — gate repository inventory is 20,885 paths.",
+    "CRED/LEAK rules scanned 631 production-path file(s) — 20,254 metadata-only path(s) in gate inventory of 20,885.",
+    "Gate rule bundle profile: eu-ai-act — report paired with gate JSON for handoff evidence.",
+    "Sprint completion % is filesystem-derived — not vendor handoff clearance (gate JSON is)."
+  ]
+}

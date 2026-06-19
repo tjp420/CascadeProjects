@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SimpleBeacon Dashboard 2.0 — Preview</title>
+<style>
+:root{
+  --pass:#10B981;--fail:#EF4444;--warn:#F59E0B;--info:#3B82F6;
+  --bg:#0f172a;--fg:#f1f5f9;--panel:#1e293b;--border:#334155;
+  --muted:#94a3b8;--font:ui-sans-serif,system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--fg);margin:0;padding:0;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:24px 20px}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.header h1{font-size:1.5rem;font-weight:800}
+.badge{font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em}
+.badge.pass{background:rgba(16,185,129,.15);color:var(--pass);border:1px solid rgba(16,185,129,.3)}
+.badge.fail{background:rgba(239,68,68,.15);color:var(--fail);border:1px solid rgba(239,68,68,.3)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.metric-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px}
+.metric-card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.metric-card .value{font-size:2rem;font-weight:800}
+.metric-card .sub{font-size:13px;color:var(--muted);margin-top:4px}
+.score-ring{display:flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;border:6px solid var(--pass);font-size:1.4rem;font-weight:800;color:var(--pass);background:rgba(16,185,129,.08)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.card h3{font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.sev-bar{display:flex;gap:8px;margin-bottom:12px}
+.sev-pill{font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px}
+.sev-pill.critical{background:rgba(239,68,68,.15);color:#ef4444}
+.sev-pill.high{background:rgba(249,115,22,.15);color:#f97316}
+.sev-pill.medium{background:rgba(245,158,11,.15);color:#f59e0b}
+.sev-pill.low{background:rgba(59,130,246,.15);color:#3b82f6}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+td{padding:10px 12px;border-bottom:1px solid rgba(51,65,85,.4)}
+tr:hover td{background:rgba(148,163,184,.05)}
+.file{font-family:monospace;font-size:12px;color:#60a5fa}
+.type-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:rgba(59,130,246,.12);color:#60a5fa}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.export-btn{background:var(--panel);color:var(--fg);border:1px solid var(--border);padding:6px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.export-btn:hover{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4)}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>SimpleBeacon Dashboard 2.0</h1>
+    <span class="badge pass">PASSED</span>
+  </div>
+
+  <div class="metrics">
+    <div class="metric-card">
+      <div class="label">Quality Score</div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="score-ring">100</div>
+        <div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--pass)">Excellent</div>
+          <div class="sub">Gate: PASS</div>
+        </div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Files Analyzed</div>
+      <div class="value">1,294</div>
+      <div class="sub">252 folders scanned</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Total Findings</div>
+      <div class="value" style="color:var(--warn)">22</div>
+      <div class="sub">0 critical / 0 high / 18 medium / 4 low</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Project Size</div>
+      <div class="value">45.0MB</div>
+      <div class="sub">SimpleBeacon Report v2</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Findings by Severity</h3>
+    <div class="sev-bar">
+      <span class="sev-pill critical">Critical: 0</span>
+      <span class="sev-pill high">High: 0</span>
+      <span class="sev-pill medium">Medium: 18</span>
+      <span class="sev-pill low">Low: 4</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="display:flex;justify-content:space-between;align-items:center">Detected Issues <button id="exportBtn" class="export-btn" onclick="exportData()">Export JSON</button></h3>
+    <table>
+      <thead><tr><th>Type</th><th>Severity</th><th>File</th><th>Count</th></tr></thead>
+      <tbody>
+        <tr><td><span class="type-badge">missing-env-key</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">.env</td><td>2</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">landing.html</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">lib/time-tokens.cjs</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">test-audit-report.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-ai_agent-1780863316487.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-board-ai_agent-full.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-board-ai_agent-v2.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-board-ai_agent.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-export-1780859087255.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">trello-roadmap-export.js</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">vscode-extension-roadmap.json</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill medium">medium</span></td><td class="file">zip-for-upload.js</td><td>1</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill low">low</span></td><td class="file">archive/...</td><td>2</td></tr>
+        <tr><td><span class="type-badge">unused-file</span></td><td><span class="sev-pill low">low</span></td><td class="file">test/...</td><td>2</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Scan Summary</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;font-size:13px;color:var(--muted)">
+      <div><strong style="color:var(--fg)">Scan ID:</strong> sb_scan_dv8vt1j6u</div>
+      <div><strong style="color:var(--fg)">Timestamp:</strong> 2026-06-18T01:57:08.113Z</div>
+      <div><strong style="color:var(--fg)">Tier:</strong> developer</div>
+      <div><strong style="color:var(--fg)">Scans Remaining:</strong> 70</div>
+      <div><strong style="color:var(--fg)">Project Root:</strong> C:\Users\Trevor\CascadeProjects\coming-soon</div>
+      <div><strong style="color:var(--fg)">Estimated Cost Saved:</strong> $110,000</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">
+    Preview generated from simplebeacon-report.json | Dashboard 2.0 Preview
+  </div>
+</div>
+<script>
+function exportData() {
+  const data = [
+    {type:"missing-env-key",severity:"medium",file:".env",count:2},
+    {type:"unused-file",severity:"medium",file:"landing.html",count:1},
+    {type:"unused-file",severity:"medium",file:"lib/time-tokens.cjs",count:1},
+    {type:"unused-file",severity:"medium",file:"test-audit-report.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-ai_agent-1780863316487.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-board-ai_agent-full.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-board-ai_agent-v2.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-board-ai_agent.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-export-1780859087255.json",count:1},
+    {type:"unused-file",severity:"medium",file:"trello-roadmap-export.js",count:1},
+    {type:"unused-file",severity:"medium",file:"vscode-extension-roadmap.json",count:1},
+    {type:"unused-file",severity:"medium",file:"zip-for-upload.js",count:1},
+    {type:"unused-file",severity:"low",file:"archive/...",count:2},
+    {type:"unused-file",severity:"low",file:"test/...",count:2}
+  ];
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'simplebeacon-findings.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>

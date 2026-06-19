@@ -3,17 +3,21 @@
  */
 const { Pool } = require('pg');
 
+const constants = require('../config/constants.cjs');
+/**
+ * Database adapter.
+ */
 class DatabaseAdapter {
   constructor(config = {}) {
     this.pool = new Pool({
       host: config.host || process.env.DB_HOST || 'localhost',
-      port: config.port || process.env.DB_PORT || 5432,
+      port: config.port || process.env.DB_PORT || constants.POSTGRES_PORT,
       database: config.database || process.env.DB_NAME || 'simplebeacon',
       user: config.user || process.env.DB_USER || 'simplebeacon_user',
       password: config.password || process.env.DB_PASSWORD || '',
       max: config.max || 20,
-      idleTimeoutMillis: config.idleTimeoutMillis || 30000,
-      connectionTimeoutMillis: config.connectionTimeoutMillis || 2000
+      idleTimeoutMillis: config.idleTimeoutMillis || constants.TIMEOUT_30S,
+      connectionTimeoutMillis: config.connectionTimeoutMillis || constants.MAX_RATE_LIMIT
     });
   }
 

@@ -1,0 +1,42 @@
+{
+  "id": "inner-html-xss",
+  "status": "done",
+  "error": null,
+  "metric": "2 findings in 2 files",
+  "findingsCount": 2,
+  "fileCount": 2,
+  "severity": "medium",
+  "findings": [
+    {
+      "category": "inner-html-xss",
+      "type": "inner-html-xss",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/src/codeMapProvider.ts",
+      "line": 522,
+      "description": "innerHTML assignment with non-literal value — potential XSS in simplebeacon-vscode/src/codeMapProvider.ts",
+      "match": ".innerHTML=html",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "inner-html-xss",
+      "type": "inner-html-xss",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/codeMapProvider.js",
+      "line": 501,
+      "description": "innerHTML assignment with non-literal value — potential XSS in simplebeacon-vscode/out/codeMapProvider.js",
+      "match": ".innerHTML=html",
+      "recommendedAction": "Review and remediate before production deploy"
+    }
+  ],
+  "category": {
+    "category": "inner-html-xss",
+    "label": "inner-html-xss",
+    "count": 2,
+    "severity": "medium",
+    "fileCount": 2,
+    "topFiles": [
+      "simplebeacon-vscode/out/codeMapProvider.js",
+      "simplebeacon-vscode/src/codeMapProvider.ts"
+    ]
+  }
+}

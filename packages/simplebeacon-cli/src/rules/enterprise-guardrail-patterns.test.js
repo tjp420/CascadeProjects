@@ -4,6 +4,7 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
 const {
     scanHighMaxTokens,
     scanUnboundedLoops,
@@ -120,7 +121,7 @@ describe('SB-ENT-002 — Token budget bleed (original)', () => {
     });
 
     it('ignores call with max_completion_tokens', () => {
-        const content = `const res = await openai.chat.completions.create({ model: 'gpt-4', messages: [], max_completion_tokens: 1000 });`;
+        const content = `const res = await openai.chat.completions.create({ model: 'gpt-4', messages: [], max_completion_tokens: constants.MS_PER_SECOND });`;
         const findings = scanTokenBudgetLines('test.js', content);
         assert.strictEqual(findings.length, 0);
     });

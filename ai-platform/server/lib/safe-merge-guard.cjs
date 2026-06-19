@@ -6,18 +6,41 @@ const fs = require('fs');
 const path = require('path');
 const { loadPreview, CONFIRMATION_PHRASE, resolveProjectFile } = require('./merge-preview.cjs');
 
+const constants = require('../config/constants.cjs');
+/**
+ * Merge audit path.
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function mergeAuditPath(projectRoot) {
     return path.join(path.resolve(projectRoot), '.simplebeacon', 'merge-audit.jsonl');
 }
 
+/**
+ * Backup dir.
+ * @param {any} projectRoot
+ * @param {string} previewId
+ * @returns {any}
+ */
 function backupDir(projectRoot, previewId) {
     return path.join(path.resolve(projectRoot), '.simplebeacon', 'merge-backups', previewId);
 }
 
+/**
+ * Quarantine dir.
+ * @param {any} projectRoot
+ * @param {string} previewId
+ * @returns {any}
+ */
 function quarantineDir(projectRoot, previewId) {
     return path.join(path.resolve(projectRoot), '.simplebeacon', 'merge-quarantine', previewId);
 }
 
+/**
+ * Assert confirmation.
+ * @param {Object} options
+ * @returns {any}
+ */
 function assertConfirmation(options = {}) {
     if (options.confirmed !== true) {
         throw new Error('Confirmation required — set confirmed: true after reviewing preview');
@@ -27,12 +50,24 @@ function assertConfirmation(options = {}) {
     }
 }
 
+/**
+ * Append merge audit.
+ * @param {any} projectRoot
+ * @param {any} entry
+ * @returns {any}
+ */
 async function appendMergeAudit(projectRoot, entry) {
     const filePath = mergeAuditPath(projectRoot);
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
     await fs.promises.appendFile(filePath, `${JSON.stringify(entry)}\n`, 'utf8');
 }
 
+/**
+ * Create backup.
+ * @param {string} absPath
+ * @param {any} backupRoot
+ * @returns {any}
+ */
 async function createBackup(absPath, backupRoot) {
     await fs.promises.mkdir(backupRoot, { recursive: true });
     const baseName = path.basename(absPath);
@@ -41,6 +76,12 @@ async function createBackup(absPath, backupRoot) {
     return backupPath;
 }
 
+/**
+ * Quarantine file.
+ * @param {string} absPath
+ * @param {any} quarantineRoot
+ * @returns {any}
+ */
 async function quarantineFile(absPath, quarantineRoot) {
     await fs.promises.mkdir(quarantineRoot, { recursive: true });
     const target = path.join(quarantineRoot, path.basename(absPath));
@@ -48,6 +89,11 @@ async function quarantineFile(absPath, quarantineRoot) {
     return target;
 }
 
+/**
+ * Execute safe merge.
+ * @param {Object} options
+ * @returns {any}
+ */
 async function executeSafeMerge(options = {}) {
     const projectRoot = path.resolve(options.projectRoot);
     const previewId = options.previewId;
@@ -73,7 +119,7 @@ async function executeSafeMerge(options = {}) {
     const errors = [];
     const backupRoot = backupDir(projectRoot, previewId);
     const quarantineRoot = quarantineDir(projectRoot, previewId);
-    const deleteAfter = new Date(Date.now() + (preview.gracePeriodHours || 24) * 60 * 60 * 1000).toISOString();
+    const deleteAfter = new Date(Date.now() + (preview.gracePeriodHours || 24) * 60 * constants.ONE_MINUTE_MS).toISOString();
 
     for (const relativePath of preview.removeFiles || []) {
         try {
@@ -115,6 +161,12 @@ async function executeSafeMerge(options = {}) {
     return result;
 }
 
+/**
+ * Rollback merge.
+ * @param {any} projectRoot
+ * @param {string} previewId
+ * @returns {any}
+ */
 async function rollbackMerge(projectRoot, previewId) {
     const auditPath = mergeAuditPath(projectRoot);
     if (!fs.existsSync(auditPath)) {

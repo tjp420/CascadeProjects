@@ -20,10 +20,19 @@ const STORE_PATH = process.env.SIMPLEBEACON_USER_AI_KEYS_STORE
 const PROVIDERS = ['openai', 'anthropic'];
 const _STRING_FIELDS = [...PROVIDERS, 'ollamaBaseUrl', 'ollamaModel'];
 
+/**
+ * Normalize email.
+ * @param {string} email
+ * @returns {any}
+ */
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
+/**
+ * Encryption key.
+ * @returns {any}
+ */
 function encryptionKey() {
   const secret = process.env.SIMPLEBEACON_KEY_ENCRYPTION_SECRET
     || process.env.JWT_SECRET
@@ -31,6 +40,11 @@ function encryptionKey() {
   return crypto.createHash('sha256').update(String(secret)).digest();
 }
 
+/**
+ * Encrypt secret.
+ * @param {string} plaintext
+ * @returns {any}
+ */
 function encryptSecret(plaintext) {
   const text = String(plaintext || '').trim();
   if (!text) return null;
@@ -45,6 +59,11 @@ function encryptSecret(plaintext) {
   };
 }
 
+/**
+ * Decrypt secret.
+ * @param {any} payload
+ * @returns {any}
+ */
 function decryptSecret(payload) {
   if (!payload?.data || !payload?.iv || !payload?.tag) return '';
   try {
@@ -64,6 +83,11 @@ function decryptSecret(payload) {
   }
 }
 
+/**
+ * Mask secret.
+ * @param {any} value
+ * @returns {any}
+ */
 function maskSecret(value) {
   const text = String(value || '').trim();
   if (!text) return null;
@@ -71,6 +95,10 @@ function maskSecret(value) {
   return `${text.slice(0, 4)}…${text.slice(-4)}`;
 }
 
+/**
+ * Read store.
+ * @returns {any}
+ */
 async function readStore() {
   try {
     const raw = await fs.promises.readFile(STORE_PATH, 'utf8');
@@ -81,11 +109,20 @@ async function readStore() {
   }
 }
 
+/**
+ * Write store.
+ * @param {any} store
+ * @returns {any}
+ */
 async function writeStore(store) {
   await fs.promises.mkdir(path.dirname(STORE_PATH), { recursive: true });
   await fs.promises.writeFile(STORE_PATH, `${JSON.stringify(store, null, 2)}\n`, 'utf8');
 }
 
+/**
+ * Empty record.
+ * @returns {any}
+ */
 function emptyRecord() {
   return {
     openai: null,
@@ -96,6 +133,11 @@ function emptyRecord() {
   };
 }
 
+/**
+ * Get user ai keys record.
+ * @param {string} email
+ * @returns {any}
+ */
 async function getUserAiKeysRecord(email) {
   const normalized = normalizeEmail(email);
   if (!normalized) return emptyRecord();
@@ -103,6 +145,11 @@ async function getUserAiKeysRecord(email) {
   return store.users[normalized] || emptyRecord();
 }
 
+/**
+ * Get user ai credentials.
+ * @param {string} email
+ * @returns {any}
+ */
 async function getUserAiCredentials(email) {
   const record = await getUserAiKeysRecord(email);
   const credentials = {};
@@ -119,6 +166,11 @@ async function getUserAiCredentials(email) {
   return credentials;
 }
 
+/**
+ * Get user ai keys public.
+ * @param {string} email
+ * @returns {any}
+ */
 async function getUserAiKeysPublic(email) {
   const record = await getUserAiKeysRecord(email);
   const providers = {};
@@ -138,6 +190,12 @@ async function getUserAiKeysPublic(email) {
   };
 }
 
+/**
+ * Save user ai keys.
+ * @param {string} email
+ * @param {any} payload
+ * @returns {any}
+ */
 async function saveUserAiKeys(email, payload = {}) {
   const normalized = normalizeEmail(email);
   if (!normalized) {
@@ -149,7 +207,7 @@ async function saveUserAiKeys(email, payload = {}) {
   const next = { ...existing };
 
   for (const provider of PROVIDERS) {
-    if (!Object.prototype.hasOwnProperty.call(payload, provider)) continue;
+    if (!({}).hasOwnProperty.call(payload, provider)) continue;
     const raw = payload[provider];
     if (raw === null || raw === '') {
       next[provider] = null;
@@ -160,11 +218,11 @@ async function saveUserAiKeys(email, payload = {}) {
     next[provider] = encryptSecret(trimmed);
   }
 
-  if (Object.prototype.hasOwnProperty.call(payload, 'ollamaBaseUrl')) {
+  if (({}).hasOwnProperty.call(payload, 'ollamaBaseUrl')) {
     next.ollamaBaseUrl = String(payload.ollamaBaseUrl || '').trim();
   }
 
-  if (Object.prototype.hasOwnProperty.call(payload, 'ollamaModel')) {
+  if (({}).hasOwnProperty.call(payload, 'ollamaModel')) {
     next.ollamaModel = String(payload.ollamaModel || '').trim();
   }
 
@@ -174,6 +232,11 @@ async function saveUserAiKeys(email, payload = {}) {
   return getUserAiKeysPublic(normalized);
 }
 
+/**
+ * Clear user ai keys.
+ * @param {string} email
+ * @returns {any}
+ */
 async function clearUserAiKeys(email) {
   const normalized = normalizeEmail(email);
   if (!normalized) return getUserAiKeysPublic('');

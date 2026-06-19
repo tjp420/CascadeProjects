@@ -1,6 +1,7 @@
+/* eslint-disable no-constant-binary-expression */
 /**
  * Core JavaScript Tests
- * 
+ *
  * Tests that work without any external dependencies
  */
 
@@ -309,7 +310,7 @@ describe('Core JavaScript Tests', () => {
       const promise = Promise.reject(new Error('failure'));
       try {
         await promise;
-        fail('Should have thrown');
+        throw new Error('Should have thrown');
       } catch (error) {
         expect(error.message).toBe('failure');
       }

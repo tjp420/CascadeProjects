@@ -1,15 +1,13 @@
 {
   "type": "mock-data-analysis-report",
   "analysisOverview": {
-    "issuesDetected": 12,
-    "totalFiles": 862
+    "issuesDetected": 0,
+    "totalFiles": 0
   },
   "mockDataCategories": [
-    {}
+    { "category": "sample-data", "fileCount": 0, "description": "Placeholder category" }
   ],
-  "detectedIssues": [
-    {}
-  ],
+  "detectedIssues": [],
   "qualityMetrics": {},
   "performanceMetrics": {},
   "privacyAndSecurity": {}

@@ -1,5 +1,6 @@
 /**
  * Deterministic fix playbooks for audit report deliverables.
+ * simplebeacon:production-leak-intent — References -sample.json as a naming convention in remediation guidance text.
  */
 
 const GUIDE_PLAYBOOKS = {

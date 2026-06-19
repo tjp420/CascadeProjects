@@ -10,14 +10,24 @@ const express = require('express');
 const { sendClientError, ERROR_CODES } = require('./client-error.cjs');
 const { loadSentLog, writeSentLog } = require('./outreach-mail.cjs');
 
+const constants = require('../config/constants.cjs');
 const WEBHOOK_PATH = '/api/simplebeacon/outreach/webhooks/resend';
 const SVIX_TOLERANCE_SEC = 300;
 
+/**
+ * Events log path.
+ * @param {Object} options
+ * @returns {any}
+ */
 function eventsLogPath(options) {
   const dataDir = options.dataDir || path.join(__dirname, '..', '..', 'data');
   return path.join(dataDir, 'outreach-events.jsonl');
 }
 
+/**
+ * Empty engagement.
+ * @returns {any}
+ */
 function emptyEngagement() {
   return {
     sentAt: null,
@@ -31,10 +41,20 @@ function emptyEngagement() {
   };
 }
 
+/**
+ * Normalize engagement.
+ * @param {any} row
+ * @returns {any}
+ */
 function normalizeEngagement(row) {
   return { ...emptyEngagement(), ...(row.engagement || {}) };
 }
 
+/**
+ * Decode svix secret.
+ * @param {any} secret
+ * @returns {any}
+ */
 function decodeSvixSecret(secret) {
   const raw = String(secret || '').trim();
   if (!raw) return null;
@@ -46,6 +66,12 @@ function decodeSvixSecret(secret) {
   }
 }
 
+/**
+ * Safe equal.
+ * @param {any} a
+ * @param {any} b
+ * @returns {any}
+ */
 function safeEqual(a, b) {
   const left = Buffer.from(String(a));
   const right = Buffer.from(String(b));
@@ -53,12 +79,25 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(left, right);
 }
 
+/**
+ * Header value.
+ * @param {Array} headers
+ * @param {string} name
+ * @returns {any}
+ */
 function headerValue(headers, name) {
   const matchedHeader = headers[name] || headers[name.toLowerCase()];
   if (Array.isArray(matchedHeader)) return matchedHeader[0];
   return matchedHeader;
 }
 
+/**
+ * Verify svix webhook.
+ * @param {any} rawBody
+ * @param {Array} headers
+ * @param {any} secret
+ * @returns {any}
+ */
 function verifySvixWebhook(rawBody, headers, secret) {
   const msgId = headerValue(headers, 'svix-id');
   const msgTimestamp = headerValue(headers, 'svix-timestamp');
@@ -69,7 +108,7 @@ function verifySvixWebhook(rawBody, headers, secret) {
 
   const ts = Number(msgTimestamp);
   if (!Number.isFinite(ts)) return null;
-  const age = Math.abs(Math.floor(Date.now() / 1000) - ts);
+  const age = Math.abs(Math.floor(Math.floor(Date.now() / constants.MS_PER_SECOND)) - ts);
   if (age > SVIX_TOLERANCE_SEC) return null;
 
   const payload = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody || '');
@@ -92,12 +131,23 @@ function verifySvixWebhook(rawBody, headers, secret) {
   return null;
 }
 
+/**
+ * Tag value.
+ * @param {Array} tags
+ * @param {string} name
+ * @returns {any}
+ */
 function tagValue(tags, name) {
   if (!Array.isArray(tags)) return '';
   const hit = tags.find((t) => String(t?.name || '').toLowerCase() === String(name).toLowerCase());
   return hit ? String(hit.value || '').trim() : '';
 }
 
+/**
+ * Recipient email.
+ * @param {any} data
+ * @returns {any}
+ */
 function recipientEmail(data) {
   const to = data?.to;
   if (Array.isArray(to) && to.length) return String(to[0] || '').trim().toLowerCase();
@@ -105,10 +155,20 @@ function recipientEmail(data) {
   return '';
 }
 
+/**
+ * Resend email id from data.
+ * @param {any} data
+ * @returns {any}
+ */
 function resendEmailIdFromData(data) {
   return String(data?.email_id || data?.id || '').trim();
 }
 
+/**
+ * Engagement field for event.
+ * @param {any} type
+ * @returns {any}
+ */
 function engagementFieldForEvent(type) {
   switch (type) {
     case 'email.sent':
@@ -128,6 +188,12 @@ function engagementFieldForEvent(type) {
   }
 }
 
+/**
+ * Find sent row index.
+ * @param {Array} rows
+ * @param {any} event
+ * @returns {any}
+ */
 function findSentRowIndex(rows, event) {
   const data = event?.data || {};
   const emailId = resendEmailIdFromData(data);
@@ -164,6 +230,12 @@ function findSentRowIndex(rows, event) {
   return -1;
 }
 
+/**
+ * Apply engagement patch.
+ * @param {any} row
+ * @param {any} event
+ * @returns {any}
+ */
 function applyEngagementPatch(row, event) {
   const field = engagementFieldForEvent(event.type);
   const eventAt = String(event?.created_at || event?.data?.created_at || new Date().toISOString());
@@ -182,6 +254,12 @@ function applyEngagementPatch(row, event) {
   };
 }
 
+/**
+ * Append event log.
+ * @param {any} event
+ * @param {Object} options
+ * @returns {any}
+ */
 async function appendEventLog(event, options) {
   const file = eventsLogPath(options);
   await fs.promises.mkdir(path.dirname(file), { recursive: true });
@@ -195,6 +273,12 @@ async function appendEventLog(event, options) {
   await fs.promises.appendFile(file, `${line}\n`, 'utf8');
 }
 
+/**
+ * Process resend webhook event.
+ * @param {any} event
+ * @param {Object} options
+ * @returns {any}
+ */
 async function processResendWebhookEvent(event, options = {}) {
   const rows = await loadSentLog(options, { persist: false });
   const idx = findSentRowIndex(rows, event);
@@ -209,6 +293,12 @@ async function processResendWebhookEvent(event, options = {}) {
   return { matched: true, updated: true, logId: rows[idx].id };
 }
 
+/**
+ * Setup outreach resend webhook.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function setupOutreachResendWebhook(app, options = {}) {
   app.post(
     WEBHOOK_PATH,

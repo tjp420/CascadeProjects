@@ -1,0 +1,58 @@
+{
+  "profile": "complete",
+  "scanPaths": [
+    "."
+  ],
+  "productionPaths": [
+    "."
+  ],
+  "ignore": [
+    "node_modules/**",
+    ".simplebeacon/**",
+    "coverage/**",
+    "dist/**",
+    "build/**",
+    ".git/**",
+    "**/.gitkeep",
+    "*.log"
+  ],
+  "rules": {
+    "credentials": {
+      "enabled": true,
+      "scanProduction": true
+    },
+    "production-leak": {
+      "enabled": true,
+      "severity": "high"
+    },
+    "llm-slop-patterns": {
+      "enabled": true,
+      "severity": "medium",
+      "registryCheck": false
+    },
+    "agency-handoff-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "eu-ai-act-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    }
+  },
+  "gate": {
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ]
+  },
+  "fullDirectoryScan": false,
+  "fullDirectoryScanSkipDirs": [
+    ".git",
+    ".github-sync",
+    "github-cache",
+    "node_modules"
+  ]
+}

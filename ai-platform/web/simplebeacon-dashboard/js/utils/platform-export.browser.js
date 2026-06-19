@@ -14,12 +14,23 @@ import {
   normalizeSimpleBeaconBranding
 } from './quality-export.browser.js?v=20260531qualityexport8';
 
+/**
+ * Parse numeric.
+ * @param {any} value
+ * @returns {any}
+ */
 function parseNumeric(value) {
   if (value == null) return null;
   const match = String(value).replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
   return match ? Number(match[0]) : null;
 }
 
+/**
+ * Format signed delta.
+ * @param {any} delta
+ * @param {any} unit
+ * @returns {any}
+ */
 function formatSignedDelta(delta, unit = '') {
   if (!Number.isFinite(delta)) return '—';
   const sign = delta > 0 ? '+' : delta < 0 ? '' : '';
@@ -27,6 +38,12 @@ function formatSignedDelta(delta, unit = '') {
   return `${sign}${delta}${suffix}`;
 }
 
+/**
+ * Format security score for display.
+ * @param {any} security
+ * @param {any} overview
+ * @returns {any}
+ */
 export function formatSecurityScoreForDisplay(security, overview) {
   if (security?.securityScore != null) {
     const num = Number(security.securityScore);
@@ -37,12 +54,24 @@ export function formatSecurityScoreForDisplay(security, overview) {
   return null;
 }
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Resolve canonical jest label.
+ * @param {any} baseline
+ * @param {any} dashboardHome
+ * @param {any} coverage
+ * @returns {any}
+ */
 function resolveCanonicalJestLabel(baseline, dashboardHome, coverage) {
   const coverageLabel = coverage?.jestTestsLabel
     || (coverage?.passedTests != null && coverage?.totalTests != null
@@ -60,12 +89,23 @@ function resolveCanonicalJestLabel(baseline, dashboardHome, coverage) {
   return baselineLabel;
 }
 
+/**
+ * Is benchmark platform export.
+ * @param {number} report
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function isBenchmarkPlatformExport(report, projectPath) {
   const path = String(report?.projectRoot || projectPath || '').replace(/\\/g, '/');
   return Boolean(report?.benchmarkScan || report?.scanTargetProfile === 'benchmark-cache')
     || /\/github-cache\//i.test(path);
 }
 
+/**
+ * Dedupe export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeExportNotes(notes = []) {
   const seen = new Set();
   const out = [];
@@ -94,6 +134,13 @@ function dedupeExportNotes(notes = []) {
   return out.slice(0, 8);
 }
 
+/**
+ * Resolve page specs label.
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function resolvePageSpecsLabel(report, baseline, benchmarkScan = false) {
   const reportLabel = report?.pageSampleSchemaChecked != null
     ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
@@ -105,6 +152,14 @@ function resolvePageSpecsLabel(report, baseline, benchmarkScan = false) {
   return reportLabel || baselineLabel || null;
 }
 
+/**
+ * Build page specs note.
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} pageSpecsLabel
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function buildPageSpecsNote(report, baseline, pageSpecsLabel, benchmarkScan) {
   if (!pageSpecsLabel || pageSpecsLabel === '0/0') return null;
   const reportLabel = report?.pageSampleSchemaChecked != null
@@ -120,6 +175,13 @@ function buildPageSpecsNote(report, baseline, pageSpecsLabel, benchmarkScan) {
   return null;
 }
 
+/**
+ * Sanitize report for platform export.
+ * @param {number} report
+ * @param {any} projectLabel
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeReportForPlatformExport(report, projectLabel = 'ai-platform', options = {}) {
   if (!report) return null;
   const sanitized = sanitizeSimplebeaconReportExport(report, {
@@ -154,6 +216,12 @@ export function sanitizeReportForPlatformExport(report, projectLabel = 'ai-platf
   };
 }
 
+/**
+ * Sanitize dashboard home export.
+ * @param {any} dashboardHome
+ * @param {string} context
+ * @returns {any}
+ */
 function sanitizeDashboardHomeExport(dashboardHome, context = {}) {
   if (!dashboardHome) return null;
   const { _source, ...rest } = dashboardHome;
@@ -193,6 +261,12 @@ function sanitizeDashboardHomeExport(dashboardHome, context = {}) {
   };
 }
 
+/**
+ * Sanitize baseline export.
+ * @param {any} baseline
+ * @param {string} context
+ * @returns {any}
+ */
 function sanitizeBaselineExport(baseline, context = {}) {
   if (!baseline) return null;
   const clean = stripInternalExportFields(baseline);
@@ -210,6 +284,12 @@ function sanitizeBaselineExport(baseline, context = {}) {
   };
 }
 
+/**
+ * Sanitize config export.
+ * @param {Object} config
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function sanitizeConfigExport(config, projectLabel = 'ai-platform') {
   if (!config) return null;
   return {
@@ -218,6 +298,16 @@ function sanitizeConfigExport(config, projectLabel = 'ai-platform') {
   };
 }
 
+/**
+ * Build platform metrics.
+ * @param {any} home
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} security
+ * @param {any} coverage
+ * @param {any} pageSpecsLabel
+ * @returns {any}
+ */
 export function buildPlatformMetrics(home, report, baseline, security, coverage, pageSpecsLabel = null) {
   const overview = home?.overview || {};
   return {
@@ -232,6 +322,12 @@ export function buildPlatformMetrics(home, report, baseline, security, coverage,
   };
 }
 
+/**
+ * Build comparative rows.
+ * @param {any} home
+ * @param {Array} metrics
+ * @returns {any}
+ */
 export function buildComparativeRows(home, metrics) {
   const staticRows = home?.comparativeAnalysis || [];
   const liveByMetric = {
@@ -282,6 +378,16 @@ export function buildComparativeRows(home, metrics) {
   });
 }
 
+/**
+ * Build export provenance.
+ * @param {Object} options
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} coverage
+ * @param {any} security
+ * @param {any} quality }
+ * @returns {any}
+ */
 function buildExportProvenance({ dashboardHome, report, baseline, coverage, security, quality } = {}) {
   return {
     dashboardHome: dashboardHome?.type === 'dashboard-home-model'
@@ -439,6 +545,12 @@ export function buildPlatformExportBundle({
  * @param {object} [options]
  * @returns {object}
  */
+/**
+ * Sanitize platform export.
+ * @param {any} bundle
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizePlatformExport(bundle, options = {}) {
   if (!bundle || bundle.type !== 'simplebeacon-platform-export') return bundle;
   return buildPlatformExportBundle({
@@ -453,10 +565,20 @@ export function sanitizePlatformExport(bundle, options = {}) {
   });
 }
 
+/**
+ * Csv escape.
+ * @param {any} cell
+ * @returns {any}
+ */
 function csvEscape(cell) {
   return `"${String(cell ?? '').replace(/"/g, '""')}"`;
 }
 
+/**
+ * Build comparative csv.
+ * @param {Array} comparativeRows
+ * @returns {any}
+ */
 export function buildComparativeCsv(comparativeRows) {
   if (!comparativeRows?.length) return null;
   const header = ['metric', 'previous', 'current', 'change'];
@@ -469,6 +591,11 @@ export function buildComparativeCsv(comparativeRows) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build mock categories csv.
+ * @param {Array} categories
+ * @returns {any}
+ */
 export function buildMockCategoriesCsv(categories) {
   if (!categories?.length) return null;
   const header = ['category', 'fileCount', 'totalSize', 'qualityScore', 'issues'];
@@ -482,6 +609,11 @@ export function buildMockCategoriesCsv(categories) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build platform summary csv.
+ * @param {any} bundle
+ * @returns {any}
+ */
 export function buildPlatformSummaryCsv(bundle) {
   if (!bundle?.summary) return null;
   const header = ['metric', 'value'];
@@ -492,6 +624,13 @@ export function buildPlatformSummaryCsv(bundle) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build platform csv.
+ * @param {Object} options
+ * @param {Array} comparativeRows
+ * @param {any} mockDataCategories }
+ * @returns {any}
+ */
 export function buildPlatformCsv({ bundle, comparativeRows, mockDataCategories } = {}) {
   const parts = [];
   const comparative = buildComparativeCsv(comparativeRows);
@@ -512,6 +651,11 @@ export function buildPlatformCsv({ bundle, comparativeRows, mockDataCategories }
   return parts.length ? parts.join('\n') : null;
 }
 
+/**
+ * Platform export filename.
+ * @param {any} ext
+ * @returns {any}
+ */
 export function platformExportFilename(ext = 'json') {
   const stamp = new Date().toISOString().slice(0, 10);
   if (ext === 'csv') return `platform-baseline-metrics-${stamp}.csv`;

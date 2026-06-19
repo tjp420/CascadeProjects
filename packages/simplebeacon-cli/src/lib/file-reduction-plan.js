@@ -55,18 +55,21 @@ function groupDirectoriesByCategory(findings = []) {
 
 function buildFileReductionPlan(report) {
     const buildArtifacts = report.findings?.buildArtifacts || [];
+    const directoryBloat = report.findings?.directoryBloat || [];
     const duplicateAssets = report.findings?.assetConsolidation || [];
     const unusedFiles = report.findings?.unusedFiles || [];
     const buildSummary = report.scanners?.['build-artifacts'] || {};
     const assetSummary = report.scanners?.['asset-consolidation'] || {};
     const unusedSummary = report.scanners?.['unused-files'] || {};
 
-    const safeDirectories = dedupeTopLevelDirectories(buildArtifacts)
+    const safeDirectories = dedupeTopLevelDirectories([...buildArtifacts, ...directoryBloat])
         .sort((a, b) => (b.sizeBytes || 0) - (a.sizeBytes || 0));
     const safeRoots = safeDirectories.map((finding) => String(finding.path || '').replace(/\\/g, '/'));
 
-    const reviewFiles = buildArtifacts
-        .filter((finding) => finding.action === 'review-before-delete')
+    const reviewFiles = [
+        ...buildArtifacts.filter((finding) => finding.action === 'review-before-delete'),
+        ...directoryBloat.filter((finding) => finding.action === 'review-before-delete')
+    ]
         .filter((finding) => !safeRoots.some((root) => {
             const path = String(finding.path || '').replace(/\\/g, '/');
             return path === root || path.startsWith(`${root}/`);

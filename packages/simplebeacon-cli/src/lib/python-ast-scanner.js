@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { globMatch } = require('../rules/production-leak');
 const { isExcludedPath, isUnderProductionPaths } = require('../rules/ai-runtime-scan-common');
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
 
 const SCRIPT_REL = path.join('python', 'simplebeacon_ast_scan.py');
 const SCAN_TIMEOUT_MS = 120000;
@@ -67,7 +68,7 @@ function resolvePythonExecutable() {
         : ['python3', 'python'];
     for (const bin of candidates) {
         try {
-            const probe = spawnSync(bin, ['--version'], { encoding: 'utf8', timeout: 5000 });
+            const probe = spawnSync(bin, ['--version'], { encoding: 'utf8', timeout: constants.TIMEOUT_5S });
             if (probe.status === 0) return bin;
         } catch {
             /* try next */
@@ -141,7 +142,7 @@ function runPythonAstScan(projectRoot, options = {}) {
     const result = spawnSync(pythonBin, spawnArgs, {
         encoding: 'utf8',
         timeout: options.timeoutMs || SCAN_TIMEOUT_MS,
-        maxBuffer: 16 * 1024 * 1024
+        maxBuffer: 16 * constants.BYTES_PER_KB * 1024
     });
 
     if (result.error || result.status !== 0) {

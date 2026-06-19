@@ -3,7 +3,7 @@ setlocal EnableExtensions
 cd /d "%~dp0"
 
 echo.
-echo  Stopping SimpleBeacon listeners on ports 54355 and 8081...
+echo  Stopping SimpleBeacon listeners on ports 3002 and 8081...
 echo.
 
 if not exist "package.json" (
@@ -22,5 +22,5 @@ if errorlevel 1 (
 call npm run dashboard:kill-ports
 
 echo.
-echo  Done. http://localhost:54355/ should no longer respond.
+echo  Done. http://localhost:3002/ should no longer respond.
 echo.

@@ -1,4 +1,4 @@
-import { escapeHtml, formatNumber, formatPercent, showToast } from '../utils.js';
+import { escapeHtml, formatNumber, formatPercent, showToast, renderEmptyState } from '../utils.js';
 import {
   getScanFileMetrics,
   resolveDisplayScore,
@@ -10,6 +10,11 @@ import {
 import { scanService } from '../services/scanService.js';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
 
+/**
+ * Npm audit summary.
+ * @param {any} audit
+ * @returns {any}
+ */
 function npmAuditSummary(audit) {
   const summary = audit?.summary || audit?.metadata?.vulnerabilities || {};
   const deps = audit?.dependencies || audit?.metadata?.dependencies || {};
@@ -23,9 +28,20 @@ function npmAuditSummary(audit) {
   };
 }
 
+/**
+ * Render scan snapshot.
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} dashboardHome
+ * @returns {any}
+ */
 function renderScanSnapshot(report, baseline, dashboardHome) {
   if (!report) {
-    return '<p class="text-muted card">No scan report loaded — run Simplebeacon Scan to populate metrics.</p>';
+    return renderEmptyState({
+      icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+      title: 'No scan report loaded',
+      body: 'Run Simplebeacon Scan to populate metrics.'
+    });
   }
 
   const metrics = getScanFileMetrics(report);
@@ -35,7 +51,7 @@ function renderScanSnapshot(report, baseline, dashboardHome) {
     <div class="metrics-row mb-2">
       <div class="metric-chip gate-badge ${report.gate?.pass ? 'pass' : 'warn'}">${report.gate?.pass ? 'GATE PASS' : 'GATE FAIL'}</div>
       <div class="metric-chip"><strong>${formatPercent(resolveDisplayScore(report))}</strong> consistency</div>
-      <div class="metric-chip"><strong>${formatNumber(metrics.mockSampleFiles ?? report.totalFiles)}</strong> mock/sample</div>
+      <div class="metric-chip"><strong>${formatNumber(metrics.mockSampleFiles ?? report.totalFiles)}</strong> test/fixture</div>
       ${metrics.repositoryFiles != null ? `<div class="metric-chip"><strong>${formatNumber(metrics.repositoryFiles)}</strong> repo files</div>` : ''}
       <div class="metric-chip"><strong>${formatNumber(metrics.ruleScopedFilesAnalyzed ?? metrics.credentialScanned)}</strong> gate rules checked</div>
       <div class="metric-chip"><strong>${formatPercent(report.schemaCompliance)}</strong> schema</div>
@@ -48,6 +64,9 @@ function renderScanSnapshot(report, baseline, dashboardHome) {
   `;
 }
 
+/**
+ * Tools view.
+ */
 export class ToolsView {
   constructor(app) {
     this.app = app;
@@ -63,6 +82,48 @@ export class ToolsView {
     this._scanLoadPromise = null;
   }
 
+  renderToolsNav() {
+    const sections = [
+      { id: 'tools-section-actions', label: 'Actions' },
+      { id: 'tools-section-consolidation', label: 'Consolidation' },
+      { id: 'tools-section-snapshot', label: 'Snapshot' },
+      { id: 'tools-section-repo', label: 'Repository' },
+      { id: 'tools-section-workflows', label: 'Workflows' }
+    ];
+    return `
+      <nav class="settings-nav" style="
+        position:sticky;
+        top:0;
+        z-index:10;
+        background:var(--surface-elevated);
+        border:1px solid var(--border);
+        border-radius:var(--radius-md);
+        padding:var(--space-2) var(--space-3);
+        margin-bottom:var(--space-4);
+        display:flex;
+        align-items:center;
+        gap:var(--space-1);
+        flex-wrap:wrap;">
+        <span style="font-weight:600;font-size:0.875rem;margin-right:var(--space-2);color:var(--text-secondary);">Jump to:</span>
+        ${sections.map((s) => `
+          <a href="#${s.id}" class="settings-nav-link" data-scroll-to="${s.id}" style="
+            padding:4px 10px;
+            border-radius:999px;
+            font-size:0.8rem;
+            text-decoration:none;
+            color:var(--text-secondary);
+            background:var(--surface);
+            border:1px solid var(--border);
+            transition:all 150ms;
+            white-space:nowrap;
+            cursor:pointer;">
+            ${escapeHtml(s.label)}
+          </a>
+        `).join('')}
+      </nav>
+    `;
+  }
+
   render() {
     const tools = this.app.state.devTools || [];
     const workflows = this.app.state.devWorkflows || [];
@@ -73,46 +134,58 @@ export class ToolsView {
     const el = document.createElement('div');
     el.className = this._hasPainted ? '' : 'fade-in';
     el.innerHTML = `
-      <h1 class="page-title">Tools</h1>
-      <p class="text-muted mb-6">Run repository tools and CI workflows from scan-backed results.</p>
-
-      <div class="section-block">
-        <div class="section-heading"><h2>Runnable Actions</h2></div>
-        <div class="tool-action-grid">
-          <button class="tool-action-card" data-action="scan" ${busy ? 'disabled' : ''}>
-            <span class="tool-action-icon">${this.running === 'scan' || this.app.state.scanning ? '⏳' : '✅'}</span>
-            <span class="tool-action-title">Run Simplebeacon Scan</span>
-            <span class="tool-action-desc">Regenerate .simplebeacon/report.json with gate</span>
-          </button>
-          <button class="tool-action-card" data-action="baseline" ${busy ? 'disabled' : ''}>
-            <span class="tool-action-icon">${this.running === 'baseline' ? '⏳' : '🔄'}</span>
-            <span class="tool-action-title">Sync Baseline</span>
-            <span class="tool-action-desc">Update Jest counts in .simplebeacon/baseline.json</span>
-          </button>
-          <button class="tool-action-card" data-action="audit" ${busy ? 'disabled' : ''}>
-            <span class="tool-action-icon">${this.running === 'audit' ? '⏳' : '🛡️'}</span>
-            <span class="tool-action-title">Run npm audit</span>
-            <span class="tool-action-desc">Live dependency vulnerability scan</span>
-          </button>
-          <button class="tool-action-card" data-action="export" ${busy ? 'disabled' : ''}>
-            <span class="tool-action-icon">📥</span>
-            <span class="tool-action-title">Export Scan Report</span>
-            <span class="tool-action-desc">Download current report JSON</span>
-          </button>
-          <button class="tool-action-card" data-action="consolidation" ${busy ? 'disabled' : ''}>
-            <span class="tool-action-icon">${this.reductionLoading ? '⏳' : '🔀'}</span>
-            <span class="tool-action-title">Consolidation Scan</span>
-            <span class="tool-action-desc">Find duplicate JSON and merge candidates in sample paths</span>
-          </button>
-        </div>
-        <div id="tool-output" role="status" aria-live="polite" class="detail-panel ${this.lastOutput && this.lastOutput.visible !== false ? '' : 'hidden'} mt-4">${this.lastOutput?.html || ''}</div>
+      <div class="analyze-hero">
+        <h1 class="page-title">Tools</h1>
+        <p class="text-muted analyze-hero-sub">Run repository tools and CI workflows from scan-backed results.</p>
       </div>
 
-      <div class="section-block" id="consolidation-section">
+      ${this.renderToolsNav()}
+
+      <div class="section-block" id="tools-section-actions">
         <div class="section-heading">
-          <h2>Data Consolidation</h2>
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);">
+            <span style="font-size:1.25rem;">▶️</span> Runnable Actions
+          </h2>
+          <span class="text-muted" style="font-size:var(--font-size-sm);">${busy ? 'Running…' : 'Ready'}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--space-3);margin-bottom:var(--space-4);">
+          ${[
+            { action: 'scan', icon: this.running === 'scan' || this.app.state.scanning ? '⏳' : '✅', title: 'Run Scan', desc: 'Regenerate .simplebeacon/report.json with gate' },
+            { action: 'baseline', icon: this.running === 'baseline' ? '⏳' : '🔄', title: 'Sync Baseline', desc: 'Update Jest counts in baseline.json' },
+            { action: 'audit', icon: this.running === 'audit' ? '⏳' : '🛡️', title: 'npm audit', desc: 'Live dependency vulnerability scan' },
+            { action: 'export', icon: '📥', title: 'Export Report', desc: 'Download current report JSON' },
+            { action: 'consolidation', icon: this.reductionLoading ? '⏳' : '🔀', title: 'Consolidation', desc: 'Find duplicate JSON and merge candidates' }
+          ].map((btn) => `
+            <button class="card card-interactive" data-action="${btn.action}" ${busy ? 'disabled' : ''} style="
+              display:flex;
+              align-items:flex-start;
+              gap:var(--space-3);
+              padding:var(--space-4);
+              text-align:left;
+              cursor:pointer;
+              background:var(--surface);
+              border:1px solid var(--border);
+              border-radius:var(--radius-lg);
+              opacity:${busy ? '0.6' : '1'};
+              transition:transform 150ms,box-shadow 150ms,border-color 150ms;">
+              <span style="font-size:1.5rem;flex-shrink:0;margin-top:2px;">${btn.icon}</span>
+              <div style="min-width:0;">
+                <div style="font-weight:600;font-size:var(--font-size-sm);margin-bottom:2px;">${escapeHtml(btn.title)}</div>
+                <div style="font-size:var(--font-size-xs);color:var(--text-secondary);line-height:1.4;">${escapeHtml(btn.desc)}</div>
+              </div>
+            </button>
+          `).join('')}
+        </div>
+        <div id="tool-output" role="status" aria-live="polite" class="card ${this.lastOutput && this.lastOutput.visible !== false ? '' : 'hidden'}" style="padding:var(--space-4);">${this.lastOutput?.html || ''}</div>
+      </div>
+
+      <div class="section-block" id="tools-section-consolidation">
+        <div class="section-heading">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);">
+            <span style="font-size:1.25rem;">🔀</span> Data Consolidation
+          </h2>
           <button class="btn btn-secondary btn-sm" type="button" id="run-consolidation-btn" ${this.reductionLoading || busy ? 'disabled' : ''}>
-            ${this.reductionLoading ? 'Scanning…' : 'Run consolidation scan'}
+            ${this.reductionLoading ? 'Scanning…' : 'Run scan'}
           </button>
         </div>
         <p class="text-muted mb-4" style="font-size: var(--font-size-sm);">
@@ -121,18 +194,34 @@ export class ToolsView {
         <div id="consolidation-results">${this.renderConsolidation()}</div>
       </div>
 
-      <div class="section-block">
-        <div class="section-heading"><h2>Scan Snapshot</h2></div>
-        ${renderScanSnapshot(report, baseline, this.app.state.dashboardHome)}
+      <div class="section-block" id="tools-section-snapshot">
+        <div class="section-heading">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);">
+            <span style="font-size:1.25rem;">📊</span> Scan Snapshot
+          </h2>
+        </div>
+        <div class="card" style="padding:var(--space-4);">
+          ${renderScanSnapshot(report, baseline, this.app.state.dashboardHome)}
+        </div>
       </div>
 
-      <div class="section-block">
-        <div class="section-heading"><h2>Repository Tools (${tools.length})</h2></div>
-        <div class="tool-grid" id="tool-grid"></div>
+      <div class="section-block" id="tools-section-repo">
+        <div class="section-heading">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);">
+            <span style="font-size:1.25rem;">🛠️</span> Repository Tools
+            <span class="text-muted" style="font-size:var(--font-size-sm);font-weight:400;">(${tools.length})</span>
+          </h2>
+        </div>
+        <div class="tool-grid" id="tool-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--space-3);"></div>
       </div>
 
-      <div class="section-block">
-        <div class="section-heading"><h2>CI Workflows (${workflows.length})</h2></div>
+      <div class="section-block" id="tools-section-workflows">
+        <div class="section-heading">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);">
+            <span style="font-size:1.25rem;">🔄</span> CI Workflows
+            <span class="text-muted" style="font-size:var(--font-size-sm);font-weight:400;">(${workflows.length})</span>
+          </h2>
+        </div>
         <div class="card" style="padding:0;overflow:hidden;">
           <table class="results-table">
             <thead><tr><th>Workflow</th><th>Status</th><th>Tools</th><th>Last run</th></tr></thead>
@@ -143,6 +232,7 @@ export class ToolsView {
     `;
 
     this.bindActions(el);
+    this.bindNavEvents(el);
     this.renderToolGrid(el, tools);
     this.renderWorkflows(el, workflows);
     el.querySelector('#run-consolidation-btn')?.addEventListener('click', () => this.runConsolidationScan());
@@ -154,6 +244,19 @@ export class ToolsView {
       btn.addEventListener('click', () => {
         if (btn.disabled) return;
         this.runAction(btn.dataset.action, el);
+      });
+    });
+  }
+
+  bindNavEvents(root) {
+    root.querySelectorAll('[data-scroll-to]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.dataset.scrollTo;
+        const target = root.querySelector(`#${targetId}`);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       });
     });
   }
@@ -265,7 +368,7 @@ export class ToolsView {
     const grid = el.querySelector('#tool-grid');
     if (!tools.length) {
       grid.innerHTML = this._platformLoadAttempted
-        ? '<p class="text-muted card">No repository tools configured — add web/data/dev-tools-sample.json or run a consolidation scan.</p>'
+        ? '<p class="text-muted card">No repository tools configured — run a consolidation scan to discover available tools.</p>'
         : '<p class="text-muted"><span class="loading-spinner"></span> Loading repository tools…</p>';
       return;
     }
@@ -287,7 +390,7 @@ export class ToolsView {
     const tbody = el.querySelector('#workflow-body');
     if (!workflows.length) {
       tbody.innerHTML = this._platformLoadAttempted
-        ? '<tr><td colspan="4" class="text-muted">No CI workflows configured — add entries to dev-tools-sample.json workflows.</td></tr>'
+        ? '<tr><td colspan="4" class="text-muted">No CI workflows configured — run a consolidation scan to discover workflow configurations.</td></tr>'
         : '<tr><td colspan="4" class="text-muted"><span class="loading-spinner"></span> Loading workflows…</td></tr>';
       return;
     }

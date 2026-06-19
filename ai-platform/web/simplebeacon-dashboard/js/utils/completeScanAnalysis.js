@@ -18,6 +18,11 @@ import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260601
 import { sanitizeComplianceBundleExport } from './compliance-export.browser.js?v=20260601complianceexport7';
 import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260601gateexport17';
 
+/**
+ * Format bytes.
+ * @param {Array} bytes
+ * @returns {any}
+ */
 function formatBytes(bytes) {
   if (bytes == null || Number.isNaN(Number(bytes))) return '—';
   const n = Number(bytes);
@@ -30,6 +35,13 @@ function formatBytes(bytes) {
 
 export { classifyRegenerableArtifacts, softenPriorityActions } from './complete-scan-artifact-profile.browser.js';
 
+/**
+ * Build complete scan analysis.
+ * @param {Object} options
+ * @param {any} dataQuality
+ * @param {string} projectPath }
+ * @returns {any}
+ */
 export function buildCompleteScanAnalysis({ fileReduction, dataQuality, projectPath } = {}) {
   const frPlan = fileReduction?.fileReductionPlan;
   const frExec = fileReduction?.executiveSummary;
@@ -94,6 +106,11 @@ export function buildCompleteScanAnalysis({ fileReduction, dataQuality, projectP
   return analysis;
 }
 
+/**
+ * Render complete scan analysis panel.
+ * @param {Array} analysis
+ * @returns {any}
+ */
 export function renderCompleteScanAnalysisPanel(analysis) {
   if (!analysis) return '';
 
@@ -109,6 +126,11 @@ export function renderCompleteScanAnalysisPanel(analysis) {
       `).join('')
     : '<li class="text-muted">Re-run complete scan to populate priority actions.</li>';
 
+/**
+ * Top dirs.
+ * @param {string} fr?.topSafeDirectories || []
+ * @returns {any}
+ */
   const topDirs = (fr?.topSafeDirectories || []).map((entry) => `
     <li><code>${escapeHtml(entry.path)}</code> <span class="text-muted">· ${formatBytes(entry.bytes)} · ${Number(entry.files || 0).toLocaleString()} files</span></li>
   `).join('');
@@ -157,12 +179,22 @@ export function renderCompleteScanAnalysisPanel(analysis) {
 
 export { formatBytes as formatCompleteScanBytes };
 
+/**
+ * Is benchmark scan target.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function isBenchmarkScanTarget(projectPath) {
   const rel = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/')
     || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
 }
 
+/**
+ * Resolve product platform root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(projectPath) {
   const normalized = String(projectPath || '').replace(/\\/g, '/');
   const idx = normalized.toLowerCase().indexOf('/github-cache/');
@@ -170,11 +202,22 @@ function resolveProductPlatformRoot(projectPath) {
   return normalized.slice(0, idx);
 }
 
+/**
+ * Has hollow gate from report.
+ * @param {any} sb
+ * @returns {any}
+ */
 function hasHollowGateFromReport(sb) {
   const ruleScoped = sb?.ruleScopedFilesAnalyzed ?? sb?.scanScope?.ruleScopedFilesAnalyzed ?? 0;
   return Boolean(sb?.gate?.pass) && ruleScoped === 0;
 }
 
+/**
+ * Infer complete scan target from hints.
+ * @param {any} bundle
+ * @param {Object} options
+ * @returns {any}
+ */
 function inferCompleteScanTargetFromHints(bundle, options = {}) {
   const filename = String(options.exportFilename || options.filename || '').toLowerCase();
   if (!filename.includes('github-cache')) return '';
@@ -194,6 +237,12 @@ function inferCompleteScanTargetFromHints(bundle, options = {}) {
   return `${platformRoot.replace(/\/$/, '')}/github-cache/${cloneName}`;
 }
 
+/**
+ * Resolve benchmark gate attestation.
+ * @param {any} sb
+ * @param {any} hollowGate
+ * @returns {any}
+ */
 function resolveBenchmarkGateAttestation(sb, hollowGate) {
   if (hollowGate || hasHollowGateFromReport(sb)) return 'limited-benchmark';
   if (sb?.gateAttestation) return sb.gateAttestation;
@@ -205,6 +254,11 @@ function resolveBenchmarkGateAttestation(sb, hollowGate) {
   return 'not-evaluated';
 }
 
+/**
+ * Assemble benchmark complete scan export notes.
+ * @param {Array} existingNotes
+ * @returns {any}
+ */
 function assembleBenchmarkCompleteScanExportNotes(existingNotes = []) {
   const scopeNote = 'Complete scan export scoped to github-cache/ OSS clone — not Simplebeacon product handoff.';
   const skipPatterns = [
@@ -219,6 +273,12 @@ function assembleBenchmarkCompleteScanExportNotes(existingNotes = []) {
   return dedupeCompleteScanExportNotes([scopeNote, ...filteredExisting]);
 }
 
+/**
+ * Build benchmark complete scan hygiene summary.
+ * @param {any} bundle
+ * @param {Array} auditFiles
+ * @returns {any}
+ */
 function buildBenchmarkCompleteScanHygieneSummary(bundle, auditFiles) {
   const sb = bundle.results?.simplebeacon;
   const rawLlm = sb?.llmSlopScanRaw ?? sb?.scanScope?.llmSlopScanRaw;
@@ -246,6 +306,14 @@ function buildBenchmarkCompleteScanHygieneSummary(bundle, auditFiles) {
   };
 }
 
+/**
+ * Sanitize compliance for complete scan.
+ * @param {any} compliance
+ * @param {number} gateReport
+ * @param {string} projectPath
+ * @param {string} context
+ * @returns {any}
+ */
 function sanitizeComplianceForCompleteScan(compliance, gateReport, projectPath, context = {}) {
   if (!compliance) return compliance;
   const { benchmarkScan, hollowGate, productPlatformRoot } = context;
@@ -292,6 +360,11 @@ function sanitizeComplianceForCompleteScan(compliance, gateReport, projectPath, 
   return { ...compliance, summary, rules };
 }
 
+/**
+ * Dedupe complete scan export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeCompleteScanExportNotes(notes = []) {
   const seen = new Set();
   const out = [];
@@ -313,6 +386,13 @@ function dedupeCompleteScanExportNotes(notes = []) {
   return out.slice(0, 10);
 }
 
+/**
+ * Resolve roadmap summary files.
+ * @param {any} roadmap
+ * @param {Array} auditFiles
+ * @param {any} summary
+ * @returns {any}
+ */
 function resolveRoadmapSummaryFiles(roadmap, auditFiles, summary = {}) {
   const structure = roadmap?.codeAnalysis?.structure;
   const roadmapScoped = structure?.totalFilesRaw
@@ -464,6 +544,11 @@ export function sanitizeCompleteScanBundle(bundle, options = {}) {
         'No safe-to-delete build artifacts — follow data-quality priority actions and optional duplicate consolidation.';
     }
     if (benchmarkScan && next.completeScanAnalysis) {
+/**
+ * Notes.
+ * @param {any} next.completeScanAnalysis.notes || []
+ * @returns {any}
+ */
       const notes = (next.completeScanAnalysis.notes || []).filter((note) => {
         const text = String(note);
         if (/exclude(s)?\s+github-cache/i.test(text)) return false;
@@ -742,6 +827,11 @@ export function sanitizeConsolidationExport(scan, options = {}) {
   return sanitizeConsolidationExportCore(scan, options);
 }
 
+/**
+ * Roadmap path touches benchmark.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function roadmapPathTouchesBenchmark(filePath) {
   const rel = String(filePath || '').replace(/\\/g, '/');
   return rel.startsWith('github-cache/')
@@ -750,6 +840,11 @@ function roadmapPathTouchesBenchmark(filePath) {
     || rel.includes('/deliverables/');
 }
 
+/**
+ * Filter roadmap top directories export.
+ * @param {Array} dirNames
+ * @returns {any}
+ */
 function filterRoadmapTopDirectoriesExport(dirNames) {
   const skip = new Set([
     'github-cache', 'deliverables', 'data-central', 'docs', 'archive', 'node_modules', '.simplebeacon'

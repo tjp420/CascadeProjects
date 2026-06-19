@@ -37,7 +37,7 @@ function resolveProductPlatformRoot(projectPath) {
 
 const SIMPLEBEACON_ROADMAP_MARKERS = [
     /docker-compose\.phase2\.yml/i,
-    /1000\/1000/i,
+    /constants.MS_PER_SECOND\/1000/i,
     /v1-internal/i,
     /simplebeacon:deploy/i,
     /verify:v1-internal-profile/i,
@@ -67,6 +67,7 @@ function sanitizeEmbeddedEuAiActSprint(sprint, nestedOptions = {}) {
     if (!sprint || typeof sprint !== 'object' || sprint.ok === false) return sprint;
     try {
         const { sanitizeEuAiActSprintArtifactExport } = require('../../../../server/lib/eu-ai-act-export.js');
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
         return sanitizeEuAiActSprintArtifactExport(sprint, nestedOptions);
     } catch {
         const label = projectLabelFromPath(nestedOptions.projectPath || sprint.projectPath || '');

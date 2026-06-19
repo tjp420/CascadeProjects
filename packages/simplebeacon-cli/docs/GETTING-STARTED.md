@@ -45,10 +45,22 @@ npx simplebeacon gate status
 
 See [MCP-USER-SETUP.md](./MCP-USER-SETUP.md) · [GATE-CALIBRATION.md](./GATE-CALIBRATION.md) · [TRUST.md](./TRUST.md)
 
+## Pricing
+
+| Tier | Price | Best For |
+|---|---|---|
+| **Developer** | Free | Solo devs, open source |
+| **Startup** | $49/mo | Small teams (1-10 devs), 2,500 pipeline scans |
+| **Growth** | $149/mo | Scaling teams, 10,000 pipeline scans, allowlists |
+| **Enterprise** | Custom | Large orgs, unlimited scans, SSO, air-gapped |
+
+Developer tier: 100 local scans/month, 50 files/scan, text output.
+Startup+: unlimited files, JSON export with actionable summary, custom scanner toggles, CI gate.
+
 ## What we do not sell
 
 - Raw finding counts as quality proof  
-- Required repo upload for $499  
+- Required repo upload for any tier  
 - Hosted MCP that reads your source on our servers  
 
 Gate **blocking issues** + tuned allowlists = the metric that matters.

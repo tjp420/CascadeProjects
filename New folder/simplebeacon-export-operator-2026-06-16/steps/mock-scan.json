@@ -1,0 +1,8 @@
+{
+  "id": "mock-scan",
+  "status": "done",
+  "error": null,
+  "metric": "20,885 sample files",
+  "gatePass": null,
+  "publicGateLocked": null
+}

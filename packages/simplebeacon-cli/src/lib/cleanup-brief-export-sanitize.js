@@ -4,6 +4,7 @@
 
 const { isExternalBenchmarkCachePath } = require('./benchmark-cache-paths');
 const { redactProjectPathForExport, projectLabelFromPath } = require('./assessment-export-sanitize');
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
 
 function isBenchmarkCacheProjectPath(projectPath) {
     return isExternalBenchmarkCachePath(String(projectPath || '').replace(/\\/g, '/'));
@@ -29,7 +30,7 @@ const PRODUCT_PROTECTED_PATHS = [
 
 function formatBytes(bytes) {
     const n = Number(bytes) || 0;
-    if (n < 1024) return `${n} B`;
+    if (n < constants.BYTES_PER_KB) return `${n} B`;
     if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
     if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
     return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
@@ -426,7 +427,7 @@ function buildProductExportNotes(brief, options = {}) {
     }
     if (cleanupStatus === 'safe-delete-available' && safeFiles > 0) {
         notes.push(
-            `Phase 1 safe-to-delete: ${formatCount(safeFiles)} files (${formatBytes(safeBytes)}) in regenerable artifact directories — restore with npm install / rebuild after delete.`
+            'Phase 1 safe-to-delete: ' + formatCount(safeFiles) + ' files (' + formatBytes(safeBytes) + ') in regenerable artifact directories — restore with npm install / rebuild after delete.'
         );
     } else if (
         String(brief.scanAnalysis?.artifactProfile || '').startsWith('mixed')
@@ -466,13 +467,13 @@ function enrichProductAgentPrompt(brief) {
         `Proceed in agent mode using the attached cleanup brief for: ${projectPath}`,
         '',
         'Deletion policy:',
-        `- Safe to delete now (phase 1): ${formatCount(safeFiles)} files, ${formatBytes(estimatedReduction.bytes)}.`,
-        `- Protected (never delete): ${protectedPaths.join(', ')}`,
+        '- Safe to delete now (phase 1): ' + formatCount(safeFiles) + ' files, ' + formatBytes(estimatedReduction.bytes) + '.',
+        '- Protected (never delete): ' + protectedPaths.join(', '),
         '- Review first: logs, scan cache, and anything flagged reviewFirst in the brief',
         '- Do not bulk-delete unused-file candidates without verifying imports'
     ];
     if (investigate > 0) {
-        lines.push(`- Investigate only (not auto-delete): ${formatCount(investigate)} unused-file candidates — static analysis`);
+        lines.push('- Investigate only (not auto-delete): ' + formatCount(investigate) + ' unused-file candidates — static analysis');
     }
     if (dupBytes > 0) {
         lines.push(`- Phase 2 optional: consolidate ~${formatCount(dupFiles)} duplicate file(s), ${formatBytes(dupBytes)} — paths listed in duplicateAssets`);
@@ -496,11 +497,11 @@ function enrichProductAgentInstructions(brief) {
     const dupBytes = brief.estimatedReduction?.phase2DuplicateBytes ?? 0;
     const lines = [
         'Execute cleanup in phases: (1) safeNow directories, (2) duplicate asset consolidation, (3) reviewFirst items only after confirmation.',
-        `Never delete paths under protected list: ${protectedPaths.join(', ')}.`,
+        'Never delete paths under protected list: ' + protectedPaths.join(', ') + '.',
         'Do not bulk-delete unused file candidates — they require static/dynamic import verification.'
     ];
     if (investigate > 0) {
-        lines.push(`${investigate} unused-file candidates are investigate-only — verify imports before any deletion.`);
+        lines.push(investigate + ' unused-file candidates are investigate-only — verify imports before any deletion.');
     }
     if (dupBytes > 0) {
         lines.push(`Phase 2 may reclaim ~${formatBytes(dupBytes)} from duplicate assets when keeper paths are confirmed.`);
@@ -605,7 +606,7 @@ function sanitizeCleanupBriefExport(brief, options = {}) {
                         auditRepositoryFiles: auditFiles,
                         inventoryNote: `Cleanup inventory (${Number(next.inventory.totalFiles).toLocaleString()} files) includes un-walked regenerable shells; gate audit profile counted ${Number(auditFiles).toLocaleString()} files.`
                     }
-                    : next.inventory?.totalFiles > 5000
+                    : next.inventory?.totalFiles > constants.TIMEOUT_5S
                         ? {
                             inventoryNote: 'File count may include node_modules and other shells not size-walked for safe deletion.'
                         }

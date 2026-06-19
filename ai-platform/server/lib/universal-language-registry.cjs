@@ -62,7 +62,15 @@ const UNIVERSAL_LANGUAGE_REGISTRY = {
     clojure: { id: 'clojure', label: 'Clojure', family: 'domain', priority: 8, parser: 'clojure', extensions: ['.clj', '.cljs'] },
     elixir: { id: 'elixir', label: 'Elixir', family: 'domain', priority: 8, parser: 'tree-sitter-elixir', extensions: ['.ex', '.exs'] },
     haskell: { id: 'haskell', label: 'Haskell', family: 'domain', priority: 8, parser: 'tree-sitter-haskell', extensions: ['.hs', '.lhs'] },
-    erlang: { id: 'erlang', label: 'Erlang', family: 'domain', priority: 8, parser: 'tree-sitter-erlang', extensions: ['.erl', '.hrl'] }
+    erlang: { id: 'erlang', label: 'Erlang', family: 'domain', priority: 8, parser: 'tree-sitter-erlang', extensions: ['.erl', '.hrl'] },
+
+    plaintext: { id: 'plaintext', label: 'Plain Text', family: 'web', priority: 1, parser: null, extensions: ['.txt', '.csv', '.tsv', '.log', '.ini', '.cfg', '.conf', '.properties', '.env', '.env.local', '.env.example'] },
+    xml: { id: 'xml', label: 'XML', family: 'web', priority: 1, parser: 'xml', extensions: ['.xml', '.xsd', '.xsl', '.xslt', '.svg', '.wsdl'] },
+    document: { id: 'document', label: 'Document', family: 'web', priority: 1, parser: null, extensions: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.rtf'] },
+    image: { id: 'image', label: 'Image', family: 'web', priority: 1, parser: null, extensions: ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.bmp', '.svg'] },
+    archive: { id: 'archive', label: 'Archive', family: 'web', priority: 1, parser: null, extensions: ['.zip', '.tar', '.gz', '.tgz', '.bz2', '.7z', '.rar'] },
+    audio: { id: 'audio', label: 'Audio', family: 'web', priority: 1, parser: null, extensions: ['.mp3', '.wav', '.ogg', '.flac', '.aac', '.m4a'] },
+    video: { id: 'video', label: 'Video', family: 'web', priority: 1, parser: null, extensions: ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm'] }
 };
 
 const FAMILY_PROFILES = {
@@ -74,6 +82,11 @@ const FAMILY_PROFILES = {
 const EXTENSION_INDEX = buildExtensionIndex(UNIVERSAL_LANGUAGE_REGISTRY);
 const BASENAME_INDEX = buildBasenameIndex(UNIVERSAL_LANGUAGE_REGISTRY);
 
+/**
+ * Build extension index.
+ * @param {string} registry
+ * @returns {any}
+ */
 function buildExtensionIndex(registry) {
     const index = new Map();
     for (const entry of Object.values(registry)) {
@@ -89,6 +102,11 @@ function buildExtensionIndex(registry) {
     return index;
 }
 
+/**
+ * Build basename index.
+ * @param {string} registry
+ * @returns {any}
+ */
 function buildBasenameIndex(registry) {
     const index = new Map();
     for (const entry of Object.values(registry)) {
@@ -99,24 +117,48 @@ function buildBasenameIndex(registry) {
     return index;
 }
 
+/**
+ * List registry languages.
+ * @returns {any}
+ */
 function listRegistryLanguages() {
     return Object.values(UNIVERSAL_LANGUAGE_REGISTRY);
 }
 
+/**
+ * Get registry entry.
+ * @param {string} languageId
+ * @returns {any}
+ */
 function getRegistryEntry(languageId) {
     return UNIVERSAL_LANGUAGE_REGISTRY[String(languageId || '').toLowerCase()] || null;
 }
 
+/**
+ * Find languages by extension.
+ * @param {any} extension
+ * @returns {any}
+ */
 function findLanguagesByExtension(extension) {
     const key = String(extension || '').toLowerCase();
     if (!key) return [];
     return EXTENSION_INDEX.get(key) || [];
 }
 
+/**
+ * Find language by basename.
+ * @param {string} basename
+ * @returns {any}
+ */
 function findLanguageByBasename(basename) {
     return BASENAME_INDEX.get(String(basename || '').toLowerCase()) || null;
 }
 
+/**
+ * Resolve language from path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function resolveLanguageFromPath(filePath) {
     const base = path.basename(String(filePath || ''));
     const byName = findLanguageByBasename(base);
@@ -127,6 +169,11 @@ function resolveLanguageFromPath(filePath) {
     return matches[0] || null;
 }
 
+/**
+ * Get extensions for families.
+ * @param {Array} families
+ * @returns {any}
+ */
 function getExtensionsForFamilies(families) {
     const set = new Set();
     for (const entry of listRegistryLanguages()) {
@@ -136,6 +183,11 @@ function getExtensionsForFamilies(families) {
     return set;
 }
 
+/**
+ * Get extensions for profile.
+ * @param {string} scanProfile
+ * @returns {any}
+ */
 function getExtensionsForProfile(scanProfile) {
     const profile = String(scanProfile || process.env.SCAN_PROFILE || 'default').toLowerCase();
     if (profile === 'universal') {
@@ -149,6 +201,10 @@ function getExtensionsForProfile(scanProfile) {
     return extensions;
 }
 
+/**
+ * Build extension to language map.
+ * @returns {any}
+ */
 function buildExtensionToLanguageMap() {
     const map = {};
     for (const entry of listRegistryLanguages()) {

@@ -71,6 +71,11 @@ async function generateAutomatedVerdict(scanJson, options = {}) {
     }
 }
 
+/**
+ * Build verdict prompt.
+ * @param {any} scanJson
+ * @returns {any}
+ */
 function buildVerdictPrompt(scanJson) {
     const overview = scanJson.analysisOverview || {};
     const gatePass = scanJson.gatePass;
@@ -94,6 +99,11 @@ function buildVerdictPrompt(scanJson) {
     return `${SYSTEM_PROMPT}\n\nRaw scan data:\n${payload}`;
 }
 
+/**
+ * Build deterministic verdict.
+ * @param {any} scanJson
+ * @returns {any}
+ */
 function buildDeterministicVerdict(scanJson) {
     const overview = scanJson.analysisOverview || {};
     const gatePass = scanJson.gatePass;
@@ -127,6 +137,11 @@ function buildDeterministicVerdict(scanJson) {
     };
 }
 
+/**
+ * Infer grade.
+ * @param {any} scanJson
+ * @returns {any}
+ */
 function inferGrade(scanJson) {
     const overview = scanJson.analysisOverview || {};
     const gatePass = scanJson.gatePass;
@@ -136,6 +151,11 @@ function inferGrade(scanJson) {
     return 'C';
 }
 
+/**
+ * Try parse json.
+ * @param {string} text
+ * @returns {any}
+ */
 function tryParseJson(text) {
     try {
         // Strip markdown fences if present

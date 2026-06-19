@@ -4,5 +4,8 @@
   "main": "index.js",
   "type": "commonjs",
   "private": true,
-  "description": "Deterministic local AI command execution wrapper for syntax and test validation."
+  "description": "Deterministic local AI command execution wrapper for syntax and test validation.",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
 }

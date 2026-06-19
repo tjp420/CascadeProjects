@@ -4,6 +4,11 @@
 
 import { redactProjectPathForExport } from './quality-export.browser.js?v=20260531qualityexport8';
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
@@ -45,12 +50,22 @@ const INTENTIONAL_MIRROR_PAIRS = [
   ['complete-scan-artifact-profile.js', 'complete-scan-artifact-profile.browser.js']
 ];
 
+/**
+ * Matches roadmap template.
+ * @param {string} text
+ * @returns {any}
+ */
 function matchesRoadmapTemplate(text) {
   const value = String(text || '');
   return SIMPLEBEACON_ROADMAP_MARKERS.some((re) => re.test(value))
     || BENCHMARK_TEMPLATE_PHRASES.some((re) => re.test(value));
 }
 
+/**
+ * Is benchmark product narrative.
+ * @param {string} text
+ * @returns {any}
+ */
 function isBenchmarkProductNarrative(text) {
   const value = String(text || '');
   return matchesRoadmapTemplate(value)
@@ -60,6 +75,12 @@ function isBenchmarkProductNarrative(text) {
     || (/\b\d{2,3}\.[0-9]+%\b/.test(value) && /coverage|compliance/i.test(value));
 }
 
+/**
+ * Infer scan target root from hints.
+ * @param {any} roadmap
+ * @param {Object} options
+ * @returns {any}
+ */
 function inferScanTargetRootFromHints(roadmap, options = {}) {
   const filename = String(options.exportFilename || options.filename || '').toLowerCase();
   if (!filename.includes('github-cache')) return '';
@@ -76,11 +97,23 @@ function inferScanTargetRootFromHints(roadmap, options = {}) {
   return `${platformRoot.replace(/\/$/, '')}/github-cache/${cloneName}`;
 }
 
+/**
+ * Resolve benchmark project label.
+ * @param {any} scanTargetRoot
+ * @returns {any}
+ */
 function resolveBenchmarkProjectLabel(scanTargetRoot) {
   const parts = normalizeExportPath(scanTargetRoot).split('/');
   return parts[parts.length - 1] || 'oss-benchmark-clone';
 }
 
+/**
+ * Sanitize project identity for benchmark.
+ * @param {any} next
+ * @param {any} scanTargetRoot
+ * @param {any} misscopedPlatformWalk
+ * @returns {any}
+ */
 function sanitizeProjectIdentityForBenchmark(next, scanTargetRoot, misscopedPlatformWalk) {
   const label = resolveBenchmarkProjectLabel(scanTargetRoot);
   const title = misscopedPlatformWalk
@@ -102,10 +135,20 @@ function sanitizeProjectIdentityForBenchmark(next, scanTargetRoot, misscopedPlat
   return next;
 }
 
+/**
+ * Normalize export path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function normalizeExportPath(projectPath) {
   return String(projectPath || '').replace(/\\/g, '/');
 }
 
+/**
+ * Dedupe roadmap export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeRoadmapExportNotes(notes = []) {
   const seen = new Set();
   const out = [];
@@ -123,6 +166,11 @@ function dedupeRoadmapExportNotes(notes = []) {
   return out.slice(0, 10);
 }
 
+/**
+ * Is stale empty codebase metrics.
+ * @param {Array} metrics
+ * @returns {any}
+ */
 function isStaleEmptyCodebaseMetrics(metrics) {
   if (!metrics || typeof metrics !== 'object') return true;
   const loc = metrics.totalLinesOfCode ?? 0;
@@ -131,6 +179,11 @@ function isStaleEmptyCodebaseMetrics(metrics) {
   return loc === 0 && cov === 0 && docs === 0;
 }
 
+/**
+ * Is absolute export path.
+ * @param {any} value
+ * @returns {any}
+ */
 function isAbsoluteExportPath(value) {
   const normalized = normalizeExportPath(value);
   return /^[a-zA-Z]:\//.test(normalized)
@@ -139,6 +192,12 @@ function isAbsoluteExportPath(value) {
     || /CascadeProjects/i.test(normalized);
 }
 
+/**
+ * Redact roadmap subpath.
+ * @param {any} value
+ * @param {any} label
+ * @returns {any}
+ */
 function redactRoadmapSubpath(value, label) {
   const normalized = normalizeExportPath(value);
   if (!normalized || !isAbsoluteExportPath(normalized)) return normalized;
@@ -150,8 +209,24 @@ function redactRoadmapSubpath(value, label) {
   return label;
 }
 
+/**
+ * Redact product roadmap paths.
+ * @param {any} roadmap
+ * @param {any} label
+ * @returns {any}
+ */
 function redactProductRoadmapPaths(roadmap, label) {
+/**
+ * Redact root.
+ * @param {any} value
+ * @returns {any}
+ */
   const redactRoot = (value) => redactProjectPathForExport(value, label);
+/**
+ * Redact sub.
+ * @param {any} value
+ * @returns {any}
+ */
   const redactSub = (value) => redactRoadmapSubpath(value, label);
 
   const next = { ...roadmap };
@@ -178,11 +253,21 @@ function redactProductRoadmapPaths(roadmap, label) {
   return next;
 }
 
+/**
+ * Is stale roadmap coverage metrics.
+ * @param {Array} metrics
+ * @returns {any}
+ */
 function isStaleRoadmapCoverageMetrics(metrics = {}) {
   if (metrics.testCoverage == null && metrics.lineCoverage == null) return false;
   return metrics.jestTests == null && metrics.jestSuites == null;
 }
 
+/**
+ * Strip fiction coverage from text.
+ * @param {string} text
+ * @returns {any}
+ */
 function stripFictionCoverageFromText(text) {
   if (typeof text !== 'string' || !text) return text;
   let out = text
@@ -217,6 +302,12 @@ function stripFictionCoverageFromText(text) {
   return out.replace(/\n{3,}/g, '\n\n').trim();
 }
 
+/**
+ * Resolve gate inventory totals.
+ * @param {number} gateReport
+ * @param {any} hygiene
+ * @returns {any}
+ */
 function resolveGateInventoryTotals(gateReport, hygiene = null) {
   const repositoryFilesTotal = gateReport?.repositoryFilesTotal
     ?? gateReport?.repositoryInventory?.totalFiles
@@ -231,6 +322,12 @@ function resolveGateInventoryTotals(gateReport, hygiene = null) {
   return { repositoryFilesTotal, credentialScanned };
 }
 
+/**
+ * Resolve roadmap gate context.
+ * @param {any} roadmap
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveRoadmapGateContext(roadmap, options = {}) {
   const gateReport = options.gateReport || {};
   const hygiene = roadmap?.hygieneSummary || {};
@@ -296,6 +393,11 @@ function resolveRoadmapGateContext(roadmap, options = {}) {
   };
 }
 
+/**
+ * Has fiction coverage in strategic insights.
+ * @param {Array} insights
+ * @returns {any}
+ */
 function hasFictionCoverageInStrategicInsights(insights) {
   if (!insights || typeof insights !== 'object') return false;
   const sm = insights.sourceMetrics;
@@ -312,6 +414,11 @@ function hasFictionCoverageInStrategicInsights(insights) {
     || /\d+(?:\.\d+)?%[^.\n]{0,40}coverage/i.test(blob);
 }
 
+/**
+ * Sanitize product strategic insights for export.
+ * @param {Array} insights
+ * @returns {any}
+ */
 function sanitizeProductStrategicInsightsForExport(insights) {
   if (!insights || typeof insights !== 'object') return insights;
   const next = { ...insights };
@@ -363,6 +470,11 @@ function sanitizeProductStrategicInsightsForExport(insights) {
   return next;
 }
 
+/**
+ * Sanitize product coverage for export.
+ * @param {any} roadmap
+ * @returns {any}
+ */
 function sanitizeProductCoverageForExport(roadmap) {
   const metrics = roadmap.progressMetrics?.metrics;
   const staleProgressMetrics = isStaleRoadmapCoverageMetrics(metrics);
@@ -401,7 +513,18 @@ function sanitizeProductCoverageForExport(roadmap) {
   return next;
 }
 
+/**
+ * Build product roadmap hygiene summary.
+ * @param {any} roadmap
+ * @param {string} gateContext
+ * @returns {any}
+ */
 function buildProductRoadmapHygieneSummary(roadmap, gateContext = {}) {
+/**
+ * Jest feature.
+ * @param {any} roadmap.codeAnalysis?.features || []
+ * @returns {any}
+ */
   const jestFeature = (roadmap.codeAnalysis?.features || []).find((f) => /jest test files/i.test(String(f?.name || '')));
   const { repositoryFilesTotal: gateTotal, credentialScanned, contentScanned, gateProfile,
     fictionJsonFilesScanned, fictionSampleFilesScanned, gatePass, blockingCount, jestBaselineChecked } = gateContext;
@@ -431,6 +554,13 @@ function buildProductRoadmapHygieneSummary(roadmap, gateContext = {}) {
   };
 }
 
+/**
+ * Build product roadmap scan scope.
+ * @param {any} scanScope
+ * @param {any} roadmap
+ * @param {string} gateContext
+ * @returns {any}
+ */
 function buildProductRoadmapScanScope(scanScope, roadmap, gateContext = {}) {
   const { repositoryFilesTotal: gateTotal, gateProfile } = gateContext;
   return {
@@ -445,13 +575,29 @@ function buildProductRoadmapScanScope(scanScope, roadmap, gateContext = {}) {
   };
 }
 
+/**
+ * Sanitize product development phases.
+ * @param {Array} phases
+ * @param {Array} codeAnalysis
+ * @returns {any}
+ */
 function sanitizeProductDevelopmentPhases(phases, codeAnalysis) {
   if (!Array.isArray(phases)) return phases;
+/**
+ * Jest feature.
+ * @param {any} codeAnalysis?.features || []
+ * @returns {any}
+ */
   const jestFeature = (codeAnalysis?.features || []).find((f) => /jest test files/i.test(String(f?.name || '')));
   const testCount = jestFeature?.count;
   if (testCount == null) return phases;
   return phases.map((phase) => {
     if (!/Sprint 2/i.test(String(phase.phase || ''))) return phase;
+/**
+ * Features.
+ * @param {any} phase.features || []
+ * @returns {any}
+ */
     const features = (phase.features || []).map((entry) => {
       const text = String(entry);
       if (/tests pending/i.test(text)) {
@@ -465,6 +611,12 @@ function sanitizeProductDevelopmentPhases(phases, codeAnalysis) {
   });
 }
 
+/**
+ * Build product roadmap export notes.
+ * @param {any} roadmap
+ * @param {string} context
+ * @returns {any}
+ */
 function buildProductRoadmapExportNotes(roadmap, context = {}) {
   const notes = [
     'securityHandoffEligible is false — roadmap is filesystem/LLM advisory; gate JSON is required for vendor security handoff.',
@@ -521,6 +673,12 @@ function buildProductRoadmapExportNotes(roadmap, context = {}) {
   return dedupeRoadmapExportNotes(notes).slice(0, 12);
 }
 
+/**
+ * Sanitize product roadmap export.
+ * @param {any} next
+ * @param {Object} options
+ * @returns {any}
+ */
 function sanitizeProductRoadmapExport(next, options = {}) {
   const rawPath = options.requestedProjectPath
     || options.projectPath
@@ -567,6 +725,12 @@ function sanitizeProductRoadmapExport(next, options = {}) {
   return roadmap;
 }
 
+/**
+ * Build benchmark roadmap export notes.
+ * @param {Array} existingNotes
+ * @param {any} misscopedPlatformWalk
+ * @returns {any}
+ */
 function buildBenchmarkRoadmapExportNotes(existingNotes = [], misscopedPlatformWalk = false) {
   const canonical = misscopedPlatformWalk
     ? 'Mis-scoped complete-scan export: roadmap walked Simplebeacon platform root while scan target was github-cache/ clone — re-run after updating Simplebeacon for clone-scoped metrics.'
@@ -578,6 +742,12 @@ function buildBenchmarkRoadmapExportNotes(existingNotes = [], misscopedPlatformW
   return dedupeRoadmapExportNotes([...filtered, canonical]);
 }
 
+/**
+ * Normalize roadmap export paths.
+ * @param {any} roadmap
+ * @param {any} scanTargetRoot
+ * @returns {any}
+ */
 function normalizeRoadmapExportPaths(roadmap, scanTargetRoot = '') {
   const root = normalizeExportPath(scanTargetRoot || roadmap.scanTargetRoot || roadmap.sourceProjectPath || '');
   const next = {
@@ -606,11 +776,22 @@ function normalizeRoadmapExportPaths(roadmap, scanTargetRoot = '') {
   return next;
 }
 
+/**
+ * Phases are equivalent.
+ * @param {any} left
+ * @param {any} right
+ * @returns {any}
+ */
 function phasesAreEquivalent(left = [], right = []) {
   if (!Array.isArray(left) || !Array.isArray(right)) return false;
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+/**
+ * Collapse duplicate benchmark phases.
+ * @param {any} roadmap
+ * @returns {any}
+ */
 function collapseDuplicateBenchmarkPhases(roadmap) {
   const dev = roadmap.developmentPhases;
   const bench = roadmap.benchmarkSprintModel;
@@ -627,6 +808,12 @@ function collapseDuplicateBenchmarkPhases(roadmap) {
   };
 }
 
+/**
+ * Align project structure inventory.
+ * @param {string} projectStructure
+ * @param {string} structure
+ * @returns {any}
+ */
 function alignProjectStructureInventory(projectStructure, structure) {
   if (!projectStructure || !structure?.totalFiles) return projectStructure;
   const topLevelSum = projectStructure.totalFiles;
@@ -641,6 +828,12 @@ function alignProjectStructureInventory(projectStructure, structure) {
   };
 }
 
+/**
+ * Sanitize codebase metrics for benchmark.
+ * @param {Array} metrics
+ * @param {string} structure
+ * @returns {any}
+ */
 function sanitizeCodebaseMetricsForBenchmark(metrics, structure) {
   if (!structure) return metrics;
   const languages = structure.languages && Object.keys(structure.languages).length
@@ -661,6 +854,12 @@ function sanitizeCodebaseMetricsForBenchmark(metrics, structure) {
   };
 }
 
+/**
+ * Sanitize ai integration for benchmark.
+ * @param {any} aiIntegration
+ * @param {any} misscopedPlatformWalk
+ * @returns {any}
+ */
 function sanitizeAiIntegrationForBenchmark(aiIntegration, misscopedPlatformWalk = false) {
   if (!aiIntegration) return aiIntegration;
   if (misscopedPlatformWalk) {
@@ -683,6 +882,11 @@ function sanitizeAiIntegrationForBenchmark(aiIntegration, misscopedPlatformWalk 
 
 const BENCHMARK_DELIVERY_FICTION = /production readiness|revenue and compliance|unblocks production/i;
 
+/**
+ * Sanitize benchmark recommendation items.
+ * @param {Array} recommendations
+ * @returns {any}
+ */
 function sanitizeBenchmarkRecommendationItems(recommendations = []) {
   return recommendations.map((rec) => {
     if (!rec || typeof rec !== 'object') return rec;
@@ -697,12 +901,23 @@ function sanitizeBenchmarkRecommendationItems(recommendations = []) {
   });
 }
 
+/**
+ * Is benchmark scan target root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function isBenchmarkScanTargetRoot(projectPath) {
   const rel = normalizeExportPath(projectPath).toLowerCase();
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/')
     || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
 }
 
+/**
+ * Resolve roadmap export context.
+ * @param {any} roadmap
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveRoadmapExportContext(roadmap, options = {}) {
   const sourceRoot = normalizeExportPath(
     roadmap?.sourceProjectPath
@@ -736,6 +951,11 @@ function resolveRoadmapExportContext(roadmap, options = {}) {
   };
 }
 
+/**
+ * Resolve product platform root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(projectPath) {
   const normalized = String(projectPath || '').replace(/\\/g, '/');
   const idx = normalized.toLowerCase().indexOf('/github-cache/');
@@ -743,10 +963,20 @@ function resolveProductPlatformRoot(projectPath) {
   return normalized.slice(0, idx);
 }
 
+/**
+ * Filter template lines.
+ * @param {any} list
+ * @returns {any}
+ */
 function filterTemplateLines(list = []) {
   return (list || []).filter((line) => !matchesRoadmapTemplate(String(line)));
 }
 
+/**
+ * Filter template recommendations.
+ * @param {Array} recs
+ * @returns {any}
+ */
 function filterTemplateRecommendations(recs = []) {
   return (recs || []).filter((item) => {
     const text = typeof item === 'string' ? item : item?.action || '';
@@ -754,11 +984,20 @@ function filterTemplateRecommendations(recs = []) {
   });
 }
 
+/**
+ * Recommendations need benchmark replace.
+ * @param {any} rec
+ * @returns {any}
+ */
 function recommendationsNeedBenchmarkReplace(rec) {
   if (!rec) return true;
   return matchesRoadmapTemplate(JSON.stringify(rec));
 }
 
+/**
+ * Benchmark recommendations.
+ * @returns {any}
+ */
 function benchmarkRecommendations() {
   return {
     immediate: ['Review OSS clone hygiene — Simplebeacon product deploy steps do not apply to github-cache/ targets'],
@@ -772,6 +1011,12 @@ function benchmarkRecommendations() {
   };
 }
 
+/**
+ * Sanitize strategic insights.
+ * @param {Array} insights
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function sanitizeStrategicInsights(insights, benchmarkScan) {
   if (!insights || typeof insights !== 'object') return insights;
   const next = { ...insights };
@@ -792,6 +1037,11 @@ function sanitizeStrategicInsights(insights, benchmarkScan) {
     );
 
     if (next.riskAssessment) {
+/**
+ * Factors.
+ * @param {any} next.riskAssessment.riskFactors || []
+ * @returns {any}
+ */
       const factors = (next.riskAssessment.riskFactors || []).filter((factor) => {
         const text = `${factor.description || ''} ${factor.recommendation || ''}`;
         return !matchesRoadmapTemplate(text);
@@ -837,6 +1087,14 @@ function sanitizeStrategicInsights(insights, benchmarkScan) {
   return next;
 }
 
+/**
+ * Sanitize progress metrics.
+ * @param {Array} metrics
+ * @param {any} benchmarkScan
+ * @param {Array} codeMetrics
+ * @param {any} misscopedPlatformWalk
+ * @returns {any}
+ */
 function sanitizeProgressMetrics(metrics, benchmarkScan, codeMetrics, misscopedPlatformWalk = false) {
   if (!metrics || !benchmarkScan) return metrics;
   return {
@@ -877,6 +1135,12 @@ const PRODUCT_INVENTORY_FEATURE_MARKERS = [
   /npm audit wired/i
 ];
 
+/**
+ * Overlay misscoped structure inventory.
+ * @param {string} structure
+ * @param {string} repositoryFilesTotal
+ * @returns {any}
+ */
 function overlayMisscopedStructureInventory(structure, repositoryFilesTotal) {
   if (!structure || repositoryFilesTotal == null) return structure;
   return {
@@ -887,6 +1151,12 @@ function overlayMisscopedStructureInventory(structure, repositoryFilesTotal) {
   };
 }
 
+/**
+ * Sanitize code analysis for benchmark.
+ * @param {Array} codeAnalysis
+ * @param {any} misscopedPlatformWalk
+ * @returns {any}
+ */
 function sanitizeCodeAnalysisForBenchmark(codeAnalysis, misscopedPlatformWalk = false) {
   if (!codeAnalysis || typeof codeAnalysis !== 'object') return codeAnalysis;
   const next = { ...codeAnalysis };
@@ -927,6 +1197,11 @@ function sanitizeCodeAnalysisForBenchmark(codeAnalysis, misscopedPlatformWalk = 
   return next;
 }
 
+/**
+ * Sanitize resource estimate for benchmark.
+ * @param {any} estimate
+ * @returns {any}
+ */
 function sanitizeResourceEstimateForBenchmark(estimate) {
   if (!estimate || typeof estimate !== 'object') return estimate;
   return {
@@ -937,6 +1212,12 @@ function sanitizeResourceEstimateForBenchmark(estimate) {
   };
 }
 
+/**
+ * Sanitize executive summary for benchmark.
+ * @param {any} summary
+ * @param {Array} codeMetrics
+ * @returns {any}
+ */
 function sanitizeExecutiveSummaryForBenchmark(summary, codeMetrics) {
   if (!summary || typeof summary !== 'object') return summary;
   return {
@@ -951,6 +1232,12 @@ function sanitizeExecutiveSummaryForBenchmark(summary, codeMetrics) {
   };
 }
 
+/**
+ * Sanitize roadmap export.
+ * @param {any} roadmap
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeRoadmapExport(roadmap, options = {}) {
   if (!roadmap || roadmap.type !== 'dynamic-project-roadmap-analysis') return roadmap;
 

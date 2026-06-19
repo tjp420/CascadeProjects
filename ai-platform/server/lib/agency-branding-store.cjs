@@ -1,15 +1,27 @@
 /**
  * Agency co-branding for certificate export — stored in .simplebeacon/agency-branding.json
+ *
+ * @license MIT
  */
 
 const fs = require('fs');
 const path = require('path');
 const { readJsonFileCached } = require('./json-file-cache.cjs');
 
+/**
+ * Compute the absolute path to the agency branding store JSON file.
+ * @param {string} projectRoot - Root directory of the project.
+ * @returns {string}
+ */
 function brandingStorePath(projectRoot) {
     return path.join(projectRoot, '.simplebeacon', 'agency-branding.json');
 }
 
+/**
+ * Normalize a raw branding record into the canonical shape.
+ * @param {Object} [record={}] - Raw branding record.
+ * @returns {{agency_name:string,logo_url:string,accent_color:string,updatedAt:string|null}}
+ */
 function normalizeBrandingRecord(record = {}) {
     return {
         agency_name: String(record.agency_name || record.agencyName || '').trim(),
@@ -19,6 +31,11 @@ function normalizeBrandingRecord(record = {}) {
     };
 }
 
+/**
+ * Load and normalize the full agency branding store.
+ * @param {string} projectRoot - Root directory of the project.
+ * @returns {Object.<string, {agency_name:string,logo_url:string,accent_color:string,updatedAt:string|null}>}
+ */
 function loadAgencyBrandingStore(projectRoot) {
     const storePath = brandingStorePath(projectRoot);
     const raw = readJsonFileCached(storePath);
@@ -35,12 +52,25 @@ function loadAgencyBrandingStore(projectRoot) {
     return out;
 }
 
+/**
+ * Load agency branding.
+ * @param {any} projectRoot
+ * @param {string} orgId
+ * @returns {any}
+ */
 function loadAgencyBranding(projectRoot, orgId = 'default') {
     const store = loadAgencyBrandingStore(projectRoot);
     const key = String(orgId || 'default').trim() || 'default';
     return store[key] || store.default || normalizeBrandingRecord({});
 }
 
+/**
+ * Save agency branding.
+ * @param {any} projectRoot
+ * @param {string} orgId
+ * @param {any} branding
+ * @returns {any}
+ */
 function saveAgencyBranding(projectRoot, orgId, branding) {
     const storePath = brandingStorePath(projectRoot);
     const key = String(orgId || 'default').trim() || 'default';
@@ -54,6 +84,11 @@ function saveAgencyBranding(projectRoot, orgId, branding) {
     return store[key];
 }
 
+/**
+ * Resolve logo src.
+ * @param {any} branding
+ * @returns {any}
+ */
 function resolveLogoSrc(branding = {}) {
     const url = branding.logo_url || branding.logoUrl || '';
     if (!url) return null;

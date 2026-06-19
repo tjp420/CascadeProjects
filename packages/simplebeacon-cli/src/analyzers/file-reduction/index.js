@@ -25,7 +25,7 @@ async function runFileReductionAnalysis(projectRoot, options = {}) {
     let dataCleanupConfig = {};
     try {
         const loaded = loadSimplebeaconConfig(projectRoot);
-        dataCleanupConfig = loaded.config?.dataCleanup || {};
+        dataCleanupConfig = loaded.dataCleanup || {};
     } catch {
         dataCleanupConfig = {};
     }

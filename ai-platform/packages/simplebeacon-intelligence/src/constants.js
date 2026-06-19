@@ -1,5 +1,8 @@
+// SPDX-License-Identifier: MIT
 /**
  * Shared constants for structural intent analysis.
+ *
+ * @license MIT
  */
 
 const GENERIC_AI_MARKERS = new Set([

@@ -71,6 +71,11 @@ const UNIVERSAL_DEBUG = [
     { id: 'debug-comment', pattern: /\/\/\s*DEBUG\b|#\s*DEBUG\b|\/\*\s*DEBUG\b/i, label: 'DEBUG comment marker' }
 ];
 
+/**
+ * Get baseline patterns for family.
+ * @param {any} family
+ * @returns {any}
+ */
 function getBaselinePatternsForFamily(family) {
     const key = String(family || 'domain').toLowerCase();
     return {

@@ -3,15 +3,35 @@ import { billingService } from './billingService.js';
 import { authService } from './authService.js';
 import { isDemoMode, DEMO_API_BASE } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
+import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260616demodashboard1';
 
+/**
+ * Simplebeacon api base.
+ * @returns {any}
+ */
 function simplebeaconApiBase() {
-  return isDemoMode() ? DEMO_API_BASE : '/api/simplebeacon';
+  if (isDemoMode()) return DEMO_API_BASE;
+  const stored = localStorage.getItem('sb_api_host');
+  if (stored) return stored + '/api/simplebeacon';
+  return '/api/simplebeacon';
 }
 
+/**
+ * Merge auth headers.
+ * @param {any} extra
+ * @returns {any}
+ */
 function mergeAuthHeaders(extra = {}) {
   return { ...authService.getAuthHeaders(), ...billingService.getAuthHeaders(), ...extra };
 }
 
+/**
+ * Fetch simplebeacon.
+ * @param {string} url
+ * @param {Object} options
+ * @param {number} timeout
+ * @returns {any}
+ */
 async function fetchSimplebeacon(url, options = {}, timeout = 30000) {
   const headers = mergeAuthHeaders(options.headers || {});
   let res;
@@ -49,6 +69,9 @@ async function fetchSimplebeacon(url, options = {}, timeout = 30000) {
   return res;
 }
 
+/**
+ * Scan service.
+ */
 export class ScanService {
   constructor() {
     this.report = null;
@@ -57,11 +80,11 @@ export class ScanService {
     this.history = [];
   }
 
-  async fetchAll() {
+  async fetchAll(projectPath = null) {
     const [reportR, baselineR, configR, historyR] = await Promise.allSettled([
-      this.fetchReport(),
+      this.fetchReport(projectPath),
       this.fetchBaseline(),
-      this.fetchConfig(),
+      this.fetchConfig(projectPath),
       this.fetchHistory()
     ]);
 
@@ -82,7 +105,10 @@ export class ScanService {
     if (projectPath && /^https?:\/\//i.test(projectPath)) {
       return null;
     }
-    const params = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
+    const query = new URLSearchParams();
+    if (projectPath) query.set('projectPath', projectPath);
+    query.set('_cb', Date.now().toString());
+    const params = query.toString() ? `?${query.toString()}` : '';
     const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report${params}`);
     if (!res.ok) throw new Error('Failed to load scan report — is the dashboard server running?');
     const report = await readJsonResponseBody(res, null);
@@ -125,8 +151,9 @@ export class ScanService {
     return this.baseline;
   }
 
-  async fetchConfig() {
-    const res = await fetchWithTimeout(`${simplebeaconApiBase()}/config`, { headers: mergeAuthHeaders() });
+  async fetchConfig(projectPath = null) {
+    const qs = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
+    const res = await fetchWithTimeout(`${simplebeaconApiBase()}/config${qs}`, { headers: mergeAuthHeaders() });
     if (!res.ok) throw new Error('Failed to load config');
     this.config = await readJsonResponseBody(res, null);
     if (!this.config || typeof this.config !== 'object') {
@@ -240,7 +267,7 @@ export class ScanService {
     }
   }
 
-  async runScan(projectPath) {
+  async runScan(projectPath, options = {}) {
     if (isDemoMode()) {
       const err = new Error('Demo mode is read-only');
       err.code = 'demo_readonly';
@@ -249,8 +276,8 @@ export class ScanService {
     const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/scan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectPath: projectPath || undefined })
-    }, 120000);
+      body: JSON.stringify({ projectPath: projectPath || undefined, fullDirectoryScan: options.fullDirectoryScan !== false })
+    }, 600000);
     const data = await readJsonResponseBody(res, {});
     if (!res.ok) {
       if (data.partialReport) {
@@ -290,6 +317,18 @@ export class ScanService {
     downloadJson(data, `simplebeacon-report-${new Date().toISOString().slice(0, 10)}.json`);
   }
 
+  exportDashboard(options = {}) {
+    const bundle = buildDashboardExportBundle({
+      report: options.report || this.report || null,
+      baseline: options.baseline || this.baseline || null,
+      config: options.config || null,
+      history: options.history || this.history || [],
+      dashboardHome: options.dashboardHome || null,
+      exportFilename: options.exportFilename || `simplebeacon-dashboard-${new Date().toISOString().slice(0, 10)}.json`
+    });
+    downloadJson(bundle, bundle.exportFilename || `simplebeacon-dashboard-${new Date().toISOString().slice(0, 10)}.json`);
+  }
+
   exportFilteredIssues(issues, meta = {}) {
     const payload = {
       type: 'simplebeacon-results-export',
@@ -303,6 +342,11 @@ export class ScanService {
 
   exportIssuesCsv(issues) {
     const header = ['severity', 'type', 'description', 'file', 'count', 'recommendedAction'];
+/**
+ * Escape.
+ * @param {any} v
+ * @returns {any}
+ */
     const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const rows = issues.map((i) => [
       i.severity,
@@ -319,6 +363,11 @@ export class ScanService {
     if (!report) return [];
 
     const raw = report.rawIssues || report.detectedIssues || [];
+/**
+ * Count by type.
+ * @param {any} typeMatch
+ * @returns {any}
+ */
     const countByType = (typeMatch) =>
       raw.filter((i) => typeMatch(i.type)).reduce((s, i) => s + (i.count || 1), 0);
 
@@ -327,10 +376,17 @@ export class ScanService {
     const prodCount = report.productionLeakFindings ?? countByType((t) => /production leak/i.test(t));
     const fictionCount = countByType((t) => /fiction|consistency|kpi/i.test(t));
     const dupCount = countByType((t) => /duplicate/i.test(t));
-    const categorizedCount = credCount + schemaCount + prodCount + fictionCount + dupCount;
+    const typeSafetyCount = countByType((t) => /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(t));
+    const categorizedCount = credCount + schemaCount + prodCount + fictionCount + dupCount + typeSafetyCount;
     const totalRaw = raw.reduce((s, i) => s + (i.count || 1), 0);
     const otherCount = Math.max(0, totalRaw - categorizedCount);
 
+/**
+ * Max severity.
+ * @param {number} count
+ * @param {any} defaultSev
+ * @returns {any}
+ */
     const maxSeverity = (count, defaultSev) => {
       if (count === 0) return 'none';
       const issues = raw.filter((i) => i.count > 0 || i.severity);
@@ -383,13 +439,21 @@ export class ScanService {
         filter: (i) => /duplicate/i.test(i.type)
       },
       {
+        id: 'type-safety',
+        icon: '🛡️',
+        title: 'Type Safety',
+        count: typeSafetyCount,
+        severity: typeSafetyCount ? maxSeverity(typeSafetyCount, 'low') : 'none',
+        filter: (i) => /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(i.type)
+      },
+      {
         id: 'other',
         icon: '📁',
         title: 'Other Findings',
         count: otherCount,
         severity: otherCount ? 'low' : 'none',
         filter: (i) =>
-          !/credential|schema|production leak|fiction|consistency|kpi|duplicate/i.test(i.type)
+          !/credential|schema|production leak|fiction|consistency|kpi|duplicate|type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(i.type)
       }
     ];
   }
@@ -413,4 +477,7 @@ export class ScanService {
   }
 }
 
+/**
+ * Scan service.
+ */
 export const scanService = new ScanService();

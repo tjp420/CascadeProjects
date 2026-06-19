@@ -182,6 +182,7 @@ const RUNTIME_REFERENCE_PATTERNS = [
 
 function resolveRuntimePath(fromFile, specifier, projectRoot) {
     const normalized = normalizeSpecifier(specifier);
+    // simplebeacon:production-leak-intent — protocol check to skip remote URLs, not a dependency URL
     if (!normalized || normalized.startsWith('http://') || normalized.startsWith('https://')) {
         return null;
     }

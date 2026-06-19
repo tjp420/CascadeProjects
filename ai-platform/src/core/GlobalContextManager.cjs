@@ -8,6 +8,9 @@ const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 
+/**
+ * Global context manager.
+ */
 class GlobalContextManager {
     constructor(targetDir) {
         this.targetDir = path.resolve(targetDir);
@@ -358,6 +361,12 @@ class GlobalContextManager {
      * Analyze JSON structure
      */
     analyzeJsonStructure(jsonData) {
+/**
+ * Analyze.
+ * @param {any} obj
+ * @param {any} depth
+ * @returns {any}
+ */
         const analyze = (obj, depth = 0) => {
             if (depth > 5) return 'deep';
             

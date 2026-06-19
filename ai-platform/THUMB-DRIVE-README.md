@@ -35,7 +35,7 @@ The script auto-detects the thumb drive path, starts the server, and opens the b
 ```bash
 # Terminal
 cd /media/$USER/YOUR_DRIVE_NAME/CascadeProjects
-./scan-website.sh https://example.com --gate
+./scan-website.sh https://your-domain.com --gate
 
 # Or use the dashboard:
 # Open http://localhost:54355/simplebeacon-dashboard/#/analyze
@@ -49,5 +49,5 @@ FAT32/exFAT thumb drives don't support Unix execute permissions. Run with `bash`
 ```bash
 bash setup-zorin.sh
 bash start-dashboard.sh
-bash scan-website.sh https://example.com --gate
+bash scan-website.sh https://your-domain.com --gate
 ```

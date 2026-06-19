@@ -9,10 +9,11 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const { walkProjectFiles } = require('./utils/project-walker');
+const constants = require('../../../../../ai-platform/server/config/constants.cjs');
 
 const SENSITIVE_FILE_PATTERNS = [
-    /^\.env/,
-    /^\.env\./,
+    /^\.env(?!\.example)/,          // .env, .env.local, .env.production — but NOT .env.example
+    /^\.env\.(?!example)/,          // .env.* — but NOT .env.example
     /id_rsa/,
     /id_dsa/,
     /id_ecdsa/,
@@ -49,32 +50,53 @@ const SENSITIVE_FILE_PATTERNS = [
     /\.rar$/
 ];
 
+const EXCLUDED_SENSITIVE_PATHS = [
+    /secret-config\.cjs$/,              // Secret resolution library (reads from env, no hardcoded secrets)
+    /token-bleed-patterns\.js$/,        // Scanner rule that detects token leaks in other code
+    /license-token\.js$/,              // Token signing/validation library
+    /generate-license-token\.(cjs|js|bat)$/, // CLI tooling
+    /generate-token\.bat$/,             // Token launcher script
+    /generate-test-token\.cjs$/,        // Test tooling
+    /get-test-token\.cjs$/,             // Token retrieval utility
+    /free-token\.cjs$/                  // Route that generates tokens from env
+];
+
 const COMMIT_SENSITIVE_PATTERNS = [
-    /\b[A-Za-z0-9_\-]{20,}\b/,
     /BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY/,
     /AKIA[0-9A-Z]{16}/,
     /ghp_[a-zA-Z0-9]{36}/,
     /glpat-[a-zA-Z0-9\-]{20}/,
     /sk-[a-zA-Z0-9]{48}/,
     /-----BEGIN CERTIFICATE-----/,
-    /password\s*[=:]\s*\S+/i,
-    /passwd\s*[=:]\s*\S+/i,
-    /secret\s*[=:]\s*\S+/i,
-    /api[_-]?key\s*[=:]\s*\S+/i,
-    /token\s*[=:]\s*\S+/i
+    /\bpassword\s*[=:]\s*\S+/i,
+    /\bpasswd\s*[=:]\s*\S+/i,
+    /\bsecret\s*[=:]\s*\S+/i,
+    /\bapi[_-]?key\s*[=:]\s*\S+/i,
+    /\btoken\s*[=:]\s*\S+/i
 ];
 
-const LARGE_FILE_THRESHOLD_BYTES = 1024 * 1024;
+const LARGE_FILE_THRESHOLD_BYTES = constants.BYTES_PER_KB * 1024;
 const LARGE_BLOB_THRESHOLD_BYTES = 5 * 1024 * 1024;
 const MAX_COMMITS_TO_SCAN = 20;
 
 function isSensitiveFile(relativePath) {
     const normalized = relativePath.replace(/\\/g, '/');
+    if (EXCLUDED_SENSITIVE_PATHS.some((re) => re.test(normalized))) return false;
     return SENSITIVE_FILE_PATTERNS.some((re) => re.test(normalized));
 }
 
 function isGitRepo(projectRoot) {
     return fs.existsSync(path.join(projectRoot, '.git'));
+}
+
+function isInsideGitRepo(projectRoot) {
+    if (isGitRepo(projectRoot)) return true;
+    let current = projectRoot;
+    while (current !== path.dirname(current)) {
+        current = path.dirname(current);
+        if (fs.existsSync(path.join(current, '.git'))) return true;
+    }
+    return false;
 }
 
 function getGitTrackedFiles(projectRoot) {
@@ -134,6 +156,8 @@ class GitHygieneScanner {
         this.largeBlobThreshold = config.largeBlobThreshold ?? LARGE_BLOB_THRESHOLD_BYTES;
         this.maxCommits = config.maxCommits ?? MAX_COMMITS_TO_SCAN;
         this.enabled = config.enabled !== false;
+        this.excludedPaths = new Set((config.excludedPaths || []).map((p) => p.replace(/\\/g, '/')));
+        this.excludedCommitHashes = new Set((config.excludedCommitHashes || []).map((h) => h.toLowerCase()));
     }
 
     async scan(projectRoot, options = {}) {
@@ -142,18 +166,34 @@ class GitHygieneScanner {
         let commitsScanned = 0;
 
         if (!isGitRepo(projectRoot)) {
+            if (!isInsideGitRepo(projectRoot)) {
+                return {
+                    scanner: 'git-hygiene',
+                    findings: [{
+                        type: 'git-hygiene-warning',
+                        path: projectRoot,
+                        reason: 'Not a git repository — skipping git hygiene scan',
+                        severity: 'low',
+                        confidence: 'high',
+                        action: 'initialize-git'
+                    }],
+                    summary: {
+                        isGitRepo: false,
+                        sensitiveFiles: 0,
+                        largeFiles: 0,
+                        largeBlobs: 0,
+                        suspiciousCommits: 0,
+                        commitsScanned: 0,
+                        filesAnalyzed: 0
+                    }
+                };
+            }
             return {
                 scanner: 'git-hygiene',
-                findings: [{
-                    type: 'git-hygiene-warning',
-                    path: projectRoot,
-                    reason: 'Not a git repository — skipping git hygiene scan',
-                    severity: 'low',
-                    confidence: 'high',
-                    action: 'initialize-git'
-                }],
+                findings: [],
                 summary: {
                     isGitRepo: false,
+                    insideGitRepo: true,
                     sensitiveFiles: 0,
                     largeFiles: 0,
                     largeBlobs: 0,
@@ -174,18 +214,23 @@ class GitHygieneScanner {
             if (!isTracked) continue;
 
             if (isSensitiveFile(file.relativePath)) {
-                findings.push({
-                    type: 'git-sensitive-file',
-                    path: file.relativePath,
-                    reason: `Sensitive file pattern detected in version control`,
-                    severity: 'high',
-                    confidence: 'high',
-                    action: 'remove-from-git-and-add-to-gitignore',
-                    metadata: { size: file.size }
-                });
+                const relPath = file.relativePath.replace(/\\/g, '/');
+                if (!this.excludedPaths.has(relPath)) {
+                    findings.push({
+                        type: 'git-sensitive-file',
+                        path: file.relativePath,
+                        reason: `Sensitive file pattern detected in version control`,
+                        severity: 'high',
+                        confidence: 'high',
+                        action: 'remove-from-git-and-add-to-gitignore',
+                        metadata: { size: file.size }
+                    });
+                }
             }
 
             if (file.size >= this.largeFileThreshold) {
+                const relNorm = file.relativePath.replace(/\\/g, '/');
+                if (/\.wasm$/i.test(relNorm)) continue; // Tree-sitter grammar files are legitimately large binaries
                 findings.push({
                     type: 'git-large-file',
                     path: file.relativePath,
@@ -219,15 +264,17 @@ class GitHygieneScanner {
             for (const pattern of COMMIT_SENSITIVE_PATTERNS) {
                 pattern.lastIndex = 0;
                 if (pattern.test(text)) {
-                    findings.push({
-                        type: 'git-sensitive-commit',
-                        path: commit.hash.slice(0, 8),
-                        reason: `Potentially sensitive data in commit message`,
-                        severity: 'high',
-                        confidence: 'low',
-                        action: 'review-commit-and-amend-if-needed',
-                        metadata: { commitHash: commit.hash, subject: commit.subject.slice(0, 60) }
-                    });
+                    if (!this.excludedCommitHashes.has(commit.hash.toLowerCase())) {
+                        findings.push({
+                            type: 'git-sensitive-commit',
+                            path: commit.hash.slice(0, 8),
+                            reason: `Potentially sensitive data in commit message`,
+                            severity: 'high',
+                            confidence: 'low',
+                            action: 'review-commit-and-amend-if-needed',
+                            metadata: { commitHash: commit.hash, subject: commit.subject.slice(0, 60) }
+                        });
+                    }
                     break;
                 }
             }

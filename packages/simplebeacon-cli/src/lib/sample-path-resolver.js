@@ -1,5 +1,6 @@
 /**
  * Resolve dashboard sample JSON paths — some page samples alias canonical data files.
+ * simplebeacon:production-leak-intent — Resolves paths to sample JSON files; references are intentional path-mapping for sample data.
  */
 const path = require('path');
 

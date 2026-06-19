@@ -10,6 +10,11 @@ export const REMOTE_REPO_HOSTS = [
   'www.codeberg.org'
 ];
 
+/**
+ * Is remote repo url.
+ * @param {any} value
+ * @returns {any}
+ */
 export function isRemoteRepoUrl(value) {
   const raw = String(value || '').trim();
   if (!raw) return false;
@@ -36,6 +41,11 @@ export function isGithubRepoUrl(value) {
   return isRemoteRepoUrl(value);
 }
 
+/**
+ * Source chip title.
+ * @param {any} source
+ * @returns {any}
+ */
 export function sourceChipTitle(source) {
   const hint = source?.hint ? ` — ${source.hint}` : '';
   const kind = source?.kind === 'remote' ? 'HTTPS clone' : source?.kind === 'cached' ? 'Cached clone' : 'Local folder';

@@ -24,6 +24,12 @@ const GAME_SCRIPT_EXTENSIONS = new Set(
         .map((ext) => ext.toLowerCase())
 );
 
+/**
+ * Resolve scan profile.
+ * @param {Object} options
+ * @param {string} context
+ * @returns {any}
+ */
 function resolveScanProfile(options = {}, context = 'cli') {
     if (options.scanProfile) {
         return String(options.scanProfile).toLowerCase();
@@ -37,15 +43,30 @@ function resolveScanProfile(options = {}, context = 'cli') {
     return CLI_DEFAULT_SCAN_PROFILE;
 }
 
+/**
+ * Get code extensions.
+ * @param {string} scanProfile
+ * @returns {any}
+ */
 function getCodeExtensions(scanProfile) {
     return getExtensionsForProfile(scanProfile);
 }
 
+/**
+ * Get language for extension.
+ * @param {any} extension
+ * @returns {any}
+ */
 function getLanguageForExtension(extension) {
     const ext = String(extension || '').toLowerCase();
     return EXTENSION_TO_LANGUAGE[ext] || 'generic';
 }
 
+/**
+ * Is game script extension.
+ * @param {any} extension
+ * @returns {any}
+ */
 function isGameScriptExtension(extension) {
     return GAME_SCRIPT_EXTENSIONS.has(String(extension || '').toLowerCase());
 }

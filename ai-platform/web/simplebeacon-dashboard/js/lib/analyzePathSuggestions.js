@@ -6,16 +6,29 @@ import { escapeHtml, redactPathForDisplay, formatPathLabel } from '../utils.js';
 import { normalizeProjectPath } from '../services/analyzeService.js';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
 
+/**
+ * P a t h  s u g g e s t i o n s  l i s t  i d.
+ */
 export const PATH_SUGGESTIONS_LIST_ID = 'project-path-suggestions';
 
 const RECENT_PATHS_KEY = 'simplebeaconRecentPaths';
 
+/**
+ * Basename path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function basenamePath(projectPath) {
   if (!projectPath) return '';
   const parts = String(projectPath).replace(/\\/g, '/').split('/').filter(Boolean);
   return parts[parts.length - 1] || projectPath;
 }
 
+/**
+ * Is plausible suggestion path.
+ * @param {any} value
+ * @returns {any}
+ */
 export function isPlausibleSuggestionPath(value) {
   const raw = String(value || '').trim();
   if (!raw || raw.length > 280) return false;
@@ -33,6 +46,10 @@ export function isPlausibleSuggestionPath(value) {
   return false;
 }
 
+/**
+ * Load recent paths.
+ * @returns {any}
+ */
 export function loadRecentPaths() {
   try {
     const raw = localStorage.getItem(RECENT_PATHS_KEY);
@@ -44,12 +61,22 @@ export function loadRecentPaths() {
   }
 }
 
+/**
+ * Save recent path.
+ * @param {string} path
+ * @returns {any}
+ */
 export function saveRecentPath(path) {
   if (!isPlausibleSuggestionPath(path)) return;
   const recent = [path, ...loadRecentPaths().filter((p) => p !== path)].slice(0, 8);
   localStorage.setItem(RECENT_PATHS_KEY, JSON.stringify(recent));
 }
 
+/**
+ * Remove recent path.
+ * @param {string} path
+ * @returns {any}
+ */
 export function removeRecentPath(path) {
   const raw = String(path || '').trim();
   if (!raw) return;
@@ -62,6 +89,13 @@ export function collectPathSuggestions(app, testSources = []) {
   const entries = [];
   const seen = new Set();
 
+/**
+ * Add.
+ * @param {any} value
+ * @param {any} label
+ * @param {any} kind
+ * @returns {any}
+ */
   const add = (value, label, kind = 'path') => {
     const full = String(value || '').trim();
     if (!full || !isPlausibleSuggestionPath(full)) return;
@@ -93,6 +127,11 @@ export function collectPathSuggestions(app, testSources = []) {
   return entries;
 }
 
+/**
+ * Render path suggestions datalist html.
+ * @param {Array} entries
+ * @returns {any}
+ */
 export function renderPathSuggestionsDatalistHtml(entries = []) {
   if (!entries.length) return '';
   return entries.map(({ full, label, displayValue }) => {
@@ -102,12 +141,33 @@ export function renderPathSuggestionsDatalistHtml(entries = []) {
   }).join('');
 }
 
+function createDatalistOptions(entries) {
+  const fragment = document.createDocumentFragment();
+  entries.forEach(({ full, label, displayValue }) => {
+    const value = displayValue || full;
+    const title = full !== value ? full : label;
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.label = label;
+    opt.title = title;
+    fragment.appendChild(opt);
+  });
+  return fragment;
+}
+
+/**
+ * Refresh path suggestions datalist.
+ * @param {any} container
+ * @param {any} app
+ * @param {Array} testSources
+ * @returns {any}
+ */
 export function refreshPathSuggestionsDatalist(container, app, testSources = []) {
   if (!container) return [];
   const entries = collectPathSuggestions(app, testSources);
   const datalist = container.querySelector(`#${PATH_SUGGESTIONS_LIST_ID}`);
   if (datalist) {
-    datalist.innerHTML = renderPathSuggestionsDatalistHtml(entries);
+    datalist.replaceChildren(createDatalistOptions(entries));
   }
   return entries;
 }
@@ -140,10 +200,19 @@ export function expandDisplayPathToFull(inputValue, app, testSources = []) {
   return String(app?.state?.defaultProjectPath || '').trim() || trimmed;
 }
 
+/**
+ * Path input list attr.
+ * @returns {any}
+ */
 export function pathInputListAttr() {
   return PATH_SUGGESTIONS_LIST_ID;
 }
 
+/**
+ * Render path suggestions datalist element.
+ * @param {Array} entries
+ * @returns {any}
+ */
 export function renderPathSuggestionsDatalistElement(entries = []) {
   return `<datalist id="${PATH_SUGGESTIONS_LIST_ID}">${renderPathSuggestionsDatalistHtml(entries)}</datalist>`;
 }

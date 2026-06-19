@@ -1,5 +1,11 @@
 import { escapeHtml } from '../utils.js';
 
+/**
+ * Render zscript report panel.
+ * @param {number} zscriptReport
+ * @param {Object} options
+ * @returns {any}
+ */
 export function renderZscriptReportPanel(zscriptReport, options = {}) {
   const report = zscriptReport?.report || zscriptReport;
   if (!report || report.type !== 'zscript-mod-report') {
@@ -83,6 +89,11 @@ export function renderZscriptReportPanel(zscriptReport, options = {}) {
   `;
 }
 
+/**
+ * Build zscript conclusion.
+ * @param {number} zscriptReport
+ * @returns {any}
+ */
 export function buildZscriptConclusion(zscriptReport) {
   const report = zscriptReport?.report || zscriptReport;
   if (!report?.problem_diagnosis?.problem) return '';

@@ -1,32 +1,37 @@
-const { execSync } = require('child_process');
+'use strict';
+
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+const CWD = process.cwd();
+
+function resolveSafePath(relativeFilePath) {
+    const fullPath = path.resolve(CWD, relativeFilePath);
+    // Prevent directory traversal outside the project root
+    const realPath = fs.existsSync(fullPath) ? fs.realpathSync(fullPath) : fullPath;
+    const realCwd = fs.realpathSync(CWD);
+    if (!realPath.startsWith(realCwd + path.sep) && realPath !== realCwd) {
+        throw new Error(`[AI Safety] Rejected: Path escapes project root: ${relativeFilePath}`);
+    }
+    return fullPath;
+}
+
 function verifyFileSyntax(relativeFilePath) {
-    const fullPath = path.resolve(process.cwd(), relativeFilePath);
+    const fullPath = resolveSafePath(relativeFilePath);
     if (!fs.existsSync(fullPath)) {
         throw new Error(`[AI Safety] Rejected: Target path does not exist on disk: ${relativeFilePath}`);
     }
     try {
-        execSync(`node -c "${fullPath}"`, { stdio: 'ignore' });
+        execFileSync(process.execPath, ['-c', fullPath], { stdio: 'ignore' });
         return { ok: true, message: `Syntax check passed for ${relativeFilePath}` };
     } catch (error) {
         return { ok: false, error: `Syntax compilation failed in ${relativeFilePath}` };
     }
 }
 
-function verifyTestSuites() {
-    try {
-        console.log('[AI Runner] Invoking local project test suites...');
-        const output = execSync('npm test', { encoding: 'utf8', stdio: 'pipe' });
-        return { ok: true, rawOutput: output };
-    } catch (error) {
-        return { ok: false, rawOutput: error.stdout || error.message };
-    }
-}
-
 function proposeInlineFix(relativeFilePath, targetText, replacementText) {
-    const fullPath = path.resolve(process.cwd(), relativeFilePath);
+    const fullPath = resolveSafePath(relativeFilePath);
     if (!fs.existsSync(fullPath)) {
         throw new Error(`[AI Safety] Ghost file detected. Operation aborted for: ${relativeFilePath}`);
     }
@@ -34,7 +39,7 @@ function proposeInlineFix(relativeFilePath, targetText, replacementText) {
     if (!content.includes(targetText)) {
         return { ok: false, error: 'Target string to replace was not found in the source file.' };
     }
-    const updatedContent = content.replace(targetText, replacementText);
+    const updatedContent = content.replaceAll(targetText, replacementText);
     fs.writeFileSync(fullPath, updatedContent, 'utf8');
     const check = verifyFileSyntax(relativeFilePath);
     if (!check.ok) {
@@ -46,6 +51,5 @@ function proposeInlineFix(relativeFilePath, targetText, replacementText) {
 
 module.exports = {
     verifyFileSyntax,
-    verifyTestSuites,
     proposeInlineFix
 };

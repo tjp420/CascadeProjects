@@ -1,0 +1,17 @@
+node_modules/
+.git/
+.github-cache/
+.simplebeacon/
+*.log
+.env
+.env.*
+!.env.example
+ai-platform/
+coming-soon/
+scripts/
+tests/
+*.test.js
+*.spec.js
+__mocks__/
+fixtures/
+data/

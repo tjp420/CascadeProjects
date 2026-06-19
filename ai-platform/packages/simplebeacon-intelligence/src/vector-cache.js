@@ -7,20 +7,66 @@ const fs = require('fs');
 const path = require('path');
 
 const CACHE_PATH = path.join(__dirname, '..', 'vector-cache', 'default-fingerprints.json');
+const ALLOWED_CACHE_ROOT = path.resolve(__dirname, '..');
+const MAX_CACHE_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 let cachedFingerprints = null;
 
+/**
+ * Resolve a safe absolute path within ALLOWED_CACHE_ROOT.
+ * Rejects paths that escape the allowed root via `..` segments.
+ * @param {string} inputPath
+ * @returns {string|null}
+ */
+function resolveSafePath(inputPath) {
+    if (!inputPath || typeof inputPath !== 'string') return null;
+    const resolved = path.resolve(inputPath);
+    const normalizedRoot = path.normalize(ALLOWED_CACHE_ROOT);
+    if (!resolved.startsWith(normalizedRoot + path.sep) && resolved !== normalizedRoot) {
+        return null;
+    }
+    return resolved;
+}
+
+/**
+ * Load fingerprints.
+ * @param {string} customPath
+ * @returns {any}
+ */
 function loadFingerprints(customPath) {
     if (cachedFingerprints && !customPath) return cachedFingerprints;
 
-    const cachePath = customPath || CACHE_PATH;
+    let cachePath = customPath || CACHE_PATH;
+    if (customPath) {
+        const safePath = resolveSafePath(customPath);
+        if (!safePath) {
+            throw new Error('Invalid fingerprint cache path: path traversal detected');
+        }
+        cachePath = safePath;
+    }
+
     try {
+        const stats = fs.statSync(cachePath);
+        if (!stats.isFile()) return [];
+        if (stats.size > MAX_CACHE_FILE_SIZE) {
+            throw new Error('Fingerprint cache file exceeds maximum allowed size');
+        }
         const raw = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
         cachedFingerprints = raw.fingerprints || [];
         return cachedFingerprints;
     } catch {
         return [];
     }
+}
+
+/**
+ * Extract feature vector.
+ * @param {any} content
+ * @param {Array} structuralFindings
+ * @returns {any}
+ */
+function countMatches(content, pattern) {
+    return (content.match(pattern) || []).length;
 }
 
 function extractFeatureVector(content, structuralFindings = []) {
@@ -49,6 +95,12 @@ function extractFeatureVector(content, structuralFindings = []) {
     ];
 }
 
+/**
+ * Dot product.
+ * @param {any} a
+ * @param {any} b
+ * @returns {any}
+ */
 function dotProduct(a, b) {
     let sum = 0;
     const len = Math.min(a.length, b.length);
@@ -58,14 +110,32 @@ function dotProduct(a, b) {
     return sum;
 }
 
+/**
+ * Magnitude.
+ * @param {any} v
+ * @returns {any}
+ */
 function magnitude(v) {
     return Math.sqrt(v.reduce((acc, x) => acc + x * x, 0)) || 1;
 }
 
+/**
+ * Cosine similarity.
+ * @param {any} a
+ * @param {any} b
+ * @returns {any}
+ */
 function cosineSimilarity(a, b) {
     return dotProduct(a, b) / (magnitude(a) * magnitude(b));
 }
 
+/**
+ * Match fingerprints.
+ * @param {any} content
+ * @param {Array} structuralFindings
+ * @param {Object} options
+ * @returns {any}
+ */
 function matchFingerprints(content, structuralFindings = [], options = {}) {
     const fingerprints = loadFingerprints(options.fingerprintCachePath);
     if (!fingerprints.length) return [];
@@ -88,6 +158,14 @@ function matchFingerprints(content, structuralFindings = [], options = {}) {
     return matches.sort((a, b) => b.score - a.score);
 }
 
+/**
+ * Fingerprint findings.
+ * @param {any} content
+ * @param {Array} structuralFindings
+ * @param {string} filePath
+ * @param {Object} options
+ * @returns {any}
+ */
 function fingerprintFindings(content, structuralFindings, filePath, options = {}) {
     const matches = matchFingerprints(content, structuralFindings, options);
     const { INTENT_RULE_IDS } = require('./constants');

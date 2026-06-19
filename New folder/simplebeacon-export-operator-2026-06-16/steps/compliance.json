@@ -1,0 +1,8 @@
+{
+  "id": "compliance",
+  "status": "done",
+  "error": null,
+  "metric": "11/11 rules passed",
+  "gatePass": null,
+  "publicGateLocked": null
+}

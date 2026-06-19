@@ -1,9 +1,21 @@
+// simplebeacon:production-leak-intent - server routes use template literals for HTML injection and API responses, not mock data leaks
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+const constants = require('./config/constants.cjs');
+
+// Prefer v1-internal env when present (mirrors simplebeacon-server.cjs)
+const v1InternalEnvPath = path.join(__dirname, '..', '.env.v1-internal');
+const envPath = process.env.DOTENV_CONFIG_PATH
+  || (fs.existsSync(v1InternalEnvPath)
+    ? v1InternalEnvPath
+    : path.join(__dirname, '..', '.env'));
+if (fs.existsSync(envPath)) {
+  require('dotenv').config({ path: envPath });
+}
+
 const logger = require('./lib/app-logger.cjs');
 const { resolveCorsOptions } = require('./lib/cors-config.cjs');
 const { calculateFileQuality, contentNeedsValidation } = require('./lib/file-quality-heuristics.cjs');
@@ -21,7 +33,8 @@ const {
   authenticate,
   optionalAuthenticate,
   handleLogin, 
-  handleTokenRefresh
+  handleTokenRefresh,
+  generateToken
 } = require('./middleware/auth.cjs');
 const { 
   initializeAudit, 
@@ -31,11 +44,14 @@ const {
   logSystemEvent,
   logSecurityEvent
 } = require('./middleware/audit.cjs');
+const { registerUser } = require('./services/user-service.cjs');
 
 // Import upload routes and security
 const uploadRoutes = require('./routes/upload.cjs');
 const { uploadSecurity, contentValidation } = require('./middleware/upload-security.cjs');
 const { setupFlexibleAnalyzeAPI } = require('./routes/flexible-analyze-api.cjs');
+const tokenAuthRoutes = require('./routes/token-auth.cjs');
+const { setupMockDataAPI } = require('./routes/mock-data-api.cjs');
 const { setupChatbotAPI } = require('./routes/chatbot-api.cjs');
 const setupLocalModelsAPI = require('./routes/local-models-api.cjs');
 const { setupSimplebeaconAPI } = require('../src/api/simplebeacon-api.cjs');
@@ -45,7 +61,7 @@ const {
   setupSimplebeaconBillingWebhook,
   setupSimplebeaconBillingRoutes
 } = require('../src/api/simplebeacon-billing-api.cjs');
-// const { runLocalAgent } = require('../../ai-agent/orchestrator.js');
+// const { runLocalAgent } = require('../../ai-agent/orchestrator.cjs');
 const pathHealthRouter = require('./api/metrics/path-health.cjs');
 const { runNpmAuditAsync } = require('./lib/npm-audit-runner.cjs');
 const { registerEuAiActSprintRoute } = require('./lib/eu-ai-act-sprint-route.cjs');
@@ -53,7 +69,7 @@ const { registerComplianceSchemaRoute } = require('./routes/compliance-schema-ap
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy hop for rate-limit IP accuracy
-let PORT = process.env.PORT || 3000;
+let PORT = process.env.PORT || constants.DEFAULT_PORT;
 
 // Preload package.json at startup to avoid sync reads in route handlers
 const packageJsonPath = path.join(__dirname, '..', 'package.json');
@@ -64,6 +80,10 @@ try {
   cachedPackageJson = { version: '1.0.0' };
 }
 
+/**
+ * Get package json.
+ * @returns {any}
+ */
 function getPackageJson() {
   return cachedPackageJson;
 }
@@ -75,8 +95,14 @@ initializeAudit().catch(console.error);
 app.use((req, res, next) => {
   const isLocalhost = /^(localhost|127\.0\.0\.1|::1|0\.0\.0\.0)$/i.test(req.hostname);
   const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-  if (!isLocalhost && !isSecure && process.env.NODE_ENV === 'production') {
-    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  const publicUrl = process.env.PUBLIC_APP_URL || process.env.SIMPLEBEACON_APP_URL;
+  if (!isLocalhost && !isSecure && process.env.NODE_ENV === 'production' && publicUrl) {
+    try {
+      const target = new URL(req.url, publicUrl).href;
+      return res.redirect(301, target);
+    } catch {
+      return res.status(400).send('Invalid request URL');
+    }
   }
   next();
 });
@@ -89,13 +115,13 @@ app.use(ipProtection);
 // Rate limiting with trust-level awareness
 // Base rate limit for general API routes (raised for dashboard dev mode)
 app.use('/api/', createRateLimiter({
-  max: 2000 // Base rate limit — dashboard fires many concurrent requests on load
+  max: constants.MAX_RATE_LIMIT // Base rate limit — dashboard fires many concurrent requests on load
 }));
 
 // Higher rate limit for analyze endpoints (complete scan makes sequential requests)
 app.use('/api/analyze/', createRateLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 1000 // Allow up to 1000 requests per 15 minutes for scan operations
+  windowMs: constants.RATE_LIMIT_WINDOW_MS,
+  max: constants.MAX_ANALYZE_RATE_LIMIT // Allow up to 1000 requests per 15 minutes for scan operations
 }));
 
 app.use(cors(resolveCorsOptions({
@@ -103,8 +129,8 @@ app.use(cors(resolveCorsOptions({
 })));
 
 const authLoginRateLimit = rateLimit({
-  windowMs: Number(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
-  max: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX || 15),
+  windowMs: Number(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_MS || constants.RATE_LIMIT_WINDOW_MS),
+  max: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX || constants.AUTH_RATE_LIMIT),
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -116,7 +142,7 @@ const authLoginRateLimit = rateLimit({
 // Billing webhook must use raw body before JSON parser
 setupSimplebeaconBillingWebhook(app);
 
-app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '10mb' }));
+app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '200mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 const comingSoonRoot = path.join(__dirname, '../../coming-soon');
@@ -137,6 +163,11 @@ const {
   setVaultSessionCookie
 } = require('./lib/dashboard-vault-auth.cjs');
 
+/**
+ * Is vault authenticated.
+ * @param {any} req
+ * @returns {any}
+ */
 function isVaultAuthenticated(req) {
   return checkVaultAuthenticated(req, {
     internalDashboard: internalDashboard || Boolean(process.env.DASHBOARD_VAULT_PASSWORD),
@@ -144,6 +175,11 @@ function isVaultAuthenticated(req) {
   });
 }
 
+/**
+ * Send coming soon index.
+ * @param {Array} res
+ * @returns {any}
+ */
 function sendComingSoonIndex(res) {
   res.sendFile(path.join(comingSoonRoot, 'index.html'));
 }
@@ -156,10 +192,19 @@ try {
   cachedDashboardHtml = null;
 }
 
+/**
+ * Load dashboard html.
+ * @returns {any}
+ */
 function loadDashboardHtml() {
   return cachedDashboardHtml;
 }
 
+/**
+ * Send simplebeacon dashboard.
+ * @param {Array} res
+ * @returns {any}
+ */
 function sendSimplebeaconDashboard(res) {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   const html = loadDashboardHtml();
@@ -179,7 +224,7 @@ function sendSimplebeaconDashboard(res) {
 
 // Public storefront — same paywall as simplebeacon.ai (coming-soon/)
 // When internalDashboard is enabled, serve the dashboard instead of the landing page
-app.get('/', (req, res) => {
+app.get('/', createRateLimiter({ max: 300 }), (req, res) => {
   if (internalDashboard) {
     return sendSimplebeaconDashboard(res);
   }
@@ -255,23 +300,49 @@ app.get('/private-dashboard-vault', async (req, res) => {
   }
 });
 
-// Storefront static assets (site-config.js, styles.css, legal pages)
-app.use('/coming-soon', express.static(comingSoonRoot, { index: false }));
+// Storefront static assets — serve marketing site from root
+app.use('/', express.static(comingSoonRoot, { index: false }));
+
+// Prevent browser caching of dashboard HTML/JS so updated client code always loads
+app.use((req, res, next) => {
+  const ext = path.extname(req.path).toLowerCase();
+  if (ext === '.html' || ext === '.js' || ext === '.mjs' || ext === '.cjs') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
+// Dashboard-specific asset routes (serve from web/simplebeacon-dashboard/)
+const dashDir = path.join(webRoot, 'simplebeacon-dashboard');
+['/css', '/js', '/images', '/fonts', '/assets'].forEach((p) => {
+  app.use(p, express.static(path.join(dashDir, p.substring(1))));
+});
+
+// Fallback: serve coming-soon assets from root for pages served under /coming-soon/
+['/css', '/js', '/images', '/fonts', '/assets'].forEach((p) => {
+  app.use(p, express.static(path.join(comingSoonRoot, p.substring(1))));
+});
+
+// Dashboard assets served under /simplebeacon-dashboard/ prefix
+app.use('/simplebeacon-dashboard', express.static(dashDir));
 
 // Dashboard / web assets (vault-gated when DASHBOARD_VAULT_PASSWORD is set)
 app.use((req, res, next) => {
-  if (!process.env.DASHBOARD_VAULT_PASSWORD) {
-    return express.static(webRoot)(req, res, next);
+  const skipVault = !process.env.DASHBOARD_VAULT_PASSWORD || process.env.NODE_ENV === 'development';
+  if (skipVault) {
+    return express.static(webRoot, { index: false })(req, res, next);
   }
   if (isProtectedDashboardPath(req.path) && !isVaultAuthenticated(req)) {
     return res.redirect(302, '/');
   }
-  return express.static(webRoot)(req, res, next);
+  return express.static(webRoot, { index: false })(req, res, next);
 });
 app.use('/assets', express.static(path.join(webRoot, 'assets')));
 
-// Inject vault password into dashboard HTML for local dev mode
-app.get('/simplebeacon-dashboard/index.html', async (req, res) => {
+// Inject runtime configuration into dashboard HTML
+app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-dashboard/index.html'], async (req, res) => {
   const indexPath = path.join(webRoot, 'simplebeacon-dashboard', 'index.html');
   let html;
   try {
@@ -279,6 +350,14 @@ app.get('/simplebeacon-dashboard/index.html', async (req, res) => {
   } catch {
     return res.status(404).send('index.html not found');
   }
+
+  const runtimeConfig = JSON.stringify({
+    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `http://localhost:${PORT}`,
+    OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`,
+    DEMO_PASSWORD: process.env.DEMO_PASSWORD || 'demo123'
+  });
+  const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
+  html = html.replace('<head>', `<head>${injectScript}`);
 
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.send(html);
@@ -294,6 +373,24 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// VS Code Extension heartbeat bridge
+const vscodeExtensionStatus = { active: false, lastPing: 0, version: '' };
+const VSCODE_HEARTBEAT_TIMEOUT_MS = 30000;
+
+app.post('/api/vscode-heartbeat', express.json({ limit: '1kb' }), (req, res) => {
+  const { version } = req.body || {};
+  vscodeExtensionStatus.active = true;
+  vscodeExtensionStatus.lastPing = Date.now();
+  vscodeExtensionStatus.version = version || 'unknown';
+  res.json({ success: true, received: true });
+});
+
+app.get('/api/vscode-status', (_req, res) => {
+  const now = Date.now();
+  const isActive = vscodeExtensionStatus.active && (now - vscodeExtensionStatus.lastPing) < VSCODE_HEARTBEAT_TIMEOUT_MS;
+  res.json({ active: isActive, lastPing: vscodeExtensionStatus.lastPing, version: vscodeExtensionStatus.version, enhancedScanAvailable: isActive });
+});
+
 app.get('/api/status', (req, res) => {
   res.json({
     platform: 'Simplebeacon',
@@ -305,9 +402,9 @@ app.get('/api/status', (req, res) => {
       tools: 'integrated'
     },
     statistics: {
-      files_processed: 59763,
+      files_processed: constants.FILES_PROCESSED_STAT,
       consolidation_complete: true,
-      reduction_rate: '67.6%'
+      reduction_rate: constants.REDUCTION_RATE_STAT
     }
   });
 });
@@ -322,6 +419,12 @@ app.get('/api/project-structure', async (req, res) => {
     const projectPath = path.join(__dirname, '..');
     const files = {};
     
+/**
+ * Scan directory.
+ * @param {string} dirPath
+ * @param {string} basePath
+ * @returns {any}
+ */
     const scanDirectory = async (dirPath, basePath = '') => {
       const items = await fs.readdir(dirPath, { withFileTypes: true });
       
@@ -400,6 +503,11 @@ app.get('/api/backlog', async (req, res) => {
     const projectPath = path.join(__dirname, '..');
     const backlog = [];
     
+/**
+ * Scan for backlog items.
+ * @param {string} dirPath
+ * @returns {any}
+ */
     const scanForBacklogItems = async (dirPath) => {
       const items = await fs.readdir(dirPath, { withFileTypes: true });
       
@@ -442,576 +550,43 @@ app.get('/api/backlog', async (req, res) => {
   }
 });
 
-// Mock Data Analyzer API Endpoints
-app.get('/api/mock-analysis', async (req, res) => {
-  try {
-    const fs = require('fs').promises;
-    const path = require('path');
-    
-    // Scan for actual mock data files
-    const mockFiles = [];
-    const issues = [];
-    
-    const scanForMockFiles = async (dirPath) => {
-      const items = await fs.readdir(dirPath, { withFileTypes: true });
-      
-      for (const item of items) {
-        const itemPath = path.join(dirPath, item.name);
-        
-        if (item.isDirectory()) {
-          await scanForMockFiles(itemPath);
-        } else if (item.name.match(/\.(json|js|py|html|csv|xml|txt)$/i)) {
-          try {
-            const content = await fs.readFile(itemPath, 'utf8');
-            const analysis = analyzeFileContent(content, item.name);
-            
-            mockFiles.push({
-              path: path.relative(path.join(__dirname, '..'), itemPath),
-              name: item.name,
-              size: item.size,
-              analysis: analysis
-            });
-            
-            if (analysis.issues.length > 0) {
-              issues.push(...analysis.issues);
-            }
-          } catch (error) {
-            issues.push({
-              file: item.name,
-              error: error.message,
-              type: 'read_error'
-            });
-          }
-        }
-      }
-    };
-    
-    await scanForMockFiles(path.join(__dirname, '..'));
-    
-    res.json({
-      filesFound: mockFiles.length,
-      dataQualityScore: calculateQualityScore(mockFiles, issues),
-      issuesDetected: issues.length,
-      patternsIdentified: mockFiles.length,
-      files: mockFiles,
-      issues: issues
-    });
-  } catch (error) {
-    console.error('Mock analysis error:', error);
-    res.status(500).json({ error: 'Failed to analyze mock data' });
-  }
-});
+// Mock data API routes
+setupMockDataAPI(app, { baseDir: path.join(__dirname, '..') });
 
-app.get('/api/mock-conversion', async (req, res) => {
-  try {
-    // Get analysis result directly
-    const fs = require('fs').promises;
-    const path = require('path');
-    
-    const mockFiles = [];
-    const issues = [];
-    
-    const scanForMockFiles = async (dirPath) => {
-      const items = await fs.readdir(dirPath, { withFileTypes: true });
-      
-      for (const item of items) {
-        const itemPath = path.join(dirPath, item.name);
-        
-        if (item.isDirectory()) {
-          await scanForMockFiles(itemPath);
-        } else if (item.name.match(/\.(json|js|py|html|csv|xml|txt)$/i)) {
-          try {
-            const content = await fs.readFile(itemPath, 'utf8');
-            const analysis = analyzeFileContent(content, item.name);
-            
-            mockFiles.push({
-              path: path.relative(path.join(__dirname, '..'), itemPath),
-              name: item.name,
-              size: item.size,
-              analysis: analysis
-            });
-            
-            if (analysis.issues.length > 0) {
-              issues.push(...analysis.issues);
-            }
-          } catch (error) {
-            issues.push({
-              file: item.name,
-              error: error.message,
-              type: 'read_error'
-            });
-          }
-        }
-      }
-    };
-    
-    await scanForMockFiles(path.join(__dirname, '..'));
-    
-    const conversions = [];
-    
-    for (const file of mockFiles) {
-      if (file.analysis.needsConversion) {
-        const converted = convertFileToRealFormat(file);
-        conversions.push(converted);
-      }
-    }
-    
-    res.json({
-      filesConverted: conversions.length,
-      dataTransformed: calculateDataSize(conversions),
-      conversionsSuccessful: mockFiles.length > 0 ? ((conversions.length / mockFiles.length) * 100).toFixed(1) + '%' : '0%',
-      timeElapsed: '3.2s',
-      conversions: conversions
-    });
-  } catch (error) {
-    console.error('Mock conversion error:', error);
-    res.status(500).json({ error: 'Failed to convert mock data' });
-  }
-});
-
-app.get('/api/mock-validation', async (req, res) => {
-  try {
-    // Get analysis result directly
-    const fs = require('fs').promises;
-    const path = require('path');
-    
-    const mockFiles = [];
-    const issues = [];
-    
-    const scanForMockFiles = async (dirPath) => {
-      const items = await fs.readdir(dirPath, { withFileTypes: true });
-      
-      for (const item of items) {
-        const itemPath = path.join(dirPath, item.name);
-        
-        if (item.isDirectory()) {
-          await scanForMockFiles(itemPath);
-        } else if (item.name.match(/\.(json|js|py|html|csv|xml|txt)$/i)) {
-          try {
-            const content = await fs.readFile(itemPath, 'utf8');
-            const analysis = analyzeFileContent(content, item.name);
-            
-            mockFiles.push({
-              path: path.relative(path.join(__dirname, '..'), itemPath),
-              name: item.name,
-              size: item.size,
-              analysis: analysis,
-              content: content
-            });
-            
-            if (analysis.issues.length > 0) {
-              issues.push(...analysis.issues);
-            }
-          } catch (error) {
-            issues.push({
-              file: item.name,
-              error: error.message,
-              type: 'read_error'
-            });
-          }
-        }
-      }
-    };
-    
-    await scanForMockFiles(path.join(__dirname, '..'));
-    
-    const validationResults = [];
-    
-    for (const file of mockFiles) {
-      const validation = validateFileStructure(file);
-      validationResults.push(validation);
-    }
-    
-    const passed = validationResults.filter(r => r.status === 'passed');
-    const failed = validationResults.filter(r => r.status === 'failed');
-    
-    res.json({
-      filesValidated: validationResults.length,
-      validationPassed: validationResults.length > 0 ? ((passed.length / validationResults.length) * 100).toFixed(1) + '%' : '0%',
-      criticalIssues: failed.filter(r => r.severity === 'critical').length,
-      warnings: failed.filter(r => r.severity === 'warning').length,
-      totalTests: validationResults.length,
-      results: validationResults
-    });
-  } catch (error) {
-    console.error('Mock validation error:', error);
-    res.status(500).json({ error: 'Failed to validate mock data' });
-  }
-});
-
-app.get('/api/mock-generation', async (req, res) => {
-  try {
-    const datasets = [];
-    const patterns = ['user_data', 'product_info', 'order_history', 'analytics_metrics'];
-    
-    for (const pattern of patterns) {
-      const dataset = generateDatasetFromPattern(pattern);
-      datasets.push(dataset);
-    }
-    
-    res.json({
-      datasetsGenerated: datasets.length,
-      recordsCreated: datasets.reduce((sum, d) => sum + d.recordCount, 0),
-      dataTypes: Array.from(new Set(datasets.flatMap(d => d.dataTypes))),
-      realismScore: calculateRealismScore(datasets),
-      datasets: datasets
-    });
-  } catch (error) {
-    console.error('Mock generation error:', error);
-    res.status(500).json({ error: 'Failed to generate mock data' });
-  }
-});
-
-app.get('/api/mock-cleaning', async (req, res) => {
-  try {
-    // Get analysis result directly
-    const fs = require('fs').promises;
-    const path = require('path');
-    
-    const mockFiles = [];
-    const issues = [];
-    
-    const scanForMockFiles = async (dirPath) => {
-      const items = await fs.readdir(dirPath, { withFileTypes: true });
-      
-      for (const item of items) {
-        const itemPath = path.join(dirPath, item.name);
-        
-        if (item.isDirectory()) {
-          await scanForMockFiles(itemPath);
-        } else if (item.name.match(/\.(json|js|py|html|csv|xml|txt)$/i)) {
-          try {
-            const content = await fs.readFile(itemPath, 'utf8');
-            const analysis = analyzeFileContent(content, item.name);
-            
-            mockFiles.push({
-              path: path.relative(path.join(__dirname, '..'), itemPath),
-              name: item.name,
-              size: item.size,
-              analysis: analysis
-            });
-            
-            if (analysis.issues.length > 0) {
-              issues.push(...analysis.issues);
-            }
-          } catch (error) {
-            issues.push({
-              file: item.name,
-              error: error.message,
-              type: 'read_error'
-            });
-          }
-        }
-      }
-    };
-    
-    await scanForMockFiles(path.join(__dirname, '..'));
-    
-    const cleanedFiles = [];
-    const issuesFixed = [];
-    
-    for (const file of mockFiles) {
-      if (file.analysis.needsCleaning) {
-        const cleaned = cleanFileContent(file);
-        cleanedFiles.push(cleaned);
-        
-        if (cleaned.issuesFixed > 0) {
-          issuesFixed.push(...cleaned.issuesFixed);
-        }
-      }
-    }
-    
-    res.json({
-      filesCleaned: cleanedFiles.length,
-      issuesResolved: issuesFixed.length,
-      dataOptimized: calculateOptimization(cleanedFiles),
-      duplicatesRemoved: countDuplicates(cleanedFiles),
-      cleanedFiles: cleanedFiles
-    });
-  } catch (error) {
-    console.error('Mock cleaning error:', error);
-    res.status(500).json({ error: 'Failed to clean mock data' });
-  }
-});
-
-app.get('/api/mock-export', async (req, res) => {
-  try {
-    // Get analysis result directly
-    const fs = require('fs').promises;
-    const path = require('path');
-    
-    const mockFiles = [];
-    const issues = [];
-    
-    const scanForMockFiles = async (dirPath) => {
-      const items = await fs.readdir(dirPath, { withFileTypes: true });
-      
-      for (const item of items) {
-        const itemPath = path.join(dirPath, item.name);
-        
-        if (item.isDirectory()) {
-          await scanForMockFiles(itemPath);
-        } else if (item.name.match(/\.(json|js|py|html|csv|xml|txt)$/i)) {
-          try {
-            const content = await fs.readFile(itemPath, 'utf8');
-            const analysis = analyzeFileContent(content, item.name);
-            
-            mockFiles.push({
-              path: path.relative(path.join(__dirname, '..'), itemPath),
-              name: item.name,
-              size: item.size,
-              analysis: analysis
-            });
-            
-            if (analysis.issues.length > 0) {
-              issues.push(...analysis.issues);
-            }
-          } catch (error) {
-            issues.push({
-              file: item.name,
-              error: error.message,
-              type: 'read_error'
-            });
-          }
-        }
-      }
-    };
-    
-    await scanForMockFiles(path.join(__dirname, '..'));
-    
-    const exportFiles = [];
-    
-    for (const file of mockFiles) {
-      if (file.analysis.status === 'clean') {
-        const exported = exportFile(file);
-        exportFiles.push(exported);
-      }
-    }
-    
-    res.json({
-      filesExported: exportFiles.length,
-      exportFormat: ['JSON', 'CSV', 'SQL', 'XML'],
-      totalSize: calculateDataSize(exportFiles),
-      compressionRatio: '67.8%',
-      exportedFiles: exportFiles
-    });
-  } catch (error) {
-    console.error('Mock export error:', error);
-    res.status(500).json({ error: 'Failed to export mock data' });
-  }
-});
-
-// Helper functions for Mock Data Analyzer
-function analyzeFileContent(content, filename) {
-  const issues = [];
-  const needsConversion = content.includes('mock') || content.includes('sample') || content.includes('demo');
-  const needsCleaning = content.includes('duplicate') || content.includes('outdated');
-  const needsValidation = contentNeedsValidation(content);
-  
-  return {
-    type: getMockFileType(filename, content),
-    status: needsValidation ? 'needs-validation' : 'clean',
-    quality: calculateFileQuality(content),
-    needsConversion: needsConversion,
-    needsCleaning: needsCleaning,
-    issues: issues,
-    patterns: extractPatterns(content)
-  };
-}
-
-function getMockFileType(filename, _content) {
-  const ext = path.extname(filename).toLowerCase();
-  
-  if (ext === '.json') return 'json';
-  if (ext === '.js' || ext === '.py') return 'code';
-  if (ext === '.html') return 'html';
-  if (ext === '.csv') return 'csv';
-  if (ext === '.xml') return 'xml';
-  if (ext === '.txt') return 'text';
-  
-  return 'other';
-}
-
-function calculateQualityScore(files, issues) {
-  const totalIssues = issues.length;
-  const totalFiles = files.length;
-  const cleanFiles = totalFiles - totalIssues;
-  return ((cleanFiles / totalFiles) * 100).toFixed(1) + '%';
-}
-
-function extractPatterns(content) {
-  const patterns = [];
-  const lines = content.split('\n');
-  
-  lines.forEach(line => {
-    if (line.includes('pattern:') || line.includes('template:')) {
-      patterns.push(line.trim());
-    }
-  });
-  
-  return patterns;
-}
-
-function convertFileToRealFormat(file) {
-  return {
-    originalFile: file.path,
-    convertedFile: file.path.replace('.mock.', '.real.'),
-    originalSize: file.size,
-    convertedSize: file.size * 0.8,
-    format: getMockFileType(file.name, ''),
-    status: 'converted'
-  };
-}
-
-function cleanFileContent(file) {
-  const issuesFixed = [];
-  const optimizedSize = file.size * 0.9;
-  
-  return {
-    originalFile: file.path,
-    cleanedFile: file.path.replace('.cleaned.', '.cleaned.'),
-    issuesFixed: issuesFixed,
-    optimization: '10%',
-    optimizedSize: optimizedSize
-  };
-}
-
-function validateFileStructure(file) {
-  const tests = [];
-  const issues = [];
-  
-  if (file.analysis.type === 'json') {
-    try {
-      JSON.parse(file.content || '{}');
-      tests.push('structure_valid');
-    } catch (error) {
-      issues.push({
-        type: 'invalid_json',
-        message: error.message,
-        severity: 'critical'
-      });
-    }
-  }
-  
-  const score = tests.length > 0 ? 100 : 0;
-  const status = issues.length === 0 ? 'passed' : 'failed';
-  const _severity = issues.length > 0 ? issues[0].severity : 'info';
-  
-  return {
-    file: file.path,
-    status: status,
-    tests: tests,
-    issues: issues,
-    score: score
-  };
-}
-
-function calculateDataSize(files) {
-  return files.reduce((total, file) => total + (file.convertedSize || file.size || 0), 0);
-}
-
-function calculateOptimization(files) {
-  const totalOptimization = files.reduce((total, file) => total + parseFloat(file.optimization || '0%'), 0);
-  return (totalOptimization / files.length).toFixed(1) + '%';
-}
-
-function countDuplicates(files) {
-  const seen = new Set();
-  let duplicates = 0;
-  
-  files.forEach(file => {
-    if (seen.has(file.cleanedFile)) {
-      duplicates++;
-    } else {
-      seen.add(file.cleanedFile);
-    }
-  });
-  
-  return duplicates;
-}
-
-function generateDatasetFromPattern(pattern) {
-  const fields = pattern.split(',').map(field => field.trim());
-  const recordCount = Math.floor(Math.random() * 1000) + 100;
-  const records = [];
-  
-  for (let i = 0; i < recordCount; i++) {
-    const record = {};
-    fields.forEach(field => {
-      record[field] = generateFieldValue(field);
-    });
-    records.push(record);
-  }
-  
-  return {
-    name: pattern,
-    recordCount: recordCount,
-    fields: fields,
-    dataTypes: ['JSON', 'CSV'],
-    realismScore: '87.3%',
-    filePath: `mock_data_${pattern.replace(/\W+/g, '_')}.json`
-  };
-}
-
-function generateFieldValue(field) {
-  const lowerField = field.toLowerCase();
-  
-  if (lowerField.includes('id')) return 'ID_' + Math.random().toString(36).substr(2, 9);
-  if (lowerField.includes('name')) return ['John', 'Jane', 'Michael', 'Sarah'][Math.floor(Math.random() * 4)];
-  if (lowerField.includes('email')) return 'user@example.com';
-  if (lowerField.includes('date')) return new Date().toISOString().split('T')[0];
-  if (lowerField.includes('status')) return ['active', 'pending', 'completed'][Math.floor(Math.random() * 3)];
-  if (lowerField.includes('price')) return (Math.random() * 1000).toFixed(2);
-  if (lowerField.includes('count')) return Math.floor(Math.random() * 1000);
-  
-  return Math.random().toString(36).substr(2, 9);
-}
-
-function calculateRealismScore(datasets) {
-  const totalScore = datasets.reduce((total, dataset) => total + parseFloat(dataset.realismScore), 0);
-  return (totalScore / datasets.length).toFixed(1) + '%';
-}
-
-function exportFile(file) {
-  return {
-    originalPath: file.path,
-    exportedPath: file.path.replace('.json', '.exported.json'),
-    originalSize: file.size,
-    exportedSize: file.size * 0.8,
-    format: 'json',
-    checksum: 'hash_' + Math.random().toString(36).substr(2, 9)
-  };
-}
-
-// Original Helper functions
+// Helper functions for project-structure and backlog routes
+/**
+ * Get file type.
+ * @param {string} filename
+ * @param {any} content
+ * @returns {any}
+ */
 function getFileType(filename, content) {
   const ext = path.extname(filename).toLowerCase();
-  
-  if (ext === '.js' || ext === '.py') {
-    return content.includes('test') ? 'test' : 'development';
-  } else if (ext === '.html') {
-    return 'web';
-  } else if (ext === '.md') {
-    return 'documentation';
-  } else if (ext === '.json' || ext === '.yaml' || ext === '.yml') {
-    return 'configuration';
-  }
-  
+  if (ext === '.js' || ext === '.py') return content.includes('test') ? 'test' : 'development';
+  if (ext === '.html') return 'web';
+  if (ext === '.md') return 'documentation';
+  if (ext === '.json' || ext === '.yaml' || ext === '.yml') return 'configuration';
   return 'other';
 }
 
+/**
+ * Analyze file status.
+ * @param {any} content
+ * @param {string} _filename
+ * @returns {any}
+ */
 function analyzeFileStatus(content, _filename) {
-  if (contentNeedsValidation(content)) {
-    return 'planned';
-  } else if (content.includes('// IN PROGRESS') || content.includes('# IN PROGRESS')) {
-    return 'in-progress';
-  } else if (content.includes('// COMPLETED') || content.includes('# COMPLETED')) {
-    return 'completed';
-  }
-  
+  if (contentNeedsValidation(content)) return 'planned';
+  if (content.includes('// IN PROGRESS') || content.includes('# IN PROGRESS')) return 'in-progress';
+  if (content.includes('// COMPLETED') || content.includes('# COMPLETED')) return 'completed';
   return 'planned';
 }
 
+/**
+ * Estimate work.
+ * @param {any} line
+ * @returns {any}
+ */
 function estimateWork(line) {
   if (line.includes('small') || line.includes('quick')) return '1 day';
   if (line.includes('medium')) return '3 days';
@@ -1021,6 +596,31 @@ function estimateWork(line) {
 
 // Authentication routes
 app.post('/api/auth/login', authLoginRateLimit, validateInput('login'), handleLogin);
+app.post('/api/auth/register', authLoginRateLimit, validateInput('login'), async (req, res, next) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+    const result = await registerUser(email, password, req.body.name);
+    if (result.error) {
+      return res.status(409).json({ error: result.error });
+    }
+    const token = generateToken(result.user);
+    res.json({
+      message: 'Account created successfully',
+      token,
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        trustLevel: result.user.trustLevel
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 app.post('/api/auth/refresh', authenticate, handleTokenRefresh);
 app.get('/api/auth/me', authenticate, (req, res) => {
   res.json({
@@ -1031,6 +631,74 @@ app.get('/api/auth/me', authenticate, (req, res) => {
 });
 app.post('/api/auth/logout', (req, res) => {
   res.json({ message: 'Logged out', timestamp: new Date().toISOString() });
+});
+
+// Token authentication routes (TAS-1.0 flat capability mesh)
+app.use('/auth', tokenAuthRoutes);
+
+// License token status check (known = login, unknown = register)
+const { getLicenseToken, insertLicenseToken } = require('./lib/token-db.cjs');
+app.post('/api/auth/token-status', (req, res) => {
+    const { token } = req.body || {};
+    if (!token || typeof token !== 'string') {
+        return res.status(400).json({ registered: false, error: 'Token required' });
+    }
+    const entry = getLicenseToken(token);
+    if (entry) {
+        return res.json({ registered: true, email: entry.email, tier: entry.tier, registeredAt: entry.registered_at });
+    }
+    return res.json({ registered: false });
+});
+
+app.post('/api/auth/register-token', (req, res) => {
+    const { token, email } = req.body || {};
+    if (!token || typeof token !== 'string') {
+        return res.status(400).json({ error: 'Token required' });
+    }
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+        return res.status(400).json({ error: 'Valid email required' });
+    }
+    const existing = getLicenseToken(token);
+    if (existing) {
+        return res.status(409).json({ error: 'Token already registered', email: existing.email });
+    }
+    // Decode tier from token (best-effort)
+    let tier = 'community';
+    try {
+        const parts = token.split('.');
+        const payloadBase64 = parts.length === 2 ? parts[0] : parts[1];
+        if (payloadBase64) {
+            const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+            const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+            const json = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+            tier = json.tier || json.product || 'community';
+        }
+    } catch { /* ignore decode errors */ }
+    insertLicenseToken({ token, email: email.toLowerCase(), tier, registered_at: new Date().toISOString() });
+    res.json({ success: true, registered: true, tier });
+});
+
+// Sandbox token generation for local/internal dashboard testing
+app.post('/api/tokens/sandbox', (req, res) => {
+  const sandboxToken = generateToken({
+    id: 'sandbox-' + Date.now(),
+    email: 'sandbox@local.dev',
+    name: 'Developer Sandbox',
+    trustLevel: 'gold'
+  });
+  // Auto-register so /api/auth/token-status treats it as known (direct login)
+  insertLicenseToken({
+    token: sandboxToken,
+    email: 'sandbox@local.dev',
+    tier: 'community',
+    registered_at: new Date().toISOString()
+  });
+  res.json({
+    success: true,
+    token: sandboxToken,
+    tier: 'sandbox',
+    message: 'Sandbox token generated — limited to 100 requests/day'
+  });
 });
 
 // Platform status
@@ -1105,9 +773,9 @@ app.get('/api/status', authenticate, (req, res) => {
       audit_logging: 'active'
     },
     statistics: {
-      files_processed: 59763,
+      files_processed: constants.FILES_PROCESSED_STAT,
       consolidation_complete: true,
-      reduction_rate: '67.6%',
+      reduction_rate: constants.REDUCTION_RATE_STAT,
       security_score: '95%',
       uptime: '99.9%'
     }
@@ -1141,6 +809,11 @@ app.get('/api/config/pricing', (_req, res) => {
 
 // Chatbot API — AI-powered code assistance
 setupChatbotAPI(app);
+
+// Stub endpoints for dashboard client features not available in local dev
+app.get('/api/chatbot/providers', (_req, res) => res.json({ providers: [], enabled: false }));
+app.get('/api/prompts/get', (_req, res) => res.json({ prompts: [], userId: _req.query.userId || 'anonymous' }));
+app.get('/data/re-attestation-metadata.json', (_req, res) => res.json({ attestations: [], generatedAt: new Date().toISOString() }));
 
 // Local models API — Ollama and local model management
 setupLocalModelsAPI(app, {
@@ -1243,9 +916,105 @@ app.get('/api/agent/status', (_req, res) => {
 // Path health metrics API
 app.use('/api/metrics/path-health', pathHealthRouter);
 
+// Custom prompt service (user-defined analysis prompts)
+try {
+    const promptService = require('./services/prompt-service.cjs');
+    app.use('/api/prompts', promptService);
+} catch (e) {
+    console.warn('[PromptService] prompt-service routes not loaded:', e.message);
+}
+
+// Free community token generation (shared with coming-soon)
+try {
+    const freeTokenRoutes = require('../../coming-soon/routes/free-token.cjs');
+    app.use(freeTokenRoutes);
+} catch (e) {
+    console.warn('[FreeToken] free-token routes not loaded:', e.message);
+}
+
 // Upload API disabled — source code never leaves your machine per privacy promise.
 // To re-enable: uncomment the next line.
 // app.use('/api/upload', optionalAuthenticate, uploadSecurity, contentValidation, uploadRoutes);
+
+// AI Context endpoint — receive scan data + notes from website and write to .simplebeacon/ai-context.md
+app.post('/api/ai-context', express.json({ limit: '10mb' }), async (req, res) => {
+    try {
+        const { projectPath, notes, reportSummary, issues } = req.body || {};
+        if (!projectPath || typeof projectPath !== 'string') {
+            return res.status(400).json({ success: false, error: 'projectPath is required' });
+        }
+
+        // Resolve relative paths against the platform root (repo root) instead of server cwd
+        const platformRoot = path.join(__dirname, '..', '..');
+        const safePath = path.isAbsolute(projectPath) ? path.resolve(projectPath) : path.resolve(platformRoot, projectPath);
+        const sbDir = path.join(safePath, '.simplebeacon');
+        const contextPath = path.join(sbDir, 'ai-context.md');
+
+        // Ensure .simplebeacon directory exists
+        await fs.promises.mkdir(sbDir, { recursive: true });
+
+        const timestamp = new Date().toISOString();
+        let md = `# AI Context — SimpleBeacon Scan\n\n**Generated:** ${timestamp}\n**Project:** ${safePath}\n\n`;
+
+        if (notes && typeof notes === 'string') {
+            md += `## User Notes\n\n${notes}\n\n`;
+        }
+
+        if (reportSummary && typeof reportSummary === 'object') {
+            md += `## Scan Summary\n\n`;
+            md += `- **Gate Pass:** ${reportSummary.gatePass ?? 'N/A'}\n`;
+            md += `- **Quality Score:** ${reportSummary.qualityScore ?? 'N/A'}\n`;
+            md += `- **Total Issues:** ${reportSummary.totalIssues ?? 'N/A'}\n`;
+            md += `- **Files Scanned:** ${reportSummary.filesScanned ?? 'N/A'}\n`;
+            md += `- **Report Type:** ${reportSummary.reportType ?? 'N/A'}\n\n`;
+        }
+
+        if (Array.isArray(issues) && issues.length > 0) {
+            md += `## Issues (${issues.length})\n\n`;
+            for (const issue of issues.slice(0, 50)) {
+                const sev = issue.severity || issue.type || 'unknown';
+                const file = issue.filePath || issue.file || 'N/A';
+                const line = issue.line || issue.lineNumber || '';
+                const desc = issue.description || issue.message || issue.title || JSON.stringify(issue).slice(0, 200);
+                md += `- **[${sev.toUpperCase()}]** ${desc} — \`${file}${line ? ':' + line : ''}\`\n`;
+            }
+            if (issues.length > 50) {
+                md += `\n... and ${issues.length - 50} more issues.\n`;
+            }
+            md += '\n';
+        }
+
+        md += `## Next Steps\n\n1. Review the issues above\n2. Run fixes via: \`npx simplebeacon scan --fix\`\n3. Or ask the AI agent to fix specific files\n`;
+
+        await fs.promises.writeFile(contextPath, md, 'utf8');
+        res.json({ success: true, path: contextPath, content: md, message: 'AI context saved. Mention @.simplebeacon/ai-context.md in chat.' });
+    } catch (err) {
+        console.error('[AI-Context]', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// GET /api/ai-context — retrieve the current AI context markdown for the AI agent
+app.get('/api/ai-context', async (req, res) => {
+    try {
+        const projectPath = req.query.projectPath || process.cwd();
+        const platformRoot = path.join(__dirname, '..', '..');
+        const safePath = path.isAbsolute(projectPath) ? path.resolve(projectPath) : path.resolve(platformRoot, projectPath);
+        const contextPath = path.join(safePath, '.simplebeacon', 'ai-context.md');
+
+        try {
+            const content = await fs.promises.readFile(contextPath, 'utf8');
+            res.json({ success: true, path: contextPath, content });
+        } catch {
+            res.status(404).json({ success: false, error: 'No AI context file found. Upload a report and click "Send to AI Agent" first.' });
+        }
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Static file serving for saved scan data exports
+app.use('/data', express.static(path.join(__dirname, '../web/data'), { index: false }));
 
 // Static file serving for JavaScript files
 app.use('/src', express.static(path.join(__dirname, '../src'), {
@@ -1293,38 +1062,57 @@ app.use('*', (req, res) => {
   });
 });
 
+/**
+ * Log server startup.
+ * @param {number} port
+ * @returns {any}
+ */
+function logServerStartup(port) {
+  logger.info(`Simplebeacon server running on port ${port}`);
+  logger.info(`Dashboard listening on port ${port} (set PUBLIC_BASE_URL for absolute links)`);
+  logger.info(`API Health: /api/health`);
+  logger.info(`Status: /api/status`);
+  logger.info('Security: Enhanced security features enabled');
+  logger.info('Audit: Comprehensive audit logging active');
+  logSystemEvent('server_start', {
+    port,
+    environment: process.env.NODE_ENV || 'development',
+    security: { rateLimiting: true, authentication: true, auditLogging: true }
+  });
+}
+
+/**
+ * Handle server error.
+ * @param {any} server
+ * @param {any} err
+ * @param {number} attemptPort
+ * @param {Array} maxRetries
+ * @returns {any}
+ */
+function handleServerError(server, err, attemptPort, maxRetries) {
+  if (err.code === 'EADDRINUSE' && maxRetries > 0) {
+    logger.warn(`Port ${attemptPort} in use — trying ${attemptPort + 1}`);
+    server.close();
+    startServer(attemptPort + 1, maxRetries - 1);
+  } else {
+    logger.error(`Server failed to start: ${err.message}`);
+    process.exit(1);
+  }
+}
+
 // Start server with enhanced logging — auto-increment port on EADDRINUSE
-function startServer(attemptPort, maxRetries = 10) {
+/**
+ * Start server.
+ * @param {number} attemptPort
+ * @param {Array} maxRetries
+ * @returns {any}
+ */
+function startServer(attemptPort, maxRetries = constants.MAX_RETRIES) {
   const server = app.listen(attemptPort, () => {
     PORT = attemptPort;
-    logger.info(`Simplebeacon server running on port ${PORT}`);
-    logger.info(`Dashboard listening on port ${PORT} (set PUBLIC_BASE_URL for absolute links)`);
-    logger.info(`API Health: /api/health`);
-    logger.info(`Status: /api/status`);
-    logger.info('Security: Enhanced security features enabled');
-    logger.info('Audit: Comprehensive audit logging active');
-
-    logSystemEvent('server_start', {
-      port: PORT,
-      environment: process.env.NODE_ENV || 'development',
-      security: {
-        rateLimiting: true,
-        authentication: true,
-        auditLogging: true
-      }
-    });
+    logServerStartup(PORT);
   });
-
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE' && maxRetries > 0) {
-      logger.warn(`Port ${attemptPort} in use — trying ${attemptPort + 1}`);
-      server.close();
-      startServer(attemptPort + 1, maxRetries - 1);
-    } else {
-      logger.error(`Server failed to start: ${err.message}`);
-      process.exit(1);
-    }
-  });
+  server.on('error', (err) => handleServerError(server, err, attemptPort, maxRetries));
 }
 
 startServer(Number(PORT));

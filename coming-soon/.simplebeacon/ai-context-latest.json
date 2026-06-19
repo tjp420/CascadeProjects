@@ -1,0 +1,9 @@
+{
+  "type": "ai-context",
+  "generatedAt": "2026-06-18T19:19:59.029Z",
+  "reportPath": "ai-agent",
+  "notes": "fix error",
+  "reportType": "simplebeacon-report",
+  "filesScanned": 42815,
+  "issues": []
+}

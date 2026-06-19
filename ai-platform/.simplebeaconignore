@@ -1,0 +1,125 @@
+# Demo / fixture / sample data (not production code)
+web/data/*-sample.json
+coming-soon/demo-report.html
+
+# Ignore self (meta — avoids self-flagging)
+.simplebeaconignore
+
+# Standalone HTML pages — not production code
+coming-soon/roadmap.html
+web/coming-soon/roadmap.html
+coming-soon/upload.html
+
+# Scanner utilities (production shims, not mock data)
+server/lib/mock-data-scanner.cjs
+server/lib/mock-data-schema-validator.cjs
+server/lib/page-sample-specs.cjs
+server/lib/sample-path-resolver.cjs
+server/lib/sample-overrides.json
+server/lib/fixtures/
+server/lib/npm-audit-runner.cjs
+
+# GitHub sync copies of scanner tools
+.github-sync/simplebeacon/src/lib/*-validator.js
+.github-sync/simplebeacon/src/lib/*-specs.js
+.github-sync/simplebeacon/src/lib/*-checker.js
+
+# GitHub sync mirror (intentional copies — not dead code)
+.github-sync/
+
+# Test artifacts
+.simplebeacon/sample-verify*.json
+.simplebeacon/_test-data*.json
+
+# Dashboard API adapter — production adapter file, intentionally named; not mock data
+src/api/dashboard-*-api.cjs
+
+# Dependencies — never scan third-party code
+node_modules/
+
+# Build artifacts and runtime logs
+dist/
+build/
+coverage/
+*.log
+logs/
+server-*.log
+package-lock.json
+
+# Sandbox/demo token registry — contains intentional test JWTs
+server/db/token-registry.json
+
+# Files with intentional sync I/O (batch processing tools, caching modules, startup loads, scanner definitions)
+server/lib/code-roadmap-generator.cjs
+server/lib/code-roadmap-phase2.cjs
+server/lib/file-merger-reduction-scanner.cjs
+server/lib/json-file-cache.cjs
+server/lib/codebase-analyzer.cjs
+server/routes/chatbot-api.cjs
+
+# Secret resolution utility — not a secret itself (false-positive git-sensitive-file)
+server/lib/secret-config.cjs
+
+# Example env file with documented placeholders (false-positive git-sensitive-file)
+.env.example
+
+# Dev token generators / token utility scripts (false-positive git-sensitive-file)
+tools/generate-license-token.cjs
+tools/generate-test-token.cjs
+tools/generate-token.bat
+tools/get-test-token.cjs
+coming-soon/routes/free-token.cjs
+packages/simplebeacon-cli/src/lib/license-token.js
+packages/simplebeacon-cli/src/rules/token-bleed-patterns.js
+
+# Assessment router wrapper — helmet/rate-limit applied globally in simplebeacon-server.cjs
+server/api/assessment/routes.cjs
+
+# Replay tool references function names as string literals (false-positive dead-export)
+tools/replay-scope-patches.js
+
+# Empty test fixture directories
+tests/fixtures/
+
+# Report delivery exports (ephemeral)
+.simplebeacon/report-deliveries/
+.simplebeacon/email-queue/
+
+# Markdown files — legitimate code fence syntax is not a leak
+**/*.md
+
+# Legal / governance pages — license references are expected content
+GOVERNANCE.md
+LICENSE
+LEGAL*
+coming-soon/terms.html
+coming-soon/privacy.html
+coming-soon/refund.html
+
+# Backend modules falsely flagged for missing PropTypes (React-only rule)
+server/api/assessment/routes.cjs
+server/config/database.cjs
+server/config/redis.cjs
+server/lib/ai-inference-audit-logger.cjs
+server/lib/analytics-builder.cjs
+
+# Service worker — removed; file did not exist
+web/simplebeacon-dashboard/sw.js
+
+# VS Code extension false positives — scanner heuristics misflagging legitimate patterns
+# Debug Artifact: message template strings and console.error inside catch blocks (not stray debug code)
+simplebeacon-vscode-merged/src/roadmapProvider.ts
+simplebeacon-vscode-merged/src/modernSidebarProvider.ts
+simplebeacon-vscode/src/roadmapProvider.ts
+
+# Unhandled Promise: .then(resolve).catch(...) is valid promise chaining; scanner missed the .catch()
+simplebeacon-vscode-merged/src/extension.ts
+simplebeacon-vscode-merged/src/aiPlatform/browserPreview.ts
+
+# Accessibility Gap: regex filters and comments that PREVENT false positives, not cause them
+simplebeacon-vscode-merged/src/enhancedAIProvider.ts
+simplebeacon-vscode-merged/src/fixes/remediationProvider.ts
+
+# Type Safety Gap: VS Code extension adapter code using `any` for API boundary types (acceptable)
+simplebeacon-vscode/src/extension.ts
+simplebeacon-vscode-merged/src/aiPlatform/extension.ts

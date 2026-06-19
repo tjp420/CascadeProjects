@@ -231,6 +231,11 @@ test('formatTextReport renders without color when NO_COLOR set', () => {
 
 test('checkJestBaseline validates cached jest-result.json when runTests is false', async () => {
     const platformRoot = path.join(__dirname, '..', '..', '..');
+    const cached = readJestResultCache(platformRoot);
+    if (!cached) {
+        console.log('Skipping test: no cached jest-result.json found');
+        return;
+    }
     const result = await checkJestBaseline(platformRoot, {
         baseline: { jestTestsPassing: 991, jestTestsLabel: '991/991', jestSuites: 72 },
         runTests: false

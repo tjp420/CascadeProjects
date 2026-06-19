@@ -3,6 +3,9 @@ import { assessmentService } from '../services/assessmentService.js';
 import { authService } from '../services/authService.js';
 import { showLoginModal } from '../components/LoginModal.js';
 
+/**
+ * Assessment view.
+ */
 export class AssessmentView {
   constructor(app) {
     this.app = app;

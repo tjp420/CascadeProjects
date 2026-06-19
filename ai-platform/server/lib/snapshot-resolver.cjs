@@ -9,6 +9,12 @@ const {
     setCachedSnapshot
 } = require('./redis-cache.cjs');
 
+/**
+ * Tag snapshot payload with source.
+ * @param {any} snapshotPayload
+ * @param {any} snapshotSource
+ * @returns {any}
+ */
 function tagSnapshotPayloadWithSource(snapshotPayload, snapshotSource) {
     if (snapshotPayload == null) return snapshotPayload;
     if (Array.isArray(snapshotPayload)) {
@@ -20,6 +26,14 @@ function tagSnapshotPayloadWithSource(snapshotPayload, snapshotSource) {
     return snapshotPayload;
 }
 
+/**
+ * Resolve snapshot payload.
+ * @param {any} db
+ * @param {any} key
+ * @param {any} fallbackFn
+ * @param {Array} redis
+ * @returns {any}
+ */
 async function resolveSnapshotPayload(db, key, fallbackFn, redis = null) {
     if (redis) {
         const cached = await getCachedSnapshot(redis, key);
@@ -42,6 +56,15 @@ async function resolveSnapshotPayload(db, key, fallbackFn, redis = null) {
     return tagSnapshotPayloadWithSource(fallback, 'sample');
 }
 
+/**
+ * Send snapshot or sample.
+ * @param {Array} res
+ * @param {any} db
+ * @param {any} key
+ * @param {any} fallbackFn
+ * @param {Array} redis
+ * @returns {any}
+ */
 async function sendSnapshotOrSample(res, db, key, fallbackFn, redis = null) {
     const payload = await resolveSnapshotPayload(db, key, fallbackFn, redis);
     res.json(payload);

@@ -1,15 +1,16 @@
 /**
  * Detect project layout and suggest simplebeacon configuration.
+ * simplebeacon:production-leak-intent — Detects sample JSON files for project-type identification; references are intentional signatures.
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const SCAN_CANDIDATES = [
-    'web/data',
-    'data/mock',
-    'data-central/ai-tools/mock-data',
-    'fixtures',
+    'web/data', // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
+    'data/mock', // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
+    'data-central/ai-tools/mock-data', // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
+    'fixtures', // simplebeacon:production-leak-intent: project-detection - Auto-detect candidate paths for scan configuration
     '__mocks__',
     'test/fixtures',
     'tests/fixtures',
@@ -34,17 +35,32 @@ const IGNORE_DEFAULTS = [
     '**/*.spec.ts',
     'tests/**',
     'test/**',
-    'packages/simplebeacon-cli/**'
+    'coming-soon/**',
+    'coming-soon-dev/**',
+    'scripts/**',
+    'simplebeacon-frameworkless/**',
+    'sales/**',
+    'marketing/**',
+    'logs/**',
+    'github-action/**',
+    'browser-local/**',
+    'cjs/**',
+    'esm/**',
+    'packages/simplebeacon-cli/**',
+    'simplebeacon-vscode/**',
+    'report.json',
+    'cli-test-report*.json',
+    'test-output.txt'
 ];
 
 const PLATFORM_DIR_NAMES = ['ai-platform'];
 
 const CASCADE_ANCHORS = [
-    'engineering-baseline-sample.json',
-    'implementation-plan-sample.json',
-    'master-roadmap-sample.json',
-    'release-timeline-sample.json',
-    'dashboard-home-sample.json'
+    'engineering-baseline-sample.json', // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
+    'implementation-plan-sample.json', // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
+    'master-roadmap-sample.json', // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
+    'release-timeline-sample.json', // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
+    'dashboard-home-sample.json' // simplebeacon:production-leak-intent: project-detection - Anchor filenames for project layout auto-detection
 ];
 
 function pathExists(baseDir, relativePath) {

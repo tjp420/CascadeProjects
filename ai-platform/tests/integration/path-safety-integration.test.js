@@ -7,6 +7,8 @@
 const { validateRepoUrl, assertSafeProjectPath, logResolvedAllowedRoots } = require('../../server/lib/path-safety.cjs');
 const path = require('path');
 
+const testRoot = path.resolve(__dirname, '..', '..');
+
 describe('Path Safety Integration', () => {
   describe('validateRepoUrl', () => {
     it('should accept valid HTTPS GitHub URLs', () => {

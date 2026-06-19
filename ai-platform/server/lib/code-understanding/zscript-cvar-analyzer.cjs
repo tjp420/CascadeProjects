@@ -7,6 +7,12 @@ const path = require('path');
 
 const CVARINFO_NAMES = ['CVARINFO', 'cvarinfo'];
 
+/**
+ * Parse cvar info file.
+ * @param {any} content
+ * @param {string} sourceFile
+ * @returns {any}
+ */
 function parseCvarInfoFile(content, sourceFile = 'CVARINFO') {
     const definitions = [];
     const lineRe = /^\s*(user|server|nosave|archive|latched|cheat)?\s*(bool|int|float|color|string)\s+([a-zA-Z0-9_]+)\s*=\s*([^;]+);/gim;
@@ -38,6 +44,12 @@ function parseCvarInfoFile(content, sourceFile = 'CVARINFO') {
     return definitions;
 }
 
+/**
+ * Parse default value.
+ * @param {any} type
+ * @param {any} raw
+ * @returns {any}
+ */
 function parseDefaultValue(type, raw) {
     const value = String(raw || '').trim();
     if (type === 'bool') return /^true$/i.test(value);
@@ -46,13 +58,29 @@ function parseDefaultValue(type, raw) {
     return value.replace(/^["']|["']$/g, '');
 }
 
+/**
+ * Extract trailing comment.
+ * @param {any} line
+ * @returns {any}
+ */
 function extractTrailingComment(line) {
     const idx = String(line).indexOf('//');
     return idx >= 0 ? line.slice(idx + 2).trim() : '';
 }
 
+/**
+ * Find cvar info files.
+ * @param {string} rootDir
+ * @returns {any}
+ */
 async function findCvarInfoFiles(rootDir) {
     const results = [];
+/**
+ * Walk.
+ * @param {string} dir
+ * @param {any} depth
+ * @returns {any}
+ */
     async function walk(dir, depth = 0) {
         if (depth > 12) return;
         let entries;
@@ -77,6 +105,12 @@ async function findCvarInfoFiles(rootDir) {
     return results;
 }
 
+/**
+ * Extract find cvar usages.
+ * @param {any} content
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function extractFindCvarUsages(content, relativePath) {
     const usages = [];
     const re = /CVar\.FindCVar\s*\(\s*["']([a-zA-Z0-9_]+)["']\s*\)/g;
@@ -91,6 +125,12 @@ function extractFindCvarUsages(content, relativePath) {
     return usages;
 }
 
+/**
+ * Extract intensity scaling hints.
+ * @param {any} content
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function extractIntensityScalingHints(content, relativePath) {
     const hints = [];
     const patterns = [
@@ -115,10 +155,22 @@ function extractIntensityScalingHints(content, relativePath) {
     return hints;
 }
 
+/**
+ * Line number at.
+ * @param {any} content
+ * @param {number} index
+ * @returns {any}
+ */
 function lineNumberAt(content, index) {
     return content.slice(0, Math.max(0, index)).split('\n').length;
 }
 
+/**
+ * Infer application logic.
+ * @param {any} def
+ * @param {Array} usages
+ * @returns {any}
+ */
 function inferApplicationLogic(def, usages) {
     const name = def.name.toLowerCase();
     if (name.includes('intensity')) {
@@ -136,6 +188,13 @@ function inferApplicationLogic(def, usages) {
     return 'Defined in CVARINFO but no FindCVar reference found in scanned ZScript.';
 }
 
+/**
+ * Build cvar report.
+ * @param {string} rootDir
+ * @param {Array} zscriptFiles
+ * @param {Object} _options
+ * @returns {any}
+ */
 async function buildCvarReport(rootDir, zscriptFiles, _options = {}) {
     const cvarInfoPaths = await findCvarInfoFiles(rootDir);
         const definitions = [];
@@ -157,6 +216,11 @@ async function buildCvarReport(rootDir, zscriptFiles, _options = {}) {
 
         const cvars = {};
         for (const def of definitions) {
+/**
+ * Used in.
+ * @param {number} usageIndex.get(def.name
+ * @returns {any}
+ */
             const usedIn = (usageIndex.get(def.name) || []).map((u) => ({
                 filePath: u.filePath,
                 line: u.line
@@ -189,6 +253,12 @@ async function buildCvarReport(rootDir, zscriptFiles, _options = {}) {
     };
 }
 
+/**
+ * Build intensity problem hints.
+ * @param {Array} intensityCvars
+ * @param {Array} scalingHints
+ * @returns {any}
+ */
 function buildIntensityProblemHints(intensityCvars, scalingHints) {
     const hints = [];
     if (intensityCvars.length > 1) {

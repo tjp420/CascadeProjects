@@ -13,21 +13,22 @@
 const logger = require('../../src/lib/app-logger.cjs');
 const { logInferenceEvent } = require('../lib/ai-inference-audit-logger.cjs');
 
+const constants = require('../config/constants.cjs');
 const DEFAULTS = {
     openai: {
         baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
         model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-        timeoutMs: 30000 // 30 second default
+        timeoutMs: constants.TIMEOUT_30S // 30 second default
     },
     anthropic: {
         baseUrl: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com/v1',
         model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
-        timeoutMs: 30000 // 30 second default
+        timeoutMs: constants.TIMEOUT_30S // 30 second default
     },
     ollama: {
         baseUrl: process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434',
         model: process.env.OLLAMA_MODEL || 'llama3.2',
-        timeoutMs: 60000 // 60 second default
+        timeoutMs: constants.TIMEOUT_1M // 60 second default
     }
 };
 
@@ -39,14 +40,26 @@ const circuitBreakerState = {
 };
 
 const CIRCUIT_BREAKER_THRESHOLD = 5; // Open circuit after 5 failures
-const CIRCUIT_BREAKER_TIMEOUT = 60000; // Reset after 60 seconds
+const CIRCUIT_BREAKER_TIMEOUT = constants.TIMEOUT_1M; // Reset after 60 seconds
 
+/**
+ * Resolve credential.
+ * @param {Array} userCredentials
+ * @param {string} providerId
+ * @param {any} envKey
+ * @returns {any}
+ */
 function resolveCredential(userCredentials, providerId, envKey) {
     const userValue = userCredentials?.[providerId];
     if (userValue) return userValue;
     return process.env[envKey] || '';
 }
 
+/**
+ * Check circuit breaker.
+ * @param {string} providerId
+ * @returns {any}
+ */
 function checkCircuitBreaker(providerId) {
     const state = circuitBreakerState[providerId];
     if (!state) return false;
@@ -65,6 +78,11 @@ function checkCircuitBreaker(providerId) {
     return false;
 }
 
+/**
+ * Record failure.
+ * @param {string} providerId
+ * @returns {any}
+ */
 function recordFailure(providerId) {
     const state = circuitBreakerState[providerId];
     if (!state) return;
@@ -78,6 +96,11 @@ function recordFailure(providerId) {
     }
 }
 
+/**
+ * Record success.
+ * @param {string} providerId
+ * @returns {any}
+ */
 function recordSuccess(providerId) {
     const state = circuitBreakerState[providerId];
     if (!state) return;
@@ -86,7 +109,14 @@ function recordSuccess(providerId) {
     state.isOpen = false;
 }
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+/**
+ * Fetch with timeout.
+ * @param {string} url
+ * @param {Object} options
+ * @param {Array} timeoutMs
+ * @returns {any}
+ */
+async function fetchWithTimeout(url, options = {}, timeoutMs = constants.TIMEOUT_30S) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -106,7 +136,14 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
     }
 }
 
-async function retryWithBackoff(fn, maxRetries = 3, baseDelayMs = 1000) {
+/**
+ * Retry with backoff.
+ * @param {Function} fn
+ * @param {Array} maxRetries
+ * @param {Array} baseDelayMs
+ * @returns {any}
+ */
+async function retryWithBackoff(fn, maxRetries = 3, baseDelayMs = constants.ONE_SECOND_MS) {
     let lastError;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -137,12 +174,25 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelayMs = 1000) {
     throw lastError;
 }
 
+/**
+ * Resolve ollama base url.
+ * @param {string} registry
+ * @param {Array} userCredentials
+ * @returns {any}
+ */
 function resolveOllamaBaseUrl(registry = null, userCredentials = null) {
     return userCredentials?.ollamaBaseUrl
         || registry?.ollamaBaseUrl
         || DEFAULTS.ollama.baseUrl;
 }
 
+/**
+ * Resolve ollama model sync.
+ * @param {string} registry
+ * @param {Array} userCredentials
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveOllamaModelSync(registry = null, userCredentials = null, options = {}) {
     return options.ollamaModel
         || userCredentials?.ollamaModel
@@ -152,6 +202,12 @@ function resolveOllamaModelSync(registry = null, userCredentials = null, options
         || null;
 }
 
+/**
+ * Pick installed ollama model.
+ * @param {any} requested
+ * @param {any} available
+ * @returns {any}
+ */
 function pickInstalledOllamaModel(requested, available = []) {
     if (!available.length) return null;
     const want = String(requested || '').trim();
@@ -165,6 +221,13 @@ function pickInstalledOllamaModel(requested, available = []) {
     return available[0];
 }
 
+/**
+ * Resolve ollama model.
+ * @param {string} registry
+ * @param {Array} userCredentials
+ * @param {Object} options
+ * @returns {any}
+ */
 async function resolveOllamaModel(registry = null, userCredentials = null, options = {}) {
     const explicit = resolveOllamaModelSync(registry, userCredentials, options);
     const baseUrl = resolveOllamaBaseUrl(registry, userCredentials);
@@ -180,7 +243,8 @@ async function resolveOllamaModel(registry = null, userCredentials = null, optio
         }
     } catch (err) {
         if (explicit) return explicit;
-        throw new Error(`ollama is unreachable at ${baseUrl} — start Ollama with \`ollama serve\`, then pull a model (e.g. \`ollama pull llama3.2\`)`);
+        // Ollama not running — return null so caller can fail fast
+        return null;
     }
 
     if (!available.length) {
@@ -198,6 +262,12 @@ async function resolveOllamaModel(registry = null, userCredentials = null, optio
     return picked;
 }
 
+/**
+ * List available providers.
+ * @param {string} registry
+ * @param {Array} userCredentials
+ * @returns {any}
+ */
 function listAvailableProviders(registry = null, userCredentials = null) {
     const activeModel = registry?.models?.find((m) => m.id === registry.activeModelId);
     const _ollamaRegistry = registry?.models?.some((m) => m.provider === 'ollama');
@@ -250,6 +320,13 @@ function listAvailableProviders(registry = null, userCredentials = null) {
     }));
 }
 
+/**
+ * Provider configured.
+ * @param {string} providerId
+ * @param {string} registry
+ * @param {Array} userCredentials
+ * @returns {any}
+ */
 function providerConfigured(providerId, registry = null, userCredentials = null) {
     if (providerId === 'ollama') {
         return Boolean(resolveOllamaBaseUrl(registry, userCredentials));
@@ -258,6 +335,11 @@ function providerConfigured(providerId, registry = null, userCredentials = null)
     return Boolean(match?.configured || match?.available);
 }
 
+/**
+ * Provider config hint.
+ * @param {string} providerId
+ * @returns {any}
+ */
 function providerConfigHint(providerId) {
     const settingsHint = 'add your key in Settings → AI providers';
     const envHints = {
@@ -268,6 +350,13 @@ function providerConfigHint(providerId) {
     return envHints[providerId] || settingsHint;
 }
 
+/**
+ * Summarize scan with provider.
+ * @param {string} providerId
+ * @param {any} scanPayload
+ * @param {Object} options
+ * @returns {any}
+ */
 async function summarizeScanWithProvider(providerId, scanPayload, options = {}) {
     const reportType = options.reportType || scanPayload.reportKind || '';
     if (reportType === 'file-merger-reduction-report') {
@@ -295,7 +384,8 @@ async function summarizeScanWithProvider(providerId, scanPayload, options = {}) 
     }
 
     const prompt = buildScanPrompt(scanPayload, options.projectPath, options.reportType, options);
-    const summary = sanitizeSummaryText(await callProvider(providerId, prompt, options), providerId);
+    const providerResult = await callProvider(providerId, prompt, options);
+    const summary = sanitizeSummaryText(providerResult?.text, providerId);
     logInferenceEvent({
         provider: providerId,
         operation: 'summarizeScan',
@@ -326,6 +416,11 @@ const CLOUD_SUMMARY_SYSTEM_PROMPT = 'You write concise technical audit summaries
 
 const OLLAMA_SUMMARY_SYSTEM_PROMPT = CLOUD_SUMMARY_SYSTEM_PROMPT;
 
+/**
+ * Redact path for summary.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function redactPathForSummary(projectPath) {
     const normalized = String(projectPath || '').replace(/\\/g, '/').trim();
     if (!normalized) return 'project';
@@ -337,12 +432,25 @@ function redactPathForSummary(projectPath) {
     return `…/${parts.slice(-2).join('/')}`;
 }
 
+/**
+ * Count fiction issues.
+ * @param {Array} issues
+ * @returns {any}
+ */
 function countFictionIssues(issues = []) {
     return issues
         .filter((item) => /fiction|fictional|consistency|kpi/i.test(String(item.type || '')))
         .reduce((sum, item) => sum + (item.count || 1), 0);
 }
 
+/**
+ * Build scan prompt.
+ * @param {any} scanPayload
+ * @param {string} projectPath
+ * @param {number} reportType
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildScanPrompt(scanPayload, projectPath, reportType = '', options = {}) {
     if (options.customPrompt) {
         return options.customPrompt;
@@ -356,6 +464,11 @@ function buildScanPrompt(scanPayload, projectPath, reportType = '', options = {}
 
     if (type === 'file-merger-reduction-report') {
         const merger = scanPayload.mergerSummary || {};
+/**
+ * Paths.
+ * @param {string} scanPayload.scanPaths || []
+ * @returns {any}
+ */
         const paths = (scanPayload.scanPaths || []).map((p) => redactPathForSummary(p)).join(', ') || '—';
         const repoFiles = merger.repositoryFilesTotal ?? scanPayload.repositoryInventory?.totalFiles ?? '—';
         const repoFolders = merger.repositoryFoldersTotal ?? scanPayload.repositoryInventory?.totalFolders ?? '—';
@@ -404,9 +517,9 @@ Important: this scan flags technical debt markers, broken JSON/syntax, debug art
         const inv = scanPayload.repositoryInventory || {};
         const sev = scanPayload.aggregation?.bySeverity || {};
         const reclaimable = cleanup.reclaimableBytes ?? 0;
-        const reclaimableLabel = reclaimable >= 1048576
+        const reclaimableLabel = reclaimable >= constants.BYTES_PER_MB
             ? `${(reclaimable / 1048576).toFixed(1)} MB`
-            : reclaimable >= 1024
+            : reclaimable >= constants.BYTES_PER_KB
                 ? `${Math.round(reclaimable / 1024)} KB`
                 : `${reclaimable} B`;
         return `Summarize this ${profile} scan in 3-5 bullet points. This is NOT a Simplebeacon compliance gate — do not mention gate PASS/FAIL, quality scores, schema compliance, or fiction/KPI scanning unless explicitly listed below. Use only these facts:
@@ -484,8 +597,15 @@ Important: The repository file count is a full-tree inventory (includes node_mod
 Do not call production-path references "blocking issues" when gate is PASS.`;
 }
 
+/**
+ * Sanitize summary text.
+ * @param {string} text
+ * @param {string} providerId
+ * @returns {any}
+ */
 function sanitizeSummaryText(text, providerId = '') {
-    let out = String(text || '').trim();
+    const raw = text && typeof text === 'object' ? text.text : text;
+    let out = String(raw || '').trim();
     if (providerId !== 'ollama') {
         out = out.replace(/^(?:mortal seeker[^.\n]*[.\n]+)/i, '').trim();
         out = out.replace(/^(?:i shall (?:decipher|decode)[^.\n]*[.\n]+)/i, '').trim();
@@ -495,6 +615,13 @@ function sanitizeSummaryText(text, providerId = '') {
     return out || String(text || '').trim();
 }
 
+/**
+ * Call provider.
+ * @param {string} providerId
+ * @param {any} prompt
+ * @param {Object} options
+ * @returns {any}
+ */
 async function callProvider(providerId, prompt, options = {}) {
     // Check circuit breaker before attempting request
     if (checkCircuitBreaker(providerId)) {
@@ -513,7 +640,7 @@ async function callProvider(providerId, prompt, options = {}) {
                 default:
                     throw new Error(`Unsupported cloud provider: ${providerId}`);
             }
-        }, 3, 1000);
+        }, 3, constants.ONE_SECOND_MS);
 
         recordSuccess(providerId);
         return result;
@@ -523,6 +650,12 @@ async function callProvider(providerId, prompt, options = {}) {
     }
 }
 
+/**
+ * Normalize messages.
+ * @param {any} input
+ * @param {Object} options
+ * @returns {any}
+ */
 function normalizeMessages(input, options = {}) {
     if (Array.isArray(input) && input.length > 0 && typeof input[0] === 'object' && 'role' in input[0]) {
         return input;
@@ -533,6 +666,12 @@ function normalizeMessages(input, options = {}) {
     ];
 }
 
+/**
+ * Call open a i.
+ * @param {any} prompt
+ * @param {Object} options
+ * @returns {any}
+ */
 async function callOpenAI(prompt, options = {}) {
     const cfg = DEFAULTS.openai;
     const apiKey = resolveCredential(options.userCredentials, 'openai', 'OPENAI_API_KEY');
@@ -568,6 +707,12 @@ async function callOpenAI(prompt, options = {}) {
     };
 }
 
+/**
+ * Call anthropic.
+ * @param {any} prompt
+ * @param {Object} options
+ * @returns {any}
+ */
 async function callAnthropic(prompt, options = {}) {
     const cfg = DEFAULTS.anthropic;
     const apiKey = resolveCredential(options.userCredentials, 'anthropic', 'ANTHROPIC_API_KEY');
@@ -601,6 +746,11 @@ async function callAnthropic(prompt, options = {}) {
         throw new Error(data.error?.message || `Anthropic request failed (${response.status})`);
     }
     const data = await response.json();
+/**
+ * Block.
+ * @param {any} data.content || []
+ * @returns {any}
+ */
     const block = (data.content || []).find((item) => item.type === 'text');
     return {
         text: block?.text?.trim() || '',
@@ -609,6 +759,12 @@ async function callAnthropic(prompt, options = {}) {
     };
 }
 
+/**
+ * Call ollama.
+ * @param {any} prompt
+ * @param {Object} options
+ * @returns {any}
+ */
 async function callOllama(prompt, options = {}) {
     const { ollamaGenerate } = require('./ollama-client.cjs');
     const baseUrl = resolveOllamaBaseUrl(options.registry || null, options.userCredentials || null);
@@ -617,6 +773,9 @@ async function callOllama(prompt, options = {}) {
         options.userCredentials || null,
         options
     );
+    if (!model) {
+        throw new Error('Ollama is not configured — start Ollama with `ollama serve`, then pull a model (e.g. `ollama pull llama3.2`)');
+    }
     const messages = normalizeMessages(prompt, options);
     const timeoutMs = options.timeoutMs || DEFAULTS.ollama.timeoutMs;
 
@@ -655,6 +814,11 @@ async function callOllama(prompt, options = {}) {
 
 const CODE_UNDERSTANDING_SYSTEM = 'You explain code purpose for engineering audits. Use 4-6 bullet points. Ground every claim in the provided facts. Do not invent metrics, file paths, or business requirements not present in the input.';
 
+/**
+ * Build code understanding prompt.
+ * @param {any} payload
+ * @returns {any}
+ */
 function buildCodeUnderstandingPrompt(payload = {}) {
     const findings = (payload.staticFindings || [])
         .map((f) => `- ${f.category}/${f.type}: ${f.description}`)
@@ -683,6 +847,13 @@ Answer with:
 5. What a domain expert should validate manually`;
 }
 
+/**
+ * Explain code with provider.
+ * @param {string} providerId
+ * @param {any} payload
+ * @param {Object} options
+ * @returns {any}
+ */
 async function explainCodeWithProvider(providerId, payload, options = {}) {
     if (!providerId || providerId === 'demo' || providerId === 'active') {
         return { enhanced: false, provider: providerId || 'demo' };
@@ -693,13 +864,11 @@ async function explainCodeWithProvider(providerId, payload, options = {}) {
     }
 
     const prompt = buildCodeUnderstandingPrompt(payload);
-    const explanation = sanitizeSummaryText(
-        await callProvider(providerId, prompt, {
-            ...options,
-            systemPrompt: CODE_UNDERSTANDING_SYSTEM
-        }),
-        providerId
-    );
+    const explanationResult = await callProvider(providerId, prompt, {
+        ...options,
+        systemPrompt: CODE_UNDERSTANDING_SYSTEM
+    });
+    const explanation = sanitizeSummaryText(explanationResult?.text, providerId);
 
     logInferenceEvent({
         provider: providerId,

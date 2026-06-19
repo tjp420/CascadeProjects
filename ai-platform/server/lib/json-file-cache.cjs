@@ -6,6 +6,11 @@ const fs = require('fs');
 
 const cache = new Map();
 
+/**
+ * File stat key.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function fileStatKey(filePath) {
     try {
         const stat = fs.statSync(filePath);
@@ -15,6 +20,11 @@ function fileStatKey(filePath) {
     }
 }
 
+/**
+ * Read json file cached.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function readJsonFileCached(filePath) {
     const resolved = String(filePath || '');
     if (!resolved) return null;
@@ -34,6 +44,11 @@ function readJsonFileCached(filePath) {
     }
 }
 
+/**
+ * Read text file cached.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function readTextFileCached(filePath) {
     const resolved = String(filePath || '');
     if (!resolved) return null;
@@ -54,6 +69,10 @@ function readTextFileCached(filePath) {
     }
 }
 
+/**
+ * Clear json file cache.
+ * @returns {any}
+ */
 function clearJsonFileCache() {
     cache.clear();
 }

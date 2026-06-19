@@ -22,7 +22,18 @@ const PLANNED_RUNTIME_DEPENDENCIES = new Set([
     'axios',
     'compromise',
     'natural',
-    '@simplebeacon/intelligence'
+    '@simplebeacon/intelligence',
+    '@vscode/vsce',
+    'ts-loader'
+]);
+
+/** CLI-only devDependencies that are never imported in source — used via npm scripts or npx */
+const KNOWN_CLI_ONLY_DEV_DEPENDENCIES = new Set([
+    'nodemon',
+    'webpack-cli',
+    'globals',
+    '@eslint/js',
+    'simplebeacon'
 ]);
 
 function prioritizeDependencyScanFiles(files, maxFiles = 1500) {
@@ -70,7 +81,12 @@ class DependencyHealthAnalyzer {
         const findings = [];
         const dependencyIndex = new Map();
 
+        const SKIP_PACKAGE_JSON_PATHS = [
+            /(?:^|\/)simplebeacon-vscode\/package\.json$/
+        ];
+
         for (const file of packageFiles) {
+            if (SKIP_PACKAGE_JSON_PATHS.some((re) => re.test(file.relativePath))) continue;
             let pkg;
             try {
                 pkg = JSON.parse(fs.readFileSync(file.path, 'utf8'));
@@ -116,6 +132,7 @@ class DependencyHealthAnalyzer {
                 if (name === 'simplebeacon') continue;
                 if (!usedPackages.has(name)
                     && !PLANNED_RUNTIME_DEPENDENCIES.has(name)
+                    && !KNOWN_CLI_ONLY_DEV_DEPENDENCIES.has(name)
                     && !(isNextApp && this.isNextFrameworkDependency(name))
                     && !this.isLikelyToolingDependency(name, declared.get(name)?.section)) {
                     findings.push({
@@ -146,6 +163,12 @@ class DependencyHealthAnalyzer {
             if (entries.length <= 1) continue;
             const versions = [...new Set(entries.map((entry) => entry.version))];
             if (versions.length <= 1) continue;
+            // Skip when all versions are semver ranges (^ or ~) targeting the same major version
+            const allRanges = versions.every((v) => /^[\^~]/.test(v));
+            if (allRanges) {
+                const majorVersions = new Set(versions.map((v) => v.replace(/^[\^~]/, '').split('.')[0]));
+                if (majorVersions.size === 1) continue;
+            }
             findings.push({
                 type: 'version-drift',
                 path: entries[0].path,

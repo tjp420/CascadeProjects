@@ -12,6 +12,9 @@ import {
   normalizeSimpleBeaconBranding
 } from './quality-export.browser.js?v=20260531qualityexport8';
 
+/**
+ * L a y e r  l a b e l s.
+ */
 export const LAYER_LABELS = {
   credentials: 'Credential patterns',
   fictionKpis: 'Fiction & KPI drift',
@@ -22,23 +25,43 @@ export const LAYER_LABELS = {
   gate: 'Compliance gate'
 };
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Parse timestamp.
+ * @param {any} value
+ * @returns {any}
+ */
 function parseTimestamp(value) {
   const ms = Date.parse(value || '');
   return Number.isFinite(ms) ? ms : null;
 }
 
+/**
+ * Is benchmark compliance audit.
+ * @param {any} audit
+ * @returns {any}
+ */
 function isBenchmarkComplianceAudit(audit = {}) {
   const path = String(audit.report?.projectRoot || '').replace(/\\/g, '/');
   return Boolean(audit.report?.benchmarkScan || audit.report?.scanTargetProfile === 'benchmark-cache')
     || /\/github-cache\//i.test(path);
 }
 
+/**
+ * Resolve product platform root.
+ * @param {any} audit
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(audit = {}) {
   const report = audit.report || {};
   const explicit = String(report.productPlatformRoot || report.platformRoot || '').replace(/\\/g, '/');
@@ -51,6 +74,11 @@ function resolveProductPlatformRoot(audit = {}) {
   return audit.npmAudit?.projectPath || audit.npmAudit?.auditRoot || null;
 }
 
+/**
+ * Resolve live jest label.
+ * @param {number} report
+ * @returns {any}
+ */
 function resolveLiveJestLabel(report) {
   if (!report) return null;
   const jestSummary = report.jestSummary;
@@ -60,6 +88,11 @@ function resolveLiveJestLabel(report) {
   return null;
 }
 
+/**
+ * Resolve canonical jest label.
+ * @param {any} audit
+ * @returns {any}
+ */
 function resolveCanonicalJestLabel(audit = {}) {
   const liveLabel = resolveLiveJestLabel(audit.report);
   if (liveLabel) return liveLabel;
@@ -76,6 +109,11 @@ function resolveCanonicalJestLabel(audit = {}) {
   return layerLabel;
 }
 
+/**
+ * Resolve canonical page specs label.
+ * @param {any} audit
+ * @returns {any}
+ */
 function resolveCanonicalPageSpecsLabel(audit = {}) {
   const pageSampleAt = parseTimestamp(audit.pageSamples?.baselineComparison?.generatedAt);
   const reportAt = parseTimestamp(audit.report?.generatedAt);
@@ -91,6 +129,11 @@ function resolveCanonicalPageSpecsLabel(audit = {}) {
   return reportLabel || pageLabel || audit.baseline?.pageSamplesLabel || null;
 }
 
+/**
+ * Dedupe export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeExportNotes(notes = []) {
   const seen = new Set();
   const out = [];
@@ -118,6 +161,11 @@ function dedupeExportNotes(notes = []) {
   return out.slice(0, 8);
 }
 
+/**
+ * Split documentation paths.
+ * @param {any} euAiActSummary
+ * @returns {any}
+ */
 function splitDocumentationPaths(euAiActSummary = {}) {
   const docs = euAiActSummary.documentationFound || [];
   if (!docs.length) return euAiActSummary;
@@ -148,6 +196,11 @@ function splitDocumentationPaths(euAiActSummary = {}) {
   return next;
 }
 
+/**
+ * Build missing overlay notes.
+ * @param {any} audit
+ * @returns {any}
+ */
 function buildMissingOverlayNotes(audit = {}) {
   const notes = [];
   if (!audit.assessment) {
@@ -159,6 +212,12 @@ function buildMissingOverlayNotes(audit = {}) {
   return notes;
 }
 
+/**
+ * Build page specs mismatch note.
+ * @param {any} audit
+ * @param {any} pageSpecsLabel
+ * @returns {any}
+ */
 function buildPageSpecsMismatchNote(audit = {}, pageSpecsLabel) {
   const baselineStatus = audit.dashboard?.baselineStatus || {};
   if (baselineStatus.pageSamplesLabelSource === 'gate-scan-export-reconciled') return null;
@@ -167,6 +226,11 @@ function buildPageSpecsMismatchNote(audit = {}, pageSpecsLabel) {
   return `Dashboard baselineStatus pageSamplesLabel (${dashLabel}) reflects catalog baseline — gate scan validated ${pageSpecsLabel} page specs.`;
 }
 
+/**
+ * Resolve project label.
+ * @param {any} audit
+ * @returns {any}
+ */
 function resolveProjectLabel(audit = {}) {
   return projectLabelFromPath(
     audit.report?.projectRoot
@@ -175,6 +239,11 @@ function resolveProjectLabel(audit = {}) {
   );
 }
 
+/**
+ * Build audit metrics.
+ * @param {any} audit
+ * @returns {any}
+ */
 export function buildAuditMetrics(audit = {}) {
   const report = audit.report || {};
   const dash = audit.dashboard?.scanStatus || {};
@@ -210,6 +279,11 @@ export function buildAuditMetrics(audit = {}) {
   };
 }
 
+/**
+ * Count layer statuses.
+ * @param {Array} auditLayers
+ * @returns {any}
+ */
 function countLayerStatuses(auditLayers = {}) {
   let pass = 0;
   let fail = 0;
@@ -224,6 +298,11 @@ function countLayerStatuses(auditLayers = {}) {
   return { pass, fail, warn };
 }
 
+/**
+ * Build compliance audit summary.
+ * @param {any} audit
+ * @returns {any}
+ */
 export function buildComplianceAuditSummary(audit = {}) {
   const metrics = buildAuditMetrics(audit);
   const layers = audit.auditLayers || {};
@@ -296,6 +375,11 @@ export function buildComplianceAuditSummary(audit = {}) {
   };
 }
 
+/**
+ * Bucket production leaks.
+ * @param {Array} issues
+ * @returns {any}
+ */
 function bucketProductionLeaks(issues = []) {
   return issues
     .filter((issue) => /production leak/i.test(String(issue.type || '')))
@@ -308,6 +392,13 @@ function bucketProductionLeaks(issues = []) {
     }));
 }
 
+/**
+ * Summarize finding bucket.
+ * @param {Array} items
+ * @param {string} emptyText
+ * @param {number} findingsCount
+ * @returns {any}
+ */
 function summarizeFindingBucket(items, emptyText, findingsCount = items.length) {
   if (items.length) {
     return items.slice(0, 5).map((i) => `${i.file}: ${i.description}`).join('; ');
@@ -318,6 +409,12 @@ function summarizeFindingBucket(items, emptyText, findingsCount = items.length) 
   return emptyText;
 }
 
+/**
+ * Reconcile assessment from report.
+ * @param {any} assessment
+ * @param {number} report
+ * @returns {any}
+ */
 function reconcileAssessmentFromReport(assessment, report) {
   if (!assessment || !report) return assessment;
   const sourceIssues = report.rawIssues?.length ? report.rawIssues : (report.detectedIssues || []);
@@ -354,6 +451,13 @@ function reconcileAssessmentFromReport(assessment, report) {
   };
 }
 
+/**
+ * Sanitize report export.
+ * @param {number} report
+ * @param {any} projectLabel
+ * @param {Object} options
+ * @returns {any}
+ */
 function sanitizeReportExport(report, projectLabel, options = {}) {
   if (!report) return null;
   const sanitized = sanitizeSimplebeaconReportExport(report, {
@@ -373,6 +477,13 @@ function sanitizeReportExport(report, projectLabel, options = {}) {
   };
 }
 
+/**
+ * Sanitize assessment export.
+ * @param {any} assessment
+ * @param {any} projectLabel
+ * @param {number} report
+ * @returns {any}
+ */
 function sanitizeAssessmentExport(assessment, projectLabel, report) {
   if (!assessment) return null;
   const { sourceReport, ...rest } = assessment;
@@ -402,6 +513,12 @@ function sanitizeAssessmentExport(assessment, projectLabel, report) {
   };
 }
 
+/**
+ * Sanitize audit layers export.
+ * @param {Array} auditLayers
+ * @param {any} audit
+ * @returns {any}
+ */
 function sanitizeAuditLayersExport(auditLayers, audit = {}) {
   if (!auditLayers) return null;
   const report = audit.report || {};
@@ -427,6 +544,12 @@ function sanitizeAuditLayersExport(auditLayers, audit = {}) {
   return next;
 }
 
+/**
+ * Sanitize dashboard export.
+ * @param {any} dashboard
+ * @param {any} audit
+ * @returns {any}
+ */
 function sanitizeDashboardExport(dashboard, audit = {}) {
   if (!dashboard) return null;
   const { fictionCatalog, ...rest } = dashboard;
@@ -496,6 +619,12 @@ function sanitizeDashboardExport(dashboard, audit = {}) {
   return next;
 }
 
+/**
+ * Sanitize baseline export.
+ * @param {any} baseline
+ * @param {string} context
+ * @returns {any}
+ */
 function sanitizeBaselineExport(baseline, context = {}) {
   if (!baseline) return null;
   const { _source, ...rest } = baseline;
@@ -512,6 +641,11 @@ function sanitizeBaselineExport(baseline, context = {}) {
   return { ...next, provenance: baseline.dataSource || 'repository-audit' };
 }
 
+/**
+ * Build export provenance.
+ * @param {any} audit
+ * @returns {any}
+ */
 function buildExportProvenance(audit = {}) {
   return {
     report: audit.report ? 'live-gate-scan' : 'missing',
@@ -524,6 +658,12 @@ function buildExportProvenance(audit = {}) {
   };
 }
 
+/**
+ * Build compliance audit export bundle.
+ * @param {any} audit
+ * @param {Object} options
+ * @returns {any}
+ */
 export function buildComplianceAuditExportBundle(audit = {}, options = {}) {
   const projectLabel = resolveProjectLabel(audit);
   const benchmarkScan = isBenchmarkComplianceAudit(audit);
@@ -533,6 +673,11 @@ export function buildComplianceAuditExportBundle(audit = {}, options = {}) {
     ? sanitizeNpmAuditForQualityExport(audit.npmAudit, benchmarkScan ? 'ai-platform' : projectLabel)
     : (audit.npmAudit?.error ? { error: audit.npmAudit.error } : audit.npmAudit || null);
   const pageSpecsMismatchNote = buildPageSpecsMismatchNote(audit, summary.pageSpecsLabel);
+/**
+ * Report export notes.
+ * @param {number} sanitizedReport?.exportNotes || []
+ * @returns {any}
+ */
   const reportExportNotes = (sanitizedReport?.exportNotes || []).filter((note) => {
     const text = String(note);
     if (summary.gateFailureNote && /gate fail/i.test(text)) return false;
@@ -613,6 +758,12 @@ export function buildComplianceAuditExportBundle(audit = {}, options = {}) {
  * @param {object} [options]
  * @returns {object}
  */
+/**
+ * Sanitize compliance audit export.
+ * @param {any} bundle
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeComplianceAuditExport(bundle, options = {}) {
   if (!bundle) return bundle;
   if (bundle.type === 'simplebeacon-compliance-audit-export') {
@@ -632,10 +783,20 @@ export function sanitizeComplianceAuditExport(bundle, options = {}) {
   return buildComplianceAuditExportBundle(bundle, options);
 }
 
+/**
+ * Csv escape.
+ * @param {any} cell
+ * @returns {any}
+ */
 function csvEscape(cell) {
   return `"${String(cell ?? '').replace(/"/g, '""')}"`;
 }
 
+/**
+ * Build audit layers csv.
+ * @param {Array} auditLayers
+ * @returns {any}
+ */
 export function buildAuditLayersCsv(auditLayers = {}) {
   const keys = Object.keys(auditLayers).filter((key) => key !== 'gate');
   if (!keys.length) return null;
@@ -659,6 +820,11 @@ export function buildAuditLayersCsv(auditLayers = {}) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build assessment checklist csv.
+ * @param {any} assessment
+ * @returns {any}
+ */
 export function buildAssessmentChecklistCsv(assessment) {
   const rules = assessment?.complianceChecklist?.rules;
   if (!rules?.length) return null;
@@ -673,10 +839,23 @@ export function buildAssessmentChecklistCsv(assessment) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build compliance audit summary csv.
+ * @param {any} summary
+ * @returns {any}
+ */
 export function buildComplianceAuditSummaryCsv(summary) {
   return buildQualitySummaryCsv({ summary });
 }
 
+/**
+ * Build compliance audit csv.
+ * @param {Object} options
+ * @param {any} assessment
+ * @param {any} npmAudit
+ * @param {any} summary }
+ * @returns {any}
+ */
 export function buildComplianceAuditCsv({ auditLayers, assessment, npmAudit, summary } = {}) {
   const parts = [];
   const layers = buildAuditLayersCsv(auditLayers);
@@ -703,6 +882,11 @@ export function buildComplianceAuditCsv({ auditLayers, assessment, npmAudit, sum
   return parts.length ? parts.join('\n') : null;
 }
 
+/**
+ * Compliance audit export filename.
+ * @param {any} ext
+ * @returns {any}
+ */
 export function complianceAuditExportFilename(ext = 'json') {
   const stamp = new Date().toISOString().slice(0, 10);
   if (ext === 'csv') return `compliance-audit-metrics-${stamp}.csv`;

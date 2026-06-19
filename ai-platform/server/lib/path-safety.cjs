@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const logger = require('../../src/lib/app-logger.cjs');
 const { readJsonFileCached } = require('./json-file-cache.cjs');
 
@@ -19,18 +20,35 @@ const DEFAULT_ALLOWED_HOSTS = [
     'www.bitbucket.org'
 ];
 
+/**
+ * Should log path access.
+ * @returns {any}
+ */
 function shouldLogPathAccess() {
     return process.env.LOG_ANALYZE_PATH_ACCESS === 'true'
         || process.env.LOG_RUNTIME_INFO === 'true'
         || process.env.RUNTIME_DEBUG === 'true';
 }
 
+/**
+ * Format allowed roots summary.
+ * @param {Array} allowedRoots
+ * @param {number} limit
+ * @returns {any}
+ */
 function formatAllowedRootsSummary(allowedRoots, limit = 8) {
     return dedupeResolvedRoots(allowedRoots)
         .slice(0, limit)
         .join('; ');
 }
 
+/**
+ * Log path access.
+ * @param {any} event
+ * @param {string} targetPath
+ * @param {Array} allowedRoots
+ * @returns {any}
+ */
 function logPathAccess(event, targetPath, allowedRoots) {
     if (!shouldLogPathAccess()) return;
     logger.info(
@@ -38,12 +56,24 @@ function logPathAccess(event, targetPath, allowedRoots) {
     );
 }
 
+/**
+ * Log resolved allowed roots.
+ * @param {Array} allowedRoots
+ * @param {string} context
+ * @returns {any}
+ */
 function logResolvedAllowedRoots(allowedRoots, context = 'startup') {
     if (!shouldLogPathAccess()) return;
     const summary = formatAllowedRootsSummary(allowedRoots);
     logger.info(`[path-safety] ${context}: allowed analysis roots -> ${summary || '(none)'}`);
 }
 
+/**
+ * Parse allowed roots.
+ * @param {any} envValue
+ * @param {Array} fallbackRoots
+ * @returns {any}
+ */
 function parseAllowedRoots(envValue, fallbackRoots = []) {
     const fromEnv = String(envValue || '')
         .split(/[;,]/)
@@ -55,6 +85,11 @@ function parseAllowedRoots(envValue, fallbackRoots = []) {
     return [...new Set(roots)];
 }
 
+/**
+ * Detect monorepo root.
+ * @param {any} platformRoot
+ * @returns {any}
+ */
 function detectMonorepoRoot(platformRoot) {
     const resolved = path.resolve(platformRoot);
     const parent = path.dirname(resolved);
@@ -81,6 +116,11 @@ function detectMonorepoRoot(platformRoot) {
     return null;
 }
 
+/**
+ * Load config analyze roots.
+ * @param {any} platformRoot
+ * @returns {any}
+ */
 function loadConfigAnalyzeRoots(platformRoot) {
     try {
         const configPath = path.join(platformRoot, '.simplebeacon', 'config.json');
@@ -99,6 +139,11 @@ function loadConfigAnalyzeRoots(platformRoot) {
     }
 }
 
+/**
+ * Dedupe resolved roots.
+ * @param {Array} roots
+ * @returns {any}
+ */
 function dedupeResolvedRoots(roots) {
     const seen = new Set();
     const unique = [];
@@ -112,6 +157,12 @@ function dedupeResolvedRoots(roots) {
     return unique;
 }
 
+/**
+ * Resolve default allowed roots.
+ * @param {any} platformRoot
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveDefaultAllowedRoots(platformRoot, options = {}) {
     const platform = path.resolve(platformRoot);
     const chain = [];
@@ -129,6 +180,9 @@ function resolveDefaultAllowedRoots(platformRoot, options = {}) {
 
     chain.push(platform);
 
+    const tmpGitCache = path.join(os.tmpdir(), 'sb-github-cache');
+    chain.push(tmpGitCache);
+
     const merged = dedupeResolvedRoots(chain);
     const cwd = path.resolve(process.cwd());
     if (isPathWithinRoots(cwd, merged)) {
@@ -138,20 +192,52 @@ function resolveDefaultAllowedRoots(platformRoot, options = {}) {
     return dedupeResolvedRoots(merged);
 }
 
+/**
+ * Normalize path key.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizePathKey(value) {
     return path.resolve(value).replace(/\\/g, '/').toLowerCase();
 }
 
+/**
+ * Is path within roots.
+ * @param {string} targetPath
+ * @param {Array} allowedRoots
+ * @returns {any}
+ */
 function isPathWithinRoots(targetPath, allowedRoots) {
     const resolved = path.resolve(targetPath);
     const targetKey = normalizePathKey(resolved);
 
-    return allowedRoots.some((root) => {
+    // Direct match or child path
+    const directMatch = allowedRoots.some((root) => {
         const rootKey = normalizePathKey(root);
         return targetKey === rootKey || targetKey.startsWith(`${rootKey}/`);
     });
+    if (directMatch) return true;
+
+    // Bare directory name: try resolving against each allowed root
+    const isBareName = !path.isAbsolute(targetPath) && !targetPath.includes(path.sep) && !targetPath.includes('/');
+    if (isBareName) {
+        return allowedRoots.some((root) => {
+            const rootKey = normalizePathKey(root);
+            const joined = normalizePathKey(path.join(root, targetPath));
+            return joined === rootKey || joined.startsWith(`${rootKey}/`);
+        });
+    }
+
+    return false;
 }
 
+/**
+ * Assert safe project path.
+ * @param {string} targetPath
+ * @param {Array} allowedRoots
+ * @param {any} label
+ * @returns {any}
+ */
 function assertSafeProjectPath(targetPath, allowedRoots, label = 'projectPath') {
     const raw = String(targetPath || '').trim();
     if (!raw) {
@@ -161,7 +247,20 @@ function assertSafeProjectPath(targetPath, allowedRoots, label = 'projectPath') 
         throw new Error(`${label} contains invalid characters`);
     }
 
-    const resolved = path.resolve(raw);
+    let resolved = path.resolve(raw);
+    if (!isPathWithinRoots(resolved, allowedRoots)) {
+        // Bare directory name: try resolving against each allowed root
+        const isBareName = !path.isAbsolute(raw) && !raw.includes(path.sep) && !raw.includes('/');
+        if (isBareName) {
+            for (const root of allowedRoots) {
+                const candidate = path.join(root, raw);
+                if (isPathWithinRoots(candidate, allowedRoots)) {
+                    resolved = candidate;
+                    break;
+                }
+            }
+        }
+    }
     if (!isPathWithinRoots(resolved, allowedRoots)) {
         logPathAccess('deny', resolved, allowedRoots);
         const allowedSummary = formatAllowedRootsSummary(allowedRoots, 6);
@@ -179,6 +278,12 @@ function assertSafeProjectPath(targetPath, allowedRoots, label = 'projectPath') 
     return resolved;
 }
 
+/**
+ * Validate repo url.
+ * @param {string} rawUrl
+ * @param {Object} options
+ * @returns {any}
+ */
 function validateRepoUrl(rawUrl, options = {}) {
     const value = String(rawUrl || '').trim();
     if (!value) {
@@ -211,6 +316,12 @@ function validateRepoUrl(rawUrl, options = {}) {
     return parsed.toString().replace(/\/$/, '');
 }
 
+/**
+ * Assert safe executable path.
+ * @param {string} binPath
+ * @param {any} label
+ * @returns {any}
+ */
 function assertSafeExecutablePath(binPath, label = 'executable') {
     const normalizedExecutablePath = String(binPath || '').trim();
     if (!normalizedExecutablePath) {

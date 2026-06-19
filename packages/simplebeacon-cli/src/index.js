@@ -14,7 +14,9 @@ const {
     getInitTemplates,
     DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
     DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
-    DEFAULT_BASELINE
+    DEFAULT_BASELINE,
+    DEFAULT_CONFIG,
+    PROFILE_RULES
 } = require('./config');
 const {
     runScan,
@@ -32,6 +34,7 @@ const { formatJsonReport } = require('./reporters/json');
 const { formatGithubComment, formatGithubStepSummary, postGithubComment } = require('./reporters/github-comment');
 const { buildAssessmentReport } = require('./assessment');
 const { compileAuditReportMarkdown } = require('./reporters/audit-report');
+const { buildFictionPatternCatalog, countFictionIssues } = require('./rules/ai-fiction-detection');
 const { startGateway, createGateway } = require('./proxy/gateway');
 const { evaluateComplianceChecklist, loadComplianceChecklist } = require('./compliance-checklist');
 const {
@@ -42,6 +45,30 @@ const {
     sanitizePublicOutput,
     applyPublicGateToAnalyzeResponse
 } = require('./lib/report-sanitizer');
+const {
+    sanitizeCompleteScanExport,
+    sanitizeNpmAuditExport,
+    sanitizeCleanupBriefExport,
+    sanitizeDataCleanupReportExport,
+    sanitizeCodebaseReportExport,
+    sanitizeFictionDigestExport,
+    sanitizeConsolidationExport,
+    sanitizeComplianceChecklistArtifactExport,
+    sanitizeRoadmapForBenchmark,
+    sanitizeGateReportForComplianceExport,
+    buildProductCompleteScanHygieneSummary,
+    buildProductCompleteScanScanScope,
+    hasHollowGateAttestation,
+    assembleBenchmarkCompleteScanExportNotes
+} = require('./lib/complete-scan-export-sanitize.js');
+const { sanitizePublicSummaryArtifactExport } = require('./lib/public-summary-export-sanitize.js');
+const { projectLabelFromPath, redactProjectPathForExport } = require('./lib/assessment-export-sanitize.js');
+const { buildReAttestationNoteArtifact } = require('./lib/re-attestation-note-export-sanitize.js');
+const { sanitizeRoadmapExport } = require('./lib/roadmap-export-sanitize.js');
+const { sanitizeSimplebeaconReportExport } = require('./lib/simplebeacon-report-export-sanitize.js');
+const { validateConfig } = require('./config-schema.js');
+const { DEFAULT_MAX_STALE_MS, evaluateSprintFreshness, evaluateEuExportEligibility } = require('./eu-ai-act-export-guard.js');
+const { isLegalReviewAttestation } = require('./eu-ai-act-legal-attestation.js');
 const { syncJestBaseline, verifyJestBaseline } = require('./baseline-sync');
 const { installSimplebeaconHook, buildHookScript } = require('./hook-install');
 const {
@@ -70,6 +97,7 @@ const { sanitizeFilePath } = require('./lib/input-sanitizer');
 const { runFileReductionScan } = require('./lib/file-reduction-orchestrator');
 const { generateFileReductionReport } = require('./reporters/file-reduction-report');
 const { aggregateCleanupFindings } = require('./lib/result-aggregator');
+const { countRepositoryInventory } = require('./lib/repository-inventory');
 
 function resolveMockDataScanPaths(baseDir, extraPaths = []) {
     const { platformRoot } = resolvePlatformRoot(baseDir);
@@ -177,6 +205,7 @@ module.exports = {
     loadCentralDataConfig,
     resolveScanPaths,
     resolveMockDataScanPaths,
+    countRepositoryInventory,
     resolvePathFromBase,
     normalizeRelativePath,
     getInitTemplates,
@@ -187,6 +216,8 @@ module.exports = {
     DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
     DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
     DEFAULT_BASELINE,
+    DEFAULT_CONFIG,
+    PROFILE_RULES,
     runScan,
     scanMockDataDirectories,
     formatBytes,
@@ -204,6 +235,8 @@ module.exports = {
     postGithubComment,
     buildAssessmentReport,
     compileAuditReportMarkdown,
+    buildFictionPatternCatalog,
+    countFictionIssues,
     startGateway,
     createGateway,
     evaluateComplianceChecklist,
@@ -255,5 +288,30 @@ module.exports = {
     getCachedAnalysis: require('./lib/ai-problem-analyzer-cache').getCachedAnalysis,
     setCachedAnalysis: require('./lib/ai-problem-analyzer-cache').setCachedAnalysis,
     clearAnalyzerCache: require('./lib/ai-problem-analyzer-cache').clearCache,
-    sanitizeAiProblemAnalyzerExport: require('./lib/ai-problem-analyzer-export-sanitize').sanitizeAiProblemAnalyzerExport
+    sanitizeAiProblemAnalyzerExport: require('./lib/ai-problem-analyzer-export-sanitize').sanitizeAiProblemAnalyzerExport,
+    sanitizeCompleteScanExport,
+    sanitizeNpmAuditExport,
+    sanitizeCleanupBriefExport,
+    sanitizeDataCleanupReportExport,
+    sanitizeCodebaseReportExport,
+    sanitizeFictionDigestExport,
+    sanitizeConsolidationExport,
+    sanitizeComplianceChecklistArtifactExport,
+    sanitizeRoadmapForBenchmark,
+    sanitizeGateReportForComplianceExport,
+    sanitizePublicSummaryArtifactExport,
+    projectLabelFromPath,
+    redactProjectPathForExport,
+    buildReAttestationNoteArtifact,
+    sanitizeRoadmapExport,
+    sanitizeSimplebeaconReportExport,
+    validateConfig,
+    DEFAULT_MAX_STALE_MS,
+    evaluateSprintFreshness,
+    evaluateEuExportEligibility,
+    isLegalReviewAttestation,
+    buildProductCompleteScanHygieneSummary,
+    buildProductCompleteScanScanScope,
+    hasHollowGateAttestation,
+    assembleBenchmarkCompleteScanExportNotes
 };

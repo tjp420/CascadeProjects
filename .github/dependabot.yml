@@ -1,0 +1,84 @@
+version: 2
+updates:
+  # Root monorepo
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # ai-agent package (zero deps, kept for completeness)
+  - package-ecosystem: "npm"
+    directory: "/ai-agent"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "ai-agent"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # ai-tools package
+  - package-ecosystem: "npm"
+    directory: "/ai-tools"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "ai-tools"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # ai-platform
+  - package-ecosystem: "npm"
+    directory: "/ai-platform"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "ai-platform"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # simplebeacon-cli package
+  - package-ecosystem: "npm"
+    directory: "/packages/simplebeacon-cli"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "cli"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # coming-soon package
+  - package-ecosystem: "npm"
+    directory: "/coming-soon"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "coming-soon"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # vscode-extension
+  - package-ecosystem: "npm"
+    directory: "/vscode-extension"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "vscode-extension"
+    commit-message:
+      prefix: "chore(deps)"

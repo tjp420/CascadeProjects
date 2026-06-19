@@ -21,7 +21,7 @@ A complimentary 48-hour deterministic scan of your codebase that surfaces exactl
 
 ### How It Works
 1. **Book a 12-minute intro call** — we send you a self-service scan link
-2. **Run `npx simplebeacon scan --gate`** — takes ~5 minutes, works offline
+2. **Run `npx simplebeacon scan --gate`** — typical duration ~5 minutes for repos under 1,000 files (measured on local NVMe SSD; results vary by codebase size and hardware). Works offline.
 3. **Email us the `.simplebeacon/report.json`** — anonymized, no file paths, no code snippets
 4. **We generate and return your Executive Risk Certificate within 24 hours**
 
@@ -34,17 +34,23 @@ A complimentary 48-hour deterministic scan of your codebase that surfaces exactl
 ```
 Free Audit (100%)
     ↓
-Executive Risk Certificate delivered → "Would you like the self-serve PDF generator?" (40% convert)
+Executive Risk Certificate delivered → "Would you like the self-serve PDF generator?" (projected 40% conversion)
     ↓
 $499 one-time Executive Clearance
     ↓
-"Add Continuous Shield to your CI pipeline?" (20% of buyers convert to subscription)
+"Add Continuous Shield to your CI pipeline?" (projected 20% of buyers convert to subscription)
     ↓
 $1,499/mo Continuous Shield
 ```
 
+> **Note**: Conversion rates above are business projections, not measured or guaranteed outcomes.
+
 ### CCO Elevator Pitch
-> *"We scan your codebase for AI-generated slop, exposed credentials, and unapproved model integrations — then hand you a one-page risk certificate with an estimated dollar liability. It takes 5 minutes to run and works entirely offline."*
+> *"We scan your codebase for AI-generated slop, exposed credentials, and unapproved model integrations — then hand you a one-page risk certificate with an estimated dollar liability. Typical scan duration is ~5 minutes for repos under 1,000 files (varies by size/hardware) and works entirely offline."*
+
+### EU AI Act Compliance Disclaimer
+
+SimpleBeacon is a **deterministic code-scanning and audit tool** operated by human analysts. It does not make autonomous employment, credit, or healthcare decisions. All scan results are reviewed by qualified personnel before any compliance certification is issued. Clients retain full authority to override, challenge, or disregard any automated finding. Human-in-the-loop review is mandatory for every Executive Risk Certificate.
 
 ### Industries We Prioritize
 - **Financial Services** (credit scoring, fraud detection)
@@ -56,4 +62,4 @@ $1,499/mo Continuous Shield
 ### Next Steps
 1. Send this offer to 50 prospects this week
 2. Track responses in `outreach-prospects.js`
-3. Aim for 10 audit requests → 3 paid conversions
+3. Target: 10 audit requests → 3 paid conversions (goals, not guaranteed)

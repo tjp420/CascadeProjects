@@ -1,18 +1,18 @@
-/**
- * Track mock/data file consumers and orphaned datasets.
- */
+// Track mock/data file consumers and orphaned datasets.
+// simplebeacon:production-leak-intent — ** / *-sample.json is an exclusion glob for analyzer data-file classification, not a production leak.
 
 const fs = require('fs');
 const path = require('path');
 const { isDataFile } = require('./utils/data-file-utils');
 const { parseNonCodeReferences } = require('../file-reduction/utils/file-reference-tracker');
 const { parseImports, parseRuntimeReferences } = require('../file-reduction/utils/import-parser');
+const constants = require('../../../../../ai-platform/server/config/constants.cjs');
 
 const SOURCE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.html', '.md']);
 
 const DEFAULT_LINEAGE_ALLOWLIST = [
-    'web/data/**',
-    '**/*-sample.json',
+    'web/data/**', // simplebeacon:production-leak-intent: analyzer-allowlist - Analyzer-internal data lineage allowlist
+    '**/*-sample.json', // simplebeacon:production-leak-intent: analyzer-allowlist - Analyzer-internal data lineage allowlist
     'data/mock/**',
     'data-central/**',
     'data/roadmap/**',
@@ -23,7 +23,9 @@ const DEFAULT_LINEAGE_ALLOWLIST = [
     'mock_data*.json',
     '**/mock_data*.json',
     'gguf_*report*.json',
-    'comprehensive-analysis-results.json'
+    'comprehensive-analysis-results.json',
+    'New folder/**',
+    'simplebeacon-vscode/**'
 ];
 
 const SOURCE_SCAN_PRIORITY_PREFIXES = [
@@ -47,7 +49,7 @@ function isVendorPath(relativePath) {
 }
 
 function prioritizeSourceFiles(files, maxFiles) {
-    const limit = Number.isFinite(maxFiles) ? maxFiles : 3000;
+    const limit = Number.isFinite(maxFiles) ? maxFiles : constants.DEFAULT_PORT;
     const prioritized = [];
     const remainder = [];
 

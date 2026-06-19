@@ -14,10 +14,11 @@ const {
     isExcludedPath
 } = require('../rules/eu-ai-act-patterns');
 const { globMatch } = require('../rules/production-leak');
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
 
 const DEFAULT_SKIP_DIRS = new Set([]);
 const DEFAULT_MAX_FILES = Number(process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES) || 2_000_000;
-const BATCH_LOG_EVERY = Number(process.env.SIMPLEBEACON_FULL_SCAN_LOG_EVERY) || 5000;
+const BATCH_LOG_EVERY = Number(process.env.SIMPLEBEACON_FULL_SCAN_LOG_EVERY) || constants.TIMEOUT_5S;
 
 function resolveMaxContentBytes(options = {}) {
     if (options.maxContentBytes != null) {
@@ -165,7 +166,8 @@ async function analyzeFullDirectory(rootDir, options = {}) {
         euAiAct: 0,
         tokenBleed: 0,
         architectureDrift: 0,
-        fileNaming: 0
+        fileNaming: 0,
+        security: 0
     };
     let euHighRiskHits = 0;
     let euAiSystemHits = 0;
@@ -274,6 +276,7 @@ async function analyzeFullDirectory(rootDir, options = {}) {
                 tokenBleed: rules.tokenBleed !== false,
                 architectureDrift: rules.architectureDrift !== false,
                 fileNaming: rules.fileNaming !== false,
+                security: rules.security !== false,
                 euAiActSeverity: options.euAiActSeverity || 'medium',
                 productionPathsOnly: !isUniversal,
                 productionPaths: config.productionPaths || ['server/', 'src/', 'app/', 'lib/'],
@@ -329,6 +332,7 @@ async function analyzeFullDirectory(rootDir, options = {}) {
         ruleHitTotals.tokenBleed += counts.tokenBleed || 0;
         ruleHitTotals.architectureDrift += counts.architectureDrift || 0;
         ruleHitTotals.fileNaming += counts.fileNaming || 0;
+        ruleHitTotals.security += counts.security || 0;
         if (passes.euStats) {
             euHighRiskHits += passes.euStats.highRiskHits;
             euAiSystemHits += passes.euStats.aiSystemHits;

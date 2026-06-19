@@ -5,6 +5,11 @@ import {
   hydrateDashboardHome
 } from '../services/analyzeService.js';
 
+/**
+ * Format percent.
+ * @param {any} value
+ * @returns {any}
+ */
 function formatPercent(value) {
   if (value == null || value === '') return '—';
   const str = String(value).trim();
@@ -14,12 +19,23 @@ function formatPercent(value) {
   return str;
 }
 
+/**
+ * Parse numeric.
+ * @param {any} value
+ * @returns {any}
+ */
 function parseNumeric(value) {
   if (value == null) return null;
   const match = String(value).replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
   return match ? Number(match[0]) : null;
 }
 
+/**
+ * Format signed delta.
+ * @param {any} delta
+ * @param {any} unit
+ * @returns {any}
+ */
 function formatSignedDelta(delta, unit = '') {
   if (!Number.isFinite(delta)) return '—';
   const sign = delta > 0 ? '+' : delta < 0 ? '' : '';
@@ -27,6 +43,13 @@ function formatSignedDelta(delta, unit = '') {
   return `${sign}${delta}${suffix}`;
 }
 
+/**
+ * Build platform metrics.
+ * @param {any} home
+ * @param {number} report
+ * @param {any} baseline
+ * @returns {any}
+ */
 function buildPlatformMetrics(home, report, baseline) {
   const overview = home?.overview || {};
   return {
@@ -41,6 +64,12 @@ function buildPlatformMetrics(home, report, baseline) {
   };
 }
 
+/**
+ * Build comparative rows.
+ * @param {any} home
+ * @param {Array} metrics
+ * @returns {any}
+ */
 function buildComparativeRows(home, metrics) {
   const staticRows = home?.comparativeAnalysis || [];
   const liveByMetric = {
@@ -91,6 +120,9 @@ function buildComparativeRows(home, metrics) {
   });
 }
 
+/**
+ * Platform view.
+ */
 export class PlatformView {
   constructor(app) {
     this.app = app;
@@ -108,8 +140,10 @@ export class PlatformView {
     const el = document.createElement('div');
     el.className = 'fade-in';
     el.innerHTML = `
-      <h1 class="page-title">Platform</h1>
-      <p class="text-muted mb-6">${escapeHtml(home?.subtitle || 'Engineering baseline from repository audit + Simplebeacon scan')}</p>
+      <div class="analyze-hero">
+        <h1 class="page-title">Platform</h1>
+        <p class="text-muted analyze-hero-sub">${escapeHtml(home?.subtitle || 'Engineering baseline from repository audit + Simplebeacon scan')}</p>
+      </div>
 
       <div class="grid-3 mb-6">
         <div class="card insight-stat">

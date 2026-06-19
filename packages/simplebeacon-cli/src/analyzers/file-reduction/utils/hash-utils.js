@@ -5,9 +5,10 @@
 const fs = require('fs');
 
 const { hashFileContent } = require('../../../lib/mock-data-schema-validator');
+const constants = require('../../../../../../ai-platform/server/config/constants.cjs');
 
 async function computeFileHash(filePath, options = {}) {
-    const maxBytes = options.maxBytes ?? 10 * 1024 * 1024;
+    const maxBytes = options.maxBytes ?? 10 * constants.BYTES_PER_KB * 1024;
     const stat = await fs.promises.stat(filePath);
     if (stat.size > maxBytes) {
         return null;

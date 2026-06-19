@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-06-09T20:03:13.721Z",
+  "gate": {
+    "pass": true,
+    "errors": 0,
+    "warnings": 0,
+    "infos": 0,
+    "errorThreshold": 0,
+    "warningThreshold": 10
+  },
+  "files": 0,
+  "findings": []
+}

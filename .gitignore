@@ -2,6 +2,14 @@
 ai-platform/.github-sync/simplebeacon/
 java-ai-vulnerable/
 
+# Backup snapshots
+backups/
+
+# IDE configuration files
+.cursor/
+.vscode/
+.idea/
+
 # Simplebeacon scan artifacts
 .simplebeacon/*.json
 .simplebeacon/*.md
@@ -43,6 +51,8 @@ node_modules/
 dist/
 build/
 coverage/
+.next/
+out/
 
 # Environment files
 .env
@@ -60,3 +70,31 @@ logs/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Domain demo fixtures (not production)
+Domain/Frontend/sample-*.html
+Domain/Frontend/sample-report.json
+Domain/Backend/sample-report.json
+
+# Generated license tokens
+vscode-extension/token.txt
+*-token.txt
+
+# VS Code extension builds
+*.vsix
+vscode-extension/*.vsix
+vscode-extension/out/
+
+# Generated report artifacts
+vscode-extension/*-report.json
+vscode-extension/roadmap.json
+vscode-extension/browser-test.html
+vscode-extension/index-test.html
+packages/simplebeacon-cli/body.json
+packages/simplebeacon-cli/cleanup-verify.json
+packages/simplebeacon-cli/src/api/.simplebeacon-api/api-keys.json
+packages/simplebeacon-cli/test-cert/
+
+# Root generated compliance / scan artifacts
+compliance-checklist.json
+compliance-results.json

@@ -1,0 +1,8 @@
+[Billing] Stripe billing API not loaded: JWT_SECRET is not configured. Set JWT_SECRET in .env or enable ALLOW_DEV_EPHEMERAL_SECRETS=true for local development only.
+[Simplebeacon] Registered POST /api/analyze/eu-ai-act-audit-report
+[Billing] Billing routes not loaded: JWT_SECRET is not configured. Set JWT_SECRET in .env or enable ALLOW_DEV_EPHEMERAL_SECRETS=true for local development only.
+[Billing] Subscription billing routes mounted
+[Admin] Admin routes mounted
+(node:1050876) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Server listening on port 52905 

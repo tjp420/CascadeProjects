@@ -81,6 +81,11 @@ async function evaluateHumanOversightCompliance(scanJson, options = {}) {
     }
 }
 
+/**
+ * Build human oversight prompt.
+ * @param {any} scanJson
+ * @returns {any}
+ */
 function buildHumanOversightPrompt(scanJson) {
     const overview = scanJson.analysisOverview || {};
     const issues = (scanJson.detectedIssues || []).slice(0, 12);
@@ -110,6 +115,11 @@ function buildHumanOversightPrompt(scanJson) {
     return `${SYSTEM_PROMPT}\n\nRepository data:\n${payload}`;
 }
 
+/**
+ * Build deterministic evaluation.
+ * @param {any} scanJson
+ * @returns {any}
+ */
 function buildDeterministicEvaluation(scanJson) {
     const overview = scanJson.analysisOverview || {};
     const issues = scanJson.detectedIssues || [];
@@ -160,6 +170,11 @@ function buildDeterministicEvaluation(scanJson) {
     };
 }
 
+/**
+ * Try parse json.
+ * @param {string} text
+ * @returns {any}
+ */
 function tryParseJson(text) {
     try {
         const cleaned = String(text)

@@ -1,0 +1,153 @@
+{
+  "metadata": {
+    "projectName": "ai-agent",
+    "generatedAt": "2026-06-15T04:53:23.505Z",
+    "scanVersion": "1.3.0",
+    "moduleId": "mod96620168_1",
+    "moduleLabel": "Gate",
+    "totalFiles": 26766,
+    "totalLines": 0
+  },
+  "pass": false,
+  "blockingCount": 5,
+  "warningCount": 4,
+  "status": "BLOCKED",
+  "blockingFindings": [
+    {
+      "severity": "medium",
+      "type": "Missing Security Header",
+      "count": 1,
+      "filePath": ["vscode-extension/src/webview.js"],
+      "rule": "SECURITY_HEADER_PATTERN",
+      "impact": "SECURITY RISK: Missing CSP or X-Frame-Options enables XSS and clickjacking.",
+      "fix": "Add helmet middleware or configure reverse proxy with CSP, HSTS, X-Frame-Options.",
+      "findings": [{"file": "vscode-extension/src/webview.js", "matches": [{"line": 79, "snippet": "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${n"}]}]
+    },
+    {
+      "severity": "medium",
+      "type": "Production Leak",
+      "count": 23,
+      "filePath": [
+        "packages/simplebeacon-cli/src/assessment.js",
+        "packages/simplebeacon-cli/src/project-detect.js",
+        "packages/simplebeacon-cli/src/scan.js",
+        "packages/simplebeacon-cli/src/analyzers/data-cleanup/data-lineage-analyzer.js",
+        "packages/simplebeacon-cli/src/analyzers/file-reduction/unused-file-detector.js",
+        "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js",
+        "ai-platform/web/simplebeacon-dashboard/js/utils/analyze-mode-file-scope.browser.js",
+        "ai-platform/web/simplebeacon-dashboard/js/utils/cleanupAssistant.js"
+      ],
+      "rule": "PRODUCTION_LEAK_PATTERN",
+      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+      "findings": [
+        {"file": "packages/simplebeacon-cli/src/assessment.js", "matches": [{"line": 191, "snippet": ": ['Mock/fiction drift in sample JSON', 'Hardcoded sample paths in production directories']"}]},
+        {"file": "packages/simplebeacon-cli/src/project-detect.js", "matches": [
+          {"line": 10, "snippet": "'web/data', // simplebeacon:production-leak-intent: project-detection"},
+          {"line": 47, "snippet": "'engineering-baseline-sample.json', // simplebeacon:production-leak-intent: project-detection"},
+          {"line": 48, "snippet": "'implementation-plan-sample.json', // simplebeacon:production-leak-intent: project-detection"},
+          {"line": 49, "snippet": "'master-roadmap-sample.json', // simplebeacon:production-leak-intent: project-detection"},
+          {"line": 72, "snippet": "if (scanPaths.includes('web/data')) return 'web/data';"},
+          {"line": 107, "snippet": "pageSampleDir: pathExists(root, 'web/data'),"}
+        ]}
+      ]
+    },
+    {
+      "severity": "medium",
+      "type": "Fiction KPI",
+      "count": 6,
+      "filePath": [
+        "ai-platform/src/core/RoadmapDataAnalyzer.cjs",
+        "ai-platform/web/simplebeacon-dashboard/js/services/aiProblemAnalyzerSuite.mjs"
+      ],
+      "rule": "FICTION_KPI_PATTERN",
+      "impact": "TRUST RISK: Hardcoded metrics and confidence scores may be fabricated AI output.",
+      "fix": "Replace hardcoded KPIs with real data sources and dynamic calculations.",
+      "findings": [
+        {"file": "ai-platform/src/core/RoadmapDataAnalyzer.cjs", "matches": [
+          {"line": 896, "snippet": "completionRate: 85,"},
+          {"line": 903, "snippet": "completionRate: 72,"},
+          {"line": 910, "snippet": "completionRate: 90,"}
+        ]},
+        {"file": "ai-platform/web/simplebeacon-dashboard/js/services/aiProblemAnalyzerSuite.mjs", "matches": [
+          {"line": 4362, "snippet": "confidence: 0.75,"},
+          {"line": 4374, "snippet": "confidence: 0.6,"},
+          {"line": 5226, "snippet": "confidence: 0.82,"}
+        ]}
+      ]
+    },
+    {
+      "severity": "high",
+      "type": "Security Vulnerability",
+      "count": 141,
+      "filePath": [
+        "simplebeacon-frameworkless/app.js",
+        "ai-platform/simplebeacon-server.cjs",
+        "coming-soon/app-links.js",
+        "coming-soon/generate-account-token.js",
+        "scripts/audit-token-bleed.js",
+        "scripts/bulk-fix-magic-numbers.js",
+        "scripts/complexity-gate.js",
+        "scripts/setup-stripe-products.cjs"
+      ],
+      "rule": "SECURITY_PATTERN",
+      "impact": "SECURITY RISK: eval(), XSS, prototype pollution, insecure random, or missing rate limits detected.",
+      "fix": "Replace eval with structured parsing, sanitize innerHTML, use crypto.randomBytes, add rate limiting.",
+      "findings": [
+        {"file": "simplebeacon-frameworkless/app.js", "matches": [
+          {"line": 13, "snippet": "button.innerHTML = `"},
+          {"line": 21, "snippet": "button.innerHTML = originalHTML;"},
+          {"line": 74, "snippet": "findings.innerHTML = Object.entries(groupedFindings).map(([type, items]) => `"}
+        ]},
+        {"file": "ai-platform/simplebeacon-server.cjs", "matches": [
+          {"line": 89, "snippet": "return res.redirect(301, `https://${req.headers.host}${req.url}`);"},
+          {"line": 202, "snippet": "app.get('/health', (_req, res) => {"},
+          {"line": 248, "snippet": "return res.redirect(302, '/');"},
+          {"line": 251, "snippet": "return res.redirect(302, '/');"},
+          {"line": 257, "snippet": "app.get(/^\\/demo(\\/.*)?$/, async (req, res) => redirectPublicToLanding(req, res));"}
+        ]}
+      ]
+    },
+    {
+      "severity": "medium",
+      "type": "Code Quality Issue",
+      "count": 567,
+      "filePath": [
+        "vite.config.js",
+        "ai-agent/orchestrator.cjs",
+        "ai-agent/prompts.js",
+        "ai-tools/index.js",
+        "simplebeacon-frameworkless/app.js",
+        "ai-platform/auto-processor.js",
+        "ai-platform/eslint.config.js",
+        "ai-platform/jest.config.cjs"
+      ],
+      "rule": "QUALITY_PATTERN",
+      "impact": "QUALITY RISK: Unhandled promises, missing strict mode, and uninitialized reads cause runtime errors.",
+      "fix": "Add .catch() to promises, use \"use strict\", initialize variables at declaration.",
+      "findings": [
+        {"file": "vite.config.js", "matches": [{"line": 1, "snippet": "import { defineConfig } from 'vite';"}]},
+        {"file": "ai-agent/orchestrator.cjs", "matches": [
+          {"line": 1, "snippet": "// SPDX-License-Identifier: MIT"},
+          {"line": 109, "snippet": "let assessment;"},
+          {"line": 160, "snippet": "for (let i = 0; i < plan.length; i++) {"},
+          {"line": 182, "snippet": "let planResponse;"}
+        ]},
+        {"file": "ai-agent/prompts.js", "matches": [{"line": 1, "snippet": "// SPDX-License-Identifier: MIT"}]}
+      ]
+    }
+  ],
+  "allIssues": [
+    {"severity": "low", "type": "License/Governance Marker", "count": 7, "filePath": ["ai-agent/orchestrator.cjs", "ai-agent/prompts.js", "ai-platform/eslint.config.js", "ai-platform/jest.config.cjs", "ai-platform/packages/simplebeacon-intelligence/src/constants.js", "ai-platform/packages/simplebeacon-intelligence/src/index.js", "ai-platform/web/simplebeacon-dashboard/js/services/aiProblemAnalyzerSuite.mjs"], "rule": "GOVERNANCE_PATTERN", "impact": "INFO: License headers && copyright notices detected.", "fix": "Review license compatibility with your product distribution model."},
+    {"severity": "low", "type": "AI Residue", "count": 3, "filePath": ["scripts/fix-browser-require.js", "packages/simplebeacon-cli/src/rules/architecture-drift-patterns.js", "ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js"], "rule": "AI_RESIDUE_PATTERN", "impact": "HYGIENE RISK: AI-generated stubs, deprecated idioms, and error-swallowing patterns.", "fix": "Replace stubs with real implementations, modernize deprecated APIs, and add proper error handling."},
+    {"severity": "low", "type": "Performance Anti-Pattern", "count": 123, "filePath": ["ai-agent/orchestrator.cjs", "ai-tools/index.js", "scripts/add-sample-json-annotations.js", "scripts/add-sample-json-ignore.js", "scripts/audit-links.cjs", "scripts/audit-token-bleed.js", "scripts/bulk-fix-jsdoc.js", "scripts/bulk-fix-magic-numbers.js", "scripts/complexity-gate.js", "scripts/count-magic-remaining.js"], "rule": "PERFORMANCE_PATTERN", "impact": "PERFORMANCE RISK: Nested loops and leaked listeners degrade runtime performance.", "fix": "Optimize hot paths, debounce event handlers, and remove listeners on unmount."},
+    {"severity": "medium", "type": "Missing Security Header", "count": 1, "filePath": ["vscode-extension/src/webview.js"], "rule": "SECURITY_HEADER_PATTERN", "impact": "SECURITY RISK: Missing CSP or X-Frame-Options enables XSS and clickjacking.", "fix": "Add helmet middleware or configure reverse proxy with CSP, HSTS, X-Frame-Options."},
+    {"severity": "medium", "type": "Production Leak", "count": 23, "filePath": ["packages/simplebeacon-cli/src/assessment.js", "packages/simplebeacon-cli/src/project-detect.js", "packages/simplebeacon-cli/src/scan.js", "packages/simplebeacon-cli/src/analyzers/data-cleanup/data-lineage-analyzer.js", "packages/simplebeacon-cli/src/analyzers/file-reduction/unused-file-detector.js", "ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js", "ai-platform/web/simplebeacon-dashboard/js/utils/analyze-mode-file-scope.browser.js", "ai-platform/web/simplebeacon-dashboard/js/utils/cleanupAssistant.js"], "rule": "PRODUCTION_LEAK_PATTERN", "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.", "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery."},
+    {"severity": "medium", "type": "Fiction KPI", "count": 6, "filePath": ["ai-platform/src/core/RoadmapDataAnalyzer.cjs", "ai-platform/web/simplebeacon-dashboard/js/services/aiProblemAnalyzerSuite.mjs"], "rule": "FICTION_KPI_PATTERN", "impact": "TRUST RISK: Hardcoded metrics and confidence scores may be fabricated AI output.", "fix": "Replace hardcoded KPIs with real data sources and dynamic calculations."},
+    {"severity": "high", "type": "Security Vulnerability", "count": 141, "filePath": ["simplebeacon-frameworkless/app.js", "ai-platform/simplebeacon-server.cjs", "coming-soon/app-links.js", "coming-soon/generate-account-token.js", "scripts/audit-token-bleed.js", "scripts/bulk-fix-magic-numbers.js", "scripts/complexity-gate.js", "scripts/setup-stripe-products.cjs"], "rule": "SECURITY_PATTERN", "impact": "SECURITY RISK: eval(), XSS, prototype pollution, insecure random, or missing rate limits detected.", "fix": "Replace eval with structured parsing, sanitize innerHTML, use crypto.randomBytes, add rate limiting."},
+    {"severity": "medium", "type": "Code Quality Issue", "count": 567, "filePath": ["vite.config.js", "ai-agent/orchestrator.cjs", "ai-agent/prompts.js", "ai-tools/index.js", "simplebeacon-frameworkless/app.js", "ai-platform/auto-processor.js", "ai-platform/eslint.config.js", "ai-platform/jest.config.cjs"], "rule": "QUALITY_PATTERN", "impact": "QUALITY RISK: Unhandled promises, missing strict mode, and uninitialized reads cause runtime errors.", "fix": "Add .catch() to promises, use \"use strict\", initialize variables at declaration."},
+    {"severity": "low", "type": "Maintainability Issue", "count": 103, "filePath": ["vite.config.js", "ai-platform/simplebeacon-server.cjs", "scripts/bulk-fix-jsdoc.js", "scripts/bulk-fix-magic-numbers.js", "scripts/fix-final-1000.js", "scripts/fix-remaining-1000.js", "scripts/mark-roadmap-completions.cjs", "scripts/pre-launch-checklist.cjs", "scripts/prioritize-complexity.js", "ai-platform/docs/outreach-prospects.js"], "rule": "MAINTAINABILITY_PATTERN", "impact": "MAINTAINABILITY RISK: Magic numbers and hardcoded literals make code harder to understand and modify.", "fix": "Extract numeric literals to named constants (e.g., const MAX_RETRIES = 3)."}
+  ],
+  "severityCounts": {"critical": 0, "high": 141, "medium": 597, "low": 236},
+  "qualityScore": 92.5
+}

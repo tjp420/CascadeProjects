@@ -15,7 +15,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const PORT = process.env.PORT || 54355;
+const constants = require('../server/config/constants.cjs');
+const PORT = process.env.PORT || constants.DASHBOARD_PORT;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 // ── Test fixtures ──

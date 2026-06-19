@@ -1,12 +1,13 @@
 /**
  * Repository scanner APIs — project structure, backlog, mock-data analyzer.
- * Shared by simplebeacon-server (port 54355) and server/index.js consumers.
+ * Shared by simplebeacon-server (port constants.DASHBOARD_PORT) and server/index.js consumers.
  */
 
 const fs = require('fs').promises;
 const path = require('path');
 const { calculateFileQuality, contentNeedsValidation } = require('../lib/file-quality-heuristics.cjs');
 
+const constants = require('../config/constants.cjs');
 const SKIP_DIR_NAMES = new Set([
     'node_modules',
     '.git',
@@ -19,10 +20,21 @@ const SKIP_DIR_NAMES = new Set([
     'uploads'
 ]);
 
+/**
+ * Should skip dir.
+ * @param {string} name
+ * @returns {any}
+ */
 function shouldSkipDir(name) {
     return SKIP_DIR_NAMES.has(name) || name.startsWith('.');
 }
 
+/**
+ * Get file type.
+ * @param {string} filename
+ * @param {any} content
+ * @returns {any}
+ */
 function getFileType(filename, content) {
     const ext = path.extname(filename).toLowerCase();
 
@@ -36,6 +48,11 @@ function getFileType(filename, content) {
     return 'other';
 }
 
+/**
+ * Analyze file status.
+ * @param {any} content
+ * @returns {any}
+ */
 function analyzeFileStatus(content) {
     if (contentNeedsValidation(content)) return 'planned';
     if (content.includes('// IN PROGRESS') || content.includes('# IN PROGRESS')) return 'in-progress';
@@ -43,6 +60,11 @@ function analyzeFileStatus(content) {
     return 'planned';
 }
 
+/**
+ * Estimate work.
+ * @param {any} line
+ * @returns {any}
+ */
 function estimateWork(line) {
     if (line.includes('small') || line.includes('quick')) return '1 day';
     if (line.includes('medium')) return '3 days';
@@ -50,6 +72,11 @@ function estimateWork(line) {
     return '3 days';
 }
 
+/**
+ * Get mock file type.
+ * @param {string} filename
+ * @returns {any}
+ */
 function getMockFileType(filename) {
     const ext = path.extname(filename).toLowerCase();
     if (ext === '.json') return 'json';
@@ -62,6 +89,11 @@ function getMockFileType(filename) {
 }
 
 
+/**
+ * Extract patterns.
+ * @param {any} content
+ * @returns {any}
+ */
 function extractPatterns(content) {
     const patterns = [];
     content.split('\n').forEach((line) => {
@@ -72,6 +104,12 @@ function extractPatterns(content) {
     return patterns;
 }
 
+/**
+ * Analyze file content.
+ * @param {any} content
+ * @param {string} filename
+ * @returns {any}
+ */
 function analyzeFileContent(content, filename) {
     const needsConversion = content.includes('mock') || content.includes('sample') || content.includes('demo');
     const needsCleaning = content.includes('duplicate') || content.includes('outdated');
@@ -88,6 +126,12 @@ function analyzeFileContent(content, filename) {
     };
 }
 
+/**
+ * Calculate quality score.
+ * @param {Array} files
+ * @param {Array} issues
+ * @returns {any}
+ */
 function calculateQualityScore(files, issues) {
     const totalFiles = files.length;
     if (totalFiles === 0) return '0%';
@@ -95,6 +139,13 @@ function calculateQualityScore(files, issues) {
     return `${((cleanFiles / totalFiles) * 100).toFixed(1)}%`;
 }
 
+/**
+ * Scan project structure.
+ * @param {string} dirPath
+ * @param {string} basePath
+ * @param {Array} files
+ * @returns {any}
+ */
 async function scanProjectStructure(dirPath, basePath, files) {
     let items;
     try {
@@ -126,6 +177,12 @@ async function scanProjectStructure(dirPath, basePath, files) {
     }
 }
 
+/**
+ * Scan for backlog items.
+ * @param {string} dirPath
+ * @param {any} backlog
+ * @returns {any}
+ */
 async function scanForBacklogItems(dirPath, backlog) {
     let items;
     try {
@@ -160,6 +217,11 @@ async function scanForBacklogItems(dirPath, backlog) {
     }
 }
 
+/**
+ * Convert file to real format.
+ * @param {string} file
+ * @returns {any}
+ */
 function convertFileToRealFormat(file) {
     return {
         originalFile: file.path,
@@ -171,6 +233,11 @@ function convertFileToRealFormat(file) {
     };
 }
 
+/**
+ * Clean file content.
+ * @param {string} file
+ * @returns {any}
+ */
 function cleanFileContent(file) {
     return {
         originalFile: file.path,
@@ -181,6 +248,11 @@ function cleanFileContent(file) {
     };
 }
 
+/**
+ * Validate file structure.
+ * @param {string} file
+ * @returns {any}
+ */
 function validateFileStructure(file) {
     const tests = [];
     const issues = [];
@@ -208,16 +280,31 @@ function validateFileStructure(file) {
     };
 }
 
+/**
+ * Calculate data size.
+ * @param {Array} files
+ * @returns {any}
+ */
 function calculateDataSize(files) {
     return files.reduce((total, file) => total + (file.convertedSize || file.size || 0), 0);
 }
 
+/**
+ * Calculate optimization.
+ * @param {Array} files
+ * @returns {any}
+ */
 function calculateOptimization(files) {
     if (files.length === 0) return '0%';
     const totalOptimization = files.reduce((total, file) => total + parseFloat(file.optimization || '0'), 0);
     return `${(totalOptimization / files.length).toFixed(1)}%`;
 }
 
+/**
+ * Count duplicates.
+ * @param {Array} files
+ * @returns {any}
+ */
 function countDuplicates(files) {
     const seen = new Set();
     let duplicates = 0;
@@ -228,10 +315,20 @@ function countDuplicates(files) {
     return duplicates;
 }
 
+/**
+ * Scan mock files.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 async function scanMockFiles(projectPath) {
     const mockFiles = [];
     const issues = [];
 
+/**
+ * Walk.
+ * @param {string} dirPath
+ * @returns {any}
+ */
     async function walk(dirPath) {
         let items;
         try {
@@ -277,6 +374,12 @@ async function scanMockFiles(projectPath) {
     return { mockFiles, issues };
 }
 
+/**
+ * Setup repository scanner a p is.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function setupRepositoryScannerAPIs(app, options = {}) {
     const platformRoot = options.platformRoot || path.join(__dirname, '..', '..');
 

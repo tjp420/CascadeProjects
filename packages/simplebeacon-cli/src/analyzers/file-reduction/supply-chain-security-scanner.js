@@ -20,12 +20,24 @@ const POPULAR_PACKAGES = new Set([
     'prop-types', 'classnames', 'redux', 'react-redux',
     'styled-components', '@testing-library/react',
     '@testing-library/jest-dom', 'tailwindcss',
-    'postcss', 'autoprefixer', 'vite', 'rollup'
+    'postcss', 'autoprefixer', 'vite', 'rollup',
+    'ws', 'pg', 'webpack-cli', 'webpack-merge', 'webpack-sources',
+    'babel-jest', 'babel-plugin-istanbul', 'babel-preset-jest',
+    'eslint-scope', 'eslint-visitor-keys', 'express-rate-limit',
+    'jest-changed-files', 'jest-circus', 'jest-cli', 'jest-config',
+    'jest-diff', 'jest-docblock', 'jest-each', 'jest-environment-node',
+    'jest-get-type', 'jest-haste-map', 'jest-leak-detector',
+    'jest-matcher-utils', 'jest-message-util', 'jest-mock',
+    'jest-pnp-resolver', 'jest-regex-util', 'jest-resolve',
+    'jest-resolve-dependencies', 'jest-runner', 'jest-runtime',
+    'jest-snapshot', 'jest-util', 'jest-validate', 'jest-watcher',
+    'jest-worker', 'pg-cloudflare', 'pg-connection-string', 'pg-int8',
+    'pg-pool', 'pg-protocol', 'pg-types', 'pgpass', 'react-is',
+    'ms', 'jws', 'jwa'
 ]);
 
 const KNOWN_COMPROMISED_PATTERNS = [
     /^electron-native-notify/,
-    /^rc/,
     /^flatmap-stream/,
     /^event-stream$/,
     /^colors[-_]/,
@@ -35,29 +47,10 @@ const KNOWN_COMPROMISED_PATTERNS = [
     /^coa$/,
     /^rc$/,
     /^colors$/,
-    /^debug/,
     /^crossenv$/,
     /^safe-eval$/,
     /^bignumber.js/,
-    /^telnet/,
-    /^sqlite/,
-    /^jdb/,
-    /^mariadb/,
-    /^mysql/,
-    /^pg/,
-    /^jquery[-_]/,
-    /^bootstrap[-_]/,
-    /^angular[-_]/,
-    /^react[-_](?!dom)/,
-    /^vue[-_]/,
-    /^express[-_]/,
-    /^next[-_]/,
-    /^webpack[-_]/,
-    /^eslint[-_]/,
-    /^prettier[-_]/,
-    /^jest[-_]/,
-    /^typescript[-_]/,
-    /^babel[-_]/
+    /^telnet/
 ];
 
 const SUSPICIOUS_SCRIPT_PATTERNS = [

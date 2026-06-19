@@ -1,6 +1,8 @@
 /**
  * Unified file audit context — test/doc/example/production classification
  * and finding filter/severity adjustment.
+ *
+ * @module server/lib/file-audit-context
  */
 
 const TEST_PATH_HINTS = [
@@ -16,6 +18,11 @@ const NON_PRODUCTION_PATH_HINTS = [
     '/storybook/', '/scripts/', '/dev/', '/demo/', '.original.'
 ];
 
+/**
+ * Normalize a relative path to forward slashes and strip the ai-platform/ prefix.
+ * @param {string} relativePath
+ * @returns {string}
+ */
 function normalizeAuditPath(relativePath) {
     const rel = String(relativePath || '').replace(/\\/g, '/').toLowerCase();
     const marker = 'ai-platform/';
@@ -24,6 +31,15 @@ function normalizeAuditPath(relativePath) {
     return rel;
 }
 
+/**
+ * Classify a file path into test, example, documentation, or production context.
+ * @param {string} relativePath
+ * @param {object} [hooks]
+ * @param {Function} [hooks.isProductionPath]
+ * @param {Function} [hooks.isNonProductionPath]
+ * @param {Function} [hooks.isMetaCatalogDoc]
+ * @returns {object} context — {relativePath, basename, isTestFile, isExampleFile, isDocumentation, isProduction, isNonProduction, isMetaCatalogDoc}
+ */
 function resolveFileAuditContext(relativePath, hooks = {}) {
     const rel = normalizeAuditPath(relativePath);
     const basename = rel.split('/').pop() || '';
@@ -58,6 +74,12 @@ function resolveFileAuditContext(relativePath, hooks = {}) {
     };
 }
 
+/**
+ * Determine whether a finding should be reported given its file context.
+ * @param {object} finding
+ * @param {object} context
+ * @returns {boolean}
+ */
 function shouldIncludeFinding(finding, context) {
     if (context.isMetaCatalogDoc) return false;
     if (context.isTestFile && finding.category === 'debug-artifact') return false;
@@ -67,9 +89,27 @@ function shouldIncludeFinding(finding, context) {
     if (/^python-mock|^rust-test-only|^go-test-helper|^sql-seed-data/.test(String(finding.type || '')) && context.isTestFile) {
         return false;
     }
+    // Backend .cjs files don't use React — skip PropTypes noise
+    if (finding.type === 'missing-proptypes' && context.relativePath.endsWith('.cjs')) return false;
+    // Config / route files don't need JSDoc on every helper
+    if (finding.type === 'missing-jsdoc' && /server\/(config|api|lib)\//.test(context.relativePath)) return false;
+    // Shell scripts use echo/Write-Host by design — not debug artifacts
+    if (finding.category === 'debug-artifact' && /\.(sh|ps1|bash|zsh)$/.test(context.relativePath)) return false;
+    // Markdown files contain code blocks by design — not fence leaks
+    if ((finding.category === 'markdown-fence-leak' || finding.type === 'markdown-fence-in-code') && /\.(md|markdown|rst)$/.test(context.relativePath)) return false;
+    // Pattern-definition files contain TODO/FIXME/HACK/XXX as regex literals — not actual debt
+    if (finding.category === 'tech-debt' && /language-patterns\/|scanner-engine|scanner-patterns|test-all-patterns|file-quality-heuristics\.test|production-debug-guard/.test(context.relativePath)) return false;
+    // Workspace health circular-import-risk is noise on barrel files and normal relative requires
+    if (finding.category === 'workspace-health' && finding.type === 'circular-import-risk') return false;
     return true;
 }
 
+/**
+ * Adjust a finding's severity based on its file context (e.g. lower severity in test files).
+ * @param {object} finding
+ * @param {object} context
+ * @returns {object} adjustedFinding
+ */
 function adjustFindingSeverity(finding, context) {
     if (context.isProduction) return finding;
     if (finding.category === 'debug-artifact' && finding.severity === 'medium') {
@@ -89,6 +129,13 @@ function adjustFindingSeverity(finding, context) {
     return finding;
 }
 
+/**
+ * Filter and adjust findings for a given file path in one pass.
+ * @param {object[]} findings
+ * @param {string} relativePath
+ * @param {object} [hooks]
+ * @returns {object[]} filteredAndAdjustedFindings
+ */
 function applyContextToFindings(findings, relativePath, hooks = {}) {
     const context = resolveFileAuditContext(relativePath, hooks);
     return findings

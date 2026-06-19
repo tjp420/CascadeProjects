@@ -24,7 +24,7 @@ Contents:
     01-simplebeacon-gate.json            : Gate scan results (machine-readable JSON)
     02-consolidation.json                : Monorepo & duplicate file analysis (machine-readable JSON)
     03-mock-data.json                    : Mock / fixture / sample file detection (machine-readable JSON)
-    04-roadmap.json                      : TODO / FIXME marker inventory (machine-readable JSON)
+    04-roadmap.json                      : Pending-task marker inventory (machine-readable JSON)
     05-codebase.json                     : File & line count summary (machine-readable JSON)
     06-file-reduction.json               : Unused asset & duplicate detection (machine-readable JSON)
     07-data-quality.json                 : Empty / trivial JSON findings (machine-readable JSON)

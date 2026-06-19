@@ -1,5 +1,12 @@
 import { escapeHtml, formatNumber } from '../utils.js';
 
+/**
+ * Render consolidation panel.
+ * @param {Object} options
+ * @param {any} loading
+ * @param {any} error }
+ * @returns {any}
+ */
 export function renderConsolidationPanel({ scan, loading, error } = {}) {
   if (loading) {
     return '<p class="text-muted"><span class="loading-spinner"></span> Scanning sample paths…</p>';
@@ -31,7 +38,7 @@ export function renderConsolidationPanel({ scan, loading, error } = {}) {
       </div>
     ` : ''}
     <div class="metrics-row mb-4">
-      <div class="metric-chip" title="All files under project root (explorer inventory — includes node_modules count)">
+      <div class="metric-chip" title="All files under project root (audit inventory — skips node_modules, .git, build artifacts)">
         <strong>${formatNumber(repoFiles)}</strong> repo files
       </div>
       ${repoFolders != null ? `<div class="metric-chip"><strong>${formatNumber(repoFolders)}</strong> folders</div>` : ''}

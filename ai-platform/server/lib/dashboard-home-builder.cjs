@@ -4,6 +4,13 @@
 
 const { REPOSITORY_AUDIT_BASELINE } = require('./repository-audit-baseline.cjs');
 
+/**
+ * Replace jest mentions.
+ * @param {string} text
+ * @param {any} jestLabel
+ * @param {Array} suites
+ * @returns {any}
+ */
 function replaceJestMentions(text, jestLabel, suites) {
     if (!text || !jestLabel) return text;
     const suiteSuffix = suites != null ? ` across ${suites} suites` : '';
@@ -14,6 +21,11 @@ function replaceJestMentions(text, jestLabel, suites) {
         .replace(/default npm test runs with --no-coverage\./i, `default npm test runs with --no-coverage (${jestLabel}).`);
 }
 
+/**
+ * Build dashboard home model.
+ * @param {any} sample
+ * @returns {any}
+ */
 function buildDashboardHomeModel(sample = {}) {
     const baseline = REPOSITORY_AUDIT_BASELINE;
     const jestPassing = baseline?.jestTestsPassing;
@@ -32,6 +44,11 @@ function buildDashboardHomeModel(sample = {}) {
         notes: replaceJestMentions(sample.overview?.notes, jestLabel, suites)
     };
 
+/**
+ * Comparative analysis.
+ * @param {any} sample.comparativeAnalysis || []
+ * @returns {any}
+ */
     const comparativeAnalysis = (sample.comparativeAnalysis || []).map((row) => {
         if (String(row.metric || '').toLowerCase() !== 'jest tests') {
             return row;
@@ -44,11 +61,21 @@ function buildDashboardHomeModel(sample = {}) {
         return { ...row, current: jestPassing, change };
     });
 
+/**
+ * Insights.
+ * @param {any} sample.insights || []
+ * @returns {any}
+ */
     const insights = (sample.insights || []).map((item) => ({
         ...item,
         description: replaceJestMentions(item.description, jestLabel, suites)
     }));
 
+/**
+ * Kpis.
+ * @param {any} sample.kpis || []
+ * @returns {any}
+ */
     const kpis = (sample.kpis || []).map((item) => (
         String(item.name || '').toLowerCase().includes('jest')
             ? { ...item, current: jestLabel, target: jestLabel }

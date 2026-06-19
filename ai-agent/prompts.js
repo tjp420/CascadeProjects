@@ -1,6 +1,9 @@
+// SPDX-License-Identifier: MIT
 /**
  * Prompt templates optimized for 2B parameter models.
  * Single-purpose, strictly formatted instructions to prevent drift.
+ *
+ * @license MIT
  */
 
 /**

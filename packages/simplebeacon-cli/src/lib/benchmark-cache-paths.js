@@ -12,6 +12,12 @@ function isExternalBenchmarkCachePath(filePath) {
         || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
 }
 
+function isBenchmarkScanTargetRoot(filePath) {
+    const rel = normalizeRel(filePath);
+    return rel.includes('/github-cache/') || rel.startsWith('github-cache/')
+        || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
+}
+
 function isExcludedCredentialScanPath(filePath) {
     const rel = normalizeRel(filePath);
     if (isExternalBenchmarkCachePath(rel)) return true;
@@ -72,29 +78,35 @@ function partitionBenchmarkIssues(issues = []) {
 const MOCK_WALK_SKIP_DIRS = new Set([
     'node_modules',
     '.git',
-    'uploads',
     'coverage',
-    'archive',
     'dist',
     'build',
     '.next',
     '.cache',
-    'github-cache',
-    'deliverables',
-    'java-ai-vulnerable',
     '.simplebeacon',
-    'data-central',
-    'security-reports',
-    'simplebeacon-rule-tests',
-    '.github-sync'
+    'security-reports'
+]);
+
+const FULL_SCAN_SKIP_DIRS = new Set([
+    'node_modules',
+    '.git',
+    'coverage',
+    'dist',
+    'build',
+    '.next',
+    '.cache',
+    '.simplebeacon',
+    'security-reports'
 ]);
 
 module.exports = {
     isExternalBenchmarkCachePath,
+    isBenchmarkScanTargetRoot,
     isExcludedCredentialScanPath,
     isJestBaselineIssue,
     issueTouchesBenchmarkCache,
     issueTouchesExcludedPath,
     partitionBenchmarkIssues,
-    MOCK_WALK_SKIP_DIRS
+    MOCK_WALK_SKIP_DIRS,
+    FULL_SCAN_SKIP_DIRS
 };

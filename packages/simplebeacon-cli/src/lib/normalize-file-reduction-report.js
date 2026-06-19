@@ -6,8 +6,9 @@ const { isExternalBenchmarkCachePath } = require('./benchmark-cache-paths');
 const { aggregateCleanupFindings } = require('./result-aggregator');
 const { globMatch } = require('../rules/production-leak');
 const { DEFAULT_SKIP_GLOBS } = require('../analyzers/file-reduction/unused-file-detector');
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
 
-const STALE_INVENTORY_FILE_THRESHOLD = 5000;
+const STALE_INVENTORY_FILE_THRESHOLD = constants.TIMEOUT_5S;
 
 function collectFindingPaths(finding) {
     if (!finding || typeof finding !== 'object') return [];

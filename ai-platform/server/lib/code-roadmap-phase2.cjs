@@ -6,10 +6,18 @@ const fs = require('fs');
 const path = require('path');
 const { buildSemanticHints, probeLlamaCppBin } = require('./llama-cpp-hints.cjs');
 
+const constants = require('../config/constants.cjs');
 const FUZZY_THRESHOLD = 0.92;
 const MAX_FUZZY_PAIRS = 12;
 const MAX_GRAPH_FILES = 300;
 
+/**
+ * Resolve relative import.
+ * @param {string} fromRelativePath
+ * @param {any} dep
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function resolveRelativeImport(fromRelativePath, dep, projectRoot) {
     if (!dep.startsWith('.')) return null;
     const fromAbs = path.join(projectRoot, fromRelativePath);
@@ -23,6 +31,11 @@ function resolveRelativeImport(fromRelativePath, dep, projectRoot) {
     return null;
 }
 
+/**
+ * Should ignore phase2 path.
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function shouldIgnorePhase2Path(relativePath) {
     const normalized = String(relativePath || '').replace(/\\/g, '/');
     if (!normalized) return false;
@@ -31,6 +44,12 @@ function shouldIgnorePhase2Path(relativePath) {
     return normalized.split('/').some((segment) => segment === 'docs' || segment === 'archive');
 }
 
+/**
+ * Build internal dependency graph.
+ * @param {Array} files
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function buildInternalDependencyGraph(files, projectRoot) {
     const jsFiles = files
         .filter((f) => f.ext === '.js' && f.size < 200000 && !shouldIgnorePhase2Path(f.relativePath))
@@ -68,6 +87,11 @@ function buildInternalDependencyGraph(files, projectRoot) {
     };
 }
 
+/**
+ * Detect circular dependencies.
+ * @param {any} graph
+ * @returns {any}
+ */
 function detectCircularDependencies(graph) {
     const adjacency = graph.adjacencyList || {};
     const nodes = Object.keys(adjacency);
@@ -75,6 +99,12 @@ function detectCircularDependencies(graph) {
     const visited = new Set();
     const stack = new Set();
 
+/**
+ * Dfs.
+ * @param {any} node
+ * @param {string} pathStack
+ * @returns {any}
+ */
     const dfs = (node, pathStack) => {
         visited.add(node);
         stack.add(node);
@@ -111,15 +141,26 @@ function detectCircularDependencies(graph) {
     return unique.slice(0, 20);
 }
 
+/**
+ * Normalize for fuzzy.
+ * @param {any} content
+ * @returns {any}
+ */
 function normalizeForFuzzy(content) {
     return content
         .replace(/\/\/.*$/gm, '')
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/\s+/g, ' ')
         .trim()
-        .slice(0, 8000);
+        .slice(0, constants.TIMEOUT_8S);
 }
 
+/**
+ * Fuzzy similarity.
+ * @param {any} a
+ * @param {any} b
+ * @returns {any}
+ */
 function fuzzySimilarity(a, b) {
     if (a === b) return 1;
     if (!a.length || !b.length) return 0;
@@ -134,6 +175,12 @@ function fuzzySimilarity(a, b) {
     return union ? intersection / union : 0;
 }
 
+/**
+ * Find fuzzy similar pairs.
+ * @param {Array} files
+ * @param {any} _projectRoot
+ * @returns {any}
+ */
 function findFuzzySimilarPairs(files, _projectRoot) {
     const scoped = files.filter((f) =>
         f.ext === '.js'
@@ -160,7 +207,7 @@ function findFuzzySimilarPairs(files, _projectRoot) {
                 pairs.push({
                     fileA: loaded[i].file.relativePath,
                     fileB: loaded[j].file.relativePath,
-                    similarity: Math.round(similarity * 1000) / 1000,
+                    similarity: Math.round(similarity * 1000) / constants.MS_PER_SECOND,
                     method: 'token-jaccard',
                     recommendation: 'Review for merge/refactor — not identical duplicates'
                 });
@@ -171,6 +218,10 @@ function findFuzzySimilarPairs(files, _projectRoot) {
     return pairs.sort((a, b) => b.similarity - a.similarity).slice(0, MAX_FUZZY_PAIRS);
 }
 
+/**
+ * Detect gguf availability.
+ * @returns {any}
+ */
 function detectGgufAvailability() {
     const probe = probeLlamaCppBin();
     return {
@@ -189,6 +240,11 @@ function detectGgufAvailability() {
     };
 }
 
+/**
+ * Estimate solo resources.
+ * @param {any} sprintModel
+ * @returns {any}
+ */
 function estimateSoloResources(sprintModel) {
     const phases = sprintModel.phases || [];
     const remaining = phases.filter((p) => p.status !== 'completed');
@@ -220,6 +276,13 @@ function estimateSoloResources(sprintModel) {
     };
 }
 
+/**
+ * Build phase2 analysis.
+ * @param {Array} files
+ * @param {any} projectRoot
+ * @param {any} sprintModel
+ * @returns {any}
+ */
 function buildPhase2Analysis(files, projectRoot, sprintModel) {
     const dependencyGraph = buildInternalDependencyGraph(files, projectRoot);
     const circularDependencies = detectCircularDependencies(dependencyGraph);

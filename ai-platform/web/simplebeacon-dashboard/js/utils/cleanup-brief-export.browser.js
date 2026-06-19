@@ -4,6 +4,12 @@ import { formatNumber } from '../utils.js';
  * Browser mirror of cleanup-brief export sanitization (packages/simplebeacon-cli).
  */
 
+/**
+ * Redact project path for export.
+ * @param {string} rawPath
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = String(rawPath).replace(/\\/g, '/');
@@ -14,12 +20,23 @@ function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   return normalized;
 }
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Resolve redacted brief project path.
+ * @param {any} brief
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveRedactedBriefProjectPath(brief, options = {}) {
   const rawPath = options.projectPath || brief.projectPath || brief.scanAnalysis?.projectPath || '';
   const label = projectLabelFromPath(rawPath);
@@ -29,11 +46,21 @@ function resolveRedactedBriefProjectPath(brief, options = {}) {
   };
 }
 
+/**
+ * Is benchmark cache project path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function isBenchmarkCacheProjectPath(projectPath) {
   const rel = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/');
 }
 
+/**
+ * Resolve product platform root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(projectPath) {
   const normalized = String(projectPath || '').replace(/\\/g, '/');
   const idx = normalized.toLowerCase().indexOf('/github-cache/');
@@ -43,6 +70,11 @@ function resolveProductPlatformRoot(projectPath) {
 
 const BENCHMARK_PROTECTED_PATHS = ['.git', '.simplebeacon', 'docs', 'LICENSE'];
 
+/**
+ * Format bytes.
+ * @param {Array} bytes
+ * @returns {any}
+ */
 function formatBytes(bytes) {
   const n = Number(bytes) || 0;
   if (n < 1024) return `${n} B`;
@@ -51,6 +83,12 @@ function formatBytes(bytes) {
   return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+/**
+ * Resolve projected inventory note.
+ * @param {any} next
+ * @param {Array} auditFiles
+ * @returns {any}
+ */
 function resolveProjectedInventoryNote(next, auditFiles) {
   const safeFiles = next.estimatedReduction?.files ?? next.tiers?.safeNow?.files ?? 0;
   const projectedTotal = next.projectedInventory?.totalFiles;
@@ -63,6 +101,11 @@ function resolveProjectedInventoryNote(next, auditFiles) {
   return undefined;
 }
 
+/**
+ * Normalize duplicate group for brief.
+ * @param {any} group
+ * @returns {any}
+ */
 export function normalizeDuplicateGroupForBrief(group) {
   if (!group || typeof group !== 'object') return null;
 
@@ -101,6 +144,11 @@ export function normalizeDuplicateGroupForBrief(group) {
   return normalized;
 }
 
+/**
+ * Duplicate stats from brief.
+ * @param {any} brief
+ * @returns {any}
+ */
 function duplicateStatsFromBrief(brief) {
   const fr = brief.scanAnalysis?.fileReduction;
   const table = fr?.summaryTable || [];
@@ -111,6 +159,12 @@ function duplicateStatsFromBrief(brief) {
   };
 }
 
+/**
+ * Prune duplicate assets for export.
+ * @param {Array} groups
+ * @param {any} brief
+ * @returns {any}
+ */
 function pruneDuplicateAssetsForExport(groups = [], brief) {
   const normalized = groups
     .map(normalizeDuplicateGroupForBrief)
@@ -138,6 +192,12 @@ function pruneDuplicateAssetsForExport(groups = [], brief) {
   };
 }
 
+/**
+ * Replace misleading brief notes.
+ * @param {Array} notes
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function replaceMisleadingBriefNotes(notes = [], benchmarkScan) {
   const filtered = notes.filter((note) => {
     if (!benchmarkScan) return true;
@@ -151,6 +211,11 @@ function replaceMisleadingBriefNotes(notes = [], benchmarkScan) {
   return [...new Set(filtered)].slice(0, 10);
 }
 
+/**
+ * Build benchmark agent prompt.
+ * @param {any} brief
+ * @returns {any}
+ */
 function buildBenchmarkAgentPrompt(brief) {
   const { projectPath } = brief;
   const inventory = brief.inventory || {};
@@ -170,13 +235,20 @@ function buildBenchmarkAgentPrompt(brief) {
     `- Protected on this clone: ${brief.policy.protectedPaths.join(', ')}`,
     '- Do not bulk-delete unused-file candidates without verifying imports.',
     '',
+    // simplebeacon:production-leak-intent: template-sample - Cleanup brief inventory summary
     `Inventory: ${formatNumber(inventory.totalFiles)} files / ${formatNumber(inventory.totalFolders)} folders`,
     '',
+    // simplebeacon:production-leak-intent: web-data-sample - Cleanup brief product path exclusion notice
     'Do not apply Simplebeacon product paths (web/data, data-central) — they are not part of this OSS tree.',
     'For platform cleanup, re-run Complete scan on the ai-platform root and export a new brief.'
   ].join('\n');
 }
 
+/**
+ * Build benchmark agent instructions.
+ * @param {any} brief
+ * @returns {any}
+ */
 function buildBenchmarkAgentInstructions(brief) {
   const dup = brief.estimatedReduction?.phase2DuplicateBytes;
   return [
@@ -191,6 +263,13 @@ function buildBenchmarkAgentInstructions(brief) {
   ];
 }
 
+/**
+ * Resolve artifact profile for export.
+ * @param {Array} scanAnalysis
+ * @param {Array} tiers
+ * @param {any} estimatedReduction
+ * @returns {any}
+ */
 function resolveArtifactProfileForExport(scanAnalysis = {}, tiers = {}, estimatedReduction = {}) {
   const profile = scanAnalysis.artifactProfile || 'mixed';
   const fr = scanAnalysis.fileReduction || {};
@@ -204,6 +283,11 @@ function resolveArtifactProfileForExport(scanAnalysis = {}, tiers = {}, estimate
   return profile;
 }
 
+/**
+ * Resolve cleanup status.
+ * @param {any} brief
+ * @returns {any}
+ */
 function resolveCleanupStatus(brief) {
   const safeFiles = brief.estimatedReduction?.files ?? brief.tiers?.safeNow?.files ?? 0;
   const dupBytes = brief.estimatedReduction?.phase2DuplicateBytes ?? 0;
@@ -216,6 +300,12 @@ function resolveCleanupStatus(brief) {
 
 const STALE_NO_SAFE_DELETE_NOTE = /No regenerable build-artifact directories are currently classified safe-to-delete/i;
 
+/**
+ * Resolve file reduction workspace files.
+ * @param {any} brief
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveFileReductionWorkspaceFiles(brief, options = {}) {
   return options.fileReductionReport?.inventory?.totalFiles
     ?? options.fileReductionInventoryFiles
@@ -223,6 +313,11 @@ function resolveFileReductionWorkspaceFiles(brief, options = {}) {
     ?? null;
 }
 
+/**
+ * Count data quality open findings.
+ * @param {any} dataQuality
+ * @returns {any}
+ */
 function countDataQualityOpenFindings(dataQuality = {}) {
   return (dataQuality.unusedDependencies ?? 0)
     + (dataQuality.envInconsistencies ?? 0)
@@ -232,6 +327,12 @@ function countDataQualityOpenFindings(dataQuality = {}) {
     + (dataQuality.piiNeedingReview ?? 0);
 }
 
+/**
+ * Resolve gate inventory context.
+ * @param {any} brief
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveGateInventoryContext(brief, options = {}) {
   const gateReport = options.gateReport || {};
   const repositoryFilesTotal = options.repositoryFilesTotal
@@ -273,6 +374,12 @@ function resolveGateInventoryContext(brief, options = {}) {
   };
 }
 
+/**
+ * Build cleanup brief hygiene summary.
+ * @param {any} brief
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildCleanupBriefHygieneSummary(brief, options = {}) {
   const gateContext = resolveGateInventoryContext(brief, options);
   const { repositoryFilesTotal, credentialScanned, contentScanned, gateProfile, gateReport } = gateContext;
@@ -307,6 +414,12 @@ function buildCleanupBriefHygieneSummary(brief, options = {}) {
   };
 }
 
+/**
+ * Build cleanup brief scan scope.
+ * @param {any} brief
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildCleanupBriefScanScope(brief, options = {}) {
   const gateContext = resolveGateInventoryContext(brief, options);
   const { repositoryFilesTotal, gateProfile } = gateContext;
@@ -325,6 +438,12 @@ function buildCleanupBriefScanScope(brief, options = {}) {
   };
 }
 
+/**
+ * Build product export notes.
+ * @param {any} brief
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildProductExportNotes(brief, options = {}) {
   const notes = [
     'securityHandoffEligible is false — cleanup brief is agent guidance only, not vendor security handoff.',
@@ -337,7 +456,7 @@ function buildProductExportNotes(brief, options = {}) {
   const explorerFiles = brief.inventory?.totalFiles;
   if (frWorkspace != null && explorerFiles != null && explorerFiles > frWorkspace * 1.5) {
     notes.push(
-      `File-reduction workspace walk counted ${formatNumber(frWorkspace)} files — explorer inventory (${formatNumber(explorerFiles)} paths) includes un-walked regenerable shells.`
+      `File-reduction workspace walk counted ${formatNumber(frWorkspace)} files — repository inventory (${formatNumber(explorerFiles)} paths) includes un-walked regenerable shells.`
     );
   }
   const gateContext = resolveGateInventoryContext(brief, options);
@@ -349,7 +468,7 @@ function buildProductExportNotes(brief, options = {}) {
   }
   if (fictionJsonFilesScanned != null && fictionSampleFilesScanned != null && fictionJsonFilesScanned > fictionSampleFilesScanned) {
     notes.push(
-      // simplebeacon:production-leak-intent - legitimate KPI reference for cleanup brief reporting
+      // simplebeacon:production-leak-intent: template-sample - legitimate KPI reference for cleanup brief reporting
       `DATA-002 evaluated ${formatNumber(fictionJsonFilesScanned)} repository JSON path(s) — ${formatNumber(fictionSampleFilesScanned)} *-sample.json KPI file(s) matched in paired gate scan.`
     );
   }
@@ -409,6 +528,11 @@ function buildProductExportNotes(brief, options = {}) {
   return deduped;
 }
 
+/**
+ * Enrich product agent prompt.
+ * @param {any} brief
+ * @returns {any}
+ */
 function enrichProductAgentPrompt(brief) {
   const { projectPath, tiers } = brief;
   const estimatedReduction = brief.estimatedReduction || {};
@@ -447,6 +571,11 @@ function enrichProductAgentPrompt(brief) {
   return lines.join('\n');
 }
 
+/**
+ * Enrich product agent instructions.
+ * @param {any} brief
+ * @returns {any}
+ */
 function enrichProductAgentInstructions(brief) {
   const policy = brief.policy || { protectedPaths: [], allowNodeModules: false, allowSimplebeaconCache: false };
   const protectedPaths = policy.protectedPaths || [];
@@ -475,6 +604,12 @@ function enrichProductAgentInstructions(brief) {
   return lines;
 }
 
+/**
+ * Sanitize cleanup brief export.
+ * @param {any} brief
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeCleanupBriefExport(brief, options = {}) {
   if (!brief || brief.type !== 'simplebeacon-cleanup-brief') return brief;
 

@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { access, readFile } = fs.promises;
 
 const RULE_CATALOG = [
     {
@@ -39,15 +40,14 @@ const LLM_INVOCATION_PATTERNS = [
 
 const MAX_TOKENS_RE = /\bmax_(?:completion_)?tokens\b\s*[:=]\s*(\d+)/i;
 
-function findBudgetConfig(baseDir) {
+async function findBudgetConfig(baseDir) {
     for (const name of BUDGET_FILE_NAMES) {
         const fullPath = path.join(baseDir, name);
-        if (fs.existsSync(fullPath)) {
-            try {
-                return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-            } catch {
-                return null;
-            }
+        try {
+            await access(fullPath);
+            return JSON.parse(await readFile(fullPath, 'utf8'));
+        } catch {
+            // file doesn't exist or can't be parsed, try next
         }
     }
     return null;
@@ -138,7 +138,7 @@ function scanBudgetCompliance(relativePath, content, budgetConfig) {
 }
 
 async function scanBudgetConfig(baseDir, options = {}) {
-    const budgetConfig = findBudgetConfig(baseDir);
+    const budgetConfig = await findBudgetConfig(baseDir);
     const findings = [];
     const scannedFiles = options.files || [];
 

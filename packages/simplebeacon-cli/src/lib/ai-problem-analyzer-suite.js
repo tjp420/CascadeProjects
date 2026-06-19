@@ -1,3 +1,4 @@
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
 /**
  * Server-side AI Problem Analyzer Suite — deterministic 48-analyzer engine.
  * Ported from browser dashboard; runs locally against scan reports and codebase context.
@@ -575,7 +576,7 @@ function runScalabilityAnalyzer(definition, issueId, input = {}) {
   const scanDuration = metrics.scanDurationMs || 0;
   if (!totalFiles && !scanDuration && !text) return buildInsufficientResult(definition, issueId, 'metrics|responseText', 'No scalability metrics or descriptive text supplied.');
   const throughput = totalFiles && scanDuration ? clampScore((totalFiles / (scanDuration / 1000)) * 10) : 50;
-  const latencyScore = scanDuration < 5000 ? 90 : scanDuration < 30000 ? 70 : 40;
+  const latencyScore = scanDuration < constants.TIMEOUT_5S ? 90 : scanDuration < 30000 ? 70 : 40;
   const resourceEfficiency = clampScore((throughput + latencyScore) / 2);
   const score = resourceEfficiency;
   const risk = finalizeRiskAssessment(score, definition.scoringDirection, { evidenceCount: totalFiles || (scanDuration ? 1 : 0) || (text ? 1 : 0), minEvidence: 1, criticalRequiresMinEvidence: true });

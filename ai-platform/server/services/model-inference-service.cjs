@@ -10,7 +10,8 @@ const { scanMockDataDirectories, _formatBytes } = require('../lib/mock-data-scan
 const { ollamaGenerate, extractJsonObject } = require('./ollama-client.cjs');
 const { assertSafeExecutablePath } = require('../lib/path-safety.cjs');
 
-const SAMPLE_PATH = path.join('web', 'data', 'mock-analysis-sample.json');
+const constants = require('../config/constants.cjs');
+const SAMPLE_PATH = process.env.MOCK_ANALYSIS_SAMPLE_PATH || path.join('data', 'templates', 'analysis-template.json');
 const FALLBACK_TEMPLATE = {
     mockDataCategories: [],
     optimizationRecommendations: [],
@@ -18,6 +19,11 @@ const FALLBACK_TEMPLATE = {
     privacyAndSecurity: {}
 };
 
+/**
+ * Load report template.
+ * @param {string} baseDir
+ * @returns {any}
+ */
 async function loadReportTemplate(baseDir) {
     const samplePath = path.join(baseDir, SAMPLE_PATH);
     try {
@@ -28,6 +34,11 @@ async function loadReportTemplate(baseDir) {
     }
 }
 
+/**
+ * Load measured baseline.
+ * @param {string} baseDir
+ * @returns {any}
+ */
 async function loadMeasuredBaseline(baseDir) {
     try {
         return await loadReportTemplate(baseDir);
@@ -36,10 +47,23 @@ async function loadMeasuredBaseline(baseDir) {
     }
 }
 
+/**
+ * Get model by id.
+ * @param {string} registry
+ * @param {string} modelId
+ * @returns {any}
+ */
 function getModelById(registry, modelId) {
     return registry.models.find((m) => m.id === modelId) || null;
 }
 
+/**
+ * Build model info.
+ * @param {any} model
+ * @param {string} registry
+ * @param {any} baseline
+ * @returns {any}
+ */
 function buildModelInfo(model, registry, baseline) {
     if (model.provider === 'demo') {
         return {
@@ -72,6 +96,12 @@ function buildModelInfo(model, registry, baseline) {
     };
 }
 
+/**
+ * Build scan overview.
+ * @param {any} scan
+ * @param {any} model
+ * @returns {any}
+ */
 function buildScanOverview(scan, model) {
     const pageChecked = scan.pageSampleSchemaChecked ?? scan.schemaChecked ?? 0;
     const pagePassed = scan.pageSampleSchemaPassed ?? scan.schemaPassed ?? 0;
@@ -83,7 +113,7 @@ function buildScanOverview(scan, model) {
         totalMockDataSize: scan.totalSizeLabel,
         issuesDetected: scan.issueCount,
         aiConfidence: model.provider === 'demo' ? null : (model.confidence ?? null),
-        schemaPassRate: pageChecked ? Math.round((pagePassed / pageChecked) * 1000) / 10 : null,
+        schemaPassRate: pageChecked ? Math.round((pagePassed / pageChecked) * constants.PERCENTAGE_MULTIPLIER) : null,
         schemaFilesChecked: pageChecked,
         schemaFilesPassed: pagePassed,
         pageSampleSpecsLabel: pageChecked ? `${pagePassed}/${pageChecked}` : null,
@@ -98,6 +128,11 @@ function buildScanOverview(scan, model) {
     };
 }
 
+/**
+ * Build quality metrics.
+ * @param {any} scan
+ * @returns {any}
+ */
 function buildQualityMetrics(scan) {
     const overall = scan.qualityScore ?? 0;
     const pageChecked = scan.pageSampleSchemaChecked ?? scan.schemaChecked ?? 0;
@@ -125,6 +160,12 @@ function buildQualityMetrics(scan) {
     };
 }
 
+/**
+ * Build analysis prompt.
+ * @param {any} scanSummary
+ * @param {any} model
+ * @returns {any}
+ */
 function buildAnalysisPrompt(scanSummary, model) {
     return `You are a mock data quality analyzer. Return ONLY valid JSON with keys:
 analysisOverview (object with dataQualityScore number, issuesDetected number),
@@ -138,6 +179,12 @@ Invalid JSON files: ${scanSummary.invalidJson}
 Sample files: ${scanSummary.sampleFiles.join(', ')}`;
 }
 
+/**
+ * Try llama cpp inference.
+ * @param {string} modelPath
+ * @param {any} prompt
+ * @returns {any}
+ */
 async function tryLlamaCppInference(modelPath, prompt) {
     const bin = process.env.LLAMA_CPP_BIN;
     if (!bin || !modelPath) return null;
@@ -172,7 +219,7 @@ async function tryLlamaCppInference(modelPath, prompt) {
                 resolve(null);
                 return;
             }
-            resolve(extractJsonObject(stdout) || { rawText: stdout.slice(0, 2000), stderr: stderr.slice(0, 500) });
+            resolve(extractJsonObject(stdout) || { rawText: stdout.slice(0, constants.MAX_RATE_LIMIT), stderr: stderr.slice(0, 500) });
         });
         child.on('error', () => {
             clearTimeout(timeout);
@@ -181,6 +228,14 @@ async function tryLlamaCppInference(modelPath, prompt) {
     });
 }
 
+/**
+ * Enhance with ollama.
+ * @param {string} registry
+ * @param {any} model
+ * @param {any} scan
+ * @param {number} baseReport
+ * @returns {any}
+ */
 async function enhanceWithOllama(registry, model, scan, baseReport) {
     const prompt = buildAnalysisPrompt(scan, model);
     const generated = await ollamaGenerate(
@@ -240,6 +295,13 @@ async function enhanceWithOllama(registry, model, scan, baseReport) {
     };
 }
 
+/**
+ * Analyze with model.
+ * @param {string} baseDir
+ * @param {string} modelId
+ * @param {Object} options
+ * @returns {any}
+ */
 async function analyzeWithModel(baseDir, modelId, options = {}) {
     const started = Date.now();
     const registry = await ensureRegistry(baseDir);
@@ -271,8 +333,8 @@ async function analyzeWithModel(baseDir, modelId, options = {}) {
         ggufAIInsights: baseline?.ggufAIInsights || template.ggufAIInsights,
         privacyAndSecurity: baseline?.privacyAndSecurity || template.privacyAndSecurity,
         performanceMetrics: {
-            analysisDuration: `${((Date.now() - started) / 1000).toFixed(1)} seconds`,
-            filesProcessedPerSecond: Math.max(1, Math.round(scan.totalFiles / Math.max((Date.now() - started) / 1000, 0.5))),
+            analysisDuration: `${((Date.now() - started) / constants.MS_PER_SECOND).toFixed(1)} seconds`,
+            filesProcessedPerSecond: Math.max(1, Math.round(scan.totalFiles / Math.max((Date.now() - started) / constants.MS_PER_SECOND, 0.5))),
             memoryEfficiency: 'Local',
             cpuOptimization: model.provider === 'ollama' ? 'Ollama' : 'Filesystem',
             scalabilityRating: scan.totalFiles > 500 ? 'Good' : 'Very Good'

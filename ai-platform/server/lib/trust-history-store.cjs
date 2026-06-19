@@ -4,20 +4,42 @@ const { readJsonFileCached } = require('./json-file-cache.cjs');
 
 const DEFAULT_HISTORY_LIMIT = 180;
 
+/**
+ * To integer.
+ * @param {any} value
+ * @param {any} fallback
+ * @returns {any}
+ */
 function toInteger(value, fallback) {
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+/**
+ * Resolve trust history path.
+ * @param {any} platformRoot
+ * @param {string} customPath
+ * @returns {any}
+ */
 function resolveTrustHistoryPath(platformRoot, customPath) {
     if (customPath) return path.resolve(customPath);
     return path.join(path.resolve(platformRoot), '.simplebeacon', 'trust-history.json');
 }
 
+/**
+ * Read json if exists.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function readJsonIfExists(filePath) {
     return readJsonFileCached(filePath);
 }
 
+/**
+ * Read trust history.
+ * @param {string} historyPath
+ * @returns {any}
+ */
 function readTrustHistory(historyPath) {
     const payload = readJsonIfExists(historyPath);
     const entries = Array.isArray(payload?.entries) ? payload.entries : [];
@@ -30,6 +52,12 @@ function readTrustHistory(historyPath) {
     };
 }
 
+/**
+ * Write trust history.
+ * @param {string} historyPath
+ * @param {Array} entries
+ * @returns {any}
+ */
 function writeTrustHistory(historyPath, entries) {
     fs.mkdirSync(path.dirname(historyPath), { recursive: true });
     fs.writeFileSync(
@@ -44,6 +72,12 @@ function writeTrustHistory(historyPath, entries) {
     );
 }
 
+/**
+ * Build history entry.
+ * @param {any} payload
+ * @param {any} source
+ * @returns {any}
+ */
 function buildHistoryEntry(payload, source = 'trust:publish') {
     const headline = payload?.headline || {};
     return {
@@ -103,10 +137,21 @@ function appendTrustSnapshot({
     };
 }
 
+/**
+ * Numeric.
+ * @param {any} value
+ * @returns {any}
+ */
 function numeric(value) {
     return Number.isFinite(value) ? value : Number(value);
 }
 
+/**
+ * Build trust trend.
+ * @param {Array} entries
+ * @param {number} windowSize
+ * @returns {any}
+ */
 function buildTrustTrend(entries, windowSize = 30) {
     const limit = toInteger(windowSize, 30);
     const scoped = Array.isArray(entries) ? entries.slice(0, limit) : [];

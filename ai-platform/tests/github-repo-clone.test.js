@@ -1,4 +1,4 @@
-const { validateRepoUrl } = require('../server/lib/path-safety');
+const { validateRepoUrl } = require('../server/lib/path-safety.cjs');
 
 describe('github repo URL validation', () => {
     test('validateRepoUrl accepts HTTPS github repository URLs', () => {

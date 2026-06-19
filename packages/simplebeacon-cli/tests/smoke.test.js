@@ -239,7 +239,7 @@ describe('Report sanitizer', () => {
         const report = {
             gate: {
                 blockingIssues: [
-                    { filePath: 'env.js', snippet: 'API_KEY = "sk-1234567890abcdef"' }
+                    { filePath: 'env.js', snippet: 'API_KEY = "YOUR_API_KEY_HERE"' }
                 ]
             }
         };

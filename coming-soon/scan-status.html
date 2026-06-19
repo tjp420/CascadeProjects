@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SimpleBeacon — Scan Status & Results</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Fallback for IDE preview where external CSS may fail -->
+    <style>
+        html, body { background: #0B0F19 !important; color: #F3F4F6 !important; }
+    </style>
     <style>
         :root {
             --bg-main: #0B0F19;
@@ -34,7 +38,7 @@
         header h1 {
             font-size: 1.75rem; font-weight: 700; margin-bottom: 8px;
             background: linear-gradient(135deg, #60A5FA, #2563EB);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         header p { color: var(--text-muted); font-size: 0.95rem; max-width: 520px; margin: 0 auto; }
 
@@ -130,9 +134,13 @@
                 </div>
                 <div class="metric-grid">
                     <div class="metric-box"><span class="value" id="qualityScore">--</span><span class="label">Quality Score</span></div>
+                    <div class="metric-box"><span class="value" id="consistencyScore">--</span><span class="label">Consistency</span></div>
                     <div class="metric-box"><span class="value" id="totalIssues">--</span><span class="label">Total Issues</span></div>
                     <div class="metric-box"><span class="value" id="blockingCount">--</span><span class="label">Blocking</span></div>
                     <div class="metric-box"><span class="value" id="fileCount">--</span><span class="label">Files Scanned</span></div>
+                    <div class="metric-box"><span class="value" id="filesAnalyzed">--</span><span class="label">Files Analyzed</span></div>
+                    <div class="metric-box"><span class="value" id="fictionKpiHits">--</span><span class="label">Fiction Scanned</span></div>
+                    <div class="metric-box"><span class="value" id="mockSampleFiles">--</span><span class="label">Mock/Sample Files</span></div>
                 </div>
                 <div class="progress-bar"><div class="progress-fill" id="qualityBar" style="width:0%"></div></div>
                 <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
@@ -164,48 +172,58 @@
                 <div class="metric-grid" id="analysisConsolidationMetrics"></div>
                 <p id="analysisConsolidationSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
             </div>
+            <div class="card" id="analysisConsistencyCard" style="display:none;">
+                <h2>&#9989; 3. Consistency Score</h2>
+                <div class="metric-grid" id="analysisConsistencyMetrics"></div>
+                <p id="analysisConsistencySummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+            </div>
             <div class="card" id="analysisMockCard" style="display:none;">
-                <h2>&#128269; 3. Mock Data Detection</h2>
+                <h2>&#128269; 4. Mock Data Detection</h2>
                 <ul class="issue-list" id="analysisMockList"></ul>
             </div>
+            <div class="card" id="analysisFictionCard" style="display:none;">
+                <h2>&#128220; 5. Fiction Scanned</h2>
+                <div class="metric-grid" id="analysisFictionMetrics"></div>
+                <p id="analysisFictionSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
+            </div>
             <div class="card" id="analysisRoadmapCard" style="display:none;">
-                <h2>&#128506; 4. Roadmap Markers</h2>
+                <h2>&#128506; 6. Roadmap Markers</h2>
                 <div class="metric-grid" id="analysisRoadmapMetrics"></div>
                 <p id="analysisRoadmapSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
             </div>
             <div class="card" id="analysisCodebaseCard" style="display:none;">
-                <h2>&#128187; 5. Codebase Analysis</h2>
+                <h2>&#128187; 7. Codebase Analysis</h2>
                 <div class="metric-grid" id="analysisCodebaseMetrics"></div>
                 <p id="analysisCodebaseSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
                 <div id="analysisCodebaseFileTypes" style="margin-top:12px;font-size:0.8rem;color:var(--text-muted);"></div>
             </div>
             <div class="card" id="analysisFileReductionCard" style="display:none;">
-                <h2>&#128230; 6. File Reduction</h2>
+                <h2>&#128230; 8. File Reduction</h2>
                 <div class="metric-grid" id="analysisFileReductionMetrics"></div>
                 <p id="analysisFileReductionSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
             </div>
             <div class="card" id="analysisDataQualityCard" style="display:none;">
-                <h2>&#129516; 7. Data Quality</h2>
+                <h2>&#129516; 9. Data Quality</h2>
                 <div class="metric-grid" id="analysisDataQualityMetrics"></div>
                 <p id="analysisDataQualitySummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
             </div>
             <div class="card" id="analysisCleanupCard" style="display:none;">
-                <h2>&#129529; 8. Cleanup Assistant</h2>
+                <h2>&#129529; 10. Cleanup Assistant</h2>
                 <div class="metric-grid" id="analysisCleanupMetrics"></div>
                 <p id="analysisCleanupSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
             </div>
             <div class="card" id="analysisNpmCard" style="display:none;">
-                <h2>&#128230; 9. npm Audit</h2>
+                <h2>&#128230; 11. npm Audit</h2>
                 <div class="metric-grid" id="analysisNpmMetrics"></div>
                 <p id="analysisNpmSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
             </div>
             <div class="card" id="analysisComplianceCard" style="display:none;">
-                <h2>&#9989; 10. Compliance</h2>
+                <h2>&#9989; 12. Compliance</h2>
                 <div class="metric-grid" id="analysisComplianceMetrics"></div>
                 <p id="analysisComplianceSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
             </div>
             <div class="card" id="analysisEuAiCard" style="display:none;">
-                <h2>&#127757; 11. EU AI Act Sprint</h2>
+                <h2>&#127757; 13. EU AI Act Sprint</h2>
                 <div class="metric-grid" id="analysisEuAiMetrics"></div>
                 <p id="analysisEuAiSummary" style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;"></p>
             </div>
@@ -232,7 +250,7 @@
     <script>
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         const isFile = window.location.protocol === 'file:';
-        const API_BASE = (isLocal || isFile) ? ('http://' + 'localhost' + ':' + '3001') : 'https://simplebeacon.onrender.com';
+        const API_BASE = (isLocal || isFile) ? ('http://' + window.location.hostname + ':' + window.location.port) : 'https://simplebeacon.onrender.com';
         let currentReport = null;
 
         const dropZone = document.getElementById('dropZone');
@@ -308,9 +326,13 @@
 
             const quality = report.qualityScore ?? '--';
             document.getElementById('qualityScore').textContent = quality;
+            document.getElementById('consistencyScore').textContent = report.consistencyScore ?? '--';
             document.getElementById('totalIssues').textContent = report.issueCount ?? (report.rawIssues || []).length ?? 0;
             document.getElementById('blockingCount').textContent = gate.blockingCount ?? 0;
             document.getElementById('fileCount').textContent = report.repositoryInventory?.totalFiles ?? report.totalFiles ?? '--';
+            document.getElementById('filesAnalyzed').textContent = report.filesAnalyzed ?? report.sourceFiles?.length ?? '--';
+            document.getElementById('fictionKpiHits').textContent = report.fictionKpiHits ?? '--';
+            document.getElementById('mockSampleFiles').textContent = report.mockSampleFiles ?? (report.mockDataCategories || []).reduce((a, c) => a + (c.fileCount || 0), 0) ?? '--';
 
             const qNum = Number(quality);
             document.getElementById('qualityBar').style.width = (!isNaN(qNum) ? qNum : 0) + '%';
@@ -347,7 +369,19 @@
                 setText('analysisConsolidationSummary', cons.summary || `${cons.duplicateGroups || 0} duplicate file groups detected.`);
             }
 
-            // 3. Mock Data
+            // 3. Consistency Score
+            const consistency = report.consistencyScore ?? null;
+            const hasConsistency = consistency != null;
+            showCard('analysisConsistencyCard', hasConsistency);
+            if (hasConsistency) {
+                setMetrics('analysisConsistencyMetrics', [
+                    { value: consistency, label: 'Score' },
+                    { value: report.duplicateGroups || 0, label: 'Duplicate groups' }
+                ]);
+                setText('analysisConsistencySummary', `Consistency score of ${consistency}/100 based on duplicate file analysis.`);
+            }
+
+            // 4. Mock Data
             const mock = report.mockDataCategories || [];
             const mockCount = report.mockSampleFiles ?? mock.reduce((a, c) => a + (c.fileCount || 0), 0);
             showCard('analysisMockCard', mockCount > 0);
@@ -355,7 +389,18 @@
                 setList('analysisMockList', mock, cat => `<li class="issue-item"><div class="issue-text"><div>${escapeHtml(cat.category || 'Mock Data')}</div><div class="issue-rule">${cat.fileCount || 0} files · ${cat.confidence || 'medium'} confidence</div><div class="issue-path">${escapeHtml((cat.affectedFiles || []).slice(0, 3).join(', '))}</div></div></li>`);
             }
 
-            // 4. Roadmap
+            // 5. Fiction Scanned
+            const fictionHits = report.fictionKpiHits ?? 0;
+            const hasFiction = fictionHits > 0 || (report.fictionKpiFindings || []).length > 0;
+            showCard('analysisFictionCard', hasFiction);
+            if (hasFiction) {
+                setMetrics('analysisFictionMetrics', [
+                    { value: fictionHits, label: 'Fiction KPI hits' }
+                ]);
+                setText('analysisFictionSummary', `${fictionHits} hardcoded fiction KPI pattern(s) detected across scanned files.`);
+            }
+
+            // 6. Roadmap
             const roadmap = report.roadmap || {};
             showCard('analysisRoadmapCard', (roadmap.todoCount || 0) > 0);
             if ((roadmap.todoCount || 0) > 0) {

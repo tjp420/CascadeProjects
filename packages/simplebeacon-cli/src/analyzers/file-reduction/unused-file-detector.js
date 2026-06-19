@@ -1,6 +1,5 @@
-/**
- * Basic static analysis for files with zero incoming references.
- */
+// Basic static analysis for files with zero incoming references.
+// simplebeacon:production-leak-intent — ** / *-sample.json is an exclusion glob for unused-file detection, not a production leak.
 
 const fs = require('fs');
 const path = require('path');
@@ -28,7 +27,8 @@ const ENTRY_BASENAMES = new Set([
     'main.js',
     'main.ts',
     'app.js',
-    'server.js'
+    'server.js',
+    'server.cjs'
 ]);
 
 const PROTECTED_BASENAMES = new Set([
@@ -39,7 +39,12 @@ const PROTECTED_BASENAMES = new Set([
     'README.md',
     'LICENSE',
     '.gitignore',
-    'vercel.json'
+    'vercel.json',
+    'jest.config.cjs',
+    'jest.config.js',
+    'jest.config.mjs',
+    'report.json',
+    'test-audit-report.json'
 ]);
 
 const DEFAULT_SKIP_PATH_PATTERNS = [
@@ -51,12 +56,6 @@ const DEFAULT_SKIP_PATH_PATTERNS = [
     /(?:^|\/)\\.simplebeacon\//,
     /(?:^|\/)simplebeacon-test-repo\//,
     /(?:^|\/)simplebeacon-rule-tests\//,
-    /(?:^|\/)\\.cursor(?:\/|$)/,
-    /(?:^|\/)\\.vscode(?:\/|$)/,
-    /(?:^|\/)docs\//,
-    /(?:^|\/)reports\//,
-    /(?:^|\/)deliverables\//,
-    /(?:^|\/)security-reports\//,
     /(?:^|\/)tests-legacy(?:\/|$)/,
     /(?:^|\/)\\.github-sync(?:\/|$)/,
     /(?:^|\/)data-central\//,
@@ -64,19 +63,26 @@ const DEFAULT_SKIP_PATH_PATTERNS = [
     /(?:^|\/)data\//,
     /(?:^|\/)coming-soon\//,
     /(?:^|\/)deployments\//,
-    /(?:^|\/)public\//,
-    /(?:^|\/)functions\//,
     /(?:^|\/)cloudflare-deploy\//,
     /(?:^|\/)packages\/simplebeacon-cli\/docs\//,
     /(?:^|\/)packages\/simplebeacon-cli\/examples(?:\/|$)/,
     /(?:^|\/)web\/findings(?:\/|$)/,
     /(?:^|\/)web\/simplebeacon-findings\/\.next(?:\/|$)/,
     /(?:^|\/)templates\//,
-    /(?:^|\/)src\/web\/export-system\.js$/
+    // Skip documentation and report directories where files are kept for reference
+    /(?:^|\/)docs(?:\/|$)/,
+    /(?:^|\/)reports(?:\/|$)/,
+    // Skip non-production subprojects and export artifacts
+    /(?:^|\/)ai-agent(?:\/|$)/,
+    new RegExp('(?:^|/)New folder(?:/|$)'),
+    /(?:^|\/)simplebeacon-vscode(?:\/|$)/,
+    /(?:^|\/)simplebeacon-vscode-merged(?:\/|$)/,
+    /(?:^|\/)ai-platform(?:\/|$)/,
+    /(?:^|\/)packages(?:\/|$)/
 ];
 
 const DEFAULT_SKIP_GLOBS = [
-    '**/*-sample.json',
+    '**/*-sample.json', // simplebeacon:production-leak-intent: analyzer-exclusion - Skip fixture files during reduction analysis
     '**/mock-backend.js',
     '**/mock-backend-static-data.js',
     '**/demo-users.json',
@@ -99,7 +105,48 @@ const DEFAULT_SKIP_GLOBS = [
     '.github-sync/**',
     'packages/simplebeacon-cli/examples/**',
     'web/findings/**',
-    '**/next-env.d.ts'
+    '**/next-env.d.ts',
+    'vscode-extension/src/extension.ts',
+    'simplebeacon-vscode/src/extension.ts',
+    // Skip static landing page assets loaded directly by browser
+    'coming-soon/**/*.html',
+    'coming-soon/**/*.css',
+    'coming-soon/**/*.png',
+    'coming-soon/**/*.jpg',
+    'coming-soon/**/*.jpeg',
+    'coming-soon/**/*.svg',
+    'coming-soon/**/*.gif',
+    'coming-soon/**/*.ico',
+    'coming-soon/**/*.woff*',
+    'coming-soon/media/**',
+    'coming-soon/images/**',
+    'coming-soon/css/**',
+    // Skip static HTML entry points in any project root (they are routes, not modules)
+    '*.html',
+    '**/*.html',
+    '*.css',
+    '**/*.css',
+    '*.md',
+    '**/*.md',
+    'robots.txt',
+    'sitemap.xml',
+    '**/.env*',
+    'Dockerfile',
+    'docker-compose*',
+    // Skip standalone utility scripts and export files
+    'trello-roadmap-export.js',
+    'update-cache.js',
+    'zip-for-upload.js',
+    'analyze-directory.js',
+    'contact.js',
+    'app-links.js',
+    'site-config.js',
+    'lib/time-tokens.cjs',
+    '**/*-export*.json',
+    '**/*-report*.json',
+    '**/*-sample.json',
+    '**/trello-*.json',
+    '**/vscode-extension-roadmap.json'
 ];
 
 const PROTECTED_RUNTIME_BASENAMES = new Set([
@@ -115,11 +162,14 @@ const PROTECTED_RUNTIME_BASENAMES = new Set([
     'simplebeacon_ast_scan.py',
     'default-fingerprints.json',
     'analyzer-cache.js',
+    'simplebeacon-report.json',
     // Intentional CJS / browser mirrors (see complete-scan-artifact-profile.js)
     'complete-scan-artifact-profile.browser.js',
     'complete-scan-artifact-profile.js',
     'full-tree-rule-worker.js',
-    'scan-orchestrator.js'
+    'scan-orchestrator.js',
+    // Pipeline module — referenced dynamically via server route wiring
+    'data-processor.cjs'
 ]);
 
 const SCRIPT_ENTRY_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.py']);

@@ -1,0 +1,365 @@
+{
+  "summary": {
+    "project": "blog",
+    "healthScore": 0,
+    "exportedAt": "2026-06-15T02:30:33.431Z",
+    "generatedAt": "2026-06-15T02:30:21.249Z",
+    "sourceReport": "2026-06-15T02:29:33.820Z",
+    "phases": {
+      "total": 1,
+      "completed": 0,
+      "blocked": 0,
+      "inProgress": 0,
+      "pending": 1
+    },
+    "tasks": {
+      "total": 40,
+      "completed": 0,
+      "remaining": 40
+    },
+    "criticalPaths": []
+  },
+  "phases": [
+    {
+      "id": "optimization",
+      "title": "Phase 1: Quality Optimization",
+      "status": "pending",
+      "severity": "low",
+      "effort": "1–3 days",
+      "progress": 0,
+      "description": "40 finding(s) requiring manual review.",
+      "dependsOn": null,
+      "dependsOnTitle": null,
+      "impact": null,
+      "fix": null,
+      "taskSummary": {
+        "total": 40,
+        "done": 5,
+        "todo": 35,
+        "percent": 12
+      },
+      "tasks": [
+        {
+          "description": "Review && remediate: \"fs.writeFileSync(outFile, result.token + '\\n', 'utf8');\" in generate-account-token.js:62",
+          "type": "fix",
+          "codeSnippet": "await fs.writeFile(outFile, result.token + '\\n', 'utf8');",
+          "location": "generate-account-token.js:62",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"const stats = fs.statSync(filePath);\" in zip-for-upload.js:72",
+          "type": "fix",
+          "codeSnippet": "const stats = await fsPromises.stat(filePath);",
+          "location": "zip-for-upload.js:72",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"window.location.href = url;\" in app-links.js:94",
+          "type": "fix",
+          "codeSnippet": "window.location.href = url;",
+          "location": "app-links.js:94",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"console.log('\\n=== Root-Down Account + Time Token ===');\" in generate-account-token.js:38",
+          "type": "fix",
+          "codeSnippet": "Token output redacted in console",
+          "location": "generate-account-token.js:38",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"db.exec(`\" in lib/account-store.cjs:12",
+          "type": "fix",
+          "codeSnippet": "db.exec(`",
+          "location": "lib/account-store.cjs:12",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"app.post('/api/subscription/webhook', express.raw({ type: 'application/json' }),\" in routes/subscriptions-billing.cjs:203",
+          "type": "fix",
+          "codeSnippet": "app.post('/api/subscription/webhook', express.raw({ type: 'application/json' }),",
+          "location": "routes/subscriptions-billing.cjs:203",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"container.innerHTML = '';\" in js/dashboard/token-file-system.js:162",
+          "type": "fix",
+          "codeSnippet": "container.textContent = ''; // + DOM-safe span creation",
+          "location": "js/dashboard/token-file-system.js:162",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"console.warn('[TokenFileSystem] Corrupted lock entry; overwriting:', e.message);\" in js/dashboard/token-file-system.js:52",
+          "type": "fix",
+          "codeSnippet": "console.warn('[TokenFileSystem] Corrupted lock entry; overwriting:', e.message);",
+          "location": "js/dashboard/token-file-system.js:52",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"container.innerHTML = `\" in js/dashboard/usb-token-manager.js:259",
+          "type": "fix",
+          "codeSnippet": "container.innerHTML = `",
+          "location": "js/dashboard/usb-token-manager.js:259",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"module.exports = {\" in .eslintrc.cjs:1",
+          "type": "fix",
+          "codeSnippet": "module.exports = {",
+          "location": ".eslintrc.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"(function () {\" in app-links.js:1",
+          "type": "fix",
+          "codeSnippet": "(function () {",
+          "location": "app-links.js:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"var cfg = window.SIMPLEBEACON_SITE || {};\" in app-links.js:4",
+          "type": "fix",
+          "codeSnippet": "var cfg = window.SIMPLEBEACON_SITE || {};",
+          "location": "app-links.js:4",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in generate-account-token.js:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "generate-account-token.js:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in content/outreach-prospects.js:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "content/outreach-prospects.js:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in lib/account-store.cjs:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "lib/account-store.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"let downgraded = false;\" in lib/account-store.cjs:327",
+          "type": "fix",
+          "codeSnippet": "let downgraded = false;",
+          "location": "lib/account-store.cjs:327",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in lib/account-types.cjs:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "lib/account-types.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in lib/certificate-utils.cjs:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "lib/certificate-utils.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"for (let i = 0; i < Math.min(count, 5); i++) {\" in lib/certificate-utils.cjs:58",
+          "type": "fix",
+          "codeSnippet": "for (let i = 0; i < Math.min(count, 5); i++) {",
+          "location": "lib/certificate-utils.cjs:58",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in lib/license-utils.cjs:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "lib/license-utils.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in lib/plans.cjs:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "lib/plans.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in lib/time-tokens.cjs:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "lib/time-tokens.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"if (!secret) throw new Error('SIMPLEBEACON_LICENSE_SECRET env var not set.');\" in lib/time-tokens.cjs:33",
+          "type": "fix",
+          "codeSnippet": "if (!secret) throw new Error('SIMPLEBEACON_LICENSE_SECRET env var not set.');",
+          "location": "lib/time-tokens.cjs:33",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in lib/token-chain-store.cjs:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "lib/token-chain-store.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"for (let i = 0; i < attached.length; i++) {\" in lib/token-chain-store.cjs:56",
+          "type": "fix",
+          "codeSnippet": "for (let i = 0; i < attached.length; i++) {",
+          "location": "lib/token-chain-store.cjs:56",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in lib/token-chain-utils.cjs:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "lib/token-chain-utils.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in services/certificate-generator.cjs:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "services/certificate-generator.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in routes/subscriptions-billing.cjs:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "routes/subscriptions-billing.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"let stripe = null;\" in routes/subscriptions-billing.cjs:9",
+          "type": "fix",
+          "codeSnippet": "let stripe = null;",
+          "location": "routes/subscriptions-billing.cjs:9",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in routes/token-chain.cjs:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "routes/token-chain.cjs:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in js/dashboard/token-file-system.js:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "js/dashboard/token-file-system.js:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"let id = localStorage.getItem(DEVICE_KEY);\" in js/dashboard/token-file-system.js:19",
+          "type": "fix",
+          "codeSnippet": "let id = localStorage.getItem(DEVICE_KEY);",
+          "location": "js/dashboard/token-file-system.js:19",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in js/dashboard/usb-token-manager.js:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "js/dashboard/usb-token-manager.js:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"let fileHandle;\" in js/dashboard/usb-token-manager.js:93",
+          "type": "fix",
+          "codeSnippet": "let fileHandle;",
+          "location": "js/dashboard/usb-token-manager.js:93",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"/**\" in zip-for-upload.js:1",
+          "type": "fix",
+          "codeSnippet": "/**",
+          "location": "zip-for-upload.js:1",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"let cmd;\" in zip-for-upload.js:101",
+          "type": "fix",
+          "codeSnippet": "let cmd;",
+          "location": "zip-for-upload.js:101",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"return `<tr><td>${safeKey}</td><td><code style=\"font-size:0.8rem;\">${escapeHtml(\" in lib/certificate-utils.cjs:179",
+          "type": "fix",
+          "codeSnippet": "return `<tr><td>${safeKey}</td><td><code style=\"font-size:0.8rem;\">${escapeHtml(",
+          "location": "lib/certificate-utils.cjs:179",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"return `<tr><td>${safeKey}</td><td><code style=\"font-size:0.8rem;\">${escapeHtml(\" in services/certificate-generator.cjs:179",
+          "type": "fix",
+          "codeSnippet": "return `<tr><td>${safeKey}</td><td><code style=\"font-size:0.8rem;\">${escapeHtml(",
+          "location": "services/certificate-generator.cjs:179",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"const DEFAULT_PORT = 3001;\" in routes/subscriptions-billing.cjs:12",
+          "type": "fix",
+          "codeSnippet": "const DEFAULT_PORT = 3001;",
+          "location": "routes/subscriptions-billing.cjs:12",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Review && remediate: \"const LOCK_HEARTBEAT_MS = 30000;\" in js/dashboard/token-file-system.js:14",
+          "type": "fix",
+          "codeSnippet": "const LOCK_HEARTBEAT_MS = 30000;",
+          "location": "js/dashboard/token-file-system.js:14",
+          "done": false,
+          "isStructured": true
+        }
+      ]
+    }
+  ]
+}

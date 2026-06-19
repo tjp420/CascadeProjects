@@ -1,7 +1,13 @@
-const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'security', 'outreach', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot', 'upload'];
+const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'remediation', 'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot', 'upload', 'profile'];
 
-export const PUBLIC_VIEWS = new Set(['signin', 'pricing', 'about', 'help', 'features', 'trust', 'repository-health', 'upload']);
+/**
+ * P u b l i c  v i e w s.
+ */
+export const PUBLIC_VIEWS = new Set(['signin', 'pricing', 'about', 'help', 'features', 'settings']);
 
+/**
+ * Router.
+ */
 export class Router {
   constructor(onNavigate) {
     this.onNavigate = onNavigate;
@@ -9,6 +15,16 @@ export class Router {
   }
 
   init() {
+    const forced = typeof window !== 'undefined' && window.__SB_INITIAL_ROUTE__;
+    if (forced && ROUTES.includes(forced)) {
+      delete window.__SB_INITIAL_ROUTE__;
+      // In VS Code webviews location.hash may not fire hashchange reliably,
+      // so drive the view directly and set the hash only for consistency.
+      this.onNavigate(forced, {});
+      this.updateNav(forced);
+      try { window.location.hash = '#/' + forced; } catch (e) { /* webview may restrict this */ }
+      return;
+    }
     if (!window.location.hash) {
       window.location.hash = '#/dashboard';
     }
@@ -35,9 +51,14 @@ export class Router {
   }
 
   handleHash() {
-    const { view, params } = this.parseHash();
-    this.onNavigate(view, params);
-    this.updateNav(view);
+    try {
+      const { view, params } = this.parseHash();
+      this.onNavigate(view, params);
+      this.updateNav(view);
+    } catch (err) {
+      const msg = err?.message || String(err);
+      console.error('Router handleHash error:', msg);
+    }
   }
 
   navigate(view, params = {}) {

@@ -51,6 +51,7 @@ jobs:
         env:
           SIMPLEBEACON_PARALLEL: '1'
           SIMPLEBEACON_PARALLEL_MIN_FILES: '48'
+          SIMPLEBEACON_LICENSE_TOKEN: ${{ secrets.SIMPLEBEACON_TOKEN }}
         run: |
           node packages/simplebeacon-cli/bin/simplebeacon.js scan \
             --path . \
@@ -58,6 +59,7 @@ jobs:
             --output .simplebeacon/report.json \
             --anonymize \
             --gate \
+            --ci \
             --offline \
             --verbose
           node packages/simplebeacon-cli/bin/simplebeacon.js gate status
@@ -66,7 +68,7 @@ jobs:
         if: github.event_name == 'pull_request' && always()
         run: |
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**💡 Stale compliance on every push?** Upgrade to [Continuous Shield](https://simplebeacon.ai/pricing) ($149/mo) for automated PR blocking + 3 compliance certifications per month." >> "$GITHUB_STEP_SUMMARY"
+          echo "**💡 Running out of pipeline scans?** Upgrade to [Startup](https://simplebeacon.ai/pricing) ($49/mo, 2,500 scans) or [Growth](https://simplebeacon.ai/pricing) ($149/mo, 10,000 scans) for automated PR blocking with custom scanner rules." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload gate report
         if: always()

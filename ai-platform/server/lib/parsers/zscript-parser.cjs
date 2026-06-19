@@ -4,6 +4,7 @@
 
 const { LanguageParser } = require('./language-parser-base.cjs');
 
+const constants = require('../../config/constants.cjs');
 const GZDoom_API_PATTERNS = [
     { id: 'a_action', pattern: /\bA_[A-Za-z0-9_]+\s*\(/g, label: 'Actor action function' },
     { id: 'cvar', pattern: /\bCVar\.FindCVar\s*\(/g, label: 'CVAR lookup' },
@@ -12,6 +13,9 @@ const GZDoom_API_PATTERNS = [
     { id: 'console', pattern: /\bConsole\.(Command|Print)\b/g, label: 'Console output/command' }
 ];
 
+/**
+ * Z script parser.
+ */
 class ZScriptParser extends LanguageParser {
     constructor() {
         super({
@@ -56,7 +60,7 @@ class ZScriptParser extends LanguageParser {
         const re = /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*([A-Za-z_][A-Za-z0-9_.]*))?\s*\{/g;
         let match;
         while ((match = re.exec(content)) !== null) {
-            const snippet = content.slice(match.index, match.index + 5000);
+            const snippet = content.slice(match.index, match.index + constants.TIMEOUT_5S);
             classes.push({
                 name: match[1],
                 parentClass: match[2] || 'Object',

@@ -2,16 +2,32 @@
  * Browser mirror of codebase-analyzer-report export sanitization.
  */
 
+/**
+ * Normalize export path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function normalizeExportPath(projectPath) {
   return String(projectPath || '').replace(/\\/g, '/');
 }
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = normalizeExportPath(projectPath || 'ai-platform');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Redact project path for export.
+ * @param {string} rawPath
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = normalizeExportPath(rawPath);
@@ -22,6 +38,12 @@ function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   return normalized;
 }
 
+/**
+ * Redact codebase path for export.
+ * @param {any} value
+ * @param {Object} options
+ * @returns {any}
+ */
 function redactCodebasePathForExport(value, options = {}) {
   if (value == null || value === '') return value;
   const normalized = normalizeExportPath(value);
@@ -36,6 +58,12 @@ function redactCodebasePathForExport(value, options = {}) {
   return redactProjectPathForExport(normalized, label);
 }
 
+/**
+ * Redact codebase ai summary.
+ * @param {string} text
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function redactCodebaseAiSummary(text, projectLabel = 'ai-platform') {
   if (!text) return text;
   let out = String(text);
@@ -53,12 +81,22 @@ function redactCodebaseAiSummary(text, projectLabel = 'ai-platform') {
   return out;
 }
 
+/**
+ * Is benchmark scan target root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function isBenchmarkScanTargetRoot(projectPath) {
   const rel = normalizeExportPath(projectPath).toLowerCase();
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/')
     || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
 }
 
+/**
+ * Resolve product platform root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(projectPath) {
   const normalized = normalizeExportPath(projectPath);
   const idx = normalized.toLowerCase().indexOf('/github-cache/');
@@ -66,6 +104,12 @@ function resolveProductPlatformRoot(projectPath) {
   return normalized.slice(0, idx);
 }
 
+/**
+ * Infer codebase scan target from hints.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function inferCodebaseScanTargetFromHints(report, options = {}) {
   const filename = String(options.exportFilename || options.filename || '').toLowerCase();
   if (!filename.includes('github-cache')) return '';
@@ -84,6 +128,12 @@ function inferCodebaseScanTargetFromHints(report, options = {}) {
   return `${platformRoot.replace(/\/$/, '')}/github-cache/${cloneName}`;
 }
 
+/**
+ * Resolve codebase export context.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveCodebaseExportContext(report, options = {}) {
   const inferredTarget = inferCodebaseScanTargetFromHints(report, options);
   const projectRoot = normalizeExportPath(report?.projectRoot || report?.projectPath || '');
@@ -113,6 +163,11 @@ function resolveCodebaseExportContext(report, options = {}) {
   };
 }
 
+/**
+ * Is known codebase false positive.
+ * @param {any} finding
+ * @returns {any}
+ */
 function isKnownCodebaseFalsePositive(finding) {
   if (!finding || typeof finding !== 'object') return false;
   const filePath = String(finding.filePath || '').replace(/\\/g, '/');
@@ -128,7 +183,17 @@ function isKnownCodebaseFalsePositive(finding) {
   return false;
 }
 
+/**
+ * Filter known false positive findings.
+ * @param {number} report
+ * @returns {any}
+ */
 function filterKnownFalsePositiveFindings(report) {
+/**
+ * Findings.
+ * @param {number} report.findings || []
+ * @returns {any}
+ */
   const findings = (report.findings || []).filter((f) => !isKnownCodebaseFalsePositive(f));
   if (findings.length === (report.findings || []).length) return report;
 
@@ -164,6 +229,11 @@ function filterKnownFalsePositiveFindings(report) {
   };
 }
 
+/**
+ * Dedupe codebase export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeCodebaseExportNotes(notes = []) {
   const seen = new Set();
   const out = [];
@@ -189,6 +259,11 @@ function dedupeCodebaseExportNotes(notes = []) {
   return out.slice(0, 10);
 }
 
+/**
+ * Dedupe limitation notes.
+ * @param {Array} lines
+ * @returns {any}
+ */
 function dedupeLimitationNotes(lines = []) {
   const seen = new Set();
   const out = [];
@@ -206,6 +281,13 @@ function dedupeLimitationNotes(lines = []) {
   return out.slice(0, 12);
 }
 
+/**
+ * Normalize codebase export paths.
+ * @param {number} report
+ * @param {any} scanTargetRoot
+ * @param {Object} options
+ * @returns {any}
+ */
 function normalizeCodebaseExportPaths(report, scanTargetRoot = '', options = {}) {
   const rawRoot = scanTargetRoot || report.projectRoot || report.scanTargetRoot || report.requestedScanRoot || '';
   const projectLabel = projectLabelFromPath(
@@ -249,12 +331,23 @@ function normalizeCodebaseExportPaths(report, scanTargetRoot = '', options = {})
   };
 }
 
+/**
+ * Resolve benchmark codebase title.
+ * @param {any} misscopedPlatformWalk
+ * @returns {any}
+ */
 function resolveBenchmarkCodebaseTitle(misscopedPlatformWalk) {
   return misscopedPlatformWalk
     ? 'Codebase Analysis — mis-scoped platform walk (benchmark target)'
     : 'OSS Clone Codebase Hygiene (github-cache benchmark)';
 }
 
+/**
+ * Replace misleading codebase limitations.
+ * @param {Array} limitations
+ * @param {string} context
+ * @returns {any}
+ */
 function replaceMisleadingCodebaseLimitations(limitations = [], context) {
   const canonicalBenchmark = 'OSS benchmark clone under github-cache/ — codebase hygiene comparison only, not Simplebeacon platform production certification.';
   const canonicalEslint = 'ESLint did not run — Simplebeacon ESLint targets (server/, packages/, web/) are not present in this OSS clone root.';
@@ -283,6 +376,12 @@ function replaceMisleadingCodebaseLimitations(limitations = [], context) {
   return dedupeLimitationNotes(filtered);
 }
 
+/**
+ * Build tier counts export.
+ * @param {any} summary
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function buildTierCountsExport(summary, benchmarkScan) {
   const tierCounts = summary?.tierCounts;
   if (!tierCounts || !benchmarkScan) return undefined;
@@ -294,6 +393,11 @@ function buildTierCountsExport(summary, benchmarkScan) {
   };
 }
 
+/**
+ * Resolve codebase health status.
+ * @param {any} summary
+ * @returns {any}
+ */
 function resolveCodebaseHealthStatus(summary) {
   const total = summary?.findingsTotal ?? 0;
   const high = summary?.severityCounts?.high ?? 0;
@@ -304,6 +408,12 @@ function resolveCodebaseHealthStatus(summary) {
   return 'clean';
 }
 
+/**
+ * Resolve gate inventory context.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveGateInventoryContext(report, options = {}) {
   const gateReport = options.gateReport || {};
   const repositoryFilesTotal = options.repositoryFilesTotal
@@ -344,6 +454,12 @@ function resolveGateInventoryContext(report, options = {}) {
   };
 }
 
+/**
+ * Build product codebase export notes.
+ * @param {number} report
+ * @param {string} context
+ * @returns {any}
+ */
 function buildProductCodebaseExportNotes(report, context = {}) {
   const notes = [
     'securityHandoffEligible is false — codebase hygiene is supplementary, not vendor security handoff.',
@@ -409,6 +525,12 @@ function buildProductCodebaseExportNotes(report, context = {}) {
   return [...new Set(notes)].slice(0, 10);
 }
 
+/**
+ * Build product codebase hygiene summary.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildProductCodebaseHygieneSummary(report, options = {}) {
   const summary = report.summary || {};
   const gateContext = resolveGateInventoryContext(report, options);
@@ -447,6 +569,12 @@ function buildProductCodebaseHygieneSummary(report, options = {}) {
   };
 }
 
+/**
+ * Enrich product codebase scan scope.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 function enrichProductCodebaseScanScope(report, options = {}) {
   const gateContext = resolveGateInventoryContext(report, options);
   const { repositoryFilesTotal: gateTotal, gateProfile } = gateContext;
@@ -461,6 +589,11 @@ function enrichProductCodebaseScanScope(report, options = {}) {
   };
 }
 
+/**
+ * Annotate structure insights.
+ * @param {Array} structureInsights
+ * @returns {any}
+ */
 function annotateStructureInsights(structureInsights) {
   if (!structureInsights?.samples?.length) return structureInsights;
   const mirrorCount = structureInsights.samples.filter((s) => String(s.filePath || '').startsWith('.github-sync/')).length;
@@ -486,6 +619,12 @@ function annotateStructureInsights(structureInsights) {
   };
 }
 
+/**
+ * Sanitize codebase report export.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeCodebaseReportExport(report, options = {}) {
   if (!report || report.type !== 'codebase-analyzer-report') return report;
 
@@ -604,6 +743,11 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
       gateRepositoryFilesTotal: options.repositoryFilesTotal ?? null,
       gateReport: options.gateReport || null
     });
+/**
+ * False positive notes.
+ * @param {number} next.exportNotes || []
+ * @returns {any}
+ */
     const falsePositiveNotes = (next.exportNotes || []).filter((n) => /false positive/i.test(String(n)));
     next = {
       ...next,

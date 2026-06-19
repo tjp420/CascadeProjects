@@ -5,6 +5,7 @@
  */
 
 // Set test environment
+const constants = require('../server/config/constants.cjs');
 process.env.NODE_ENV = 'test';
 
 // Mock console methods to reduce noise in test output
@@ -33,7 +34,7 @@ process.env.REQUIRE_AUTH = process.env.REQUIRE_AUTH || 'true';
 process.env.SIMPLEBEACON_INTERNAL_DASHBOARD = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || 'true';
 
 // Increase timeout for async operations
-jest.setTimeout(30000);
+jest.setTimeout(constants.TIMEOUT_30S);
 
 // Global test utilities
 global.testUtils = {
@@ -96,9 +97,9 @@ global.testUtils = {
 
 // Setup and teardown hooks
 beforeEach(async () => {
-  // Reset all mocks before each test
-  jest.clearAllMocks();
-  
+  // Restore all mocks and spies before each test
+  jest.restoreAllMocks();
+
   // Clean up any test data
   await global.testUtils.cleanupTestData();
 });
@@ -145,22 +146,6 @@ jest.mock('pg', () => ({
       release: jest.fn()
     }),
     end: jest.fn().mockResolvedValue(true)
-  }))
-}));
-
-// Mock file system operations for tests that might touch the file system
-jest.mock('fs', () => ({
-  ...jest.requireActual('fs'),
-  readFileSync: jest.fn(),
-  writeFileSync: jest.fn(),
-  existsSync: jest.fn(() => true),
-  mkdirSync: jest.fn(),
-  readdirSync: jest.fn(() => []),
-  statSync: jest.fn(() => ({
-    isFile: () => true,
-    isDirectory: () => false,
-    size: 1024,
-    mtime: new Date()
   }))
 }));
 

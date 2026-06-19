@@ -2,6 +2,11 @@
  * Normalize roadmap scan metrics for analysis history entries.
  */
 
+/**
+ * Normalize progress percent.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizeProgressPercent(value) {
     if (value == null || value === '') return null;
     const num = Number(value);
@@ -10,6 +15,11 @@ function normalizeProgressPercent(value) {
     return Math.round(Math.max(0, Math.min(100, pct)));
 }
 
+/**
+ * Extract roadmap history metrics.
+ * @param {any} roadmap
+ * @returns {any}
+ */
 function extractRoadmapHistoryMetrics(roadmap) {
     const progressRaw = roadmap?.executiveSummary?.completionRate
         ?? roadmap?.progressMetrics?.overall
@@ -29,6 +39,12 @@ function extractRoadmapHistoryMetrics(roadmap) {
     };
 }
 
+/**
+ * Build history entry from roadmap.
+ * @param {any} roadmap
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildHistoryEntryFromRoadmap(roadmap, options = {}) {
     const {
         projectPath,
@@ -54,6 +70,11 @@ function buildHistoryEntryFromRoadmap(roadmap, options = {}) {
     };
 }
 
+/**
+ * Is mis scoped filesystem scan.
+ * @param {any} roadmap
+ * @returns {any}
+ */
 function isMisScopedFilesystemScan(roadmap) {
     if (!roadmap) return false;
 

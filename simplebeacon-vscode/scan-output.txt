@@ -1,0 +1,97 @@
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+[Developer] JSON export requires Startup+. Upgrade at https://simplebeacon.ai/pricing
+Simplebeacon
+==================
+Root: C:\Users\Trevor\CascadeProjects\simplebeacon-vscode
+Repository files: 8,803
+Gate rules checked: 8803 files
+Mock/sample files: 17
+Quality score: 34/100
+
+Critical: 0  High: 11  Medium: 18  Low: 47
+Production files scanned: 29 (0 leak(s))
+Credential files scanned: 73 (0 finding(s))
+
+Gate: FAIL
+
+Issues:
+  [high] Fictional KPI: code-map.json: 62% completion claim
+  [high] Web Security Risk: src/enhancedAIProvider.ts:78 ΓÇö Dynamic code execution or unsanitized HTML injection API
+  [high] Web Security Risk: src/enhancedAIProvider.ts:139 ΓÇö Dynamic code execution or unsanitized HTML injection API
+  [high] Web Security Risk: src/fixes/findingConverter.ts:36 ΓÇö Dynamic code execution or unsanitized HTML injection API
+  [high] Web Security Risk: src/fixes/findingConverter.ts:36 ΓÇö Dynamic code execution or unsanitized HTML injection API
+  [high] Web Security Risk: src/fixes/remediationProvider.ts:282 ΓÇö Dynamic code execution or unsanitized HTML injection API
+  [high] Web Security Risk: src/fixes/remediationProvider.ts:331 ΓÇö Dynamic code execution or unsanitized HTML injection API
+  [high] Web Security Risk: src/fixes/remediationProvider.ts:599 ΓÇö Dynamic code execution or unsanitized HTML injection API
+  [high] Web Security Risk: src/fixes/remediationProvider.ts:599 ΓÇö Dynamic code execution or unsanitized HTML injection API
+  [high] Web Security Risk: src/realtimeMonitor.ts:417 ΓÇö Dynamic code execution or unsanitized HTML injection API
+  [high] Web Security Risk: src/realtimeMonitor.ts:418 ΓÇö Dynamic code execution or unsanitized HTML injection API
+  [medium] EU AI Act ΓÇö AI System Indicator: Generative AI or LLM integration detected
+  [medium] missing-env-key: missing-env-key finding
+  [medium] unused-file: unused-file finding
+  [medium] unused-file: unused-file finding
+  [medium] unused-file: unused-file finding
+  [medium] unused-file: unused-file finding
+  [medium] unused-file: unused-file finding
+  [medium] unused-file: unused-file finding
+  [medium] unused-file: unused-file finding
+  [medium] unused-file: unused-file finding
+  [medium] unused-file: unused-file finding
+  [medium] data-access-pattern: data-access-pattern finding
+  [medium] unused-file: unused-file finding
+  [medium] data-access-pattern: data-access-pattern finding
+  [medium] unused-file: unused-file finding
+  [medium] data-access-pattern: data-access-pattern finding
+  [medium] data-access-pattern: data-access-pattern finding
+  [medium] data-access-pattern: data-access-pattern finding
+  [low] build-artifact: build-artifact finding
+  [low] unused-dependency: unused-dependency finding
+  [low] unused-dependency: unused-dependency finding
+  [low] dead-export: dead-export finding
+  [low] dead-export: dead-export finding
+  [low] dead-export: dead-export finding
+  [low] dead-export: dead-export finding
+  [low] dead-export: dead-export finding
+  [low] dead-export: dead-export finding
+  [low] dead-export: dead-export finding
+  [low] dead-export: dead-export finding
+  [low] dead-export: dead-export finding
+  [low] dead-export: dead-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] dead-export: dead-export finding
+  [low] dead-export: dead-export finding
+  [low] dead-export: dead-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding

@@ -1,0 +1,38 @@
+# SimpleBeacon ignore file for VS Code extension
+# False-positive filter files — regex filters and comments that PREVENT false positives, not cause them
+src/enhancedAIProvider.ts
+src/fixes/remediationProvider.ts
+
+# Debug artifact: message template strings and console.error inside catch blocks (not stray debug code)
+src/roadmapProvider.ts
+src/modernSidebarProvider.ts
+
+# Unhandled Promise: .then(resolve).catch(...) is valid promise chaining; scanner missed the .catch()
+src/extension.ts
+src/aiPlatform/browserPreview.ts
+
+# Type Safety Gap: VS Code extension adapter code using `any` for API boundary types (acceptable)
+src/aiPlatform/extension.ts
+
+# Dependencies and build artifacts
+node_modules/
+out/
+dist/
+*.vsix
+
+# SimpleBeacon artifacts
+.simplebeacon/
+
+# Markdown docs — code fence syntax is not a leak
+*.md
+
+# Dev scripts
+build-extension.js
+replace-dashboard.js
+
+# Test fixtures and logs
+*.log
+coverage/
+
+# Lockfile
+package-lock.json

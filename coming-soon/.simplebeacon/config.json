@@ -4,13 +4,29 @@
     "."
   ],
   "productionPaths": [
-    "."
+    "lib/",
+    "services/",
+    "js/",
+    "src/",
+    "server/",
+    "ai-platform/",
+    "simplebeacon-vscode-merged/",
+    "simplebeacon-vscode/",
+    "packages/"
   ],
-  "sampleDir": "fixtures",
+  "allowedAnalysisRoots": [
+    "C:/Users/Trevor",
+    "C:/Users/Trevor/CascadeProjects",
+    "C:/Users/Trevor/CascadeProjects/coming-soon",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode",
+    "J:/AI project backup"
+  ],
+  "fullDirectoryScan": true,
+  "fullDirectoryScanMaxFiles": 100000,
+  "sampleDir": "data",
   "consistencyAnchorSamples": [],
   "ignore": [
     "node_modules/**",
-    ".simplebeacon/**",
     "coverage/**",
     "dist/**",
     "build/**",
@@ -20,39 +36,51 @@
     "**/*.spec.ts",
     "tests/**",
     "test/**",
-    "test-*.js",
-    "**/.gitkeep",
-    "**/test-output*.txt",
-    "packages/simplebeacon-cli/**",
-    "public/**",
-    "upload.html",
-    "report.json",
-    "report-fresh.json",
-    "test-technical-audit.js",
-    "test-certificate.js",
-    "test-normalize.js",
-    "test-renderPreview.js",
-    "test-zip-data.js",
-    "pre-commit-hook.ps1",
-    "pre-commit-hook.sh",
-    "roadmap.html",
-    "scan-status.html",
-    "AI-SYSTEM.md",
-    "CLOUDFLARE-DEPLOYMENT-PLAN.md",
-    "error.log",
-    "server.cjs",
-    "subscriptions.json",
-    "ai-platform/**",
-    "ai-agent/**",
-    "ai-tools/**",
-    "backups/**",
+    "coming-soon/node_modules/**",
     "coming-soon-dev/**",
-    "deployments/**",
-    "full-cert/**",
-    "full-certificate/**",
-    "logs/**",
+    "scripts/**",
     "simplebeacon-frameworkless/**",
-    "simplebeacon-rule-tests/**"
+    "sales/**",
+    "marketing/**",
+    "logs/**",
+    "github-action/**",
+    "browser-local/**",
+    "cjs/**",
+    "esm/**",
+    "packages/**",
+    "simplebeacon-vscode/**",
+    "simplebeacon-vscode-merged/**",
+    "ai-platform/**",
+    "report.json",
+    "cli-test-report*.json",
+    "test-output.txt",
+    "js/dashboard/pattern-documentation.js",
+    "js/dashboard/quick-actions.js",
+    "js/dashboard/scanner-patterns.js",
+    "js/dashboard/certificate-module.js",
+    "js/dashboard/scanner-engine.js",
+    "js/dashboard/ui-renderer.js",
+    "js/dashboard/main.js",
+    "js/vendor/jszip.min.js",
+    "js/vendor/html2canvas.min.js",
+    "trello-*.json",
+    "trello-*.js",
+    "landing.html",
+    "unlock.html",
+    "update-cache.js",
+    "zip-for-upload.js",
+    "vscode-extension-roadmap.json",
+    "vscode-report.json",
+    ".simplebeacon/vscode-report.json",
+    ".simplebeacon/report.json",
+    ".simplebeacon/report-fresh.json",
+    ".simplebeacon/logs/system.json",
+    "system.json",
+    "unlock.html",
+    "public/unlock.html",
+    "public/**",
+    "build-public.js",
+    "routes/token-validate.cjs"
   ],
   "rules": {
     "credentials": {
@@ -89,29 +117,21 @@
       "enabled": true,
       "severity": "medium"
     },
-    "file-naming-patterns": {
-      "enabled": false,
-      "severity": "medium"
-    },
     "jest-baseline": {
       "enabled": false,
       "runTests": false
     },
     "token-bleed-patterns": {
-      "enabled": false,
+      "enabled": true,
       "severity": "medium"
     },
     "architecture-drift-patterns": {
-      "enabled": false,
-      "severity": "high"
-    },
-    "python-ast-patterns": {
-      "enabled": false,
+      "enabled": true,
       "severity": "medium"
     },
-    "javascript-ast-patterns": {
+    "file-reduction": {
       "enabled": false,
-      "severity": "medium"
+      "dryRun": true
     }
   },
   "gate": {
@@ -122,15 +142,5 @@
       "medium",
       "low"
     ]
-  },
-  "sourceCodeScanPaths": [
-    "."
-  ],
-  "fullDirectoryScan": false,
-  "fullDirectoryScanSkipDirs": [
-    ".git",
-    ".github-sync",
-    "github-cache",
-    "node_modules"
-  ]
+  }
 }

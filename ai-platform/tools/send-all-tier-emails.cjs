@@ -1,7 +1,8 @@
-const { generateLicenseToken } = require('../packages/simplebeacon-cli/src/lib/license-token');
 const { sendEmail } = require('../server/lib/email-service.cjs');
 const fs = require('fs');
 const path = require('path');
+const { generateLicenseToken } = require('../server/lib/simplebeacon-proxy.cjs');
+
 
 const templatePath = path.join(__dirname, '../../coming-soon/email-template-universal.html');
 const templateHtml = fs.readFileSync(templatePath, 'utf8');
@@ -22,7 +23,7 @@ function buildEmail(tier, config) {
   let token = '';
   if (config.token) {
     token = generateLicenseToken({
-      email: 'trevor_punt@live.com',
+      email: process.env.SIMPLEBEACON_OWNER_EMAIL || 'admin@'+'simplebeacon.local',
       tier: tier,
       features: config.features || []
     }, 'simplebeacon-dev-insecure', config.expiryDays * 24 * 60);
@@ -213,7 +214,7 @@ const TIERS = {
     paymentMethod: 'Billed monthly via Stripe',
     receiptClass: 'enterprise',
     primaryCta: 'Schedule Onboarding Call →',
-    primaryUrl: 'mailto:trevor_punt@live.com?subject=Enterprise%20Onboarding%20Request',
+    primaryUrl: 'mailto:enterprise@simplebeacon.ai?subject=Enterprise%20Onboarding%20Request',
     stepsTitle: 'What happens next',
     stepsList: `
       <li>A compliance analyst will contact you within 24 hours</li>
@@ -238,7 +239,7 @@ async function sendAll() {
     
     try {
       const result = await sendEmail({
-        to: 'trevor_punt@live.com',
+        to: process.env.SIMPLEBEACON_OWNER_EMAIL || 'admin@simplebeacon.local',
         subject: email.subject,
         html: email.html,
         text: email.text

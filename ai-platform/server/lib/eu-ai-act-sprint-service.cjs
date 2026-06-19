@@ -5,17 +5,8 @@
 const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
+const { buildAssessmentReport, evaluateComplianceChecklist, evaluateGate, formatJsonReport, initSimplebeacon, loadSimplebeaconConfig, resolvePlatformRoot, runScan } = require('./simplebeacon-proxy.cjs');
 
-const {
-  runScan,
-  evaluateGate,
-  loadSimplebeaconConfig,
-  initSimplebeacon,
-  resolvePlatformRoot,
-  formatJsonReport
-} = require('../../packages/simplebeacon-cli/src/index');
-const { evaluateComplianceChecklist } = require('../../packages/simplebeacon-cli/src/compliance-checklist');
-const { buildAssessmentReport } = require('../../packages/simplebeacon-cli/src/assessment');
 
 const ARTIFACT_NAMES = {
   report: 'eu-ai-act-report.json',
@@ -23,6 +14,12 @@ const ARTIFACT_NAMES = {
   assessment: 'eu-ai-act-assessment.json'
 };
 
+/**
+ * Resolve scan root.
+ * @param {string} inputPath
+ * @param {any} platformRoot
+ * @returns {any}
+ */
 function resolveScanRoot(inputPath, platformRoot) {
   const raw = String(inputPath || '').trim();
   if (!raw) {
@@ -39,11 +36,22 @@ function resolveScanRoot(inputPath, platformRoot) {
   return resolved;
 }
 
+/**
+ * Count eu pattern hits.
+ * @param {number} report
+ * @returns {any}
+ */
 function countEuPatternHits(report) {
   const issues = report.rawIssues || report.detectedIssues || [];
   return issues.filter((item) => /eu ai act/i.test(String(item.type || ''))).length;
 }
 
+/**
+ * Write json.
+ * @param {string} filePath
+ * @param {any} payload
+ * @returns {any}
+ */
 async function writeJson(filePath, payload) {
   await fsp.mkdir(path.dirname(filePath), { recursive: true });
   await fsp.writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
@@ -66,7 +74,21 @@ async function runEuAiActSprint(input = {}, options = {}) {
 
   const config = loadSimplebeaconConfig(detectedRoot);
   const report = await runScan(scanRoot, { config, configPath: config.configPath });
-  const gateResult = evaluateGate(report, config.gate);
+
+  // Compute core simplebeacon gate excluding file-reduction hygiene findings.
+  // File-reduction issues (build artifacts, dead exports, unused deps) are
+  // not security blockers and should not fail the EU AI Act gate.
+/**
+ * Core raw issues.
+ * @param {number} report.rawIssues || []
+ * @returns {any}
+ */
+  const coreRawIssues = (report.rawIssues || []).filter((issue) =>
+    issue.metadata?.scanner !== 'file-reduction' &&
+    issue.type !== 'File Reduction'
+  );
+  const coreReport = { ...report, rawIssues: coreRawIssues };
+  const gateResult = evaluateGate(coreReport, config.gate);
   const formatted = formatJsonReport(report, gateResult);
 
   const simplebeaconDir = path.join(detectedRoot, '.simplebeacon');
@@ -79,6 +101,7 @@ async function runEuAiActSprint(input = {}, options = {}) {
   let npmAudit = null;
   try {
     const { runNpmAuditAsync } = require(path.join(detectedRoot, 'server/lib/npm-audit-runner'));
+
     npmAudit = await runNpmAuditAsync(scanRoot, { force: input.forceNpmAudit === true });
   } catch {
     npmAudit = null;
@@ -115,6 +138,11 @@ async function runEuAiActSprint(input = {}, options = {}) {
 
   const euHits = countEuPatternHits(formatted);
   const checklistSummary = complianceChecklist.summary || {};
+/**
+ * Failed rules.
+ * @param {any} complianceChecklist.rules || []
+ * @returns {any}
+ */
   const failedRules = (complianceChecklist.rules || []).filter((rule) => rule.status === 'fail');
 
   return {

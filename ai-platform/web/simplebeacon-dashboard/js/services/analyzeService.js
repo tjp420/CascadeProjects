@@ -4,11 +4,18 @@ import { scanService } from './scanService.js';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
+import { DEMO_EMAIL } from '../demoMode.js';
+import { DASHBOARD_BASE_URL } from '../config.js';
 
 // simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path detection for analysis mode resolution
 
 let providersPromise = null;
 
+/**
+ * Parse json safe.
+ * @param {Array} res
+ * @returns {any}
+ */
 async function parseJsonSafe(res) {
   const contentType = String(res.headers.get('content-type') || '').toLowerCase();
   if (!contentType.includes('application/json')) {
@@ -23,6 +30,12 @@ async function parseJsonSafe(res) {
   }
 }
 
+/**
+ * Build network error message.
+ * @param {any} target
+ * @param {any} error
+ * @returns {any}
+ */
 function buildNetworkErrorMessage(target, error) {
   const detail = error?.message ? ` (${error.message})` : '';
   return `Network request failed for ${target}${detail}. Verify the dashboard API server is running and reachable, then retry.`;
@@ -30,7 +43,7 @@ function buildNetworkErrorMessage(target, error) {
 
 /** Fail fast before long scans when the API is down or vault session is missing. */
 export async function ensureDashboardApiReady() {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:54355';
+  const origin = typeof window !== 'undefined' ? window.location.origin : DASHBOARD_BASE_URL;
   let healthRes;
   try {
     healthRes = await fetchWithTimeout('/api/health', {}, 8000);
@@ -61,6 +74,13 @@ export async function ensureDashboardApiReady() {
   }
 }
 
+/**
+ * Fetch json with guidance.
+ * @param {any} target
+ * @param {Object} options
+ * @param {Array} timeoutMs
+ * @returns {any}
+ */
 async function fetchJsonWithGuidance(target, options = {}, timeoutMs = 0) {
   let res;
   try {
@@ -74,7 +94,7 @@ async function fetchJsonWithGuidance(target, options = {}, timeoutMs = 0) {
   const data = await parseJsonSafe(res);
   if (res.status === 401) {
     authService.clearSession();
-    throw new Error('Session expired — sign in again at #/signin (dev@simplebeacon.ai / demo123).');
+    throw new Error(`Session expired — sign in again at #/signin (${DEMO_EMAIL}).`);
   }
   if (!res.ok) {
     const detail = data.error || data.message || `${res.status} ${res.statusText}`.trim();
@@ -117,6 +137,11 @@ export async function patchProvidersFromSavedAiKeys(data) {
   return data;
 }
 
+/**
+ * Is analyze provider configured.
+ * @param {string} provider
+ * @returns {any}
+ */
 export function isAnalyzeProviderConfigured(provider) {
   if (!provider) return false;
   if (provider.id === 'ollama') {
@@ -125,6 +150,11 @@ export function isAnalyzeProviderConfigured(provider) {
   return Boolean(provider.configured);
 }
 
+/**
+ * Fetch analyze providers.
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function fetchAnalyzeProviders(options = {}) {
   if (!options.refresh && providersPromise) {
     return providersPromise;
@@ -143,6 +173,12 @@ export async function fetchAnalyzeProviders(options = {}) {
   return providersPromise;
 }
 
+/**
+ * Analyze path.
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function analyzePath(projectPath, options = {}) {
   const timeoutMs = options.timeoutMs ?? 0;
   const data = await fetchJsonWithGuidance('/api/analyze/flexible', {
@@ -191,6 +227,12 @@ export async function fetchUnderstandSnippet(code, options = {}) {
   return understandResponse;
 }
 
+/**
+ * Scan path.
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function scanPath(projectPath, options = {}) {
   return scanService.runScan(projectPath, options);
 }
@@ -289,6 +331,12 @@ export function slimReportForSummary(report) {
   return report;
 }
 
+/**
+ * Summarize report.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function summarizeReport(report, options = {}) {
   const slim = slimReportForSummary(report);
   const res = await fetch('/api/analyze/summary', {
@@ -319,10 +367,22 @@ export async function summarizeReport(report, options = {}) {
   return data;
 }
 
+/**
+ * Slim complete scan for audit.
+ * @param {number} exportPayload
+ * @param {Object} options
+ * @returns {any}
+ */
 export function slimCompleteScanForAudit(exportPayload, options = {}) {
   if (!exportPayload || typeof exportPayload !== 'object') return null;
   const findingsLimit = options.findingsLimit ?? 5000;
   const results = exportPayload.results || {};
+/**
+ * Slim findings.
+ * @param {Array} findings
+ * @param {number} limit
+ * @returns {any}
+ */
   const slimFindings = (findings, limit = findingsLimit) => (findings || []).slice(0, limit).map((f) => ({
     category: f.category,
     type: f.type,
@@ -426,6 +486,7 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
     projectPath: exportPayload.projectPath,
     scanDurationMs: exportPayload.scanDurationMs ?? exportPayload.summary?.scanDurationMs ?? null,
     summary: exportPayload.summary,
+    steps: exportPayload.steps || null,
     results: {
       simplebeacon: slimSimplebeacon,
       consolidation: slimConsolidation,
@@ -437,17 +498,33 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
         : null,
       roadmap: results.roadmap
         ? {
+            type: results.roadmap.type,
             projectTitle: results.roadmap.projectTitle || results.roadmap.projectName || null,
-            executiveSummary: results.roadmap.executiveSummary
+            projectName: results.roadmap.projectName || null,
+            executiveSummary: results.roadmap.executiveSummary || null,
+            developmentPhases: (results.roadmap.developmentPhases || []).slice(0, 12),
+            projectOverview: results.roadmap.projectOverview || null,
+            codeAnalysis: results.roadmap.codeAnalysis
               ? {
-                  completionRate: results.roadmap.executiveSummary.completionRate,
-                  totalFeatures: results.roadmap.executiveSummary.totalFeatures,
-                  projectHealth: results.roadmap.executiveSummary.projectHealth
+                  structure: {
+                    totalFiles: results.roadmap.codeAnalysis.structure?.totalFiles ?? null,
+                    languages: results.roadmap.codeAnalysis.structure?.languages ?? null
+                  }
                 }
               : null,
-            codeAnalysis: results.roadmap.codeAnalysis?.structure
-              ? { structure: { totalFiles: results.roadmap.codeAnalysis.structure.totalFiles } }
-              : null
+            resourceEstimate: results.roadmap.resourceEstimate || null,
+            implementationPhases: (results.roadmap.implementationPhases || []).slice(0, 8),
+            featureCategories: (results.roadmap.featureCategories || []).slice(0, 12),
+            progressMetrics: results.roadmap.progressMetrics || null,
+            recommendations: results.roadmap.recommendations
+              ? {
+                  immediate: (results.roadmap.recommendations.immediate || []).slice(0, 6),
+                  shortTerm: (results.roadmap.recommendations.shortTerm || []).slice(0, 6),
+                  longTerm: (results.roadmap.recommendations.longTerm || []).slice(0, 6),
+                  priorities: results.roadmap.recommendations.priorities || null
+                }
+              : null,
+            risks: (results.roadmap.risks || []).slice(0, 10)
           }
         : null,
       codebase: slimCodebase,
@@ -458,6 +535,11 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
   };
 }
 
+/**
+ * Normalize audit export payload.
+ * @param {number} exportPayload
+ * @returns {any}
+ */
 export function normalizeAuditExportPayload(exportPayload) {
   if (!exportPayload || typeof exportPayload !== 'object') return null;
   if (exportPayload.results && Object.values(exportPayload.results).some(Boolean)) {
@@ -497,6 +579,11 @@ const SUPPLEMENTARY_STEP_LABELS = {
   complete: 'Partial complete scan'
 };
 
+/**
+ * Gate pass from export scan.
+ * @param {any} normalized
+ * @returns {any}
+ */
 function gatePassFromExportScan(normalized) {
   const results = normalized?.results || {};
   const fromGate = results.simplebeacon?.gate?.pass;
@@ -506,11 +593,21 @@ function gatePassFromExportScan(normalized) {
   return null;
 }
 
+/**
+ * Code files from export scan.
+ * @param {any} normalized
+ * @returns {any}
+ */
 function codeFilesFromExportScan(normalized) {
   const value = normalized?.results?.codebase?.summary?.codeFilesAnalyzed;
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
+/**
+ * Detect supplementary export step.
+ * @param {any} normalized
+ * @returns {any}
+ */
 function detectSupplementaryExportStep(normalized) {
   const results = normalized?.results || {};
   const scanKind = normalized?.summary?.scanKind;
@@ -527,6 +624,11 @@ function detectSupplementaryExportStep(normalized) {
   return { key: 'complete', label: SUPPLEMENTARY_STEP_LABELS.complete };
 }
 
+/**
+ * Preview audit export tier.
+ * @param {number} exportPayload
+ * @returns {any}
+ */
 export function previewAuditExportTier(exportPayload) {
   const normalized = normalizeAuditExportPayload(exportPayload);
   if (!normalized) {
@@ -564,6 +666,11 @@ export function previewAuditExportTier(exportPayload) {
   return { tier: 'supplementary', label: step.label, exportBlocked: false };
 }
 
+/**
+ * Audit export button label.
+ * @param {any} tierInfo
+ * @returns {any}
+ */
 export function auditExportButtonLabel(tierInfo) {
   if (!tierInfo || tierInfo.exportBlocked) return 'Download audit PDF';
   switch (tierInfo.tier) {
@@ -578,6 +685,12 @@ export function auditExportButtonLabel(tierInfo) {
   }
 }
 
+/**
+ * Fetch complete audit report.
+ * @param {any} completeScan
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function fetchCompleteAuditReport(completeScan, options = {}) {
   const normalized = normalizeAuditExportPayload(completeScan);
   if (!normalized || typeof normalized !== 'object') {
@@ -593,7 +706,7 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
   if (tierPreview.exportBlocked) {
     throw new Error(tierPreview.blockReason);
   }
-  const timeoutMs = options.timeoutMs ?? 120000;
+  const timeoutMs = options.timeoutMs ?? 300000;
   const res = await fetchWithTimeout('/api/analyze/complete-audit-report', {
     method: 'POST',
     headers: {
@@ -605,7 +718,8 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
       aiProvider: options.aiProvider || 'demo',
       client: options.client,
       company: options.company,
-      assessor: options.assessor
+      assessor: options.assessor,
+      credentials: options.credentials
     })
   }, timeoutMs);
   const data = await parseJsonSafe(res);
@@ -624,6 +738,11 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
   return data;
 }
 
+/**
+ * Fetch eu ai act audit report.
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function fetchEuAiActAuditReport(options = {}) {
   const timeoutMs = options.timeoutMs ?? 120000;
   const res = await fetchWithTimeout('/api/analyze/eu-ai-act-audit-report', {
@@ -637,7 +756,8 @@ export async function fetchEuAiActAuditReport(options = {}) {
       client: options.client,
       company: options.company,
       assessor: options.assessor,
-      sprintArtifacts: options.sprintArtifacts || undefined
+      sprintArtifacts: options.sprintArtifacts || undefined,
+      credentials: options.credentials
     })
   }, timeoutMs);
   const data = await parseJsonSafe(res);
@@ -656,6 +776,11 @@ export async function fetchEuAiActAuditReport(options = {}) {
   return data;
 }
 
+/**
+ * Parse content disposition filename.
+ * @param {any} header
+ * @returns {any}
+ */
 function parseContentDispositionFilename(header) {
   if (!header) return null;
   const quoted = /filename="([^"]+)"/i.exec(header);
@@ -664,6 +789,12 @@ function parseContentDispositionFilename(header) {
   return bare ? bare[1].trim().replace(/^["']|["']$/g, '') : null;
 }
 
+/**
+ * Fetch analyze export bundle zip.
+ * @param {any} completeScan
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
   const normalized = normalizeAuditExportPayload(completeScan);
   if (!normalized || typeof normalized !== 'object') {
@@ -672,7 +803,7 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
   const payload = slimCompleteScanForAudit(normalized, {
     findingsLimit: options.findingsLimit ?? 5000
   }) || normalized;
-  const timeoutMs = options.timeoutMs ?? 180000;
+  const timeoutMs = options.timeoutMs ?? 300000;
   const res = await fetchWithTimeout('/api/analyze/export-bundle', {
     method: 'POST',
     headers: {
@@ -692,7 +823,8 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
       aiProvider: options.aiProvider || 'demo',
       cloudTeamsActive: options.cloudTeamsActive === true,
       selectedEngines: options.selectedEngines,
-      enginesRun: options.enginesRun
+      enginesRun: options.enginesRun,
+      credentials: options.credentials
     })
   }, timeoutMs);
 
@@ -728,6 +860,12 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
   return { blob, filename, tierId, warnings };
 }
 
+/**
+ * Download audit report html.
+ * @param {any} html
+ * @param {string} filename
+ * @returns {any}
+ */
 export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.html') {
   if (typeof document === 'undefined' || !html) {
     throw new Error('Audit report HTML is empty.');
@@ -746,6 +884,11 @@ export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.htm
   return safeName;
 }
 
+/**
+ * Fetch compliance trail export json.
+ * @param {Array} windowDays
+ * @returns {any}
+ */
 export async function fetchComplianceTrailExportJson(windowDays = 90) {
   const params = new URLSearchParams({
     window: `${windowDays}d`,
@@ -766,6 +909,11 @@ export async function fetchComplianceTrailExportJson(windowDays = 90) {
   return { payload, filename };
 }
 
+/**
+ * Fetch compliance trail export html.
+ * @param {Array} windowDays
+ * @returns {any}
+ */
 export async function fetchComplianceTrailExportHtml(windowDays = 90) {
   const params = new URLSearchParams({
     window: `${windowDays}d`,
@@ -787,6 +935,12 @@ export async function fetchComplianceTrailExportHtml(windowDays = 90) {
   return { html, filename };
 }
 
+/**
+ * Open audit report print window.
+ * @param {any} html
+ * @param {string} filename
+ * @returns {any}
+ */
 export function openAuditReportPrintWindow(html, filename = 'simplebeacon-audit.html') {
   if (typeof window === 'undefined' || !html) {
     throw new Error('Audit report HTML is empty.');
@@ -806,6 +960,12 @@ export function openAuditReportPrintWindow(html, filename = 'simplebeacon-audit.
   return { mode: 'html-download', filename: savedAs, preview: false };
 }
 
+/**
+ * Fetch codebase analysis.
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function fetchCodebaseAnalysis(projectPath, options = {}) {
   const params = new URLSearchParams({ _: String(Date.now()) });
   if (projectPath) params.set('projectPath', projectPath);
@@ -818,6 +978,12 @@ export async function fetchCodebaseAnalysis(projectPath, options = {}) {
   }
   if (options.understandingMode) {
     params.set('understandingMode', options.understandingMode);
+  }
+  if (options.includeBrowserAnalyzers) {
+    params.set('includeBrowserAnalyzers', '1');
+  }
+  if (options.includeAllFiles) {
+    params.set('includeAllFiles', '1');
   }
   if (options.requestedScanRoot || options.scanTargetRoot) {
     params.set('requestedScanRoot', options.requestedScanRoot || options.scanTargetRoot);
@@ -837,6 +1003,12 @@ export async function fetchCodebaseAnalysis(projectPath, options = {}) {
   return scan;
 }
 
+/**
+ * Fetch data cleanup scan.
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function fetchDataCleanupScan(projectPath, options = {}) {
   const params = new URLSearchParams({ _: String(Date.now()) });
   if (projectPath) params.set('projectPath', projectPath);
@@ -889,12 +1061,22 @@ export async function fetchDataCleanupScan(projectPath, options = {}) {
   }
 }
 
+/**
+ * Looks like game mod path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export function looksLikeGameModPath(projectPath) {
   const normalized = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
   if (!normalized) return false;
   return new RegExp('(?:^|/)games/|doom|gzdoom|zscript|\\.pk3|r3d|lighting|_mod(?:/|$)', 'i').test(normalized);
 }
 
+/**
+ * Scan hints game mod.
+ * @param {any} scan
+ * @returns {any}
+ */
 export function scanHintsGameMod(scan) {
   if (!scan || typeof scan !== 'object') return false;
   if ((scan.findings || []).some((finding) => /\.(zs|zscript|acs|decorate)$/i.test(String(finding.filePath || '')))) {
@@ -909,10 +1091,22 @@ export function scanHintsGameMod(scan) {
   });
 }
 
+/**
+ * Should fetch zscript report.
+ * @param {string} projectPath
+ * @param {any} scan
+ * @returns {any}
+ */
 export function shouldFetchZscriptReport(projectPath, scan) {
   return looksLikeGameModPath(projectPath) || scanHintsGameMod(scan);
 }
 
+/**
+ * Fetch zscript mod report.
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function fetchZscriptModReport(projectPath, options = {}) {
   const params = new URLSearchParams({
     projectPath: projectPath || '',
@@ -928,16 +1122,26 @@ export async function fetchZscriptModReport(projectPath, options = {}) {
   return data.report;
 }
 
+/**
+ * Fetch repository inventory.
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function fetchRepositoryInventory(projectPath, options = {}) {
   const path = String(projectPath || '').trim();
   if (!path) return null;
+  if (!isAbsoluteProjectPath(path)) return null;
   if (/^https?:\/\//i.test(path) && !isRemoteRepoUrl(path)) {
     throw new Error('Enter a folder path (not a file like .bat or .json) or a supported public repo URL');
   }
   const params = new URLSearchParams({
     projectPath: path,
-    profile: options.profile || 'explorer'
+    profile: options.profile || 'all'
   });
+  if (options.fullDirectoryScan) {
+    params.set('fullDirectoryScan', 'true');
+  }
   const data = await fetchJsonWithGuidance(`/api/analyze/inventory?${params}`, {
     headers: authService.getAuthHeaders()
   });
@@ -949,29 +1153,62 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
   return data.inventory;
 }
 
+let _inventoryInflight = null;
+
+/**
+ * Refresh path inventory.
+ * @param {any} app
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function refreshPathInventory(app, projectPath, options = {}) {
   const path = String(projectPath || '').trim();
   if (!path || isRemoteRepoUrl(path)) {
     if (app?.state) app.state.pathInventory = null;
     return null;
   }
-  try {
-    const inventory = await fetchRepositoryInventory(path, { profile: options.profile || 'explorer' });
-    const root = inventory?.projectRoot || path;
-    if (inventory?.totalFiles != null && isInventoryRootAligned(path, root)) {
-      const entry = { path, inventory, fetchedAt: Date.now() };
-      if (app?.state) app.state.pathInventory = entry;
-      return inventory;
+  // Dedup in-flight requests for the same path
+  if (_inventoryInflight && _inventoryInflight.path === path) {
+    return _inventoryInflight.promise;
+  }
+/**
+ * Promise.
+ * @param {any} async (
+ * @returns {any}
+ */
+  const promise = (async () => {
+    try {
+      const inventory = await fetchRepositoryInventory(path, { profile: options.profile || 'all', fullDirectoryScan: options.fullDirectoryScan });
+      const root = inventory?.projectRoot || path;
+      if (inventory?.totalFiles != null && isInventoryRootAligned(path, root)) {
+        const entry = { path, inventory, fetchedAt: Date.now() };
+        if (app?.state) app.state.pathInventory = entry;
+        return inventory;
+      }
+    } catch {
+      /* inventory API unavailable or path outside allowed roots */
     }
-  } catch {
-    /* inventory API unavailable or path outside allowed roots */
-  }
-  if (app?.state) {
-    app.state.pathInventory = { path, inventory: null, fetchedAt: Date.now() };
-  }
-  return null;
+    if (app?.state) {
+      app.state.pathInventory = { path, inventory: null, fetchedAt: Date.now() };
+    }
+    return null;
+  })();
+  _inventoryInflight = { path, promise };
+  promise.finally(() => {
+    if (_inventoryInflight && _inventoryInflight.path === path) {
+      _inventoryInflight = null;
+    }
+  });
+  return promise;
 }
 
+/**
+ * Live inventory for path.
+ * @param {any} app
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export function liveInventoryForPath(app, projectPath) {
   const cached = app?.state?.pathInventory;
   if (!cached?.inventory || !projectPath) return null;
@@ -981,6 +1218,13 @@ export function liveInventoryForPath(app, projectPath) {
   return null;
 }
 
+/**
+ * Build path inventory provenance.
+ * @param {any} app
+ * @param {string} projectPath
+ * @param {number} report
+ * @returns {any}
+ */
 export function buildPathInventoryProvenance(app, projectPath, report = null) {
   const resolvedReport = report ?? null;
   const live = liveInventoryForPath(app, projectPath);
@@ -990,6 +1234,12 @@ export function buildPathInventoryProvenance(app, projectPath, report = null) {
   });
 }
 
+/**
+ * Merge report inventory.
+ * @param {number} report
+ * @param {any} inventory
+ * @returns {any}
+ */
 export function mergeReportInventory(report, inventory) {
   if (!report || typeof report !== 'object') return report;
   if (!inventory?.totalFiles) return report;
@@ -1004,9 +1254,30 @@ export function mergeReportInventory(report, inventory) {
   };
 }
 
+/**
+ * Is absolute project path.
+ * @param {string} path
+ * @returns {any}
+ */
+function isAbsoluteProjectPath(path) {
+  if (!path) return false;
+  const str = String(path).trim();
+  if (str.startsWith('.')) return false;
+  if (/^[a-zA-Z]:/.test(str)) return true;
+  if (str.startsWith('/')) return true;
+  if (str.startsWith('\\')) return true;
+  return false;
+}
+
+/**
+ * Fetch scan report.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export async function fetchScanReport(projectPath) {
   const path = String(projectPath || '').trim();
   if (!path) return null;
+  if (!isAbsoluteProjectPath(path)) return null;
   if (/^https?:\/\//i.test(path) && !isRemoteRepoUrl(path)) {
     throw new Error('Enter a folder path (not a file like .bat or .json) or a supported public repo URL');
   }
@@ -1020,10 +1291,21 @@ export async function fetchScanReport(projectPath) {
   return data && typeof data === 'object' ? data : null;
 }
 
+/**
+ * Normalize project path.
+ * @param {any} value
+ * @returns {any}
+ */
 export function normalizeProjectPath(value) {
   return String(value || '').replace(/\\/g, '/').toLowerCase().replace(/\/$/, '');
 }
 
+/**
+ * Prefer platform analyze path.
+ * @param {string} candidatePath
+ * @param {string} defaultPath
+ * @returns {any}
+ */
 export function preferPlatformAnalyzePath(candidatePath, defaultPath) {
   const raw = String(candidatePath || defaultPath || '').trim();
   if (!raw) return raw;
@@ -1036,12 +1318,23 @@ export function preferPlatformAnalyzePath(candidatePath, defaultPath) {
   return raw;
 }
 
+/**
+ * Is gate blocking issue.
+ * @param {boolean} issue
+ * @param {any} gate
+ * @returns {any}
+ */
 function isGateBlockingIssue(issue, gate = {}) {
   const failOn = gate.failOn || ['high'];
   const severity = issue.severityBand || issue.severity || 'low';
   return failOn.includes(severity);
 }
 
+/**
+ * Partition platform scan issues.
+ * @param {Array} issues
+ * @returns {any}
+ */
 function partitionPlatformScanIssues(issues = []) {
   const platformIssues = [];
   const benchmarkCacheIssues = [];
@@ -1061,6 +1354,11 @@ function partitionPlatformScanIssues(issues = []) {
   return { platformIssues, benchmarkCacheIssues };
 }
 
+/**
+ * Prepare platform results report.
+ * @param {number} report
+ * @returns {any}
+ */
 export function preparePlatformResultsReport(report) {
   if (!report || report.type !== 'simplebeacon-report') return report;
   const sourceIssues = report.rawIssues?.length ? report.rawIssues : (report.detectedIssues || []);
@@ -1100,6 +1398,11 @@ export function preparePlatformResultsReport(report) {
   };
 }
 
+/**
+ * Sanitize fiction digest export.
+ * @param {any} digest
+ * @returns {any}
+ */
 export function sanitizeFictionDigestExport(digest) {
   if (!digest || typeof digest !== 'object') return digest;
   if (digest.type !== 'simplebeacon-fiction-digest') return digest;
@@ -1107,10 +1410,20 @@ export function sanitizeFictionDigestExport(digest) {
   const sourceReport = digest.sourceReport
     ? preparePlatformResultsReport(digest.sourceReport)
     : null;
+/**
+ * Fiction issues.
+ * @param {any} digest.fictionIssues || []
+ * @returns {any}
+ */
   const fictionIssues = (digest.fictionIssues || []).filter((issue) => {
     const filePath = issue.filePath || issue.file || '';
     return !filePath || !isBenchmarkCachePath(filePath);
   });
+/**
+ * Non fiction issues.
+ * @param {any} digest.nonFictionIssues || []
+ * @returns {any}
+ */
   const nonFictionIssues = (digest.nonFictionIssues || []).filter((issue) => {
     const filePath = issue.filePath || issue.file || '';
     return !filePath || !isBenchmarkCachePath(filePath);
@@ -1143,6 +1456,12 @@ export function resolveCompleteScanTargetPath(projectPath, priorSteps = []) {
   return projectPath;
 }
 
+/**
+ * Enrich scan report.
+ * @param {number} report
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export async function enrichScanReport(report, projectPath) {
   if (!report) return report;
   let merged = { ...report };
@@ -1159,7 +1478,7 @@ export async function enrichScanReport(report, projectPath) {
     : null;
   if (!inventory && projectPath) {
     try {
-      inventory = await fetchRepositoryInventory(projectPath, { profile: 'audit' });
+      inventory = await fetchRepositoryInventory(projectPath, { profile: 'all' });
     } catch {
       inventory = null;
     }
@@ -1167,6 +1486,13 @@ export async function enrichScanReport(report, projectPath) {
   return mergeReportInventory(merged, inventory);
 }
 
+/**
+ * Build inventory provenance.
+ * @param {number} report
+ * @param {string} requestedPath
+ * @param {Object} options
+ * @returns {any}
+ */
 export function buildInventoryProvenance(report, requestedPath, options = {}) {
   const requested = String(requestedPath || '').trim();
   const liveInventory = options.liveInventory || null;
@@ -1194,9 +1520,12 @@ export function buildInventoryProvenance(report, requestedPath, options = {}) {
     && (!requested || isInventoryRootAligned(requested, liveRoot))
   );
 
+  // Prefer live inventory when both are available — it reflects the actual
+  // folder contents. Report inventory reflects the scan scope which may skip
+  // dirs (node_modules, .git, build artifacts) and differ significantly.
   const inventory = liveAligned && liveInventory
     ? liveInventory
-    : (reportAligned && reportInventory ? reportInventory : (liveInventory || reportInventory));
+    : (reportAligned && reportInventory ? reportInventory : (reportInventory || liveInventory));
   const inventoryRoot = inventory?.projectRoot
     ?? (reportAligned ? reportRoot : null)
     ?? requested
@@ -1231,6 +1560,12 @@ export function buildInventoryProvenance(report, requestedPath, options = {}) {
   };
 }
 
+/**
+ * Render inventory provenance html.
+ * @param {any} provenance
+ * @param {Object} options
+ * @returns {any}
+ */
 export function renderInventoryProvenanceHtml(provenance, options = {}) {
   if (!provenance) return '';
   const redactPath = options.redactPath || ((value) => String(value || ''));
@@ -1251,7 +1586,7 @@ export function renderInventoryProvenanceHtml(provenance, options = {}) {
         <code title="Path you entered">${escapeHtml(selectedLabel)}</code>
         · ${escapeHtml(countLine)}
         · indexed ${escapeHtml(fetchedAt)}
-        <span class="text-muted analyze-inventory-provenance-hint">Explorer-style walk of the selected folder (includes <code>node_modules</code>). No gate scan for this path yet — run analysis for rule counts.</span>
+        <span class="text-muted analyze-inventory-provenance-hint">Audit walk of the selected folder (skips <code>node_modules</code>, <code>.git</code>, build artifacts). No gate scan for this path yet — run analysis for rule counts.</span>
       </div>
     `;
     }
@@ -1297,11 +1632,16 @@ export function renderInventoryProvenanceHtml(provenance, options = {}) {
       · ${escapeHtml(countLine)}
       ${ruleLine ? ` · ${escapeHtml(ruleLine)}` : ''}
       · scanned ${escapeHtml(scannedAt)}
-      <span class="text-muted analyze-inventory-provenance-hint">Indexed count is an explorer-style walk of the selected folder. Gate rules checked is the analyzed subset from your last scan.</span>
+      <span class="text-muted analyze-inventory-provenance-hint">Indexed count includes ALL files in the selected folder. Gate rules checked is the analyzed subset from your last scan.</span>
     </div>
   `;
 }
 
+/**
+ * Build monorepo scope note.
+ * @param {number} report
+ * @returns {any}
+ */
 export function buildMonorepoScopeNote(report) {
   if (!report?.platformRoot || !report?.projectRoot) return '';
   if (normalizeProjectPath(report.platformRoot) === normalizeProjectPath(report.projectRoot)) {
@@ -1322,6 +1662,12 @@ export function buildMonorepoScopeNote(report) {
   return parts.join('. ') + '.';
 }
 
+/**
+ * Project path matches report root.
+ * @param {string} projectPath
+ * @param {number} reportRoot
+ * @returns {any}
+ */
 function projectPathMatchesReportRoot(projectPath, reportRoot) {
   const normPath = normalizeProjectPath(projectPath);
   const normRoot = normalizeProjectPath(reportRoot);
@@ -1350,6 +1696,12 @@ export function isInventoryRootAligned(requestedPath, inventoryRoot) {
   return projectPathMatchesReportRoot(requestedPath, inventoryRoot);
 }
 
+/**
+ * Is legacy scan report.
+ * @param {number} report
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export function isLegacyScanReport(report, projectPath = '') {
   if (!report) return true;
   if (report.reportVersion == null || report.reportVersion < 2) return true;
@@ -1362,6 +1714,12 @@ export function isLegacyScanReport(report, projectPath = '') {
   return true;
 }
 
+/**
+ * Get scan file metrics.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 export function getScanFileMetrics(report, options = {}) {
   const inventory = options.repositoryInventory
     || report?.repositoryInventory
@@ -1399,17 +1757,13 @@ export function getScanFileMetrics(report, options = {}) {
     };
   }
 
-  const mockSampleFiles = report.mockSampleFiles ?? report.totalFiles ?? 0;
-  const ruleScopedFilesAnalyzed = report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? Math.max(
-    mockSampleFiles,
-    report.credentialScanned ?? 0,
-    report.productionLeakScanned ?? 0
-  );
+  const mockSampleFiles = report.mockSampleFiles ?? 0;
+  const ruleScopedFilesAnalyzed = report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? 0;
   const repositoryFiles = report.repositoryFilesTotal
     ?? inventory?.totalFiles
     ?? null;
   return {
-    filesAnalyzed: repositoryFiles ?? ruleScopedFilesAnalyzed,
+    filesAnalyzed: ruleScopedFilesAnalyzed,
     ruleScopedFilesAnalyzed,
     mockSampleFiles,
     fictionJsonFilesScanned: report.fictionJsonFilesScanned ?? report.scanScope?.fictionJsonFilesScanned ?? null,
@@ -1421,6 +1775,11 @@ export function getScanFileMetrics(report, options = {}) {
   };
 }
 
+/**
+ * Resolve display score.
+ * @param {number} report
+ * @returns {any}
+ */
 export function resolveDisplayScore(report) {
   if (!report) return null;
   return report.consistencyScore ?? report.schemaCompliance ?? report.qualityScore ?? null;
@@ -1447,6 +1806,13 @@ export async function refreshLiveReport(scanService, state) {
   return state.report;
 }
 
+/**
+ * Resolve jest tests label.
+ * @param {any} baseline
+ * @param {any} dashboardHome
+ * @param {number} report
+ * @returns {any}
+ */
 export function resolveJestTestsLabel(baseline, dashboardHome, report) {
   if (baseline?.jestTestsLabel) return baseline.jestTestsLabel;
   const jestSummary = report?.jestSummary;
@@ -1464,6 +1830,12 @@ export function resolveJestTestsLabel(baseline, dashboardHome, report) {
   return null;
 }
 
+/**
+ * Resolve page specs label.
+ * @param {number} report
+ * @param {any} baseline
+ * @returns {any}
+ */
 export function resolvePageSpecsLabel(report, baseline) {
   if (report?.pageSampleSchemaChecked != null) {
     return `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`;
@@ -1471,6 +1843,13 @@ export function resolvePageSpecsLabel(report, baseline) {
   return baseline?.pageSamplesLabel ?? null;
 }
 
+/**
+ * Replace jest mentions.
+ * @param {string} text
+ * @param {any} jestLabel
+ * @param {Array} suites
+ * @returns {any}
+ */
 function replaceJestMentions(text, jestLabel, suites) {
   if (!text || !jestLabel) return text;
   const suiteSuffix = suites != null ? ` across ${suites} suites` : '';
@@ -1489,6 +1868,11 @@ export function hydrateDashboardHome(home, baseline) {
   const suites = baseline?.jestSuites ?? home?.overview?.testSuites;
   if (!jestLabel) return home;
 
+/**
+ * Comparative analysis.
+ * @param {any} home.comparativeAnalysis || []
+ * @returns {any}
+ */
   const comparativeAnalysis = (home.comparativeAnalysis || []).map((row) => {
     if (String(row.metric || '').toLowerCase() !== 'jest tests') return row;
     const prevNum = Number(String(row.previous).replace(/[^\d.-]/g, ''));
@@ -1498,6 +1882,11 @@ export function hydrateDashboardHome(home, baseline) {
     return { ...row, current: jestPassing ?? row.current, change };
   });
 
+/**
+ * Kpis.
+ * @param {any} home.kpis || []
+ * @returns {any}
+ */
   const kpis = (home.kpis || []).map((item) => (
     String(item.name || '').toLowerCase().includes('jest')
       ? { ...item, current: jestLabel, target: jestLabel }
@@ -1534,17 +1923,24 @@ export function hydrateDashboardHome(home, baseline) {
   };
 }
 
+/**
+ * Format scan scope summary.
+ * @param {number} report
+ * @returns {any}
+ */
 export function formatScanScopeSummary(report) {
   const metrics = getScanFileMetrics(report);
   const parts = [];
 
-  if (metrics.repositoryFiles != null) {
-    parts.push(`${formatNumber(metrics.repositoryFiles)} repo files`);
+  // Show actual analyzed count, not full repo inventory
+  if (metrics.filesAnalyzed != null) {
+    parts.push(`${formatNumber(metrics.filesAnalyzed)} files analyzed`);
   }
-  if (metrics.ruleScopedFilesAnalyzed != null) {
+  if (metrics.repositoryFiles != null && metrics.filesAnalyzed !== metrics.repositoryFiles) {
+    parts.push(`of ${formatNumber(metrics.repositoryFiles)} total`);
+  }
+  if (metrics.ruleScopedFilesAnalyzed != null && metrics.ruleScopedFilesAnalyzed !== metrics.filesAnalyzed) {
     parts.push(`${formatNumber(metrics.ruleScopedFilesAnalyzed)} gate rules checked`);
-  } else if (metrics.filesAnalyzed != null && metrics.filesAnalyzed !== metrics.repositoryFiles) {
-    parts.push(`${formatNumber(metrics.filesAnalyzed)} rule-scoped`);
   }
   if (metrics.mockSampleFiles != null) {
     parts.push(`${formatNumber(metrics.mockSampleFiles)} mock/sample`);
@@ -1559,12 +1955,22 @@ export function formatScanScopeSummary(report) {
   return parts.length ? parts.join(' · ') : '0 files analyzed';
 }
 
+/**
+ * Format scan inventory note.
+ * @param {number} report
+ * @returns {any}
+ */
 export function formatScanInventoryNote(report) {
   const metrics = getScanFileMetrics(report);
   if (metrics.repositoryFiles == null) return null;
   return `${formatNumber(metrics.repositoryFiles)} repo files · ${formatNumber(metrics.repositoryFolders)} folders indexed`;
 }
 
+/**
+ * Build scan scope lines.
+ * @param {number} report
+ * @returns {any}
+ */
 export function buildScanScopeLines(report) {
   const scope = report?.scanScope;
   if (!scope) {
@@ -1586,7 +1992,7 @@ export function buildScanScopeLines(report) {
     `Page specs validated: ${scope.pageSpecsValidated ?? report?.pageSampleSchemaChecked ?? '—'}/${scope.pageSpecCatalogSize ?? '—'} (${scope.pageSpecsFromAliasPaths ?? 0} via aliased roadmap paths)`,
     `Production code files scanned: ${scope.productionDirsScanned ?? report?.productionLeakScanned ?? '—'} under ${(scope.productionPaths || []).join(', ') || 'server/'}`,
     scope.fictionJsonFilesScanned != null
-      ? `Fiction/KPI patterns: ${scope.fictionJsonFilesScanned} JSON files scanned (${scope.fictionSampleFilesScanned ?? '—'} *-sample.json) — scope: ${scope.fictionScope || 'repository-json'}`
+      ? `Fiction/KPI patterns: ${scope.fictionJsonFilesScanned} JSON files scanned (${scope.fictionSampleFilesScanned ?? '—'} sample files) — scope: ${scope.fictionScope || 'repository-json'}`
       : null,
     scope.jestExecutedDuringScan
       ? 'Jest executed during this scan.'
@@ -1596,6 +2002,11 @@ export function buildScanScopeLines(report) {
   return lines;
 }
 
+/**
+ * Render scan scope panel.
+ * @param {number} report
+ * @returns {any}
+ */
 export function renderScanScopePanel(report) {
   const lines = buildScanScopeLines(report);
   return `
@@ -1608,27 +2019,52 @@ export function renderScanScopePanel(report) {
   `;
 }
 
+/**
+ * Ai provider supports summary.
+ * @param {string} aiProvider
+ * @returns {any}
+ */
 export function aiProviderSupportsSummary(aiProvider) {
   const id = String(aiProvider || 'demo').toLowerCase();
   return id !== 'demo';
 }
 
+/**
+ * Is simplebeacon report.
+ * @param {any} obj
+ * @returns {any}
+ */
 export function isSimplebeaconReport(obj) {
   return obj && (obj.type === 'simplebeacon-report' || obj.rawIssues != null);
 }
 
+/**
+ * Is codebase report.
+ * @param {any} obj
+ * @returns {any}
+ */
 export function isCodebaseReport(obj) {
   return obj && obj.type === 'codebase-analyzer-report';
 }
 
+/**
+ * Is deterministic analysis mode.
+ * @param {any} analysisType
+ * @returns {any}
+ */
 export function isDeterministicAnalysisMode(analysisType) {
   return ['simplebeacon', 'mock-scan', 'consolidation', 'codebase', 'complete'].includes(analysisType);
 }
 
+/**
+ * Resolve auto analysis mode.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export function resolveAutoAnalysisMode(projectPath) {
   const normalized = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
   if (
-    normalized.includes('web/data')
+    normalized.includes('web\/data')
     || normalized.endsWith('/ai-platform')
     || normalized.endsWith('ai-platform')
     || normalized.includes('/data/mock')
@@ -1639,10 +2075,21 @@ export function resolveAutoAnalysisMode(projectPath) {
   return 'roadmap';
 }
 
+/**
+ * Issue list.
+ * @param {number} report
+ * @returns {any}
+ */
 function issueList(report) {
   return report?.rawIssues || report?.detectedIssues || [];
 }
 
+/**
+ * Filter issues by kind.
+ * @param {number} report
+ * @param {any} kind
+ * @returns {any}
+ */
 export function filterIssuesByKind(report, kind = 'all') {
   const raw = issueList(report);
   if (kind === 'fiction') {
@@ -1657,6 +2104,11 @@ export function filterIssuesByKind(report, kind = 'all') {
   return raw;
 }
 
+/**
+ * Build consolidation conclusion.
+ * @param {any} scan
+ * @returns {any}
+ */
 export function buildConsolidationConclusion(scan) {
   if (!scan?.summary) {
     return 'No consolidation scan available.';
@@ -1669,7 +2121,7 @@ export function buildConsolidationConclusion(scan) {
       'OSS benchmark clone under github-cache/ — consolidation hygiene for the clone only',
       candidates ? `${candidates} merge/reduction candidate(s) inside this clone` : 'No merge/reduction candidates',
       (scan.summary.sampleDataFilesAnalyzed ?? 0) === 0
-        ? 'Simplebeacon sample paths (web/data, data/roadmap) are not on this clone'
+        ? 'Simplebeacon sample directories are not on this clone'
         : `${scan.summary.sampleDataFilesAnalyzed} sample JSON under configured paths`,
       repoFiles != null ? `Clone inventory: ${Number(repoFiles).toLocaleString()} files` : null,
       scan.summary.potentialSavingsLabel ? `Potential savings: ${scan.summary.potentialSavingsLabel}` : null,
@@ -1690,6 +2142,12 @@ export function buildConsolidationConclusion(scan) {
   return `${candidates} merge/reduction candidate(s) — ${s.sampleDataFilesAnalyzed ?? s.filesAnalyzed ?? 0} sample JSON, ${jsonScanned != null ? `${jsonScanned.toLocaleString()} repo JSON scanned` : 'repo JSON scanned'}.${repoNote} Potential savings: ${s.potentialSavingsLabel || '0B'}.`;
 }
 
+/**
+ * Build scan conclusion.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 export function buildScanConclusion(report, options = {}) {
   if (!report) {
     return 'No scan report available.';
@@ -1716,6 +2174,11 @@ export function buildScanConclusion(report, options = {}) {
 
   const focus = options.focus || 'all';
   const _raw = focus === 'fiction' ? filterIssuesByKind(report, 'fiction') : issueList(report);
+/**
+ * Count issues.
+ * @param {Array} items
+ * @returns {any}
+ */
   const countIssues = (items) => items.reduce((sum, i) => sum + (i.count || 1), 0);
 
   const fiction = filterIssuesByKind(report, 'fiction');
@@ -1735,7 +2198,7 @@ export function buildScanConclusion(report, options = {}) {
       const jsonScanned = report.fictionJsonFilesScanned ?? report.scanScope?.fictionJsonFilesScanned;
       const sampleScanned = report.fictionSampleFilesScanned ?? report.mockSampleFiles;
       if (jsonScanned != null) {
-        parts.push(`No fiction KPI hits in ${Number(jsonScanned).toLocaleString()} JSON files scanned (${sampleScanned ?? '—'} *-sample.json among them)`);
+        parts.push(`No fiction KPI hits in ${Number(jsonScanned).toLocaleString()} JSON files scanned (${sampleScanned ?? '—'} sample files among them)`);
       } else {
         parts.push('No known fictional KPI patterns in configured sample files');
       }
@@ -1790,6 +2253,12 @@ export function buildScanConclusion(report, options = {}) {
   return `${parts.join('; ')}. ${[gateNote, inventoryNote, jestNote, scope].filter(Boolean).join(' ')}`.trim();
 }
 
+/**
+ * Build fiction digest payload.
+ * @param {number} report
+ * @param {Object} options
+ * @returns {any}
+ */
 export function buildFictionDigestPayload(report, options = {}) {
   if (!report) return null;
   const projectPath = options.projectPath || report.projectRoot || '';
@@ -1810,6 +2279,11 @@ export function buildFictionDigestPayload(report, options = {}) {
   }, { projectPath });
 }
 
+/**
+ * Normalize imported report.
+ * @param {any} payload
+ * @returns {any}
+ */
 export function normalizeImportedReport(payload) {
   if (payload.type === 'simplebeacon-report') return payload;
   if (payload.report?.type === 'simplebeacon-report') return payload.report;
@@ -1828,11 +2302,21 @@ export function normalizeImportedReport(payload) {
   return null;
 }
 
+/**
+ * Read file as json.
+ * @param {string} file
+ * @returns {any}
+ */
 export async function readFileAsJson(file) {
   const text = await file.text();
   return JSON.parse(text);
 }
 
+/**
+ * Read dropped files.
+ * @param {string} fileList
+ * @returns {any}
+ */
 export async function readDroppedFiles(fileList) {
   const files = Array.from(fileList || []);
   const jsonFiles = files.filter((f) => f.name.endsWith('.json') || f.type === 'application/json');
@@ -1849,6 +2333,13 @@ export async function readDroppedFiles(fileList) {
   return { total: files.length, reports };
 }
 
+/**
+ * Fetch compliance checklist.
+ * @param {number} report
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function fetchComplianceChecklist(report, projectPath, options = {}) {
   const checklistHttpResponse = await fetchWithTimeout('/api/analyze/compliance-checklist', {
     method: 'POST',
@@ -1870,6 +2361,12 @@ export async function fetchComplianceChecklist(report, projectPath, options = {}
   return checklistResponse;
 }
 
+/**
+ * Fetch project npm audit.
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function fetchProjectNpmAudit(projectPath, options = {}) {
   const params = new URLSearchParams({ _: String(Date.now()) });
   if (projectPath) params.set('projectPath', projectPath);
@@ -1883,6 +2380,10 @@ export async function fetchProjectNpmAudit(projectPath, options = {}) {
   return data;
 }
 
+/**
+ * Fetch analyze test sources.
+ * @returns {any}
+ */
 export async function fetchAnalyzeTestSources() {
   const params = new URLSearchParams({ _: String(Date.now()) });
   const data = await fetchJsonWithGuidance(`/api/analyze/test-sources?${params}`, {
@@ -1894,6 +2395,12 @@ export async function fetchAnalyzeTestSources() {
   return data;
 }
 
+/**
+ * Prepare github repo.
+ * @param {string} repoUrl
+ * @param {Object} options
+ * @returns {any}
+ */
 export async function prepareGithubRepo(repoUrl, options = {}) {
   const data = await fetchJsonWithGuidance('/api/analyze/github-clone', {
     method: 'POST',
@@ -1912,6 +2419,11 @@ export async function prepareGithubRepo(repoUrl, options = {}) {
   return data;
 }
 
+/**
+ * Fetch agency branding.
+ * @param {string} orgId
+ * @returns {any}
+ */
 export async function fetchAgencyBranding(orgId = 'default') {
   const params = new URLSearchParams({ org_id: orgId, _: String(Date.now()) });
   try {
@@ -1924,6 +2436,11 @@ export async function fetchAgencyBranding(orgId = 'default') {
   }
 }
 
+/**
+ * Export agency certificate.
+ * @param {any} certificateRequest
+ * @returns {any}
+ */
 export async function exportAgencyCertificate(certificateRequest = {}) {
   const certificateExport = await fetchJsonWithGuidance('/api/simplebeacon/export/certificate', {
     method: 'POST',
@@ -1939,6 +2456,12 @@ export async function exportAgencyCertificate(certificateRequest = {}) {
   return certificateExport;
 }
 
+/**
+ * Assert complete scan compliance fresh.
+ * @param {number} report
+ * @param {any} checklist
+ * @returns {any}
+ */
 export function assertCompleteScanComplianceFresh(report, checklist) {
   if (!checklist?.evaluatedAt) return;
   const reportAt = Date.parse(report?.generatedAt || '');
@@ -1948,6 +2471,11 @@ export function assertCompleteScanComplianceFresh(report, checklist) {
   }
 }
 
+/**
+ * Assert complete scan file reduction fresh.
+ * @param {any} scan
+ * @returns {any}
+ */
 export function assertCompleteScanFileReductionFresh(scan) {
   if (!scan || typeof scan !== 'object') {
     throw new Error('File reduction scan returned no payload');

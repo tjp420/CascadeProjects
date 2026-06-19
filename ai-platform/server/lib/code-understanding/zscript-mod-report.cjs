@@ -6,6 +6,12 @@ const path = require('path');
 const { buildStructureReport, collectZscriptFiles } = require('./zscript-structure-analyzer.cjs');
 const { buildCvarReport } = require('./zscript-cvar-analyzer.cjs');
 
+/**
+ * Generate zscript mod report.
+ * @param {string} projectPath
+ * @param {Object} options
+ * @returns {any}
+ */
 async function generateZscriptModReport(projectPath, options = {}) {
     const rootDir = path.resolve(projectPath);
     const focus = String(options.focus || 'lighting-intensity').toLowerCase();
@@ -41,6 +47,13 @@ async function generateZscriptModReport(projectPath, options = {}) {
     return report;
 }
 
+/**
+ * Build problem diagnosis.
+ * @param {Array} focus
+ * @param {any} cvarSection
+ * @param {string} structure
+ * @returns {any}
+ */
 function buildProblemDiagnosis(focus, cvarSection, structure) {
     if (focus !== 'lighting-intensity') {
         return {
@@ -85,6 +98,12 @@ function buildProblemDiagnosis(focus, cvarSection, structure) {
     };
 }
 
+/**
+ * Collect affected files.
+ * @param {string} structure
+ * @param {any} cvarSection
+ * @returns {any}
+ */
 function collectAffectedFiles(structure, cvarSection) {
     const files = new Set();
     for (const hint of cvarSection.scalingHints || []) {

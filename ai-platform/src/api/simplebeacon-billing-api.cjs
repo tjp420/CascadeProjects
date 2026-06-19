@@ -11,13 +11,16 @@ const {
   upsertSubscription,
   setSubscriptionActive,
   getSubscriptionByEmail,
+  getSubscriptionByApiToken,
   syncSubscriptionToDb,
   publicSubscriptionStatus,
+  consumeScan,
   normalizeEmail
 } = require('../../server/lib/simplebeacon-subscription-store.cjs');
-const { generateLicenseToken, verifyLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token');
 const { runSimplebeaconScan } = require('./simplebeacon-api.cjs');
 const { sendEmail } = require('../../server/lib/email-service.cjs');
+const { insertLicenseToken } = require('../../server/lib/token-db.cjs');
+const { generateLicenseToken, verifyLicenseToken } = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
 const {
   buildCertificateModel,
   renderCertificateHtml
@@ -29,6 +32,12 @@ const { getTierConfigByPriceId, getTierConfigByProduct } = require('../../server
 const archiver = require('archiver');
 const { PassThrough } = require('stream');
 
+/**
+ * Safe stringify.
+ * @param {any} obj
+ * @param {any} space
+ * @returns {any}
+ */
 function safeStringify(obj, space = 2) {
   const seen = new WeakSet();
   return JSON.stringify(obj, (key, value) => {
@@ -116,6 +125,44 @@ const TIER_EMAIL_CONFIG = {
     deliveryVisible: false,
     secondaryVisible: false
   },
+  startup_shield: {
+    headline: 'Subscription Active',
+    productName: 'Startup Shield',
+    price: '$49.00 / month',
+    paymentMethod: 'Paid via Stripe',
+    receiptClass: '',
+    primaryCta: 'Upload Report & Generate Certificate →',
+    stepsTitle: 'Getting started',
+    stepsList: `<li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
+      <li>Upload the generated <code>.simplebeacon/report.json</code></li>
+      <li>Up to 2,500 pipeline scans per month</li>
+      <li>Install the GitHub Action for automatic PR gating</li>`,
+    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    supportText: 'Questions about your subscription? Email',
+    tokenVisible: true,
+    featuresVisible: false,
+    deliveryVisible: false,
+    secondaryVisible: false
+  },
+  growth_shield: {
+    headline: 'Subscription Active',
+    productName: 'Growth Shield',
+    price: '$149.00 / month',
+    paymentMethod: 'Paid via Stripe',
+    receiptClass: '',
+    primaryCta: 'Upload Report & Generate Certificate →',
+    stepsTitle: 'Getting started',
+    stepsList: `<li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
+      <li>Upload the generated <code>.simplebeacon/report.json</code></li>
+      <li>Up to 10,000 pipeline scans per month</li>
+      <li>Configure URL allowlists and EU AI Act rules</li>`,
+    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    supportText: 'Questions about your subscription? Email',
+    tokenVisible: true,
+    featuresVisible: false,
+    deliveryVisible: false,
+    secondaryVisible: false
+  },
   continuous_shield: {
     headline: 'Subscription Active',
     productName: 'Continuous Shield',
@@ -156,6 +203,14 @@ const TIER_EMAIL_CONFIG = {
   }
 };
 
+/**
+ * Build tier email.
+ * @param {any} product
+ * @param {string} licenseToken
+ * @param {string} certUploadUrl
+ * @param {string} sessionId
+ * @returns {any}
+ */
 function buildTierEmail(product, licenseToken, certUploadUrl, sessionId) {
   if (!emailTemplateHtml) return null;
   const cfg = TIER_EMAIL_CONFIG[product] || TIER_EMAIL_CONFIG.executive_clearance;
@@ -164,6 +219,12 @@ function buildTierEmail(product, licenseToken, certUploadUrl, sessionId) {
   const baseUrl = getAppBaseUrl();
 
   let html = emailTemplateHtml;
+/**
+ * R.
+ * @param {any} placeholder
+ * @param {any} value
+ * @returns {any}
+ */
   const r = (placeholder, value) => {
     html = html.replace(new RegExp(placeholder, 'g'), value || '');
   };
@@ -211,6 +272,10 @@ function buildTierEmail(product, licenseToken, certUploadUrl, sessionId) {
   return { html, text: textLines };
 }
 
+/**
+ * Ensure report dir.
+ * @returns {any}
+ */
 function ensureReportDir() {
   const fs = require('fs');
   if (!fs.existsSync(REPORT_STORE_DIR)) {
@@ -218,6 +283,11 @@ function ensureReportDir() {
   }
 }
 
+/**
+ * Stream to buffer.
+ * @param {string} stream
+ * @returns {any}
+ */
 function streamToBuffer(stream) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -230,6 +300,10 @@ function streamToBuffer(stream) {
 const TEAMS_MONTHLY_LABEL = '$49/month';
 const TEAMS_ANNUAL_LABEL = '$390/year';
 
+/**
+ * Get app base url.
+ * @returns {any}
+ */
 function getAppBaseUrl() {
   return (
     process.env.SIMPLEBEACON_APP_URL ||
@@ -238,14 +312,37 @@ function getAppBaseUrl() {
   ).replace(/\/$/, '');
 }
 
+/**
+ * Get stripe client.
+ * @returns {any}
+ */
 function getStripeClient() {
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return null;
   return Stripe(secret);
 }
 
+/**
+ * Resolve price id.
+ * @param {any} product
+ * @returns {any}
+ */
 function resolvePriceId(product) {
   const map = {
+    // --- New 4-tier model ---
+    startup_monthly:
+      process.env.STRIPE_PRICE_ID_STARTUP_MONTHLY ||
+      process.env.SIMPLEBEACON_STARTUP_PRICE_ID,
+    startup_annual:
+      process.env.STRIPE_PRICE_ID_STARTUP_ANNUAL ||
+      process.env.SIMPLEBEACON_STARTUP_ANNUAL_PRICE_ID,
+    growth_monthly:
+      process.env.STRIPE_PRICE_ID_GROWTH_MONTHLY ||
+      process.env.SIMPLEBEACON_GROWTH_PRICE_ID,
+    growth_annual:
+      process.env.STRIPE_PRICE_ID_GROWTH_ANNUAL ||
+      process.env.SIMPLEBEACON_GROWTH_ANNUAL_PRICE_ID,
+    // --- Legacy mappings ---
     teams_monthly:
       process.env.STRIPE_PRICE_ID_TEAMS_MONTHLY ||
       process.env.STRIPE_PRICE_ID ||
@@ -273,11 +370,21 @@ function resolvePriceId(product) {
   return map[product] || null;
 }
 
+/**
+ * Checkout mode for product.
+ * @param {any} product
+ * @returns {any}
+ */
 function checkoutModeForProduct(product) {
   const oneTimeProducts = ['executive_clearance', 'instant_report', 'eu_ai_act_sprint'];
   return oneTimeProducts.includes(product) ? 'payment' : 'subscription';
 }
 
+/**
+ * Billing disabled response.
+ * @param {Array} res
+ * @returns {any}
+ */
 function billingDisabledResponse(res) {
   return res.status(503).json({
     error: 'billing_unavailable',
@@ -286,8 +393,13 @@ function billingDisabledResponse(res) {
   });
 }
 
+/**
+ * Build plan payload.
+ * @returns {any}
+ */
 function buildPlanPayload() {
-  const continuousShieldId = resolvePriceId('continuous_shield');
+  const startupMonthlyId = resolvePriceId('startup_monthly');
+  const growthMonthlyId = resolvePriceId('growth_monthly');
 
   return {
     enabled: isMonetizationEnabled(),
@@ -299,69 +411,71 @@ function buildPlanPayload() {
       active: process.env.SIMPLEBEACON_FOUNDING_LAUNCH !== 'false'
     },
     tiers: {
-      community: {
+      developer: {
         price: '$0',
-        name: 'Community',
+        name: 'Developer',
         model: 'Free / Open Source',
         audience: 'Individual Developers',
         features: [
           'Simplebeacon CLI (local scanning)',
-          'Unlimited local repository checking',
-          'Terminal diff patching (--fix with Ollama)',
-          'JSON + text reports',
-          'CI gate (--gate --fail-on high)',
-          'GitHub Actions + pre-commit hooks',
+          'Up to 100 local scans per month',
+          'Up to 50 files per scan',
+          '24 IDE rules (real-time)',
+          'Text output only',
           'Privacy-blind --anonymize mode'
         ]
       },
-      executive: {
-        name: 'Executive Clearance',
-        priceLabel: '$499 one-time',
-        model: 'Per Report / Token',
-        audience: 'Bootstrapped Startups',
-        checkoutProduct: 'executive_clearance',
-        configured: Boolean(resolvePriceId('executive_clearance')),
+      startup: {
+        name: 'Startup Shield',
+        priceLabel: '$49 / month',
+        model: 'Subscription (Metered)',
+        audience: 'Small Teams (1-10 devs)',
+        checkoutProduct: 'startup_shield',
+        configured: Boolean(startupMonthlyId),
         features: [
-          'Official EU AI Act audit PDF generation',
-          'License token delivered after payment',
-          'Hand to investors, boards, or auditors',
-          'EU AI Act structured report template',
-          'Deterministic rule catalog access',
-          'Privacy-blind scan compatibility'
+          'Up to 2,500 pipeline scans per month',
+          'Unlimited files per scan',
+          '38 IDE rules + 38 CLI modules',
+          'Custom scanner toggles (config-as-code)',
+          'GitHub Action CI gate',
+          'JSON + Markdown exports with actionable summary',
+          'Priority email support'
         ]
       },
-      continuousShield: {
-        name: 'Continuous Shield',
-        priceLabel: '$1,499 / month',
-        model: 'Subscription',
-        audience: 'Growing Engineering Teams',
-        checkoutProduct: 'continuous_shield',
-        configured: Boolean(continuousShieldId),
+      growth: {
+        name: 'Growth Shield',
+        priceLabel: '$149 / month',
+        model: 'Subscription (Metered)',
+        audience: 'Scaling Engineering Teams',
+        checkoutProduct: 'growth_shield',
+        configured: Boolean(growthMonthlyId),
         features: [
-          'Automated GitHub Action blocking on every PR',
-          'Up to 3 compliance certifications per month',
-          'Team-wide scan history dashboard',
-          'Custom organizational rule schemas',
-          'Priority support',
-          'Everything in Executive Clearance'
+          'Up to 10,000 pipeline scans per month',
+          'Everything in Startup',
+          'URL allowlist for internal APIs',
+          'EU AI Act compliance rules',
+          'Advanced JSON export with actionable summary',
+          'Priority support + Slack channel'
         ]
       },
-      runtimeShield: {
-        name: 'Runtime Shield',
-        priceLabel: '$2,999 / month',
-        model: 'Subscription',
-        audience: 'AI-First Engineering Teams',
-        checkoutProduct: 'runtime_shield',
-        configured: Boolean(resolvePriceId('runtime_shield')),
+      enterprise: {
+        name: 'Enterprise Compliance Suite',
+        priceLabel: 'Custom',
+        model: 'Annual Contract',
+        audience: 'Large Corporations',
+        checkoutProduct: 'compliance_suite',
+        configured: Boolean(resolvePriceId('price_enterprise_annual')),
         features: [
-          'Everything in Continuous Shield',
-          'Runtime sentinel library + middleware',
-          'Per-request, per-minute, and per-hour AI API spend caps',
-          'Real-time spend dashboard with Slack/PagerDuty alerts',
-          'Custom budget-policy rule authoring',
-          'Dedicated cost-governance onboarding'
+          'Unlimited scans',
+          'Everything in Growth',
+          '60+ analyzer engines (full suite)',
+          'Team management (5+ seats)',
+          'SSO / SAML authentication',
+          'Custom rule development',
+          'Self-hosted / air-gapped option',
+          'Dedicated support + SLA'
         ]
-      },
+      }
     },
     // Legacy fields consumed by older clients
     priceLabel: TEAMS_MONTHLY_LABEL,
@@ -379,6 +493,11 @@ function buildPlanPayload() {
   };
 }
 
+/**
+ * Setup simplebeacon billing webhook.
+ * @param {any} app
+ * @returns {any}
+ */
 function setupSimplebeaconBillingWebhook(app) {
   app.post(
     '/api/simplebeacon/billing/webhook',
@@ -430,33 +549,42 @@ function setupSimplebeaconBillingWebhook(app) {
             if (!email) break;
 
             const isPaymentMode = session.mode === 'payment';
-            const isOneTimeProduct = ['executive_clearance', 'instant_report', 'eu_ai_act_sprint'].includes(product);
+            const isOneTimeProduct = ['executive_clearance', 'instant_report', 'eu_ai_act_sprint', 'custom_plan'].includes(product);
             if (isOneTimeProduct || isPaymentMode) {
               const tierMap = {
                 instant_report: 'instant',
                 executive_clearance: 'executive',
-                eu_ai_act_sprint: 'euai'
+                eu_ai_act_sprint: 'euai',
+                custom_plan: 'custom'
               };
               const licenseTier = tierMap[product] || 'executive';
               const featuresMap = {
                 instant_report: ['instant-report'],
                 executive_clearance: ['pdf-generation', 'certificate'],
-                eu_ai_act_sprint: ['eu-ai-act', 'pdf-generation', 'certificate']
+                eu_ai_act_sprint: ['eu-ai-act', 'pdf-generation', 'certificate'],
+                custom_plan: ['custom-plan', 'pdf-generation', 'certificate']
               };
-              // Tier-based expiry: instant=7 days, executive=90 days, euai=30 days
+              // Tier-based expiry: instant=7 days, executive=90 days, euai=30 days, custom=30 days
               const expiryMap = {
                 instant_report: 7 * 24 * 60,
                 executive_clearance: 90 * 24 * 60,
-                eu_ai_act_sprint: 30 * 24 * 60
+                eu_ai_act_sprint: 30 * 24 * 60,
+                custom_plan: 30 * 24 * 60
               };
               const expiresInMinutes = expiryMap[product] || 60;
+
+              // For custom plans, derive features from metadata.scans
+              let customFeatures = featuresMap[product] || ['pdf-generation'];
+              if (product === 'custom_plan' && session.metadata?.scans) {
+                customFeatures = session.metadata.scans.split(',').map(s => s.trim()).filter(Boolean);
+              }
 
               const licenseToken = generateLicenseToken(
                 {
                   email,
                   tier: licenseTier,
                   product,
-                  features: featuresMap[product] || ['pdf-generation'],
+                  features: customFeatures,
                   projectName: session.metadata?.certProjectName || session.metadata?.projectName || 'default-project',
                   clientName: session.metadata?.certClientName || email
                 },
@@ -474,6 +602,14 @@ function setupSimplebeaconBillingWebhook(app) {
                 certOrgId: session.metadata?.certOrgId || 'default'
               });
               await syncSubscriptionToDb(db, record);
+
+              // Register license token so /api/auth/token-status recognizes it as known
+              insertLicenseToken({
+                token: licenseToken,
+                email: email.toLowerCase(),
+                tier: licenseTier,
+                registered_at: new Date().toISOString()
+              });
 
               // Email upload instructions immediately after payment (rich HTML template)
               const certUploadUrl = `${getAppBaseUrl()}/coming-soon/certificate-upload.html`;
@@ -533,6 +669,14 @@ function setupSimplebeaconBillingWebhook(app) {
                 complianceCertLimit: isContinuousShield ? 3 : (isRuntimeShield ? 5 : 0)
               });
               await syncSubscriptionToDb(db, record);
+
+              // Register license token so /api/auth/token-status recognizes it as known
+              insertLicenseToken({
+                token: licenseToken,
+                email: email.toLowerCase(),
+                tier: subTier,
+                registered_at: new Date().toISOString()
+              });
 
               // Email token to subscription customer
               const certUploadUrl = `${getAppBaseUrl()}/coming-soon/certificate-upload.html`;
@@ -595,6 +739,11 @@ function setupSimplebeaconBillingWebhook(app) {
   );
 }
 
+/**
+ * Setup simplebeacon billing routes.
+ * @param {any} app
+ * @returns {any}
+ */
 function setupSimplebeaconBillingRoutes(app) {
   app.get('/api/simplebeacon/billing/plan', (_req, res) => {
     res.json(buildPlanPayload());
@@ -607,6 +756,51 @@ function setupSimplebeaconBillingRoutes(app) {
     }
     const record = await getSubscriptionByEmail(email);
     res.json(publicSubscriptionStatus(record));
+  });
+
+  // --- Scan Quota Endpoints (Phase 3) ---
+
+  app.post('/api/quota/check', async (req, res) => {
+    const apiToken = String(req.body?.apiToken || '').trim();
+    const scanType = String(req.body?.scanType || 'local').trim();
+    if (!apiToken) {
+      return res.status(400).json({ error: 'apiToken is required' });
+    }
+    const record = await getSubscriptionByApiToken(apiToken);
+    if (!record) {
+      return res.status(401).json({ error: 'invalid_token', allowed: false });
+    }
+    const status = publicSubscriptionStatus(record);
+    const allowed = status.scansRemaining === 'unlimited' || status.scansRemaining > 0;
+    res.json({
+      allowed,
+      scansRemaining: status.scansRemaining,
+      tier: status.tier,
+      scanType,
+      periodStart: status.periodStart
+    });
+  });
+
+  app.post('/api/quota/consume', async (req, res) => {
+    const apiToken = String(req.body?.apiToken || '').trim();
+    const scanType = String(req.body?.scanType || 'local').trim();
+    const scanId = String(req.body?.scanId || '').trim();
+    if (!apiToken) {
+      return res.status(400).json({ error: 'apiToken is required' });
+    }
+    const record = await getSubscriptionByApiToken(apiToken);
+    if (!record) {
+      return res.status(401).json({ error: 'invalid_token', allowed: false });
+    }
+    const result = await consumeScan(record.email, scanType);
+    res.json({
+      success: result.allowed,
+      scansRemaining: result.remaining,
+      tier: record.tier,
+      scanType,
+      scanId: scanId || undefined,
+      periodStart: result.periodStart
+    });
   });
 
   app.post('/api/simplebeacon/billing/checkout', async (req, res) => {
@@ -927,6 +1121,11 @@ function setupSimplebeaconBillingRoutes(app) {
       || 'operator';
     // Extract embedded analysis results from upload-directory reportJson
     const embeddedResults = reportJson._completeResults || {};
+/**
+ * Simplebeacon report.
+ * @param {any} (
+ * @returns {any}
+ */
     const simplebeaconReport = (() => {
       if (!reportJson.gate && !reportJson.issues) return null;
       const base = { ...reportJson };
@@ -1195,6 +1394,8 @@ function setupSimplebeaconBillingRoutes(app) {
     try {
       const { licenseToken } = req.params;
       const { readStore } = require('../../server/lib/simplebeacon-subscription-store.cjs');
+const { generateLicenseToken, verifyLicenseToken } = require('../../server/lib/simplebeacon-proxy.cjs');
+
       const store = await readStore();
       const record = Object.values(store.subscriptions || {}).find(
         (s) => s.licenseToken === licenseToken
@@ -1251,7 +1452,7 @@ function setupSimplebeaconBillingRoutes(app) {
 
 ${record.licenseToken}
 
-Your instant report was sent to this email. If you did not receive it, check your spam folder or contact trevor_punt@live.com.`,
+Your instant report was sent to this email. If you did not receive it, check your spam folder or contact support.`,
         executive_clearance: `Here is your license token again:
 
 ${record.licenseToken}
@@ -1284,6 +1485,82 @@ Upload your scan at: ${certUploadUrl}
       res.status(500).json({ success: false, error: 'Failed to resend token' });
     }
   });
+
+  // ── Scan Quota Management ──
+
+  /**
+   * POST /api/quota/check
+   * Check if a user has scan quota remaining.
+   * Body: { apiToken, scanType: 'local' | 'pipeline' }
+   */
+  app.post('/api/quota/check', async (req, res) => {
+    try {
+      const { consumeScan, getSubscriptionByApiToken } = require('../../server/lib/simplebeacon-subscription-store.cjs');
+      const token = req.body?.apiToken || req.headers['x-api-token'] || '';
+      const scanType = req.body?.scanType || 'local';
+
+      if (!token) {
+        return res.status(400).json({ allowed: false, reason: 'missing_token' });
+      }
+
+      const record = await getSubscriptionByApiToken(token);
+      if (!record) {
+        return res.status(404).json({ allowed: false, reason: 'unknown_token' });
+      }
+
+      const result = await consumeScan(record.email, scanType);
+      // Roll back the consumption since this is just a check
+      if (result.allowed) {
+        const { readStore, writeStore } = require('../../server/lib/simplebeacon-subscription-store.cjs');
+        const store = await readStore();
+        if (store.subscriptions[record.email]) {
+          store.subscriptions[record.email].scansThisPeriod = Math.max(0, store.subscriptions[record.email].scansThisPeriod - 1);
+          await writeStore(store);
+        }
+      }
+
+      res.json({ allowed: result.allowed, scansRemaining: result.remaining, tier: record.tier || 'developer', scanType });
+    } catch (err) {
+      console.error('[Simplebeacon billing] Quota check failed:', err.message);
+      res.status(500).json({ allowed: false, error: 'quota_check_failed', message: err.message });
+    }
+  });
+
+  /**
+   * POST /api/quota/consume
+   * Record a scan usage against the user's quota.
+   * Body: { apiToken, scanType: 'local' | 'pipeline', scanId }
+   */
+  app.post('/api/quota/consume', async (req, res) => {
+    try {
+      const { consumeScan, getSubscriptionByApiToken } = require('../../server/lib/simplebeacon-subscription-store.cjs');
+      const token = req.body?.apiToken || req.headers['x-api-token'] || '';
+      const scanType = req.body?.scanType || 'local';
+      const scanId = req.body?.scanId || '';
+
+      if (!token) {
+        return res.status(400).json({ allowed: false, reason: 'missing_token' });
+      }
+
+      const record = await getSubscriptionByApiToken(token);
+      if (!record) {
+        return res.status(404).json({ allowed: false, reason: 'unknown_token' });
+      }
+
+      const result = await consumeScan(record.email, scanType);
+      res.json({
+        allowed: result.allowed,
+        scansRemaining: result.remaining,
+        scansUsed: result.limit === Infinity ? result.limit : result.limit - result.remaining,
+        tier: record.tier || 'developer',
+        scanType,
+        scanId
+      });
+    } catch (err) {
+      console.error('[Simplebeacon billing] Quota consume failed:', err.message);
+      res.status(500).json({ allowed: false, error: 'quota_consume_failed', message: err.message });
+    }
+  });
 }
 
 /**
@@ -1291,8 +1568,7 @@ Upload your scan at: ${certUploadUrl}
  * Checks token signature, expiry, and attaches project context to req.
  */
 function validateProjectToken(req, res, next) {
-  const { verifyLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token');
-  const authHeader = String(req.headers.authorization || '');
+    const authHeader = String(req.headers.authorization || '');
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : (req.body?.licenseToken || req.query?.licenseToken || '');
 
   if (!token) {

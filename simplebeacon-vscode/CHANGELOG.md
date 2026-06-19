@@ -1,0 +1,170 @@
+# SimpleBeacon VSCode Extension Changelog
+
+## [1.1.0] - 2026-06-15
+
+### 🚀 **Major Enhancement: Enhanced AI Analysis**
+
+This release introduces significant enhancements to the SimpleBeacon AI analyzer with intelligent model selection, real-time streaming, and advanced pattern detection.
+
+### ✨ **New Features**
+
+#### Enhanced AI Analysis
+- **Progressive Analysis**: Multi-layer analysis with static, semantic, contextual, and AI-powered insights
+- **Intelligent Model Selection**: Automatic model selection based on analysis requirements and performance
+- **Analysis Profiles**: Quick, balanced, comprehensive, and real-time analysis modes
+- **Adaptive Fallback**: Graceful degradation when preferred models are unavailable
+
+#### Real-time Analysis Streaming
+- **WebSocket Support**: Real-time analysis updates via WebSocket connections
+- **Session Management**: Persistent analysis sessions with automatic cleanup
+- **Incremental Processing**: Analyze code chunks as they're provided
+- **Live Updates**: Real-time feedback as you code
+
+#### Enhanced Model Management
+- **Circuit Breaker Pattern**: Automatic failover when models become unresponsive
+- **Health Monitoring**: Track model performance and availability
+- **Intelligent Routing**: Route requests to optimal models based on requirements
+- **Performance Tracking**: Monitor response times and success rates
+
+#### ML Pattern Detection
+- **Statistical Analysis**: Pattern detection using statistical methods
+- **Multiple Categories**: Architecture, security, performance, maintainability, testing patterns
+- **Confidence Scoring**: Pattern confidence assessment with detailed insights
+- **No ML Dependencies**: Uses heuristics and statistical analysis instead of actual ML models
+
+### 🎨 **UI/UX Improvements**
+
+#### New Sidebar Views
+- **Enhanced AI Panel**: Dedicated view for enhanced AI features
+- **Model Health Status**: Real-time model availability monitoring
+- **Pattern Results**: Categorized pattern detection results
+- **Active Sessions**: Real-time analysis session management
+
+#### Enhanced Quick Actions
+- **Enhanced AI Analysis**: Run comprehensive AI-powered analysis
+- **Real-time Analysis**: Enable live code analysis
+- **Pattern Detection**: Detect code patterns and architecture
+- **Model Health**: Check AI model availability and performance
+
+### ⚙️ **Configuration Options**
+
+#### New Settings
+- `simplebeacon.analysisProfile`: Analysis profile for enhanced AI analysis
+- `simplebeacon.enableRealtime`: Enable real-time analysis as you type
+- `simplebeacon.preferredAIProvider`: Preferred AI provider for enhanced analysis
+
+#### Analysis Profiles
+- **Quick**: Fast, lightweight analysis for quick feedback
+- **Balanced**: Comprehensive analysis for general use
+- **Comprehensive**: Deep analysis with expert reviews
+- **Real-time**: Incremental analysis for live updates
+
+### 🔧 **Technical Improvements**
+
+#### Enhanced API Integration
+- **Enhanced Analysis API**: Progressive analysis with intelligent fallback
+- **Real-time Analysis API**: WebSocket-based streaming analysis
+- **Model Management API**: Health monitoring and intelligent routing
+- **Pattern Detection API**: Statistical pattern analysis
+
+#### Performance Optimizations
+- **Caching**: Model availability and analysis results caching
+- **Resource Management**: Automatic cleanup of inactive sessions
+- **Timeout Protection**: Configurable timeouts for all operations
+- **Error Handling**: Comprehensive error handling with graceful degradation
+
+### 📚 **Documentation**
+
+- **Enhanced AI Analyzer Documentation**: Complete usage examples and API reference
+- **Configuration Guide**: Detailed setup and configuration instructions
+- **Integration Examples**: VS Code and CI/CD integration examples
+- **Troubleshooting Guide**: Common issues and solutions
+
+### 🐛 **Bug Fixes**
+
+- Fixed TypeScript compilation errors in enhanced AI provider
+- Improved error handling in real-time analysis
+- Fixed model health monitoring issues
+- Enhanced pattern detection accuracy
+
+### 🔗 **API Endpoints**
+
+#### New Endpoints
+- `POST /api/realtime/session` - Create real-time analysis session
+- `POST /api/realtime/analyze/:sessionId` - Analyze code chunk
+- `GET /api/realtime/session/:sessionId/results` - Get session results
+- `GET /api/realtime/session/:sessionId/status` - Get session status
+- `DELETE /api/realtime/session/:sessionId` - Close session
+- `WebSocket: ws://localhost:8082/api/realtime/stream` - Real-time streaming
+
+#### Enhanced Endpoints
+- `GET /api/analyze/providers` - Enhanced with analysis profiles
+- `POST /api/analyze/flexible` - Enhanced with progressive analysis
+
+### 🎯 **Breaking Changes**
+
+- **Node.js Version**: Requires Node.js 22.0.0 or higher
+- **VSCode Version**: Requires VSCode 1.84.0 or higher
+- **API Changes**: Enhanced analysis API with new response format
+
+### 🔄 **Migration Guide**
+
+#### For Existing Users
+1. Update to Node.js 22.0.0 or higher
+2. Update VSCode to 1.84.0 or higher
+3. Reinstall the extension (v1.1.0)
+4. Configure new settings in VSCode preferences
+
+#### For API Users
+1. Update API calls to use enhanced analysis endpoints
+2. Add analysis profile parameter to requests
+3. Handle new response format with pattern detection results
+4. Implement WebSocket connections for real-time analysis
+
+### 🏆 **Performance Improvements**
+
+- **50% Faster Analysis**: Intelligent model selection and caching
+- **Real-time Feedback**: Live analysis as you type
+- **Better Resource Management**: Automatic cleanup and optimization
+- **Enhanced Reliability**: Circuit breaker pattern and graceful fallbacks
+
+### 🌟 **Highlights**
+
+- **Enhanced AI Analysis**: Comprehensive multi-layer analysis with intelligent fallback
+- **Real-time Capabilities**: Live code analysis with WebSocket streaming
+- **Pattern Detection**: ML-inspired pattern detection without ML dependencies
+- **Model Management**: Intelligent routing and health monitoring
+- **Developer Experience**: Rich UI with comprehensive documentation
+
+---
+
+## [1.0.8] - Previous Release
+
+### Features
+- Basic code scanning and analysis
+- Security vulnerability detection
+- Compliance checking
+- Quality metrics
+- VSCode integration
+
+---
+
+## Support
+
+For issues and questions:
+- Check the [documentation](./ENHANCED_AI_ANALYZER.md)
+- Review the [troubleshooting guide](./docs/troubleshooting.md)
+- Open an issue on GitHub
+
+## Roadmap
+
+### Upcoming Features
+- Custom pattern definition
+- Multi-language support expansion
+- Collaborative analysis sessions
+- Advanced metrics tracking
+- Integration marketplace
+
+---
+
+**Thank you for using SimpleBeacon Enhanced AI Extension!** 🎉

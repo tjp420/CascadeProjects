@@ -5,6 +5,11 @@
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * List github cache clones.
+ * @param {any} platformRoot
+ * @returns {any}
+ */
 function listGithubCacheClones(platformRoot) {
     const cacheDir = path.join(platformRoot, 'github-cache');
     if (!fs.existsSync(cacheDir)) return [];
@@ -23,11 +28,22 @@ function listGithubCacheClones(platformRoot) {
     return entries.sort((a, b) => a.label.localeCompare(b.label));
 }
 
+/**
+ * List analyze test sources.
+ * @param {string} baseDir
+ * @param {Array} allowedRoots
+ * @returns {any}
+ */
 function listAnalyzeTestSources(baseDir, allowedRoots = []) {
     const platformRoot = path.resolve(baseDir);
     const sources = [];
     const seen = new Set();
 
+/**
+ * Push source.
+ * @param {any} source
+ * @returns {any}
+ */
     function pushSource(source) {
         const resolved = path.resolve(String(source.value || ''));
         const key = resolved.replace(/\\/g, '/').toLowerCase();

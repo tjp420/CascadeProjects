@@ -2,6 +2,13 @@
  * Deliverable tier manifests for Analyze ZIP export bundles.
  */
 
+/**
+ * Artifact.
+ * @param {string} id
+ * @param {string} filename
+ * @param {any} label
+ * @returns {any}
+ */
 function artifact(id, filename, label) {
   return { id, filename, label };
 }
@@ -51,7 +58,7 @@ const DELIVERABLE_TIERS = {
     productSku: 'community',
     requiresCompleteScan: false,
     minScanKind: ['complete', 'simplebeacon-report', 'unknown'],
-    artifacts: [A.publicSummary, A.simplebeaconGate, ...ENGINE_ARTIFACTS]
+    artifacts: [A.publicSummary, A.simplebeaconGate, A.completeScanBundle, ...ENGINE_ARTIFACTS]
   },
   clearance499: {
     id: 'clearance499',
@@ -148,6 +155,11 @@ const DELIVERABLE_TIERS = {
   }
 };
 
+/**
+ * Get tier manifest.
+ * @param {string} tierId
+ * @returns {any}
+ */
 function getTierManifest(tierId) {
   const tier = DELIVERABLE_TIERS[tierId];
   if (!tier) return null;
@@ -159,6 +171,11 @@ function getTierManifest(tierId) {
   };
 }
 
+/**
+ * Resolve deliverable tier.
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveDeliverableTier(options = {}) {
   const requested = String(options.requestedSku || options.deliverableSku || '').trim();
   const requestedLower = requested.toLowerCase();

@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimpleBeacon Admin Dashboard</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #161922;
+            --border: #2a2e3a;
+            --text-main: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --primary-subtle: rgba(99,102,241,0.12);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        header h1 { font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
+        .auth-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .auth-bar input {
+            padding: 8px 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            width: 320px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 150ms;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            color: #fff;
+        }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .btn-danger {
+            background: rgba(239,68,68,0.15);
+            color: var(--error);
+            border: 1px solid rgba(239,68,68,0.3);
+        }
+        .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; }
+        .stat-value { font-size: 1.6rem; font-weight: 700; }
+        .stat-card.tokens .stat-value { color: var(--accent); }
+        .stat-card.active .stat-value { color: var(--success); }
+        .stat-card.expired .stat-value { color: var(--warning); }
+        .stat-card.revoked .stat-value { color: var(--error); }
+
+        .section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .section-title { font-size: 1rem; font-weight: 600; }
+        .section-count {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: var(--bg);
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+        th {
+            text-align: left;
+            padding: 10px 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        tr:hover td { background: rgba(99,102,241,0.04); }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .badge-active { background: rgba(16,185,129,0.15); color: var(--success); }
+        .badge-expired { background: rgba(245,158,11,0.15); color: var(--warning); }
+        .badge-revoked { background: rgba(239,68,68,0.15); color: var(--error); }
+        .badge-community { background: var(--primary-subtle); color: var(--accent); }
+        .badge-admin { background: rgba(217,119,6,0.15); color: var(--warning); }
+        .badge-critical { background: rgba(239,68,68,0.2); color: var(--error); }
+        .badge-high { background: rgba(245,158,11,0.15); color: var(--warning); }
+        .badge-medium { background: rgba(99,102,241,0.15); color: var(--accent); }
+
+        .violation-row { border-left: 3px solid transparent; }
+        .violation-row.critical { border-left-color: var(--error); }
+        .violation-row.high { border-left-color: var(--warning); }
+        .violation-row.medium { border-left-color: var(--accent); }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        .error-bar {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: var(--error);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15,17,23,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .login-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            width: 420px;
+            max-width: 90%;
+        }
+        .login-box h2 { margin-bottom: 8px; font-size: 1.2rem; }
+        .login-box p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
+        .login-box input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+        .login-box button { width: 100%; padding: 12px; }
+        .hidden { display: none !important; }
+
+        .truncate { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    </style>
+</head>
+<body>
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-box">
+            <h2>🛡️ Admin Login</h2>
+            <p>Enter your admin token to access the dashboard.</p>
+            <input id="adminTokenInput" type="password" placeholder="Paste admin token…" />
+            <button class="btn btn-primary" id="loginBtn">Authenticate</button>
+            <p id="loginError" style="color:var(--error);font-size:0.8rem;margin-top:12px;display:none;"></p>
+        </div>
+    </div>
+
+    <div id="dashboard" class="hidden">
+        <div class="container">
+            <header>
+                <h1>🛡️ SimpleBeacon Admin Dashboard</h1>
+                <div class="auth-bar">
+                    <span id="adminEmail" style="font-size:0.8rem;color:var(--text-muted);">—</span>
+                    <button class="btn btn-secondary btn-sm" id="refreshBtn">🔄 Refresh</button>
+                    <button class="btn btn-danger btn-sm" id="logoutBtn">Logout</button>
+                </div>
+            </header>
+
+            <div id="errorBar" class="error-bar"></div>
+
+            <!-- Stats -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card tokens">
+                    <div class="stat-label">Total Tokens</div>
+                    <div class="stat-value" id="statTotalTokens">—</div>
+                </div>
+                <div class="stat-card active">
+                    <div class="stat-label">Active</div>
+                    <div class="stat-value" id="statActiveTokens">—</div>
+                </div>
+                <div class="stat-card expired">
+                    <div class="stat-label">Expired</div>
+                    <div class="stat-value" id="statExpiredTokens">—</div>
+                </div>
+                <div class="stat-card revoked">
+                    <div class="stat-label">Revoked</div>
+                    <div class="stat-value" id="statRevokedTokens">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Customers</div>
+                    <div class="stat-value" id="statCustomers">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Subscriptions</div>
+                    <div class="stat-value" id="statSubscriptions">—</div>
+                </div>
+                <div class="stat-card revoked">
+                    <div class="stat-label">Errors (24h)</div>
+                    <div class="stat-value" id="statErrors">—</div>
+                </div>
+            </div>
+
+            <!-- Violations -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">⚠️ Violations</div>
+                    <div class="section-count" id="violationsCount">0</div>
+                </div>
+                <div id="violationsTableWrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Severity</th>
+                                <th>Type</th>
+                                <th>Token / IP</th>
+                                <th>Details</th>
+                                <th>Detected</th>
+                            </tr>
+                        </thead>
+                        <tbody id="violationsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tokens -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">🔑 All Tokens</div>
+                    <div class="section-count" id="tokensCount">0</div>
+                </div>
+                <div id="tokensTableWrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Hash</th>
+                                <th>Tier</th>
+                                <th>Status</th>
+                                <th>Email</th>
+                                <th>Created</th>
+                                <th>Expires</th>
+                                <th>Violations</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tokensBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const API_BASE = window.location.origin;
+            let adminToken = localStorage.getItem('sb_admin_token') || '';
+
+            const loginOverlay = document.getElementById('loginOverlay');
+            const dashboard = document.getElementById('dashboard');
+            const adminTokenInput = document.getElementById('adminTokenInput');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+            const errorBar = document.getElementById('errorBar');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            function showError(msg) {
+                errorBar.textContent = msg;
+                errorBar.style.display = 'block';
+                setTimeout(() => { errorBar.style.display = 'none'; }, 5000);
+            }
+
+            function formatDate(iso) {
+                if (!iso) return '—';
+                const d = new Date(iso);
+                return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+            }
+
+            async function verifyAdmin() {
+                if (!adminToken) return false;
+                try {
+                    const res = await fetch(API_BASE + '/api/admin/verify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: adminToken })
+                    });
+                    const data = await res.json();
+                    return data.valid;
+                } catch { return false; }
+            }
+
+            function showDashboard() {
+                loginOverlay.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+            }
+
+            function showLogin() {
+                loginOverlay.classList.remove('hidden');
+                dashboard.classList.add('hidden');
+            }
+
+            async function loadDashboard() {
+                if (!adminToken) { showLogin(); return; }
+                const isValid = await verifyAdmin();
+                if (!isValid) { showLogin(); return; }
+                showDashboard();
+
+                try {
+                    // Stats
+                    const statsRes = await fetch(API_BASE + '/api/admin/stats', {
+                        headers: { 'Authorization': 'Bearer ' + adminToken }
+                    });
+                    const statsData = await statsRes.json();
+                    if (statsData.success) {
+                        const s = statsData.stats;
+                        document.getElementById('statTotalTokens').textContent = s.totalTokens;
+                        document.getElementById('statActiveTokens').textContent = s.activeTokens;
+                        document.getElementById('statExpiredTokens').textContent = s.expiredTokens;
+                        document.getElementById('statRevokedTokens').textContent = s.revokedTokens;
+                        document.getElementById('statCustomers').textContent = s.totalCustomers;
+                        document.getElementById('statSubscriptions').textContent = s.activeSubscriptions;
+                        document.getElementById('statErrors').textContent = s.errorCount24h;
+                    }
+
+                    // Violations
+                    const vioRes = await fetch(API_BASE + '/api/admin/violations', {
+                        headers: { 'Authorization': 'Bearer ' + adminToken }
+                    });
+                    const vioData = await vioRes.json();
+                    const vioBody = document.getElementById('violationsBody');
+                    document.getElementById('violationsCount').textContent = vioData.total || 0;
+                    if (vioData.success && vioData.violations.length) {
+                        vioBody.innerHTML = vioData.violations.map(v => {
+                            const sevClass = v.severity;
+                            const badgeClass = 'badge-' + v.severity;
+                            const target = v.tokenHash ? '<span class="truncate">' + v.tokenHash + '</span>' : (v.ip || '—');
+                            return '<tr class="violation-row ' + sevClass + '">' +
+                                '<td><span class="badge ' + badgeClass + '">' + (v.severity || '—').toUpperCase() + '</span></td>' +
+                                '<td>' + (v.type || '—').replace(/_/g, ' ') + '</td>' +
+                                '<td>' + target + '</td>' +
+                                '<td>' + (v.message || '—') + '</td>' +
+                                '<td>' + formatDate(v.detectedAt) + '</td>' +
+                                '</tr>';
+                        }).join('');
+                    } else {
+                        vioBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No violations detected 🎉</div></td></tr>';
+                    }
+
+                    // Tokens
+                    const tokRes = await fetch(API_BASE + '/api/admin/tokens', {
+                        headers: { 'Authorization': 'Bearer ' + adminToken }
+                    });
+                    const tokData = await tokRes.json();
+                    const tokBody = document.getElementById('tokensBody');
+                    document.getElementById('tokensCount').textContent = tokData.total || 0;
+                    if (tokData.success && tokData.tokens.length) {
+                        tokBody.innerHTML = tokData.tokens.map(t => {
+                            const statusBadge = t.status === 'active' ? 'badge-active' : (t.status === 'expired' ? 'badge-expired' : 'badge-revoked');
+                            const tierBadge = t.tier === 'admin' ? 'badge-admin' : 'badge-community';
+                            const vioCount = t.violations ? t.violations.length : 0;
+                            const vioDisplay = vioCount > 0 ? '<span style="color:var(--error);font-weight:600;">' + vioCount + '</span>' : '0';
+                            return '<tr>' +
+                                '<td>' + (t.id || '—') + '</td>' +
+                                '<td class="truncate" title="' + (t.tokenHash || '') + '">' + (t.tokenHash || '—') + '</td>' +
+                                '<td><span class="badge ' + tierBadge + '">' + (t.tier || 'unknown').toUpperCase() + '</span></td>' +
+                                '<td><span class="badge ' + statusBadge + '">' + (t.status || 'unknown').toUpperCase() + '</span></td>' +
+                                '<td>' + (t.email || '—') + '</td>' +
+                                '<td>' + formatDate(t.createdAt) + '</td>' +
+                                '<td>' + formatDate(t.expiresAt) + '</td>' +
+                                '<td>' + vioDisplay + '</td>' +
+                                '<td>' + (t.status !== 'revoked' ? '<button class="btn btn-danger btn-sm" onclick="revokeToken(\'' + (t.tokenHash || '') + '\')">Revoke</button>' : '—') + '</td>' +
+                                '</tr>';
+                        }).join('');
+                    } else {
+                        tokBody.innerHTML = '<tr><td colspan="9"><div class="empty-state">No tokens found</div></td></tr>';
+                    }
+                } catch (err) {
+                    showError('Failed to load dashboard: ' + (err.message || ''));
+                }
+            }
+
+            window.revokeToken = async function(tokenHash) {
+                if (!tokenHash) return;
+                if (!confirm('Revoke this token? Users will lose access.')) return;
+                try {
+                    const res = await fetch(API_BASE + '/api/admin/token/revoke', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
+                        body: JSON.stringify({ tokenHash })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert('Token revoked');
+                        loadDashboard();
+                    } else {
+                        showError(data.error || 'Revoke failed');
+                    }
+                } catch (err) {
+                    showError('Revoke failed: ' + err.message);
+                }
+            };
+
+            loginBtn.addEventListener('click', async () => {
+                const token = adminTokenInput.value.trim();
+                if (!token) { loginError.textContent = 'Token required'; loginError.style.display = 'block'; return; }
+                adminToken = token;
+                const isValid = await verifyAdmin();
+                if (isValid) {
+                    localStorage.setItem('sb_admin_token', token);
+                    loginError.style.display = 'none';
+                    loadDashboard();
+                } else {
+                    loginError.textContent = 'Invalid admin token';
+                    loginError.style.display = 'block';
+                }
+            });
+
+            refreshBtn.addEventListener('click', loadDashboard);
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('sb_admin_token');
+                adminToken = '';
+                showLogin();
+            });
+
+            // Auto-load if token exists
+            if (adminToken) {
+                loadDashboard();
+            }
+        })();
+    </script>
+</body>
+</html>

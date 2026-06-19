@@ -284,7 +284,8 @@ function formatAncillaryPatternHitsNote(sourceReport, blockingCountOverride) {
     const gateClause = blocking > 0
         ? `gate blockingCount ${Number(blocking).toLocaleString()} on configured severities`
         : 'gate blockingCount 0 on configured severities';
-    return `${total} ancillary pattern hit(s) in full-tree scan (${parts.join(', ')}) — not fiction-KPI digest rows; ${gateClause}.`;
+    const base = `${total} ancillary pattern hit(s) in full-tree scan`;
+    return `${base} (${parts.join(', ')}) — not fiction-KPI digest rows; ${gateClause}.`;
 }
 
 function resolveFictionDigestGateContext(sourceReport, digest, options = {}) {

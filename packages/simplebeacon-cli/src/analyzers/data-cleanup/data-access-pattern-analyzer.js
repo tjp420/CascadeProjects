@@ -12,6 +12,10 @@ const SKIP_PATH_PREFIXES = [
     'packages/simplebeacon-cli/src/analyzers/',
     'packages/simplebeacon-cli/src/reporters/',
     'packages/simplebeacon-cli/src/proxy/',
+    'packages/simplebeacon-cli/src/api/',
+    'packages/simplebeacon-cli/src/lib/',
+    'packages/simplebeacon-cli/src/mcp/',
+    'packages/simplebeacon-cli/src/rules/',
     'tools/'
 ];
 
@@ -20,16 +24,25 @@ const SKIP_PATH_HINTS = [
     '.test.', '.spec.',
     'data-access-pattern-analyzer.js',
     'json-file-cache.js',
+    'vector-cache.js',
     'final_cleanup.cjs',
     'ultimate_cleanup.cjs'
 ];
 
 const BATCH_SCANNER_PATHS = [
     'server/lib/codebase-analyzer.js',
+    'server/lib/codebase-analyzer.cjs',
     'server/lib/code-roadmap-generator.js',
+    'server/lib/code-roadmap-generator.cjs',
     'server/lib/code-roadmap-phase2.js',
+    'server/lib/code-roadmap-phase2.cjs',
     'server/lib/code-understanding/',
     'server/lib/file-merger-reduction-scanner.js',
+    'server/lib/file-merger-reduction-scanner.cjs',
+    'server/lib/json-file-cache.js',
+    'server/lib/json-file-cache.cjs',
+    'server/lib/token-db.js',
+    'server/lib/token-db.cjs',
     'packages/simplebeacon-cli/src/compliance-checklist.js',
     'packages/simplebeacon-cli/src/scan.js',
     'packages/simplebeacon-cli/src/fix-dry-run.js',
@@ -51,6 +64,13 @@ function isLazyCachedSyncRead(content, matchIndex) {
     const snippet = String(content || '').slice(windowStart, matchIndex + 120);
     return /\bif\s*\(\s*!cached[A-Za-z0-9_]*\s*\)/.test(snippet)
         || /\blet\s+cached[A-Za-z0-9_]*\s*=\s*null/.test(snippet);
+}
+
+function isAsyncReadPattern(content, matchIndex) {
+    const windowStart = Math.max(0, matchIndex - 200);
+    const snippet = String(content || '').slice(windowStart, matchIndex);
+    return /\bawait\s+(?:fs\.promises\.)?readFile\b/.test(snippet)
+        || /\bawait\s+readFile\b/.test(snippet);
 }
 
 const ACCESS_PATTERNS = [
@@ -113,7 +133,7 @@ class DataAccessPatternAnalyzer {
                 pattern.regex.lastIndex = 0;
                 const match = pattern.regex.exec(content);
                 if (!match) continue;
-                if (pattern.id === 'parse-sync-read' && isLazyCachedSyncRead(content, match.index)) continue;
+                if (pattern.id === 'parse-sync-read' && (isLazyCachedSyncRead(content, match.index) || isAsyncReadPattern(content, match.index))) continue;
                 findings.push({
                     type: 'data-access-pattern',
                     path: file.relativePath,

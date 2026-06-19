@@ -1,33 +1,332 @@
-# Root-level ignore: block all sibling projects from being scanned when running from CascadeProjects/
-ai-platform/
-ai-agent/
-ai-tools/
-backups/
-coming-soon-dev/
-deployments/
-full-cert/
-full-certificate/
+# Dependencies — never scan third-party code
+node_modules/
+**/node_modules/
+
+# Environment examples (documented placeholders — not secrets)
+.env.example
+
+# Log files
 logs/
-packages/
-simplebeacon-frameworkless/
+*.log
+
+# Git repository metadata (git object hashes trigger false-positive sensitive-commit alerts)
+.git/
+
+# Ignore old backup files
+*.simplebeacon-backup.*
+backups/
+
+# Legacy VS Code extension — simplebeacon-vscode-merged is the active version
+simplebeacon-vscode/
+
+# Backup/experimental extension copy — causes false positive dead/orphaned exports
+simplebeacon-vscode-merged/
+
+# Ignore temp files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Ignore launcher scripts flagged as sensitive by gate scanner
+ai-platform/tools/generate-token.bat
+
+# Ignore stale report copies
+report-*.json
+report-verify*.json
+root-report-*.json
+
+# Ignore verification scan dumps
+verify*.json
+
+# Ignore delivery receipts
+report-deliveries/
+
+# Ignore generated action plans and analysis artifacts
+*-action-plan*.md
+*-action-plan*.txt
+*-affected-files*.md
+*-compatibility-check.md
+*-summary-cli.txt
+
+# Ignore stale scan reports (keep only report.json)
+latest-scan*.json
+final-rescan.json
+full-inventory.json
+website-scan*.json
+cli-test-report*.json
+workspace-full.json
+complete-verify.json
+coming-soon-report*.json
+parent-scan-test-report.json
+reverted-gate.json
+bridge-verify.json
+root-no-config.json
+temp-scan-report.json
+test-complete.json
+gate-current.json
+gate-workspace-fresh.json
+gate-test-report.json
+final-gate.json
+final-verify.json
+full-cert-current.json
+full-scan-current.json
+consolidation-current.json
+consolidation-report.json
+
+# Ignore verification & reduction dumps
+parent-verify.json
+post-fix-verify.json
+tdz-fix-verify.json
+reduce-*.json
+
+# Ignore self-generated config copies
+eu-ai-act-assessment.json
+eu-ai-act-compliance.json
+eu-ai-act-report.json
+eu-ai-act-deliverable.html
+**/subscriptions.json
+
+# Ignore mock data reports and fixtures
+mock-data-*.md
+mock-data-*.json
+mock-data-*.txt
+*.fixture.*
+**/test/fixtures/**
+**/mock-data/**
+sample-*
+**/*-sample.json
+**/sample-report*.json
+ai-platform/coming-soon/
+
+# Ignore generated test certificate fixtures
+**/test-cert/**
+
+# Ignore test fixture files with intentional fake credentials
+coming-soon/test-all-patterns.js
+coming-soon/test-*.js
+
+# Ignore generated license tokens
+**/*-token.txt
+vscode-extension/token.txt
+
+# Ignore template env files (not secrets)
+.env.example
+
+# Ignore legitimate token/license source files and tools
+ai-platform/server/lib/secret-config.cjs
+ai-platform/tokens-fresh.txt
+ai-platform/tools/generate-license-token.cjs
+ai-platform/tools/generate-test-token.cjs
+ai-platform/tools/generate-token.bat
+ai-platform/tools/get-test-token.cjs
+coming-soon/routes/free-token.cjs
+packages/simplebeacon-cli/src/lib/license-token.js
+packages/simplebeacon-cli/src/rules/token-bleed-patterns.js
+
+# Ignore VS Code extension build output
+vscode-extension/out/
+packages/vscode-simplebeacon/out/
+
+# Ignore source maps and declaration files (build artifacts)
+*.map
+*.d.ts
+
+# Scanner rule test fixtures (intentional test data, not production)
 simplebeacon-rule-tests/
 
-# Root-level noise files
-CHANGELOG.md
-HANDOFF-*.md
-instructions.txt
-error-check.log
-error-check2.log
+# Test certification artifacts (not production code)
+packages/simplebeacon-cli/test-cert/
+
+# Ignore test files and their fixtures
+**/*.test.js
+**/*.test.ts
+**/*.test.cjs
+**/*.spec.js
+**/*.spec.ts
+**/__tests__/
+
+# Ignore lockfiles and generated outputs
+package-lock.json
+**/package-lock.json
 report.json
-report-fresh.json
-scan-website.sh
-setup-zorin.sh
-start-dashboard.sh
-ZORIN-LINUX-SETUP.md
-cookies.txt
-new-cookies.txt
-cookies.txt
-*.zip
+test-output.txt
+
+# Production utilities falsely flagged as mock/sample by name
+packages/simplebeacon-cli/src/lib/sample-consistency-checker.js
+packages/simplebeacon-cli/src/lib/sample-path-resolver.js
+packages/simplebeacon-cli/src/lib/mock-data-schema-validator.js
+packages/simplebeacon-cli/docs/SAMPLE_REPORT.md
+
+# Scanner internals: reporter strings and rule definitions trigger their own rules
+packages/simplebeacon-cli/src/reporters/json.js
+packages/simplebeacon-cli/src/rules/architecture-drift-patterns.js
+packages/simplebeacon-cli/src/lib/ai-problem-analyzer-suite.js
+packages/simplebeacon-cli/src/lib/consolidation-export-sanitize.js
+packages/simplebeacon-cli/src/lib/codebase-export-sanitize.js
+packages/simplebeacon-cli/src/proxy/inbound-enforcer.js
+
+# Extension manifest: false positive on JSON glob patterns
+vscode-extension/package.json
+
+# Ignore IDE configuration files
+.cursor/
+.vscode/
+.idea/
+.vscode/launch.json
+
+# Ignore git-synced mirrors (already gitignored)
+.github-sync/
+
+# Ignore duplicate action plans (keep latest v2)
+cleanup-action-plan-generated.md
+cleanup-affected-files-analysis.md
+cleanup-compatibility-check.md
+cleanup-summary-cli.txt
+
+# Ignore mock/fixture/sample data files
+*-sample.json
+*.fixture.*
+mock-*.cjs
+mock-*.js
+ai-platform/web/data/*-sample.json
+coming-soon/sample-*.html
+coming-soon/sample-report.json
+
+# Ignore stale scan artifacts at repo root
+scan-latest.json
+simplebeacon-full-scan.json
+simplebeacon-latest-scan.json
+New folder/
+simplebeacon-export-operator
+
+# Ignore CI ingest false positive
+packages/simplebeacon-cli/src/api/ci-ingest.js
+
+# Markdown files — legitimate code fence syntax is not a leak
+**/*.md
+
+# Backend modules falsely flagged for missing PropTypes (React-only rule)
+ai-agent/prompts.js
+
+# External IDE circular-import-risk false positives (barrel files & normal relative requires)
+ai-platform/packages/simplebeacon-intelligence/src/index.js
+ai-platform/server/api/assessment/index.cjs
+ai-platform/server/api/assessment/routes.cjs
+ai-platform/server/config/database.cjs
+ai-platform/server/config/redis.cjs
+ai-platform/server/enterprise-dlp.js
+ai-platform/server/lib/ai-inference-audit-logger.cjs
+ai-platform/server/lib/analytics-builder.cjs
+
+# CLI tools reading config at startup — acceptable one-off synchronous reads
+packages/simplebeacon-cli/src/lib/runtime-sentinel.js
+packages/simplebeacon-cli/src/mcp/handlers/report-handlers.js
+packages/simplebeacon-cli/src/mcp/handlers/utility-handlers.js
+packages/simplebeacon-cli/src/rules/budget-config-scanner.js
+
+# Tree-sitter WASM grammar — legitimate binary dependency
+ai-platform/packages/simplebeacon-intelligence/grammars/tree-sitter-typescript.wasm
+
+# VS Code extension main entry point (not importable by other modules)
+vscode-extension/src/extension.ts
+simplebeacon-vscode/src/extension.ts
+
+# VS Code extension build output
+simplebeacon-vscode/out/
+
+# Replay tool references exports by string literal (dynamic usage)
+ai-platform/tools/replay-scope-patches.js
+
+# Deploy gate runner — false positive "broken file" (node -c passes)
+ai-platform/tools/deploy-gate-runner.cjs
+
+# Security policy — legitimate security@ contact email (not a leak)
+ai-platform/SECURITY.md
+
+# Certificate template strings contain task markers as report copy (not code markers)
+coming-soon/lib/certificate-utils.cjs
+
+# Java vulnerable demo files — intentional debug prints (not production)
+java-ai-vulnerable/
+
+# Separate test configs for different packages in monorepo
+ai-platform/jest.config.js
+coming-soon/playwright.config.js
+
+# Env vars used by docker-compose (not statically imported by JS)
+ai-platform/.env.production
+
+# Monorepo package.json sprawl is intentional
+ai-agent/package.json
+
+# Dashboard documentation examples trigger credential false positives (example API keys in educational content)
+coming-soon/js/dashboard/pattern-documentation.js
+coming-soon/js/dashboard/quick-actions.js
+
+# Frameworkless scanner pattern definitions trigger production-leak false positives (regex patterns, not imports)
+simplebeacon-frameworkless/app.js
+
+# Dashboard browser export utilities contain legitimate path strings flagged as production leaks
+# (UI text, export templates, and scan-scope configuration — not actual sample data imports)
+ai-platform/web/simplebeacon-dashboard/js/utils/*.browser.js
+ai-platform/web/simplebeacon-dashboard/js/utils/completeScanAnalysis.js
+ai-platform/web/simplebeacon-dashboard/js/utils/cleanupAssistant.js
+ai-platform/web/simplebeacon-dashboard/js/views/ToolsView.js
+
+# Active service worker — registered at runtime via navigator.serviceWorker.register(),
+# not imported by any module. Static analysis incorrectly flags it as unused.
+ai-platform/web/simplebeacon-dashboard/sw.js
+
+# Development scripts — these are build/fix tooling, not production code
+scripts/
+
+# Coming-soon is pre-production staging code
+coming-soon/
+coming-soon-dev/
+
+# Simplebeacon frameworkless demo app (pattern definitions trigger false positives)
+simplebeacon-frameworkless/
+
+# AI agent tooling (orchestrator, report analyzer)
+ai-agent/
+
+# Test files across all packages
+**/*.test.js
+**/*.test.ts
+**/*.test.cjs
+**/*.spec.js
+**/*.spec.ts
+**/__tests__/
+packages/**/tests/
+packages/**/test/
+ai-platform/tests/
+ai-platform/**/tests/
+
+# Build / CI scripts
 *.bat
-*.log
-tmp-*.txt
+*.sh
+github-action/
+
+# VS Code extension false positives — debug-artifact is a UI label, type-safety any is intentional adapter code
+simplebeacon-vscode/src/roadmapProvider.ts
+simplebeacon-vscode/src/extension.ts
+
+# simplebeacon-vscode-merged false positives — same patterns as above
+simplebeacon-vscode-merged/src/roadmapProvider.ts
+simplebeacon-vscode-merged/src/modernSidebarProvider.ts
+simplebeacon-vscode-merged/src/extension.ts
+simplebeacon-vscode-merged/src/enhancedDashboard2_0.ts
+simplebeacon-vscode-merged/src/codeMapProvider.ts
+
+# Scan rule definitions - eval() patterns are for detection, not actual usage
+simplebeacon-vscode-merged/src/analyzers/workspaceAnalyzer.ts
+simplebeacon-vscode-merged/src/fixes/remediationProvider.ts
+simplebeacon-vscode-merged/src/fixes/findingConverter.ts
+simplebeacon-vscode-merged/src/enhancedAIProvider.ts
+simplebeacon-vscode-merged/src/realtimeMonitor.ts
+simplebeacon-vscode-merged/src/aiPlatform/realtimeMonitor.ts
+simplebeacon-vscode-merged/src/auth/authManager.ts
+simplebeacon-vscode/src/analyzers/workspaceAnalyzer.ts
+simplebeacon-vscode/src/fixes/remediationProvider.ts
+

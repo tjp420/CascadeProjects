@@ -10,6 +10,7 @@ const {
   publicSubscriptionStatus,
   normalizeEmail
 } = require('../lib/simplebeacon-subscription-store.cjs');
+const { verifyLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token.cjs');
 
 const PAID_VIEWS = new Set([
   'dashboard',
@@ -22,6 +23,13 @@ const PAID_VIEWS = new Set([
   'settings'
 ]);
 
+const FREE_TIERS = new Set(['community', 'developer', 'sandbox', 'instant', 'free', '']);
+
+/**
+ * Extract api token.
+ * @param {any} req
+ * @returns {any}
+ */
 function extractApiToken(req) {
   const header = req.headers.authorization;
   if (header?.startsWith('Bearer ')) {
@@ -30,6 +38,11 @@ function extractApiToken(req) {
   return req.headers['x-simplebeacon-token'] || req.query.apiToken || null;
 }
 
+/**
+ * Extract email.
+ * @param {any} req
+ * @returns {any}
+ */
 function extractEmail(req) {
   if (req.user?.email) return req.user.email;
   const headerEmail = req.headers['x-simplebeacon-email'];
@@ -39,14 +52,28 @@ function extractEmail(req) {
   return null;
 }
 
+/**
+ * Env flag.
+ * @param {string} name
+ * @returns {any}
+ */
 function envFlag(name) {
   return String(process.env[name] || '').trim().toLowerCase() === 'true';
 }
 
+/**
+ * Is internal dashboard mode.
+ * @returns {any}
+ */
 function isInternalDashboardMode() {
   return envFlag('SIMPLEBEACON_INTERNAL_DASHBOARD') || process.env.NODE_ENV === 'development';
 }
 
+/**
+ * Upgrade payload.
+ * @param {any} extra
+ * @returns {any}
+ */
 function upgradePayload(extra = {}) {
   return {
     error: 'subscription_required',
@@ -60,8 +87,13 @@ function upgradePayload(extra = {}) {
   };
 }
 
+/**
+ * Create require subscription.
+ * @param {Object} options
+ * @returns {any}
+ */
 function createRequireSubscription(options = {}) {
-  const { consumeQuota = false } = options;
+  const { consumeQuota = false, allowFree = false } = options;
 
   return async function requireSubscription(req, res, next) {
     const bypassEmail = normalizeEmail(process.env.SIMPLEBEACON_BYPASS_EMAIL);
@@ -83,6 +115,8 @@ function createRequireSubscription(options = {}) {
     }
 
     const token = extractApiToken(req);
+
+    // --- Paid subscription check first ---
     if (token) {
       const byToken = await getSubscriptionByApiToken(token);
       if (byToken?.subscriptionActive) {
@@ -113,10 +147,35 @@ function createRequireSubscription(options = {}) {
       }
     }
 
+    // --- Free tier read-only fallback ---
+    if (allowFree && token) {
+      const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+      const payload = verifyLicenseToken(token, secret);
+      if (payload) {
+        const tier = String(payload.tier || payload.product || 'community').toLowerCase();
+        if (FREE_TIERS.has(tier)) {
+          req.simplebeaconSubscription = {
+            tier,
+            subscriptionActive: false,
+            readOnly: true,
+            freeToken: true,
+            scansRemaining: 0,
+            apiRemaining: 0
+          };
+          return next();
+        }
+      }
+    }
+
     return res.status(403).json(upgradePayload({ email: email || null }));
   };
 }
 
+/**
+ * Is paid dashboard view.
+ * @param {any} view
+ * @returns {any}
+ */
 function isPaidDashboardView(view) {
   return PAID_VIEWS.has(view);
 }

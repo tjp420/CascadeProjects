@@ -1,0 +1,45 @@
+{
+  "summary": {
+    "filesAnalyzed": 1509,
+    "sampleDataFilesAnalyzed": 1297,
+    "jsonFilesAnalyzed": 126,
+    "repositoryFilesTotal": 1509,
+    "repositoryFilesAudited": 1297,
+    "repositoryFoldersTotal": 234,
+    "totalSizeBytes": 23972382,
+    "totalSizeLabel": "22.9MB",
+    "mergeCandidates": 12,
+    "reductionOpportunities": 1,
+    "potentialSavingsBytes": 218525,
+    "potentialSavingsLabel": "213.4KB",
+    "exactDuplicateGroups": 0,
+    "benchmarkCacheCandidatesExcluded": 0,
+    "structureSimilarPairs": 12,
+    "fuzzyNearDuplicatePairs": 0,
+    "patternConsolidationGroups": 0,
+    "oversizedFiles": 1,
+    "fuzzyPairsExcluded": 0
+  },
+  "scanScope": {
+    "mode": "repository-consolidation",
+    "description": "Full repository inventory (universal profile) plus JSON duplicate detection on audit-scoped paths — skips node_modules, .git, coverage, archive for merge logic.",
+    "sampleDataPaths": [
+      "C:/Users/Trevor/CascadeProjects",
+      "data/roadmap"
+    ],
+    "sampleDataFilesAnalyzed": 1297,
+    "jsonFilesAnalyzed": 126,
+    "repositoryFilesAudited": 1297,
+    "repositoryInventoryProfile": "universal",
+    "repositoryInventoryIncluded": true,
+    "repositoryFilesTotal": 1509,
+    "repositoryFoldersTotal": 234,
+    "limitations": [],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "review-merge-candidates",
+    "securityHandoffEligible": false,
+    "consolidationNote": "Measured duplicate/fuzzy merge scan — not Complete scan clearance bundle.",
+    "mergeWalkFiles": 1297,
+    "jsonFilesHashed": 126
+  }
+}

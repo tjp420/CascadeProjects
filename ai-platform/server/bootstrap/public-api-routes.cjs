@@ -41,6 +41,12 @@ const PUBLIC_API_PATHS = new Set([
     'gguf/mock-analysis-report'
 ]);
 
+/**
+ * Is public optimization route.
+ * @param {string} relativePath
+ * @param {any} method
+ * @returns {any}
+ */
 function isPublicOptimizationRoute(relativePath, method) {
     if (method === 'GET' && (
         relativePath === 'optimization/health'
@@ -58,29 +64,35 @@ function isPublicOptimizationRoute(relativePath, method) {
     return false;
 }
 
+/**
+ * Is public assessment route.
+ * @param {string} relativePath
+ * @param {any} method
+ * @returns {any}
+ */
 function isPublicAssessmentRoute(relativePath, method) {
-    if (relativePath === 'assessments' && method === 'POST') {
-        return true;
-    }
-    if (method === 'GET' && /^assessments\/assessment_\d+(?:\/download\/[\w-]+)?$/.test(relativePath)) {
-        return true;
-    }
-    if (relativePath === 'assessment/scan' && method === 'POST') {
-        return true;
-    }
-    if (relativePath === 'assessment/health' && method === 'GET') {
-        return true;
-    }
-    if (method === 'GET' && /^assessment\/report\/assessment_\d+(?:\/download\/[\w-]+)?$/.test(relativePath)) {
-        return true;
-    }
+    if (relativePath === 'assessments' && method === 'POST') return true;
+    if (relativePath === 'assessment/scan' && method === 'POST') return true;
+    if (relativePath === 'assessment/health' && method === 'GET') return true;
+    if (method === 'GET' && /^assessments\/assessment_\d+(?:\/download\/[\w-]+)?$/.test(relativePath)) return true;
+    if (method === 'GET' && /^assessment\/report\/assessment_\d+(?:\/download\/[\w-]+)?$/.test(relativePath)) return true;
     return false;
 }
 
+/**
+ * Is public simplebeacon demo route.
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function isPublicSimplebeaconDemoRoute(relativePath) {
     return relativePath.startsWith('simplebeacon/demo');
 }
 
+/**
+ * Resolve api relative path.
+ * @param {any} req
+ * @returns {any}
+ */
 function resolveApiRelativePath(req) {
     const mounted = String(req.path || '').replace(/^\/+/, '');
     if (mounted) return mounted;
@@ -88,6 +100,12 @@ function resolveApiRelativePath(req) {
     return raw.replace(/^\/api\/?/i, '').replace(/^\/+/, '');
 }
 
+/**
+ * Is public api route.
+ * @param {string} relativePath
+ * @param {any} method
+ * @returns {any}
+ */
 function isPublicApiRoute(relativePath, method) {
     const pathKey = String(relativePath || '').replace(/^\/+/, '');
     return (
@@ -99,6 +117,11 @@ function isPublicApiRoute(relativePath, method) {
     );
 }
 
+/**
+ * Is public api request.
+ * @param {any} req
+ * @returns {any}
+ */
 function isPublicApiRequest(req) {
     return isPublicApiRoute(resolveApiRelativePath(req), req.method);
 }

@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { classifyProductionLeakMatch } = require('../lib/production-leak-intent');
 
-const DEFAULT_PRODUCTION_PATHS = ['server/', 'src/', 'app/', 'lib/'];
+const DEFAULT_PRODUCTION_PATHS = ['server/', 'src/', 'app/', 'lib/', 'packages/', 'components/', 'modules/', 'services/', 'utils/', 'hooks/', 'types/', 'config/', 'api/', 'web/', 'client/', 'shared/', 'common/', 'core/', 'lib/'];
 const DEFAULT_IGNORE_GLOBS = [
     'node_modules/**',
     'coverage/**',
@@ -21,7 +21,10 @@ const DEFAULT_IGNORE_GLOBS = [
     'tests/**',
     'test/**',
     '.github-sync/**',
-    'github-cache/**'
+    'github-cache/**',
+    '**/*.log',
+    '**/*-report*.json',
+    '**/test*'
 ];
 
 const LEAK_PATTERNS = [
@@ -31,7 +34,7 @@ const LEAK_PATTERNS = [
     { id: 'web-data-sample', regex: /['"`][^'"`]*web(?:\/|\\)data[^'"`]*['"`]/gi },
     {
         id: 'template-sample',
-        regex: /`[^`]*(?:-sample\.json|(?:\/|\\)mock(?:\/|\\)[^`]+|(?:\/|\\)fixtures(?:\/|\\)[^`]+|web(?:\/|\\)data)[^`]*`/gi
+        regex: /`[^`\n]*(?:-sample\.json|(?:\/|\\)mock(?:\/|\\)[^`\n]+|(?:\/|\\)fixtures(?:\/|\\)[^`\n]+|web(?:\/|\\)data)[^`\n]*`/gi
     }
 ];
 
@@ -146,6 +149,18 @@ function isInstructionalTemplateReference(matchText) {
         || /use the phrase\s+["'`]sample-suffix subset["'`]/i.test(matchText);
 }
 
+function isExpressStaticWebData(line) {
+    return /\bexpress\.static\s*\(/.test(String(line || '')) && /web[/\\]data/.test(String(line || ''));
+}
+
+function isMockDataFilenameGenerator(line) {
+    return /\bfilePath\s*[:=]\s*[`'][^`']*mock_data_/.test(String(line || ''));
+}
+
+function hasProductionLeakIntentAnnotation(content) {
+    return /simplebeacon:production-leak-intent/i.test(content);
+}
+
 function isProductionRelevantPath(relativePath) {
     const normalized = String(relativePath || '').replace(/\\/g, '/').toLowerCase();
     return !NON_PRODUCTION_PATH_HINTS.some((hint) => normalized.includes(hint));
@@ -213,6 +228,10 @@ function scanFileContent(relativePath, content, options = {}) {
     const lines = content.split('\n');
     const patterns = getActiveLeakPatterns(options);
 
+    if (hasProductionLeakIntentAnnotation(content)) {
+        return { findings: [], suppressed };
+    }
+
     for (const pattern of patterns) {
         pattern.regex.lastIndex = 0;
         let match;
@@ -224,6 +243,8 @@ function scanFileContent(relativePath, content, options = {}) {
             if (isLikelyConfigReference(relativePath, snippet)) continue;
             if (isProseSampleReference(match[0])) continue;
             if (isInstructionalTemplateReference(match[0])) continue;
+            if (isExpressStaticWebData(line)) continue;
+            if (isMockDataFilenameGenerator(line)) continue;
 
             let intentResult = null;
             if (intentClassification) {

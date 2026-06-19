@@ -10,6 +10,12 @@ const SECURITY_RULES_EVALUATED = ['credentials', 'production-leak'];
 
 
 
+/**
+ * Redact project path for export.
+ * @param {string} rawPath
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
 
   if (rawPath == null || rawPath === '') return rawPath;
@@ -30,6 +36,11 @@ function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
 
 
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
 
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
@@ -42,6 +53,12 @@ function projectLabelFromPath(projectPath) {
 
 
 
+/**
+ * Relativize scan paths.
+ * @param {Array} scanPaths
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function relativizeScanPaths(scanPaths, projectRoot) {
 
   const root = String(projectRoot || '').replace(/\\/g, '/').replace(/\/$/, '');
@@ -66,6 +83,11 @@ function relativizeScanPaths(scanPaths, projectRoot) {
 
 
 
+/**
+ * Dedupe export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeExportNotes(notes = []) {
 
   const seen = new Set();
@@ -126,6 +148,11 @@ function dedupeExportNotes(notes = []) {
 
 
 
+/**
+ * Parse timestamp.
+ * @param {boolean} isoTimestamp
+ * @returns {any}
+ */
 function parseTimestamp(isoTimestamp) {
 
   if (isoTimestamp == null || isoTimestamp === '') return null;
@@ -138,6 +165,11 @@ function parseTimestamp(isoTimestamp) {
 
 
 
+/**
+ * Normalize compliance input.
+ * @param {any} compliance
+ * @returns {any}
+ */
 function normalizeComplianceInput(compliance) {
 
   if (!compliance) return null;
@@ -158,6 +190,11 @@ function normalizeComplianceInput(compliance) {
 
 
 
+/**
+ * Resolve compliance headline generated at.
+ * @param {any} compliance
+ * @returns {any}
+ */
 function resolveComplianceHeadlineGeneratedAt(compliance) {
 
   if (!compliance) return null;
@@ -168,6 +205,11 @@ function resolveComplianceHeadlineGeneratedAt(compliance) {
 
 
 
+/**
+ * Sanitize scan scope for security export.
+ * @param {any} scanScope
+ * @returns {any}
+ */
 function sanitizeScanScopeForSecurityExport(scanScope) {
 
   if (!scanScope) return null;
@@ -198,6 +240,12 @@ function sanitizeScanScopeForSecurityExport(scanScope) {
 
 
 
+/**
+ * Sanitize compliance for security export.
+ * @param {any} compliance
+ * @param {number} report
+ * @returns {any}
+ */
 function sanitizeComplianceForSecurityExport(compliance, report) {
 
   if (!compliance) return null;
@@ -244,6 +292,12 @@ function sanitizeComplianceForSecurityExport(compliance, report) {
 
 
 
+/**
+ * Sanitize finding for export.
+ * @param {any} finding
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function sanitizeFindingForExport(finding, projectLabel) {
 
   if (!finding) return finding;
@@ -260,6 +314,13 @@ function sanitizeFindingForExport(finding, projectLabel) {
 
 
 
+/**
+ * Build security export notes.
+ * @param {number} report
+ * @param {Array} findings
+ * @param {any} compliance
+ * @returns {any}
+ */
 function buildSecurityExportNotes(report, findings = [], compliance = null) {
 
   const notes = [
@@ -342,6 +403,12 @@ function buildSecurityExportNotes(report, findings = [], compliance = null) {
 
 
 
+/**
+ * Build compliance freshness note.
+ * @param {any} compliance
+ * @param {number} report
+ * @returns {any}
+ */
 function buildComplianceFreshnessNote(compliance, report) {
 
   const headlineAt = parseTimestamp(resolveComplianceHeadlineGeneratedAt(compliance));
@@ -358,6 +425,11 @@ function buildComplianceFreshnessNote(compliance, report) {
 
 
 
+/**
+ * Build security hygiene summary.
+ * @param {any} summary
+ * @returns {any}
+ */
 function buildSecurityHygieneSummary(summary) {
 
   if (!summary) return null;
@@ -386,6 +458,11 @@ function buildSecurityHygieneSummary(summary) {
 
 
 
+/**
+ * Build scan report from security export.
+ * @param {any} bundle
+ * @returns {any}
+ */
 function buildScanReportFromSecurityExport(bundle = {}) {
 
   const summary = bundle.summary || {};
@@ -420,6 +497,13 @@ function buildScanReportFromSecurityExport(bundle = {}) {
 
 
 
+/**
+ * Build security export summary.
+ * @param {number} report
+ * @param {Array} findings
+ * @param {any} compliance
+ * @returns {any}
+ */
 export function buildSecurityExportSummary(report, findings = [], compliance = null) {
 
   const severityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
@@ -488,6 +572,13 @@ export function buildSecurityExportSummary(report, findings = [], compliance = n
 
 
 
+/**
+ * Build security export payload.
+ * @param {number} report
+ * @param {Array} findings
+ * @param {any} compliance
+ * @returns {any}
+ */
 export function buildSecurityExportPayload(report, findings = [], compliance = null) {
 
   if (!report) return null;
@@ -572,6 +663,11 @@ export function buildSecurityExportPayload(report, findings = [], compliance = n
 
 
 
+/**
+ * Sanitize security scan export.
+ * @param {any} bundle
+ * @returns {any}
+ */
 export function sanitizeSecurityScanExport(bundle) {
 
   if (!bundle || bundle.type !== 'simplebeacon-security-scan-export') return bundle;
@@ -590,6 +686,11 @@ export function sanitizeSecurityScanExport(bundle) {
 
 
 
+/**
+ * Security export filename.
+ * @param {any} date
+ * @returns {any}
+ */
 export function securityExportFilename(date = new Date()) {
 
   const stamp = date.toISOString().slice(0, 10);
@@ -600,6 +701,11 @@ export function securityExportFilename(date = new Date()) {
 
 
 
+/**
+ * Can export security scan.
+ * @param {number} report
+ * @returns {any}
+ */
 export function canExportSecurityScan(report) {
 
   return Boolean(report && (report.generatedAt || report.gate != null || report.credentialScanned != null));

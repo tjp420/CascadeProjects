@@ -1,4 +1,4 @@
-import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson } from '../utils.js';
+import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson, renderEmptyState } from '../utils.js';
 
 const LAYER_LABELS = {
   credentials: 'Credential patterns',
@@ -10,6 +10,11 @@ const LAYER_LABELS = {
   gate: 'Compliance gate'
 };
 
+/**
+ * Npm audit summary.
+ * @param {any} audit
+ * @returns {any}
+ */
 function npmAuditSummary(audit) {
   const summary = audit?.summary || audit?.metadata?.vulnerabilities || {};
   const deps = audit?.dependencies || audit?.metadata?.dependencies || {};
@@ -23,6 +28,11 @@ function npmAuditSummary(audit) {
   };
 }
 
+/**
+ * Build audit metrics.
+ * @param {any} audit
+ * @returns {any}
+ */
 function buildAuditMetrics(audit = {}) {
   const report = audit.report || {};
   const dash = audit.dashboard?.scanStatus || {};
@@ -56,6 +66,11 @@ function buildAuditMetrics(audit = {}) {
   };
 }
 
+/**
+ * Render scan scope.
+ * @param {Array} metrics
+ * @returns {any}
+ */
 function renderScanScope(metrics) {
   const parts = [];
   if (metrics.mockSampleFiles != null) {
@@ -81,6 +96,9 @@ function renderScanScope(metrics) {
   `;
 }
 
+/**
+ * Audit view.
+ */
 export class AuditView {
   constructor(app) {
     this.app = app;
@@ -93,6 +111,17 @@ export class AuditView {
     this._fetchPromise = null;
     this._animatedOnce = false;
     this.assessmentHighlight = false;
+  }
+
+  _getVscodeApi() {
+    if (this._vscodeApiCached) return this._vscodeApiCached;
+    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
+    try {
+      this._vscodeApiCached = window.acquireVsCodeApi();
+      return this._vscodeApiCached;
+    } catch {
+      return null;
+    }
   }
 
   invalidateCache() {
@@ -261,16 +290,25 @@ export class AuditView {
 
     if (this.loading && !this.audit) {
       el.innerHTML = `
-        <h1 class="page-title">Compliance Audit</h1>
-        <div class="empty-state card"><div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div><p>Loading audit report…</p></div>
+        <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Loading audit layers…</p></div>
+        ${renderEmptyState({
+          icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+          title: 'Loading audit report…',
+          body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
+        })}
       `;
       return el;
     }
 
     if (this.error && !this.audit) {
       el.innerHTML = `
-        <h1 class="page-title">Compliance Audit</h1>
-        <div class="empty-state card"><p>${escapeHtml(this.error)}</p><button class="btn btn-primary mt-4" id="audit-retry">Retry</button></div>
+        <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Audit unavailable</p></div>
+        ${renderEmptyState({
+          icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+          title: 'Audit unavailable',
+          body: escapeHtml(this.error),
+          actions: [{ label: 'Retry', id: 'audit-retry', className: 'btn-primary' }]
+        })}
       `;
       el.querySelector('#audit-retry')?.addEventListener('click', () => this.reload(el.parentElement));
       return el;
@@ -283,72 +321,87 @@ export class AuditView {
     const assessment = audit.assessment;
 
     el.innerHTML = `
-      <h1 class="page-title">Compliance Audit</h1>
-      <p class="text-muted mb-6">All Simplebeacon auditing layers — credentials, fiction KPIs, schema, production leaks, roadmap, Jest baseline, and npm audit.</p>
+      <div class="analyze-hero">
+        <h1 class="page-title">Compliance Audit</h1>
+        <p class="text-muted analyze-hero-sub">Credentials, fiction KPIs, schema, production leaks, roadmap, Jest baseline, and npm audit.</p>
+      </div>
+
+      <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-6);">
+        <div class="analyze-action-info">
+          <span class="text-muted" style="font-size:var(--font-size-sm);">Gate: <strong class="${gate.pass ? 'success' : 'danger'}">${gate.pass ? 'PASS' : 'FAIL'}</strong> · ${formatPercent(metrics.consistencyScore)} consistency</span>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" class="btn btn-primary btn-sm" data-action="scan" ${this.running === 'scan' ? 'disabled' : ''}>
+            ${this.running === 'scan' ? 'Scanning…' : 'Run perimeter scan'}
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" data-action="assess" ${this.running === 'assess' ? 'disabled' : ''}>
+            ${this.running === 'assess' ? 'Assessing…' : 'Run assessment'}
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" data-action="npm" ${this.running === 'npm' ? 'disabled' : ''}>
+            ${this.running === 'npm' ? 'Auditing…' : 'Run npm audit'}
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="results">View issues</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="audit-send-ai-btn" title="Send audit data to AI coding agent">🤖 Send to AI Agent</button>
+        </div>
+      </div>
+
       ${this.refreshing ? '<p class="text-muted mb-4" style="font-size:var(--font-size-sm)"><span class="loading-spinner" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px"></span>Refreshing audit…</p>' : ''}
 
       <div class="grid-3 mb-6">
-        <div class="card insight-stat">
-          <div class="insight-stat-value ${gate.pass ? 'success' : 'danger'}">${gate.pass ? 'PASS' : 'FAIL'}</div>
-          <div class="insight-stat-label">Gate</div>
+        <div class="card" style="padding:var(--space-5);display:flex;align-items:center;gap:var(--space-4);">
+          <div style="width:48px;height:48px;border-radius:50%;background:${gate.pass ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};display:flex;align-items:center;justify-content:center;font-size:1.5rem;">
+            ${gate.pass ? '✅' : '❌'}
+          </div>
+          <div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">Gate Status</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700;color:var(--${gate.pass ? 'success' : 'danger'});">${gate.pass ? 'PASS' : 'FAIL'}</div>
+          </div>
         </div>
-        <div class="card insight-stat">
-          <div class="insight-stat-value success">${formatPercent(metrics.consistencyScore)}</div>
-          <div class="insight-stat-label">Consistency score</div>
+        <div class="card" style="padding:var(--space-5);display:flex;align-items:center;gap:var(--space-4);">
+          <div style="width:48px;height:48px;border-radius:50%;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">�</div>
+          <div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">Consistency</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700;">${formatPercent(metrics.consistencyScore)}</div>
+          </div>
         </div>
-        <div class="card insight-stat">
-          <div class="insight-stat-value">${escapeHtml(String(metrics.pageSpecsLabel))}</div>
-          <div class="insight-stat-label">Page specs passed</div>
+        <div class="card" style="padding:var(--space-5);display:flex;align-items:center;gap:var(--space-4);">
+          <div style="width:48px;height:48px;border-radius:50%;background:rgba(245,158,11,0.12);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🧪</div>
+          <div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">Page Specs</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700;">${escapeHtml(String(metrics.pageSpecsLabel))}</div>
+          </div>
         </div>
       </div>
 
       ${renderScanScope(metrics)}
 
-      <div class="section-block">
-        <div class="section-heading">
-          <h2>Audit Actions</h2>
-        </div>
-        <div class="tool-action-grid">
-          <button type="button" class="tool-action-card" data-action="scan" ${this.running === 'scan' ? 'disabled' : ''}>
-            <span class="tool-action-icon">✅</span>
-            <span class="tool-action-title">${this.running === 'scan' ? 'Scanning…' : 'Run perimeter scan'}</span>
-          </button>
-          <button type="button" class="tool-action-card" data-action="assess" ${this.running === 'assess' ? 'disabled' : ''}>
-            <span class="tool-action-icon">📋</span>
-            <span class="tool-action-title">${this.running === 'assess' ? 'Assessing…' : 'Run assessment'}</span>
-          </button>
-          <button type="button" class="tool-action-card" data-action="npm" ${this.running === 'npm' ? 'disabled' : ''}>
-            <span class="tool-action-icon">📦</span>
-            <span class="tool-action-title">${this.running === 'npm' ? 'Auditing…' : 'Run npm audit'}</span>
-          </button>
-          <button type="button" class="tool-action-card" data-action="results">
-            <span class="tool-action-icon">🔍</span>
-            <span class="tool-action-title">View all issues</span>
-          </button>
-        </div>
-      </div>
-
       ${assessment?.executiveSummary ? this.renderAssessmentSummary(assessment, this.assessmentHighlight) : `
         <div class="section-block" id="audit-assessment-summary">
           <div class="section-heading"><h2>Assessment summary</h2></div>
-          <div class="card"><p class="text-muted">Run assessment above to generate the executive summary and compliance checklist from the latest scan.</p></div>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <div style="font-size:2.5rem;margin-bottom:var(--space-3);">📋</div>
+            <p style="font-size:var(--font-size-lg);font-weight:600;margin-bottom:var(--space-2);">No assessment generated yet</p>
+            <p class="text-muted">Run assessment to generate the executive summary and compliance checklist from the latest scan.</p>
+          </div>
         </div>
       `}
 
       <div class="section-block">
-        <div class="section-heading"><h2>Audit layers</h2></div>
+        <div class="section-heading" style="margin-bottom:var(--space-3);"><h2>Audit layers</h2></div>
         <div class="grid-2">
           ${Object.entries(layers).filter(([k]) => k !== 'gate').map(([k, v]) => this.renderLayerCard(k, v, metrics)).join('')}
         </div>
       </div>
 
       <div class="section-block">
-        <div class="section-heading"><h2>Fiction detection catalog (${(audit.fictionCatalog || []).length} baseline patterns)</h2></div>
+        <div class="section-heading" style="margin-bottom:var(--space-3);">
+          <h2>Fiction detection catalog (${(audit.fictionCatalog || []).length} baseline patterns)</h2>
+        </div>
         <div class="card">${this.renderFictionCatalog(audit.fictionCatalog, layers.fictionKpis?.findings ?? 0)}</div>
       </div>
 
       <div class="section-block">
-        <div class="section-heading"><h2>npm audit</h2></div>
+        <div class="section-heading" style="margin-bottom:var(--space-3);"><h2>npm audit</h2></div>
         <div class="card">${this.renderNpmAudit(audit.npmAudit)}</div>
       </div>
     `;
@@ -373,6 +426,49 @@ export class AuditView {
       this.app.navigate('assessments');
     });
 
+    el.querySelector('#audit-send-ai-btn')?.addEventListener('click', async () => {
+      const audit = this.app.state.audit;
+      const report = this.app.state.report;
+      if (!audit && !report) { showToast('No audit data — run a scan first', 'error'); return; }
+      const npmAudit = audit?.npmAudit;
+      const vulnList = [];
+      const rawVulns = npmAudit?.vulnerabilities || npmAudit?.advisories || {};
+      if (typeof rawVulns === 'object' && rawVulns !== null) {
+        for (const [pkg, info] of Object.entries(rawVulns)) {
+          if (info && typeof info === 'object') {
+            const sev = info.severity || info.via?.[0]?.severity || 'unknown';
+            const title = info.via?.[0]?.title || info.title || info.overview || '';
+            vulnList.push({ package: pkg, severity: sev, title });
+          }
+        }
+      }
+      const payload = {
+        projectPath: report?.projectRoot || report?.projectPath || this.app.state.lastProjectPath || window.location.origin,
+        reportType: 'compliance-audit',
+        reportSummary: {
+          gatePass: report?.gate?.pass ?? 'N/A',
+          qualityScore: report?.qualityScore ?? 'N/A',
+          consistencyScore: audit?.report?.consistencyScore ?? 'N/A',
+          totalIssues: report?.issueCount ?? (report?.rawIssues?.length ?? 0),
+          npmAuditVulnerabilities: npmAudit?.summary?.vulnerabilityTotal ?? 'N/A',
+          layers: Object.keys(audit?.layers || {})
+        },
+        issues: vulnList.slice(0, 200),
+        notes: 'Compliance Audit — perimeter scan, assessment, npm audit layers'
+      };
+      const vscode = this._getVscodeApi?.();
+      if (vscode) {
+        try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Audit data sent to AI agent', 'success'); return; }
+        catch (err) { console.warn('[Audit-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+      }
+      try {
+        const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const json = await res.json();
+        if (json.success && json.content) { await navigator.clipboard.writeText(json.content); showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success'); }
+        else { showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success'); }
+      } catch (err) { showToast('Failed to send: ' + err.message, 'error'); }
+    });
+
     return el;
   }
 
@@ -394,7 +490,16 @@ export class AuditView {
     if (!container) return;
     this._container = container;
     container.innerHTML = '';
-    container.appendChild(this.render());
+    try {
+      container.appendChild(this.render());
+    } catch (err) {
+      console.error('[AuditView] Render error:', err);
+      container.innerHTML = `<div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Render error</p></div>
+        <div class="card" style="padding:var(--space-6);">
+          <p class="text-danger mb-2"><strong>Failed to render audit page</strong></p>
+          <pre style="font-size:var(--font-size-sm);overflow:auto;">${escapeHtml(err?.message || String(err))}</pre>
+        </div>`;
+    }
   }
 
   scrollToAssessmentSummary() {

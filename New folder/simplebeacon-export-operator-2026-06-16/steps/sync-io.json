@@ -1,0 +1,179 @@
+{
+  "id": "sync-io",
+  "status": "done",
+  "error": null,
+  "metric": "14 findings in 11 files",
+  "findingsCount": 14,
+  "fileCount": 11,
+  "severity": "medium",
+  "findings": [
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard.ts",
+      "line": 10,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/src/extension.ts",
+      "line": 725,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/src/extension.ts",
+      "line": 855,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/src/utils.ts",
+      "line": 12,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/src/web2Panel.ts",
+      "line": 9,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/src/webviewPanel.ts",
+      "line": 10,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/build-extension.js",
+      "line": 21,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readdirSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/build-extension.js",
+      "line": 39,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readdirSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/enhancedDashboard.js",
+      "line": 44,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/extension.js",
+      "line": 672,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/extension.js",
+      "line": 786,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/utils.js",
+      "line": 51,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/web2Panel.js",
+      "line": 44,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    },
+    {
+      "category": "sync-io",
+      "analyzer": "sync-io-analyzer",
+      "type": "synchronous-read",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/webviewPanel.js",
+      "line": 44,
+      "description": "Synchronous file read in async context",
+      "match": "fs.readFileSync(",
+      "recommendedAction": "Replace synchronous file I/O with async equivalents (fs.promises or callbacks)"
+    }
+  ],
+  "category": {
+    "category": "sync-io",
+    "label": "sync-io",
+    "count": 14,
+    "severity": "medium",
+    "fileCount": 11,
+    "topFiles": [
+      "simplebeacon-vscode/build-extension.js",
+      "simplebeacon-vscode/out/enhancedDashboard.js",
+      "simplebeacon-vscode/out/extension.js",
+      "simplebeacon-vscode/out/utils.js",
+      "simplebeacon-vscode/out/web2Panel.js"
+    ]
+  }
+}

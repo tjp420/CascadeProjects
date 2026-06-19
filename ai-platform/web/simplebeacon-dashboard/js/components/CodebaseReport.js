@@ -1,5 +1,10 @@
 import { escapeHtml, formatNumber } from '../utils.js';
 
+/**
+ * Severity class.
+ * @param {any} severity
+ * @returns {any}
+ */
 function severityClass(severity) {
   if (severity === 'critical') return 'warn';
   if (severity === 'high') return 'warn';
@@ -7,6 +12,13 @@ function severityClass(severity) {
   return '';
 }
 
+/**
+ * Render codebase panel.
+ * @param {Object} options
+ * @param {any} loading
+ * @param {any} error }
+ * @returns {any}
+ */
 export function renderCodebasePanel({ scan, loading, error } = {}) {
   if (loading) {
     return '<p class="text-muted"><span class="loading-spinner"></span> Analyzing codebase…</p>';
@@ -154,6 +166,11 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
   `;
 }
 
+/**
+ * Build codebase conclusion.
+ * @param {any} scan
+ * @returns {any}
+ */
 export function buildCodebaseConclusion(scan) {
   if (!scan?.summary) return 'No codebase analysis available.';
   const s = scan.summary;

@@ -7,6 +7,11 @@ const fs = require('fs');
 
 const MAX_HINTS = 8;
 
+/**
+ * Probe llama cpp bin.
+ * @param {string} binPath
+ * @returns {any}
+ */
 function probeLlamaCppBin(binPath = process.env.LLAMA_CPP_BIN) {
     if (!binPath) {
         return { configured: false, executable: false, path: null };
@@ -26,6 +31,12 @@ function probeLlamaCppBin(binPath = process.env.LLAMA_CPP_BIN) {
     };
 }
 
+/**
+ * Build semantic hints.
+ * @param {Array} fuzzyPairs
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildSemanticHints(fuzzyPairs = [], options = {}) {
     const probe = probeLlamaCppBin(options.binPath);
     const pairs = Array.isArray(fuzzyPairs) ? fuzzyPairs : [];

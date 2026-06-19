@@ -26,6 +26,8 @@ Thumbs.db
 
 # Test outputs & generated reports
 test-output*.txt
+test-audit-*.txt
+test-audit-report.json
 report.json
 report-fresh.json
 
@@ -50,3 +52,74 @@ error.log
 
 # Data files flagged as duplicate
 subscriptions.json
+# Intentional mirror: public/data/ serves the same file to the frontend
+# Source: data/re-attestation-metadata.json → Mirror: public/data/re-attestation-metadata.json
+data/re-attestation-metadata.json
+public/data/re-attestation-metadata.json
+
+# Test config with localhost (expected for E2E)
+playwright.config.js
+
+# Test pattern file with example API keys
+test-all-patterns.js
+
+# Generated remediation plan flagged as EU AI Act false positive
+CERTIFICATE-REMEDIATION-PLAN.md
+
+# Random token test artifacts
+random-*-token.txt
+token-*.txt
+
+# Demo pages falsely flagged as mock/sample by CLI scanner
+sample-*.html
+demo-*.html
+sample-report.json
+
+# Scanner pattern documentation files — contain example strings of bad patterns for educational purposes
+# The scanner misreads example 'before:' strings as actual issues
+js/dashboard/pattern-documentation.js
+js/dashboard/quick-actions.js
+js/dashboard/scanner-patterns.js
+js/dashboard/certificate-module.js
+
+# Scanner engine — generates reports and contains pattern description strings in object literals
+js/dashboard/scanner-engine.js
+
+# UI renderer — builds EU AI Act control descriptions mentioning AI provider names
+js/dashboard/ui-renderer.js
+
+# Minified vendor libraries — third-party code should not be scanned for project issues
+js/vendor/jszip.min.js
+js/vendor/html2canvas.min.js
+
+# Trello export artifacts — project management exports, not production code
+trello-*.json
+trello-*.js
+
+# Dev-only / orphaned files flagged by file-reduction scanner
+landing.html
+unlock.html
+update-cache.js
+zip-for-upload.js
+vscode-extension-roadmap.json
+
+# Scanner engine false positives — dangerous-function pattern defs and remediation strings
+# The scanner misreads its own rule definitions as actual dangerous-function usage
+js/dashboard/scanner-patterns.js
+js/dashboard/scanner-engine.js
+js/dashboard/certificate-module.js
+
+# Debug artifact false positives — console.log in dev server and dashboard is intentional
+js/dashboard/main.js
+js/dashboard/token-manager.js
+server.cjs
+analyze-directory.js
+
+# Generated scan reports — the scanner should not audit its own output
+.simplebeacon/report.json
+.simplebeacon/report-fresh.json
+.simplebeacon/logs/system.json
+.simplebeacon/vscode-report.json
+vscode-report.json
+unlock.html
+public/unlock.html

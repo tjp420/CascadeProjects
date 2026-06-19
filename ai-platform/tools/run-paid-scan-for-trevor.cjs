@@ -1,8 +1,10 @@
 /**
- * One-shot script: simulate paid Executive Clearance for trevor_punt@live.com
- * on C:\Users\Trevor\CascadeProjects, then deliver certificate via email.
+ * One-shot script: simulate paid Executive Clearance
+ * on a target directory, then deliver certificate via email.
  *
  * Usage:
+ *   set SIMPLEBEACON_OWNER_EMAIL=you@example.com
+ *   set SIMPLEBEACON_SCAN_DIR=C:\path\to\project
  *   node tools/run-paid-scan-for-trevor.js
  */
 
@@ -11,9 +13,10 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 
-const TARGET_EMAIL = 'trevor_punt@live.com';
-const SCAN_DIR = 'C:\\Users\\Trevor\\CascadeProjects';
-const PORT = process.env.PORT || 54355;
+const constants = require('../server/config/constants.cjs');
+const TARGET_EMAIL = process.env.SIMPLEBEACON_OWNER_EMAIL;
+const SCAN_DIR = process.env.SIMPLEBEACON_SCAN_DIR || process.cwd();
+const PORT = process.env.PORT || constants.DASHBOARD_PORT;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const PLATFORM_ROOT = path.resolve(__dirname, '..');
 
@@ -34,7 +37,7 @@ function httpPost(pathname, payload, headers = {}) {
       port: PORT,
       path: pathname,
       method: 'POST',
-      timeout: 30000,
+      timeout: constants.TIMEOUT_30S,
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), ...headers }
     }, (res) => {
       let data = '';
@@ -115,7 +118,7 @@ async function main() {
     process.exit(1);
   }
 
-  // 3. Seed subscription for trevor_punt@live.com — EU AI Act Readiness Sprint ($2,499)
+  // 3. Seed subscription for EU AI Act Readiness Sprint ($2,499)
   log('BILLING', `Creating EU AI Act Readiness Sprint ($2,499) subscription for ${TARGET_EMAIL}...`);
   const store = readStore();
   const licenseToken = `sb_euai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -153,7 +156,7 @@ async function main() {
   try {
     const curlOutput = execSync(
       `curl -s -X POST http://127.0.0.1:${PORT}/api/reports/upload -H "Content-Type: application/json" -d @"${payloadPath}"`,
-      { cwd: PLATFORM_ROOT, encoding: 'utf8', timeout: 60000 }
+      { cwd: PLATFORM_ROOT, encoding: 'utf8', timeout: constants.TIMEOUT_1M }
     );
     uploadRes = { status: 200, body: JSON.parse(curlOutput) };
   } catch (curlErr) {

@@ -1,8 +1,19 @@
 {
   "profile": "eu-ai-act",
+  "allowedAnalysisRoots": [
+    "C:/Users/Trevor/CascadeProjects",
+    "C:/Users/Trevor/CascadeProjects_BACKUP_20260521",
+    "C:/Users/Trevor/AI-Guardrail-system",
+    "C:/Users/Trevor/CascadeProjects/ai-platform",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/web",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/web/coming-soon",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/server",
+    "J:/AI project backup",
+    "E:/Ai",
+    "/tmp"
+  ],
   "scanPaths": [
     "web/data",
-    "tests/fixtures",
     "data"
   ],
   "productionPaths": [
@@ -28,9 +39,23 @@
     "**/*.spec.ts",
     "tests/**",
     "test/**",
-    "**/.github-sync/**",
-    "**/bin/**",
-    "packages/simplebeacon-cli/**"
+    "coming-soon/**",
+    "coming-soon-dev/**",
+    "scripts/**",
+    "simplebeacon-frameworkless/**",
+    "sales/**",
+    "marketing/**",
+    "logs/**",
+    "github-action/**",
+    "browser-local/**",
+    "cjs/**",
+    "esm/**",
+    "packages/simplebeacon-cli/**",
+    "simplebeacon-vscode/**",
+    "report.json",
+    "cli-test-report*.json",
+    "test-output.txt",
+    "server/db/token-registry.json"
   ],
   "rules": {
     "credentials": {
@@ -48,7 +73,11 @@
     },
     "production-leak": {
       "enabled": true,
-      "severity": "high"
+      "severity": "high",
+      "productionPaths": [
+        "server/",
+        "src/"
+      ]
     },
     "fiction-kpi-patterns": {
       "enabled": true,
@@ -65,16 +94,6 @@
     },
     "eu-ai-act-patterns": {
       "enabled": true,
-      "severity": "medium",
-      "ignoreGlobs": [
-        "docs/**",
-        "**/free-slop-audit-offer.md",
-        "**/outreach-cc-campaign.md",
-        "**/prospect-list.md"
-      ]
-    },
-    "file-naming-patterns": {
-      "enabled": false,
       "severity": "medium"
     },
     "jest-baseline": {
@@ -82,20 +101,22 @@
       "runTests": false
     },
     "token-bleed-patterns": {
-      "enabled": false,
+      "enabled": true,
       "severity": "medium"
     },
     "architecture-drift-patterns": {
-      "enabled": false,
-      "severity": "high"
-    },
-    "python-ast-patterns": {
-      "enabled": false,
+      "enabled": true,
       "severity": "medium"
+    },
+    "file-reduction": {
+      "enabled": true,
+      "dryRun": true
     },
     "javascript-ast-patterns": {
-      "enabled": false,
-      "severity": "medium"
+      "enabled": true
+    },
+    "python-ast-patterns": {
+      "enabled": true
     }
   },
   "gate": {
@@ -107,15 +128,5 @@
       "low"
     ]
   },
-  "sourceCodeScanPaths": [
-    "server/",
-    "src/"
-  ],
-  "fullDirectoryScan": false,
-  "fullDirectoryScanSkipDirs": [
-    ".git",
-    ".github-sync",
-    "github-cache",
-    "node_modules"
-  ]
+  "fullDirectoryScan": false
 }

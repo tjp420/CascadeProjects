@@ -10,6 +10,11 @@ import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260601
 
 
 
+/**
+ * Npm audit summary.
+ * @param {any} audit
+ * @returns {any}
+ */
 export function npmAuditSummary(audit) {
 
   const summary = audit?.summary || audit?.metadata?.vulnerabilities || {};
@@ -42,6 +47,11 @@ export function npmAuditSummary(audit) {
 
 
 
+/**
+ * Strip internal export fields.
+ * @param {any} section
+ * @returns {any}
+ */
 export function stripInternalExportFields(section) {
 
   if (!section || typeof section !== 'object' || Array.isArray(section)) return section;
@@ -54,6 +64,11 @@ export function stripInternalExportFields(section) {
 
 
 
+/**
+ * Resolve section provenance.
+ * @param {any} section
+ * @returns {any}
+ */
 export function resolveSectionProvenance(section) {
 
   if (!section || typeof section !== 'object') return 'missing';
@@ -78,6 +93,12 @@ export function resolveSectionProvenance(section) {
 
 
 
+/**
+ * Redact project path for export.
+ * @param {string} rawPath
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 export function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
 
   if (rawPath == null || rawPath === '') return rawPath;
@@ -104,6 +125,11 @@ export function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform'
 
 
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
 
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
@@ -116,6 +142,11 @@ function projectLabelFromPath(projectPath) {
 
 
 
+/**
+ * Sanitize coverage export.
+ * @param {any} coverage
+ * @returns {any}
+ */
 export function sanitizeCoverageExport(coverage) {
 
   if (!coverage) return null;
@@ -144,6 +175,11 @@ export function sanitizeCoverageExport(coverage) {
 
 
 
+/**
+ * Sanitize security export.
+ * @param {any} security
+ * @returns {any}
+ */
 export function sanitizeSecurityExport(security) {
 
   if (!security) return null;
@@ -160,6 +196,13 @@ export function sanitizeSecurityExport(security) {
 
 
 
+/**
+ * Sanitize quality export.
+ * @param {any} quality
+ * @param {any} coverage
+ * @param {number} report
+ * @returns {any}
+ */
 export function sanitizeQualityExport(quality, coverage = null, report = null) {
 
   if (!quality) return null;
@@ -264,6 +307,11 @@ export function sanitizeQualityExport(quality, coverage = null, report = null) {
 
 
 
+/**
+ * Dedupe export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeExportNotes(notes = []) {
 
   const seen = new Set();
@@ -314,6 +362,11 @@ function dedupeExportNotes(notes = []) {
 
 
 
+/**
+ * Normalize simple beacon branding.
+ * @param {any} value
+ * @returns {any}
+ */
 export function normalizeSimpleBeaconBranding(value) {
 
   return String(value ?? '').replace(/\bSimplebeacon\b/g, 'SimpleBeacon');
@@ -322,6 +375,12 @@ export function normalizeSimpleBeaconBranding(value) {
 
 
 
+/**
+ * Build measured baselines note.
+ * @param {any} quality
+ * @param {number} report
+ * @returns {any}
+ */
 function buildMeasuredBaselinesNote(quality, report = null) {
 
   const catalog = quality?.measuredBaselines;
@@ -346,6 +405,11 @@ function buildMeasuredBaselinesNote(quality, report = null) {
 
 
 
+/**
+ * Parse numeric.
+ * @param {any} value
+ * @returns {any}
+ */
 function parseNumeric(value) {
 
   if (value == null) return null;
@@ -358,6 +422,12 @@ function parseNumeric(value) {
 
 
 
+/**
+ * Sanitize npm audit for quality export.
+ * @param {any} audit
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export function sanitizeNpmAuditForQualityExport(audit, projectPath) {
 
   if (!audit || audit.error) {
@@ -420,6 +490,14 @@ export function sanitizeNpmAuditForQualityExport(audit, projectPath) {
 
 
 
+/**
+ * Build export provenance.
+ * @param {Object} options
+ * @param {any} security
+ * @param {any} quality
+ * @param {any} npmAudit }
+ * @returns {any}
+ */
 export function buildExportProvenance({ coverage, security, quality, npmAudit } = {}) {
 
   return {
@@ -438,6 +516,15 @@ export function buildExportProvenance({ coverage, security, quality, npmAudit } 
 
 
 
+/**
+ * Build quality export bundle.
+ * @param {Object} options
+ * @param {any} security
+ * @param {any} quality
+ * @param {any} npmAudit
+ * @param {number} report }
+ * @returns {any}
+ */
 export function buildQualityExportBundle({ coverage, security, quality, npmAudit, report } = {}) {
 
   const auditStats = npmAudit && !npmAudit.error ? npmAuditSummary(npmAudit) : null;
@@ -620,6 +707,12 @@ export function buildQualityExportBundle({ coverage, security, quality, npmAudit
 
 
 
+/**
+ * Sanitize quality security export.
+ * @param {any} bundle
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeQualitySecurityExport(bundle, options = {}) {
 
   if (!bundle || bundle.type !== 'simplebeacon-quality-security-export') return bundle;
@@ -658,6 +751,11 @@ export function sanitizeQualitySecurityExport(bundle, options = {}) {
 
 
 
+/**
+ * Build npm audit csv.
+ * @param {any} audit
+ * @returns {any}
+ */
 export function buildNpmAuditCsv(audit) {
 
   if (!audit || audit.error) return null;
@@ -686,6 +784,11 @@ export function buildNpmAuditCsv(audit) {
 
 
 
+/**
+ * Build quality summary csv.
+ * @param {any} bundle
+ * @returns {any}
+ */
 export function buildQualitySummaryCsv(bundle) {
 
   if (!bundle?.summary) return null;
@@ -706,6 +809,12 @@ export function buildQualitySummaryCsv(bundle) {
 
 
 
+/**
+ * Build quality csv.
+ * @param {Object} options
+ * @param {any} npmAudit }
+ * @returns {any}
+ */
 export function buildQualityCsv({ bundle, npmAudit } = {}) {
 
   const vulnCsv = buildNpmAuditCsv(npmAudit);
@@ -718,6 +827,11 @@ export function buildQualityCsv({ bundle, npmAudit } = {}) {
 
 
 
+/**
+ * Quality export filename.
+ * @param {any} ext
+ * @returns {any}
+ */
 export function qualityExportFilename(ext = 'json') {
 
   const stamp = new Date().toISOString().slice(0, 10);

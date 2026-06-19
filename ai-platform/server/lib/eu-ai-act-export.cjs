@@ -1,30 +1,43 @@
+const { DEFAULT_MAX_STALE_MS, evaluateEuExportEligibility, evaluateSprintFreshness, isLegalReviewAttestation, redactProjectPathForExport, sanitizeComplianceChecklistArtifactExport, sanitizeSimplebeaconReportExport } = require('./simplebeacon-proxy.cjs');
+
 /**
  * EU AI Act compliance page export bundle — checklist, assessment, sprint artifacts.
  * Canonical CJS — keep in sync with web/simplebeacon-dashboard/js/utils/eu-ai-act-export.browser.js
  * simplebeacon:production-leak-intent: sample-data-reference - This file references sample data patterns in a descriptive message about KPI evaluation, not actual production data paths
  */
 
-const { sanitizeSimplebeaconReportExport } = require('../../packages/simplebeacon-cli/src/lib/simplebeacon-report-export-sanitize.js');
-const { sanitizeComplianceChecklistArtifactExport } = require('../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize.js');
-const { redactProjectPathForExport } = require('../../packages/simplebeacon-cli/src/lib/assessment-export-sanitize');
-const {
-  evaluateEuExportEligibility,
-  evaluateSprintFreshness,
-  DEFAULT_MAX_STALE_MS
-} = require('../../packages/simplebeacon-cli/src/eu-ai-act-export-guard.js');
-const { isLegalReviewAttestation } = require('../../packages/simplebeacon-cli/src/eu-ai-act-legal-attestation.js');
 
+
+
+
+
+
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Parse timestamp.
+ * @param {any} value
+ * @returns {any}
+ */
 function parseTimestamp(value) {
   const ms = Date.parse(value || '');
   return Number.isFinite(ms) ? ms : null;
 }
 
+/**
+ * Resolve project label.
+ * @param {any} bundle
+ * @returns {any}
+ */
 function resolveProjectLabel(bundle = {}) {
   return projectLabelFromPath(
     bundle.compliance?.projectRoot
@@ -34,6 +47,11 @@ function resolveProjectLabel(bundle = {}) {
   );
 }
 
+/**
+ * Resolve gate result.
+ * @param {any} bundle
+ * @returns {any}
+ */
 function resolveGateResult(bundle = {}) {
   const embedded = bundle.embeddedInMainReport;
   const assessment = bundle.assessment;
@@ -52,6 +70,11 @@ function resolveGateResult(bundle = {}) {
     ?? (embedded?.gatePass === true ? 'PASS' : embedded?.gatePass === false ? 'FAIL' : null);
 }
 
+/**
+ * Build freshness note.
+ * @param {any} bundle
+ * @returns {any}
+ */
 function buildFreshnessNote(bundle = {}) {
   const embeddedAt = parseTimestamp(bundle.embeddedInMainReport?.generatedAt);
   const sprintAt = parseTimestamp(
@@ -63,6 +86,11 @@ function buildFreshnessNote(bundle = {}) {
   return `Latest gate scan (${bundle.embeddedInMainReport.generatedAt}) is newer than EU sprint artifacts (${bundle.compliance?.evaluatedAt || bundle.assessment?.generatedAt}). Summary gate result uses the latest scan.`;
 }
 
+/**
+ * Resolve sprint timestamp.
+ * @param {any} bundle
+ * @returns {any}
+ */
 function resolveSprintTimestamp(bundle = {}) {
   return parseTimestamp(
     bundle.compliance?.evaluatedAt
@@ -71,6 +99,11 @@ function resolveSprintTimestamp(bundle = {}) {
   );
 }
 
+/**
+ * Is live gate preferred.
+ * @param {any} bundle
+ * @returns {any}
+ */
 function isLiveGatePreferred(bundle = {}) {
   const embedded = bundle.embeddedInMainReport;
   const embeddedAt = parseTimestamp(embedded?.generatedAt);
@@ -80,6 +113,11 @@ function isLiveGatePreferred(bundle = {}) {
 
 const SCAN_CHECKLIST_RULE_IDS = ['GATE-001', 'CRED-001', 'LEAK-001'];
 
+/**
+ * Should reconcile scan rules from embedded.
+ * @param {any} bundle
+ * @returns {any}
+ */
 function shouldReconcileScanRulesFromEmbedded(bundle = {}) {
   if (!bundle.embeddedInMainReport || !bundle.compliance?.rules?.length) return false;
   if (isLiveGatePreferred(bundle)) return true;
@@ -95,6 +133,12 @@ function shouldReconcileScanRulesFromEmbedded(bundle = {}) {
   return cred == null && leak == null;
 }
 
+/**
+ * Reconcile scan checklist rule.
+ * @param {any} rule
+ * @param {any} embedded
+ * @returns {any}
+ */
 function reconcileScanChecklistRule(rule, embedded = {}) {
   if (!SCAN_CHECKLIST_RULE_IDS.includes(rule.id)) return rule;
   const gatePass = embedded.gatePass === true;
@@ -129,10 +173,20 @@ function reconcileScanChecklistRule(rule, embedded = {}) {
   return rule;
 }
 
+/**
+ * Normalize simple beacon branding.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizeSimpleBeaconBranding(value) {
   return String(value ?? '').replace(/\bSimplebeacon\b/g, 'SimpleBeacon');
 }
 
+/**
+ * Dedupe finding summary.
+ * @param {string} text
+ * @returns {any}
+ */
 function dedupeFindingSummary(text) {
   const raw = String(text || '').trim();
   if (!raw) return raw;
@@ -146,6 +200,11 @@ function dedupeFindingSummary(text) {
   return raw;
 }
 
+/**
+ * Split documentation paths.
+ * @param {Array} docs
+ * @returns {any}
+ */
 function splitDocumentationPaths(docs = []) {
   const all = Array.isArray(docs) ? docs : [];
   const simplebeaconArtifactPaths = all.filter((doc) => String(doc).startsWith('.simplebeacon/'));
@@ -173,6 +232,13 @@ function splitDocumentationPaths(docs = []) {
   };
 }
 
+/**
+ * Build checklist headline.
+ * @param {any} passed
+ * @param {any} failed
+ * @param {any} total
+ * @returns {any}
+ */
 function buildChecklistHeadline(passed, failed, total) {
   if (failed === 0 && passed > 0) {
     return `${passed}/${total} EU AI Act readiness rules pass`;
@@ -183,6 +249,12 @@ function buildChecklistHeadline(passed, failed, total) {
   return null;
 }
 
+/**
+ * Reconcile compliance for live gate.
+ * @param {any} compliance
+ * @param {any} bundle
+ * @returns {any}
+ */
 function reconcileComplianceForLiveGate(compliance, bundle = {}) {
   if (!compliance?.rules?.length) return compliance;
   const freshMetrics = resolveFreshEuAiActMetrics(bundle);
@@ -241,6 +313,11 @@ function reconcileComplianceForLiveGate(compliance, bundle = {}) {
   };
 }
 
+/**
+ * Dedupe assessment findings.
+ * @param {any} assessment
+ * @returns {any}
+ */
 function dedupeAssessmentFindings(assessment) {
   if (!assessment?.findings?.fictionKpis?.summary) return assessment;
   return {
@@ -255,6 +332,12 @@ function dedupeAssessmentFindings(assessment) {
   };
 }
 
+/**
+ * Reconcile assessment for live gate.
+ * @param {any} assessment
+ * @param {any} bundle
+ * @returns {any}
+ */
 function reconcileAssessmentForLiveGate(assessment, bundle = {}) {
   if (!assessment) return assessment;
   let next = dedupeAssessmentFindings(assessment);
@@ -285,6 +368,11 @@ function reconcileAssessmentForLiveGate(assessment, bundle = {}) {
   };
 }
 
+/**
+ * Apply export reconciliation.
+ * @param {any} bundle
+ * @returns {any}
+ */
 function applyExportReconciliation(bundle = {}) {
   return {
     ...bundle,
@@ -305,6 +393,11 @@ function applyExportReconciliation(bundle = {}) {
   };
 }
 
+/**
+ * Resolve fresh eu ai act metrics.
+ * @param {any} bundle
+ * @returns {any}
+ */
 function resolveFreshEuAiActMetrics(bundle = {}) {
   const assessment = bundle.assessment;
   const embedded = bundle.embeddedInMainReport;
@@ -341,16 +434,25 @@ function resolveFreshEuAiActMetrics(bundle = {}) {
     metricsSource: preferEmbedded ? 'live-gate-scan' : 'eu-ai-act-sprint',
     metricsStaleNote,
     simplebeaconDocumentationArtifacts: docs.filter((doc) => String(doc).startsWith('.simplebeacon/')).length || null,
-    operatorDocumentationCount: operatorCount
   };
 }
 
+/**
+ * Build files scanned note.
+ * @param {any} assessment
+ * @returns {any}
+ */
 function buildFilesScannedNote(assessment) {
   const filesScanned = assessment?.executiveSummary?.filesScanned;
   if (filesScanned == null || filesScanned > 20) return null;
   return `Assessment filesScanned (${filesScanned}) reflects configured mock/sample JSON paths — not whole-repository coverage.`;
 }
 
+/**
+ * Dedupe export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeExportNotes(notes = []) {
   const seen = new Set();
   const out = [];
@@ -378,6 +480,12 @@ function dedupeExportNotes(notes = []) {
   return out.slice(0, 8);
 }
 
+/**
+ * Resolve sprint gate result.
+ * @param {any} bundle
+ * @param {any} assessment
+ * @returns {any}
+ */
 function resolveSprintGateResult(bundle = {}, assessment = {}) {
   if (assessment?.executiveSummary?.sprintGateResult) {
     return assessment.executiveSummary.sprintGateResult;
@@ -390,12 +498,23 @@ function resolveSprintGateResult(bundle = {}, assessment = {}) {
   return null;
 }
 
+/**
+ * Build live gate executive headline.
+ * @param {Array} gatePass
+ * @returns {any}
+ */
 function buildLiveGateExecutiveHeadline(gatePass) {
   return gatePass
     ? 'Gate pass — no blocking issues at configured severities (live report.json scan).'
     : null;
 }
 
+/**
+ * Reconcile executive summary for live gate.
+ * @param {any} executiveSummary
+ * @param {any} bundle
+ * @returns {any}
+ */
 function reconcileExecutiveSummaryForLiveGate(executiveSummary, bundle = {}) {
   if (!executiveSummary || !isLiveGatePreferred(bundle)) return executiveSummary;
   const gateResult = resolveGateResult(bundle);
@@ -426,6 +545,13 @@ function reconcileExecutiveSummaryForLiveGate(executiveSummary, bundle = {}) {
   return next;
 }
 
+/**
+ * Relativize scan paths for export.
+ * @param {Array} scanPaths
+ * @param {any} projectRoot
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function relativizeScanPathsForExport(scanPaths, projectRoot, projectLabel) {
   const root = String(projectRoot || '').replace(/\\/g, '/').replace(/\/$/, '').toLowerCase();
   return (scanPaths || []).map((entry) => {
@@ -438,6 +564,12 @@ function relativizeScanPathsForExport(scanPaths, projectRoot, projectLabel) {
   });
 }
 
+/**
+ * Sanitize compliance export.
+ * @param {any} compliance
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function sanitizeComplianceExport(compliance, projectLabel) {
   if (!compliance) return null;
   return {
@@ -449,6 +581,12 @@ function sanitizeComplianceExport(compliance, projectLabel) {
   };
 }
 
+/**
+ * Sanitize assessment export.
+ * @param {any} assessment
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function sanitizeAssessmentExport(assessment, projectLabel) {
   if (!assessment) return null;
   const { complianceChecklist: _complianceChecklist, sourceReport, euAiActSummary, executiveSummary, ...rest } = assessment;
@@ -487,6 +625,12 @@ function sanitizeAssessmentExport(assessment, projectLabel) {
   };
 }
 
+/**
+ * Sanitize embedded main report export.
+ * @param {any} embedded
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function sanitizeEmbeddedMainReportExport(embedded, projectLabel) {
   if (!embedded) return null;
   const docSplit = splitDocumentationPaths(embedded.summary?.documentationFound || []);
@@ -508,6 +652,12 @@ function sanitizeEmbeddedMainReportExport(embedded, projectLabel) {
   };
 }
 
+/**
+ * Sanitize sprint report export.
+ * @param {number} sprintReport
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function sanitizeSprintReportExport(sprintReport, projectLabel) {
   if (!sprintReport) return null;
   return sanitizeSimplebeaconReportExport(sprintReport, {
@@ -515,6 +665,11 @@ function sanitizeSprintReportExport(sprintReport, projectLabel) {
   });
 }
 
+/**
+ * Build eu ai act summary.
+ * @param {any} bundle
+ * @returns {any}
+ */
 function buildEuAiActSummary(bundle = {}) {
   const compliance = bundle.compliance;
   const assessment = bundle.assessment;
@@ -570,6 +725,11 @@ function buildEuAiActSummary(bundle = {}) {
   };
 }
 
+/**
+ * Build export provenance.
+ * @param {any} bundle
+ * @returns {any}
+ */
 function buildExportProvenance(bundle = {}) {
   return {
     compliance: bundle.compliance ? 'eu-ai-act-sprint-artifact' : 'missing',
@@ -579,6 +739,12 @@ function buildExportProvenance(bundle = {}) {
   };
 }
 
+/**
+ * Sync assessment eu metrics.
+ * @param {any} assessment
+ * @param {any} summary
+ * @returns {any}
+ */
 function syncAssessmentEuMetrics(assessment, summary) {
   if (!assessment?.euAiActSummary || summary.metricsSource !== 'live-gate-scan') return assessment;
   return {
@@ -593,6 +759,12 @@ function syncAssessmentEuMetrics(assessment, summary) {
   };
 }
 
+/**
+ * Sanitize classification export.
+ * @param {any} classification
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function sanitizeClassificationExport(classification, projectLabel) {
   if (!classification) return null;
   const reviewer = classification.legalReviewer || {};
@@ -615,6 +787,12 @@ function sanitizeClassificationExport(classification, projectLabel) {
   };
 }
 
+/**
+ * Sanitize legal attestation export.
+ * @param {any} attestation
+ * @param {any} _projectLabel
+ * @returns {any}
+ */
 function sanitizeLegalAttestationExport(attestation, _projectLabel) {
   if (!attestation || !isLegalReviewAttestation(attestation)) return null;
   return {
@@ -633,6 +811,12 @@ function sanitizeLegalAttestationExport(attestation, _projectLabel) {
   };
 }
 
+/**
+ * Build eu ai act export bundle.
+ * @param {any} bundle
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildEuAiActExportBundle(bundle = {}, options = {}) {
   const reconciled = applyExportReconciliation(bundle);
   const projectLabel = resolveProjectLabel(reconciled);
@@ -717,6 +901,10 @@ function buildEuAiActExportBundle(bundle = {}, options = {}) {
   };
 }
 
+/**
+ * Default sprint relative artifacts.
+ * @returns {any}
+ */
 function defaultSprintRelativeArtifacts() {
   return {
     report: '.simplebeacon/eu-ai-act-report.json',
@@ -725,6 +913,12 @@ function defaultSprintRelativeArtifacts() {
   };
 }
 
+/**
+ * Resolve sprint gate context.
+ * @param {any} sprint
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveSprintGateContext(sprint = {}, options = {}) {
   const gateReport = options.gateReport || {};
   const repositoryFilesTotal = options.repositoryFilesTotal
@@ -770,6 +964,12 @@ function resolveSprintGateContext(sprint = {}, options = {}) {
   };
 }
 
+/**
+ * Build sprint artifact export notes.
+ * @param {any} sprint
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildSprintArtifactExportNotes(sprint = {}, options = {}) {
   const notes = [
     'EU AI Act sprint artifact — technical readiness only, not legal conformity certification.',
@@ -852,6 +1052,12 @@ function buildSprintArtifactExportNotes(sprint = {}, options = {}) {
   return [...new Set(notes)].slice(0, 14);
 }
 
+/**
+ * Build sprint artifact hygiene summary.
+ * @param {any} sprint
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildSprintArtifactHygieneSummary(sprint = {}, options = {}) {
   const checklist = sprint.complianceChecklist?.summary || {};
   const gateContext = resolveSprintGateContext(sprint, options);
@@ -901,6 +1107,11 @@ function buildSprintArtifactHygieneSummary(sprint = {}, options = {}) {
   };
 }
 
+/**
+ * Reconcile eu ai act sprint report limitations.
+ * @param {number} report
+ * @returns {any}
+ */
 function reconcileEuAiActSprintReportLimitations(report) {
   if (!report?.scanScope?.limitations?.length) return report;
   const prodScanned = report.productionLeakScanned ?? report.scanScope?.productionDirsScanned ?? 0;
@@ -1062,10 +1273,20 @@ function sanitizeEuAiActExport(bundle) {
   return buildEuAiActExportBundle(bundle);
 }
 
+/**
+ * Csv escape.
+ * @param {any} cell
+ * @returns {any}
+ */
 function csvEscape(cell) {
   return `"${String(cell ?? '').replace(/"/g, '""')}"`;
 }
 
+/**
+ * Build eu ai act checklist csv.
+ * @param {Array} rules
+ * @returns {any}
+ */
 function buildEuAiActChecklistCsv(rules) {
   if (!rules?.length) return null;
   const header = ['id', 'title', 'category', 'severity', 'status', 'evidence', 'remediation'];
@@ -1081,6 +1302,11 @@ function buildEuAiActChecklistCsv(rules) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build eu ai act documentation csv.
+ * @param {Array} docs
+ * @returns {any}
+ */
 function buildEuAiActDocumentationCsv(docs) {
   if (!docs?.length) return null;
   const header = ['path'];
@@ -1088,6 +1314,11 @@ function buildEuAiActDocumentationCsv(docs) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build eu ai act summary csv.
+ * @param {any} summary
+ * @returns {any}
+ */
 function buildEuAiActSummaryCsv(summary) {
   if (!summary) return null;
   const header = ['metric', 'value'];
@@ -1098,6 +1329,13 @@ function buildEuAiActSummaryCsv(summary) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build eu ai act csv.
+ * @param {Object} options
+ * @param {any} documentationFound
+ * @param {any} summary }
+ * @returns {any}
+ */
 function buildEuAiActCsv({ rules, documentationFound, summary } = {}) {
   const parts = [];
   const checklist = buildEuAiActChecklistCsv(rules);
@@ -1118,6 +1356,11 @@ function buildEuAiActCsv({ rules, documentationFound, summary } = {}) {
   return parts.length ? parts.join('\n') : null;
 }
 
+/**
+ * Eu ai act export filename.
+ * @param {any} ext
+ * @returns {any}
+ */
 function euAiActExportFilename(ext = 'json') {
   const stamp = new Date().toISOString().slice(0, 10);
   if (ext === 'csv') return `eu-ai-act-metrics-${stamp}.csv`;

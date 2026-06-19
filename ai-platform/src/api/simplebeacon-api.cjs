@@ -8,48 +8,51 @@ const fs = require('fs');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 
+const constants = require('../../server/config/constants.cjs');
 const execAsync = promisify(exec);
 const https = require('https');
 const http = require('http');
 const { URL } = require('url');
 const { sendEmail } = require('../../server/lib/email-service.cjs');
-const { validateConfig } = require('../../packages/simplebeacon-cli/src/config-schema');
-const {
-  PROFILE_RULES,
-  DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
-  DEFAULT_CONFIG
-} = require('../../packages/simplebeacon-cli/src/config');
-const {
-  buildFictionPatternCatalog,
-  countFictionIssues
-} = require('../../packages/simplebeacon-cli/src/rules/ai-fiction-detection');
-const {
-  buildDashboardPayload,
-  buildScanResults,
-  buildAuditPayload,
-  findHistoryEntry
-} = require('../../packages/simplebeacon-cli/src/lib/dashboard-payload');
-const { buildAssessmentReport } = require('../../packages/simplebeacon-cli/src/assessment');
-const {
-  readScanProgress,
-  resolveScanProgressPath
-} = require('../../packages/simplebeacon-cli/src/lib/scan-progress');
 const { runNpmAudit, runNpmAuditAsync } = require('../../server/lib/npm-audit-runner.cjs');
 const {
   resolveDefaultAllowedRoots,
   assertSafeProjectPath
 } = require('../../server/lib/path-safety.cjs');
-const { resolvePlatformRoot } = require('../../packages/simplebeacon-cli/src/project-detect');
+const { patchRemediationPhases } = require('../../server/lib/scan-report-patch.cjs');
 const { createRequireSubscription } = require('../../server/middleware/simplebeacon-subscription.cjs');
+const { optionalAuthenticate } = require('../../server/middleware/auth.cjs');
 const {
   getUserAiKeysPublic,
   saveUserAiKeys,
   clearUserAiKeys
 } = require('../../server/lib/user-ai-keys-store.cjs');
+const {
+  DEFAULT_CONFIG,
+  DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
+  PROFILE_RULES,
+  buildAssessmentReport,
+  buildAuditPayload,
+  buildDashboardPayload,
+  buildFictionPatternCatalog,
+  buildScanResults,
+  countFictionIssues,
+  detectProjectProfile,
+  findHistoryEntry,
+  readScanProgress,
+  resolvePlatformRoot,
+  resolveScanProgressPath,
+  syncMeasuredBaseline,
+  validateConfig
+} = require('../../server/lib/simplebeacon-proxy.cjs');
 
 const PROJECT_ROOT = path.join(__dirname, '../..');
 const MONOREPO_ROOT = path.join(PROJECT_ROOT, '..');
 
+/**
+ * Get analyze allowed roots.
+ * @returns {any}
+ */
 function getAnalyzeAllowedRoots() {
   return resolveDefaultAllowedRoots(PROJECT_ROOT, { monorepoRoot: MONOREPO_ROOT });
 }
@@ -70,6 +73,12 @@ const SCHEDULE_PATH = path.join(SIMPLEBEACON_DIR, 'schedule.json');
 let scheduleTimer = null;
 let scheduleConfigCache = null;
 
+/**
+ * Read json.
+ * @param {string} filePath
+ * @param {any} fallback
+ * @returns {any}
+ */
 async function readJson(filePath, fallback = null) {
   try {
     const content = await fs.promises.readFile(filePath, 'utf8');
@@ -80,6 +89,45 @@ async function readJson(filePath, fallback = null) {
   }
 }
 
+/**
+ * Try extract JSON object from CLI stdout.
+ * @param {string} stdout
+ * @returns {any}
+ */
+function tryExtractJsonFromStdout(stdout) {
+  if (!stdout) return null;
+  // Look for the last JSON object/array in the output
+  const lines = stdout.split('\n');
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    try {
+      const parsed = JSON.parse(line);
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch {
+      // not JSON, continue scanning backwards
+    }
+  }
+  // Try finding JSON block inside the text
+  const jsonBlockMatch = stdout.match(/\{[\s\S]*\}/g);
+  if (jsonBlockMatch) {
+    for (let i = jsonBlockMatch.length - 1; i >= 0; i--) {
+      try {
+        const parsed = JSON.parse(jsonBlockMatch[i]);
+        if (parsed && typeof parsed === 'object') return parsed;
+      } catch {
+        // invalid JSON block
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve safe analyze path.
+ * @param {string} rawPath
+ * @returns {any}
+ */
 function resolveSafeAnalyzePath(rawPath) {
   if (!rawPath) return null;
   const trimmed = String(rawPath).trim();
@@ -87,9 +135,31 @@ function resolveSafeAnalyzePath(rawPath) {
   if (/^https?:\/\//i.test(trimmed)) {
     return null;
   }
-  return assertSafeProjectPath(trimmed, getAnalyzeAllowedRoots());
+  if (path.isAbsolute(trimmed)) {
+    return assertSafeProjectPath(trimmed, getAnalyzeAllowedRoots());
+  }
+
+  // Try relative to CWD first
+  const fromCwd = path.resolve(trimmed);
+  if (fs.existsSync(fromCwd)) {
+    return assertSafeProjectPath(fromCwd, getAnalyzeAllowedRoots());
+  }
+
+  // Fall back to monorepo root for relative paths
+  const fromMono = path.resolve(MONOREPO_ROOT, trimmed);
+  if (fs.existsSync(fromMono)) {
+    return assertSafeProjectPath(fromMono, getAnalyzeAllowedRoots());
+  }
+
+  // Let assertSafeProjectPath handle the error for missing paths
+  return assertSafeProjectPath(fromCwd, getAnalyzeAllowedRoots());
 }
 
+/**
+ * Resolve report file path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveReportFilePath(projectPath) {
   if (!projectPath) return REPORT_PATH;
   const direct = path.join(projectPath, '.simplebeacon', 'report.json');
@@ -113,6 +183,39 @@ function resolveReportFilePath(projectPath) {
   return direct;
 }
 
+/**
+ * Resolve config file path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
+function resolveConfigFilePath(projectPath) {
+  if (!projectPath) return CONFIG_PATH;
+  const direct = path.join(projectPath, '.simplebeacon', 'config.json');
+  if (fs.existsSync(direct)) return direct;
+
+  const projectResolved = path.resolve(projectPath);
+  const platformResolved = path.resolve(PROJECT_ROOT);
+  if (projectResolved !== platformResolved
+    && platformResolved.startsWith(projectResolved + path.sep)
+    && fs.existsSync(CONFIG_PATH)) {
+    return CONFIG_PATH;
+  }
+
+  try {
+    const { platformRoot } = resolvePlatformRoot(projectResolved);
+    const nested = path.join(platformRoot, '.simplebeacon', 'config.json');
+    if (fs.existsSync(nested)) return nested;
+  } catch {
+    /* fall through */
+  }
+  return direct;
+}
+
+/**
+ * Append history.
+ * @param {number} report
+ * @returns {any}
+ */
 async function appendHistory(report) {
   const entry = {
     scanId: crypto.randomUUID(),
@@ -147,11 +250,19 @@ async function appendHistory(report) {
   return history;
 }
 
+/**
+ * Ensure history from report.
+ * @returns {any}
+ */
 async function ensureHistoryFromReport() {
   const report = await readJson(REPORT_PATH);
   return appendHistory(report);
 }
 
+/**
+ * Load dashboard context.
+ * @returns {any}
+ */
 async function loadDashboardContext() {
   const [report, baseline, history] = await Promise.all([
     readJson(REPORT_PATH),
@@ -168,6 +279,11 @@ async function loadDashboardContext() {
   return { report, baseline, history: resolvedHistory, fictionCatalog };
 }
 
+/**
+ * Load assessment.
+ * @param {number} report
+ * @returns {any}
+ */
 async function loadAssessment(report) {
   try {
     return await readJson(ASSESSMENT_PATH);
@@ -179,6 +295,10 @@ async function loadAssessment(report) {
   }
 }
 
+/**
+ * Load audit page samples.
+ * @returns {any}
+ */
 async function loadAuditPageSamples() {
   const dataDir = path.join(PROJECT_ROOT, 'web', 'data');
   const samples = {};
@@ -193,6 +313,11 @@ async function loadAuditPageSamples() {
   return samples;
 }
 
+/**
+ * Load audit context.
+ * @param {Object} options
+ * @returns {any}
+ */
 async function loadAuditContext(options = {}) {
   const context = await loadDashboardContext();
   const assessment = await loadAssessment(context.report);
@@ -210,13 +335,19 @@ async function loadAuditContext(options = {}) {
 
 let isScanRunning = false;
 
-async function runSimplebeaconScan(projectPath) {
+/**
+ * Run simplebeacon scan.
+ * @param {string} projectPath
+ * @param {Object} opts
+ * @returns {any}
+ */
+async function runSimplebeaconScan(projectPath, opts = {}) {
   if (isScanRunning) {
     return { skipped: true, reason: 'scan_already_in_progress' };
   }
   isScanRunning = true;
 
-  const cliBin = path.join(PROJECT_ROOT, 'packages/simplebeacon-cli/bin/simplebeacon.js');
+  const cliBin = path.join(MONOREPO_ROOT, 'packages/simplebeacon-cli/bin/simplebeacon.js');
   const reportOut = projectPath
     ? path.join(projectPath, '.simplebeacon', 'report.json')
     : REPORT_PATH;
@@ -225,10 +356,51 @@ async function runSimplebeaconScan(projectPath) {
     await fs.promises.mkdir(path.dirname(reportOut), { recursive: true });
   }
 
+  // Fallback to programmatic scan if CLI binary does not exist
+  if (!fs.existsSync(cliBin)) {
+    console.warn('[runSimplebeaconScan] CLI binary not found at', cliBin, '— falling back to programmatic analyzeCodebase');
+    try {
+      const { analyzeCodebase } = require('../../server/lib/codebase-analyzer.cjs');
+      const scanRoot = projectPath || PROJECT_ROOT;
+      const analysis = await analyzeCodebase(scanRoot, { includeEslint: false, includeBrowserAnalyzers: opts.includeBrowserAnalyzers, includeAllFiles: opts.fullDirectoryScan, context: 'dashboard' });
+      const report = {
+        type: 'simplebeacon-report',
+        version: '1.0.0',
+        generatedAt: new Date().toISOString(),
+        projectPath: scanRoot,
+        summary: analysis.summary || {},
+        categories: analysis.categories || [],
+        findings: analysis.findings || [],
+        gate: { pass: (analysis.summary?.healthScore || 100) >= 80, score: analysis.summary?.healthScore || 100 }
+      };
+      const patchedReport = patchRemediationPhases(report);
+      await fs.promises.writeFile(reportOut, JSON.stringify(patchedReport, null, 2));
+      const history = await appendHistory(patchedReport);
+      isScanRunning = false;
+      return {
+        report: patchedReport,
+        history,
+        projectPath: scanRoot,
+        stdout: '[programmatic fallback — CLI not installed]',
+        stderr: '',
+        scanId: history[history.length - 1]?.scanId || null,
+        gateFailed: !patchedReport.gate.pass,
+        cliExitCode: 0
+      };
+    } catch (fallbackErr) {
+      isScanRunning = false;
+      console.error('[runSimplebeaconScan] Programmatic fallback failed:', fallbackErr.message);
+      throw fallbackErr;
+    }
+  }
+
   // Do not pass --gate: CLI exit 1 on gate FAIL would abort the API even when the report was written.
+  const fullFlag = opts.fullDirectoryScan ? ' --full' : '';
+  // Server needs JSON output regardless of user tier — apply tier limits to response, not generation
+  const tierFlag = ' --tier ' + (opts.tier || 'executive');
   const scanCmd = projectPath
-    ? 'node "' + cliBin + '" scan --path "' + projectPath + '" --format json --output "' + reportOut + '"'
-    : 'node "' + cliBin + '" scan --format json --output "' + REPORT_PATH + '"';
+    ? 'node "' + cliBin + '" scan --path "' + projectPath + '" --format json --output "' + reportOut + '"' + fullFlag + tierFlag
+    : 'node "' + cliBin + '" scan --format json --output "' + REPORT_PATH + '"' + fullFlag + tierFlag;
 
   let stdout = '';
   let stderr = '';
@@ -237,7 +409,7 @@ async function runSimplebeaconScan(projectPath) {
     try {
       const result = await execAsync(scanCmd, {
         cwd: PROJECT_ROOT,
-        timeout: 120000,
+        timeout: Number(process.env.SIMPLEBEACON_SCAN_TIMEOUT_MS) || constants.TIMEOUT_10M,
         env: { ...process.env, FORCE_COLOR: '0' }
       });
       stdout = result.stdout || '';
@@ -248,20 +420,44 @@ async function runSimplebeaconScan(projectPath) {
       cliExitCode = typeof err.code === 'number' ? err.code : 1;
       const reportExists = fs.existsSync(projectPath ? reportOut : REPORT_PATH);
       if (!reportExists) {
+        console.error('[runSimplebeaconScan] CLI failed — report missing:', err.message, 'stderr:', stderr.slice(0, 500));
         err.stdout = stdout;
         err.stderr = stderr;
         throw err;
       }
     }
 
-    const report = await readJson(projectPath ? reportOut : REPORT_PATH);
+    const reportFilePath = projectPath ? reportOut : REPORT_PATH;
+    let report;
+    if (fs.existsSync(reportFilePath)) {
+      report = await readJson(reportFilePath);
+    } else {
+      console.warn('[runSimplebeaconScan] Report file missing — attempting stdout fallback');
+      report = tryExtractJsonFromStdout(stdout);
+      if (!report) {
+        console.warn('[runSimplebeaconScan] No JSON in stdout — creating minimal fallback report');
+        report = {
+          type: 'simplebeacon-report',
+          version: '1.0.0',
+          generatedAt: new Date().toISOString(),
+          projectPath: projectPath || PROJECT_ROOT,
+          summary: { totalFiles: 0, totalFindings: 0, severityCounts: { critical: 0, high: 0, medium: 0, low: 0 } },
+          categories: {},
+          findings: [],
+          gate: { pass: false, failOn: ['high'], warnOn: ['medium', 'low'] }
+        };
+      }
+      await fs.promises.mkdir(path.dirname(reportFilePath), { recursive: true });
+      await fs.promises.writeFile(reportFilePath, JSON.stringify(report, null, 2));
+    }
+    report = patchRemediationPhases(report);
     const history = await appendHistory(report);
 
     return {
       report,
       history,
       projectPath: projectPath || PROJECT_ROOT,
-      stdout: stdout.slice(-2000),
+      stdout: stdout.slice(-constants.MAX_RATE_LIMIT),
       stderr: stderr.slice(-500),
       scanId: history[history.length - 1]?.scanId || null,
       gateFailed: report.gate?.pass === false || cliExitCode !== 0,
@@ -272,10 +468,24 @@ async function runSimplebeaconScan(projectPath) {
   }
 }
 
+/**
+ * Setup simplebeacon a p i.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function setupSimplebeaconAPI(app, options = {}) {
+  const requirePaidReadOnly = options.requirePaidReadOnly || createRequireSubscription({ allowFree: true });
   const requirePaid = options.requirePaid || createRequireSubscription();
   const requirePaidWithQuota = options.requirePaidWithQuota || createRequireSubscription({ consumeQuota: true });
 
+/**
+ * Require user account.
+ * @param {any} req
+ * @param {Array} res
+ * @param {any} next
+ * @returns {any}
+ */
   function requireUserAccount(req, res, next) {
     if (!req.user?.email) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
@@ -283,21 +493,51 @@ function setupSimplebeaconAPI(app, options = {}) {
     next();
   }
 
-  app.get('/api/simplebeacon/report', requirePaid, async (req, res) => {
+  app.get('/api/simplebeacon/report', requirePaidReadOnly, async (req, res) => {
     try {
       let projectPath = null;
       if (req.query.projectPath) {
         try {
           projectPath = resolveSafeAnalyzePath(req.query.projectPath);
         } catch (err) {
-          return res.status(400).json({ success: false, error: err.message });
+          // Path outside allowed roots — fall back to default platform report
+          console.log('[simplebeacon-api] report path outside allowed roots:', req.query.projectPath, '- falling back to default');
+          projectPath = null;
         }
       }
       const reportPath = resolveReportFilePath(projectPath);
-      const report = await readJson(reportPath);
+      const report = patchRemediationPhases(await readJson(reportPath));
       res.json(report);
     } catch (err) {
       res.status(404).json({ error: 'Report not found', message: err.message });
+    }
+  });
+
+  // --- Subscription status (for frontend tier gating) ---
+  app.get('/api/simplebeacon/subscription', requirePaidReadOnly, async (req, res) => {
+    const sub = req.simplebeaconSubscription || { tier: 'anonymous', readOnly: true };
+    res.json({
+      tier: sub.tier || 'anonymous',
+      subscriptionActive: Boolean(sub.subscriptionActive),
+      readOnly: Boolean(sub.readOnly),
+      freeToken: Boolean(sub.freeToken),
+      scansRemaining: sub.scansRemaining ?? 0,
+      apiRemaining: sub.apiRemaining ?? 0,
+      upgradeUrl: '/pricing.html'
+    });
+  });
+
+  // --- External project report integration ---
+  app.get('/api/simplebeacon/report/ai-agent', requirePaidReadOnly, async (_req, res) => {
+    try {
+      const agentReportPath = path.join(MONOREPO_ROOT, 'ai-agent', '.simplebeacon', 'report.json');
+      if (!fs.existsSync(agentReportPath)) {
+        return res.status(404).json({ error: 'AI Agent report not found', message: 'Run scan in ai-agent directory first' });
+      }
+      const report = patchRemediationPhases(await readJson(agentReportPath));
+      res.json(report);
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to load AI Agent report', message: err.message });
     }
   });
 
@@ -345,9 +585,41 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/simplebeacon/config', async (_req, res) => {
+  app.get('/api/simplebeacon/config', async (req, res) => {
     try {
-      const config = await readJson(CONFIG_PATH);
+      let projectPath = null;
+      if (req.query.projectPath) {
+        try {
+          projectPath = resolveSafeAnalyzePath(req.query.projectPath);
+        } catch (err) {
+          return res.status(400).json({ success: false, error: err.message });
+        }
+      }
+      const configPath = resolveConfigFilePath(projectPath);
+      let config = {};
+      try {
+        config = await readJson(configPath);
+      } catch {
+        config = {};
+      }
+      if (projectPath) {
+        try {
+          const detected = detectProjectProfile(projectPath);
+          const usesDefaultScanPaths = !config.scanPaths || config.scanPaths.length === 0 || JSON.stringify(config.scanPaths) === JSON.stringify(DEFAULT_MOCK_SCAN_RELATIVE_PATHS);
+          const usesDefaultProductionPaths = !config.productionPaths || config.productionPaths.length === 0 || JSON.stringify(config.productionPaths) === JSON.stringify(DEFAULT_CONFIG.productionPaths);
+          if (usesDefaultScanPaths) {
+            config.scanPaths = detected.scanPaths;
+          }
+          if (usesDefaultProductionPaths) {
+            config.productionPaths = detected.productionPaths;
+          }
+          if (!config.sampleDir) {
+            config.sampleDir = detected.sampleDir;
+          }
+        } catch {
+          // Detection failure is non-blocking; return config as-is
+        }
+      }
       res.json(config);
     } catch (err) {
       res.status(404).json({ error: 'Config not found', message: err.message });
@@ -390,7 +662,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/simplebeacon/user/ai-keys', requireUserAccount, async (req, res) => {
+  app.get('/api/simplebeacon/user/ai-keys', optionalAuthenticate, requireUserAccount, async (req, res) => {
     try {
       const email = req.user?.email;
       if (!email) {
@@ -403,7 +675,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.put('/api/simplebeacon/user/ai-keys', requireUserAccount, async (req, res) => {
+  app.put('/api/simplebeacon/user/ai-keys', optionalAuthenticate, requireUserAccount, async (req, res) => {
     try {
       const email = req.user?.email;
       if (!email) {
@@ -417,7 +689,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.delete('/api/simplebeacon/user/ai-keys', requireUserAccount, async (req, res) => {
+  app.delete('/api/simplebeacon/user/ai-keys', optionalAuthenticate, requireUserAccount, async (req, res) => {
     try {
       const email = req.user?.email;
       if (!email) {
@@ -430,7 +702,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/simplebeacon/history', requirePaid, async (_req, res) => {
+  app.get('/api/simplebeacon/history', requirePaidReadOnly, async (_req, res) => {
     try {
       let history = await readJson(HISTORY_PATH, null);
       if (!history) {
@@ -442,7 +714,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/simplebeacon/dashboard', requirePaid, async (_req, res) => {
+  app.get('/api/simplebeacon/dashboard', requirePaidReadOnly, async (_req, res) => {
     try {
       const context = await loadDashboardContext();
       res.json(buildDashboardPayload(context));
@@ -451,7 +723,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/simplebeacon/results/:scanId', requirePaid, async (req, res) => {
+  app.get('/api/simplebeacon/results/:scanId', requirePaidReadOnly, async (req, res) => {
     try {
       const context = await loadDashboardContext();
       const entry = findHistoryEntry(context.history, req.params.scanId);
@@ -464,7 +736,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/simplebeacon/assessment', requirePaid, async (_req, res) => {
+  app.get('/api/simplebeacon/assessment', requirePaidReadOnly, async (_req, res) => {
     try {
       const context = await loadDashboardContext();
       const assessment = await loadAssessment(context.report);
@@ -489,7 +761,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/simplebeacon/audit', requirePaid, async (req, res) => {
+  app.get('/api/simplebeacon/audit', requirePaidReadOnly, async (req, res) => {
     try {
       const includeNpm = req.query.npmAudit === '1' || req.query.npmAudit === 'true';
       const context = await loadAuditContext({ includeNpmAudit: includeNpm });
@@ -512,7 +784,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/ai-validation/audit', requirePaid, async (req, res) => {
+  app.get('/api/ai-validation/audit', requirePaidReadOnly, async (req, res) => {
     try {
       const includeNpm = req.query.npmAudit === '1' || req.query.npmAudit === 'true';
       const context = await loadAuditContext({ includeNpmAudit: includeNpm });
@@ -526,7 +798,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/simplebeacon/scan/progress', requirePaid, async (req, res) => {
+  app.get('/api/simplebeacon/scan/progress', requirePaidReadOnly, async (req, res) => {
     try {
       let projectPath = PROJECT_ROOT;
       if (req.query.projectPath) {
@@ -556,7 +828,9 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
 
     try {
-      const result = await runSimplebeaconScan(projectPath);
+      const result = await runSimplebeaconScan(projectPath, {
+        fullDirectoryScan: req.body?.fullDirectoryScan === true
+      });
       res.json({
         success: true,
         scanId: result.scanId,
@@ -568,6 +842,7 @@ function setupSimplebeaconAPI(app, options = {}) {
         ...result
       });
     } catch (err) {
+      console.error('[POST /api/simplebeacon/scan] Scan error:', err.message, 'code:', err.code, 'killed:', err.killed);
       const reportOut = projectPath
         ? path.join(projectPath, '.simplebeacon', 'report.json')
         : REPORT_PATH;
@@ -585,7 +860,7 @@ function setupSimplebeaconAPI(app, options = {}) {
             report,
             history,
             projectPath: projectPath || PROJECT_ROOT,
-            stdout: err.stdout?.slice(-2000),
+            stdout: err.stdout?.slice(-constants.MAX_RATE_LIMIT),
             stderr: err.stderr?.slice(-500),
             cliExitCode: err.code
           });
@@ -593,7 +868,7 @@ function setupSimplebeaconAPI(app, options = {}) {
           return res.status(recoverErr.killed ? 504 : 500).json({
             error: 'Scan failed',
             message: recoverErr.message,
-            stdout: recoverErr.stdout?.slice(-2000),
+            stdout: recoverErr.stdout?.slice(-constants.MAX_RATE_LIMIT),
             stderr: recoverErr.stderr?.slice(-500),
             partialReport: null
           });
@@ -602,14 +877,14 @@ function setupSimplebeaconAPI(app, options = {}) {
       res.status(err.killed ? 504 : 500).json({
         error: 'Scan failed',
         message: err.message,
-        stdout: err.stdout?.slice(-2000),
+        stdout: err.stdout?.slice(-constants.MAX_RATE_LIMIT),
         stderr: err.stderr?.slice(-500),
         partialReport: reportExists ? await readJson(reportOut).catch(() => null) : null
       });
     }
   });
 
-  app.get('/api/ai-validation/dashboard', requirePaid, async (_req, res) => {
+  app.get('/api/ai-validation/dashboard', requirePaidReadOnly, async (_req, res) => {
     try {
       const context = await loadDashboardContext();
       res.json(buildDashboardPayload(context));
@@ -618,7 +893,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/ai-validation/results/:scanId', requirePaid, async (req, res) => {
+  app.get('/api/ai-validation/results/:scanId', requirePaidReadOnly, async (req, res) => {
     try {
       const context = await loadDashboardContext();
       const entry = findHistoryEntry(context.history, req.params.scanId);
@@ -654,7 +929,7 @@ function setupSimplebeaconAPI(app, options = {}) {
       res.status(err.killed ? 504 : 500).json({
         error: 'Scan failed',
         message: err.message,
-        stdout: err.stdout?.slice(-2000),
+        stdout: err.stdout?.slice(-constants.MAX_RATE_LIMIT),
         stderr: err.stderr?.slice(-500)
       });
     }
@@ -662,8 +937,7 @@ function setupSimplebeaconAPI(app, options = {}) {
 
   app.post('/api/simplebeacon/tools/baseline-sync', requirePaidWithQuota, async (_req, res) => {
     try {
-      const { syncMeasuredBaseline } = require('../../packages/simplebeacon-cli/src/baseline-sync');
-      const result = await syncMeasuredBaseline(PROJECT_ROOT);
+            const result = await syncMeasuredBaseline(PROJECT_ROOT);
       res.json({
         success: true,
         baseline: result.baseline,
@@ -683,7 +957,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/simplebeacon/summary', requirePaid, async (_req, res) => {
+  app.get('/api/simplebeacon/summary', requirePaidReadOnly, async (_req, res) => {
     try {
       const [report, baseline, config] = await Promise.all([
         readJson(REPORT_PATH),
@@ -739,7 +1013,7 @@ function setupSimplebeaconAPI(app, options = {}) {
   });
 
   // Schedule management
-  app.get('/api/simplebeacon/schedule', requirePaid, async (_req, res) => {
+  app.get('/api/simplebeacon/schedule', requirePaidReadOnly, async (_req, res) => {
     try {
       const cfg = await readScheduleConfig();
       res.json({ success: true, schedule: cfg });
@@ -850,6 +1124,10 @@ function setupSimplebeaconAPI(app, options = {}) {
 
 const DEMO_DIR = path.join(PROJECT_ROOT, 'data', 'simplebeacon-demo');
 
+/**
+ * Load demo context.
+ * @returns {any}
+ */
 async function loadDemoContext() {
   const [report, baseline, history] = await Promise.all([
     readJson(path.join(DEMO_DIR, 'report.json')),
@@ -860,6 +1138,12 @@ async function loadDemoContext() {
   return { report, baseline, history, fictionCatalog };
 }
 
+/**
+ * Demo readonly.
+ * @param {any} _req
+ * @param {Array} res
+ * @returns {any}
+ */
 function demoReadonly(_req, res) {
   return res.status(403).json({
     error: 'demo_readonly',
@@ -869,6 +1153,10 @@ function demoReadonly(_req, res) {
 
 // ── Scheduled Scan & Report Delivery ──
 
+/**
+ * Read schedule config.
+ * @returns {any}
+ */
 async function readScheduleConfig() {
   try {
     const data = await fs.promises.readFile(SCHEDULE_PATH, 'utf8');
@@ -886,12 +1174,23 @@ async function readScheduleConfig() {
   }
 }
 
+/**
+ * Write schedule config.
+ * @param {Object} config
+ * @returns {any}
+ */
 async function writeScheduleConfig(config) {
   await fs.promises.mkdir(SIMPLEBEACON_DIR, { recursive: true });
   await fs.promises.writeFile(SCHEDULE_PATH, JSON.stringify(config, null, 2) + '\n', 'utf8');
   scheduleConfigCache = config;
 }
 
+/**
+ * Post webhook.
+ * @param {string} targetUrl
+ * @param {any} payload
+ * @returns {any}
+ */
 async function postWebhook(targetUrl, payload) {
   return new Promise((resolve) => {
     const url = new URL(targetUrl);
@@ -924,6 +1223,10 @@ async function postWebhook(targetUrl, payload) {
   });
 }
 
+/**
+ * Run scheduled scan and deliver.
+ * @returns {any}
+ */
 async function runScheduledScanAndDeliver() {
   const cfg = scheduleConfigCache || (await readScheduleConfig());
   if (!cfg.enabled) return;
@@ -995,6 +1298,10 @@ async function runScheduledScanAndDeliver() {
   }
 }
 
+/**
+ * Start scheduler.
+ * @returns {any}
+ */
 function startScheduler() {
   if (scheduleTimer) {
     clearInterval(scheduleTimer);
@@ -1014,6 +1321,11 @@ function startScheduler() {
     .catch((err) => console.error('[Schedule] Failed to start scheduler:', err.message));
 }
 
+/**
+ * Setup simplebeacon demo a p i.
+ * @param {any} app
+ * @returns {any}
+ */
 function setupSimplebeaconDemoAPI(app) {
   app.get('/api/simplebeacon/demo/report', async (_req, res) => {
     try {
@@ -1111,12 +1423,19 @@ function setupSimplebeaconDemoAPI(app) {
   app.post('/api/simplebeacon/demo/tools/baseline-sync', demoReadonly);
 
   const { registerOutreachRoutes } = require('../../server/lib/outreach-route.cjs');
+
   registerOutreachRoutes(app, {
     dataDir: path.join(PROJECT_ROOT, 'data'),
     prefixes: ['/api/simplebeacon/outreach']
   });
 }
 
+/**
+ * Merge config.
+ * @param {any} existing
+ * @param {any} incoming
+ * @returns {any}
+ */
 function mergeConfig(existing, incoming) {
   const merged = { ...existing, ...incoming };
 

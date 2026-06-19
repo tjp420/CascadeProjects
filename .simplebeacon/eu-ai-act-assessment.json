@@ -1,83 +1,93 @@
 {
   "type": "simplebeacon-assessment-report",
   "title": "Simplebeacon EU AI Act Readiness — CascadeProjects",
-  "generatedAt": "2026-06-06T22:17:47.953Z",
+  "generatedAt": "2026-06-16T09:40:50.386Z",
   "generatedBy": "Simplebeacon",
   "assessor": "SimpleBeacon Operator",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "assessmentProfile": "eu-ai-act",
   "deadline": "2026-08-02",
   "euAiActSummary": {
-    "highRiskIndicators": 3,
-    "aiSystemIndicators": 18,
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
     "transparencyGaps": 0,
-    "documentationArtifacts": 167,
+    "documentationArtifacts": 169,
     "documentationFound": [
+      ".env",
       ".env.example",
+      ".simplebeaconignore",
       "AGENTS.md",
-      "ai-platform-report.json",
-      "cascade-root-report.json",
+      "ANALYZER_IMPROVEMENTS_REPORT.md",
       "CHANGELOG.md",
-      "cli-test-report.json",
-      "cli-test-report2.json",
-      "coming-soon-final.json",
-      "coming-soon-report.json",
-      "error-check2.log",
+      "consolidation-analysis.txt",
+      "DATA_AUDIT.md",
+      "EU_AI_ACT_CLASSIFICATION.md",
       "HANDOFF-2026-06-03.md",
-      "issues.json",
-      "report.json",
+      "LAUNCH-READINESS.md",
+      "README.md",
+      "REMEDIATION-TRACKER.md",
+      "render.yaml",
+      "SimpleBeacon-Universal-Coverage-Checklist.md",
+      "SimpleBeacon-Universal-Roadmap.md",
+      "SIMPLEBEACON_2_0_IMPLEMENTATION_PROGRESS.md",
+      "SIMPLEBEACON_2_0_PHASE_2_COMPLETE.md",
+      "SIMPLEBEACON_2_0_UPGRADE_ROADMAP.md",
       "ZORIN-LINUX-SETUP.md",
-      ".simplebeacon/cli-test-report.json",
-      ".simplebeacon/cli-test-report2.json",
-      ".simplebeacon/cli-test-report3.json",
-      ".simplebeacon/codebase-current.json",
-      ".simplebeacon/coming-soon-report.json",
-      ".simplebeacon/coming-soon-report2.json",
+      ".simplebeacon/bridge-report-latest.json",
+      ".simplebeacon/cli-report.json",
+      ".simplebeacon/config-full-coverage.json",
+      ".simplebeacon/config-unrestricted.json",
       ".simplebeacon/config.json",
       ".simplebeacon/eu-ai-act-assessment.json",
       ".simplebeacon/eu-ai-act-compliance.json",
-      ".simplebeacon/eu-ai-act-deliverable.html",
       ".simplebeacon/eu-ai-act-report.json",
-      ".simplebeacon/final-gate.json",
-      ".simplebeacon/gate-current.json",
+      ".simplebeacon/file-reduction.json",
+      ".simplebeacon/fresh-scan-2.json",
+      ".simplebeacon/fresh-scan.json",
+      ".simplebeacon/full-scan-log.txt",
+      ".simplebeacon/full-scan-output.json",
+      ".simplebeacon/full-scan-report.json",
+      ".simplebeacon/gate-report.json",
+      ".simplebeacon/gate-scan-log.txt",
       ".simplebeacon/gate-test-report.json",
-      ".simplebeacon/gate-workspace-fresh.json",
-      ".simplebeacon/latest-scan.json",
-      ".simplebeacon/latest-scan2.json",
-      ".simplebeacon/latest-scan3.json",
-      ".simplebeacon/latest-scan4.json",
-      ".simplebeacon/parent-scan-test-report.json",
-      ".simplebeacon/parent-verify.json",
-      ".simplebeacon/reduce-current.json",
-      ".simplebeacon/reduce-final.json",
-      ".simplebeacon/reduce-fresh.json",
-      ".simplebeacon/reduce-latest.json",
-      ".simplebeacon/reduce-report.json",
-      ".simplebeacon/reduce-verify.json",
+      ".simplebeacon/post-cleanup-scan.json",
+      ".simplebeacon/post-smtp-fix-scan.json",
+      ".simplebeacon/remediation-imported.json",
+      ".simplebeacon/remediation-report-2026-06-11.md",
       ".simplebeacon/report-fresh.json",
-      ".simplebeacon/report-test2.json",
-      ".simplebeacon/report-test3.json",
-      ".simplebeacon/report-test4.json",
       ".simplebeacon/report.json",
-      ".simplebeacon/reverted-gate.json",
-      ".simplebeacon/verify-current.json",
-      ".simplebeacon/website-scan.json",
-      ".simplebeacon/website-scan2.json",
-      ".simplebeacon/website-scan3.json"
+      ".simplebeacon/roadmap-analysis-report-2026-06-14.md",
+      ".simplebeacon/scan-debug.json",
+      ".simplebeacon/scan-fix-verify.json",
+      ".simplebeacon/scan-full-verify.json",
+      ".simplebeacon/scan-verify.json",
+      ".simplebeacon/verification-scan-smtp.json",
+      ".simplebeacon/verification-scan.json",
+      "ai-platform/docs/model-card.md",
+      "ai-platform/docs/ai-system-documentation.md",
+      "ai-platform/docs/risk-assessment.md",
+      "ai-platform/docs/conformity-declaration.md",
+      "ai-platform/docs/eu-ai-act-compliance.md",
+      "ai-platform/docs/audit-terms-of-service.md",
+      "ai-platform/docs/enterprise-positioning.md",
+      "ai-platform/docs/free-slop-audit-offer.md",
+      "ai-platform/docs/outreach-cc-campaign.md",
+      "ai-platform/docs/prospect-list.md",
+      "sales/docs/configuration.md"
     ],
     "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
   },
   "executiveSummary": {
     "gateResult": "PASS",
     "qualityScore": 100,
-    "filesScanned": 1158,
+    "filesScanned": 0,
     "criticalIssues": 0,
     "highIssues": 0,
-    "mediumIssues": 20,
-    "lowIssues": 27,
-    "warningCount": 20,
+    "mediumIssues": 0,
+    "lowIssues": 54,
+    "warningCount": 0,
     "blockingCount": 0,
-    "headline": "24 EU AI Act signal(s). Gate passes — MEDIUM findings are warnings under current failOn policy.",
+    "headline": "Clean scan — no blocking mock/fiction findings in configured paths.",
     "complianceScore": 100,
     "complianceReady": true
   },
@@ -86,7 +96,7 @@
     "version": "1.0.0",
     "title": "Simplebeacon EU AI Act Readiness Checklist",
     "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
-    "evaluatedAt": "2026-06-06T22:17:47.953Z",
+    "evaluatedAt": "2026-06-16T09:40:50.386Z",
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
     "summary": {
       "passed": 9,
@@ -115,7 +125,7 @@
         "severity": "critical",
         "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
         "status": "pass",
-        "evidence": "Scanned 983 path(s) — no credential patterns"
+        "evidence": "Scanned 0 path(s) — no credential patterns"
       },
       {
         "id": "LEAK-001",
@@ -124,7 +134,7 @@
         "severity": "high",
         "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
         "status": "pass",
-        "evidence": "Scanned 558 production file(s) — no sample-path leaks"
+        "evidence": "Scanned 0 production file(s) — no sample-path leaks"
       },
       {
         "id": "EUAI-001",
@@ -133,7 +143,7 @@
         "severity": "critical",
         "remediation": "Conduct Annex III classification review; add risk-assessment.md and conformity documentation for high-risk systems",
         "status": "pass",
-        "evidence": "3 high-risk indicator(s) with 167 documentation artifact(s) — review classification"
+        "evidence": "No Annex III high-risk AI patterns detected in scanned paths"
       },
       {
         "id": "EUAI-002",
@@ -142,7 +152,7 @@
         "severity": "high",
         "remediation": "Add user-facing disclosure that content is AI-generated or that users interact with an AI system",
         "status": "pass",
-        "evidence": "18 AI integration(s) with Article 50 disclosure markers present"
+        "evidence": "No generative AI integrations detected in user-facing paths"
       },
       {
         "id": "EUAI-003",
@@ -151,7 +161,7 @@
         "severity": "high",
         "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
         "status": "pass",
-        "evidence": "167 documentation artifact(s) found for 21 AI indicator(s)"
+        "evidence": "No AI system indicators — documentation not required by scan"
       },
       {
         "id": "EUAI-004",
@@ -160,7 +170,7 @@
         "severity": "high",
         "remediation": "Implement human-in-the-loop review, manual override, or appeal mechanism for automated decisions",
         "status": "pass",
-        "evidence": "3 high-risk indicator(s) with human oversight signals in code"
+        "evidence": "No high-risk AI patterns — human oversight rule not applicable"
       },
       {
         "id": "EUAI-005",
@@ -169,7 +179,7 @@
         "severity": "medium",
         "remediation": "Log AI system inputs, outputs, and decision rationale for audit trails",
         "status": "pass",
-        "evidence": "AI decision paths include audit/logging signals"
+        "evidence": "No AI decision paths detected"
       },
       {
         "id": "SUPPLY-001",
@@ -184,190 +194,1231 @@
   },
   "findings": {
     "credentials": {
-      "scanned": 983,
+      "scanned": 0,
       "findings": 0,
       "severity": "high",
       "items": [],
       "summary": "No credential patterns detected in scanned paths."
     },
     "fictionKpis": {
-      "scanned": 102,
+      "scanned": 155,
       "findings": 0,
       "severity": "high",
       "items": [],
       "summary": "No fiction KPI or consistency drift detected."
     },
     "productionLeaks": {
-      "scanned": 558,
+      "scanned": 0,
       "findings": 0,
       "severity": "medium",
       "items": [],
       "summary": "No mock/sample path references in production directories."
     },
     "schemaDrift": {
-      "checked": 50,
-      "passed": 50,
+      "checked": 0,
+      "passed": 0,
       "severity": "high",
       "items": [],
       "summary": "All registered page samples match schema specs."
     },
     "euAiAct": {
-      "scanned": 278,
-      "findings": 24,
+      "scanned": 0,
+      "findings": 0,
       "severity": "high",
-      "items": [
-        {
-          "file": "ai-platform/.env",
-          "description": "Generative AI or LLM integration detected (2 matches in file)",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
-        },
-        {
-          "file": "ai-platform/.env.example",
-          "description": "Generative AI or LLM integration detected (8 matches in file)",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
-        },
-        {
-          "file": "ai-platform/env-keys.txt",
-          "description": "Generative AI or LLM integration detected (8 matches in file)",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
-        },
-        {
-          "file": "ai-platform/pipeline/.env.example",
-          "description": "Generative AI or LLM integration detected (5 matches in file)",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
-        },
-        {
-          "file": "ai-platform/pipeline/requirements.txt",
-          "description": "Generative AI or LLM integration detected (2 matches in file)",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
-        },
-        {
-          "file": "ai-platform/server/dlp-dashboard.cjs",
-          "description": "Generative AI or LLM integration detected",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
-        },
-        {
-          "file": "CHANGELOG.md",
-          "description": "Generative AI or LLM integration detected (3 matches in file)",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
-        },
-        {
-          "file": "instructions.txt",
-          "description": "Generative AI or LLM integration detected",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
-        },
-        {
-          "file": "logs/server-run.log",
-          "description": "Generative AI or LLM integration detected (88 matches in file)",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
-        },
-        {
-          "file": "report.json",
-          "description": "Generative AI or LLM integration detected (53 matches in file)",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
-        },
-        {
-          "file": "ZORIN-LINUX-SETUP.md",
-          "description": "Generative AI or LLM integration detected (2 matches in file)",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration"
-        }
-      ],
-      "summary": "ai-platform/.env: Generative AI or LLM integration detected (2 matches in file); ai-platform/.env.example: Generative AI or LLM integration detected (8 matches in file); ai-platform/env-keys.txt: Generative AI or LLM integration detected (8 matches in file); ai-platform/pipeline/.env.example: Generative AI or LLM integration detected (5 matches in file); ai-platform/pipeline/requirements.txt: Generative AI or LLM integration detected (2 matches in file)"
+      "items": [],
+      "summary": "No EU AI Act high-risk or transparency gaps detected."
     },
     "other": {
       "items": [
         {
-          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json",
-          "description": "2 files share identical JSON content",
-          "severity": "low",
-          "count": 2,
-          "recommendedAction": "Remove duplicate entries to optimize data size"
+          "file": ".env",
+          "description": "missing-env-key finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
         },
         {
-          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json",
-          "description": "2 files share identical JSON content",
-          "severity": "low",
-          "count": 2,
-          "recommendedAction": "Remove duplicate entries to optimize data size"
+          "file": ".env",
+          "description": "missing-env-key finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
         },
         {
-          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json",
-          "description": "2 files share identical JSON content",
-          "severity": "low",
-          "count": 2,
-          "recommendedAction": "Remove duplicate entries to optimize data size"
+          "file": ".env",
+          "description": "missing-env-key finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
         },
         {
-          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json",
-          "description": "2 files share identical JSON content",
-          "severity": "low",
-          "count": 2,
-          "recommendedAction": "Remove duplicate entries to optimize data size"
+          "file": ".env",
+          "description": "missing-env-key finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
         },
         {
-          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json",
-          "description": "2 files share identical JSON content",
-          "severity": "low",
-          "count": 2,
-          "recommendedAction": "Remove duplicate entries to optimize data size"
+          "file": ".env",
+          "description": "missing-env-key finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
         },
         {
-          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json",
-          "description": "2 files share identical JSON content",
-          "severity": "low",
-          "count": 2,
-          "recommendedAction": "Remove duplicate entries to optimize data size"
+          "file": ".env",
+          "description": "missing-env-key finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
         },
         {
-          "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json",
-          "description": "2 files share identical JSON content",
-          "severity": "low",
-          "count": 2,
-          "recommendedAction": "Remove duplicate entries to optimize data size"
+          "file": "ai-agent/report-analyzer.cjs",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
         },
         {
-          "file": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\subscriptions.json",
-          "description": "3 files share identical JSON content",
-          "severity": "low",
-          "count": 3,
-          "recommendedAction": "Remove duplicate entries to optimize data size"
+          "file": "ai-platform/docs/outreach-prospects.js",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
         },
         {
-          "file": "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\01-simplebeacon-gate.json",
-          "description": "10 files share identical JSON content",
+          "file": "ai-platform/package.json",
+          "description": "version-drift finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "ai-platform/package.json",
+          "description": "version-drift finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "ai-platform/reports/ai-verdict.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "ai-platform/simplebeacon-report.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "ai-platform/src/web/export-system.js",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/complete-scan.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/json/cleanup-brief.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/json/codebase-summary.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/json/complete-scan.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/json/consolidation.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/json/data-quality.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/json/fiction-digest.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/json/file-reduction.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/json/public-summary.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/json/re-attestation-note.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/json/roadmap.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/json/simplebeacon-gate.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/manifest.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/report.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/reports/agency-certificate.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/reports/executive-audit.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/accessibility.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-indicators.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-placeholder-block.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-placeholder-comment.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-residue.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/api-contract.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/architecture-drift.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/arrow-stub.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/build-readiness.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/cleanup-assistant.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/codebase.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/complexity.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/compliance.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/config-drift.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/consolidation.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/data-quality.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/database-patterns.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/dependency-vulns.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/documentation.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/empty-stub-function.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/eu-ai-act.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/eval-danger.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/fiction-kpi.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/file-reduction.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/fix-preview.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/framework-practices.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/governance-marker.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/governance.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/hardcoded-completion.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/hardcoded-confidence.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/i18n.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/inner-html-xss.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/insecure-random.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/junk-files.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/llm-slop.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/logging-secrets.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/magic-number.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/markdown-fence-leak.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/missing-rate-limit.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/missing-strict-mode.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-path-leak.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-scan.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/npm-audit.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/performance.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/production-leak.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/prototype-pollution.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/removable-files.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/roadmap-marker.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/roadmap.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/sample-json-ref.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/security-headers.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/sensitive-data.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/simplebeacon.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/sync-io.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/test-coverage.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/token-bleed.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/type-safety.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/unhandled-promise.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/uninitialized-read.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/unused-deps.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/unvalidated-redirect.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/workspace-health.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/01-simplebeacon-gate.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/02-consolidation.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/03-mock-data.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/04-roadmap.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/05-codebase.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/06-file-reduction.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/07-data-quality.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/08-cleanup.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/09-npm-audit.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/10-compliance.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/11-eu-ai-act.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "packages/simplebeacon-cli/test-cert/reports/certificate.html",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-report.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/.eslintrc.js",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/build-extension.js",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/code-map.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/out/__mocks__/vscode.js",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/out/auth/apiClient.js",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/out/fixes/findingConverter.js",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/out/webviewPanel.js",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/simplebeacon-report.json",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/auth/apiClient.ts",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/fixes/findingConverter.ts",
+          "description": "unused-file finding",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": ".env",
+          "description": "unused-env-key finding",
           "severity": "low",
-          "count": 10,
-          "recommendedAction": "Remove duplicate entries to optimize data size"
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "ai-platform/coverage",
+          "description": "build-artifact finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "ai-platform/vite.config.js",
+          "description": "duplicate-config-type finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-path-leak.json",
+          "description": "orphaned-data finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-scan.json",
+          "description": "orphaned-data finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "New folder/simplebeacon-export-operator-2026-06-16/steps/sample-json-ref.json",
+          "description": "orphaned-data finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/out",
+          "description": "build-artifact finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/package.json",
+          "description": "unused-dependency finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/package.json",
+          "description": "unused-dependency finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/auth/apiClient.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/designSystem.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/designSystem.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/designSystem.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/designSystem.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/designSystem.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/designSystem.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/enhancedAIProvider.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/enhancedAIProvider.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/enhancedSidebar.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/extension.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/extension.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/fixes/findingConverter.ts",
+          "description": "dead-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/scanProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/scanProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/settingsProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/settingsProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/settingsProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/settingsProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/summaryProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
+        },
+        {
+          "file": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+          "description": "orphaned-export finding",
+          "severity": "low",
+          "count": 1,
+          "recommendedAction": "Review file-reduction report"
         }
       ],
-      "summary": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json: 2 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json: 2 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json: 2 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json: 2 files share identical JSON content; C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json: 2 files share identical JSON content"
+      "summary": ".env: missing-env-key finding; .env: missing-env-key finding; .env: missing-env-key finding; .env: missing-env-key finding; .env: missing-env-key finding"
     }
   },
   "recommendedActions": {
     "immediate": [
-      "Address EU AI Act transparency and documentation gaps before August 2026",
       "Add docs/model-card.md and docs/risk-assessment.md for AI integrations",
       "Add simplebeacon scan --gate to PR workflow (see docs/GITHUB-ACTION-QUICKSTART.md)"
     ],
@@ -401,12 +1452,12 @@
     "npx simplebeacon assess --report .simplebeacon/report.json"
   ],
   "sourceReport": {
-    "generatedAt": "2026-06-06T22:17:47.932Z",
+    "generatedAt": "2026-06-16T09:40:50.357Z",
     "scanPaths": [
-      "C:\\Users\\Trevor\\CascadeProjects"
+      "C:\\Users\\Trevor\\CascadeProjects\\data"
     ],
-    "duplicateGroups": 9
+    "duplicateGroups": 1
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-06T22:17:47.954Z"
+  "sanitizedAt": "2026-06-16T09:40:50.388Z"
 }

@@ -1,0 +1,82 @@
+{
+  "summary": {
+    "project": "src",
+    "healthScore": 0,
+    "exportedAt": "2026-06-15T06:08:56.406Z",
+    "generatedAt": "2026-06-15T06:08:19.248Z",
+    "sourceReport": "2026-06-15T06:08:19.248Z",
+    "phases": {
+      "total": 2,
+      "completed": 0,
+      "blocked": 0,
+      "inProgress": 0,
+      "pending": 2
+    },
+    "tasks": {
+      "total": 2,
+      "completed": 0,
+      "remaining": 2
+    },
+    "criticalPaths": []
+  },
+  "phases": [
+    {
+      "id": "security",
+      "title": "Security Hardening",
+      "status": "pending",
+      "severity": "medium",
+      "effort": "1–3 days",
+      "progress": 0,
+      "description": "1 finding(s) — 1 auto-fixable.",
+      "dependsOn": null,
+      "dependsOnTitle": null,
+      "impact": null,
+      "fix": null,
+      "taskSummary": {
+        "total": 1,
+        "done": 0,
+        "todo": 1,
+        "percent": 0
+      },
+      "tasks": [
+        {
+          "description": "Add helmet middleware or reverse-proxy headers: \"<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-sr\" in src/webview.js:79",
+          "type": "Missing Security Header",
+          "codeSnippet": "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-sr",
+          "location": "src/webview.js:79",
+          "done": false,
+          "isStructured": true
+        }
+      ]
+    },
+    {
+      "id": "optimization",
+      "title": "Quality Optimization",
+      "status": "pending",
+      "severity": "low",
+      "effort": "1–3 days",
+      "progress": 0,
+      "description": "1 finding(s) requiring manual review.",
+      "dependsOn": null,
+      "dependsOnTitle": null,
+      "impact": null,
+      "fix": null,
+      "taskSummary": {
+        "total": 1,
+        "done": 0,
+        "todo": 1,
+        "percent": 0
+      },
+      "tasks": [
+        {
+          "description": "Review && remediate: \"/**\" in src/utils.js:1",
+          "type": "Missing Strict Mode",
+          "codeSnippet": "/**",
+          "location": "src/utils.js:1",
+          "done": false,
+          "isStructured": true
+        }
+      ]
+    }
+  ]
+}

@@ -2,6 +2,11 @@
  * Environment-driven CORS — no wide-open defaults in production.
  */
 
+/**
+ * Parse origin list.
+ * @param {any} raw
+ * @returns {any}
+ */
 function parseOriginList(raw) {
     return String(raw || '')
         .split(',')
@@ -9,6 +14,11 @@ function parseOriginList(raw) {
         .filter(Boolean);
 }
 
+/**
+ * Resolve cors options.
+ * @param {Array} overrides
+ * @returns {any}
+ */
 function resolveCorsOptions(overrides = {}) {
     const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
     const raw = process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || overrides.defaultOrigin || '';

@@ -3,6 +3,7 @@
  */
 
 const { buildCompleteScanAnalysis } = require('./enrich-complete-scan');
+const constants = require('../../../../ai-platform/server/config/constants.cjs');
 
 const DEFAULT_PROTECTED_PATHS = [
     'web/data',
@@ -15,7 +16,7 @@ const DEFAULT_PROTECTED_PATHS = [
 
 const DEFAULT_POLICY = {
     protectedPaths: DEFAULT_PROTECTED_PATHS,
-    allowNodeModules: true,
+    allowNodeModules: false,
     allowSimplebeaconCache: false,
     aggressiveness: 'moderate'
 };
@@ -35,7 +36,7 @@ function pathMatchesProtected(relativePath, protectedPaths = []) {
 
 function formatBytes(bytes) {
     const n = Number(bytes) || 0;
-    if (n < 1024) return `${n} B`;
+    if (n < constants.BYTES_PER_KB) return `${n} B`;
     if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
     if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
     return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
@@ -145,8 +146,8 @@ function buildAgentPrompt({ projectPath, estimatedReduction, inventory, projecte
         `Proceed in agent mode using the attached cleanup brief for: ${projectPath}`,
         '',
         'Deletion policy:',
-        `- Safe to delete now: regenerable artifacts only (${formatCount(estimatedReduction.files)} files, ${formatBytes(estimatedReduction.bytes)}).`,
-        `- Protected (never delete): ${policy.protectedPaths.join(', ')}`,
+        '- Safe to delete now: regenerable artifacts only (' + formatCount(estimatedReduction.files) + ' files, ' + formatBytes(estimatedReduction.bytes) + ').',
+        '- Protected (never delete): ' + policy.protectedPaths.join(', '),
         '- Review first: logs, scan cache, and anything flagged reviewFirst in the brief',
         '- Do not bulk-delete unused-file candidates without verifying imports',
         '',
@@ -160,7 +161,7 @@ function buildAgentPrompt({ projectPath, estimatedReduction, inventory, projecte
 function buildAgentInstructions(context) {
     return [
         'Execute cleanup in phases: (1) safeNow directories, (2) duplicate asset consolidation, (3) reviewFirst items only after confirmation.',
-        `Never delete paths under protected list: ${context.policy.protectedPaths.join(', ')}.`,
+        'Never delete paths under protected list: ' + context.policy.protectedPaths.join(', ') + '.',
         'Do not bulk-delete unused file candidates — they require static/dynamic import verification.',
         context.policy.allowNodeModules
             ? 'node_modules may be removed and restored with npm install.'

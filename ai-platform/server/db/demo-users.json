@@ -20,5 +20,16 @@
     "securityIncidents": 0,
     "communityContributions": 15,
     "verificationStatus": "enterprise"
+  },
+  {
+    "id": "user-1781479110772",
+    "email": "test-reg5@example.com",
+    "passwordHash": "$2b$12$9BUyDyPqoeIlSxMMHkLgUezwuHc6.GWdpbLZHJhSauLy6slRrfcKa",
+    "name": "test-reg5",
+    "trustLevel": "bronze",
+    "successfulAnalyses": 0,
+    "securityIncidents": 0,
+    "communityContributions": 0,
+    "verificationStatus": "email"
   }
 ]

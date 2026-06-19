@@ -12,6 +12,13 @@ const FUNCTION_NODE_TYPES = {
     go: ['function_declaration', 'method_declaration']
 };
 
+/**
+ * Walk nodes.
+ * @param {any} node
+ * @param {any} typeSet
+ * @param {Array} results
+ * @returns {any}
+ */
 function walkNodes(node, typeSet, results) {
     if (!node) return;
     if (typeSet.has(node.type)) {
@@ -22,10 +29,21 @@ function walkNodes(node, typeSet, results) {
     }
 }
 
+/**
+ * Node line.
+ * @param {any} node
+ * @returns {any}
+ */
 function nodeLine(node) {
     return (node.startPosition?.row ?? 0) + 1;
 }
 
+/**
+ * Node name.
+ * @param {any} node
+ * @param {any} content
+ * @returns {any}
+ */
 function nodeName(node, content) {
     const nameNode = node.childForFieldName('name')
         || node.namedChildren?.find((c) => c.type === 'identifier' || c.type === 'property_identifier');
@@ -36,6 +54,12 @@ function nodeName(node, content) {
     return 'anonymous';
 }
 
+/**
+ * Node body text.
+ * @param {any} node
+ * @param {any} content
+ * @returns {any}
+ */
 function nodeBodyText(node, content) {
     const bodyNode = node.childForFieldName('body') || node.namedChildren?.find((c) => c.type === 'statement_block');
     if (bodyNode) {
@@ -44,6 +68,13 @@ function nodeBodyText(node, content) {
     return content.slice(node.startIndex, node.endIndex);
 }
 
+/**
+ * Extract functions from tree.
+ * @param {any} rootNode
+ * @param {any} content
+ * @param {any} language
+ * @returns {any}
+ */
 function extractFunctionsFromTree(rootNode, content, language) {
     const types = FUNCTION_NODE_TYPES[language] || FUNCTION_NODE_TYPES.javascript;
     const typeSet = new Set(types);
@@ -57,6 +88,12 @@ function extractFunctionsFromTree(rootNode, content, language) {
     }));
 }
 
+/**
+ * Scan structural from tree.
+ * @param {any} content
+ * @param {Object} options
+ * @returns {any}
+ */
 function scanStructuralFromTree(content, options = {}) {
     const filePath = options.filePath || 'snippet.txt';
     const language = options.language || 'javascript';
@@ -78,6 +115,12 @@ function scanStructuralFromTree(content, options = {}) {
     return findings;
 }
 
+/**
+ * Scan with tree sitter.
+ * @param {any} content
+ * @param {Object} options
+ * @returns {any}
+ */
 async function scanWithTreeSitter(content, options = {}) {
     const { parseWithTreeSitter, getTreeSitterStatus } = require('./tree-sitter-loader');
     const language = options.language || 'javascript';

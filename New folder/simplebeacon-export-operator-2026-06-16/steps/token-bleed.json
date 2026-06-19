@@ -1,0 +1,168 @@
+{
+  "id": "token-bleed",
+  "status": "done",
+  "error": null,
+  "metric": "13 findings in 9 files",
+  "findingsCount": 13,
+  "fileCount": 9,
+  "severity": "medium",
+  "findings": [
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/src/codeMapProvider.ts",
+      "line": 439,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 8px cent",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/aiIntegration/aiCodeAnalyzer.js",
+      "line": 38,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "\"));\nclass AICodeAnalyzer {\n    static instance;\n    outputChannel;\n    isAnalyz",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/aiIntegration/aiReportExporter.js",
+      "line": 4,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "\");\nconst DEFAULT_OPTIONS = {\n    includeFixes: true,\n    includeContext: true,\n",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/codeMapProvider.js",
+      "line": 39,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "\");\n// Code Map Visualization Provider\nclass CodeMapProvider {\n    static instan",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/codeMapProvider.js",
+      "line": 418,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 8px cent",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/collaboration/teamDashboard.js",
+      "line": 56,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "');\n        try {\n            // Load team configuration\n            await this.",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/enhancedDashboard2_0.js",
+      "line": 40,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "\");\n// Enhanced Dashboard 2.0 with modern UI/UX\nclass EnhancedDashboard20 {\n    ",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/enhancedDashboard2_0.js",
+      "line": 163,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "\">\n<title>SimpleBeacon Dashboard 2.0</title>\n<style>\n/* Design System 2.0 */\n:ro",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/extension.js",
+      "line": 59,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "\");\n// currentReport stores either CLI report (raw JSON) or ScanResult — both co",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/extension.js",
+      "line": 377,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "\"\n                                    const fileMatch = description.match(/^(.+?",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/realtimeMonitor.js",
+      "line": 38,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "\");\nclass RealtimeMonitor {\n    static instance;\n    disposables = [];\n    fileM",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/webviewPanel.js",
+      "line": 40,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "\"));\nfunction getVersionFromExtUri(extUri) {\n    try {\n        const pkgPath = p",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    },
+    {
+      "category": "token-bleed",
+      "analyzer": "token-bleed-analyzer",
+      "type": "token-bleed",
+      "severity": "medium",
+      "filePath": "simplebeacon-vscode/out/webviewPanel.js",
+      "line": 145,
+      "description": "Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts",
+      "match": "'; img-src ${csp} data:; font-src ${csp};\">\n<meta name=\"viewport\" content=\"width",
+      "recommendedAction": "Break up very long string literals or load large content from external files"
+    }
+  ],
+  "category": {
+    "category": "token-bleed",
+    "label": "token-bleed",
+    "count": 13,
+    "severity": "medium",
+    "fileCount": 9,
+    "topFiles": [
+      "simplebeacon-vscode/out/aiIntegration/aiCodeAnalyzer.js",
+      "simplebeacon-vscode/out/aiIntegration/aiReportExporter.js",
+      "simplebeacon-vscode/out/codeMapProvider.js",
+      "simplebeacon-vscode/out/collaboration/teamDashboard.js",
+      "simplebeacon-vscode/out/enhancedDashboard2_0.js"
+    ]
+  }
+}

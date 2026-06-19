@@ -1,0 +1,19 @@
+[
+  {
+    "scanId": "1996afbe-4431-44cb-b2f0-8f5fc7d5dc7e",
+    "date": "2026-06-11T22:52:43.881Z",
+    "issueCount": 0,
+    "warningCount": 0,
+    "blockingCount": 0,
+    "qualityScore": 100,
+    "gatePass": true,
+    "severityCounts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 7
+  }
+]

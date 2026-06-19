@@ -1,4 +1,4 @@
-import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber } from '../utils.js';
+import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
 
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import {
@@ -44,8 +44,6 @@ import {
   isCodebaseReport,
   fetchComplianceChecklist,
   fetchProjectNpmAudit,
-  exportAgencyCertificate,
-  fetchAgencyBranding,
   prepareGithubRepo,
   fetchAnalyzeTestSources,
   isAnalyzeProviderConfigured
@@ -74,6 +72,7 @@ import {
   buildAiSystemsIssueAnalysis
 } from '../services/aiProblemAnalyzerSuite.mjs';
 import { renderIssueList } from '../components/IssueCard.js';
+import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
 import { renderDataCleanupPanel, buildDataCleanupConclusion } from '../components/DataCleanupReport.js?v=20260527exec5';
 import {
@@ -128,6 +127,11 @@ import {
 
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 
+/**
+ * Read hash query param.
+ * @param {string} name
+ * @returns {any}
+ */
 function readHashQueryParam(name) {
   const hash = typeof window !== 'undefined' ? (window.location.hash || '') : '';
   const qIndex = hash.indexOf('?');
@@ -135,6 +139,11 @@ function readHashQueryParam(name) {
   return new URLSearchParams(hash.slice(qIndex + 1)).get(name) || '';
 }
 
+/**
+ * Path to file slug.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function pathToFileSlug(projectPath) {
   return (projectPath || 'scan')
     .replace(/[^a-z0-9]+/gi, '-')
@@ -142,37 +151,116 @@ function pathToFileSlug(projectPath) {
     .toLowerCase() || 'scan';
 }
 
+/**
+ * Date stamp.
+ * @returns {any}
+ */
 function dateStamp() {
   return new Date().toISOString().slice(0, 10);
 }
 
 const ANALYZE_PREFS_KEY = 'simplebeaconAnalyzePrefs';
 
+/**
+ * Analysis type uses ai narrative.
+ * @param {any} type
+ * @returns {any}
+ */
 function analysisTypeUsesAiNarrative(type) {
   return String(type || '').toLowerCase() !== 'roadmap';
 }
 
+/**
+ * Analysis type supports roadmap insights.
+ * @param {any} type
+ * @returns {any}
+ */
 function analysisTypeSupportsRoadmapInsights(type) {
   const t = String(type || '').toLowerCase();
   return t === 'roadmap' || t === 'complete';
 }
 
+/**
+ * Analysis type supports understanding.
+ * @param {any} type
+ * @returns {any}
+ */
 function analysisTypeSupportsUnderstanding(type) {
   const t = String(type || '').toLowerCase();
   return t === 'codebase' || t === 'complete';
 }
 
+// Canonical analyzer list — single source of truth for engine IDs, labels, categories, and descriptions.
+// Add new analyzers here only. The reference card and queue panel both derive from this array.
+// File location: ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js
 const COMPLETE_STEPS = [
-  { id: 'simplebeacon', label: 'Simplebeacon gate' },
-  { id: 'consolidation', label: 'Data consolidation' },
-  { id: 'mock-scan', label: 'Fiction & KPI digest' },
-  { id: 'roadmap', label: 'Roadmap generation' },
-  { id: 'codebase', label: 'Codebase analysis' },
-  { id: 'file-reduction', label: 'File reduction' },
-  { id: 'data-quality', label: 'Data quality' },
-  { id: 'cleanup-assistant', label: 'Cleanup assistant' },
-  { id: 'npm-audit', label: 'npm audit' },
-  { id: 'compliance', label: 'Compliance checklist' }
+  // Core scans
+  { id: 'simplebeacon', label: 'Simplebeacon gate', category: 'Core Scans', desc: 'Credential patterns, AI/LLM imports, hardcoded secrets.' },
+  { id: 'consolidation', label: 'Data consolidation', category: 'Core Scans', desc: 'Duplicate file groups && monorepo markers.' },
+  { id: 'mock-scan', label: 'Fiction & KPI digest', category: 'Core Scans', desc: 'Fixture, sample, && test-data files.' },
+  { id: 'roadmap', label: 'Roadmap generation', category: 'Core Scans', desc: 'Task, fix, workaround, && bug markers in code.' },
+  { id: 'codebase', label: 'Codebase analysis', category: 'Core Scans', desc: 'File type breakdown, line counts, && structure.' },
+  { id: 'file-reduction', label: 'File reduction', category: 'Core Scans', desc: 'Unused image assets, duplicate content, && directory bloat.' },
+  { id: 'data-quality', label: 'Data quality', category: 'Core Scans', desc: 'Empty || trivial JSON files.' },
+  { id: 'cleanup-assistant', label: 'Cleanup assistant', category: 'Core Scans', desc: 'Debug artifacts: console.log, debugger, open items.' },
+  { id: 'npm-audit', label: 'npm audit', category: 'Core Scans', desc: 'Package.json files && dependency counts.' },
+  { id: 'compliance', label: 'Compliance checklist', category: 'Core Scans', desc: 'License, security, && governance files.' },
+  // Security
+  { id: 'dependency-vulns', label: 'Dependency Vulns', category: 'Security', desc: 'CVE && outdated dependency audit.' },
+  { id: 'sensitive-data', label: 'Sensitive Data', category: 'Security', desc: 'PII patterns, email/phone/SSN in source.' },
+  { id: 'security-headers', label: 'Security Headers', category: 'Security', desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.' },
+  { id: 'config-drift', label: 'Config Drift', category: 'Security', desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.' },
+  { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'ev'+'al(), new Function(), dynamic code execution risks.' },
+  { id: 'inner-html-xss', label: 'innerHTML XSS', category: 'Security', desc: 'Unsanitized innerHTML assignments.' },
+  { id: 'prototype-pollution', label: 'Prototype Pollution', category: 'Security', desc: 'Object.prototype or __proto__ modification risks.' },
+  { id: 'unvalidated-redirect', label: 'Unvalidated Redirect', category: 'Security', desc: 'Open redirect vulnerabilities.' },
+  { id: 'missing-rate-limit', label: 'Missing Rate Limit', category: 'Security', desc: 'API endpoints without rate limiting.' },
+  { id: 'insecure-random', label: 'Insecure Random', category: 'Security', desc: 'Math.random() used for security purposes.' },
+  { id: 'logging-secrets', label: 'Logging Secrets', category: 'Security', desc: 'Passwords, tokens, or secrets written to logs.' },
+  // AI & LLM
+  { id: 'ai-indicators', label: 'AI System Indicators', category: 'AI & LLM', desc: 'AI/LLM SDK imports && model inference patterns.' },
+  { id: 'ai-residue', label: 'AI Residue', category: 'AI & LLM', desc: 'Hallucinated imports, stub implementations, error swallowing.' },
+  { id: 'llm-slop', label: 'LLM Slop', category: 'AI & LLM', desc: 'Placeholder debris, markdown code fences leaked into source.' },
+  { id: 'token-bleed', label: 'Token Bleed', category: 'AI & LLM', desc: 'LLM API calls without max_tokens limits.' },
+  { id: 'ai-placeholder-comment', label: 'AI Placeholder', category: 'AI & LLM', desc: 'Placeholder comments generated by AI.' },
+  { id: 'ai-placeholder-block', label: 'AI Placeholder Block', category: 'AI & LLM', desc: 'Block comments with AI placeholder text.' },
+  { id: 'markdown-fence-leak', label: 'Markdown Fence Leak', category: 'AI & LLM', desc: 'Markdown code fences (```) leaked into source files.' },
+  { id: 'empty-stub-function', label: 'Empty Stub', category: 'AI & LLM', desc: 'Empty function bodies — likely AI-generated stubs.' },
+  { id: 'arrow-stub', label: 'Arrow Stub', category: 'AI & LLM', desc: 'Arrow functions returning empty objects.' },
+  { id: 'fiction-kpi', label: 'Fiction KPI', category: 'AI & LLM', desc: 'Hardcoded metrics, completion rates, fabricated scores.' },
+  { id: 'hardcoded-confidence', label: 'Hardcoded Confidence', category: 'AI & LLM', desc: 'Static confidence scores that should be dynamic.' },
+  { id: 'hardcoded-completion', label: 'Hardcoded Completion', category: 'AI & LLM', desc: 'Static completion rates that should be real metrics.' },
+  // Code Quality
+  { id: 'performance', label: 'Performance', category: 'Code Quality', desc: 'Nested loops, memory leaks, event listener leaks.' },
+  { id: 'type-safety', label: 'Type Safety', category: 'Code Quality', desc: 'any types, missing PropTypes, runtime typeof checks.' },
+  { id: 'documentation', label: 'Documentation', category: 'Code Quality', desc: 'Missing JSDoc, undocumented public functions.' },
+  { id: 'test-coverage', label: 'Test Coverage', category: 'Code Quality', desc: 'Source files without tests, empty test files.' },
+  { id: 'complexity', label: 'Complexity Metrics', category: 'Code Quality', desc: 'Over-long functions, bloated files, deep nesting.' },
+  { id: 'magic-number', label: 'Magic Numbers', category: 'Code Quality', desc: 'Hardcoded numeric literals that should be constants.' },
+  { id: 'missing-strict-mode', label: 'Missing Strict Mode', category: 'Code Quality', desc: "Files without 'use strict' — implicit globals risk." },
+  { id: 'uninitialized-read', label: 'Uninitialized Read', category: 'Code Quality', desc: 'Variables used before assignment.' },
+  { id: 'unhandled-promise', label: 'Unhandled Promise', category: 'Code Quality', desc: 'Promise chains missing .catch() error handlers.' },
+  { id: 'sync-io', label: 'Sync I/O', category: 'Code Quality', desc: 'Synchronous fs operations that block the event loop.' },
+  // Architecture
+  { id: 'build-readiness', label: 'Build Readiness', category: 'Architecture', desc: 'Missing files, configs, scripts, deploy blockers.' },
+  { id: 'governance', label: 'License & Governance', category: 'Architecture', desc: 'License headers, copyright notices, governance markers.' },
+  { id: 'junk-files', label: 'Junk & Temp Files', category: 'Architecture', desc: 'OS/editor artifacts, backup files, caches.' },
+  { id: 'removable-files', label: 'Removable Files', category: 'Architecture', desc: 'node_modules, build artifacts (dist, build, .next), caches, logs, and temp files that can be safely deleted.' },
+  { id: 'database-patterns', label: 'Database Patterns', category: 'Architecture', desc: 'Raw SQL concatenation, missing limits, unindexed queries.' },
+  { id: 'framework-practices', label: 'Framework Practices', category: 'Architecture', desc: 'React hook misuse, Vue Options API in Vue 3.' },
+  { id: 'workspace-health', label: 'Workspace Health', category: 'Architecture', desc: 'Circular imports, mismatched dependency versions.' },
+  { id: 'unused-deps', label: 'Unused Dependencies', category: 'Architecture', desc: 'Packages in package.json with no import references.' },
+  { id: 'api-contract', label: 'API Contract', category: 'Architecture', desc: 'REST endpoints with no frontend call, GraphQL types without resolvers, stale OpenAPI specs.' },
+  { id: 'production-leak', label: 'Production Leak', category: 'Architecture', desc: 'Mock/fixture/sample data paths in production code.' },
+  { id: 'mock-path-leak', label: 'Mock Path Leak', category: 'Architecture', desc: 'Mock/fixture paths referenced in production code.' },
+  { id: 'sample-json-ref', label: 'Sample JSON Ref', category: 'Architecture', desc: 'Sample JSON files referenced in production code.' },
+  { id: 'architecture-drift', label: 'Architecture Drift', category: 'Architecture', desc: 'Hybrid/SSM model identifiers without schema validators.' },
+  { id: 'roadmap-marker', label: 'Roadmap Marker', category: 'Architecture', desc: 'Unresolved HACK/XXX/WORKAROUND markers.' },
+  { id: 'fix-preview', label: 'Fix Preview', category: 'Architecture', desc: 'Before/after code diffs with copyable patches.' },
+  // UX & Accessibility
+  { id: 'accessibility', label: 'Accessibility', category: 'UX & Accessibility', desc: 'Missing alt text, unlabeled inputs, color-only indicators.' },
+  { id: 'i18n', label: 'i18n Readiness', category: 'UX & Accessibility', desc: 'Hardcoded UI strings, locale-ignorant formatting.' },
+  { id: 'governance-marker', label: 'Governance Marker', category: 'UX & Accessibility', desc: 'License and copyright markers for open-source compliance.' }
 ];
 
 const OPTIONAL_COMPLETE_ENGINES = [
@@ -181,19 +269,59 @@ const OPTIONAL_COMPLETE_ENGINES = [
 
 const COMPLETE_ENGINE_ORDER = [...COMPLETE_STEPS.map((step) => step.id), ...OPTIONAL_COMPLETE_ENGINES.map((step) => step.id)];
 
+const CORE_ENGINE_IDS = new Set([
+  'simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase',
+  'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit',
+  'compliance', 'eu-ai-act'
+]);
+
+const BROWSER_ANALYZER_IDS = COMPLETE_STEPS
+  .map((step) => step.id)
+  .filter((id) => !CORE_ENGINE_IDS.has(id));
+
 const ENGINE_DEPENDENCIES = {
   'mock-scan': ['simplebeacon'],
   compliance: ['simplebeacon']
 };
 
+/** Scan preset definitions for quick-selection buttons */
+const SCAN_PRESETS = [
+  { id: 'essential', label: 'Essential', icon: '⚡', engines: ['simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit', 'compliance'] },
+  { id: 'security', label: 'Security', icon: '🔒', engines: ['simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit', 'compliance', 'dependency-vulns', 'sensitive-data', 'security-headers', 'config-drift', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets'] },
+  { id: 'full', label: 'Full', icon: '🔬', engines: [...COMPLETE_ENGINE_ORDER] },
+  { id: 'custom', label: 'Custom', icon: '🔧', engines: [] }
+];
+
+/** Group engines by their category field */
+function groupEnginesByCategory(engineIds) {
+  const groups = new Map();
+  for (const id of engineIds) {
+    const step = COMPLETE_STEPS.find((s) => s.id === id);
+    const opt = OPTIONAL_COMPLETE_ENGINES.find((s) => s.id === id);
+    const category = step?.category || opt?.category || 'Other';
+    if (!groups.has(category)) groups.set(category, []);
+    groups.get(category).push({ id, label: step?.label || opt?.label || id, desc: step?.desc || opt?.hint || '', optional: !!opt });
+  }
+  return groups;
+}
+
 /** Engines that fetch their own prerequisites — no separate queue rows on Complete. */
 const SELF_CONTAINED_ENGINES = new Set(['cleanup-assistant', 'mock-scan', 'compliance']);
 
+/**
+ * Is self contained only selection.
+ * @param {Array} selectedEngines
+ * @returns {any}
+ */
 function isSelfContainedOnlySelection(selectedEngines) {
   const selected = normalizeSelectedEngines(selectedEngines, { allowEmpty: true });
   return selected.length === 1 && SELF_CONTAINED_ENGINES.has(selected[0]);
 }
 
+/**
+ * Default selected engines.
+ * @returns {any}
+ */
 function defaultSelectedEngines() {
   return COMPLETE_STEPS.map((step) => step.id);
 }
@@ -285,15 +413,30 @@ const CLIENT_DELIVERABLE_PLANS = [
 
 const PRICING_DELIVERABLES_URL = 'https://simplebeacon.ai/pricing#client-deliverables';
 
+/**
+ * Get client deliverable plan.
+ * @param {any} sku
+ * @returns {any}
+ */
 function getClientDeliverablePlan(sku) {
   return CLIENT_DELIVERABLE_PLANS.find((plan) => plan.sku === sku) || null;
 }
 
+/**
+ * Get deliverable plan engines.
+ * @param {any} plan
+ * @returns {any}
+ */
 function getDeliverablePlanEngines(plan) {
   if (!plan || plan.allowManual) return null;
   return Array.isArray(plan.engines) ? plan.engines : null;
 }
 
+/**
+ * Infer deliverable sku.
+ * @param {Array} selectedEngines
+ * @returns {any}
+ */
 function inferDeliverableSku(selectedEngines) {
   const selected = new Set(normalizeSelectedEngines(selectedEngines, { allowEmpty: true }));
   for (const plan of CLIENT_DELIVERABLE_PLANS) {
@@ -307,6 +450,12 @@ function inferDeliverableSku(selectedEngines) {
   return 'custom';
 }
 
+/**
+ * Normalize selected engines.
+ * @param {any} raw
+ * @param {Object} options
+ * @returns {any}
+ */
 function normalizeSelectedEngines(raw, { allowEmpty = false } = {}) {
   const allowed = new Set(COMPLETE_ENGINE_ORDER);
   const selected = Array.isArray(raw)
@@ -316,6 +465,11 @@ function normalizeSelectedEngines(raw, { allowEmpty = false } = {}) {
   return selected.length ? selected : defaultSelectedEngines();
 }
 
+/**
+ * Resolve engines for run.
+ * @param {Array} selectedEngines
+ * @returns {any}
+ */
 function resolveEnginesForRun(selectedEngines) {
   const selected = new Set(normalizeSelectedEngines(selectedEngines));
   for (const [engineId, deps] of Object.entries(ENGINE_DEPENDENCIES)) {
@@ -330,9 +484,20 @@ function applyEngineSelectionChange(selectedSet, engineId, checked) {
   if (!engineId || !selectedSet) return;
   if (checked) {
     selectedSet.add(engineId);
+    // Auto-select dependencies so the UI reflects what will actually run
+    const deps = ENGINE_DEPENDENCIES[engineId];
+    if (deps) {
+      for (const dep of deps) selectedSet.add(dep);
+    }
     return;
   }
   selectedSet.delete(engineId);
+  // When codebase is unchecked, also uncheck every engine that depends on it
+  if (engineId === 'codebase') {
+    for (const [id, deps] of Object.entries(ENGINE_DEPENDENCIES)) {
+      if (deps.includes('codebase')) selectedSet.delete(id);
+    }
+  }
 }
 
 /** Standalone pill → only that engine in the queue (internal deps are not shown). */
@@ -346,6 +511,11 @@ function queueEnginesForDisplay() {
   return COMPLETE_ENGINE_ORDER;
 }
 
+/**
+ * Queue select all state.
+ * @param {Array} selectedEngines
+ * @returns {any}
+ */
 function queueSelectAllState(selectedEngines) {
   const queueEngineIds = queueEnginesForDisplay();
   const selected = new Set(selectedEngines || []);
@@ -354,16 +524,31 @@ function queueSelectAllState(selectedEngines) {
   return { queueEngineIds, allSelected, someSelected };
 }
 
+/**
+ * Get complete engine label.
+ * @param {string} engineId
+ * @returns {any}
+ */
 function getCompleteEngineLabel(engineId) {
   return COMPLETE_STEPS.find((step) => step.id === engineId)?.label
     || OPTIONAL_COMPLETE_ENGINES.find((step) => step.id === engineId)?.label
     || engineId;
 }
 
+/**
+ * Get engine mode meta.
+ * @param {string} engineId
+ * @returns {any}
+ */
 function getEngineModeMeta(engineId) {
   return ANALYSIS_MODES.find((m) => modeToEngineId(m.value) === engineId) || null;
 }
 
+/**
+ * Mode to engine id.
+ * @param {any} modeValue
+ * @returns {any}
+ */
 function modeToEngineId(modeValue) {
   const normalizedMode = String(modeValue || '');
   if (!normalizedMode || normalizedMode === 'complete' || normalizedMode === 'auto') return null;
@@ -397,7 +582,7 @@ const DATA_QUALITY_SCANNERS = [
   'data-consistency'
 ];
 
-const FILE_REDUCTION_SCANNERS = ['build-artifacts', 'asset-consolidation', 'unused-files'];
+const FILE_REDUCTION_SCANNERS = ['build-artifacts', 'asset-consolidation', 'unused-files', 'directory-bloat'];
 
 const COMPLIANCE_CHECKLIST_RULES = [
   'GATE-001 — Merge gate passes on configured severities',
@@ -410,10 +595,22 @@ const COMPLIANCE_CHECKLIST_RULES = [
   'AUTH-001 — Production profile has JWT auth enabled (REQUIRE_AUTH)'
 ];
 
+/**
+ * Complete step label.
+ * @param {number} index
+ * @param {string} text
+ * @param {Array} totalSteps
+ * @returns {any}
+ */
 function completeStepLabel(index, text, totalSteps = COMPLETE_ENGINE_ORDER.length) {
   return `${index + 1}/${totalSteps} ${text}`;
 }
 
+/**
+ * Resolve complete scan counts.
+ * @param {string} lastResult
+ * @returns {any}
+ */
 function resolveCompleteScanCounts(lastResult) {
   const steps = lastResult?.steps || [];
   const enginesRun = lastResult?.enginesRun?.length
@@ -431,6 +628,12 @@ function resolveCompleteScanCounts(lastResult) {
   };
 }
 
+/**
+ * Format scan progress details.
+ * @param {any} sp
+ * @param {Object} options
+ * @returns {any}
+ */
 function formatScanProgressDetails(sp, options = {}) {
   if (!sp || sp.active === false) return { counter: '', scopeNote: '' };
   const processed = sp.processed != null ? Number(sp.processed) : null;
@@ -481,7 +684,7 @@ function formatScanProgressDetails(sp, options = {}) {
         ? ` / ${formatNumber(explorer.totalFolders)} folders`
         : '';
       scopeParts.push(
-        `Explorer-style inventory for the same path: ${formatNumber(explorer.totalFiles)} files${folderPart}.`
+        `Repository inventory for the same path: ${formatNumber(explorer.totalFiles)} files${folderPart}.`
       );
     }
   } else if (phase === 'codebase' || sp.fileKind === 'code') {
@@ -504,50 +707,73 @@ function formatScanProgressDetails(sp, options = {}) {
   return { counter, scopeNote: scopeParts.join(' ').trim() };
 }
 
-function summarizeCompleteStepMetric(engineId, result) {
+/**
+ * Summarize complete step metric.
+ * @param {string} engineId
+ * @param {any} result
+ * @param {number} canonicalCount
+ * @returns {any}
+ */
+function summarizeCompleteStepMetric(engineId, result, canonicalCount = null) {
   if (!result) return '';
   switch (engineId) {
     case 'simplebeacon': {
       const m = getScanFileMetrics(result.report);
+      const count = canonicalCount ?? m.repositoryFiles;
       const parts = [];
-      if (m.repositoryFiles != null) parts.push(`${formatNumber(m.repositoryFiles)} repo files`);
       if (m.ruleScopedFilesAnalyzed != null) {
-        parts.push(`${formatNumber(m.ruleScopedFilesAnalyzed)} rule-scoped`);
+        parts.push(`${formatNumber(m.ruleScopedFilesAnalyzed)} analyzed`);
+      }
+      if (count != null && count !== m.ruleScopedFilesAnalyzed) {
+        parts.push(`${formatNumber(count)} total`);
       }
       return parts.join(' · ');
     }
     case 'consolidation': {
-      const n = result.scan?.summary?.repositoryFilesTotal
+      const count = canonicalCount ?? result.scan?.summary?.repositoryFilesTotal
         ?? result.scan?.repositoryInventory?.totalFiles
         ?? result.scan?.summary?.filesAnalyzed;
-      return n != null ? `${formatNumber(n)} files` : '';
+      return count != null ? `${formatNumber(count)} files` : '';
     }
     case 'mock-scan': {
+/**
+ * Hits.
+ * @param {any} result.fictionIssues || []
+ * @returns {any}
+ */
       const hits = (result.fictionIssues || []).reduce((sum, item) => sum + (item.count || 1), 0);
       const m = getScanFileMetrics(result.report);
-      if (m.mockSampleFiles != null && hits) {
-        return `${formatNumber(m.mockSampleFiles)} sample files · ${formatNumber(hits)} KPI hits`;
+      const count = canonicalCount ?? m.mockSampleFiles;
+      if (count != null && hits) {
+        return `${formatNumber(count)} sample files · ${formatNumber(hits)} KPI hits`;
       }
-      if (m.mockSampleFiles != null) return `${formatNumber(m.mockSampleFiles)} sample files`;
+      if (count != null) return `${formatNumber(count)} sample files`;
       return hits ? `${formatNumber(hits)} KPI hits` : '';
     }
     case 'roadmap': {
-      const n = result.roadmap?.codeAnalysis?.structure?.totalFiles;
-      return n != null ? `${formatNumber(n)} files scanned` : '';
+      const count = canonicalCount ?? result.roadmap?.codeAnalysis?.structure?.totalFiles;
+      return count != null ? `${formatNumber(count)} files scanned` : '';
     }
     case 'codebase': {
-      const n = result.report?.summary?.filesAnalyzed ?? result.report?.filesAnalyzed;
-      return n != null ? `${formatNumber(n)} code files` : '';
+      const count = canonicalCount ?? result.report?.summary?.codeFilesAnalyzed ?? result.report?.summary?.filesAnalyzed ?? result.report?.filesAnalyzed;
+      return count != null ? `${formatNumber(count)} code files` : '';
     }
-    case 'file-reduction':
+    case 'file-reduction': {
+      const findings = result.summary?.totalFindings ?? result.summary?.mergeCandidates ?? null;
+      const count = canonicalCount ?? result.inventory?.totalFiles ?? result.scan?.inventory?.totalFiles ?? result.scan?.repositoryInventory?.totalFiles;
+      if (findings != null && count != null) {
+        return `${formatNumber(findings)} finding${findings === 1 ? '' : 's'} · ${formatNumber(count)} files inventoried`;
+      }
+      return count != null ? `${formatNumber(count)} files inventoried` : '';
+    }
     case 'data-quality': {
-      const n = result.scan?.inventory?.totalFiles ?? result.scan?.repositoryInventory?.totalFiles;
-      return n != null ? `${formatNumber(n)} files inventoried` : '';
+      const count = canonicalCount ?? result.inventory?.totalFiles ?? result.scan?.inventory?.totalFiles ?? result.scan?.repositoryInventory?.totalFiles;
+      return count != null ? `${formatNumber(count)} files inventoried` : '';
     }
     case 'cleanup-assistant': {
-      const n = result.repositoryInventory?.totalFiles
+      const count = canonicalCount ?? result.repositoryInventory?.totalFiles
         ?? result.brief?.projectedInventory?.totalFiles;
-      return n != null ? `${formatNumber(n)} files in brief` : '';
+      return count != null ? `${formatNumber(count)} files in brief` : '';
     }
     case 'npm-audit': {
       const n = result.npmAudit?.summary?.total ?? result.npmAudit?.vulnerabilities?.length;
@@ -559,21 +785,88 @@ function summarizeCompleteStepMetric(engineId, result) {
       return passed != null && total ? `${passed}/${total} rules passed` : '';
     }
     case 'eu-ai-act': {
-      const n = result.sprint?.report?.repositoryFilesTotal
+      const count = canonicalCount ?? result.sprint?.report?.repositoryFilesTotal
         ?? result.sprint?.report?.repositoryInventory?.totalFiles;
-      return n != null ? `${formatNumber(n)} files audited` : '';
+      return count != null ? `${formatNumber(count)} files audited` : '';
     }
-    default:
+    default: {
+      const findings = result?.findingsCount ?? result?.category?.count ?? null;
+      const files = result?.fileCount ?? result?.category?.fileCount ?? 0;
+      if (findings != null) {
+        return `${findings} finding${findings === 1 ? '' : 's'} in ${files} file${files === 1 ? '' : 's'}`;
+      }
       return '';
+    }
   }
 }
 
+/**
+ * Format complete step line.
+ * @param {any} step
+ * @returns {any}
+ */
 function formatCompleteStepLine(step) {
   const metric = step.metric ? ` · ${step.metric}` : '';
   const err = step.error ? ` — ${step.error}` : '';
   return `${step.label}${metric}${err}`;
 }
 
+/**
+ * Render browser analyzer result.
+ * @param {any} step
+ * @param {Array} errors
+ * @returns {any}
+ */
+function renderBrowserAnalyzerResult(step, errors = []) {
+  const label = getCompleteEngineLabel(step.id);
+  const metric = summarizeCompleteStepMetric(step.id, step);
+  const error = errors.find((e) => e.step?.includes(label))?.message || '';
+  const findingsCount = step.findingsCount ?? step.category?.count ?? 0;
+  const fileCount = step.fileCount ?? step.category?.fileCount ?? 0;
+  const hasFindings = findingsCount > 0;
+  const findings = step.findings || [];
+
+  const findingsTable = findings.length
+    ? `<table class="results-table mt-3">
+        <thead>
+          <tr><th>Severity</th><th>File</th><th>Line</th><th>Description</th><th>Recommended Action</th></tr>
+        </thead>
+        <tbody>
+          ${findings.map((f) => `
+            <tr>
+              <td><span class="severity-pill ${escapeHtml(f.severity || 'low')}">${escapeHtml(f.severity || 'low')}</span></td>
+              <td><code>${escapeHtml(f.filePath ? f.filePath.split('/').pop().split('\\').pop() : '—')}</code></td>
+              <td>${f.line ?? '—'}</td>
+              <td>${escapeHtml(f.description || f.type || '—')}</td>
+              <td>${escapeHtml(f.recommendedAction || 'Review and fix manually')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div class="flex gap-2 mt-3">
+        <button type="button" class="btn btn-secondary btn-sm analyze-download-step-json" data-step-id="${escapeHtml(step.id)}" title="Download raw JSON for this category">Download JSON</button>
+      </div>
+      ${findingsCount > findings.length ? `<p class="text-muted mt-2">+ ${findingsCount - findings.length} more finding(s) in JSON download.</p>` : ''}`
+    : '';
+
+  return `
+    <details class="card mb-4">
+      <summary><strong>${escapeHtml(label)}</strong> ${error ? '⚠️' : '✅'} <span class="text-muted" style="font-weight:400;">${escapeHtml(metric || 'No findings')}</span></summary>
+      <div class="mt-4">
+        ${error ? `<p class="text-muted" style="color: var(--warning-color, #f59e0b);">${escapeHtml(error)}</p>` : ''}
+        ${hasFindings
+          ? `<p class="text-muted">${formatNumber(findingsCount)} finding${findingsCount === 1 ? '' : 's'} in ${formatNumber(fileCount)} file${fileCount === 1 ? '' : 's'}</p>${findingsTable}`
+          : '<p class="text-muted">No findings detected.</p>'}
+      </div>
+    </details>
+  `;
+}
+
+/**
+ * Checklist rule total.
+ * @param {any} checklist
+ * @returns {any}
+ */
 function checklistRuleTotal(checklist) {
   const fromSummary = checklist?.summary?.total;
   if (Number.isFinite(fromSummary) && fromSummary > 0) return fromSummary;
@@ -581,10 +874,21 @@ function checklistRuleTotal(checklist) {
   return fromRules > 0 ? fromRules : 0;
 }
 
+/**
+ * Normalize path key.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizePathKey(value) {
   return String(value || '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
 }
 
+/**
+ * Render compliance checklist panel.
+ * @param {any} checklist
+ * @param {Object} options
+ * @returns {any}
+ */
 function renderComplianceChecklistPanel(checklist, options = {}) {
   const downloadId = options.downloadButtonId ?? 'download-compliance-json';
   if (!checklist) {
@@ -628,6 +932,12 @@ function renderComplianceChecklistPanel(checklist, options = {}) {
   `;
 }
 
+/**
+ * Render npm audit panel.
+ * @param {any} npmAudit
+ * @param {Object} options
+ * @returns {any}
+ */
 function renderNpmAuditPanel(npmAudit, options = {}) {
   const downloadId = options.downloadButtonId ?? 'download-npm-audit-json';
   if (!npmAudit || npmAudit.error) {
@@ -682,6 +992,12 @@ function renderNpmAuditPanel(npmAudit, options = {}) {
   `;
 }
 
+/**
+ * Render eu ai act sprint panel.
+ * @param {any} sprint
+ * @param {Object} options
+ * @returns {any}
+ */
 function renderEuAiActSprintPanel(sprint, options = {}) {
   if (!sprint) {
     return '<p class="text-muted mt-4">EU AI Act sprint did not run.</p>';
@@ -697,19 +1013,96 @@ function renderEuAiActSprintPanel(sprint, options = {}) {
   const downloadId = options.downloadButtonId ?? 'download-eu-compliance-json';
   const showIntro = options.showIntro !== false;
   const showActions = options.showActions !== false;
+
+  // Categorize rules by EU AI Act article
+  const rules = s.complianceChecklist?.rules || s.compliance?.rules || [];
+  const art5Rules = rules.filter(r => /ART-5|prohibited|banned|subliminal|manipulation|social scoring|biometric.*mass/i.test((r.id || '') + ' ' + (r.title || '')));
+  const art50Rules = rules.filter(r => /T50|transparency|disclosure|article.*50/i.test((r.id || '') + ' ' + (r.title || '')));
+  const otherRules = rules.filter(r => !art5Rules.includes(r) && !art50Rules.includes(r));
+
+  const art5Status = art5Rules.length ? (art5Rules.every(r => r.status === 'pass') ? 'pass' : 'warn') : 'pass';
+  const art50Status = art50Rules.length ? (art50Rules.every(r => r.status === 'pass') ? 'pass' : 'warn') : 'info';
+  const highRiskStatus = s.summary?.highRiskIndicators > 0 ? 'warn' : 'pass';
+  const aiSystemStatus = s.summary?.aiSystemIndicators > 0 ? 'info' : 'pass';
+
+/**
+ * Render article card.
+ * @param {any} title
+ * @param {any} article
+ * @param {Array} status
+ * @param {any} rulesList
+ * @param {any} description
+ * @returns {any}
+ */
+  const renderArticleCard = (title, article, status, rulesList, description) => {
+    const badgeClass = status === 'pass' ? 'pass' : status === 'warn' ? 'warn' : 'info';
+    const badgeText = status === 'pass' ? 'PASS' : status === 'warn' ? 'WARN' : 'INFO';
+    return `
+      <div class="card mb-3" style="border-left: 4px solid var(--${badgeClass === 'pass' ? 'color-success' : badgeClass === 'warn' ? 'warning-color' : 'accent-color'}, ${badgeClass === 'pass' ? '#22c55e' : badgeClass === 'warn' ? '#f59e0b' : '#3b82f6'});">
+        <div style="padding: 16px 20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <h4 style="margin:0;font-size:0.95rem;font-weight:600;">${escapeHtml(title)}</h4>
+            <span class="metric-chip gate-badge ${badgeClass}" style="font-size:0.75rem;">${badgeText}</span>
+          </div>
+          <p style="margin:0 0 8px;font-size:0.8rem;color:var(--text-muted);">${escapeHtml(article)}</p>
+          ${description ? `<p style="margin:0 0 12px;font-size:0.8rem;color:var(--text-muted);">${escapeHtml(description)}</p>` : ''}
+          ${rulesList.length ? `
+            <ul style="margin:0;padding-left:18px;font-size:0.8rem;color:var(--text-muted);">
+              ${rulesList.map(r => `<li><strong>${escapeHtml(r.id)}</strong> — ${escapeHtml(r.title || '')} <span style="color:${r.status==='pass'?'var(--color-success,#22c55e)':'var(--warning-color,#f59e0b)'};">(${escapeHtml(r.status || 'unknown')})</span></li>`).join('')}
+            </ul>
+          ` : `<p style="margin:0;font-size:0.8rem;color:var(--text-muted);">No specific rules triggered.</p>`}
+        </div>
+      </div>
+    `;
+  };
+
   return `
     ${showIntro ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
       <strong>Reference scan</strong> — not an active paid SKU. EU pattern hits flag AI integrations (usually MEDIUM warnings).
       Gate FAIL means ${s.gate?.blockingCount ?? '—'} HIGH-severity blocking issue(s) under <code>failOn: high</code>.
-      Checklist uses <strong>10 rules</strong> (9 technical + EUAI-000 legal attestation) — separate from Complete bundle's 8-rule corporate checklist.
     </p>` : ''}
+
     <div class="metrics-row mb-4">
       <div class="metric-chip gate-badge ${s.gate?.pass ? 'pass' : 'warn'}">${s.gate?.pass ? 'PASS' : 'FAIL'}</div>
       <div class="metric-chip"><strong>${s.gate?.blockingCount ?? '—'}</strong> blocking (high)</div>
       <div class="metric-chip"><strong>${s.gate?.warningCount ?? s.euPatternHits ?? '—'}</strong> warnings (medium)</div>
       <div class="metric-chip"><strong>${s.compliance?.passed ?? 0}/${s.compliance?.total ?? 0}</strong> checklist</div>
       <div class="metric-chip"><strong>${s.compliance?.score ?? '—'}%</strong> readiness</div>
+      ${s.scannedAt || s.timestamp ? `<div class="metric-chip" style="font-size:0.75rem;color:var(--text-muted);">Scanned: ${escapeHtml(new Date(s.scannedAt || s.timestamp).toLocaleString())}</div>` : ''}
     </div>
+
+    ${renderArticleCard(
+      'Prohibited AI Practices',
+      'Article 5 — Subliminal manipulation, social scoring, biometric mass surveillance',
+      art5Status,
+      art5Rules,
+      art5Status === 'pass' ? 'No prohibited practices detected.' : 'Review required: potential high-risk indicators found.'
+    )}
+
+    ${renderArticleCard(
+      'Transparency Obligations',
+      'Article 50 — AI disclosure to users, content labeling, system documentation',
+      art50Status,
+      art50Rules,
+      'Ensure AI-generated content is disclosed to end users.'
+    )}
+
+    ${renderArticleCard(
+      'High-Risk System Indicators',
+      'Annex III — Employment, credit, biometric, education, insurance, law enforcement',
+      highRiskStatus,
+      [],
+      s.summary?.highRiskIndicators > 0 ? `${s.summary.highRiskIndicators} high-risk pattern(s) detected.` : 'No Annex III high-risk patterns detected.'
+    )}
+
+    ${renderArticleCard(
+      'AI System Detection',
+      'System inventory — LLM integrations, model inference, generative AI usage',
+      aiSystemStatus,
+      [],
+      s.summary?.aiSystemIndicators > 0 ? `${s.summary.aiSystemIndicators} AI system(s) detected in codebase.` : 'No AI systems detected.'
+    )}
+
     ${s.compliance?.headline ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">${escapeHtml(s.compliance.headline)}</p>` : ''}
     ${s.complianceChecklist ? renderComplianceChecklistPanel(s.complianceChecklist, {
       downloadButtonId: downloadId,
@@ -753,7 +1146,7 @@ const ANALYSIS_MODES = [
       'Fiction digest — repository-wide JSON KPI patterns',
       'Roadmap — filesystem sprint phases from code-roadmap-generator',
       'Codebase — full-depth ESLint + understanding layers',
-      'File reduction — build-artifacts, asset-consolidation, unused-files (dry-run)',
+      'File reduction — build-artifacts, asset-consolidation, unused-files, directory-bloat (dry-run)',
       'Data quality — 8 scanners (config, env, privacy, lineage, consistency)',
       'Cleanup assistant — tiered safe-delete brief for agent mode',
       'Live npm audit — supply-chain vulnerabilities',
@@ -821,6 +1214,23 @@ const ANALYSIS_MODES = [
     tag: 'Reduce',
     steps: FILE_REDUCTION_SCANNERS.map((id) => id.replace(/-/g, ' ')),
     deliverable: 'Reclaimable space estimate + tier list'
+  },
+  {
+    value: 'removable-files',
+    group: 'standalone',
+    label: 'Removable files',
+    desc: 'node_modules, build artifacts, caches, logs, and temp files that can be safely deleted',
+    icon: '🗑️',
+    tag: 'Cleanup',
+    steps: [
+      'Scan for node_modules directories',
+      'Detect build artifacts (dist, build, .next, out)',
+      'Find cache directories (.cache, .turbo)',
+      'Identify log and temp files',
+      'List OS metadata files (.DS_Store, Thumbs.db)',
+      'Calculate total reclaimable space'
+    ],
+    deliverable: 'Removable files report with reclaimable space'
   },
   {
     value: 'data-quality',
@@ -894,10 +1304,20 @@ const ANALYSIS_MODES = [
   }
 ];
 
+/**
+ * Get analysis mode.
+ * @param {any} value
+ * @returns {any}
+ */
 function getAnalysisMode(value) {
   return ANALYSIS_MODES.find((m) => m.value === value) || ANALYSIS_MODES[0];
 }
 
+/**
+ * Is plausible project path.
+ * @param {any} value
+ * @returns {any}
+ */
 function isPlausibleProjectPath(value) {
   const raw = String(value || '').trim();
   if (!raw || raw.length > 280) return false;
@@ -915,6 +1335,10 @@ function isPlausibleProjectPath(value) {
   return false;
 }
 
+/**
+ * Load analyze prefs.
+ * @returns {any}
+ */
 function loadAnalyzePrefs() {
   try {
     const raw = localStorage.getItem(ANALYZE_PREFS_KEY);
@@ -924,16 +1348,31 @@ function loadAnalyzePrefs() {
   }
 }
 
+/**
+ * Save analyze prefs.
+ * @param {Array} prefs
+ * @returns {any}
+ */
 function saveAnalyzePrefs(prefs) {
   localStorage.setItem(ANALYZE_PREFS_KEY, JSON.stringify(prefs));
 }
 
+/**
+ * Basename path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function basenamePath(projectPath) {
   if (!projectPath) return '';
   const parts = projectPath.replace(/\\/g, '/').split('/').filter(Boolean);
   return parts[parts.length - 1] || projectPath;
 }
 
+/**
+ * Format elapsed.
+ * @param {Array} ms
+ * @returns {any}
+ */
 function formatElapsed(ms) {
   if (!ms || ms < 1000) return '<1s';
   const secs = Math.floor(ms / 1000);
@@ -948,7 +1387,7 @@ export class AnalyzeView {
     this.app = app;
     this.busy = false;
     const prefs = loadAnalyzePrefs();
-    this.aiProvider = prefs.aiProvider || 'active';
+    this.aiProvider = prefs.aiProvider || 'demo';
     this.roadmapInsightsMode = prefs.roadmapInsightsMode || 'deterministic';
     this.understandingMode = prefs.understandingMode || 'deterministic';
     this.analysisType = app.state.analyzeResult?.kind === 'complete'
@@ -961,33 +1400,23 @@ export class AnalyzeView {
             ? 'eu-ai-act'
             : (prefs.analysisType || app.state.analyzeResult?.data?.analysisType || 'complete');
     this.lastResult = app.state.analyzeResult || null;
+    // Auto-clear stale cached results that don't match current path input
+    this.clearStaleResultIfPathMismatch();
     this.completeStep = '';
     this.completeProgress = null;
     this.scanStartedAt = null;
     this.scanProgress = null;
     this._progressPollTimer = null;
+    this._terminalLogLines = [];
     this.providers = [];
     this.issueTaxonomyGroups = groupIssuesByCategory();
     this.selectedIssueIds = new Set(AI_SYSTEM_ISSUES.map((issue) => issue.id));
     this.aiIssueAnalysisResult = null;
     this.snippetResult = null;
     this.snippetBusy = false;
-    this.certificateMilestone = 'release';
-    this.certificateClientName = '';
-    this.certificateProjectName = '';
-    this.certificateOrgId = 'default';
-    const urlProjectId = readHashQueryParam('project_id') || '';
-    const storedProjectId = typeof localStorage !== 'undefined'
-      ? (localStorage.getItem('simplebeacon_agency_project_id') || '')
-      : '';
-    this.certificateProjectId = urlProjectId || storedProjectId || '';
-    if (urlProjectId && typeof localStorage !== 'undefined') {
-      localStorage.setItem('simplebeacon_agency_project_id', urlProjectId);
-    }
-    this.agencyBrandingLoaded = false;
-    this.certificateExportBusy = false;
-    this.fullDirectoryScan = typeof localStorage !== 'undefined'
-      && localStorage.getItem('simplebeacon_full_directory_scan') === '1';
+    this._euAiActRefreshTimer = null;
+    this._lastEuAiActScanAt = null;
+    this.fullDirectoryScan = true;
     this.selectedEngines = Array.isArray(prefs.selectedEngines)
       ? normalizeSelectedEngines(prefs.selectedEngines, { allowEmpty: true })
       : defaultSelectedEngines();
@@ -1006,13 +1435,74 @@ export class AnalyzeView {
       this.analysisType = this.selectedEngines[0];
       this.selectedDeliverableSku = inferDeliverableSku(this.selectedEngines);
     }
+    this.scanNotes = '';
     this.testSources = [];
     this._onAiKeysUpdated = () => {
       const select = this._root?.querySelector('#ai-provider-select');
       if (select) void this.loadProviders(select, { refresh: true });
     };
     this._pathUiTimer = null;
+    this._queueExpanded = false;
     this.websiteMode = false;
+    this.realtimeMonitorEnabled = false;
+    this._vscodeApiCached = null;
+  }
+
+  get vscodeEnhanced() {
+    if (this._vscodeApiCached !== null) return !!this._vscodeApiCached;
+    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') {
+      this._vscodeApiCached = false;
+      return false;
+    }
+    try {
+      this._vscodeApiCached = !!window.acquireVsCodeApi();
+      return this._vscodeApiCached;
+    } catch {
+      this._vscodeApiCached = false;
+      return false;
+    }
+  }
+
+  _getVscodeApi() {
+    if (this._vscodeApiCached === true) {
+      try { return window.acquireVsCodeApi(); } catch { return null; }
+    }
+    if (this._vscodeApiCached === false) return null;
+    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') {
+      this._vscodeApiCached = false;
+      return null;
+    }
+    try {
+      const api = window.acquireVsCodeApi();
+      this._vscodeApiCached = true;
+      return api;
+    } catch {
+      this._vscodeApiCached = false;
+      return null;
+    }
+  }
+
+  _notifyVscodeSidebar(report) {
+    const vscode = this._getVscodeApi();
+    if (!vscode || !report) return;
+    try {
+      const allIssues = report.rawIssues || report.detectedIssues || [];
+      const sev = report.severityCounts || {};
+      const score = report.qualityScore ?? report.gate?.score ?? 0;
+      vscode.postMessage({
+        command: 'scanComplete',
+        stats: {
+          issues: allIssues.length,
+          critical: sev.critical || 0,
+          high: sev.high || 0,
+          medium: sev.medium || 0,
+          low: sev.low || 0,
+          score: score
+        }
+      });
+    } catch (err) {
+      console.warn('[Sidebar-Notify] vscode.postMessage failed:', err);
+    }
   }
 
   render() {
@@ -1022,143 +1512,304 @@ export class AnalyzeView {
     const el = document.createElement('div');
     el.className = 'fade-in';
     el.innerHTML = `
-      <h1 class="page-title">Analyze <span class="text-muted" style="font-size: var(--font-size-sm); font-weight: 500;">build ${escapeHtml(String(window.__SIMPLEBEACON_DASHBOARD_BUILD__ || '20260601-enginequeueonly'))}</span></h1>
-      <p class="text-muted mb-6">Drop a single source file for a quick pattern check, import a JSON report, or scan a repo folder on the dashboard server. Engines match the current <code>simplebeacon-cli</code> standard profile (credentials, production-leak, LLM slop, agency handoff) plus eight data-quality scanners and an EU AI Act sprint mode. <strong>Complete</strong> runs all ten steps with audit PDF + certificate export.</p>
-
-      ${this.renderFileDropCard()}
-
-      <div class="card mb-6 analyze-path-card">
-        <div class="card-header">
-          <span class="card-title">${this.websiteMode ? 'Website URL' : 'Project path or repo URL'}</span>
-          <div class="analyze-path-header-actions">
-            <button type="button" class="btn btn-ghost btn-sm" id="use-default-path-btn" ${defaultPath && !this.websiteMode ? '' : 'hidden'}>Use server default</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="clear-path-btn">Clear</button>
-          </div>
+      <!-- Hero header -->
+      <div class="analyze-hero">
+        <div class="analyze-hero-main">
+          <h1 class="page-title">Analyze</h1>
+          <span class="analyze-build-badge">${escapeHtml(String(window.__SIMPLEBEACON_DASHBOARD_BUILD__ || 'dev'))}</span>
         </div>
-
-        <div class="analyze-mode-tabs" style="display:flex;gap:0.5rem;margin-bottom:1rem;">
-          <button type="button" class="btn btn-sm ${this.websiteMode ? 'btn-ghost' : 'btn-primary'}" id="analyze-tab-local">Local / Repo</button>
-          <button type="button" class="btn btn-sm ${this.websiteMode ? 'btn-primary' : 'btn-ghost'}" id="analyze-tab-website">Website URL</button>
-        </div>
-
-        <p class="text-muted analyze-path-intro">${this.websiteMode
-    ? 'Enter a <strong>public website URL</strong>. The dashboard will download the page source and linked CSS/JS assets, then run Simplebeacon gate rules (credentials, fiction KPIs, token leaks) against the downloaded files. No server-side project path required.'
-    : 'Enter a <strong>folder path</strong> on the machine running <code>npm run dashboard</code>, or paste a public repo URL (<strong>HTTPS</strong>, <code>git@host:org/repo</code>, or <code>ssh://</code>) from GitHub, GitLab, Bitbucket, or Codeberg. Use <strong>Test sources</strong> below for one-click paths. Then click <strong>Run analysis</strong>.'}</p>
-
-        <div class="analyze-path-input-wrap">
-          <input type="text" id="project-path-input" class="analyze-path-input"
-            placeholder="${this.websiteMode ? 'https://example.com' : 'C:\\\\dev\\\\my-app · data/mock · git@github.com:org/repo · https://codeberg.org/org/repo'}"
-            value="${escapeHtml(formatPathInputValue(displayPath))}"
-            list="${this.websiteMode ? '' : pathInputListAttr()}"
-            spellcheck="false"
-            autocomplete="list"
-            aria-label="${this.websiteMode ? 'Website URL' : 'Project path on server'}">
-          ${this.websiteMode ? '' : renderPathSuggestionsDatalistElement(collectPathSuggestions(this.app, this.testSources))}
-        </div>
-        <div id="analyze-inventory-provenance" class="analyze-inventory-provenance-slot">
-          ${this.renderInventoryProvenanceLine(displayPath)}
-        </div>
-        ${this.websiteMode ? '' : `
-        <label class="analyze-full-tree-toggle text-muted" style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);margin:0 0 var(--space-3);">
-          <input type="checkbox" id="analyze-full-directory" ${this.fullDirectoryScan ? 'checked' : ''}>
-          Analyze <strong>every file</strong> in the selected folder (full tree — SHA-256 every file, content-scan all text files with no size cap, all gate rules on every text file; includes <code>node_modules</code>; skips <code>.github-sync</code> mirror and <code>github-cache</code> clones)
-        </label>
-
-        ${this.renderPathSourceSections(defaultPath, displayPath)}`}
-
-        <p class="text-muted mb-2" style="font-size: var(--font-size-xs);">Select a <strong>client deliverable SKU</strong> — the table sets which scans run and which artifacts export. Use <strong>custom</strong> to toggle engines in the scan queue below. Checkout is separate from this page. <a href="${PRICING_DELIVERABLES_URL}" target="_blank" rel="noopener">Public pricing →</a></p>
-        ${this.renderClientDeliverablePicker()}
-        ${this.renderSelectedModeDetail()}
-
-        <div class="analyze-action-row">
-          <select id="analysis-type-select" class="analyze-select" aria-label="Analysis type" hidden>
-            ${ANALYSIS_MODES.map((m) => `<option value="${m.value}" ${this.analysisType === m.value ? 'selected' : ''}>${m.label}</option>`).join('')}
-          </select>
-          <div id="analyze-roadmap-insights-wrap" class="analyze-roadmap-insights-wrap${analysisTypeSupportsRoadmapInsights(this.analysisType) ? '' : ' is-hidden'}">
-            <label for="roadmap-insights-select" class="text-muted" style="font-size: var(--font-size-xs);">Roadmap insights</label>
-            <select id="roadmap-insights-select" class="analyze-select" aria-label="Roadmap insights mode">
-              <option value="off" ${this.roadmapInsightsMode === 'off' ? 'selected' : ''}>Filesystem only</option>
-              <option value="deterministic" ${this.roadmapInsightsMode === 'deterministic' ? 'selected' : ''}>Deterministic (no LLM)</option>
-              <option value="llm" ${this.roadmapInsightsMode === 'llm' ? 'selected' : ''}>+ LLM strategic layer</option>
-            </select>
-          </div>
-          <div id="analyze-understanding-wrap" class="analyze-roadmap-insights-wrap${analysisTypeSupportsUnderstanding(this.analysisType) ? '' : ' is-hidden'}">
-            <label for="understanding-mode-select" class="text-muted" style="font-size: var(--font-size-xs);">Code understanding</label>
-            <select id="understanding-mode-select" class="analyze-select" aria-label="Code understanding mode">
-              <option value="off" ${this.understandingMode === 'off' ? 'selected' : ''}>Static scan only</option>
-              <option value="deterministic" ${this.understandingMode === 'deterministic' ? 'selected' : ''}>Semantic + context</option>
-              <option value="llm" ${this.understandingMode === 'llm' ? 'selected' : ''}>+ LLM explanation</option>
-            </select>
-          </div>
-          <div id="analyze-ai-provider-wrap" class="analyze-ai-provider-wrap${this.showAiProviderSelect() ? '' : ' is-hidden'}">
-            <label for="ai-provider-select" class="text-muted" style="font-size: var(--font-size-xs);">AI narrative (optional)</label>
-            <select id="ai-provider-select" class="analyze-select" aria-label="AI provider">
-              <option value="active">Active model</option>
-              <option value="demo">Filesystem scan (no AI)</option>
-              <option value="ollama">Ollama</option>
-              <option value="openai">OpenAI</option>
-              <option value="anthropic">Anthropic</option>
-            </select>
-            <p id="analyze-ai-provider-note" class="text-muted analyze-roadmap-note" style="font-size: var(--font-size-xs); margin: 0.35rem 0 0; max-width: 42rem;">
-              Gate findings are always deterministic. Optional <strong>AI narrative</strong> uses the provider you pick here — Ollama reads <strong>Settings → AI providers</strong> (base URL + model). Cloud keys go in the same Settings panel.
-            </p>
-            <button type="button" class="btn btn-ghost btn-sm" id="refresh-analyze-providers-btn" style="margin-top: 0.35rem;">Refresh provider status</button>
-          </div>
-          <p id="analyze-roadmap-no-ai-note" class="text-muted analyze-roadmap-note${this.showRoadmapInsightsNote() ? '' : ' is-hidden'}" style="font-size: var(--font-size-xs); margin: 0;">
-            Roadmap data is always from <code>code-roadmap-generator</code>. Insights layer adds executive summary + risk — choose LLM only for narrative interpretation of aggregated metrics.
-          </p>
-          <button type="button" class="btn btn-primary" id="run-analyze-btn" ${this.busy ? 'disabled' : ''}>
-            ${this.busy ? (this.completeStep || 'Running…') : this.renderRunAnalyzeButtonLabel()}
-          </button>
-          ${this.lastResult ? '<button type="button" class="btn btn-secondary" id="goto-results-quick-btn">View results →</button>' : ''}
-        </div>
-
-        ${this.busy ? this.renderProgress() : ''}
-
-        <p class="text-muted mt-3" style="font-size: var(--font-size-xs);">
-          Gate mock folders are configured in <a href="#/settings">Settings → Scan paths</a>, not here.
-          <strong>Filesystem scan</strong> = deterministic gate (findings never depend on AI).
-          <strong>Complete</strong> runs all ten steps with full codebase depth (every discovered code file, ESLint when available). Gate step uses the standard profile: credentials, production-leak, schema, fiction KPI, LLM slop, and agency-handoff rules. File reduction, data quality, cleanup assistant, compliance checklist, and npm audit run at the end. Large repos may take several minutes. Paid client workspaces: <a href="#/deliverables">Deliverables vault</a>.
-        </p>
+        <p class="text-muted analyze-hero-sub">Scan a repo folder, drop a file, or paste a URL. Pick your scan mix and run.</p>
       </div>
 
-      ${this.renderScanEnginesReferenceCard()}
+      <!-- Two-column layout: Target + Scan Config -->
+      <div class="grid-2 analyze-main-grid">
+        <!-- Left: Target -->
+        <div class="analyze-col">
+          ${this.renderTargetCard(defaultPath, displayPath)}
 
-      ${this.renderAiSystemsIssueAnalyzerCard()}
+          <!-- Quick Actions -->
+          ${this.renderQuickActionsCard()}
 
+          <!-- VS Code Extension Integration -->
+          ${this.renderVscodeExtensionCard()}
+
+          <!-- Advanced Options -->
+          <div class="card analyze-options-card">
+            <details class="analyze-options-details" ${this.showAiProviderSelect() || this.analysisType === 'complete' ? 'open' : ''}>
+              <summary class="analyze-options-summary">
+                <span class="analyze-options-summary-label">Advanced options</span>
+                <span class="text-muted" style="font-size:var(--font-size-xs);">AI provider, understanding mode, roadmap insights</span>
+              </summary>
+              <div class="analyze-options-body">
+                <div class="analyze-options-grid">
+                  <div id="analyze-ai-provider-wrap" class="analyze-ai-provider-wrap${this.showAiProviderSelect() ? '' : ' is-hidden'}">
+                    <label for="ai-provider-select" class="text-muted" style="font-size: var(--font-size-xs);">AI narrative</label>
+                    <select id="ai-provider-select" class="analyze-select" aria-label="AI provider">
+                      <option value="demo">Filesystem scan (no AI)</option>
+                      <option value="active">Active model</option>
+                      <option value="ollama">Ollama</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="anthropic">Anthropic</option>
+                    </select>
+                    <p id="analyze-ai-provider-note" class="text-muted analyze-roadmap-note" style="font-size: var(--font-size-xs); margin: 0.25rem 0 0;"></p>
+                    <button type="button" class="btn btn-ghost btn-sm" id="refresh-analyze-providers-btn" style="margin-top: 0.25rem;">Refresh providers</button>
+                  </div>
+                  <div id="analyze-understanding-wrap" class="analyze-roadmap-insights-wrap${analysisTypeSupportsUnderstanding(this.analysisType) ? '' : ' is-hidden'}">
+                    <label for="understanding-mode-select" class="text-muted" style="font-size: var(--font-size-xs);">Code understanding</label>
+                    <select id="understanding-mode-select" class="analyze-select" aria-label="Code understanding mode">
+                      <option value="off" ${this.understandingMode === 'off' ? 'selected' : ''}>Static scan only</option>
+                      <option value="deterministic" ${this.understandingMode === 'deterministic' ? 'selected' : ''}>Semantic + context</option>
+                      <option value="llm" ${this.understandingMode === 'llm' ? 'selected' : ''}>+ LLM explanation</option>
+                    </select>
+                  </div>
+                  <div id="analyze-roadmap-insights-wrap" class="analyze-roadmap-insights-wrap${analysisTypeSupportsRoadmapInsights(this.analysisType) ? '' : ' is-hidden'}">
+                    <label for="roadmap-insights-select" class="text-muted" style="font-size: var(--font-size-xs);">Roadmap insights</label>
+                    <select id="roadmap-insights-select" class="analyze-select" aria-label="Roadmap insights mode">
+                      <option value="off" ${this.roadmapInsightsMode === 'off' ? 'selected' : ''}>Filesystem only</option>
+                      <option value="deterministic" ${this.roadmapInsightsMode === 'deterministic' ? 'selected' : ''}>Deterministic (no LLM)</option>
+                      <option value="llm" ${this.roadmapInsightsMode === 'llm' ? 'selected' : ''}>+ LLM strategic layer</option>
+                    </select>
+                  </div>
+                  <div class="analyze-realtime-monitor-wrap">
+                    <label class="text-muted" style="font-size: var(--font-size-xs);">Real-time monitoring</label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
+                      <input type="checkbox" id="analyze-realtime-monitor" aria-label="Enable real-time file monitoring" ${this.realtimeMonitorEnabled ? 'checked' : ''}>
+                      <span>Watch filesystem changes and auto-rescan (requires VS Code extension or server watcher)</span>
+                    </label>
+                  </div>
+                </div>
+                <p id="analyze-roadmap-no-ai-note" class="text-muted analyze-roadmap-note${this.showRoadmapInsightsNote() ? '' : ' is-hidden'}" style="font-size: var(--font-size-xs); margin: var(--space-2) 0 0;">
+                  Roadmap data is always from <code>code-roadmap-generator</code>. Insights layer adds executive summary + risk.
+                </p>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <!-- Right: Scan Configuration -->
+        <div class="analyze-col">
+          ${this.renderSelectedModeDetail()}
+        </div>
+      </div>
+
+      ${this.busy ? this.renderProgress() : ''}
+
+      <!-- Per-file Results -->
+      ${this.renderFileResultsSection()}
+
+      <!-- Results -->
       <div id="analyze-results">${this.renderResults()}</div>
+
+      <!-- Directory browser modal -->
+      <div class="modal-overlay hidden" id="dir-browser-modal" aria-hidden="true">
+        <div class="modal-card dir-browser-modal">
+          <div class="modal-header">
+            <h2><i data-lucide="folder-open" class="icon-18" style="vertical-align:middle;margin-right:0.25rem;"></i> Browse server directories</h2>
+          </div>
+          <div class="modal-body">
+            <div class="dir-browser-path" id="dir-browser-current-path"></div>
+            <div class="dir-browser-list" id="dir-browser-list">
+              <div class="dir-browser-empty">Loading directories…</div>
+            </div>
+            <div class="dir-browser-actions">
+              <button type="button" class="btn btn-ghost btn-sm" id="dir-browser-up-btn">Up</button>
+              <button type="button" class="btn btn-primary btn-sm" id="dir-browser-select-btn">Select folder</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="dir-browser-close-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
     `;
 
     this.bindEvents(el);
     this._root = el;
     refreshPathSuggestionsDatalist(el, this.app, this.testSources);
     this.syncAnalyzeModeUi(el);
+    this.syncZipExportButtonLabel(el);
+    this.syncAuditButtonLabel(el);
+    // Browser form-state restoration can re-apply disabled after initial render;
+    // re-clear once the browser has finished its restoration pass.
+    requestAnimationFrame(() => {
+      this.syncZipExportButtonLabel(el);
+      this.syncAuditButtonLabel(el);
+    });
     if (displayPath) {
       void this.refreshReportForActivePath(el);
     }
     return el;
   }
 
-  renderFileDropCard() {
-    const busy = this.snippetBusy;
-    const result = this.snippetResult;
+  renderQuickActionsCard() {
+    const hasResult = Boolean(this.lastResult);
+    const pathInput = this._root?.querySelector('#project-path-input');
+    const projectPath = this.getActiveProjectPath(pathInput?.value);
+    const canRun = Boolean(projectPath) && !this.busy;
     return `
-      <div class="card analyze-dropzone mb-6${busy ? ' busy' : ''}" id="analyze-file-dropzone">
-        <div class="analyze-dropzone-inner">
-          <div class="analyze-dropzone-icon" aria-hidden="true">📄</div>
-          <p class="card-title" style="margin-bottom: 0.35rem;">Quick file check</p>
-          <p class="text-muted analyze-file-drop-lead">
-            Drag &amp; drop a single file here, or browse. In-browser pattern scan covers credentials, mock-path leaks, fiction KPIs, LLM slop placeholders, and common deploy-leak markers — same family as the CLI gate.
-            Optional server pass adds language detection and semantic summary (file text is sent to the dashboard API only when you run understanding).
+      <div class="card analyze-quick-actions-card" style="margin-top:var(--space-3);padding:var(--space-3);">
+        <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center;">
+          <button type="button" class="btn btn-primary btn-sm" id="quick-action-run-btn" ${canRun ? '' : 'disabled'} title="Run analysis on the current path">
+            <i data-lucide="play" class="icon-16" style="margin-right:4px;"></i> Run Scan
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="quick-action-results-btn" ${hasResult ? '' : 'disabled'} title="Open results view">
+            <i data-lucide="bar-chart-2" class="icon-16" style="margin-right:4px;"></i> Results
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="quick-action-export-btn" ${hasResult ? '' : 'disabled'} title="Export scan report">
+            <i data-lucide="download" class="icon-16" style="margin-right:4px;"></i> Export
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" id="quick-action-remediation-btn" ${hasResult ? '' : 'disabled'} title="Open remediation roadmap">
+            <i data-lucide="map" class="icon-16" style="margin-right:4px;"></i> Remediate
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  renderVscodeExtensionCard() {
+    const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
+    const inVsCodeHost = typeof window !== 'undefined' && (
+      /vscode|electron/i.test(navigator.userAgent) ||
+      /vscode-webview/i.test(navigator.userAgent)
+    );
+    const inVsCode = hasVsCodeApi || inVsCodeHost;
+    const badge = inVsCode
+      ? `<span class="ti-badge" style="background:rgba(16,185,129,0.15);color:var(--success);font-size:0.75rem;">● Active</span>`
+      : `<a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="flex-shrink:0;">Install</a>`;
+    const subtitle = inVsCode
+      ? (hasVsCodeApi
+        ? 'Extension is running in this editor. Enhanced analysis active: full-directory scan, real-time monitoring, and deep code insights.'
+        : 'Extension is running in this editor. Real-time monitoring, AI analysis, code map, and remediation guide are active.')
+      : 'Real-time file monitoring, enhanced AI analysis, code map, and remediation guide — directly in your editor.';
+    const sendToVscodeBtn = (!inVsCode && this.projectPath)
+      ? `<a href="vscode://simplebeacon.fix?projectPath=${encodeURIComponent(this.projectPath)}&scanId=${encodeURIComponent(this.lastScanId || '')}" class="btn btn-primary btn-sm" style="flex-shrink:0;margin-left:8px;">Open in VS Code</a>`
+      : '';
+    // Only show sync button when acquireVsCodeApi is available (true webview panel)
+    // Simple Browser has no API access, so sync is not available there
+    const syncBtn = hasVsCodeApi
+      ? `<button type="button" class="btn btn-ghost btn-sm" id="vscode-sync-report-btn" style="flex-shrink:0;margin-left:8px;font-size:0.75rem;" title="Push current scan report to the sidebar">🔄 Sync</button>`
+      : '';
+    return `
+      <div class="card analyze-vscode-card" style="margin-top:var(--space-3);padding:var(--space-3);background:linear-gradient(135deg,rgba(99,102,241,0.06) 0%,rgba(139,92,246,0.04) 100%);border-color:rgba(99,102,241,0.15);">
+        <div style="display:flex;align-items:flex-start;gap:var(--space-3);">
+          <div style="flex-shrink:0;width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.25rem;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 4 16 16"/><path d="m20 4-16 16"/></svg>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2);">
+              <p class="card-title" style="margin:0;font-size:0.95rem;">VS Code Extension</p>
+              <div style="display:flex;align-items:center;">${badge}${syncBtn}${sendToVscodeBtn}</div>
+            </div>
+            <p class="text-muted" style="font-size:var(--font-size-xs);margin:var(--space-1) 0 0;">
+              ${escapeHtml(subtitle)}
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderTargetCard(defaultPath, displayPath) {
+    const isWeb = this.websiteMode;
+    const dropzoneClass = isWeb ? '' : ' is-droppable';
+    const useDefaultHidden = defaultPath && !isWeb ? '' : 'hidden';
+    const pathPlaceholder = isWeb
+      ? 'https://example.com'
+      : 'C:\\\\dev\\\\my-app · git@github.com:org/repo · https://codeberg.org/org/repo';
+    const pathAria = isWeb ? 'Website URL' : 'Project path on server';
+    const pathHint = isWeb ? 'Enter a public website URL' : 'Type a server path or browse to select a directory';
+    const pathList = isWeb ? '' : pathInputListAttr();
+    const datalist = isWeb ? '' : renderPathSuggestionsDatalistElement(collectPathSuggestions(this.app, this.testSources));
+    const folderDropzone = isWeb ? '' : `
+          <div class="analyze-dropzone-icon"><i data-lucide="folder-up" class="icon-20"></i></div>
+          <div class="analyze-dropzone-label">
+            <strong>Drop a project folder or file here</strong>
+            <span class="text-muted">Or browse to select</span>
+          </div>
+          <div class="analyze-dropzone-center-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="browse-dir-btn"><i data-lucide="folder-open" class="icon-16"></i> Browse Folder</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="analyze-file-browse-btn-main" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="file-up" class="icon-16"></i> Browse File</button>
+          </div>`;
+    const dropzoneVisual = `
+      <div class="analyze-dropzone-visual ${this.busy ? 'scanning' : ''}" id="path-dropzone-visual">
+        <div class="analyze-dropzone-idle" ${this.busy ? 'hidden' : ''}>
+          ${folderDropzone}
+          <div class="analyze-dropzone-path-input" style="margin-top:12px;display:flex;gap:8px;align-items:center;width:100%;max-width:520px;">
+            <input type="text" id="project-path-input" class="analyze-path-input"
+              placeholder="${pathPlaceholder}"
+              value="${escapeHtml(formatPathInputValue(displayPath))}"
+              list="${pathList}"
+              spellcheck="false"
+              autocomplete="list"
+              aria-label="${pathAria}"
+              style="flex:1;font-size:0.8rem;padding:6px 10px;">
+            <button type="button" class="btn btn-primary btn-sm" id="dropzone-path-analyze-btn">Analyze</button>
+          </div>
+          ${datalist}
+          <p class="text-muted" style="font-size:0.65rem;margin-top:6px;text-align:center;">${isWeb ? 'Enter a public URL to scan a website.' : 'Browser folders hide drive letters — type the full path above for external drives.'}</p>
+        </div>
+        <div class="analyze-dropzone-terminal" ${this.busy ? '' : 'hidden'}>
+          <div class="analyze-dropzone-terminal-header">
+            <span class="analyze-dropzone-terminal-dot red"></span>
+            <span class="analyze-dropzone-terminal-dot yellow"></span>
+            <span class="analyze-dropzone-terminal-dot green"></span>
+            <span class="analyze-dropzone-terminal-title">Scanning…</span>
+          </div>
+          <div class="analyze-dropzone-terminal-body" id="dropzone-terminal-body">
+            ${this._terminalLogLines.map((line) => `<div class="terminal-line">${line}</div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+    const fullTreeToggle = isWeb ? '' : `
+      <label class="analyze-full-tree-toggle text-muted" style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);margin:var(--space-3) 0 0;">
+        <input type="checkbox" id="analyze-full-directory" aria-label="Analyze every file in the selected folder" ${this.fullDirectoryScan ? 'checked' : ''}>
+        <strong>Full tree</strong> — SHA-256 every file, content-scan all text, all gate rules
+      </label>`;
+    const quickCheck = isWeb ? '' : `
+      <div class="card analyze-dropzone${this.snippetBusy ? ' busy' : ''}" id="analyze-file-dropzone" style="margin-top:var(--space-3);">
+        <div class="analyze-dropzone-inner" style="padding:var(--space-5);">
+          <div class="analyze-dropzone-icon" aria-hidden="true"><i data-lucide="file-up" class="icon-20"></i></div>
+          <p class="card-title" style="margin-bottom:0.35rem;font-size:0.9rem;">Quick File Check</p>
+          <p class="text-muted analyze-file-drop-lead" style="font-size:var(--font-size-xs);margin-bottom:var(--space-2);">
+            Drop a source file or JSON report here for instant in-browser analysis.
+            Detects credentials, mock-path leaks, fiction KPIs, and LLM slop placeholders.
           </p>
-          <p class="text-muted analyze-file-drop-hint">Supported: ${escapeHtml(SNIPPET_ACCEPT.replace(/\./g, ' .'))} · max ${Math.round(MAX_SNIPPET_BYTES / 1024)} KB · JSON scan exports can be imported</p>
+          <p class="text-muted analyze-file-drop-hint" style="font-size:0.7rem;margin-bottom:var(--space-3);">
+            <span style="color:var(--text-secondary);background:rgba(99,102,241,0.08);padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:600;text-transform:uppercase;">Supported</span>
+            ${escapeHtml(SNIPPET_ACCEPT.replace(/\./g, ' .'))} &middot; max ${Math.round(MAX_SNIPPET_BYTES / 1024)} KB
+          </p>
           <div class="analyze-dropzone-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="analyze-file-browse-btn" ${busy ? 'disabled' : ''}>Choose file</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="analyze-file-clear-btn" ${result ? '' : 'disabled'}>Clear</button>
+            <button type="button" class="btn btn-primary btn-sm" id="analyze-file-browse-btn-dropzone" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="upload" class="icon-16" style="margin-right:4px;"></i>Choose File</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="analyze-file-clear-btn" ${this.snippetResult ? '' : 'disabled'}>Clear</button>
           </div>
           <input type="file" id="analyze-file-input" accept="${SNIPPET_ACCEPT}" hidden>
         </div>
-        ${result ? this.renderSnippetResults(result) : ''}
+        ${this.snippetResult ? this.renderSnippetResults(this.snippetResult) : ''}
+      </div>`;
+    const pathSources = isWeb ? '' : this.renderPathSourceSections(defaultPath, displayPath);
+
+    return `
+      <div class="card analyze-target-card" id="analyze-target-card">
+        <div class="card-header">
+          <span class="card-title">🎯 Target</span>
+          <div class="analyze-path-header-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="use-default-path-btn" ${useDefaultHidden}>Use default</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="clear-path-btn">Clear</button>
+          </div>
+        </div>
+
+        <div class="analyze-path-area${dropzoneClass}" id="analyze-path-dropzone">
+          ${dropzoneVisual}
+        </div>
+
+        <input type="file" id="browse-dir-input" webkitdirectory directory hidden>
+        <p class="analyze-path-hint text-muted">${pathHint}</p>
+
+        <div id="analyze-inventory-provenance" class="analyze-inventory-provenance-slot">
+          ${this.renderInventoryProvenanceLine(displayPath)}
+        </div>
+
+        ${fullTreeToggle}
+
+        ${pathSources}
       </div>
     `;
   }
@@ -1234,7 +1885,6 @@ export class AnalyzeView {
   }
 
   renderPathSourceSections(defaultPath, currentPath) {
-    const presetHtml = this.renderSourceChips(this.testSources, currentPath, 'analyze-preset-paths');
     const recent = loadRecentPaths().filter((p) => p !== defaultPath);
     const recentChips = [];
     if (defaultPath) {
@@ -1256,18 +1906,15 @@ export class AnalyzeView {
       )
       : '';
 
-    if (!presetHtml && !recentHtml) return '';
+    if (!recentHtml) return '';
 
     return `
-      ${presetHtml ? `
-        <div class="analyze-path-sources">
-          <span class="analyze-path-sources-label text-muted">Test sources</span>
-          ${presetHtml}
-        </div>
-      ` : ''}
       ${recentHtml ? `
         <div class="analyze-path-sources">
-          <span class="analyze-path-sources-label text-muted">Recent</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">
+            <span class="analyze-path-sources-label text-muted">Recent</span>
+            <button type="button" class="btn btn-ghost btn-xs" id="clear-recent-paths-btn">Clear all</button>
+          </div>
           ${recentHtml}
         </div>
       ` : ''}
@@ -1316,17 +1963,6 @@ export class AnalyzeView {
       this._testSourcesFailedAt = null;
       const pathInput = container?.querySelector('#project-path-input');
       const displayPath = this.getActiveProjectPath(pathInput?.value);
-      const preset = container?.querySelector('#analyze-preset-paths')?.parentElement;
-      if (preset) {
-        const section = this.renderSourceChips(this.testSources, displayPath, 'analyze-preset-paths');
-        const wrap = document.createElement('div');
-        wrap.className = 'analyze-path-sources';
-        wrap.innerHTML = `
-          <span class="analyze-path-sources-label text-muted">Test sources</span>
-          ${section}
-        `;
-        preset.replaceWith(wrap);
-      }
       refreshPathSuggestionsDatalist(container, this.app, this.testSources);
     } catch {
       this._testSourcesFailedAt = Date.now();
@@ -1351,6 +1987,10 @@ export class AnalyzeView {
   }
 
   renderClientDeliverablePicker() {
+    return '';
+  }
+
+  _renderClientDeliverablePicker() {
     const activeSku = this.selectedDeliverableSku || inferDeliverableSku(this.selectedEngines);
     const activePlan = getClientDeliverablePlan(activeSku);
     const runCount = resolveEnginesForRun(this.selectedEngines).length;
@@ -1409,7 +2049,8 @@ export class AnalyzeView {
       return normalizeSelectedEngines(this.selectedEngines);
     }
     let inputs = root.querySelectorAll('.analyze-engine-queue-input');
-    if (!inputs.length) {
+    // Queue panel caps initial render to 10 items for performance — if truncated, read from main grid instead
+    if (!inputs.length || inputs.length < COMPLETE_ENGINE_ORDER.length) {
       inputs = root.querySelectorAll('.analyze-engine-input');
     }
     if (!inputs.length) return normalizeSelectedEngines(this.selectedEngines, { allowEmpty: true });
@@ -1483,7 +2124,11 @@ export class AnalyzeView {
   }
 
   persistSelectedEngines(root = this._root, changedEngineId = null, checked = null) {
-    let selected = this.readSelectedEnginesFromDom(root);
+    // When called without changedEngineId it's a pre-run snapshot — don't overwrite from truncated DOM.
+    // Only read from DOM when a specific engine was toggled by user interaction.
+    let selected = changedEngineId
+      ? this.readSelectedEnginesFromDom(root)
+      : this.selectedEngines;
     if (changedEngineId) {
       const set = new Set(selected);
       applyEngineSelectionChange(set, changedEngineId, checked);
@@ -1522,6 +2167,7 @@ export class AnalyzeView {
     this.syncRunAnalyzeButtonLabel(root);
     this.syncSelectedEnginesDetail(root);
     this.syncZipExportButtonLabel(root);
+    this.syncAuditButtonLabel(root);
   }
 
   setSelectedEngines(engineIds, root = this._root, options = {}) {
@@ -1543,6 +2189,7 @@ export class AnalyzeView {
       this.syncRunAnalyzeButtonLabel(root);
       this.syncSelectedEnginesDetail(root);
       this.syncZipExportButtonLabel(root);
+      this.syncAuditButtonLabel(root);
     }
   }
 
@@ -1564,6 +2211,108 @@ export class AnalyzeView {
     });
   }
 
+  bindCodebaseSectionEvents(root = this._root) {
+    if (!root) return;
+    const section = root.querySelector('#codebase-health-section');
+    if (!section) return;
+
+    const table = section.querySelector('#codebase-findings-table tbody');
+    if (!table) return;
+
+    const allRows = Array.from(table.querySelectorAll('tr'));
+
+/**
+ * Apply filter.
+ * @returns {any}
+ */
+    function applyFilter() {
+      const activeCat = section.querySelector('.codebase-cat-filter.btn-primary')?.dataset?.cat || 'all';
+      const includeNode = section.querySelector('#codebase-include-node')?.checked ?? false;
+      let visibleCount = 0;
+      allRows.forEach((row) => {
+        const cat = row.dataset.cat || '';
+        const path = row.dataset.path || '';
+        const isNode = path.includes('node_modules');
+        const catMatch = activeCat === 'all' || cat === activeCat;
+        const nodeMatch = includeNode || !isNode;
+        const show = catMatch && nodeMatch;
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+      });
+      const note = section.querySelector('p.text-muted');
+      if (note) {
+        const total = allRows.length;
+        const hidden = total - visibleCount;
+        note.textContent = `${visibleCount} shown${hidden > 0 ? ` · ${hidden} filtered out` : ''}`;
+      }
+    }
+
+    section.querySelectorAll('.codebase-cat-filter').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        section.querySelectorAll('.codebase-cat-filter').forEach((b) => {
+          b.classList.remove('btn-primary');
+          b.classList.add('btn-ghost');
+        });
+        btn.classList.remove('btn-ghost');
+        btn.classList.add('btn-primary');
+        applyFilter();
+      });
+    });
+
+    section.querySelector('#codebase-include-node')?.addEventListener('change', applyFilter);
+  }
+
+  bindFileReductionSectionEvents(root = this._root) {
+    if (!root) return;
+    const section = root.querySelector('#file-reduction-health-section');
+    if (!section) return;
+
+    const table = section.querySelector('#fr-findings-table tbody');
+    if (!table) return;
+
+    const allRows = Array.from(table.querySelectorAll('tr'));
+
+/**
+ * Apply filter.
+ * @returns {any}
+ */
+    function applyFilter() {
+      const activeCat = section.querySelector('.fr-cat-filter.btn-primary')?.dataset?.cat || 'all';
+      const includeNode = section.querySelector('#fr-include-node')?.checked ?? false;
+      let visibleCount = 0;
+      allRows.forEach((row) => {
+        const cat = row.dataset.cat || '';
+        const path = row.dataset.path || '';
+        const isNode = path.includes('node_modules');
+        const catMatch = activeCat === 'all' || cat === activeCat;
+        const nodeMatch = includeNode || !isNode;
+        const show = catMatch && nodeMatch;
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+      });
+      const note = section.querySelector('p.text-muted');
+      if (note) {
+        const total = allRows.length;
+        const hidden = total - visibleCount;
+        note.textContent = `${visibleCount} shown${hidden > 0 ? ` · ${hidden} filtered out` : ''}`;
+      }
+    }
+
+    section.querySelectorAll('.fr-cat-filter').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        section.querySelectorAll('.fr-cat-filter').forEach((b) => {
+          b.classList.remove('btn-primary');
+          b.classList.add('btn-ghost');
+        });
+        btn.classList.remove('btn-ghost');
+        btn.classList.add('btn-primary');
+        applyFilter();
+      });
+    });
+
+    section.querySelector('#fr-include-node')?.addEventListener('change', applyFilter);
+  }
+
   applyEngineQueueSelectAll(checked, root = this._root) {
     const { queueEngineIds } = queueSelectAllState(this.selectedEngines);
     if (!queueEngineIds.length) return;
@@ -1580,20 +2329,76 @@ export class AnalyzeView {
 
   bindEngineSelectionEvents(root = this._root) {
     if (!root) return;
+    // Individual engine checkboxes
     root.querySelectorAll('.analyze-engine-input').forEach((input) => {
       input.addEventListener('change', () => {
         this.persistSelectedEngines(root, input.dataset.engine, input.checked);
       });
       input.addEventListener('click', (event) => event.stopPropagation());
     });
-    const selectAll = root.querySelector('#analyze-engine-queue-select-all');
-    if (selectAll) {
-      const { allSelected, someSelected } = queueSelectAllState(this.selectedEngines);
-      selectAll.indeterminate = someSelected && !allSelected;
-      selectAll.addEventListener('change', () => {
-        this.applyEngineQueueSelectAll(selectAll.checked, root);
+    // Group category toggles
+    root.querySelectorAll('.analyze-engine-group-input').forEach((input) => {
+      input.addEventListener('change', () => {
+        this.applyGroupToggle(input.dataset.category, input.checked, root);
       });
+      input.addEventListener('click', (event) => event.stopPropagation());
+    });
+    // Preset buttons
+    root.querySelectorAll('.analyze-engine-preset-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.applyScanPreset(btn.dataset.preset, root);
+      });
+    });
+    // Group expander buttons
+    root.querySelectorAll('.analyze-engine-group-expander').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const group = btn.closest('.analyze-engine-group');
+        if (group) group.classList.toggle('is-expanded');
+      });
+    });
+    // Group head click to expand (but not when clicking checkbox)
+    root.querySelectorAll('.analyze-engine-group-head').forEach((head) => {
+      head.addEventListener('click', (event) => {
+        if (event.target.closest('.analyze-engine-group-input') || event.target.closest('.analyze-engine-group-expander')) return;
+        const group = head.closest('.analyze-engine-group');
+        if (group) group.classList.toggle('is-expanded');
+      });
+    });
+    // Show-all expander
+    root.querySelectorAll('.analyze-engine-queue-expander').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this._queueExpanded = true;
+        this.syncSelectedEnginesDetail(root);
+      });
+    });
+  }
+
+  applyScanPreset(presetId, root = this._root) {
+    const preset = SCAN_PRESETS.find((p) => p.id === presetId);
+    if (!preset) { return; }
+    if (preset.id === 'custom') {
+      this.setSelectedEngines([], root, { allowEmpty: true });
+    } else {
+      if (this.analysisType !== 'complete') {
+        const typeSelect = root?.querySelector('#analysis-type-select');
+        this.setAnalysisType('complete', { typeSelect });
+      }
+      this.setSelectedEngines(preset.engines, root, { allowEmpty: true });
     }
+  }
+
+  applyGroupToggle(category, checked, root = this._root) {
+    const groups = groupEnginesByCategory(COMPLETE_ENGINE_ORDER);
+    const engines = groups.get(category) || [];
+    const ids = engines.map((e) => e.id);
+    const selected = new Set(this.selectedEngines);
+    if (checked) {
+      ids.forEach((id) => selected.add(id));
+    } else {
+      ids.forEach((id) => selected.delete(id));
+    }
+    this.setSelectedEngines(Array.from(selected), root, { allowEmpty: true });
   }
 
   bindModeGridEvents(root = this._root) {
@@ -1609,11 +2414,29 @@ export class AnalyzeView {
 
   syncSelectedEnginesDetail(root = this._root) {
     if (!root) return;
+    const scrollContainer = document.querySelector('.app-main') || document.documentElement;
+    const savedScrollTop = scrollContainer.scrollTop;
     const slot = root.querySelector('#analyze-engine-queue-panel');
+    const savedQueueScroll = slot ? slot.scrollTop : 0;
+    const savedActive = document.activeElement;
+    const savedActiveEngine = savedActive?.dataset?.engine || null;
     if (slot) {
       slot.outerHTML = this.renderSelectedEnginesQueuePanel().trim();
       this.bindEngineSelectionEvents(root);
     }
+    // Restore scroll synchronously to prevent visual jump
+    scrollContainer.scrollTop = savedScrollTop;
+    const newSlot = root.querySelector('#analyze-engine-queue-panel');
+    if (newSlot) newSlot.scrollTop = savedQueueScroll;
+    requestAnimationFrame(() => {
+      if (savedActiveEngine) {
+        const newInput = root.querySelector(`.analyze-engine-input[data-engine="${savedActiveEngine}"]`);
+        if (newInput) newInput.focus();
+      } else if (savedActive && savedActive.id) {
+        const newEl = document.getElementById(savedActive.id);
+        if (newEl) newEl.focus();
+      }
+    });
   }
 
   renderSelectedEnginesQueuePanel() {
@@ -1625,67 +2448,100 @@ export class AnalyzeView {
     const runIndex = new Map(runOrder.map((engineId, index) => [engineId, index + 1]));
     const currentEngineId = modeToEngineId(this.analysisType);
     const count = this.selectedEngines.length;
-    const deliverable = getClientDeliverablePlan(this.selectedDeliverableSku || inferDeliverableSku(this.selectedEngines));
-    const deliverableLabel = deliverable
-      ? `${deliverable.price} · ${deliverable.label}`
-      : 'Custom mix';
 
-    const rows = queueEnginesForDisplay().map((engineId) => {
-      const mode = getEngineModeMeta(engineId);
-      const label = mode?.label || getCompleteEngineLabel(engineId);
-      const icon = mode?.icon || '•';
-      const isSelected = selected.has(engineId);
-      const inRun = isCompleteMode && runIndex.has(engineId);
-      const isCurrent = engineId === currentEngineId;
-      const optional = OPTIONAL_COMPLETE_ENGINES.some((step) => step.id === engineId);
-      const step = isCompleteMode ? runIndex.get(engineId) : (isSelected ? runIndex.get(engineId) : undefined);
-      const depOnly = inRun && !isSelected;
-      return `
-        <li class="analyze-engine-queue-item${isSelected ? ' is-checked' : ' is-unchecked'}${isCurrent ? ' is-current' : ''}${optional ? ' is-optional' : ''}${depOnly ? ' is-dependency is-in-run' : ''}">
-          <span class="analyze-engine-queue-step">${step ?? '—'}</span>
-          <label class="analyze-engine-queue-toggle">
-            <input type="checkbox" class="analyze-engine-input analyze-engine-queue-input" data-engine="${escapeHtml(engineId)}" ${isSelected ? 'checked' : ''} aria-label="Include ${escapeHtml(label)} in Complete scan">
-            <span class="analyze-engine-queue-label">${icon} ${escapeHtml(label)}${optional ? ' <span class="analyze-engine-queue-tag">optional</span>' : ''}${depOnly ? ' <span class="analyze-engine-queue-tag is-dependency">runs before selection (Complete only)</span>' : ''}${isCurrent ? ' <span class="analyze-engine-queue-tag is-current">previewing</span>' : ''}</span>
-          </label>
-        </li>
-      `;
+    // Preset buttons
+    const activePreset = SCAN_PRESETS.find((p) => {
+      if (p.id === 'custom') return false;
+      const pSet = new Set(p.engines);
+      return this.selectedEngines.length === p.engines.length && this.selectedEngines.every((id) => pSet.has(id));
+    });
+    const presetButtons = SCAN_PRESETS.map((p) => {
+      const active = activePreset?.id === p.id || (p.id === 'custom' && !activePreset);
+      return `<button type="button" class="analyze-engine-preset-btn${active ? ' is-active' : ''}" data-preset="${escapeHtml(p.id)}" title="${escapeHtml(p.label)}">${escapeHtml(p.icon)} ${escapeHtml(p.label)}</button>`;
     }).join('');
+
+    // Grouped engine rows by category — cap initial render to 10 items for performance
+    const groups = groupEnginesByCategory(COMPLETE_ENGINE_ORDER);
+    let renderedCount = 0;
+    const maxInitial = 10;
+    const expanded = this._queueExpanded || false;
+    const groupHtml = Array.from(groups.entries()).map(([category, engines]) => {
+      const groupSelectedCount = engines.filter((e) => selected.has(e.id)).length;
+      const groupAllSelected = groupSelectedCount === engines.length;
+      const groupSomeSelected = groupSelectedCount > 0 && !groupAllSelected;
+      const slot = expanded ? engines.length : Math.max(0, maxInitial - renderedCount);
+      const visibleEngines = engines.slice(0, slot);
+      renderedCount += visibleEngines.length;
+      if (!visibleEngines.length) return '';
+      const rows = visibleEngines.map((engine) => {
+        const engineId = engine.id;
+        const isSelected = selected.has(engineId);
+        const inRun = isCompleteMode && runIndex.has(engineId);
+        const isCurrent = engineId === currentEngineId;
+        const depOnly = inRun && !isSelected;
+        const depNote = ENGINE_DEPENDENCIES[engineId] ? ` <span class="analyze-engine-queue-tag is-dependency">needs ${ENGINE_DEPENDENCIES[engineId].map((d) => getCompleteEngineLabel(d)).join(', ')}</span>` : '';
+        return `
+          <li class="analyze-engine-queue-item${isSelected ? ' is-checked' : ' is-unchecked'}${isCurrent ? ' is-current' : ''}${engine.optional ? ' is-optional' : ''}${depOnly ? ' is-dependency is-in-run' : ''}">
+            <label class="analyze-engine-queue-toggle">
+              <input type="checkbox" class="analyze-engine-input analyze-engine-queue-input" data-engine="${escapeHtml(engineId)}" ${isSelected ? 'checked' : ''} aria-label="Include ${escapeHtml(engine.label)} in scan">
+              <span class="analyze-engine-queue-label">${escapeHtml(engine.label)}${engine.optional ? ' <span class="analyze-engine-queue-tag">optional</span>' : ''}${depNote}${depOnly ? ' <span class="analyze-engine-queue-tag is-dependency">auto-runs</span>' : ''}${isCurrent ? ' <span class="analyze-engine-queue-tag is-current">previewing</span>' : ''}</span>
+            </label>
+            <span class="analyze-engine-queue-desc">${escapeHtml(engine.desc)}</span>
+          </li>
+        `;
+      }).join('');
+      const isExpanded = groupSelectedCount > 0 || expanded;
+      return `
+        <div class="analyze-engine-group${isExpanded ? ' is-expanded' : ''}" data-category="${escapeHtml(category)}">
+          <div class="analyze-engine-group-head">
+            <label class="analyze-engine-group-toggle">
+              <input type="checkbox" class="analyze-engine-group-input" data-category="${escapeHtml(category)}" ${groupAllSelected ? 'checked' : ''}${groupSomeSelected ? ' data-indeterminate="true"' : ''} aria-label="Toggle all ${escapeHtml(category)} scans">
+              <strong>${escapeHtml(category)}</strong>
+            </label>
+            <div style="display:flex;align-items:center;gap:var(--space-1);">
+              <span class="analyze-engine-group-count text-muted">${groupSelectedCount}/${engines.length}</span>
+              <button type="button" class="analyze-engine-group-expander" aria-label="Toggle ${escapeHtml(category)}" title="Expand/collapse">
+                <i data-lucide="chevron-down" class="icon-16"></i>
+              </button>
+            </div>
+          </div>
+          <div class="analyze-engine-group-body">
+            <ol class="analyze-engine-queue-list analyze-engine-queue-list--selectable">${rows}</ol>
+          </div>
+        </div>
+      `;
+    }).filter(Boolean).join('');
+
+    const expander = !expanded && renderedCount < COMPLETE_ENGINE_ORDER.length
+      ? `<div class="analyze-engine-queue-expander-wrap" style="padding:var(--space-2) 0;"><button type="button" class="btn btn-ghost btn-sm analyze-engine-queue-expander">Show all ${COMPLETE_ENGINE_ORDER.length} modules</button></div>`
+      : '';
 
     const runCountLabel = count
       ? isCompleteMode
-        ? `${runOrder.length} will run${count !== runOrder.length ? ` (${count} checked + dependencies)` : ''}`
-        : `${count} checked — click Run analysis for this mode only`
-      : 'Check scans to include';
-
-    const selectAll = queueSelectAllState(this.selectedEngines);
-    const selectAllHtml = `
-        <div class="analyze-engine-queue-select-all">
-          <label class="analyze-engine-queue-toggle analyze-engine-queue-select-all-label">
-            <input type="checkbox" id="analyze-engine-queue-select-all" class="analyze-engine-queue-select-all-input" ${selectAll.allSelected ? 'checked' : ''} aria-label="Select all scans in queue">
-            <span class="analyze-engine-queue-label"><strong>Select all</strong> <span class="text-muted">(${selectAll.queueEngineIds.length} scans)</span></span>
-          </label>
-        </div>
-    `;
+        ? `${runOrder.length} will run${count !== runOrder.length ? ` (${count} selected + dependencies)` : ''}`
+        : `${count} selected`
+      : 'Select a preset or choose scans below';
 
     return `
       <div class="analyze-engine-queue-panel" id="analyze-engine-queue-panel">
         <div class="analyze-engine-queue-head">
-          <strong class="analyze-engine-queue-title">Scans for ${escapeHtml(deliverableLabel)}</strong>
+          <strong class="analyze-engine-queue-title">Scan Selection</strong>
           <span class="analyze-engine-queue-count text-muted">${runCountLabel}</span>
         </div>
-        <p class="text-muted analyze-engine-queue-intro">${this.analysisType === 'complete'
-    ? 'Check the scans to run when you click <strong>Run complete</strong>. Dependencies run automatically even when unchecked — dashed row, not checked.'
+        <div class="analyze-engine-presets">${presetButtons}</div>
+        <p class="analyze-engine-queue-intro">${this.analysisType === 'complete'
+    ? 'Pick a preset or expand groups. Dependencies auto-select.'
     : this.analysisType === 'cleanup-assistant'
-      ? 'Only <strong>Cleanup assistant</strong> needs to be checked — file reduction and data quality run automatically inside this pipeline. Click <strong>Run analysis</strong> (not Run complete).'
+      ? 'Only <strong>Cleanup assistant</strong> runs in this mode.'
       : this.analysisType === 'mock-scan'
-        ? 'Only <strong>Mock data</strong> needs to be checked — Simplebeacon gate runs automatically first. Click <strong>Run analysis</strong> (not Run complete).'
+        ? 'Only <strong>Mock data</strong> runs in this mode.'
         : this.analysisType === 'compliance'
-          ? 'Only <strong>Compliance</strong> needs to be checked — Simplebeacon gate runs automatically first. Click <strong>Run analysis</strong> (not Run complete).'
+          ? 'Only <strong>Compliance</strong> runs in this mode.'
           : modeToEngineId(this.analysisType)
-            ? `One scan checked — <strong>${escapeHtml(getAnalysisMode(this.analysisType).label)}</strong> runs on <strong>Run analysis</strong>. Check more rows to switch to Complete.`
-            : 'Check scans to include. One checked row runs that engine alone; two or more runs Complete in queue order.'}</p>
-        ${selectAllHtml}
-        <ol class="analyze-engine-queue-list analyze-engine-queue-list--selectable">${rows}</ol>
+            ? `<strong>${escapeHtml(getAnalysisMode(this.analysisType).label)}</strong> runs as a single scan. Switch to <strong>Complete</strong> to use the queue.`
+            : 'Pick a preset or expand groups to customize which scans run.'}</p>
+        ${groupHtml}
+        ${expander}
       </div>
     `;
   }
@@ -1705,37 +2561,377 @@ export class AnalyzeView {
       report,
       lastResult
     });
-    const fileResultsHtml = renderModeFileResultsPanel(this.analysisType, {
-      lastResult,
-      report
-    });
     const engineQueueHtml = this.renderSelectedEnginesQueuePanel();
+
+    const isCompleteMode = this.analysisType === 'complete';
+    const selectedCount = this.selectedEngines.length;
+    const estimatedTime = selectedCount
+      ? isCompleteMode
+        ? `~${Math.max(1, Math.round(selectedCount * 0.15))} min`
+        : '~30 sec'
+      : '';
 
     return `
       <div class="analyze-mode-detail card" id="analyze-mode-detail">
-        <div class="analyze-mode-detail-head">
-          <span class="analyze-mode-detail-icon">${mode.icon}</span>
-          <div>
-            <strong>${escapeHtml(mode.label)}</strong>
-            ${mode.deliverable ? `<span class="analyze-mode-deliverable">${escapeHtml(mode.deliverable)}</span>` : ''}
+        <div class="analyze-mode-hero">
+          <div class="analyze-mode-hero-main">
+            <span class="analyze-mode-hero-icon">${mode.icon}</span>
+            <div class="analyze-mode-hero-meta">
+              <div class="analyze-mode-hero-label">${escapeHtml(mode.label)}</div>
+              ${mode.deliverable ? `<div class="analyze-mode-hero-deliverable">${escapeHtml(mode.deliverable)}</div>` : ''}
+            </div>
+          </div>
+          <div class="analyze-mode-hero-stats">
+            <div class="analyze-mode-stat">
+              <span class="analyze-mode-stat-value">${selectedCount}</span>
+              <span class="analyze-mode-stat-label">engines</span>
+            </div>
+            ${estimatedTime ? `<div class="analyze-mode-stat"><span class="analyze-mode-stat-value">${estimatedTime}</span><span class="analyze-mode-stat-label">est.</span></div>` : ''}
           </div>
         </div>
-        <p class="text-muted analyze-mode-detail-desc">${escapeHtml(mode.desc)}</p>
+        <p class="analyze-mode-desc">${escapeHtml(mode.desc)}</p>
         ${engineQueueHtml}
         ${stepsHtml}
         ${fileScopeHtml}
-        ${fileResultsHtml}
         ${alsoAvailable}
       </div>
     `;
   }
 
+  renderFileResultsSection() {
+    const { report, lastResult } = this.buildModeDetailContext();
+    const fileResultsHtml = renderModeFileResultsPanel(this.analysisType, {
+      lastResult,
+      report
+    });
+    return `
+      <div class="analyze-file-results-section" id="analyze-file-results-section" style="margin-top:var(--space-6);">
+        <div class="section-heading" style="margin-bottom:var(--space-3);">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-size-lg);">
+            <span style="font-size:1.25rem;">📋</span> Per-file Results
+          </h2>
+        </div>
+        <div class="card" style="padding:var(--space-4);overflow:hidden;">
+          ${fileResultsHtml}
+        </div>
+      </div>
+    `;
+  }
+
   renderScanEnginesReferenceCard() {
+    return '';
+  }
+
+  /**
+   * Get user's subscription tier from auth service.
+   * @returns {string} 'starter' | 'pro' | 'enterprise'
+   */
+  getUserTier() {
+    const user = authService.getUser();
+    const plan = user?.plan || user?.tier || 'starter';
+    if (plan === 'free') return 'starter';
+    if (['pro', 'enterprise', 'team'].includes(plan)) return plan;
+    return 'starter';
+  }
+
+  renderCodebaseHealthSection() {
+    const scan = this.lastResult?.scan;
+    if (!scan?.summary) return '';
+    const s = scan.summary;
+    const userTier = this.getUserTier();
+    const isStarter = userTier === 'starter';
+    const maxFindings = isStarter ? 5 : Infinity;
+    let findings = scan.findings || [];
+    const totalFindings = findings.length;
+    if (isStarter && findings.length > maxFindings) {
+      findings = findings.slice(0, maxFindings);
+    }
+    const categories = scan.categories || [];
+    const critical = s.severityCounts?.critical ?? 0;
+    const high = s.severityCounts?.high ?? 0;
+    const medium = s.severityCounts?.medium ?? 0;
+    const low = s.severityCounts?.low ?? 0;
+    const total = s.findingsTotal ?? totalFindings;
+    const nonNode = findings.filter((f) => !String(f.filePath || '').includes('node_modules'));
+    const nonNodeCount = nonNode.length;
+
+    const catPills = categories.map((cat) => `
+      <button type="button" class="btn btn-ghost btn-sm codebase-cat-filter" data-cat="${escapeHtml(cat.category)}" style="margin:2px;border-radius:999px;">
+        ${escapeHtml(cat.label || cat.category)}
+        <span class="gate-badge ${cat.severity === 'high' ? 'warn' : 'pass'}" style="margin-left:4px;font-size:0.7rem;padding:1px 6px;">${cat.count}</span>
+      </button>
+    `).join('');
+
+    const severityBar = total > 0 ? `
+      <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:var(--space-2);background:var(--border);">
+        ${critical > 0 ? `<div style="width:${(critical / total * 100).toFixed(1)}%;background:var(--danger);"></div>` : ''}
+        ${high > 0 ? `<div style="width:${(high / total * 100).toFixed(1)}%;background:#f59e0b;"></div>` : ''}
+        ${medium > 0 ? `<div style="width:${(medium / total * 100).toFixed(1)}%;background:#3b82f6;"></div>` : ''}
+        ${low > 0 ? `<div style="width:${(low / total * 100).toFixed(1)}%;background:var(--success);"></div>` : ''}
+      </div>
+    ` : '';
+
+/**
+ * Row html.
+ * @param {any} row
+ * @returns {any}
+ */
+    const rowHtml = (row) => `
+      <tr data-cat="${escapeHtml(row.category || '')}" data-path="${escapeHtml(row.filePath || '')}">
+        <td><span class="gate-badge ${row.severity === 'critical' || row.severity === 'high' ? 'warn' : row.severity === 'medium' ? '' : 'pass'}">${escapeHtml(row.severity || '—')}</span></td>
+        <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(row.category || '—')}</td>
+        <td><code style="font-size:var(--font-size-xs);">${escapeHtml(row.filePath || '—')}</code></td>
+        <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(row.description || '—')}</td>
+        <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(row.recommendedAction || '—')}</td>
+      </tr>
+    `;
+
+    const upgradePrompt = isStarter && totalFindings > maxFindings
+      ? `<div class="mb-4" style="padding:var(--space-3);background:var(--warning-bg, #fffbeb);border:1px solid var(--warning-border, #f59e0b);border-radius:8px;color:var(--warning-text, #92400e);font-size:var(--font-size-sm);">
+          <strong>🔒 Pro feature</strong> — ${totalFindings} findings detected. Upgrade to Pro to see all findings and the quality score.
+          <a href="/pricing" style="color:var(--link-color, #2563eb);text-decoration:underline;font-weight:600;">Upgrade</a>
+         </div>`
+      : '';
+
+    return `
+      <div class="section-block" id="codebase-health-section" style="margin-top:var(--space-6);">
+        <div class="section-heading" style="margin-bottom:var(--space-3);">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-size-lg);">
+            <span style="font-size:1.25rem;">🏥</span> Codebase Health
+          </h2>
+          ${isStarter
+            ? '<span class="text-muted" style="font-size:var(--font-size-sm);">Health score: <strong>🔒 Pro</strong></span>'
+            : `<span class="text-muted" style="font-size:var(--font-size-sm);">Health score: <strong>${s.healthScore ?? '—'}%</strong></span>`}
+        </div>
+        ${upgradePrompt}
+
+        <div class="card" style="padding:var(--space-4);overflow:hidden;">
+          <!-- Summary chips -->
+          <div class="metrics-row mb-4">
+            <div class="metric-chip"><strong>${formatNumber(s.codeFilesAnalyzed)}</strong> code files</div>
+            <div class="metric-chip"><strong>${formatNumber(total)}</strong> findings</div>
+            <div class="metric-chip gate-badge ${critical > 0 ? 'warn' : 'pass'}"><strong>${critical}</strong> critical</div>
+            <div class="metric-chip gate-badge ${high > 0 ? 'warn' : 'pass'}"><strong>${high}</strong> high</div>
+            <div class="metric-chip"><strong>${medium}</strong> medium</div>
+            <div class="metric-chip"><strong>${low}</strong> low</div>
+            <div class="metric-chip"><strong>${categories.length}</strong> categories</div>
+          </div>
+
+          <!-- Severity bar -->
+          ${severityBar}
+          <div style="display:flex;gap:var(--space-4);margin-bottom:var(--space-4);flex-wrap:wrap;font-size:var(--font-size-xs);color:var(--text-muted);">
+            ${critical > 0 ? `<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:4px;"></span>Critical ${critical}</span>` : ''}
+            ${high > 0 ? `<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:4px;"></span>High ${high}</span>` : ''}
+            ${medium > 0 ? `<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-right:4px;"></span>Medium ${medium}</span>` : ''}
+            ${low > 0 ? `<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--success);margin-right:4px;"></span>Low ${low}</span>` : ''}
+          </div>
+
+          <!-- Category filters -->
+          <div style="margin-bottom:var(--space-3);">
+            <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-2);">
+              <span class="text-muted" style="font-size:var(--font-size-xs);font-weight:600;">Filter:</span>
+              <button type="button" class="btn btn-primary btn-sm codebase-cat-filter codebase-cat-all" data-cat="all" style="border-radius:999px;margin:2px;">All</button>
+              ${catPills}
+            </div>
+            <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;">
+              <input type="checkbox" id="codebase-include-node" style="accent-color:var(--primary);">
+              Include <code>node_modules</code> findings (${formatNumber(findings.length - nonNodeCount)} hidden)
+            </label>
+          </div>
+
+          <!-- Findings table -->
+          <div class="table-scroll" style="max-height:60vh;overflow:auto;">
+            <table class="data-table" id="codebase-findings-table">
+              <thead>
+                <tr>
+                  <th>Severity</th>
+                  <th>Category</th>
+                  <th>File</th>
+                  <th>Detail</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${nonNode.map(rowHtml).join('')}
+              </tbody>
+            </table>
+          </div>
+          <p class="text-muted" style="font-size:var(--font-size-xs);margin-top:var(--space-2);">
+            ${formatNumber(nonNodeCount)} shown · ${formatNumber(findings.length - nonNodeCount)} node_modules hidden
+            ${s.eslintSkipped ? ` · ESLint: ${escapeHtml(s.eslintSkipped)}` : ''}
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  renderFileReductionHealthSection() {
+    const scan = this.lastResult?.scan;
+    if (!scan?.summary) return '';
+    const s = scan.summary;
+    const inv = scan.inventory || {};
+    const sev = scan.aggregation?.bySeverity || {};
+    const findings = scan.allFindings || scan.findings || scan.issues || [];
+    const plan = scan.fileReductionPlan || {};
+    const totals = plan.totals || {};
+
+    const critical = sev.critical || 0;
+    const high = sev.high || 0;
+    const medium = sev.medium || 0;
+    const low = sev.low || 0;
+    const total = s.totalFindings || findings.length;
+    const nonNode = findings.filter((f) => !String(f.path || f.filePath || '').includes('node_modules'));
+    const nonNodeCount = nonNode.length;
+
+/**
+ * Format bytes.
+ * @param {Array} bytes
+ * @returns {any}
+ */
+    const formatBytes = (bytes) => {
+      const n = Number(bytes) || 0;
+      if (n < 1024) return `${n} B`;
+      if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+      if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+      return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    };
+
+    const scannerCategories = [
+      { key: 'build-artifacts', label: 'Build artifacts', count: s.buildArtifactFindings },
+      { key: 'asset-consolidation', label: 'Duplicate assets', count: s.duplicateAssetGroups },
+      { key: 'unused-files', label: 'Unused files', count: s.unusedFileCandidates },
+      { key: 'directory-bloat', label: 'Directory bloat', count: s.directoryBloatFindings || 0 }
+    ].filter((c) => c.count > 0);
+
+    const catPills = scannerCategories.map((cat) => `
+      <button type="button" class="btn btn-ghost btn-sm fr-cat-filter" data-cat="${escapeHtml(cat.key)}" style="margin:2px;border-radius:999px;">
+        ${escapeHtml(cat.label)}
+        <span class="gate-badge pass" style="margin-left:4px;font-size:0.7rem;padding:1px 6px;">${cat.count}</span>
+      </button>
+    `).join('');
+
+    const severityBar = total > 0 ? `
+      <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:var(--space-2);background:var(--border);">
+        ${critical > 0 ? `<div style="width:${(critical / total * 100).toFixed(1)}%;background:var(--danger);"></div>` : ''}
+        ${high > 0 ? `<div style="width:${(high / total * 100).toFixed(1)}%;background:#f59e0b;"></div>` : ''}
+        ${medium > 0 ? `<div style="width:${(medium / total * 100).toFixed(1)}%;background:#3b82f6;"></div>` : ''}
+        ${low > 0 ? `<div style="width:${(low / total * 100).toFixed(1)}%;background:var(--success);"></div>` : ''}
+      </div>
+    ` : '';
+
+/**
+ * Row html.
+ * @param {any} row
+ * @returns {any}
+ */
+    const rowHtml = (row) => `
+      <tr data-cat="${escapeHtml(row.type || row.category || '')}" data-path="${escapeHtml(row.path || row.filePath || '')}">
+        <td><span class="gate-badge ${row.severity === 'critical' || row.severity === 'high' ? 'warn' : row.severity === 'medium' ? '' : 'pass'}">${escapeHtml(row.severity || '—')}</span></td>
+        <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(row.type || row.category || '—')}</td>
+        <td><code style="font-size:var(--font-size-xs);">${escapeHtml(row.path || row.filePath || '—')}</code></td>
+        <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(row.message || row.description || '—')}</td>
+        <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(row.action || row.recommendation || 'Review')}</td>
+      </tr>
+    `;
+
+    return `
+      <div class="section-block" id="file-reduction-health-section" style="margin-top:var(--space-6);">
+        <div class="section-heading" style="margin-bottom:var(--space-3);">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-size-lg);">
+            <span style="font-size:1.25rem;">📦</span> File Reduction Health
+          </h2>
+          <span class="text-muted" style="font-size:var(--font-size-sm);">Dry-run reclaim: <strong>${formatBytes(s.reclaimableBytes)}</strong></span>
+        </div>
+
+        <div class="card" style="padding:var(--space-4);overflow:hidden;">
+          <!-- Summary chips -->
+          <div class="metrics-row mb-4">
+            <div class="metric-chip"><strong>${formatNumber(inv.totalFiles)}</strong> files scanned</div>
+            <div class="metric-chip"><strong>${formatNumber(total)}</strong> findings</div>
+            <div class="metric-chip"><strong>${formatBytes(s.reclaimableBytes)}</strong> reclaimable</div>
+            <div class="metric-chip"><strong>${formatBytes(totals.estimatedImmediateSavingsBytes || 0)}</strong> immediate savings</div>
+            <div class="metric-chip"><strong>${formatNumber(s.buildArtifactFindings)}</strong> build artifacts</div>
+            <div class="metric-chip"><strong>${formatNumber(s.duplicateAssetGroups)}</strong> duplicate groups</div>
+            <div class="metric-chip"><strong>${formatNumber(s.unusedFileCandidates)}</strong> unused files</div>
+            <div class="metric-chip"><strong>${formatNumber(s.directoryBloatFindings || 0)}</strong> directory bloat</div>
+          </div>
+
+          <!-- Severity bar -->
+          ${severityBar}
+          <div style="display:flex;gap:var(--space-4);margin-bottom:var(--space-4);flex-wrap:wrap;font-size:var(--font-size-xs);color:var(--text-muted);">
+            ${critical > 0 ? `<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:4px;"></span>Critical ${critical}</span>` : ''}
+            ${high > 0 ? `<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:4px;"></span>High ${high}</span>` : ''}
+            ${medium > 0 ? `<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-right:4px;"></span>Medium ${medium}</span>` : ''}
+            ${low > 0 ? `<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--success);margin-right:4px;"></span>Low ${low}</span>` : ''}
+          </div>
+
+          <!-- Category filters -->
+          <div style="margin-bottom:var(--space-3);">
+            <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-2);">
+              <span class="text-muted" style="font-size:var(--font-size-xs);font-weight:600;">Filter:</span>
+              <button type="button" class="btn btn-primary btn-sm fr-cat-filter fr-cat-all" data-cat="all" style="border-radius:999px;margin:2px;">All</button>
+              ${catPills}
+            </div>
+            <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;">
+              <input type="checkbox" id="fr-include-node" style="accent-color:var(--primary);">
+              Include <code>node_modules</code> findings (${formatNumber(findings.length - nonNodeCount)} hidden)
+            </label>
+          </div>
+
+          <!-- Findings table -->
+          <div class="table-scroll" style="max-height:60vh;overflow:auto;">
+            <table class="data-table" id="fr-findings-table">
+              <thead>
+                <tr>
+                  <th>Severity</th>
+                  <th>Type</th>
+                  <th>File</th>
+                  <th>Detail</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${nonNode.map(rowHtml).join('')}
+              </tbody>
+            </table>
+          </div>
+          <p class="text-muted" style="font-size:var(--font-size-xs);margin-top:var(--space-2);">
+            ${formatNumber(nonNodeCount)} shown · ${formatNumber(findings.length - nonNodeCount)} node_modules hidden
+            ${scan.durationMs != null ? ` · ${Math.round(scan.durationMs / 1000)}s runtime` : ''}
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderScanEnginesReferenceCard() {
     const gateList = SIMPLEBEACON_GATE_RULES.map((rule) => `<li><code>${escapeHtml(rule.id)}</code> — ${escapeHtml(rule.label)}</li>`).join('');
     const dataList = DATA_QUALITY_SCANNERS.map((id) => `<li>${escapeHtml(id.replace(/-/g, ' '))}</li>`).join('');
     const fileList = FILE_REDUCTION_SCANNERS.map((id) => `<li>${escapeHtml(id.replace(/-/g, ' '))}</li>`).join('');
     const complianceList = COMPLIANCE_CHECKLIST_RULES.map((rule) => `<li>${escapeHtml(rule)}</li>`).join('');
     const euList = EU_AI_ACT_EXTRA_RULES.map((rule) => `<li><code>${escapeHtml(rule.id)}</code> — ${escapeHtml(rule.label)}</li>`).join('');
+
+    const aiAnalyzerGroups = this.issueTaxonomyGroups.map((group) => {
+      const issueList = group.issues.map((issue) => `<li><code>${escapeHtml(issue.id)}</code> — ${escapeHtml(issue.title)}</li>`).join('');
+      return `<div class="analyze-engines-col">
+        <h3 class="analyze-engines-col-title">${escapeHtml(group.categoryName)} (${group.issues.length})</h3>
+        <ul class="analyze-mode-steps">${issueList}</ul>
+      </div>`;
+    }).join('');
+
+    // Derive browser analyzer reference grid from canonical COMPLETE_STEPS (single source of truth)
+    const browserGroups = new Map();
+    for (const step of COMPLETE_STEPS) {
+      if (!browserGroups.has(step.category)) browserGroups.set(step.category, []);
+      browserGroups.get(step.category).push(step);
+    }
+    const browserAnalyzerHtml = [...browserGroups.entries()].map(([cat, items]) => {
+      const itemList = items.map((item) => `<li><code>${escapeHtml(item.id)}</code> — ${escapeHtml(item.label)}${item.desc ? ` <span class="text-muted" style="font-size:0.75rem;">— ${escapeHtml(item.desc)}</span>` : ''}</li>`).join('');
+      return `<div class="analyze-engines-col">
+        <h3 class="analyze-engines-col-title">${escapeHtml(cat)} (${items.length})</h3>
+        <ul class="analyze-mode-steps">${itemList}</ul>
+      </div>`;
+    }).join('');
 
     return `
       <div class="card mb-6 analyze-engines-reference">
@@ -1766,11 +2962,31 @@ export class AnalyzeView {
             <p class="text-muted" style="font-size: var(--font-size-xs); margin: 0.5rem 0 0;">Reference only — <a href="/eu-ai-act-sample-report" target="_blank" rel="noopener">sample report layout</a>. Active offers: <a href="#/deliverables">$499 PDF</a> and agency packs.</p>
           </div>
         </div>
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
+        <div class="card-header">
+          <span class="card-title">AI Problem Analyzer Suite (${AI_SYSTEM_ISSUES.length} analyzers)</span>
+          <span class="text-muted" style="font-size: var(--font-size-xs);">${ANALYZER_CATALOG.filter((a) => a.status === 'implemented').length} implemented · ${ANALYZER_CATALOG.filter((a) => a.status !== 'implemented').length} contract stubs</span>
+        </div>
+        <div class="analyze-engines-grid">
+          ${aiAnalyzerGroups}
+        </div>
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
+        <div class="card-header">
+          <span class="card-title">Browser Sandbox Analyzers (61 modules)</span>
+          <span class="text-muted" style="font-size: var(--font-size-xs);">coming-soon/upload.html · heuristic engine</span>
+        </div>
+        <div class="analyze-engines-grid">
+          ${browserAnalyzerHtml}
+        </div>
       </div>
     `;
   }
 
   renderAiSystemsIssueAnalyzerCard() {
+    return '';
+  }
+
+  _renderAiSystemsIssueAnalyzerCard() {
     const selectedCount = this.selectedIssueIds.size;
     const allSelected = selectedCount === AI_SYSTEM_ISSUES.length;
     const noneSelected = selectedCount === 0;
@@ -2018,8 +3234,25 @@ export class AnalyzeView {
           : ''
       }`;
     }
+    if (!counter && steps.length && steps.some((s) => s.status === 'done' || s.status === 'running')) {
+      const repoInv = this.repositoryInventory
+        ?? this.app?.state?.report?.repositoryInventory
+        ?? this.app?.scanService?.report?.repositoryInventory
+        ?? this.lastResult?.repositoryInventory;
+      if (repoInv?.totalFiles != null) {
+        const folderPart = repoInv.totalFolders != null
+          ? `, ${formatNumber(repoInv.totalFolders)} folders`
+          : '';
+        counter = `Repository scope · ${formatNumber(repoInv.totalFiles)} files${folderPart}`;
+      }
+    }
     const scopeNote = progressDetails.scopeNote;
-    const currentFile = sp?.currentFile ? formatPathInputValue(sp.currentFile) : '';
+    const runningStep = steps.find((s) => s.status === 'running');
+    const currentFile = sp?.currentFile
+      ? formatPathInputValue(sp.currentFile)
+      : runningStep
+        ? `Analyzing: ${formatCompleteStepLine(runningStep)}`
+        : '';
 
     if (this.analysisType !== 'complete' || !steps.length) {
       return `
@@ -2031,7 +3264,7 @@ export class AnalyzeView {
           <div class="analyze-progress-bar"><div class="analyze-progress-fill" style="width:${pct}%"></div></div>
           ${counter ? `<div class="analyze-progress-counter text-muted">${escapeHtml(counter)}</div>` : '<div class="analyze-progress-counter text-muted" hidden></div>'}
           ${scopeNote ? `<div class="analyze-progress-scope-note text-muted">${escapeHtml(scopeNote)}</div>` : '<div class="analyze-progress-scope-note text-muted" hidden></div>'}
-          ${currentFile ? `<div class="analyze-progress-current-file" title="${escapeHtml(sp.currentFile)}">${escapeHtml(currentFile)}</div>` : '<div class="analyze-progress-current-file" hidden></div>'}
+          ${currentFile ? `<div class="analyze-progress-current-file" title="${escapeHtml(sp?.currentFile || '')}">${escapeHtml(currentFile)}</div>` : '<div class="analyze-progress-current-file" hidden></div>'}
         </div>
       `;
     }
@@ -2039,17 +3272,17 @@ export class AnalyzeView {
     return `
       <div class="analyze-progress" id="analyze-progress">
         <div class="analyze-progress-header">
-          <span class="analyze-progress-label">Complete scan — ${doneCount}/${total} steps</span>
+          <span class="analyze-progress-label">${runningStep ? `Step ${doneCount + 1}/${total}: ${runningStep.label}…` : `Complete scan — ${doneCount}/${total} steps`}</span>
           <span class="text-muted analyze-progress-elapsed">${elapsed}</span>
         </div>
         <div class="analyze-progress-bar"><div class="analyze-progress-fill" style="width:${pct}%"></div></div>
         ${counter ? `<div class="analyze-progress-counter text-muted">${escapeHtml(counter)}</div>` : '<div class="analyze-progress-counter text-muted" hidden></div>'}
         ${scopeNote ? `<div class="analyze-progress-scope-note text-muted">${escapeHtml(scopeNote)}</div>` : '<div class="analyze-progress-scope-note text-muted" hidden></div>'}
-        ${currentFile ? `<div class="analyze-progress-current-file" title="${escapeHtml(sp.currentFile)}">${escapeHtml(currentFile)}</div>` : '<div class="analyze-progress-current-file" hidden></div>'}
+        ${currentFile ? `<div class="analyze-progress-current-file" title="${escapeHtml(sp?.currentFile || '')}">${escapeHtml(currentFile)}</div>` : '<div class="analyze-progress-current-file" hidden></div>'}
         <div class="analyze-step-list">
           ${steps.map((step) => `
             <div class="analyze-step-item ${step.status}">
-              <span>${step.status === 'done' ? '✓' : step.status === 'error' ? '✕' : step.status === 'running' ? '◉' : '○'}</span>
+              <span>${step.status === 'done' ? '✓' : step.status === 'error' ? '✕' : step.status === 'running' ? '◉' : step.status === 'skipped' ? '—' : '○'}</span>
               <span>${escapeHtml(formatCompleteStepLine(step))}</span>
             </div>
           `).join('')}
@@ -2065,6 +3298,26 @@ export class AnalyzeView {
     }
     this.scanProgress = null;
     this._progressScanPath = null;
+  }
+
+  startEuAiActAutoRefresh(intervalMs = 30000) {
+    this.stopEuAiActAutoRefresh();
+    this._euAiActRefreshTimer = setInterval(() => {
+      const sprint = this.app.state.analyzeResult?.sprint;
+      if (sprint && sprint.scannedAt) {
+        const age = Date.now() - new Date(sprint.scannedAt).getTime();
+        if (age > 5 * 60 * 1000) {
+          this.refresh();
+        }
+      }
+    }, intervalMs);
+  }
+
+  stopEuAiActAutoRefresh() {
+    if (this._euAiActRefreshTimer) {
+      clearInterval(this._euAiActRefreshTimer);
+      this._euAiActRefreshTimer = null;
+    }
   }
 
   resolveProgressScanPath() {
@@ -2088,7 +3341,7 @@ export class AnalyzeView {
     if (cached?.path && normalizeProjectPath(cached.path) !== normalizeProjectPath(projectPath)) {
       this.app.state.pathInventory = null;
     }
-    void refreshPathInventory(this.app, projectPath, { profile: 'explorer' })
+    void refreshPathInventory(this.app, projectPath, { profile: 'universal', fullDirectoryScan: this.fullDirectoryScan })
       .then(() => {
         if (this.busy) this.updateProgressDom();
       })
@@ -2096,6 +3349,10 @@ export class AnalyzeView {
     this._progressPollInactive = 0;
     this._progressEndpointDown = false;
 
+/**
+ * Poll.
+ * @returns {any}
+ */
     const poll = async () => {
       if (!this.busy || this._progressEndpointDown) return;
       try {
@@ -2135,7 +3392,15 @@ export class AnalyzeView {
 
   updateProgressDom() {
     const root = this._root?.querySelector('#analyze-progress');
-    if (!root || !this.busy) return;
+    if (!root || !this.busy) {
+      // If busy but the progress panel is missing, force a full mount so it renders
+      if (this.busy) {
+        this._progressEndpointDown = false;
+        this._progressPollInactive = 0;
+        this.refresh();
+      }
+      return;
+    }
 
     const sp = this.scanProgress;
     const steps = this.completeProgress?.steps || [];
@@ -2172,78 +3437,151 @@ export class AnalyzeView {
           : ''
       }`;
     }
-
-    const fill = root.querySelector('.analyze-progress-fill');
-    if (fill) fill.style.width = `${pct}%`;
-
-    const headerLabel = root.querySelector('.analyze-progress-label');
-    if (headerLabel) {
-      headerLabel.textContent = this.analysisType === 'complete' && steps.length
-        ? `Complete scan — ${doneCount}/${totalSteps} steps`
-        : (this.completeStep || sp?.label || 'Running analysis…');
-    }
-
-    const counterEl = root.querySelector('.analyze-progress-counter');
-    if (counterEl) {
-      if (counter) {
-        counterEl.hidden = false;
-        counterEl.textContent = counter;
-      } else {
-        counterEl.hidden = true;
-        counterEl.textContent = '';
+    if (!counter && steps.length && steps.some((s) => s.status === 'done' || s.status === 'running')) {
+      const repoInv = this.repositoryInventory
+        ?? this.app?.state?.report?.repositoryInventory
+        ?? this.app?.scanService?.report?.repositoryInventory
+        ?? this.lastResult?.repositoryInventory;
+      if (repoInv?.totalFiles != null) {
+        const folderPart = repoInv.totalFolders != null
+          ? `, ${formatNumber(repoInv.totalFolders)} folders`
+          : '';
+        counter = `Repository scope · ${formatNumber(repoInv.totalFiles)} files${folderPart}`;
       }
     }
 
-    const scopeNoteEl = root.querySelector('.analyze-progress-scope-note');
-    if (scopeNoteEl) {
-      if (progressDetails.scopeNote) {
-        scopeNoteEl.hidden = false;
-        scopeNoteEl.textContent = progressDetails.scopeNote;
-      } else {
-        scopeNoteEl.hidden = true;
-        scopeNoteEl.textContent = '';
+    // Batch all DOM reads/writes in a single frame to avoid layout thrash
+    requestAnimationFrame(() => {
+      const fill = root.querySelector('.analyze-progress-fill');
+      if (fill) {
+        const w = `${pct}%`;
+        if (fill.style.width !== w) fill.style.width = w;
       }
-    }
 
-    const fileEl = root.querySelector('.analyze-progress-current-file');
-    if (fileEl) {
-      const file = sp?.currentFile;
-      if (file) {
-        fileEl.hidden = false;
-        fileEl.textContent = formatPathInputValue(file);
-        fileEl.title = file;
-      } else {
-        fileEl.hidden = true;
-        fileEl.textContent = '';
-        fileEl.removeAttribute('title');
+      const headerLabel = root.querySelector('.analyze-progress-label');
+      if (headerLabel) {
+        const runningStep = steps.find((s) => s.status === 'running');
+        const t = this.analysisType === 'complete' && steps.length
+          ? (runningStep
+            ? `Step ${doneCount + 1}/${totalSteps}: ${runningStep.label}…`
+            : `Complete scan — ${doneCount}/${totalSteps} steps`)
+          : (this.completeStep || sp?.label || 'Running analysis…');
+        if (headerLabel.textContent !== t) headerLabel.textContent = t;
       }
-    }
 
-    const elapsedEl = root.querySelector('.analyze-progress-elapsed');
-    if (elapsedEl && this.scanStartedAt) {
-      elapsedEl.textContent = formatElapsed(Date.now() - this.scanStartedAt);
-    }
+      const counterEl = root.querySelector('.analyze-progress-counter');
+      if (counterEl) {
+        const shouldShow = Boolean(counter);
+        if (counterEl.hidden === shouldShow) counterEl.hidden = !shouldShow;
+        if (shouldShow && counterEl.textContent !== counter) counterEl.textContent = counter;
+        if (!shouldShow && counterEl.textContent !== '') counterEl.textContent = '';
+      }
 
-    const runBtn = this._root?.querySelector('#run-analyze-btn');
-    if (runBtn && this.busy) {
-      runBtn.textContent = this.completeStep || sp?.label || 'Running…';
-    }
-
-    const stepItems = root.querySelectorAll('.analyze-step-item');
-    if (stepItems.length && steps.length) {
-      steps.forEach((step, index) => {
-        const item = stepItems[index];
-        if (!item) return;
-        item.className = `analyze-step-item ${step.status}`;
-        const spans = item.querySelectorAll('span');
-        if (spans[0]) {
-          spans[0].textContent = step.status === 'done' ? '✓'
-            : step.status === 'error' ? '✕'
-            : step.status === 'running' ? '◉' : '○';
+      const scopeNoteEl = root.querySelector('.analyze-progress-scope-note');
+      if (scopeNoteEl) {
+        let note = progressDetails.scopeNote || '';
+        const runningStep = steps.find((s) => s.status === 'running');
+        if (runningStep?.id === 'codebase') {
+          const repoFiles = this.repositoryInventory?.totalFiles ?? this.lastResult?.repositoryInventory?.totalFiles ?? 0;
+          if (repoFiles > 5000) {
+            note += (note ? ' ' : '') + `Analyzing ${formatNumber(repoFiles)} files across the full repository tree — this may take several minutes for large codebases.`;
+          } else {
+            note += (note ? ' ' : '') + 'Analyzing all source files for type safety, security, and quality patterns.';
+          }
         }
-        if (spans[1]) spans[1].textContent = formatCompleteStepLine(step);
-      });
-    }
+        const shouldShow = Boolean(note);
+        if (scopeNoteEl.hidden === shouldShow) scopeNoteEl.hidden = !shouldShow;
+        if (shouldShow && scopeNoteEl.textContent !== note) scopeNoteEl.textContent = note;
+        if (!shouldShow && scopeNoteEl.textContent !== '') scopeNoteEl.textContent = '';
+      }
+
+      const fileEl = root.querySelector('.analyze-progress-current-file');
+      if (fileEl) {
+        const runningStep = steps.find((s) => s.status === 'running');
+        const file = sp?.currentFile || (runningStep ? `Analyzing: ${formatCompleteStepLine(runningStep)}` : '');
+        const shouldShow = Boolean(file);
+        if (fileEl.hidden === shouldShow) fileEl.hidden = !shouldShow;
+        if (shouldShow) {
+          const formatted = sp?.currentFile ? formatPathInputValue(file) : file;
+          if (fileEl.textContent !== formatted) fileEl.textContent = formatted;
+          if (fileEl.title !== (sp?.currentFile || '')) fileEl.title = sp?.currentFile || '';
+        } else if (fileEl.textContent !== '') {
+          fileEl.textContent = '';
+          fileEl.removeAttribute('title');
+        }
+      }
+
+      // Update dropzone terminal with current file or step progress
+      const runningStep = steps.find((s) => s.status === 'running');
+      const terminalLabel = sp?.currentFile || (runningStep ? `Step: ${runningStep.label}` : sp?.label || '');
+      if (terminalLabel) {
+        const lastRaw = this._terminalLogLines.length > 0
+          ? this._terminalLogLines[this._terminalLogLines.length - 1].replace(/.*terminal-file">/, '').replace(/<\/span>.*/, '')
+          : '';
+        if (terminalLabel !== lastRaw) {
+          const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const html = `<span class="terminal-time">[${time}]</span><span class="terminal-prompt">❯</span><span class="terminal-file">${escapeHtml(terminalLabel)}</span>`;
+          this._terminalLogLines.push(html);
+          if (this._terminalLogLines.length > 50) {
+            this._terminalLogLines.shift();
+          }
+          // Re-render terminal body content
+          const dropzoneTerminal = this._root?.querySelector('#dropzone-terminal-body');
+          if (dropzoneTerminal) {
+            dropzoneTerminal.innerHTML = this._terminalLogLines.map((ln) => `<div class="terminal-line">${ln}</div>`).join('');
+            dropzoneTerminal.scrollTop = dropzoneTerminal.scrollHeight;
+          }
+        }
+      }
+
+      const elapsedEl = root.querySelector('.analyze-progress-elapsed');
+      if (elapsedEl && this.scanStartedAt) {
+        const t = formatElapsed(Date.now() - this.scanStartedAt);
+        if (elapsedEl.textContent !== t) elapsedEl.textContent = t;
+      }
+
+      const runBtn = this._root?.querySelector('#run-analyze-btn');
+      if (runBtn && this.busy) {
+        const t = this.completeStep || sp?.label || 'Running…';
+        if (runBtn.textContent !== t) runBtn.textContent = t;
+      }
+
+      let stepItems = root.querySelectorAll('.analyze-step-item');
+      if (steps.length) {
+        if (!stepItems.length) {
+          // Step list was not rendered initially (steps were empty at mount).
+          // Create the list container and populate it now.
+          const listEl = document.createElement('div');
+          listEl.className = 'analyze-step-list';
+          listEl.innerHTML = steps.map((step) => `
+            <div class="analyze-step-item ${step.status}">
+              <span>${step.status === 'done' ? '✓' : step.status === 'error' ? '✕' : step.status === 'running' ? '◉' : step.status === 'skipped' ? '—' : '○'}</span>
+              <span>${escapeHtml(formatCompleteStepLine(step))}</span>
+            </div>
+          `).join('');
+          root.appendChild(listEl);
+        } else {
+          steps.forEach((step, index) => {
+            const item = stepItems[index];
+            if (!item) return;
+            const cls = `analyze-step-item ${step.status}`;
+            if (item.className !== cls) item.className = cls;
+            const spans = item.querySelectorAll('span');
+            if (spans[0]) {
+              const icon = step.status === 'done' ? '✓'
+                : step.status === 'error' ? '✕'
+                : step.status === 'running' ? '◉'
+                : step.status === 'skipped' ? '—' : '○';
+              if (spans[0].textContent !== icon) spans[0].textContent = icon;
+            }
+            if (spans[1]) {
+              const line = formatCompleteStepLine(step);
+              if (spans[1].textContent !== line) spans[1].textContent = line;
+            }
+          });
+        }
+      }
+    });
   }
 
   renderEmptyState() {
@@ -2257,12 +3595,17 @@ export class AnalyzeView {
       const rel = when ? this.app.scanService.formatRelativeTime(when) : 'Recently';
       const issues = report?.issueCount ?? report?.rawIssues?.length ?? '—';
       const gate = report?.gate?.pass ? 'PASS' : 'REVIEW';
+      const gateClass = report?.gate?.pass ? 'pass' : 'review';
       return `
         <div class="card analyze-empty-state">
-          <p class="text-muted" style="margin:0">Last scan ${escapeHtml(rel)} — <strong>${issues}</strong> issue groups, gate <strong>${gate}</strong></p>
+          <div class="analyze-empty-icon"><i data-lucide="activity" class="icon-20"></i></div>
+          <div class="analyze-empty-body">
+            <p class="analyze-empty-title">Last scan ${escapeHtml(rel)}</p>
+            <p class="analyze-empty-meta"><strong>${issues}</strong> issue groups · gate <span class="pill ${gateClass}">${gate}</span></p>
+          </div>
           <div class="analyze-empty-actions">
-            ${defaultPath ? `<button type="button" class="btn btn-primary btn-sm" id="quick-rescan-btn">Re-run complete scan</button>` : ''}
-            <button type="button" class="btn btn-secondary btn-sm" id="goto-results-empty-btn">Open Results →</button>
+            ${defaultPath ? `<button type="button" class="btn btn-primary btn-sm" id="quick-rescan-btn"><i data-lucide="refresh-cw" class="icon-16"></i> Re-run</button>` : ''}
+            <button type="button" class="btn btn-secondary btn-sm" id="goto-results-empty-btn">Results →</button>
           </div>
         </div>
       `;
@@ -2270,10 +3613,23 @@ export class AnalyzeView {
 
     return `
       <div class="card analyze-empty-state">
-        <p class="text-muted" style="margin:0">No analysis yet — use quick file check above, pick a server path, or run a scan.</p>
+        <div class="analyze-empty-icon"><i data-lucide="scan-line" class="icon-20"></i></div>
+        <div class="analyze-empty-body">
+          <p class="analyze-empty-title">Ready to scan</p>
+          <p class="analyze-empty-meta text-muted">Pick a path above and hit Run, or drop a file for quick check</p>
+          <div class="analyze-empty-tips" style="margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--border-color);">
+            <p class="text-muted" style="font-size:var(--font-size-xs);font-weight:600;margin-bottom:var(--space-2);">Quick start tips</p>
+            <ul style="font-size:var(--font-size-xs);color:var(--text-muted);margin:0;padding-left:1.25rem;line-height:1.6;">
+              <li>Type a folder path or click <strong>Browse</strong> to select a directory</li>
+              <li>Switch to <strong>Complete</strong> mode to run all analysis engines</li>
+              <li>Drop a source file on the Quick File Check area for instant in-browser analysis</li>
+              <li>Install the <a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener">VS Code Extension</a> for real-time monitoring</li>
+            </ul>
+          </div>
+        </div>
         ${defaultPath ? `
           <div class="analyze-empty-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="quick-rescan-btn">Run complete scan on server default</button>
+            <button type="button" class="btn btn-primary btn-sm" id="quick-rescan-btn"><i data-lucide="play" class="icon-16"></i> Run default scan</button>
           </div>
         ` : ''}
       </div>
@@ -2313,12 +3669,34 @@ export class AnalyzeView {
     if (!root) return;
     const pathInput = root.querySelector('#project-path-input');
     const projectPath = this.getActiveProjectPath(pathInput?.value);
+    const scrollContainer = document.querySelector('.app-main') || document.documentElement;
+    const savedScrollTop = scrollContainer.scrollTop;
+    const queuePanel = root.querySelector('#analyze-engine-queue-panel');
+    const savedQueueScroll = queuePanel ? queuePanel.scrollTop : 0;
+    const savedActive = document.activeElement;
+    const savedActiveEngine = savedActive?.dataset?.engine || null;
     const detail = root.querySelector('#analyze-mode-detail');
     if (detail) {
       detail.outerHTML = this.renderSelectedModeDetail().trim();
-      this.bindEngineSelectionEvents(root);
+    }
+    const fileResultsSection = root.querySelector('#analyze-file-results-section');
+    if (fileResultsSection) {
+      fileResultsSection.outerHTML = this.renderFileResultsSection().trim();
     }
     this.bindModeGridEvents(root);
+    // Restore scroll synchronously to prevent visual jump
+    scrollContainer.scrollTop = savedScrollTop;
+    const newQueuePanel = root.querySelector('#analyze-engine-queue-panel');
+    if (newQueuePanel) newQueuePanel.scrollTop = savedQueueScroll;
+    requestAnimationFrame(() => {
+      if (savedActiveEngine) {
+        const newInput = root.querySelector(`.analyze-engine-input[data-engine="${savedActiveEngine}"]`);
+        if (newInput) newInput.focus();
+      } else if (savedActive && savedActive.id) {
+        const newEl = document.getElementById(savedActive.id);
+        if (newEl) newEl.focus();
+      }
+    });
     this.syncRunAnalyzeButtonLabel(root);
     this.syncPathChipStates(root, projectPath);
     root.querySelector('#analyze-roadmap-insights-wrap')?.classList.toggle(
@@ -2442,7 +3820,7 @@ export class AnalyzeView {
       return inventory;
     }
     try {
-      const fetched = await fetchRepositoryInventory(projectPath);
+      const fetched = await fetchRepositoryInventory(projectPath, { fullDirectoryScan: this.fullDirectoryScan });
       this.repositoryInventory = fetched;
       if (this.lastResult) this.lastResult.repositoryInventory = fetched;
       return fetched;
@@ -2451,16 +3829,55 @@ export class AnalyzeView {
     }
   }
 
-  renderScanFileMetrics(report) {
+  renderIssueFilterToolbar(issues = []) {
+    if (!issues.length) return '';
+    const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    for (const i of issues) {
+      const sev = (i.severity || 'low').toLowerCase();
+      counts[sev] = (counts[sev] || 0) + 1;
+    }
+    return `
+      <div class="analyze-issue-toolbar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;" data-issue-toolbar>
+        <input type="text" class="analyze-path-input" id="issue-search-input"
+          placeholder="Search issues..."
+          style="flex:1;min-width:200px;font-size:0.8rem;padding:6px 10px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${['critical','high','medium','low','info'].map(sev =>
+            `<button type="button" class="severity-chip ${sev} active"
+              data-sev="${sev}"
+              style="padding:4px 10px;border-radius:999px;font-size:0.7rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface-elevated);color:var(--text-secondary);transition:all 150ms;">
+              ${sev} ${counts[sev] || 0}
+            </button>`
+          ).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  renderScanFileMetrics(report, canonicalCount = null) {
     const inventory = this.lastResult?.repositoryInventory || report?.repositoryInventory;
     const m = getScanFileMetrics(report, { repositoryInventory: inventory });
     const showMockBreakdown = m.mockSampleFiles != null;
     const showFictionJson = m.fictionJsonFilesScanned != null;
+    const repoFiles = canonicalCount ?? m.repositoryFiles;
 
-    if (m.repositoryFiles != null) {
+    // Severity breakdown from severityCounts
+    const sev = report?.severityCounts || {};
+    const severityMetrics = (sev.critical || sev.high || sev.medium || sev.low || sev.info)
+      ? `<div class="metric-chip" style="display:flex;gap:4px;align-items:center;" title="Issue severity breakdown">
+          ${sev.critical ? `<span style="color:var(--color-danger, #ef4444);font-weight:700;">${sev.critical}C</span>` : ''}
+          ${sev.high ? `<span style="color:var(--color-danger, #ef4444);font-weight:700;">${sev.high}H</span>` : ''}
+          ${sev.medium ? `<span style="color:var(--color-warning, #f59e0b);font-weight:700;">${sev.medium}M</span>` : ''}
+          ${sev.low ? `<span style="color:var(--color-info, #3b82f6);font-weight:700;">${sev.low}L</span>` : ''}
+          ${sev.info ? `<span style="color:var(--text-muted, #737373);font-weight:700;">${sev.info}I</span>` : ''}
+        </div>`
+      : '';
+
+    if (repoFiles != null) {
       return `
-        <div class="metric-chip" title="Filesystem inventory under ${escapeHtml(formatPathInputValue(m.repositoryRoot) || 'project path')} (${escapeHtml(report?.repositoryInventory?.profile || 'audit')} profile — skips node_modules, .git, github-cache)">
-          <strong>${formatNumber(m.repositoryFiles)}</strong> repo files · <strong>${formatNumber(m.repositoryFolders)}</strong> folders
+        ${severityMetrics}
+        <div class="metric-chip" title="Filesystem inventory under ${escapeHtml(formatPathInputValue(m.repositoryRoot) || 'project path')} (${escapeHtml(report?.repositoryInventory?.profile || 'audit')} profile — ${this.fullDirectoryScan ? 'includes node_modules; skips' : 'skips node_modules,'} .git, github-cache)">
+          <strong>${formatNumber(repoFiles)}</strong> repo files · <strong>${formatNumber(m.repositoryFolders)}</strong> folders
         </div>
         <div class="metric-chip" title="Files read by credential, mock-path, and production-leak rules">
           <strong>${formatNumber(m.ruleScopedFilesAnalyzed ?? m.credentialScanned)}</strong> gate rules checked
@@ -2474,6 +3891,7 @@ export class AnalyzeView {
       && m.mockSampleFiles != null
       && m.mockSampleFiles !== m.ruleScopedFilesAnalyzed;
     return `
+      ${severityMetrics}
       <div class="metric-chip" title="Files read across mock/sample, credential, and production-leak rules">
         <strong>${formatNumber(m.ruleScopedFilesAnalyzed ?? m.filesAnalyzed)}</strong> gate rules checked
       </div>
@@ -2487,15 +3905,53 @@ export class AnalyzeView {
     if (!report || report.type === 'file-merger-reduction-report') return '';
     const stale = isLegacyScanReport(report, projectPath);
     const monorepoNote = buildMonorepoScopeNote(report);
+
+    // Project metadata header
+    const projectName = report.projectRoot || report.projectPath || projectPath || 'Unknown project';
+    const version = report.version || report.schemaVersion || report.scannerVersion || '';
+    const engine = report.engine || report.scanner || 'SimpleBeacon';
+    const generatedAt = report.generatedAt || report.scannedAt || report.exportedAt;
+    const ageHours = generatedAt ? Math.floor((Date.now() - new Date(generatedAt).getTime()) / (1000 * 60 * 60)) : null;
+    const ageText = ageHours != null ? `${ageHours}h ago` : '';
+
+    // Cross-reference integrity checks
+    const integrityWarnings = [];
+    const sev = report.severityCounts || {};
+    const issues = report.detectedIssues || report.rawIssues || [];
+    const counted = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0) + (sev.info || 0);
+    if (counted !== issues.length) {
+      integrityWarnings.push(`severityCounts sum (${counted}) ≠ issues.length (${issues.length})`);
+    }
+    if (report.summary && typeof report.summary.totalIssues === 'number' && report.summary.totalIssues !== issues.length) {
+      integrityWarnings.push(`summary.totalIssues (${report.summary.totalIssues}) ≠ issues.length (${issues.length})`);
+    }
+
     return `
-      ${stale ? `
-        <div class="card mb-4" style="border-color: var(--warning-color, #f59e0b);">
-          <p style="margin: 0; font-size: var(--font-size-sm);">
+      ${stale || integrityWarnings.length > 0 ? `
+        <div class="card mb-4" style="border-color: ${integrityWarnings.length ? 'var(--color-danger, #ef4444)' : 'var(--warning-color, #f59e0b)'};">
+          ${stale ? `<p style="margin: 0 0 8px; font-size: var(--font-size-sm);">
             Stale or mismatched scan report — re-run the scan on <code>${escapeHtml(formatPathInputValue(projectPath) || 'this path')}</code>
             to attach full repository inventory and gate scope (reportVersion 2).
-          </p>
+          </p>` : ''}
+          ${integrityWarnings.length ? `<p style="margin: 0; font-size: var(--font-size-sm); color: var(--color-danger, #ef4444);">
+            ⚠️ Integrity warning: ${escapeHtml(integrityWarnings.join(' · '))}
+          </p>` : ''}
         </div>
       ` : ''}
+
+      <div class="card mb-4 analyze-project-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-weight:700;font-size:1.05rem;">${escapeHtml(String(projectName).split(/[\\/]/).pop())}</div>
+          <div class="text-muted" style="font-size:var(--font-size-xs);margin-top:2px;">
+            ${escapeHtml(engine)}${version ? ' v' + escapeHtml(version) : ''}
+            ${generatedAt ? ' · ' + new Date(generatedAt).toLocaleString() : ''}
+            ${ageText ? ' · ' + escapeHtml(ageText) : ''}
+            ${report.type ? ' · ' + escapeHtml(report.type) : ''}
+          </div>
+        </div>
+        ${ageHours != null && ageHours > 1 ? `<span class="badge badge-danger" style="font-size:0.65rem;">STALE</span>` : ''}
+      </div>
+
       ${monorepoNote ? `
         <div class="card mb-4 analyze-monorepo-scope">
           <p class="text-muted mb-2" style="font-size: var(--font-size-xs); margin-top: 0;">Monorepo scan scope</p>
@@ -2591,7 +4047,7 @@ export class AnalyzeView {
       return `
         <div class="card mb-4 analyze-scan-summary">
           <p class="text-muted mb-2" style="font-size: var(--font-size-xs); margin-top: 0;">
-            Optional narrative (${escapeHtml(provider)}) — gate findings unchanged
+            <span style="opacity:0.7;">🤖 AI-generated summary (${escapeHtml(provider)}) — findings unchanged. Content may contain inaccuracies; verify against scan results.</span>
           </p>
           ${gateLine ? `<p class="text-muted text-sm mb-3" style="margin-top:0;"><strong>Gate:</strong> ${escapeHtml(gateLine)}</p>` : ''}
           <div class="analyze-ai-summary-body">${escapeHtml(entity.aiSummary).replace(/\n/g, '<br>')}</div>
@@ -2612,7 +4068,7 @@ export class AnalyzeView {
       return `
         ${noteBlock}
         <div class="card mb-4 analyze-ai-summary">
-          <p class="text-muted mb-2" style="font-size: var(--font-size-xs); margin-top: 0;">Summary (${escapeHtml(provider)}) — findings unchanged</p>
+          <p class="text-muted mb-2" style="font-size: var(--font-size-xs); margin-top: 0;"><span style="opacity:0.7;">🤖 AI-generated summary (${escapeHtml(provider)}) — findings unchanged. Content may contain inaccuracies; verify against scan results.</span></p>
           <div class="analyze-ai-summary-body">${escapeHtml(entity.aiSummary).replace(/\n/g, '<br>')}</div>
         </div>
       `;
@@ -2682,10 +4138,18 @@ export class AnalyzeView {
     const pathInput = this._root?.querySelector('#project-path-input');
     const projectPath = this.getActiveProjectPath(pathInput?.value);
     const report = this.reportForProjectPath(projectPath);
-    const lastResult = this.lastResult
-      && reportMatchesPagePath({ projectRoot: this.lastResult.projectPath || this.lastResult.report?.projectRoot }, projectPath)
-      ? this.lastResult
-      : null;
+    // Prefer a path-matched result, but fall back to any recent result so the
+    // per-file results panel doesn't vanish immediately after a scan completes.
+    const resultPath = this.lastResult?.projectPath || this.lastResult?.report?.projectRoot || '';
+    const pathMatched = this.lastResult && reportMatchesPagePath({ projectRoot: resultPath }, projectPath);
+    const recentFallback = this.lastResult && !pathMatched
+      ? (() => {
+          const completedAt = this.lastResult.scanCompletedAt || this.scanStartedAt;
+          const ageMs = completedAt ? Date.now() - completedAt : Infinity;
+          return ageMs < 60000;
+        })()
+      : false;
+    const lastResult = pathMatched || recentFallback ? this.lastResult : null;
     return { projectPath, report, lastResult };
   }
 
@@ -2709,10 +4173,27 @@ export class AnalyzeView {
     }, 280);
   }
 
+  clearStaleResultIfPathMismatch() {
+    const pathInput = this._root?.querySelector('#project-path-input');
+    const activePath = this.getActiveProjectPath(pathInput?.value);
+    if (!activePath || !this.lastResult) return;
+    const resultPath = this.lastResult.projectPath || this.lastResult.report?.projectRoot || '';
+    if (resultPath && !reportMatchesPagePath({ projectRoot: resultPath }, activePath)) {
+      // Guard against race conditions: don't clear a scan that just finished
+      const scanCompletedAt = this.lastResult.scanCompletedAt || this.scanStartedAt;
+      const ageMs = scanCompletedAt ? Date.now() - scanCompletedAt : Infinity;
+      if (ageMs < 60000) return;
+      this.lastResult = null;
+      this.app.state.analyzeResult = null;
+      this.app.state.report = null;
+    }
+  }
+
   async refreshReportForActivePath(root = this._root) {
     if (!root) return;
     const pathInput = root.querySelector('#project-path-input');
     const projectPath = this.getActiveProjectPath(pathInput?.value);
+    this.clearStaleResultIfPathMismatch();
     if (!projectPath) {
       this.app.state.pathInventory = null;
       this.syncAnalyzeModeUi(root);
@@ -2734,7 +4215,7 @@ export class AnalyzeView {
     } catch {
       // No report.json on disk for this path yet — scope panel still shows config defaults.
     }
-    await refreshPathInventory(this.app, projectPath).catch(() => null);
+    await refreshPathInventory(this.app, projectPath, { fullDirectoryScan: this.fullDirectoryScan }).catch(() => null);
     this.syncAnalyzeModeUi(root);
   }
 
@@ -2757,6 +4238,8 @@ export class AnalyzeView {
 
     this.bindModeGridEvents(el);
     this.bindClientDeliverablePicker(el);
+    this.bindCodebaseSectionEvents(el);
+    this.bindFileReductionSectionEvents(el);
 
     typeSelect?.addEventListener('change', () => {
       this.setAnalysisType(typeSelect.value, { typeSelect });
@@ -2792,19 +4275,6 @@ export class AnalyzeView {
       this.syncAnalyzeModeUi(el);
     });
 
-    el.querySelector('#analyze-tab-local')?.addEventListener('click', () => {
-      if (this.websiteMode) {
-        this.websiteMode = false;
-        this.refresh();
-      }
-    });
-    el.querySelector('#analyze-tab-website')?.addEventListener('click', () => {
-      if (!this.websiteMode) {
-        this.websiteMode = true;
-        this.refresh();
-      }
-    });
-
     el.querySelector('#use-default-path-btn')?.addEventListener('click', () => {
       const path = this.app.state.defaultProjectPath;
       if (path && pathInput) {
@@ -2818,7 +4288,192 @@ export class AnalyzeView {
     el.querySelector('#clear-path-btn')?.addEventListener('click', () => {
       if (pathInput) pathInput.value = '';
       this.app.state.lastProjectPath = '';
+      localStorage.removeItem('simplebeaconRecentPaths');
+      const pathSourcesEl = el.querySelector('.analyze-path-sources');
+      if (pathSourcesEl) {
+        const defaultPath = this.app.state.defaultProjectPath || '';
+        pathSourcesEl.outerHTML = this.renderPathSourceSections(defaultPath, '');
+      }
       this.syncAnalyzeModeUi(el);
+    });
+
+    // Quick action buttons
+    el.querySelector('#quick-action-run-btn')?.addEventListener('click', () => {
+      const pathInput = el.querySelector('#project-path-input');
+      const resolvedPath = this.resolveProjectPath(pathInput?.value);
+      if (resolvedPath) {
+        void this.runPathAnalysis(resolvedPath);
+      } else {
+        showToast('Enter a project path first', 'error');
+      }
+    });
+    el.querySelector('#quick-action-results-btn')?.addEventListener('click', () => {
+      this.openResultsView();
+    });
+    el.querySelector('#quick-action-export-btn')?.addEventListener('click', () => {
+      const payload = this.buildScanResultExport();
+      if (!payload) {
+        showToast('No scan results to export', 'error');
+        return;
+      }
+      downloadJson(payload, this.resolveScanExportFilename());
+      showToast('Scan report exported', 'success');
+    });
+    el.querySelector('#quick-action-remediation-btn')?.addEventListener('click', () => {
+      const payload = this.buildRemediationExport();
+      if (!payload) {
+        showToast('No remediation data available — run a scan first', 'error');
+        return;
+      }
+      this.app.state.remediationPayload = payload;
+      this.app.navigate('remediation');
+    });
+
+    // VS Code Extension card — sync report to sidebar
+    el.querySelector('#vscode-sync-report-btn')?.addEventListener('click', () => {
+      const report = this.resolveResultsReport();
+      if (!report) { showToast('No scan report to sync — run a scan first', 'error'); return; }
+      const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
+      if (!hasVsCodeApi) { showToast('Not running inside a VS Code-family editor', 'error'); return; }
+      try {
+        const vscode = this._getVscodeApi();
+        if (!vscode) { showToast('VS Code API unavailable', 'error'); return; }
+        const allIssues = report.rawIssues || report.detectedIssues || [];
+        const sev = report.severityCounts || {};
+        vscode.postMessage({
+          command: 'updateReport',
+          report: {
+            totalFiles: report.repositoryFilesTotal || report.totalFiles || 0,
+            ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed || report.filesAnalyzed || 0,
+            issueCount: allIssues.length,
+            qualityScore: report.qualityScore ?? report.gate?.score ?? 0,
+            gate: report.gate || { pass: false },
+            issues: allIssues.slice(0, 200),
+            projectPath: report.projectRoot || report.projectPath || this.lastResult?.projectPath || '',
+            severityCounts: sev
+          }
+        });
+        showToast('Scan report synced to sidebar', 'success');
+      } catch (err) {
+        showToast('Failed to sync: ' + err.message, 'error');
+      }
+    });
+
+    // Real-time monitoring toggle
+    el.querySelector('#analyze-realtime-monitor')?.addEventListener('change', (event) => {
+      this.realtimeMonitorEnabled = Boolean(event.target.checked);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('simplebeacon_realtime_monitor', this.realtimeMonitorEnabled ? '1' : '0');
+      }
+      showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
+    });
+
+    el.querySelector('#browse-dir-btn')?.addEventListener('click', async () => {
+      const picked = await this.pickFolderViaBrowser(el);
+      if (!picked) {
+        const dirInput = el.querySelector('#browse-dir-input');
+        if (dirInput) dirInput.click();
+      }
+    });
+
+    // Dropzone Analyze button triggers the same analysis as Enter on project-path-input
+    const dropzoneAnalyzeBtn = el.querySelector('#dropzone-path-analyze-btn');
+    dropzoneAnalyzeBtn?.addEventListener('click', () => {
+      const raw = pathInput?.value?.trim();
+      if (!raw) return;
+      const resolvedPath = this.resolveProjectPath(raw);
+      if (!resolvedPath) return;
+      this.app.state.pathInputDraft = '';
+      this.app.state.lastProjectPath = resolvedPath;
+      this.setPathInputDisplay(pathInput, resolvedPath);
+      void this.refreshReportForActivePath(el);
+      void this.runPathAnalysis(resolvedPath);
+    });
+
+    // Handle folder selection from the hidden directory input
+    el.querySelector('#browse-dir-input')?.addEventListener('change', (e) => {
+      const files = e.target.files;
+      if (files?.length) {
+        const firstFile = files[0];
+        const relPath = firstFile.webkitRelativePath || '';
+        const filePath = firstFile.path;
+
+        // In Electron / Tauri the file objects expose the absolute filesystem path.
+        if (filePath && relPath) {
+          const normalizedFull = filePath.replace(/\\/g, '/');
+          const normalizedRel = relPath.replace(/\\/g, '/');
+          if (normalizedFull.endsWith(normalizedRel)) {
+            const baseDir = normalizedFull.slice(0, -normalizedRel.length).replace(/\/$/, '');
+            const folderName = normalizedRel.split('/')[0] || '';
+            let resolvedPath = baseDir ? `${baseDir}/${folderName}` : folderName;
+            // Guard: never leave a bare folder name — at minimum prefix with a drive
+            if (!resolvedPath.match(/^[a-zA-Z]:/) && !resolvedPath.startsWith('/')) {
+              const driveMatch = String(this.app.state.defaultProjectPath || '').match(/^([a-zA-Z]:)/);
+              resolvedPath = driveMatch ? `${driveMatch[1]}/Users/${folderName}` : `C:/Users/${folderName}`;
+            }
+            const pathInput = el.querySelector('#project-path-input');
+            if (pathInput) {
+              this.setPathInputDisplay(pathInput, resolvedPath);
+              this.app.state.lastProjectPath = resolvedPath;
+              this.app.state.pathInputDraft = '';
+              this.syncAnalyzeModeUi(el);
+              void this.refreshReportForActivePath(el);
+              void this.runPathAnalysis(resolvedPath);
+            }
+            e.target.value = '';
+            return;
+          }
+        }
+
+        const folderName = relPath.split('/')[0] || firstFile.name || '';
+        // webkitdirectory only gives relative paths; auto-derive the best absolute path
+        const currentInput = this.resolveProjectPath(el.querySelector('#project-path-input')?.value);
+        const rawBase = String(currentInput || this.app.state.defaultProjectPath || this._deriveFallbackBase())
+          .replace(/\\/g, '/')
+          .replace(/\/+$/, '');
+        // Use the parent directory of the current path as the base, not stripped to user home
+        const lastSlash = rawBase.lastIndexOf('/');
+        const basePath = (lastSlash > 2) ? rawBase.substring(0, lastSlash) : rawBase;
+        const resolvedPath = `${basePath}/${folderName}`;
+        const pathInput = el.querySelector('#project-path-input');
+        if (pathInput) {
+          this.setPathInputDisplay(pathInput, resolvedPath);
+          this.app.state.lastProjectPath = resolvedPath;
+          this.app.state.pathInputDraft = '';
+          this.syncAnalyzeModeUi(el);
+          void this.refreshReportForActivePath(el);
+          showToast(`Folder "${folderName}" selected — path set to ${resolvedPath}. Press Enter or click Run Scan to start.`, 'info');
+        }
+      }
+      e.target.value = '';
+    });
+
+    el.querySelector('#dir-browser-close-btn')?.addEventListener('click', () => {
+      this.closeDirBrowser(el);
+    });
+
+    el.querySelector('#dir-browser-up-btn')?.addEventListener('click', () => {
+      this.dirBrowserGoUp(el);
+    });
+
+    el.querySelector('#dir-browser-select-btn')?.addEventListener('click', () => {
+      this.selectDirBrowserPath(el);
+    });
+
+    el.querySelector('#dir-browser-list')?.addEventListener('click', (event) => {
+      const item = event.target.closest('.dir-browser-item');
+      if (!item) return;
+      const dirPath = item.dataset.path;
+      if (dirPath) this.loadDirBrowser(el, dirPath);
+    });
+    el.querySelector('#dir-browser-list')?.addEventListener('dblclick', (event) => {
+      const item = event.target.closest('.dir-browser-item');
+      if (!item) return;
+      const dirPath = item.dataset.path;
+      if (dirPath) {
+        this._dirBrowserPath = dirPath;
+        this.selectDirBrowserPath(el);
+      }
     });
 
     el.addEventListener('click', (event) => {
@@ -2843,6 +4498,15 @@ export class AnalyzeView {
           if (pathInput) pathInput.value = '';
         }
         this.refresh();
+        return;
+      }
+      const clearAllBtn = event.target.closest('#clear-recent-paths-btn');
+      if (clearAllBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        localStorage.removeItem('simplebeaconRecentPaths');
+        this.refresh();
+        showToast('Recent paths cleared', 'info');
       }
     });
 
@@ -2935,6 +4599,16 @@ export class AnalyzeView {
     pathInput?.addEventListener('input', () => {
       this.app.state.pathInputDraft = pathInput.value;
       this.app.state.lastProjectPath = '';
+      // Auto-detect website URL mode based on input prefix
+      const raw = String(pathInput.value || '').trim();
+      const looksLikeUrl = /^https?:\/\//i.test(raw) || /^git@/i.test(raw) || /^ssh:\/\//i.test(raw);
+      if (looksLikeUrl && !this.websiteMode) {
+        this.websiteMode = true;
+        this.refresh();
+      } else if (!looksLikeUrl && this.websiteMode) {
+        this.websiteMode = false;
+        this.refresh();
+      }
       this.schedulePathDependentUi(el);
     });
 
@@ -2976,6 +4650,256 @@ export class AnalyzeView {
       }
     });
 
+    // Path area drag/drop — uses file.path in desktop/Electron, falls back to browse hint
+    const pathDropzone = el.querySelector('#analyze-path-dropzone');
+    if (pathDropzone && !this.websiteMode) {
+      let pathDragDepth = 0;
+      ['dragenter', 'dragover'].forEach((eventName) => {
+        pathDropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (eventName === 'dragenter') {
+            pathDragDepth++;
+          }
+          pathDropzone.classList.add('drag-active');
+          if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+        });
+      });
+      pathDropzone.addEventListener('dragleave', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        pathDragDepth--;
+        if (pathDragDepth <= 0) {
+          pathDropzone.classList.remove('drag-active');
+          pathDragDepth = 0;
+        }
+      });
+      pathDropzone.addEventListener('drop', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        pathDragDepth = 0;
+        pathDropzone.classList.remove('drag-active');
+
+        const items = event.dataTransfer?.items;
+        const files = event.dataTransfer?.files;
+
+        // Helper: derive folder path from a file path inside that folder
+/**
+ * Derive dir from file path.
+ * @param {string} filePath
+ * @returns {any}
+ */
+        const deriveDirFromFilePath = (filePath) => {
+          if (!filePath) return '';
+          const norm = filePath.replace(/\\/g, '/');
+          const lastSlash = norm.lastIndexOf('/');
+          return lastSlash > 0 ? norm.slice(0, lastSlash) : norm;
+        };
+
+        // Helper: get actual dropped folder path from OS dataTransfer or Electron
+/**
+ * Get dropped folder path.
+ * @returns {any}
+ */
+        const getDroppedFolderPath = () => {
+          const dt = event.dataTransfer;
+          if (!dt) return '';
+
+          // Try multiple data formats that OS file managers expose
+          const tryGetData = (type) => {
+            try { return dt.getData(type) || ''; } catch { return ''; }
+          };
+
+          // 1. Windows Explorer / macOS Finder file:// URI
+          const uriList = tryGetData('text/uri-list');
+          if (uriList) {
+            const uri = uriList.trim().split('\n')[0]?.trim();
+            if (uri && uri.startsWith('file:///')) {
+              let p = uri.slice(8).replace(/\/$/, '');
+              try { p = decodeURIComponent(p); } catch { /* ignore */ }
+              return p.replace(/\//g, '\\');
+            }
+          }
+
+          // 2. text/plain — Windows Explorer sometimes drops the raw path here
+          const plain = tryGetData('text/plain');
+          if (plain) {
+            let trimmed = plain.trim().split('\n')[0]?.trim();
+            // Windows Explorer may wrap paths in quotes
+            trimmed = trimmed.replace(/^["']|["']$/g, '');
+            if (trimmed && /^[a-zA-Z]:[\\\/]/.test(trimmed)) {
+              return trimmed.replace(/[\\\/]+$/, '');
+            }
+          }
+
+          // 3. text/x-moz-url — Firefox specific
+          const mozUrl = tryGetData('text/x-moz-url');
+          if (mozUrl) {
+            const url = mozUrl.trim().split('\n')[0]?.trim();
+            if (url && url.startsWith('file:///')) {
+              let p = url.slice(8).replace(/\/$/, '');
+              try { p = decodeURIComponent(p); } catch { /* ignore */ }
+              return p.replace(/\//g, '\\');
+            }
+          }
+
+          // 4. Electron / desktop wrappers: files inside the folder carry absolute paths
+          if (files?.[0]?.path) {
+            const filePath = String(files[0].path);
+            const norm = filePath.replace(/\\/g, '/');
+            // The first file may be deep inside subdirectories; use entry.name to find the dropped folder boundary
+            const folderName = files?.[0]?.name || '';
+            if (folderName) {
+              const idx = norm.indexOf(`/${folderName}/`);
+              if (idx >= 0) {
+                return norm.slice(0, idx + folderName.length + 1);
+              }
+            }
+            return deriveDirFromFilePath(filePath);
+          }
+
+          // 5. Fallback: try converting the first item to a file and read its path
+          if (items?.[0]) {
+            try {
+              const file = items[0].getAsFile?.();
+              if (file?.path) {
+                const filePath = String(file.path);
+                const norm = filePath.replace(/\\/g, '/');
+                const folderName = files?.[0]?.name || '';
+                if (folderName) {
+                  const idx = norm.indexOf(`/${folderName}/`);
+                  if (idx >= 0) {
+                    return norm.slice(0, idx + folderName.length + 1);
+                  }
+                }
+                return deriveDirFromFilePath(filePath);
+              }
+            } catch {
+              // getAsFile may throw for directories in some browsers
+            }
+          }
+
+          return '';
+        };
+
+        // Try File System API first (webkitGetAsEntry) for directory detection
+        if (items?.length) {
+          const entry = items[0].webkitGetAsEntry?.();
+          if (entry) {
+            if (entry.isDirectory) {
+              const pathInput = el.querySelector('#project-path-input');
+              const name = entry.name || '';
+              const actualDir = getDroppedFolderPath();
+              const currentInput = this.resolveProjectPath(pathInput?.value);
+              const rawDefault = String(this.app.state.defaultProjectPath || this._deriveFallbackBase())
+                .replace(/\\/g, '/')
+                .replace(/\/+$/, '');
+              // If defaultProjectPath points to a specific project folder, use its parent
+              // as the default so dropped sibling folders don't get nested inside it.
+              const defaultParts = rawDefault.split('/').filter(Boolean);
+              const defaultPath = (defaultParts.length > 2 && !rawDefault.toLowerCase().endsWith('/users'))
+                ? defaultParts.slice(0, -1).join('/')
+                : rawDefault;
+              let suggestedPath;
+              if (actualDir) {
+                suggestedPath = actualDir;
+              } else {
+                // Browser: we only know the folder basename. Search for it in currentInput/defaultPath.
+/**
+ * Search path.
+ * @param {any} base
+ * @returns {any}
+ */
+                const searchPath = (base) => {
+                  if (!base || !name) return '';
+                  const norm = base.replace(/\\/g, '/').replace(/\/+$/, '');
+                  const parts = norm.split('/').filter(Boolean);
+                  const idx = parts.lastIndexOf(name);
+                  return idx >= 0 ? parts.slice(0, idx + 1).join('/') : '';
+                };
+                const foundPath = searchPath(currentInput) || searchPath(defaultPath);
+                if (foundPath) {
+                  suggestedPath = foundPath;
+                } else if (currentInput) {
+                  const currentParts = currentInput.replace(/\\/g, '/').split('/').filter(Boolean);
+                  const currentLeaf = currentParts[currentParts.length - 1] || '';
+                  // If currentInput already ends with the dropped folder name, keep it
+                  // (user may have already typed the correct cross-drive path).
+                  if (currentLeaf.toLowerCase() === name.toLowerCase()) {
+                    suggestedPath = currentInput;
+                  } else {
+                    // Browsers can't reveal absolute paths for dropped folders,
+                    // and guessing a sibling path on the current drive is wrong
+                    // for external drives (e.g. I:\). Ask the user for the full path.
+                    suggestedPath = name;
+                  }
+                } else {
+                  suggestedPath = name;
+                }
+              }
+              const trimmed = suggestedPath.trim();
+              if (pathInput) {
+                pathInput.value = trimmed;
+                this.app.state.pathInputDraft = '';
+                this.app.state.lastProjectPath = trimmed;
+                this.setPathInputDisplay(pathInput, trimmed);
+                this.syncAnalyzeModeUi(el);
+                void this.refreshReportForActivePath(el);
+              }
+              return;
+            }
+            if (entry.isFile && files?.length) {
+              // File dropped on path area -> send to file dropzone handler
+              void this.handleAnalyzeFiles(files);
+              return;
+            }
+          }
+        }
+
+        // Fallback for browsers without File System API
+        if (files?.length) {
+          const file = files[0];
+          // Try OS dataTransfer URI first, then Electron file.path
+          const dtUriPath = getDroppedFolderPath();
+          if (dtUriPath) {
+            const pathInput = el.querySelector('#project-path-input');
+            if (pathInput) {
+              pathInput.value = dtUriPath;
+              this.app.state.pathInputDraft = '';
+              this.app.state.lastProjectPath = dtUriPath;
+              this.setPathInputDisplay(pathInput, dtUriPath);
+              this.syncAnalyzeModeUi(el);
+              void this.refreshReportForActivePath(el);
+              showToast(`Path set: ${dtUriPath} — starting scan…`, 'success');
+              void this.runPathAnalysis(dtUriPath);
+              return;
+            }
+          }
+          if (file.path) {
+            // Electron / desktop app — file.path is the first file inside a dropped folder
+            const targetPath = deriveDirFromFilePath(file.path) || file.path;
+            const pathInput = el.querySelector('#project-path-input');
+            if (pathInput) {
+              pathInput.value = targetPath;
+              this.app.state.pathInputDraft = '';
+              this.app.state.lastProjectPath = targetPath;
+              this.setPathInputDisplay(pathInput, targetPath);
+              this.syncAnalyzeModeUi(el);
+              void this.refreshReportForActivePath(el);
+              showToast(`Path set: ${targetPath} — starting scan…`, 'success');
+              void this.runPathAnalysis(targetPath);
+              return;
+            }
+          }
+          // Single file -> quick check
+          void this.handleAnalyzeFiles(files);
+          return;
+        }
+
+        showToast('Nothing detected. Drop a folder or file, or type a path manually.', 'warning');
+      });
+    }
+
     this.bindFileDropEvents(el);
     if (!this._aiKeysListenerBound && typeof window !== 'undefined') {
       window.addEventListener('simplebeacon:ai-keys-updated', this._onAiKeysUpdated);
@@ -2985,22 +4909,161 @@ export class AnalyzeView {
     this.loadTestSources(el);
   }
 
+  _deriveFallbackBase() {
+    const driveMatch = String(this.app.state.defaultProjectPath || '').match(/^([a-zA-Z]:)/);
+    return driveMatch ? `${driveMatch[1]}/Users` : 'C:/Users';
+  }
+
+  openDirBrowser(el) {
+    const modal = el.querySelector('#dir-browser-modal');
+    if (!modal) return;
+    const pathInput = el.querySelector('#project-path-input');
+    const currentPath = this.resolveProjectPath(pathInput?.value) || this.app.state.defaultProjectPath || this._deriveFallbackBase();
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    this._dirBrowserPath = currentPath;
+    this.loadDirBrowser(el, currentPath);
+  }
+
+  closeDirBrowser(el) {
+    const modal = el.querySelector('#dir-browser-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    this._dirBrowserPath = null;
+  }
+
+  async loadDirBrowser(el, dirPath) {
+    const listEl = el.querySelector('#dir-browser-list');
+    const pathEl = el.querySelector('#dir-browser-current-path');
+    if (!listEl || !pathEl) return;
+    listEl.innerHTML = '<div class="dir-browser-empty">Loading directories…</div>';
+    pathEl.textContent = dirPath;
+    this._dirBrowserPath = dirPath;
+    try {
+      const res = await fetch(`/api/analyze/list-directories?path=${encodeURIComponent(dirPath)}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (!data.success) {
+        listEl.innerHTML = `<div class="dir-browser-empty">Error: ${escapeHtml(data.error || 'Failed to load directories')}</div>`;
+        return;
+      }
+      pathEl.textContent = data.current;
+      this._dirBrowserPath = data.current;
+      if (!data.directories || data.directories.length === 0) {
+        listEl.innerHTML = '<div class="dir-browser-empty">No subdirectories</div>';
+        return;
+      }
+      const parentItem = data.parent
+        ? `<div class="dir-browser-item" data-path="${escapeHtml(data.parent)}"><span class="dir-icon">⬆️</span> <strong>..</strong></div>`
+        : '';
+      const items = data.directories.map((dir) =>
+        `<div class="dir-browser-item" data-path="${escapeHtml(dir.path)}"><span class="dir-icon">📁</span> ${escapeHtml(dir.name)}</div>`
+      ).join('');
+      listEl.innerHTML = parentItem + items;
+    } catch (err) {
+      listEl.innerHTML = `<div class="dir-browser-empty">Error: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  dirBrowserGoUp(el) {
+    if (!this._dirBrowserPath) return;
+    const parts = this._dirBrowserPath.replace(/\\/g, '/').split('/').filter(Boolean);
+    if (parts.length === 0) return;
+    if (parts.length === 1 && /^[a-zA-Z]:$/.test(parts[0])) {
+      // At a Windows drive root (e.g. D:/). Attempt to load the platform root
+      // so the server can respond with available drives or the root listing.
+      this.loadDirBrowser(el, '');
+      return;
+    }
+    parts.pop();
+    const parent = parts.join('/');
+    const parentPath = this._dirBrowserPath.startsWith('/') ? '/' + parent : parent;
+    this.loadDirBrowser(el, parentPath);
+  }
+
+  selectDirBrowserPath(el) {
+    const pathInput = el.querySelector('#project-path-input');
+    if (pathInput && this._dirBrowserPath) {
+      this.setPathInputDisplay(pathInput, this._dirBrowserPath);
+      this.app.state.lastProjectPath = this._dirBrowserPath;
+      this.app.state.pathInputDraft = '';
+      this.syncAnalyzeModeUi(el);
+      void this.refreshReportForActivePath(el);
+    }
+    this.closeDirBrowser(el);
+  }
+
+  /** Try native directory picker; returns true if a folder was chosen. */
+  async pickFolderViaBrowser(el) {
+    // In Electron-like environments skip showDirectoryPicker because it cannot
+    // reveal absolute paths; the webkitdirectory fallback gives files with .path.
+    const isElectronLike = Boolean(
+      typeof window !== 'undefined' &&
+      (window.process?.versions?.electron || /Electron/.test(navigator.userAgent))
+    );
+    if (!window.showDirectoryPicker || isElectronLike) return false;
+    try {
+      const dirHandle = await window.showDirectoryPicker();
+      const folderName = dirHandle.name || '';
+      const currentInput = this.resolveProjectPath(el.querySelector('#project-path-input')?.value);
+      const rawDefault = String(currentInput || this.app.state.defaultProjectPath || this._deriveFallbackBase())
+        .replace(/\\/g, '/')
+        .replace(/\/+$/, '');
+      // Use the parent directory of the current path as the base, not stripped to user home
+      const lastSlash = rawDefault.lastIndexOf('/');
+      const basePath = (lastSlash > 2) ? rawDefault.substring(0, lastSlash) : rawDefault;
+      const resolvedPath = `${basePath}/${folderName}`;
+      const pathInput = el.querySelector('#project-path-input');
+      if (pathInput) {
+        this.setPathInputDisplay(pathInput, resolvedPath);
+        this.app.state.lastProjectPath = resolvedPath;
+        this.app.state.pathInputDraft = '';
+        this.syncAnalyzeModeUi(el);
+        void this.refreshReportForActivePath(el);
+        showToast(`Folder "${folderName}" selected — path set to ${resolvedPath}. Press Enter or click Run Scan to start.`, 'info');
+      }
+      return true;
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.warn('Directory picker failed:', err);
+      }
+      return false;
+    }
+  }
+
   bindFileDropEvents(el) {
     const dropzone = el.querySelector('#analyze-file-dropzone');
     const fileInput = el.querySelector('#analyze-file-input');
-    if (!dropzone) return;
 
-    dropzone.querySelector('#analyze-file-browse-btn')?.addEventListener('click', () => {
-      fileInput?.click();
-    });
-
-    dropzone.querySelector('#analyze-file-clear-btn')?.addEventListener('click', () => {
-      this.snippetResult = null;
-      this.refresh();
-    });
-
-    dropzone.querySelector('#analyze-snippet-understand-btn')?.addEventListener('click', () => {
-      void this.runSnippetUnderstanding();
+    // Both "Browse File" (in #path-dropzone-visual) and "Choose File" (in #analyze-file-dropzone)
+    // trigger the hidden file input. Use event delegation so re-renders do not unbind.
+    // Bind these even when the file dropzone isn't rendered, because the button can appear
+    // in the path dropzone as well.
+    el.addEventListener('click', (event) => {
+      const browseBtn = event.target.closest('#analyze-file-browse-btn-main, #analyze-file-browse-btn-dropzone');
+      if (!browseBtn) return;
+      let input = el.querySelector('#analyze-file-input');
+      if (!input) {
+        // Fallback: create a hidden input if the dropzone wasn't rendered
+        input = document.createElement('input');
+        input.type = 'file';
+        input.id = 'analyze-file-input-fallback';
+        input.accept = SNIPPET_ACCEPT;
+        input.hidden = true;
+        el.appendChild(input);
+        // Bind the change listener to the fallback input
+        input.addEventListener('change', () => {
+          const files = input.files;
+          if (files?.length) {
+            void this.handleAnalyzeFiles(files);
+            input.value = '';
+          }
+        });
+      }
+      // Ensure the input is treated as a file picker, not a folder picker
+      input.removeAttribute('webkitdirectory');
+      input.removeAttribute('directory');
+      input.click();
     });
 
     fileInput?.addEventListener('change', () => {
@@ -3011,29 +5074,114 @@ export class AnalyzeView {
       }
     });
 
+    if (!dropzone) return;
+
+    dropzone.querySelector('#analyze-file-clear-btn')?.addEventListener('click', () => {
+      this.snippetResult = null;
+      this.refresh();
+    });
+
+    dropzone.querySelector('#analyze-snippet-understand-btn')?.addEventListener('click', () => {
+      void this.runSnippetUnderstanding();
+    });
+
+    // Robust dragleave with depth counter to prevent flicker over child elements
+    let fileDragDepth = 0;
     ['dragenter', 'dragover'].forEach((eventName) => {
       dropzone.addEventListener(eventName, (event) => {
         event.preventDefault();
         event.stopPropagation();
+        if (eventName === 'dragenter') fileDragDepth++;
         dropzone.classList.add('drag-active');
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
       });
     });
 
-    ['dragleave', 'drop'].forEach((eventName) => {
-      dropzone.addEventListener(eventName, (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (eventName === 'dragleave' && event.target !== dropzone && dropzone.contains(event.relatedTarget)) {
-          return;
-        }
+    dropzone.addEventListener('dragleave', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      fileDragDepth--;
+      if (fileDragDepth <= 0) {
         dropzone.classList.remove('drag-active');
-      });
+        fileDragDepth = 0;
+      }
     });
 
     dropzone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      fileDragDepth = 0;
+      dropzone.classList.remove('drag-active');
+
+      const items = event.dataTransfer?.items;
       const files = event.dataTransfer?.files;
+
+      // Handle folder drops on file dropzone -> route to path dropzone logic
+      if (items?.length) {
+        const entry = items[0].webkitGetAsEntry?.();
+        if (entry?.isDirectory) {
+          const pathInput = el.querySelector('#project-path-input');
+          const name = entry.name || '';
+
+          // Try to extract the real absolute path from OS dataTransfer (same logic as path dropzone)
+          const dt = event.dataTransfer;
+          const tryGetData = (type) => { try { return dt.getData(type) || ''; } catch { return ''; } };
+          let actualPath = '';
+          const uriList = tryGetData('text/uri-list');
+          if (uriList) {
+            const uri = uriList.trim().split('\n')[0]?.trim();
+            if (uri && uri.startsWith('file:///')) {
+              let p = uri.slice(8).replace(/\/$/, '');
+              try { p = decodeURIComponent(p); } catch { /* ignore */ }
+              actualPath = p.replace(/\//g, '\\');
+            }
+          }
+          if (!actualPath) {
+            const plain = tryGetData('text/plain');
+            if (plain) {
+              let trimmed = plain.trim().split('\n')[0]?.trim().replace(/^["']|["']$/g, '');
+              if (trimmed && /^[a-zA-Z]:[\\\/]/.test(trimmed)) {
+                actualPath = trimmed.replace(/[\\\/]+$/, '');
+              }
+            }
+          }
+          if (!actualPath) {
+            const mozUrl = tryGetData('text/x-moz-url');
+            if (mozUrl) {
+              const url = mozUrl.trim().split('\n')[0]?.trim();
+              if (url && url.startsWith('file:///')) {
+                let p = url.slice(8).replace(/\/$/, '');
+                try { p = decodeURIComponent(p); } catch { /* ignore */ }
+                actualPath = p.replace(/\//g, '\\');
+              }
+            }
+          }
+          if (!actualPath && files?.[0]?.path) {
+            const filePath = String(files[0].path);
+            const norm = filePath.replace(/\\/g, '/');
+            const lastSlash = norm.lastIndexOf('/');
+            actualPath = lastSlash > 0 ? filePath.slice(0, filePath.lastIndexOf('\\') > 0 ? filePath.lastIndexOf('\\') : lastSlash) : filePath;
+          }
+
+          // Only use a real path; never fabricate absolute paths from defaults
+          const resolvedPath = actualPath || name;
+          if (pathInput) {
+            pathInput.value = resolvedPath;
+            this.app.state.pathInputDraft = '';
+            this.app.state.lastProjectPath = resolvedPath;
+            this.setPathInputDisplay(pathInput, resolvedPath);
+            this.syncAnalyzeModeUi(el);
+            void this.refreshReportForActivePath(el);
+          }
+          showToast(`Folder "${name}" dropped — path set to ${resolvedPath}. Press Enter or click Run Scan to start.`, 'info');
+          return;
+        }
+      }
+
       if (files?.length) {
         void this.handleAnalyzeFiles(files);
+      } else {
+        showToast('No file detected. Try dropping a source file or JSON report.', 'warning');
       }
     });
   }
@@ -3051,9 +5199,125 @@ export class AnalyzeView {
     try {
       const parsed = JSON.parse(text);
       return parsed && typeof parsed === 'object' ? parsed : null;
-    } catch {
+    } catch (err) {
+      const m = err.message.match(/position (\d+)/);
+      if (m) {
+        const pos = parseInt(m[1], 10);
+        let line = 1, col = 1;
+        for (let i = 0; i < pos && i < text.length; i++) {
+          if (text[i] === '\n') { line++; col = 0; }
+          col++;
+        }
+        console.error(`JSON parse error at line ${line}, col ${col}: ${err.message}`);
+      } else {
+        console.error('JSON parse error:', err.message);
+      }
       return null;
     }
+  }
+
+  computeReportFingerprint(parsed) {
+    const payload = {
+      type: parsed.type || '',
+      projectPath: parsed.projectPath || parsed.projectRoot || '',
+      generatedAt: parsed.generatedAt || parsed.exportedAt || parsed.scannedAt || '',
+      issueCount: Array.isArray(parsed.detectedIssues) ? parsed.detectedIssues.length
+        : Array.isArray(parsed.rawIssues) ? parsed.rawIssues.length
+        : Array.isArray(parsed.issues) ? parsed.issues.length : 0,
+      checksumSample: JSON.stringify(parsed).slice(0, 200)
+    };
+    let hash = 0;
+    const str = JSON.stringify(payload);
+    for (let i = 0; i < str.length; i++) {
+      const chr = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + chr;
+      hash |= 0;
+    }
+    return String(hash);
+  }
+
+  isDuplicateReport(parsed) {
+    const fp = this.computeReportFingerprint(parsed);
+    const seen = JSON.parse(localStorage.getItem('sb-analyze-imported-fingerprints') || '[]');
+    if (seen.includes(fp)) return true;
+    seen.push(fp);
+    while (seen.length > 50) seen.shift();
+    localStorage.setItem('sb-analyze-imported-fingerprints', JSON.stringify(seen));
+    return false;
+  }
+
+  validateReportIntegrity(parsed, fileName) {
+    const issues = [];
+/**
+ * Warn.
+ * @param {number} msg
+ * @returns {any}
+ */
+    const warn = (msg) => issues.push({ level: 'warn', msg });
+/**
+ * Err.
+ * @param {number} msg
+ * @returns {any}
+ */
+    const err = (msg) => issues.push({ level: 'error', msg });
+
+    if (!parsed || typeof parsed !== 'object') {
+      err('Top-level value is not an object');
+      return issues;
+    }
+
+    const type = parsed.type || '';
+    const sev = parsed.severityCounts || {};
+    const detected = parsed.detectedIssues || parsed.rawIssues || [];
+
+    if (isSimplebeaconReport(parsed) || type === 'simplebeacon-complete-scan') {
+      if (!parsed.projectRoot && !parsed.projectPath) {
+        warn('Missing projectRoot / projectPath');
+      }
+      if (typeof sev !== 'object') {
+        warn('severityCounts is not an object');
+      } else {
+        const counted = (sev.critical||0) + (sev.high||0) + (sev.medium||0) + (sev.low||0) + (sev.info||0);
+        if (Array.isArray(detected) && counted !== detected.length) {
+          warn(`severityCounts sum (${counted}) != issues.length (${detected.length})`);
+        }
+      }
+      if (Array.isArray(detected)) {
+        const bad = detected.filter(i => !i.severity || !i.type).length;
+        if (bad > 0) warn(`${bad}/${detected.length} issues missing severity or type`);
+      }
+    }
+
+    if (type === 'simplebeacon-complete-scan' && parsed.results) {
+      const r = parsed.results;
+      if (r.roadmap && Array.isArray(r.roadmap.phases)) {
+        const computedTasks = r.roadmap.phases.reduce((s, p) => s + (p.tasks || []).length, 0);
+        const declared = r.roadmap.summary?.tasks?.total;
+        if (declared !== undefined && declared !== computedTasks) {
+          warn(`Roadmap summary.tasks.total (${declared}) != computed (${computedTasks})`);
+        }
+      }
+      if (r.consolidation && r.consolidation.summary) {
+        const g = r.consolidation.groups || [];
+        const sg = r.consolidation.summary.fileGroups || 0;
+        if (g.length !== sg) warn(`Consolidation groups.length (${g.length}) != summary.fileGroups (${sg})`);
+      }
+    }
+
+    if (type === 'file-merger-reduction-report') {
+      if (!parsed.summary) err('Missing summary');
+      else {
+        const g = parsed.groups || [];
+        const sg = parsed.summary.fileGroups || 0;
+        if (g.length !== sg) warn(`groups.length (${g.length}) != summary.fileGroups (${sg})`);
+      }
+    }
+
+    if (type === 'data-cleanup-report') {
+      if (!parsed.scanProfile) warn('Missing scanProfile');
+    }
+
+    return issues;
   }
 
   importCompleteScanExport(parsed, fileName) {
@@ -3108,12 +5372,32 @@ export class AnalyzeView {
   }
 
   importJsonReport(parsed, fileName, meta = {}) {
+    // Validate structural integrity before import
+    const integrity = this.validateReportIntegrity(parsed, fileName);
+    const errors = integrity.filter(i => i.level === 'error');
+    const warnings = integrity.filter(i => i.level === 'warn');
+    if (errors.length > 0) {
+      showToast(`Import blocked: ${errors[0].msg}`, 'error');
+      return true; // handled (rejected)
+    }
+    if (warnings.length > 0) {
+      console.warn(`[AnalyzeView] Import warnings for ${fileName}:`, warnings.map(w => w.msg));
+    }
+
+    // Duplicate detection
+    if (this.isDuplicateReport(parsed)) {
+      showToast(`${fileName} appears to be a duplicate import — skipped`, 'info');
+      return true;
+    }
+
     if (parsed.type === 'simplebeacon-complete-scan' && parsed.results) {
       this.importCompleteScanExport(parsed, fileName);
+      if (warnings.length) showToast(`Imported with ${warnings.length} warning(s) — see console`, 'info');
       return true;
     }
     if (isSimplebeaconReport(parsed)) {
       this.applyReport(parsed, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(parsed) });
+      if (warnings.length) showToast(`Imported with ${warnings.length} warning(s) — see console`, 'info');
       return true;
     }
     if (isCodebaseReport(parsed)) {
@@ -3224,6 +5508,11 @@ export class AnalyzeView {
     if (isFictionDigestJson(parsed)) {
       const digest = sanitizeFictionDigestExport(parsed);
       const report = digest.sourceReport;
+/**
+ * Fiction count.
+ * @param {any} digest.fictionIssues || []
+ * @returns {any}
+ */
       const fictionCount = (digest.fictionIssues || []).reduce((sum, i) => sum + (i.count || 1), 0);
       this.lastResult = {
         kind: 'mock-scan',
@@ -3265,10 +5554,20 @@ export class AnalyzeView {
       const text = await this.readFileAsText(file);
       if (file.name.toLowerCase().endsWith('.json')) {
         const parsed = this.tryParseJsonReport(text);
-        if (parsed && this.importJsonReport(parsed, file.name, { bytes: file.size })) {
+        if (!parsed) {
+          showToast(`Could not parse ${file.name} as JSON — see browser console for line/col details`, 'error');
+          this.snippetBusy = false;
+          this.refresh();
+          return;
+        }
+        if (this.importJsonReport(parsed, file.name, { bytes: file.size })) {
           this.snippetBusy = false;
           return;
         }
+        showToast(`${file.name} parsed as JSON but report type was not recognized`, 'info');
+        this.snippetBusy = false;
+        this.refresh();
+        return;
       }
 
       if (!isSupportedSourceFile(file.name)) {
@@ -3401,14 +5700,6 @@ export class AnalyzeView {
       const activeLlm = data.providers.find((p) => p.id === 'active' && isAnalyzeProviderConfigured(p));
       if (preferredOk) {
         select.value = preferred;
-      } else if (ollama) {
-        this.aiProvider = 'ollama';
-        select.value = 'ollama';
-        saveAnalyzePrefs({ analysisType: this.analysisType, aiProvider: this.aiProvider, roadmapInsightsMode: this.roadmapInsightsMode });
-      } else if (activeLlm) {
-        this.aiProvider = 'active';
-        select.value = 'active';
-        saveAnalyzePrefs({ analysisType: this.analysisType, aiProvider: this.aiProvider, roadmapInsightsMode: this.roadmapInsightsMode });
       } else {
         const fallback = data.providers.find((p) => p.id === 'demo' && isAnalyzeProviderConfigured(p))
           || data.providers.find((p) => isAnalyzeProviderConfigured(p));
@@ -3502,8 +5793,16 @@ export class AnalyzeView {
       }
     }
 
+    this.stopEuAiActAutoRefresh();
+    this.repositoryInventory = null;
+    this.lastResult = null;
+    this.app.state.analyzeResult = null;
+    this.app.state.report = null;
     this.busy = true;
     this.scanStartedAt = Date.now();
+    this._terminalLogLines = [];
+    const startTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    this._terminalLogLines.push(`<span class="terminal-time">[${startTime}]</span><span class="terminal-prompt">❯</span><span class="terminal-file">Initializing scan…</span>`);
     this.app.state.pathInputDraft = '';
     this.app.state.lastProjectPath = projectPath;
     if (sourceRepoUrl) {
@@ -3531,6 +5830,21 @@ export class AnalyzeView {
       this.refresh();
       showToast(err.message, 'error');
       return;
+    }
+
+    // VS Code Extension enhancement: when AI Slop Cop is present, enable enhanced analysis
+    if (this.vscodeEnhanced) {
+      this.fullDirectoryScan = true;
+      if (!this.understandingMode) {
+        this.understandingMode = 'detailed';
+      }
+      const vscode = this._getVscodeApi();
+      if (vscode) {
+        try {
+          vscode.postMessage({ command: 'toggleRealtimeMonitoring', enabled: true });
+        } catch { /* ignore */ }
+      }
+      showToast('VS Code AI Slop Cop enabled — enhanced analysis active', 'success');
     }
 
     showToast('Analyzing…', 'info');
@@ -3621,6 +5935,7 @@ export class AnalyzeView {
         let scan = await fetchCodebaseAnalysis(projectPath, {
           context: 'complete',
           includeEslint: true,
+          includeAllFiles: true,
           understandingMode: this.understandingMode,
           timeoutMs: 900000
         });
@@ -3802,6 +6117,8 @@ export class AnalyzeView {
           ].join(' · ')
         };
         this.app.state.analyzeResult = this.lastResult;
+        this._lastEuAiActScanAt = Date.now();
+        this.startEuAiActAutoRefresh();
         this.refresh();
         showToast('EU AI Act sprint complete', sprint.gate?.pass ? 'success' : 'warning');
         analysisSucceeded = true;
@@ -3870,11 +6187,16 @@ export class AnalyzeView {
       this.completeProgress = null;
       this.scanStartedAt = null;
       this.refresh();
+      if (analysisSucceeded) {
+        this._notifyVscodeSidebar(this.resolveResultsReport());
+      }
     }
   }
 
   async runCompleteScan(projectPath, enginesToRun = resolveEnginesForRun(this.selectedEngines)) {
     await ensureDashboardApiReady();
+
+    this.repositoryInventory = null;
 
     const steps = [];
     const errors = [];
@@ -3890,22 +6212,34 @@ export class AnalyzeView {
       }))
     };
 
+/**
+ * Run step.
+ * @param {number} index
+ * @param {string} engineId
+ * @param {any} label
+ * @param {Function} fn
+ * @returns {any}
+ */
     const runStep = async (index, engineId, label, fn) => {
       this.completeProgress.steps[index].status = 'running';
       this.completeStep = label;
-      this.refresh();
+      this.updateProgressDom();
       try {
         const result = await fn();
         this.completeProgress.steps[index].status = 'done';
-        this.completeProgress.steps[index].metric = summarizeCompleteStepMetric(engineId, result);
-        steps.push(result);
-        this.refresh();
-        return result;
+        const canonicalReport = steps.find((s) => s.id === 'simplebeacon')?.report ?? result?.report ?? null;
+        const canonicalCount = canonicalReport ? getScanFileMetrics(canonicalReport).repositoryFiles : null;
+        this.completeProgress.steps[index].metric = summarizeCompleteStepMetric(engineId, result, canonicalCount);
+        const enriched = { ...result, status: 'done', metric: this.completeProgress.steps[index].metric };
+        steps.push(enriched);
+        this.updateProgressDom();
+        return enriched;
       } catch (err) {
         this.completeProgress.steps[index].status = 'error';
         this.completeProgress.steps[index].error = err.message;
         errors.push({ step: label, message: err.message });
-        this.refresh();
+        steps.push({ id: engineId, status: 'error', error: err.message, metric: null });
+        this.updateProgressDom();
         return null;
       }
     };
@@ -3938,7 +6272,7 @@ export class AnalyzeView {
         }
         const inventory = this.repositoryInventory
           || this.lastResult?.repositoryInventory
-          || await fetchRepositoryInventory(projectPath).catch(() => null);
+          || await fetchRepositoryInventory(projectPath, { fullDirectoryScan: this.fullDirectoryScan }).catch(() => null);
         if (inventory?.totalFiles && scan?.summary) {
           scan = {
             ...scan,
@@ -3990,12 +6324,15 @@ export class AnalyzeView {
       },
       codebase: async () => {
         const analysisPath = resolveCompleteScanTargetPath(projectPath, steps);
+        const hasBrowserAnalyzer = enginesToRun.some((id) => BROWSER_ANALYZER_IDS.includes(id));
         let scan = await fetchCodebaseAnalysis(analysisPath, {
           context: 'complete',
           includeEslint: true,
+          includeAllFiles: true,
           understandingMode: 'off',
           timeoutMs: 900000,
-          requestedScanRoot: projectPath
+          requestedScanRoot: projectPath,
+          includeBrowserAnalyzers: hasBrowserAnalyzer
         });
         scan = await this.attachCodeInsights(scan, analysisPath);
         scan = await this.attachOptionalAiSummary(scan, analysisPath, scan?.type);
@@ -4023,6 +6360,15 @@ export class AnalyzeView {
           timeoutMs: 300000
         });
         return { id: 'data-quality', scan, profile: 'data-quality' };
+      },
+      'removable-files': async () => {
+        const analysisPath = resolveCompleteScanTargetPath(projectPath, steps);
+        const data = await analyzePath(analysisPath, {
+          aiProvider: this.aiProvider,
+          analysisType: 'removable-files',
+          fullDirectoryScan: this.fullDirectoryScan
+        });
+        return { id: 'removable-files', scan: data.removableFiles || data.report || data };
       },
       'cleanup-assistant': async () => {
         let fileReduction = steps.find((s) => s.id === 'file-reduction')?.scan ?? null;
@@ -4107,10 +6453,79 @@ export class AnalyzeView {
       }
     };
 
+    // Hidden codebase prerequisite: if browser analyzers are selected but codebase is not,
+    // run codebase analysis invisibly so browser analyzers have data to display.
+    let hiddenCodebaseResult = null;
+    const needsCodebase = enginesToRun.some((id) => BROWSER_ANALYZER_IDS.includes(id));
+    const hasCodebase = enginesToRun.includes('codebase');
+    if (needsCodebase && !hasCodebase) {
+      try {
+        const analysisPath = resolveCompleteScanTargetPath(projectPath, steps);
+        hiddenCodebaseResult = await fetchCodebaseAnalysis(analysisPath, {
+          context: 'audit',
+          includeEslint: false,
+          includeAllFiles: true,
+          understandingMode: 'off',
+          timeoutMs: 300000,
+          requestedScanRoot: projectPath,
+          includeBrowserAnalyzers: true
+        });
+        hiddenCodebaseResult = await this.attachCodeInsights(hiddenCodebaseResult, analysisPath);
+        hiddenCodebaseResult = await this.attachOptionalAiSummary(hiddenCodebaseResult, analysisPath, hiddenCodebaseResult?.type);
+      } catch (err) {
+        // hidden codebase failure is non-fatal; browser analyzers will skip gracefully
+      }
+    }
+
+    // Generate runners for every browser analyzer so they appear as completed steps
+    for (const analyzerId of BROWSER_ANALYZER_IDS) {
+      if (!stepRunners[analyzerId]) {
+        stepRunners[analyzerId] = async () => {
+          const codebaseStep = steps.find((s) => s.id === 'codebase');
+          const scan = codebaseStep?.scan || hiddenCodebaseResult;
+          if (!scan?.findings) {
+            throw new Error('Codebase analysis must complete before this analyzer');
+          }
+          // codebase-analyzer stores pattern hits under f.category matching the analyzerId
+/**
+ * Step findings.
+ * @param {any} scan.findings || []
+ * @returns {any}
+ */
+          const stepFindings = (scan.findings || []).filter((f) => f.category === analyzerId).slice(0, 200);
+          // Derive categoryData from findings when scan.categories is empty (common in complete scans)
+          let categoryData = scan.categories?.find((c) => c.category === analyzerId) || null;
+          if (!categoryData && stepFindings.length) {
+            const filePaths = stepFindings.map((f) => f.filePath);
+            categoryData = {
+              category: analyzerId,
+              count: stepFindings.length,
+              fileCount: new Set(filePaths).size,
+              severity: stepFindings.some((f) => f.severity === 'high') ? 'high'
+                : stepFindings.some((f) => f.severity === 'medium') ? 'medium' : 'low'
+            };
+          }
+          return {
+            id: analyzerId,
+            category: categoryData,
+            findingsCount: categoryData?.count || 0,
+            fileCount: categoryData?.fileCount || 0,
+            severity: categoryData?.severity || 'low',
+            findings: stepFindings
+          };
+        };
+      }
+    }
+
     for (let index = 0; index < enginesToRun.length; index += 1) {
       const engineId = enginesToRun[index];
       const runner = stepRunners[engineId];
-      if (!runner) continue;
+      if (!runner) {
+        this.completeProgress.steps[index].status = 'skipped';
+        this.completeProgress.steps[index].error = 'No runner available for this analyzer — results are included in the codebase step';
+        this.updateProgressDom();
+        continue;
+      }
       const label = completeStepLabel(index, `${getCompleteEngineLabel(engineId)}…`, totalSteps);
       await runStep(index, engineId, label, runner);
     }
@@ -4129,6 +6544,7 @@ export class AnalyzeView {
         enginesRun
       },
       errors,
+      scanCompletedAt: Date.now(),
       publicGateLocked: steps.some((step) => step.publicGateLocked || step.report?.publicGateLocked || step.scan?.publicGateLocked),
       publicSummary: steps.find((step) => step.publicSummary)?.publicSummary
         || steps.find((step) => step.scan?.publicSummary)?.scan?.publicSummary
@@ -4147,20 +6563,32 @@ export class AnalyzeView {
       showToast('Complete scan finished', 'success');
     }
     this.refresh();
+    this._notifyVscodeSidebar(this.resolveResultsReport());
+
+    // Auto-generate PDF if enabled in settings
+    void this.maybeAutoGeneratePdf();
   }
 
   getCompleteStep(id) {
     return this.lastResult?.steps?.find((s) => s.id === id) ?? null;
   }
 
-  /** Checked queue engines that completed in the current Complete scan (for ZIP export). */
-  resolveExportEngineSelection(root = this._root) {
-    const selected = this.readSelectedEnginesFromDom(root);
+  /** Engines selected in memory that completed in the current Complete scan (for ZIP export).
+   *  Uses this.selectedEngines directly — the queue panel may only render 10 checkboxes
+   *  in the DOM, so readSelectedEnginesFromDom would under-count.
+   */
+  resolveExportEngineSelection() {
+    const selected = new Set(this.selectedEngines);
     const completed = new Set((this.lastResult?.steps || []).map((step) => step.id));
-    return selected.filter((engineId) => completed.has(engineId));
+    return COMPLETE_ENGINE_ORDER.filter((id) => selected.has(id) && completed.has(id));
   }
 
   resolveZipExportButtonMeta() {
+/**
+ * Completed steps.
+ * @param {string} this.lastResult?.steps || []
+ * @returns {any}
+ */
     const completedSteps = (this.lastResult?.steps || []).map((step) => step.id);
     const selectedForExport = this.resolveExportEngineSelection();
     const allSelected = completedSteps.length > 0
@@ -4185,6 +6613,7 @@ export class AnalyzeView {
     const meta = this.resolveZipExportButtonMeta();
     btn.textContent = meta.label;
     btn.title = meta.title;
+    btn.disabled = false;
   }
 
   resolveEuAiActExportPath() {
@@ -4231,8 +6660,53 @@ export class AnalyzeView {
     return data;
   }
 
+  slimResultsForExport(results) {
+    if (!results || typeof results !== 'object') return results;
+    const out = {};
+    for (const key of Object.keys(results)) {
+      const val = results[key];
+      if (!val || typeof val !== 'object') { out[key] = val; continue; }
+      if (key === 'simplebeacon') {
+        out[key] = { ...val, rawIssues: val.rawIssues?.slice(0, 20), detectedIssues: val.detectedIssues?.slice(0, 20), exportNotes: undefined, disclaimers: undefined, limitations: undefined, mockDataCategories: undefined, hygieneSummary: undefined, scanScope: val.scanScope ? { ...val.scanScope, limitations: undefined } : val.scanScope };
+      } else if (key === 'codebase') {
+        out[key] = { ...val, findings: val.findings?.slice(0, 10), categories: undefined, exportNotes: undefined, hygieneSummary: undefined, scanScope: val.scanScope ? { ...val.scanScope, limitations: undefined } : val.scanScope };
+      } else if (key === 'consolidation') {
+        out[key] = { ...val, duplicatePairs: val.duplicatePairs?.slice(0, 10), scanScope: val.scanScope ? { ...val.scanScope, limitations: undefined } : val.scanScope };
+      } else if (key === 'fileReduction') {
+        out[key] = { ...val, scanners: undefined, executiveSummary: undefined };
+      } else if (key === 'dataQuality') {
+        out[key] = { ...val, inventory: val.inventory ? { ...val.inventory, files: undefined, fileList: undefined } : val.inventory };
+      } else if (key === 'roadmap') {
+        out[key] = { ...val, developmentPhases: undefined, implementationPhases: undefined, featureCategories: undefined, recommendations: undefined, progressMetrics: undefined, resourceEstimate: undefined, exportNotes: undefined, hygieneSummary: undefined };
+      } else {
+        out[key] = val;
+      }
+    }
+    return out;
+  }
+
   buildCompleteScanExport(options = {}) {
-    const { projectPath, steps = [], errors = [], enginesRun = steps.map((step) => step.id) } = this.lastResult || {};
+    const { projectPath, steps: rawSteps = [], errors = [], enginesRun = rawSteps.map((step) => step.id) } = this.lastResult || {};
+    // Slim engine steps to lightweight metadata — browser analyzers carry their own findings
+    const steps = rawSteps.map((s) => {
+      if (!s) return null;
+      const isBrowserAnalyzer = !CORE_ENGINE_IDS.has(s.id) && s.id !== 'eu-ai-act';
+      if (isBrowserAnalyzer) {
+        // Preserve browser analyzer findings; they are not duplicated in results/
+        return {
+          id: s.id,
+          status: s.status,
+          error: s.error || null,
+          metric: s.metric || null,
+          findingsCount: s.findingsCount ?? null,
+          fileCount: s.fileCount ?? null,
+          severity: s.severity || null,
+          findings: s.findings || null,
+          category: s.category || null
+        };
+      }
+      return { id: s.id, status: s.status, error: s.error || null, metric: s.metric || null };
+    }).filter(Boolean);
     const euAiActStep = this.getCompleteStep('eu-ai-act');
     const simplebeacon = this.getCompleteStep('simplebeacon')?.report ?? null;
     const consolidation = this.getCompleteStep('consolidation')?.scan ?? null;
@@ -4274,6 +6748,7 @@ export class AnalyzeView {
       generatedAt: new Date().toISOString(),
       projectPath,
       scanDurationMs,
+      steps,
       errors,
       enginesRun,
       analysisConfig: this.lastResult?.analysisConfig || {
@@ -4325,7 +6800,7 @@ export class AnalyzeView {
       },
       completeScanAnalysis,
       enrichedAt: new Date().toISOString(),
-      results: {
+      results: this.slimResultsForExport({
         simplebeacon,
         consolidation,
         mockScan,
@@ -4337,7 +6812,7 @@ export class AnalyzeView {
         compliance: this.getCompleteStep('compliance')?.checklist ?? null,
         npmAudit: this.getCompleteStep('npm-audit')?.npmAudit ?? null,
         sprint: euAiActStep?.sprint ?? null
-      }
+      })
     };
 
     return sanitizeCompleteScanBundle(bundle, {
@@ -4357,7 +6832,7 @@ export class AnalyzeView {
     const gotoLabel = kind === 'complete' ? 'Open Simplebeacon Results →' : 'Open in Results →';
     const extraButtons = kind === 'roadmap'
       ? '<button type="button" class="btn btn-secondary btn-sm" id="copy-roadmap-json">Copy JSON</button>'
-      : '';
+      : '<button type="button" class="btn btn-primary btn-sm" id="analyze-send-ai-btn" title="Send scan data to AI coding agent">🤖 Send to AI Agent</button>';
 
     return `
       <div class="scan-results-export-bar card mb-4">
@@ -4371,6 +6846,15 @@ export class AnalyzeView {
             extraButtons,
             auditButtonLabel: this.getAuditExportButtonLabel()
           })}
+        </div>
+        <div id="analyze-ai-panel" class="card mt-3" style="display:none;padding:var(--space-3);background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2);">
+          <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 8px;">Add notes for the AI agent (optional):</p>
+          <textarea id="analyze-ai-notes" rows="2" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:0.8rem;resize:vertical;" placeholder="e.g., 'Focus on critical credential leaks first, ignore test files...'"></textarea>
+          <div class="flex gap-2 mt-2">
+            <button class="btn btn-primary btn-sm" id="analyze-ai-confirm" type="button">Confirm Send</button>
+            <button class="btn btn-ghost btn-sm" id="analyze-ai-cancel" type="button">Cancel</button>
+          </div>
+          <div id="analyze-ai-status" style="margin-top:8px;font-size:0.8rem;display:none;"></div>
         </div>
       </div>
     `;
@@ -4387,6 +6871,15 @@ export class AnalyzeView {
 
   getAuditExportButtonLabel() {
     return auditExportButtonLabel(this.getAuditExportPreview());
+  }
+
+  syncAuditButtonLabel(root = this._root) {
+    if (!root) return;
+    const btn = root.querySelector('#download-audit-pdf');
+    if (!btn) return;
+    const label = this.getAuditExportButtonLabel();
+    btn.textContent = label;
+    btn.disabled = false;
   }
 
   renderAuditExportCallout() {
@@ -4431,6 +6924,7 @@ export class AnalyzeView {
         ${isComplete
           ? `<button type="button" class="btn btn-secondary btn-sm" id="download-export-bundle-zip" title="${escapeHtml(zipMeta?.title || 'ZIP with step JSON plus audit PDF sources')}">${escapeHtml(zipMeta?.label || 'Download all reports (ZIP)')}</button>`
           : ''}
+        <button type="button" class="btn btn-secondary btn-sm" id="export-for-remediation" title="Download JSON ready for the Remediation Roadmap page">Export for Remediation</button>
         ${showEuPdf && !locked
           ? `<button type="button" class="btn btn-accent btn-sm" id="download-eu-ai-act-pdf" title="EU AI Act readiness HTML — Print → Save as PDF">Download EU PDF</button>`
           : ''}
@@ -4460,7 +6954,15 @@ export class AnalyzeView {
   buildScanResultExport() {
     if (this.lastResult?.kind === 'complete') {
       const exportFilename = this.resolveScanExportFilename();
-      return this.buildCompleteScanExport({ exportFilename });
+      console.log('[buildScanResultExport] kind=complete, calling buildCompleteScanExport');
+      try {
+        const result = this.buildCompleteScanExport({ exportFilename });
+        console.log('[buildScanResultExport] buildCompleteScanExport returned:', result);
+        return result;
+      } catch (err) {
+        console.error('[buildScanResultExport] buildCompleteScanExport threw:', err);
+        return null;
+      }
     }
 
     const { kind, projectPath, report, scan, data, _brief, fileReduction, dataQuality, profile, policy } = this.lastResult || {};
@@ -4549,6 +7051,302 @@ export class AnalyzeView {
       default:
         return this.lastResult || null;
     }
+  }
+
+  loadDownloadSettings() {
+    try {
+      const raw = localStorage.getItem('sb-download-settings');
+      const parsed = raw ? JSON.parse(raw) : {};
+      return {
+        autoGeneratePdf: parsed.autoGeneratePdf === true,
+        promptForCredentials: parsed.promptForCredentials !== false,
+        credentials: {
+          projectName: parsed.credentials?.projectName || '',
+          signatoryName: parsed.credentials?.signatoryName || '',
+          signatoryTitle: parsed.credentials?.signatoryTitle || '',
+          contactEmail: parsed.credentials?.contactEmail || ''
+        }
+      };
+    } catch {
+      return { autoGeneratePdf: false, promptForCredentials: true, credentials: {} };
+    }
+  }
+
+  saveDownloadSettings(settings) {
+    localStorage.setItem('sb-download-settings', JSON.stringify(settings));
+  }
+
+  async maybeAutoGeneratePdf() {
+    const settings = this.loadDownloadSettings();
+    if (!settings.autoGeneratePdf) return;
+    showToast('Auto-generating audit PDF report…', 'info');
+    try {
+      const payload = await this.ensureAuditExportPayload();
+      if (!this.scanExportHasPayload(payload)) {
+        showToast('Auto PDF: no scan results available', 'warning');
+        return;
+      }
+      const data = await fetchCompleteAuditReport(payload, {
+        aiProvider: this.aiProvider || 'demo',
+        client: formatPathLabel(payload.projectPath) || redactPathForDisplay(payload.projectPath) || undefined,
+        credentials: settings.credentials
+      });
+      openAuditReportPrintWindow(data.html, data.filename);
+      const tierLabel = data.exportTierLabel || data.tier || 'audit';
+      showToast(
+        `Auto-generated ${tierLabel} report saved as ${data.filename}. Open the HTML file, then Print → Save as PDF.`,
+        'success'
+      );
+    } catch (err) {
+      if (err.code === 'audit_paywall' && err.checkoutUrl) {
+        window.open(err.checkoutUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        showToast('Auto PDF failed: ' + (err.message || 'Unknown error'), 'error');
+      }
+    }
+  }
+
+  async _doPdfDownload(btn, priorLabel, credentials) {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Building report…';
+    }
+    try {
+      if (this.lastResult?.kind === 'eu-ai-act') {
+        const data = await fetchEuAiActAuditReport({
+          projectPath: this.lastResult.projectPath,
+          client: formatPathLabel(this.lastResult.projectPath) || redactPathForDisplay(this.lastResult.projectPath) || undefined,
+          credentials
+        });
+        openAuditReportPrintWindow(data.html, data.filename);
+        showToast(
+          `EU compliance report saved as ${data.filename}. Open the HTML file, then Print → Save as PDF.`,
+          'success'
+        );
+        return;
+      }
+      const payload = await this.ensureAuditExportPayload();
+      if (!this.scanExportHasPayload(payload)) {
+        showToast('No scan results available for audit PDF', 'error');
+        return;
+      }
+      const data = await fetchCompleteAuditReport(payload, {
+        aiProvider: this.aiProvider || 'demo',
+        client: formatPathLabel(payload.projectPath) || redactPathForDisplay(payload.projectPath) || undefined,
+        credentials
+      });
+      openAuditReportPrintWindow(data.html, data.filename);
+      const tierLabel = data.exportTierLabel || data.tier || 'audit';
+      showToast(
+        `${tierLabel} report saved to Downloads as ${data.filename}. Open the HTML file, scroll through all sections, then Print → Save as PDF.`,
+        'success'
+      );
+    } catch (err) {
+      if (err.code === 'audit_paywall' && err.checkoutUrl) {
+        window.open(err.checkoutUrl, '_blank', 'noopener,noreferrer');
+      }
+      showToast(err.message || 'Audit PDF failed', 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = priorLabel || 'Download audit PDF';
+      }
+    }
+  }
+
+  async _doZipDownload(btn, priorLabel, payload, exportEngines, credentials) {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Building ZIP…';
+    }
+    try {
+      const internal = Boolean(this.app.billingService?.plan?.internalDashboard);
+      const { blob, filename, tierId, warnings } = await fetchAnalyzeExportBundleZip(payload, {
+        deliverableSku: internal ? 'operator' : undefined,
+        internalDashboard: internal,
+        client: formatPathLabel(payload.projectPath) || redactPathForDisplay(payload.projectPath) || undefined,
+        aiProvider: this.aiProvider || 'demo',
+        selectedEngines: exportEngines,
+        enginesRun: exportEngines,
+        credentials
+      });
+      downloadBlob(blob, filename);
+      const engineNote = exportEngines.length === (this.lastResult?.steps?.length || exportEngines.length)
+        ? ''
+        : ` · ${exportEngines.length} scan${exportEngines.length === 1 ? '' : 's'}`;
+      const warnNote = warnings.length ? ` (${warnings.length} note(s) in manifest)` : '';
+      showToast(`Export bundle downloaded (${tierId || 'bundle'}${engineNote})${warnNote}`, 'success');
+    } catch (err) {
+      if (err.code === 'export_paywall' && err.checkoutUrl) {
+        window.open(err.checkoutUrl, '_blank', 'noopener,noreferrer');
+      }
+      showToast(err.message || 'ZIP export failed', 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = priorLabel || this.resolveZipExportButtonMeta().label;
+      }
+    }
+  }
+
+  buildRemediationExport() {
+    const payload = this.buildScanResultExport();
+    console.log('[buildRemediationExport] raw payload:', payload);
+    console.log('[buildRemediationExport] scanExportHasPayload:', this.scanExportHasPayload(payload));
+    if (!this.scanExportHasPayload(payload)) return null;
+
+    const issues = [];
+/**
+ * Add issues.
+ * @param {any} source
+ * @param {Array} defaults
+ * @returns {any}
+ */
+    const addIssues = (source, defaults = {}) => {
+      if (!Array.isArray(source)) return;
+      for (const item of source) {
+        issues.push({
+          id: item.id || `${item.severity || 'info'}|${item.type || 'Issue'}|${item.description || ''}|${issues.length}`,
+          severity: ['critical','high','medium','low','info'].includes(item.severity) ? item.severity : 'info',
+          type: item.type || 'Issue',
+          category: item.category || defaults.category || 'General',
+          description: item.description || item.message || item.detail || '',
+          filePath: item.filePath || item.filePaths?.[0] || item.affectedFiles?.[0] || item.location || '—',
+          action: item.recommendedAction || item.action || defaults.action || 'Review && remediate',
+          effort: item.effort || defaults.effort || '20 min',
+          completed: item.completed || false
+        });
+      }
+    };
+
+    if (payload.type === 'simplebeacon-complete-scan') {
+      const results = payload.results || {};
+      if (results.simplebeacon?.rawIssues) addIssues(results.simplebeacon.rawIssues, { category: 'Security' });
+      else if (results.simplebeacon?.detectedIssues) addIssues(results.simplebeacon.detectedIssues, { category: 'Security' });
+      else if (results.simplebeacon?.findings) addIssues(results.simplebeacon.findings, { category: 'Security' });
+      if (results.codebase?.findings) addIssues(results.codebase.findings, { category: 'Codebase' });
+      if (results.roadmap?.phases) {
+        const converted = this._convertRoadmapPhases(results.roadmap.phases);
+        addIssues(converted);
+      }
+      if (results.fileReduction?.findings) addIssues(results.fileReduction.findings, { category: 'Cleanup', effort: '10 min' });
+      if (results.dataQuality?.findings) addIssues(results.dataQuality.findings, { category: 'Quality', effort: '10 min' });
+      else if (results.dataCleanup?.findings) addIssues(results.dataCleanup.findings, { category: 'Quality', effort: '10 min' });
+      if (results.npmAudit?.vulnerabilities) {
+        const validVulns = results.npmAudit.vulnerabilities.filter(v => v && v.name && v.name !== 'undefined');
+        if (validVulns.length) {
+          addIssues(validVulns.map(v => ({
+            id: `npm-${v.name}-${v.via?.[0]?.title || v.via?.[0] || 'audit'}`,
+            severity: v.severity === 'critical' ? 'critical' : v.severity === 'high' ? 'high' : v.severity === 'moderate' ? 'medium' : 'low',
+            type: `npm audit: ${v.name}`,
+            description: `${v.via?.[0]?.title || v.via?.[0] || 'Vulnerability'} — range: ${v.range || 'unknown'}`,
+            filePath: v.filePath || 'package.json',
+            action: `Update ${v.name} to a patched version`,
+            effort: '20 min'
+          })), { category: 'Security' });
+        }
+      }
+      if (results.cleanupAssistant?.items) addIssues(results.cleanupAssistant.items, { category: 'Cleanup', effort: '5 min' });
+      if (results.compliance?.rules) {
+        const failedRules = results.compliance.rules.filter(r => r.status === 'fail');
+        if (failedRules.length) {
+          addIssues(failedRules.map(r => ({
+            id: r.id || r.rule || 'compliance-rule',
+            severity: r.severity || 'medium',
+            type: r.title || r.name || 'Compliance Rule',
+            description: r.impact || r.description || '',
+            filePath: '—',
+            action: r.fix || 'Review compliance requirement',
+            effort: '20 min'
+          })), { category: 'Compliance' });
+        }
+      }
+    } else if (payload.type === 'simplebeacon-report') {
+      const source = payload.rawIssues || payload.detectedIssues || [];
+      addIssues(source, { category: 'Security' });
+      // Fallback: if standard arrays are empty, look in gate.blockingFindings and aiContext.suggestedFixes
+      if (!source.length) {
+        if (Array.isArray(payload.gate?.blockingFindings)) {
+          addIssues(payload.gate.blockingFindings.map(f => ({
+            id: f.rule || f.type,
+            severity: f.severity || 'high',
+            type: f.type || 'Blocking Finding',
+            category: 'Security',
+            description: f.impact || f.fix || '',
+            filePath: f.filePath || '—',
+            action: f.fix || 'Review && remediate',
+            effort: '20 min',
+            completed: false
+          })), { category: 'Security' });
+        }
+        if (Array.isArray(payload.aiContext?.suggestedFixes)) {
+          addIssues(payload.aiContext.suggestedFixes.map(f => ({
+            id: `${f.type || 'issue'}|${f.file || '—'}:${f.line || 0}`,
+            severity: f.severity || 'medium',
+            type: f.type || 'Issue',
+            category: f.type || 'General',
+            description: `${f.action || 'Review'} — ${f.file || '—'}:${f.line || 0} — ${f.snippet || ''}`,
+            filePath: f.file || '—',
+            action: f.action || 'Review && remediate',
+            effort: '20 min',
+            completed: false
+          })));
+        }
+      }
+    } else if (Array.isArray(payload.issues)) {
+      addIssues(payload.issues);
+    } else if (Array.isArray(payload.phases)) {
+      const converted = this._convertRoadmapPhases(payload.phases);
+      addIssues(converted);
+    } else if (payload.rawIssues || payload.detectedIssues) {
+      addIssues(payload.rawIssues || payload.detectedIssues || []);
+    }
+
+    if (!issues.length) return null;
+
+    return {
+      exportedAt: new Date().toISOString(),
+      totalIssues: issues.length,
+      issues
+    };
+  }
+
+  _convertRoadmapPhases(phases) {
+    const out = [];
+    let idx = 0;
+    for (const phase of phases || []) {
+      if (Array.isArray(phase.tasks) && phase.tasks.length) {
+        for (const task of phase.tasks) {
+          out.push({
+            id: 'roadmap-' + (phase.id || idx) + '-' + idx++,
+            severity: ['critical','high','medium','low','info'].includes(phase.severity) ? phase.severity : 'medium',
+            type: phase.id || phase.phase || 'phase',
+            category: (phase.title || '').replace(/^Phase \d+:\s*/, '') || phase.id || 'Phase',
+            description: task.description,
+            filePath: task.location || '-',
+            action: task.type === 'fix' ? 'Fix required' : task.type === 'verify' ? 'Verify' : task.type === 'audit' ? 'Audit' : task.type === 'doc' ? 'Document' : 'Review',
+            effort: phase.effort || '20 min',
+            completed: task.done || false
+          });
+        }
+      } else {
+        out.push({
+          id: 'roadmap-' + (phase.id || idx) + '-' + idx++,
+          severity: phase.status === 'completed' ? 'info' : phase.status === 'in-progress' ? 'medium' : phase.progress >= 50 ? 'medium' : 'low',
+          type: phase.phase || phase.name || phase.title || 'Phase',
+          category: (phase.title || '').replace(/^Phase \d+:\s*/, '') || phase.phase || 'Phase',
+          description: [phase.description].filter(Boolean).concat(
+            Array.isArray(phase.features) ? ['Features: ' + phase.features.join('; ')] : [],
+            Array.isArray(phase.milestones) ? ['Milestones: ' + phase.milestones.join('; ')] : []
+          ).join(' — '),
+          filePath: '-',
+          action: phase.status === 'completed' ? 'Completed' : phase.status === 'in-progress' ? 'In progress' : 'Planned',
+          effort: '—',
+          completed: phase.status === 'completed' || phase.progress >= 100
+        });
+      }
+    }
+    return out;
   }
 
   buildAuditExportPayload() {
@@ -4727,9 +7525,9 @@ export class AnalyzeView {
 
   scanExportHasPayload(payload) {
     if (!payload || typeof payload !== 'object') return false;
-    if (payload.results) {
-      return Object.values(payload.results).some(Boolean);
-    }
+    if (payload.results && Object.values(payload.results).some(Boolean)) return true;
+    if (Array.isArray(payload.steps) && payload.steps.length > 0) return true;
+    if (payload.summary && Object.keys(payload.summary).length > 0) return true;
     return Object.keys(payload).length > 0;
   }
 
@@ -4744,6 +7542,7 @@ export class AnalyzeView {
     };
     this.app.state.analyzeResult = this.lastResult;
     showToast(label, 'success');
+    this._notifyVscodeSidebar(report);
     if (!options.skipRefresh) {
       this.refresh();
     }
@@ -4876,6 +7675,9 @@ export class AnalyzeView {
   }
 
   renderResults() {
+    if (!this.lastResult && this.app.state.analyzeResult) {
+      this.lastResult = this.app.state.analyzeResult;
+    }
     if (!this.lastResult) {
       return this.renderEmptyState();
     }
@@ -4885,9 +7687,11 @@ export class AnalyzeView {
     const resultReport = this.lastResult.report || { projectRoot: this.lastResult.projectPath };
     if (activePath && resultReport?.projectRoot && !reportMatchesPagePath(resultReport, activePath)) {
       return `
-        <div class="empty-state card">
-          <p class="text-muted" style="margin:0;">Results below are for a different folder than the path above. Run analysis again to scan <code>${escapeHtml(formatPathInputValue(activePath))}</code>.</p>
-        </div>
+        ${renderEmptyState({
+          icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+          title: 'Path mismatch',
+          body: `Results below are for a different folder than the path above. Run analysis again to scan <code>${escapeHtml(formatPathInputValue(activePath))}</code>.`
+        })}
       `;
     }
 
@@ -4920,6 +7724,7 @@ export class AnalyzeView {
 
     if (kind === 'simplebeacon-report' || isSimplebeaconReport(report)) {
       const r = report || this.lastResult.report;
+      const rawIssues = r.rawIssues || r.detectedIssues || [];
       return this.wrapAnalyzeResults(`
         <div class="section-block">
           <div class="section-heading">
@@ -4932,8 +7737,20 @@ export class AnalyzeView {
             ${this.renderScanFileMetrics(r)}
             <div class="metric-chip gate-badge ${r.gate?.pass ? 'pass' : 'warn'}">${r.gate?.pass ? 'PASS' : 'REVIEW'}</div>
           </div>
+          ${this.renderIssueFilterToolbar(rawIssues)}
           <div id="inline-issue-list"></div>
-          ${this.renderCertificateExportPanel(r, projectPath)}
+          ${r.fileNaming ? `
+            <div class="card mb-4">
+              <div class="section-heading"><h3>File Naming Analysis</h3></div>
+              ${this.renderFileNamingPanel(r.fileNaming)}
+            </div>
+          ` : ''}
+          ${r.removableFiles ? `
+            <div class="card mb-4">
+              <div class="section-heading"><h3>Removable Files Analysis</h3></div>
+              ${this.renderRemovableFilesPanel(r.removableFiles)}
+            </div>
+          ` : ''}
         </div>
       `);
     }
@@ -4952,6 +7769,7 @@ export class AnalyzeView {
 
     if ((kind === 'file-reduction' || kind === 'data-quality') && this.lastResult.scan) {
       const title = kind === 'file-reduction' ? 'File reduction' : 'Data quality';
+      const healthSection = kind === 'file-reduction' ? this.renderFileReductionHealthSection() : '';
       return this.wrapAnalyzeResults(`
         <div class="section-block">
           <div class="section-heading">
@@ -4962,6 +7780,23 @@ export class AnalyzeView {
             this.lastResult.scan,
             conclusion || buildDataCleanupConclusion(this.lastResult.scan, kind),
             `${title} — dry-run scanners, not a compliance gate`
+          )}
+        </div>
+        ${healthSection}
+      `);
+    }
+
+    if (kind === 'removable-files' && this.lastResult.scan) {
+      return this.wrapAnalyzeResults(`
+        <div class="section-block">
+          <div class="section-heading">
+            <h2>${escapeHtml(label || 'Removable files')}</h2>
+          </div>
+          ${this.renderRemovableFilesPanel(this.lastResult.scan)}
+          ${this.renderScanSummary(
+            this.lastResult.scan,
+            conclusion || this.lastResult.scan.summary || '',
+            'Removable files — safe-to-delete directories and files'
           )}
         </div>
       `);
@@ -4998,6 +7833,7 @@ export class AnalyzeView {
             'Codebase analysis — technical debt, broken files, placeholders'
           )}
         </div>
+        ${this.renderCodebaseHealthSection()}
       `);
     }
 
@@ -5014,7 +7850,6 @@ export class AnalyzeView {
             · ${r?.issueCount ?? 0} issue groups
           </p>
           ${renderComplianceChecklistPanel(this.lastResult.checklist)}
-          ${r ? this.renderCertificateExportPanel(r, projectPath) : ''}
         </div>
       `);
     }
@@ -5104,53 +7939,10 @@ export class AnalyzeView {
     return isDeliverableLocked(this.app.state.entitlements, this.lastResult);
   }
 
-  renderCertificateExportPanel(report) {
-    if (!report) return '';
-    const slopHits = report.llmSlopPatternHits ?? report.scanScope?.llmSlopPatternHits ?? 0;
-    return `
-      <div class="card mb-6" id="certificate-export-panel">
-        <div class="card-header">
-          <span class="card-title">Code Hygiene Certificate</span>
-        </div>
-        <p class="text-muted" style="font-size: var(--font-size-sm);">
-          Co-branded client deliverable for agency milestone handoffs. Uses the Simplebeacon gate report above
-          ${slopHits ? `(includes <strong>${slopHits}</strong> LLM slop pattern hit${slopHits === 1 ? '' : 's'})` : ''}.
-        </p>
-        <div class="analyze-action-row" style="flex-wrap: wrap; gap: var(--space-3); align-items: flex-end;">
-          <label class="audit-booking-field" style="min-width: 140px;">
-            <span>Milestone</span>
-            <select id="certificate-milestone-select" class="analyze-select">
-              ${['alpha', 'beta', 'release', 'hotfix', 'warranty'].map((m) => `
-                <option value="${m}" ${this.certificateMilestone === m ? 'selected' : ''}>${m}</option>
-              `).join('')}
-            </select>
-          </label>
-          <label class="audit-booking-field" style="min-width: 180px;">
-            <span>Client name</span>
-            <input type="text" id="certificate-client-name" class="analyze-path-input" value="${escapeHtml(this.certificateClientName)}" placeholder="Northwind Retail">
-          </label>
-          <label class="audit-booking-field" style="min-width: 180px;">
-            <span>Project name</span>
-            <input type="text" id="certificate-project-name" class="analyze-path-input" value="${escapeHtml(this.certificateProjectName)}" placeholder="Customer Portal Rebuild">
-          </label>
-          <label class="audit-booking-field" style="min-width: 160px;">
-            <span>Project pack ID</span>
-            <input type="text" id="certificate-project-id" class="analyze-path-input" value="${escapeHtml(this.certificateProjectId)}" placeholder="proj_…">
-          </label>
-          <button type="button" class="btn btn-primary" id="export-certificate-btn" ${this.certificateExportBusy ? 'disabled' : ''}>
-            ${this.certificateExportBusy ? 'Generating…' : 'Generate certificate'}
-          </button>
-        </div>
-        <p class="text-muted" style="font-size: var(--font-size-xs); margin-top: var(--space-2);">
-          Branding: <code>PUT /api/simplebeacon/agency/branding</code> · Optional project pack token burn when <code>project_id</code> is set.
-        </p>
-      </div>
-    `;
-  }
-
   renderCompleteResults() {
     const { projectPath, steps = [], errors = [] } = this.lastResult;
     const simplebeacon = steps.find((s) => s.id === 'simplebeacon')?.report;
+    const canonicalCount = simplebeacon ? getScanFileMetrics(simplebeacon).repositoryFiles : null;
     const consolidation = steps.find((s) => s.id === 'consolidation')?.scan;
     const mockScan = steps.find((s) => s.id === 'mock-scan');
     const roadmapStep = steps.find((s) => s.id === 'roadmap');
@@ -5159,6 +7951,7 @@ export class AnalyzeView {
     const codebase = codebaseStep?.scan;
     const fileReduction = steps.find((s) => s.id === 'file-reduction')?.scan;
     const dataQuality = steps.find((s) => s.id === 'data-quality')?.scan;
+    const removableFiles = steps.find((s) => s.id === 'removable-files')?.scan;
     const cleanupStep = steps.find((s) => s.id === 'cleanup-assistant');
     const cleanupBrief = cleanupStep?.brief ?? null;
     const complianceStep = steps.find((s) => s.id === 'compliance');
@@ -5176,13 +7969,30 @@ export class AnalyzeView {
 
     const completeScanAnalysis = buildCompleteScanAnalysis({ fileReduction, dataQuality, projectPath });
 
+/**
+ * Step ok.
+ * @param {string} id
+ * @returns {any}
+ */
     const stepOk = (id) => steps.some((s) => s.id === id);
+/**
+ * Step failure message.
+ * @param {string} id
+ * @param {any} labelHint
+ * @returns {any}
+ */
     const stepFailureMessage = (id, labelHint) => {
       const progressErr = this.completeProgress?.steps?.find((s) => s.id === id)?.error;
       if (progressErr) return progressErr;
       const match = errors.find((e) => e.step?.includes(labelHint));
       return match?.message || '';
     };
+/**
+ * Render step failure.
+ * @param {string} id
+ * @param {any} labelHint
+ * @returns {any}
+ */
     const renderStepFailure = (id, labelHint) => {
       const message = stepFailureMessage(id, labelHint);
       if (message) {
@@ -5224,11 +8034,10 @@ export class AnalyzeView {
           ${complianceChecklist?.summary ? `<div class="metric-chip gate-badge ${complianceChecklist.summary.failed ? 'warn' : 'pass'}">${complianceChecklist.summary.passed ?? 0}/${checklistRuleTotal(complianceChecklist)} compliance</div>` : ''}
           ${npmAudit && !npmAudit.error ? `<div class="metric-chip"><strong>${npmAudit.summary?.total ?? npmAudit.vulnerabilityTotal ?? 0}</strong> npm vulns</div>` : ''}
           ${euSprint ? `<div class="metric-chip gate-badge ${euSprint.gate?.pass ? 'pass' : 'warn'}">EU ${euSprint.compliance?.score ?? '—'}% readiness</div>` : ''}
+          ${removableFiles?.categories?.length ? `<div class="metric-chip"><strong>${escapeHtml(removableFiles.totalRemovableFormatted || '0 B')}</strong> reclaimable</div>` : ''}
         </div>
 
         ${renderCompleteScanAnalysisPanel(completeScanAnalysis)}
-
-        ${!locked && simplebeacon ? this.renderCertificateExportPanel(simplebeacon, projectPath) : ''}
 
         ${locked ? renderScanPaywall(
           this.lastResult.publicSummary || buildPublicSummaryFromScan(this.lastResult),
@@ -5240,7 +8049,7 @@ export class AnalyzeView {
             ${this.renderScanScopeBanner(simplebeacon, projectPath)}
             <div class="metrics-row mb-4 mt-4">
               <div class="metric-chip"><strong>${simplebeacon.qualityScore ?? '—'}%</strong> quality</div>
-              ${this.renderScanFileMetrics(simplebeacon)}
+              ${this.renderScanFileMetrics(simplebeacon, canonicalCount)}
               <div class="metric-chip"><strong>${simplebeacon.issueCount ?? 0}</strong> issues</div>
               ${simplebeacon.llmSlopPatternHits != null ? `<div class="metric-chip"><strong>${simplebeacon.llmSlopPatternHits}</strong> LLM slop hits</div>` : ''}
             </div>
@@ -5284,7 +8093,7 @@ export class AnalyzeView {
             ` : ''}
             <div class="metrics-row mb-4 mt-4">
               <div class="metric-chip"><strong>${(mockScan.fictionIssues || []).reduce((s, i) => s + (i.count || 1), 0)}</strong> fiction/KPI hits</div>
-              ${this.renderScanFileMetrics(mockScan.report)}
+              ${this.renderScanFileMetrics(mockScan.report, canonicalCount)}
             </div>
             <button type="button" class="btn btn-secondary btn-sm mb-4" id="download-mock-scan-json">Download fiction digest JSON</button>
           ` : '<p class="text-muted mt-4">Step did not complete.</p>'}
@@ -5297,7 +8106,7 @@ export class AnalyzeView {
               <p class="text-muted text-sm mt-4 mb-0">Scoped to platform root <code>${escapeHtml(formatPathInputValue(roadmapStep.analysisPath))}</code> (monorepo parent scan).</p>
             ` : ''}
             <div class="metrics-row mb-4 mt-4">
-              <div class="metric-chip"><strong>${roadmap.codeAnalysis?.structure?.totalFiles ?? '—'}</strong> files</div>
+              <div class="metric-chip"><strong>${canonicalCount ?? roadmap.codeAnalysis?.structure?.totalFiles ?? '—'}</strong> files</div>
               <div class="metric-chip"><strong>${(roadmap.developmentPhases || roadmap.phases || []).length}</strong> phases</div>
             </div>
             <button type="button" class="btn btn-secondary btn-sm mb-4" id="download-roadmap-json">Download roadmap JSON</button>
@@ -5371,14 +8180,116 @@ export class AnalyzeView {
           </div>
         </details>
         ` : ''}
+
+        ${simplebeacon?.fileNaming ? `
+        <details class="card mb-4">
+          <summary><strong>File Naming Analysis</strong></summary>
+          <div class="mt-4">
+            ${this.renderFileNamingPanel(simplebeacon.fileNaming)}
+          </div>
+        </details>
+        ` : ''}
+
+        ${removableFiles ? `
+        <details class="card mb-4">
+          <summary><strong>Removable Files</strong> ${stepOk('removable-files') ? '✅' : '⚠️'}</summary>
+          <div class="mt-4">
+            ${this.renderRemovableFilesPanel(removableFiles)}
+          </div>
+        </details>
+        ` : ''}
+
+        ${steps.filter((s) => BROWSER_ANALYZER_IDS.includes(s.id)).map((s) => renderBrowserAnalyzerResult(s, errors)).join('')}
+
         `}
       </div>
     `;
   }
 
+  renderFileNamingPanel(fileNaming) {
+    if (!fileNaming || !fileNaming.findings || fileNaming.findings.length === 0) {
+      return '<p class="text-muted">No file naming issues detected.</p>';
+    }
+    const items = fileNaming.findings.slice(0, 10).map((f) => `
+      <div class="issue-row" style="padding:0.5rem 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <span class="badge badge-${f.severity === 'medium' ? 'warn' : 'info'}">${escapeHtml(f.severity)}</span>
+          <strong>${escapeHtml(f.type)}</strong>
+        </div>
+        <div class="text-muted text-sm mt-1">${escapeHtml(f.file)}</div>
+        ${f.detail ? `<div class="text-sm mt-1">${escapeHtml(f.detail)}</div>` : ''}
+        ${f.suggestion ? `<div class="text-sm mt-1" style="color:var(--success);">Suggestion: ${escapeHtml(typeof f.suggestion === 'string' ? f.suggestion : JSON.stringify(f.suggestion))}</div>` : ''}
+      </div>
+    `).join('');
+    const styleStats = fileNaming.styleStats || {};
+    const statsHtml = Object.entries(styleStats).filter(([, v]) => v > 0).map(([k, v]) => `<span class="metric-chip"><strong>${v}</strong> ${escapeHtml(k)}</span>`).join('');
+    return `
+      <div class="metrics-row mb-4">
+        <div class="metric-chip"><strong>${fileNaming.hits}</strong> naming issues</div>
+        ${statsHtml}
+      </div>
+      <div class="issue-list">${items}</div>
+    `;
+  }
+
+  renderRemovableFilesPanel(removableFiles) {
+    if (!removableFiles || !removableFiles.categories || removableFiles.categories.length === 0) {
+      return '<p class="text-muted">No removable files detected.</p>';
+    }
+    const cats = removableFiles.categories;
+    const items = cats.slice(0, 10).map((c) => `
+      <div class="issue-row" style="padding:0.5rem 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <span class="badge badge-warn">removable</span>
+          <strong>${escapeHtml(c.label || c.category)}</strong>
+        </div>
+        <div class="text-muted text-sm mt-1">${(c.count || 0).toLocaleString()} items${c.sizeLabel ? ' (' + escapeHtml(c.sizeLabel) + ')' : c.bytes ? ' (' + this._fmtBytes(c.bytes) + ')' : ''}</div>
+        <div class="text-sm mt-1">${escapeHtml(c.action || 'Review before deleting')}</div>
+        ${c.examples && c.examples.length ? `<div class="text-sm mt-1 text-muted">Examples: ${escapeHtml(c.examples.slice(0, 3).join(', '))}</div>` : ''}
+      </div>
+    `).join('');
+    return `
+      <div class="metrics-row mb-4">
+        <div class="metric-chip"><strong>${cats.length}</strong> categories</div>
+        <div class="metric-chip"><strong>${removableFiles.totalFiles || 0}</strong> files</div>
+        <div class="metric-chip"><strong>${escapeHtml(removableFiles.totalRemovableFormatted || '0 B')}</strong> reclaimable</div>
+      </div>
+      <div class="issue-list">${items}</div>
+    `;
+  }
+
+  _fmtBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
   refresh() {
+    if (this.app.currentView !== this) return;
+    // During active scanning, avoid full mount flicker by surgically updating
+    // the progress DOM — but only if the progress panel already exists.
+    // The first refresh while busy still does a full mount so the progress UI renders.
+    if (this.busy && this._root?.querySelector('#analyze-progress')) {
+      this.updateProgressDom();
+      return;
+    }
     const main = document.getElementById('app-main');
-    if (this.app.currentView === this) this.mount(main);
+    const savedScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    try {
+      this.mount(main);
+    } catch (err) {
+       
+      console.error('AnalyzeView mount error:', err);
+      showToast('Scan UI failed to update. See console.', 'error');
+      return;
+    }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo(0, savedScrollY);
+      });
+    });
   }
 
   async ensureDefaultProjectPath() {
@@ -5404,23 +8315,27 @@ export class AnalyzeView {
 
     void this.ensureDefaultProjectPath();
 
+    // If lastProjectPath is the parent directory of defaultProjectPath (monorepo root),
+    // clear it so the user picks a specific project instead of scanning everything.
+    const defaultPath = this.app.state.defaultProjectPath || '';
+    const lastPath = this.app.state.lastProjectPath || '';
+    if (defaultPath && lastPath) {
+      const defaultParent = defaultPath.replace(/\\/g, '/').split('/').slice(0, -1).join('/');
+      const normalizedLast = lastPath.replace(/\\/g, '/');
+      if (normalizedLast === defaultParent) {
+        this.app.state.lastProjectPath = '';
+      }
+    }
+
+    // Auto-load saved complete scan if no result is present
+    if (!this.lastResult && !this.app.state.analyzeResult) {
+      void this.tryAutoLoadCompleteScan();
+    }
+
     container.innerHTML = '';
     const view = this.render();
+    const el = view;
     container.appendChild(view);
-
-    if (view.querySelector('#certificate-export-panel') && !this.agencyBrandingLoaded) {
-      this.agencyBrandingLoaded = true;
-      fetchAgencyBranding(this.certificateOrgId)
-        .then((data) => {
-          const branding = data?.branding;
-          if (branding?.agency_name && !this.certificateClientName) {
-            this.certificateClientName = branding.agency_name;
-            const clientField = view.querySelector('#certificate-client-name');
-            if (clientField && !clientField.value) clientField.value = branding.agency_name;
-          }
-        })
-        .catch(() => { /* optional branding prefill */ });
-    }
 
     view.querySelector('#goto-results-btn')?.addEventListener('click', () => {
       this.openResultsView();
@@ -5469,6 +8384,116 @@ export class AnalyzeView {
       );
     });
 
+    view.querySelector('#export-for-remediation')?.addEventListener('click', () => {
+      try {
+        console.log('[export-for-remediation] clicked');
+        console.log('[export-for-remediation] lastResult:', this.lastResult);
+        const payload = this.buildRemediationExport();
+        console.log('[export-for-remediation] payload:', payload);
+        if (!payload) {
+          showToast('No scan results to export for remediation yet', 'error');
+          return;
+        }
+        const slug = pathToFileSlug(this.lastResult?.projectPath || 'project');
+        const stamp = dateStamp();
+        downloadJson(payload, `remediation-${slug}-${stamp}.json`);
+        showToast('Remediation export downloaded — drag it onto the Roadmap page', 'success');
+      } catch (err) {
+        console.error('[export-for-remediation] Error:', err);
+        showToast('Export failed: ' + (err?.message || 'Unknown error'), 'error');
+      }
+    });
+
+    // Send to AI Agent handlers (Analyze page export bar)
+    console.log('[AI-Send] Binding AI send events. lastResult:', !!this.lastResult, 'report:', !!(this.lastResult?.report || this.app.state.report));
+    const analyzeAiPanel = view.querySelector('#analyze-ai-panel');
+    const analyzeAiNotes = view.querySelector('#analyze-ai-notes');
+    const analyzeAiStatus = view.querySelector('#analyze-ai-status');
+    console.log('[AI-Send] Panel found:', !!analyzeAiPanel, 'Confirm btn found:', !!view.querySelector('#analyze-ai-confirm'));
+
+    const doSendToAi = async (notes = '') => {
+      const report = this.lastResult?.report || this.app.state.report;
+      if (!report) { showToast('No report loaded — run a scan first', 'error'); return; }
+      const allIssues = report.rawIssues || report.detectedIssues || [];
+      const reportSummary = {
+        gatePass: report.gate?.pass ?? 'N/A',
+        qualityScore: report.qualityScore ?? 'N/A',
+        totalIssues: allIssues.length,
+        filesScanned: report.repositoryFilesTotal ?? report.totalFiles ?? 'N/A',
+        reportType: report.type || 'simplebeacon'
+      };
+
+      // If running inside a VS Code-family webview, message the extension directly
+      const vscode = this._getVscodeApi();
+      if (vscode) {
+        try {
+          vscode.postMessage({
+            command: 'sendToAI',
+            data: {
+              projectPath: report.projectRoot || report.projectPath || this.lastResult?.projectPath || window.location.origin,
+              notes,
+              reportSummary,
+              issues: allIssues
+            }
+          });
+          showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
+          return;
+        } catch (err) {
+          console.warn('[AI-Send] vscode.postMessage failed:', err);
+        }
+      }
+
+      // Fall back to server API + clipboard for standalone browser or VS Code simple-browser
+      try {
+        const res = await fetch('/api/ai-context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectPath: report.projectRoot || report.projectPath || this.lastResult?.projectPath || window.location.origin,
+            notes,
+            reportSummary,
+            issues: allIssues
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          if (json.content) {
+            try {
+              await navigator.clipboard.writeText(json.content);
+              showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+            } catch (clipErr) {
+              showToast('AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md', 'success');
+            }
+          } else {
+            showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+          }
+        } else {
+          showToast('Failed: ' + (json.error || 'Unknown'), 'error');
+        }
+      } catch (err) {
+        showToast('Network error: ' + err.message, 'error');
+      }
+    };
+
+    view.querySelector('#analyze-send-ai-btn')?.addEventListener('click', () => {
+      console.log('[AI-Send] Send button clicked — sending directly');
+      doSendToAi('');
+    });
+    view.querySelector('#analyze-ai-cancel')?.addEventListener('click', () => {
+      console.log('[AI-Send] Cancel clicked');
+      if (analyzeAiPanel) analyzeAiPanel.style.display = 'none';
+      if (analyzeAiNotes) analyzeAiNotes.value = '';
+      if (analyzeAiStatus) { analyzeAiStatus.style.display = 'none'; analyzeAiStatus.textContent = ''; }
+    });
+    view.querySelector('#analyze-ai-confirm')?.addEventListener('click', async () => {
+      console.log('[AI-Send] Confirm clicked');
+      const btn = view.querySelector('#analyze-ai-confirm');
+      if (!btn) return;
+      btn.disabled = true; btn.textContent = 'Sending…';
+      await doSendToAi(analyzeAiNotes?.value || '');
+      btn.disabled = false; btn.textContent = 'Confirm Send';
+    });
+
     view.querySelector('#download-export-bundle-zip')?.addEventListener('click', async () => {
       const btn = view.querySelector('#download-export-bundle-zip');
       const priorLabel = btn?.textContent;
@@ -5486,37 +8511,20 @@ export class AnalyzeView {
         showToast('No complete scan results to export yet', 'error');
         return;
       }
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Building ZIP…';
-      }
-      try {
-        const internal = Boolean(this.app.billingService?.plan?.internalDashboard);
-        const { blob, filename, tierId, warnings } = await fetchAnalyzeExportBundleZip(payload, {
-          deliverableSku: internal ? 'operator' : undefined,
-          internalDashboard: internal,
-          client: formatPathLabel(payload.projectPath) || redactPathForDisplay(payload.projectPath) || undefined,
-          aiProvider: this.aiProvider || 'demo',
-          selectedEngines: exportEngines,
-          enginesRun: exportEngines
+      const settings = this.loadDownloadSettings();
+      if (settings.promptForCredentials) {
+        showDownloadCredentialsModal({
+          title: 'Edit ZIP Export Credentials',
+          submitLabel: 'Build ZIP',
+          defaults: settings.credentials,
+          onSubmit: (credentials) => {
+            this.saveDownloadSettings({ ...settings, credentials });
+            this._doZipDownload(btn, priorLabel, payload, exportEngines, credentials);
+          }
         });
-        downloadBlob(blob, filename);
-        const engineNote = exportEngines.length === (this.lastResult?.steps?.length || exportEngines.length)
-          ? ''
-          : ` · ${exportEngines.length} scan${exportEngines.length === 1 ? '' : 's'}`;
-        const warnNote = warnings.length ? ` (${warnings.length} note(s) in manifest)` : '';
-        showToast(`Export bundle downloaded (${tierId || 'bundle'}${engineNote})${warnNote}`, 'success');
-      } catch (err) {
-        if (err.code === 'export_paywall' && err.checkoutUrl) {
-          window.open(err.checkoutUrl, '_blank', 'noopener,noreferrer');
-        }
-        showToast(err.message || 'ZIP export failed', 'error');
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = priorLabel || this.resolveZipExportButtonMeta().label;
-        }
+        return;
       }
+      this._doZipDownload(btn, priorLabel, payload, exportEngines, settings.credentials);
     });
 
     view.querySelectorAll('#download-eu-ai-act-pdf').forEach((btn) => {
@@ -5539,53 +8547,23 @@ export class AnalyzeView {
       });
     });
 
-    view.querySelector('#download-audit-pdf')?.addEventListener('click', async () => {
-      const btn = view.querySelector('#download-audit-pdf');
+    el.querySelector('#download-audit-pdf')?.addEventListener('click', async () => {
+      const btn = el.querySelector('#download-audit-pdf');
       const priorLabel = btn?.textContent;
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Building report…';
-      }
-      try {
-        if (this.lastResult?.kind === 'eu-ai-act') {
-          const data = await fetchEuAiActAuditReport({
-            projectPath: this.lastResult.projectPath,
-            client: formatPathLabel(this.lastResult.projectPath) || redactPathForDisplay(this.lastResult.projectPath) || undefined
-          });
-          openAuditReportPrintWindow(data.html, data.filename);
-          showToast(
-            `EU compliance report saved as ${data.filename}. Open the HTML file, then Print → Save as PDF.`,
-            'success'
-          );
-          return;
-        }
-
-        const payload = await this.ensureAuditExportPayload();
-        if (!this.scanExportHasPayload(payload)) {
-          showToast('No scan results available for audit PDF', 'error');
-          return;
-        }
-        const data = await fetchCompleteAuditReport(payload, {
-          aiProvider: this.aiProvider || 'demo',
-          client: formatPathLabel(payload.projectPath) || redactPathForDisplay(payload.projectPath) || undefined
+      const settings = this.loadDownloadSettings();
+      if (settings.promptForCredentials) {
+        showDownloadCredentialsModal({
+          title: 'Edit Audit PDF Credentials',
+          submitLabel: 'Build PDF',
+          defaults: settings.credentials,
+          onSubmit: (credentials) => {
+            this.saveDownloadSettings({ ...settings, credentials });
+            this._doPdfDownload(btn, priorLabel, credentials);
+          }
         });
-        openAuditReportPrintWindow(data.html, data.filename);
-        const tierLabel = data.exportTierLabel || data.tier || 'audit';
-        showToast(
-          `${tierLabel} report saved to Downloads as ${data.filename}. Open the HTML file, scroll through all sections, then Print → Save as PDF.`,
-          'success'
-        );
-      } catch (err) {
-        if (err.code === 'audit_paywall' && err.checkoutUrl) {
-          window.open(err.checkoutUrl, '_blank', 'noopener,noreferrer');
-        }
-        showToast(err.message || 'Audit PDF failed', 'error');
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = priorLabel || 'Download audit PDF';
-        }
+        return;
       }
+      this._doPdfDownload(btn, priorLabel, settings.credentials);
     });
 
     view.querySelector('#download-simplebeacon-json')?.addEventListener('click', () => {
@@ -5605,66 +8583,29 @@ export class AnalyzeView {
       showToast('Simplebeacon report downloaded', 'success');
     });
 
-    view.querySelector('#certificate-milestone-select')?.addEventListener('change', (e) => {
-      this.certificateMilestone = e.target.value;
-    });
-    view.querySelector('#certificate-client-name')?.addEventListener('input', (e) => {
-      this.certificateClientName = e.target.value;
-    });
-    view.querySelector('#certificate-project-name')?.addEventListener('input', (e) => {
-      this.certificateProjectName = e.target.value;
-    });
-    view.querySelector('#certificate-project-id')?.addEventListener('input', (e) => {
-      this.certificateProjectId = e.target.value.trim();
-      if (this.certificateProjectId) {
-        localStorage.setItem('simplebeacon_agency_project_id', this.certificateProjectId);
-      }
-    });
-    view.querySelector('#export-certificate-btn')?.addEventListener('click', async () => {
-      const report = this.lastResult?.kind === 'complete'
-        ? this.getCompleteStep('simplebeacon')?.report
-        : this.lastResult?.kind === 'compliance'
-          ? this.lastResult.report
-          : (this.lastResult?.report || this.lastResult?.data?.report);
-      if (!report) {
-        showToast('Run a Simplebeacon gate scan first', 'error');
-        return;
-      }
-      this.certificateMilestone = view.querySelector('#certificate-milestone-select')?.value || this.certificateMilestone;
-      this.certificateClientName = view.querySelector('#certificate-client-name')?.value?.trim() || '';
-      this.certificateProjectName = view.querySelector('#certificate-project-name')?.value?.trim() || '';
-      this.certificateProjectId = view.querySelector('#certificate-project-id')?.value?.trim() || '';
-      if (this.certificateProjectId) {
-        localStorage.setItem('simplebeacon_agency_project_id', this.certificateProjectId);
-      }
-      this.certificateExportBusy = true;
-      this.refresh();
-      try {
-        const data = await exportAgencyCertificate({
-          report,
-          milestone: this.certificateMilestone,
-          client_name: this.certificateClientName || undefined,
-          project_name: this.certificateProjectName || undefined,
-          project_id: this.certificateProjectId || undefined,
-          org_id: this.certificateOrgId
-        });
-        if (data.html) {
-          const blob = new Blob([data.html], { type: 'text/html;charset=utf-8' });
-          const url = URL.createObjectURL(blob);
-          window.open(url, '_blank', 'noopener,noreferrer');
-          showToast(`Certificate ${data.certificate_id || ''} opened — Print → Save as PDF`, 'success');
-        } else {
-          showToast('Certificate export returned no HTML', 'error');
+    view.querySelectorAll('.analyze-download-step-json').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const stepId = btn.dataset.stepId;
+        const step = this.getCompleteStep(stepId);
+        if (!step) {
+          showToast('Step not found', 'error');
+          return;
         }
-      } catch (err) {
-        showToast(err.message || 'Certificate export failed', 'error');
-      } finally {
-        this.certificateExportBusy = false;
-        this.refresh();
-      }
+        const payload = {
+          type: 'simplebeacon-step-export',
+          exportedAt: new Date().toISOString(),
+          stepId,
+          label: getCompleteEngineLabel(stepId),
+          findingsCount: step.findingsCount ?? 0,
+          fileCount: step.fileCount ?? 0,
+          findings: step.findings || []
+        };
+        downloadJson(payload, `${stepId}-${slug}-${dateStamp()}.json`);
+        showToast(`${getCompleteEngineLabel(stepId)} JSON downloaded`, 'success');
+      });
     });
 
-    view.querySelector('#download-consolidation-json')?.addEventListener('click', () => {
+    el.querySelector('#download-consolidation-json')?.addEventListener('click', () => {
       const scan = this.getCompleteStep('consolidation')?.scan;
       if (!scan) {
         showToast('Consolidation step has no report', 'error');
@@ -5681,7 +8622,7 @@ export class AnalyzeView {
       showToast('Consolidation report downloaded', 'success');
     });
 
-    view.querySelector('#download-codebase-json')?.addEventListener('click', () => {
+    el.querySelector('#download-codebase-json')?.addEventListener('click', () => {
       const scan = this.getCompleteStep('codebase')?.scan;
       if (!scan) {
         showToast('Codebase step has no report', 'error');
@@ -5698,6 +8639,10 @@ export class AnalyzeView {
       showToast('Codebase report downloaded', 'success');
     });
 
+/**
+ * Export brief.
+ * @returns {any}
+ */
     const exportBrief = () => {
       const brief = sanitizeCleanupBriefExport(
         buildCleanupBriefFromLastResult(this.lastResult, this.lastResult?.policy || loadCleanupPolicy())
@@ -5711,8 +8656,12 @@ export class AnalyzeView {
       showToast('Agent brief exported — attach in Cursor agent mode', 'success');
     };
 
-    view.querySelector('#cleanup-brief-export-btn')?.addEventListener('click', exportBrief);
+    el.querySelector('#cleanup-brief-export-btn')?.addEventListener('click', exportBrief);
 
+/**
+ * Copy prompt.
+ * @returns {any}
+ */
     const copyPrompt = async () => {
       const brief = buildCleanupBriefFromLastResult(this.lastResult, this.lastResult?.policy || loadCleanupPolicy())
         || this.lastResult?.brief
@@ -5742,12 +8691,12 @@ export class AnalyzeView {
       }
     };
 
-    view.querySelector('#copy-cleanup-agent-prompt')?.addEventListener('click', copyPrompt);
-    view.querySelector('#cleanup-prompt-copy-btn')?.addEventListener('click', copyPrompt);
+    el.querySelector('#copy-cleanup-agent-prompt')?.addEventListener('click', copyPrompt);
+    el.querySelector('#cleanup-prompt-copy-btn')?.addEventListener('click', copyPrompt);
 
-    view.querySelector('#cleanup-reapply-policy')?.addEventListener('click', () => {
+    el.querySelector('#cleanup-reapply-policy')?.addEventListener('click', () => {
       if (this.lastResult?.kind !== 'cleanup-assistant') return;
-      const policy = readCleanupPolicyFromDom(view);
+      const policy = readCleanupPolicyFromDom(el);
       saveCleanupPolicy(policy);
       this.lastResult.policy = policy;
       this.lastResult.brief = buildCleanupAssistantBrief({
@@ -5763,7 +8712,7 @@ export class AnalyzeView {
       showToast('Policy applied — tiers updated', 'success');
     });
 
-    view.querySelector('#download-file-reduction-json')?.addEventListener('click', () => {
+    el.querySelector('#download-file-reduction-json')?.addEventListener('click', () => {
       const scan = this.getCompleteStep('file-reduction')?.scan;
       if (!scan) {
         showToast('File reduction step has no report', 'error');
@@ -5773,7 +8722,7 @@ export class AnalyzeView {
       showToast('File reduction report exported', 'success');
     });
 
-    view.querySelector('#download-data-quality-json')?.addEventListener('click', () => {
+    el.querySelector('#download-data-quality-json')?.addEventListener('click', () => {
       const scan = this.getCompleteStep('data-quality')?.scan;
       if (!scan) {
         showToast('Data quality step has no report', 'error');
@@ -5783,7 +8732,22 @@ export class AnalyzeView {
       showToast('Data quality report exported', 'success');
     });
 
-    view.querySelector('#download-mock-scan-json')?.addEventListener('click', () => {
+    el.querySelectorAll('.data-cleanup-download-json').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const profile = btn.dataset.profile;
+        const scan = profile === 'data-quality'
+          ? this.getCompleteStep('data-quality')?.scan
+          : this.getCompleteStep('file-reduction')?.scan;
+        if (!scan) {
+          showToast(`${profile} step has no report`, 'error');
+          return;
+        }
+        downloadJson(sanitizeDataCleanupReportExport(scan), `${profile}-${slug}-${dateStamp()}.json`);
+        showToast(`${profile} report exported`, 'success');
+      });
+    });
+
+    el.querySelector('#download-mock-scan-json')?.addEventListener('click', () => {
       const mockStep = this.getCompleteStep('mock-scan');
       const payload = mockStep?.report
         ? buildFictionDigestPayload(mockStep.report, {
@@ -5814,7 +8778,7 @@ export class AnalyzeView {
       showToast('Fiction digest downloaded', 'success');
     });
 
-    view.querySelector('#download-roadmap-json')?.addEventListener('click', () => {
+    el.querySelector('#download-roadmap-json')?.addEventListener('click', () => {
       if (!roadmap) {
         showToast('Roadmap step has no report', 'error');
         return;
@@ -5831,7 +8795,7 @@ export class AnalyzeView {
       showToast('Full roadmap downloaded', 'success');
     });
 
-    view.querySelector('#download-eu-compliance-json')?.addEventListener('click', () => {
+    el.querySelector('#download-eu-compliance-json')?.addEventListener('click', () => {
       const checklist = this.lastResult?.kind === 'complete'
         ? this.getCompleteStep('eu-ai-act')?.sprint?.complianceChecklist
         : this.lastResult?.sprint?.complianceChecklist;
@@ -5843,7 +8807,7 @@ export class AnalyzeView {
       showToast('EU compliance checklist downloaded', 'success');
     });
 
-    view.querySelector('#download-compliance-json')?.addEventListener('click', () => {
+    el.querySelector('#download-compliance-json')?.addEventListener('click', () => {
       const complianceStep = this.lastResult?.kind === 'complete'
         ? this.getCompleteStep('compliance')
         : this.lastResult;
@@ -5872,7 +8836,7 @@ export class AnalyzeView {
       showToast('Compliance checklist downloaded', 'success');
     });
 
-    view.querySelector('#download-npm-audit-json')?.addEventListener('click', () => {
+    el.querySelector('#download-npm-audit-json')?.addEventListener('click', () => {
       const npmAudit = this.lastResult?.kind === 'complete'
         ? this.getCompleteStep('npm-audit')?.npmAudit
         : this.lastResult?.npmAudit;
@@ -5893,7 +8857,7 @@ export class AnalyzeView {
       showToast('npm audit downloaded', 'success');
     });
 
-    view.querySelector('#copy-roadmap-json')?.addEventListener('click', async () => {
+    el.querySelector('#copy-roadmap-json')?.addEventListener('click', async () => {
       if (!roadmap) return;
       try {
         await navigator.clipboard.writeText(JSON.stringify(
@@ -5907,7 +8871,7 @@ export class AnalyzeView {
       }
     });
 
-    const issueSlot = view.querySelector('#inline-issue-list');
+    const issueSlot = el.querySelector('#inline-issue-list');
     if (issueSlot && simplebeaconReport && !this.isResultsLocked()) {
       const categories = this.app.scanService.getIssueCategories(simplebeaconReport);
       const displayCategories = this.lastResult?.kind === 'mock-scan'
@@ -5916,6 +8880,106 @@ export class AnalyzeView {
       issueSlot.appendChild(renderIssueList(displayCategories.length ? displayCategories : categories, {
         onSelect: (cat) => this.openResultsView({ filter: cat })
       }));
+
+      // Wire up severity filter chips
+      const toolbar = el.querySelector('[data-issue-toolbar]');
+      if (toolbar) {
+        const chips = toolbar.querySelectorAll('.severity-chip');
+        const searchInput = toolbar.querySelector('#issue-search-input');
+
+        const applyFilters = () => {
+          const activeSevs = new Set(Array.from(chips).filter(c => c.classList.contains('active')).map(c => c.dataset.sev));
+          const q = searchInput?.value?.toLowerCase() || '';
+          const cards = issueSlot.querySelectorAll('.issue-card');
+          for (const card of cards) {
+            const sev = card.dataset.severity;
+            const text = card.textContent.toLowerCase();
+            const sevMatch = activeSevs.has(sev) || (sev === 'none' && activeSevs.size === 0);
+            const textMatch = !q || text.includes(q);
+            card.style.display = sevMatch && textMatch ? '' : 'none';
+          }
+        };
+
+        for (const chip of chips) {
+          chip.addEventListener('click', () => {
+            chip.classList.toggle('active');
+            const sev = chip.dataset.sev;
+            if (chip.classList.contains('active')) {
+              chip.style.background = sev === 'critical' || sev === 'high' ? 'rgba(239,68,68,0.15)'
+                : sev === 'medium' ? 'rgba(245,158,11,0.15)'
+                : sev === 'low' ? 'rgba(59,130,246,0.15)'
+                : 'rgba(107,114,128,0.15)';
+              chip.style.color = sev === 'critical' || sev === 'high' ? 'var(--color-danger, #ef4444)'
+                : sev === 'medium' ? 'var(--color-warning, #f59e0b)'
+                : sev === 'low' ? 'var(--color-info, #3b82f6)'
+                : 'var(--text-muted, #737373)';
+              chip.style.borderColor = chip.style.color;
+            } else {
+              chip.style.background = 'var(--surface-elevated)';
+              chip.style.color = 'var(--text-secondary)';
+              chip.style.borderColor = 'var(--border)';
+            }
+            applyFilters();
+          });
+        }
+        if (searchInput) searchInput.addEventListener('input', applyFilters);
+      }
+    }
+
+    // Paywall email capture — send sample report request
+    const paywallEmailForm = el.querySelector('.paywall-email-form');
+    if (paywallEmailForm) {
+      paywallEmailForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const emailInput = paywallEmailForm.querySelector('input[type="email"]');
+        const email = emailInput?.value?.trim();
+        if (!email) return;
+        // Store lead for follow-up; in production this would POST to a lead capture endpoint
+        const leads = JSON.parse(localStorage.getItem('simplebeaconPaywallLeads') || '[]');
+        leads.push({ email, projectPath: this.lastResult?.projectPath || '', scannedAt: new Date().toISOString(), findingsCount: this.lastResult?.steps?.find((s) => s.id === 'simplebeacon')?.report?.issueCount ?? null });
+        localStorage.setItem('simplebeaconPaywallLeads', JSON.stringify(leads.slice(-50))); // keep last 50
+        showToast(`Sample report requested for ${email}. We'll send a preview within 24 hours.`, 'success');
+        emailInput.value = '';
+      });
+    }
+
+    if (typeof window.lucide !== 'undefined') window.lucide.createIcons();
+  }
+
+  async tryAutoLoadCompleteScan() {
+    if (this._autoLoadAttempted) return;
+    this._autoLoadAttempted = true;
+    // Skip when served from a static file server that lacks the /data/ directory
+    if (window.location.protocol === 'file:') return;
+    const isLikelyDashboardServer = window.location.pathname.startsWith('/simplebeacon-dashboard/')
+      || window.location.port === '3000'
+      || window.location.port === '3002'
+      || window.location.port === '3001'
+      || window.location.port === '54449';
+    if (!isLikelyDashboardServer) return;
+    const paths = [
+      '/data/complete-scan-ai-platform-2026-06-12.json',
+      '/data/complete-scan-cascadeprojects-2026-06-11.json'
+    ];
+    for (const url of paths) {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data.type === 'simplebeacon-complete-scan' && data.results) {
+          const generatedAt = data.generatedAt || data.report?.generatedAt;
+          const ageMin = generatedAt ? (Date.now() - new Date(generatedAt).getTime()) / 60000 : 0;
+          if (ageMin > 15) {
+            showToast(`Saved scan is ${Math.round(ageMin)} min old — re-run scan for fresh data`, 'warning');
+            continue;
+          }
+          this.importCompleteScanExport(data, url.split('/').pop());
+          showToast('Loaded saved complete scan', 'success');
+          return;
+        }
+      } catch {
+        // Silent — try next path
+      }
     }
   }
 }

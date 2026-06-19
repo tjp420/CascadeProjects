@@ -1,6 +1,11 @@
-import { escapeHtml, formatNumber, redactPathForDisplay } from '../utils.js';
+import { escapeHtml, formatNumber, redactPathForDisplay, showToast } from '../utils.js';
 import { renderRepositoryHealthSection } from './RepositoryHealthView.js';
 
+/**
+ * Normalize static trust payload.
+ * @param {any} data
+ * @returns {any}
+ */
 function normalizeStaticTrustPayload(data) {
   if (!data || typeof data !== 'object') return null;
   const live = {
@@ -18,6 +23,10 @@ function normalizeStaticTrustPayload(data) {
   return { success: true, live, staticHost: true, staticPayload: true };
 }
 
+/**
+ * Fetch static trust fallback.
+ * @returns {any}
+ */
 async function fetchStaticTrustFallback() {
   const trustHttpResponse = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
   if (!trustHttpResponse || !trustHttpResponse.ok) return null;
@@ -25,6 +34,11 @@ async function fetchStaticTrustFallback() {
   return normalizeStaticTrustPayload(trustVerificationDocument);
 }
 
+/**
+ * Normalize trust api payload.
+ * @param {any} data
+ * @returns {any}
+ */
 function normalizeTrustApiPayload(data) {
   if (!data || typeof data !== 'object') return null;
   if (data.live && typeof data.live === 'object') {
@@ -51,6 +65,10 @@ function normalizeTrustApiPayload(data) {
   };
 }
 
+/**
+ * Fetch trust verification.
+ * @returns {any}
+ */
 export async function fetchTrustVerification() {
   const res = await fetch('/api/trust/verification', { cache: 'no-store' });
   const contentType = String(res.headers.get('content-type') || '').toLowerCase();
@@ -72,6 +90,74 @@ export async function fetchTrustVerification() {
   return data;
 }
 
+/**
+ * Render re attestation.
+ * @param {any} meta
+ * @returns {any}
+ */
+function renderReAttestation(meta) {
+  if (!meta) {
+    return `<p class="text-muted card">No re-attestation metadata on disk.</p>`;
+  }
+  const gate = meta.currentGate || {};
+  const hygiene = meta.hygieneSummary || {};
+  const scope = meta.scanScope || {};
+  const gateClass = gate.pass ? 'pass' : gate.blockingCount > 0 ? 'fail' : 'warn';
+  const gateLabel = gate.pass ? 'GATE PASS' : gate.blockingCount > 0 ? 'GATE FAIL' : 'GATE REVIEW';
+
+  return `
+    <div class="card mb-4">
+      <div class="section-heading mb-2">
+        <h3 style="margin:0;font-size:var(--font-size-base);">Re-attestation metadata</h3>
+        <span class="gate-badge ${gateClass}">${gateLabel}</span>
+      </div>
+      <p class="text-muted text-sm mb-4" style="margin-top:0;">
+        Tier: <code>${escapeHtml(meta.tier || '—')}</code>
+        · Purpose: <code>${escapeHtml(meta.purpose || '—')}</code>
+        · Generated: ${escapeHtml(meta.generatedAt || '—')}
+      </p>
+      <div class="metrics-row mb-4">
+        <div class="metric-chip"><strong>${gate.qualityScore ?? hygiene.qualityScore ?? '—'}%</strong> quality</div>
+        <div class="metric-chip"><strong>${formatNumber(gate.blockingCount ?? hygiene.blockingCount ?? 0)}</strong> blocking</div>
+        <div class="metric-chip"><strong>${formatNumber(gate.ruleScopedFilesAnalyzed ?? hygiene.ruleScopedFilesAnalyzed ?? 0)}</strong> gate checked</div>
+        <div class="metric-chip"><strong>${formatNumber(gate.repositoryFilesTotal ?? hygiene.repositoryFilesTotal ?? 0)}</strong> repo files</div>
+        <div class="metric-chip"><strong>${formatNumber(hygiene.credentialScanned ?? 0)}</strong> CRED scanned</div>
+        <div class="metric-chip"><strong>${formatNumber(hygiene.gateMetadataOnlyFiles ?? 0)}</strong> metadata only</div>
+        <div class="metric-chip"><strong>${formatNumber(hygiene.fictionJsonFilesScanned ?? 0)}</strong> fiction JSON</div>
+        <div class="metric-chip"><strong>${formatNumber(hygiene.fictionSampleFilesScanned ?? 0)}</strong> fiction samples</div>
+        <div class="metric-chip"><strong>${escapeHtml(scope.gateRuleBundleProfile || hygiene.gateRuleBundleProfile || '—')}</strong> rule bundle</div>
+      </div>
+      <p class="text-muted text-sm" style="margin:0 0 0.5rem;">
+        <strong>Workflow status:</strong> ${escapeHtml(meta.workflowStatus || '—')}
+        ${meta.scanTargetProfile ? `· <strong>Target profile:</strong> ${escapeHtml(meta.scanTargetProfile)}` : ''}
+        ${meta.securityHandoffEligible !== undefined ? `· <strong>Security handoff eligible:</strong> ${meta.securityHandoffEligible}` : ''}
+      </p>
+      <p class="text-muted" style="font-size:var(--font-size-xs);margin:0 0 0.5rem;">
+        <strong>Scope note:</strong> ${escapeHtml(scope.workflowNote || meta.message || '')}
+      </p>
+      ${meta.attestationNote || hygiene.attestationNote ? `
+        <p class="text-muted" style="font-size:var(--font-size-xs);margin:0 0 0.5rem;">
+          <strong>Attestation note:</strong> ${escapeHtml(meta.attestationNote || hygiene.attestationNote || '')}
+        </p>
+      ` : ''}
+      ${Array.isArray(meta.exportNotes) && meta.exportNotes.length ? `
+        <details style="margin-top:var(--space-3);">
+          <summary style="cursor:pointer;font-size:var(--font-size-sm);font-weight:600;color:var(--text-secondary);">Export notes (${meta.exportNotes.length})</summary>
+          <ul style="margin:var(--space-2) 0 0;padding-left:1.25rem;font-size:var(--font-size-xs);color:var(--text-muted);">
+            ${meta.exportNotes.map((n) => `<li class="mb-1">${escapeHtml(n)}</li>`).join('')}
+          </ul>
+        </details>
+      ` : ''}
+    </div>
+  `;
+}
+
+/**
+ * Render snapshot.
+ * @param {any} snap
+ * @param {any} title
+ * @returns {any}
+ */
 function renderSnapshot(snap, title) {
   if (!snap) {
     return `<p class="text-muted card">No ${escapeHtml(title)} report on disk — run Simplebeacon scan first.</p>`;
@@ -104,6 +190,9 @@ function renderSnapshot(snap, title) {
   `;
 }
 
+/**
+ * Trust view.
+ */
 export class TrustView {
   constructor(app) {
     this.app = app;
@@ -112,12 +201,29 @@ export class TrustView {
     this.data = null;
   }
 
+  _getVscodeApi() {
+    if (this._vscodeApiCached) return this._vscodeApiCached;
+    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
+    try {
+      this._vscodeApiCached = window.acquireVsCodeApi();
+      return this._vscodeApiCached;
+    } catch {
+      return null;
+    }
+  }
+
   render() {
     if (this.loading) {
-      return '<p class="text-muted"><span class="loading-spinner"></span> Loading trust verification…</p>';
+      return `
+        <div class="analyze-hero"><h1 class="page-title">Trust Verification</h1><p class="text-muted analyze-hero-sub">Loading trust data…</p></div>
+        <p class="text-muted"><span class="loading-spinner"></span> Loading trust verification…</p>
+      `;
     }
     if (this.error) {
-      return `<p class="text-danger card">${escapeHtml(this.error)}</p>`;
+      return `
+        <div class="analyze-hero"><h1 class="page-title">Trust Verification</h1><p class="text-muted analyze-hero-sub">Trust data unavailable</p></div>
+        <p class="text-danger card">${escapeHtml(this.error)}</p>
+      `;
     }
 
     const live = this.data?.live;
@@ -127,30 +233,37 @@ export class TrustView {
     const fictionScope = live?.fictionScope || null;
 
     return `
-      <div class="section-block">
-        <div class="section-heading">
-          <h2>Trust verification</h2>
-          <div class="roadmap-result-actions">
-            <a class="btn btn-secondary btn-sm" href="/api/trust/badge" target="_blank" rel="noopener">Badge preview</a>
-            <a class="btn btn-secondary btn-sm" href="/api/trust/verify?format=html" target="_blank" rel="noopener">Verify page</a>
-            <a class="btn btn-secondary btn-sm" href="/api/optimization/compliance" target="_blank" rel="noopener">Compliance API</a>
-          </div>
+      <div class="analyze-hero">
+        <h1 class="page-title">Trust Verification</h1>
+        <p class="text-muted analyze-hero-sub">Scoped scan results — not marketing claims.</p>
+      </div>
+
+      <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-4);">
+        <div class="analyze-action-info"></div>
+        <div class="flex gap-2">
+          <button class="btn btn-secondary btn-sm" id="trust-download-json" type="button">
+            <i data-lucide="download" class="icon-16"></i> Download JSON
+          </button>
+          <a class="btn btn-ghost btn-sm" href="/api/trust/badge" target="_blank" rel="noopener">Badge preview</a>
+          <a class="btn btn-ghost btn-sm" href="/api/trust/verify?format=html" target="_blank" rel="noopener">Verify page</a>
+          <button class="btn btn-ghost btn-sm" id="trust-send-ai-btn" type="button" title="Send trust verification data to AI coding agent">🤖 Send to AI Agent</button>
         </div>
+      </div>
 
-        ${staticHost ? `
-          <div class="card mb-4">
-            <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
-              Static-host preview mode: trust verification APIs are not available on this upload. Run <code>npm run dashboard</code> locally (or deploy backend APIs) for live Trust data.
-            </p>
-          </div>
-        ` : ''}
-
-        <div class="card mb-4">
-          <p style="margin:0 0 0.75rem;font-size:var(--font-size-sm);">
-            We publish <strong>scoped</strong> Simplebeacon scan results — not marketing claims.
-            A 99% quality score on the platform gate means configured sample paths passed rules;
-            it does <em>not</em> mean zero issues across a 40k+ file monorepo.
+      ${staticHost ? `
+        <div class="card mb-4" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2);">
+          <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
+            Static-host preview: trust APIs require <code>npm run dashboard</code> locally.
           </p>
+        </div>
+      ` : ''}
+
+      <div class="card mb-4">
+        <p style="margin:0 0 0.75rem;font-size:var(--font-size-sm);color:var(--text-secondary);">
+          We publish <strong>scoped</strong> Simplebeacon scan results — not marketing claims.
+          A 99% quality score on the platform gate means configured sample paths passed rules;
+          it does <em>not</em> mean zero issues across a 40k+ file monorepo.
+        </p>
           <p class="text-muted" style="margin:0 0 0.35rem;font-size:var(--font-size-xs);">
             Verification ID: <code>${escapeHtml(live?.verificationId || '—')}</code>
             · Method: deterministic gate + pattern matching
@@ -163,6 +276,7 @@ export class TrustView {
 
         ${renderSnapshot(live?.platform, 'Platform gate scan')}
         ${live?.monorepo ? renderSnapshot(live.monorepo, 'Monorepo root scan') : ''}
+        ${renderReAttestation(this.app?.state?.reAttestation)}
 
         <div class="card mb-4">
           <div class="section-heading mb-2">
@@ -218,6 +332,23 @@ export class TrustView {
     `;
   }
 
+  downloadTrustData() {
+    if (!this.data) return;
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      ...this.data
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `trust-verification-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async mount(container) {
     this.loading = true;
     this.error = null;
@@ -229,6 +360,36 @@ export class TrustView {
     } finally {
       this.loading = false;
       container.innerHTML = this.render();
+      container.querySelector('#trust-download-json')?.addEventListener('click', () => this.downloadTrustData());
+      container.querySelector('#trust-send-ai-btn')?.addEventListener('click', async () => {
+        const data = this.data;
+        if (!data) { showToast('No trust data to send', 'error'); return; }
+        const live = data.live || {};
+        const payload = {
+          projectPath: this.app.state.lastProjectPath || window.location.origin,
+          reportType: 'trust-verification',
+          reportSummary: {
+            verificationId: live.verificationId,
+            headlineSource: live.headlineSource,
+            headlineReason: live.headlineReason,
+            platform: live.platform,
+            monorepo: live.monorepo,
+            repositoryHealthScore: live.repositoryHealth?.headline?.repositoryHealthScore ?? 'N/A'
+          },
+          notes: 'Trust Verification — scoped scan results and repository health'
+        };
+        const vscode = this._getVscodeApi();
+        if (vscode) {
+          try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Trust verification sent to AI agent', 'success'); return; }
+          catch (err) { console.warn('[Trust-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+        }
+        try {
+          const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const json = await res.json();
+          if (json.success && json.content) { await navigator.clipboard.writeText(json.content); showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success'); }
+          else { showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success'); }
+        } catch (err) { showToast('Failed to send: ' + err.message, 'error'); }
+      });
     }
   }
 

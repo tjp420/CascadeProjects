@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-NONCE' 'unsafe-inline'; img-src data:;">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Map Visualization</title>
+<script nonce="NONCE" src="D3_URI" onerror="document.body.innerHTML='<div style=padding:20px;text-align:center;color:#ef4444;>Failed to load D3.js. Please reinstall the extension.</div>'"></script>
+<style>
+:root{--bg:var(--vscode-editor-background);--fg:var(--vscode-foreground);--panel:var(--vscode-panel-background,var(--bg));--bd:var(--vscode-panel-border);--muted:var(--vscode-descriptionForeground);--ac:var(--vscode-textLink-foreground);--btn:var(--vscode-button-background);--btn-fg:var(--vscode-button-foreground);--btn-h:var(--vscode-button-hoverBackground);--drop:var(--vscode-dropdown-background);--drop-fg:var(--vscode-dropdown-foreground);--in:var(--vscode-input-background);--hover:var(--vscode-list-hoverBackground);--sel:var(--vscode-list-activeSelectionBackground);--suc:#10B981;--warn:#F59E0B;--err:#EF4444;--info:#3B82F6;--r:8px;--sh:0 4px 24px rgba(0,0,0,.2)}
+*{box-sizing:border-box}body{font-family:var(--vscode-font-family);margin:0;padding:0;background:var(--bg);color:var(--fg);overflow:hidden;height:100vh}
+.app{display:flex;flex-direction:column;height:100%}
+.header{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--bd);flex-shrink:0;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.brand .ico{width:30px;height:30px;border-radius:var(--r);background:linear-gradient(135deg,var(--ac),#8B5CF6);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff}
+.brand .t{font-size:15px;font-weight:700}.brand .st{font-size:11px;color:var(--muted);margin-top:-2px}
+.ctrls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sel{appearance:none;background:var(--drop);color:var(--drop-fg);border:1px solid var(--bd);padding:5px 24px 5px 10px;border-radius:var(--r);font-size:12px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M0 2l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center}
+.btn{display:inline-flex;align-items:center;gap:5px;background:var(--btn);color:var(--btn-fg);border:none;padding:5px 11px;border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;transition:all .12s}
+.btn:hover{background:var(--btn-h)}.btn.gh{background:var(--in);color:var(--fg);border:1px solid var(--bd)}.btn.gh:hover{background:var(--hover)}
+.inp{background:var(--in);color:var(--fg);border:1px solid var(--bd);padding:5px 9px;border-radius:var(--r);font-size:12px;width:130px}
+.main{display:flex;flex:1;overflow:hidden}
+.vis{flex:1;position:relative;overflow:hidden;background:var(--bg)}
+.vis svg{width:100%;height:100%;display:block}
+.side{width:280px;background:var(--panel);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.sec{padding:12px 14px;border-bottom:1px solid var(--bd)}
+.sec h4{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.card{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:8px;text-align:center;transition:transform .12s;cursor:default}
+.card:hover{transform:translateY(-2px);border-color:var(--ac)}.card .v{font-size:18px;font-weight:700;line-height:1}.card .l{font-size:10px;color:var(--muted);margin-top:3px;font-weight:500}
+.card .v.g{color:var(--suc)}.card .v.w{color:var(--warn)}.card .v.b{color:var(--err)}.card .v.i{color:var(--info)}
+.leg{display:flex;flex-wrap:wrap;gap:6px}
+.leg-i{display:flex;align-items:center;gap:6px;font-size:11px;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:3px 8px}
+.leg-d{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.fp{display:none}.fp.on{display:block}
+.fname{font-size:12px;font-weight:600;margin-bottom:6px;word-break:break-all}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.meta-i{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);padding:5px 7px}
+.meta-i .ml{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.meta-i .mv{font-size:11px;font-weight:600}
+.tip{position:absolute;background:var(--panel);border:1px solid var(--bd);border-radius:var(--r);padding:8px 12px;pointer-events:none;opacity:0;transition:opacity .15s;box-shadow:var(--sh);font-size:11px;z-index:100;max-width:220px}
+.tip .tt{font-weight:700;font-size:12px;margin-bottom:3px}.tip .tr{color:var(--muted);line-height:1.4}
+.issue-row{margin-top:5px;padding:6px;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);font-size:11px;cursor:pointer;transition:background .1s}
+.issue-row:hover{background:var(--hover)}
+.sev-c{border-left:3px solid var(--err)}.sev-h{border-left:3px solid var(--warn)}.sev-m{border-left:3px solid var(--info)}.sev-l{border-left:3px solid #94a3b8}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:14px}
+.empty-state .big{font-size:48px;margin-bottom:12px;opacity:.5}
+.treemap-cell{cursor:pointer;transition:filter .1s}.treemap-cell:hover{filter:brightness(1.15)}
+.treemap-label{pointer-events:none;font-size:10px;fill:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);font-weight:500}
+.treemap-sublabel{pointer-events:none;font-size:9px;fill:rgba(255,255,255,.8);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.list-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--bd);cursor:pointer;transition:background .1s;font-size:12px}
+.list-row:hover{background:var(--hover)}
+.list-row .file-icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.list-row .file-info{flex:1;min-width:0}
+.list-row .file-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-row .file-path{color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-row .file-badges{display:flex;gap:4px;flex-shrink:0}
+.badge{display:inline-flex;align-items:center;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600}
+.badge-c{background:rgba(239,68,68,.15);color:var(--err)}.badge-h{background:rgba(245,158,11,.15);color:var(--warn)}
+.badge-m{background:rgba(59,130,246,.15);color:var(--info)}.badge-l{background:rgba(148,163,184,.15);color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="brand">
+      <div class="ico">🗺️</div>
+      <div><div class="t">Code Map</div><div class="st">Repository Visualization</div></div>
+    </div>
+    <div class="ctrls">
+      <input type="text" class="inp" id="searchInput" placeholder="Search files..."/>
+      <select class="sel" id="viewSelect"><option value="treemap">Treemap</option><option value="network">Network</option><option value="sunburst">Sunburst</option><option value="list">List</option></select>
+      <select class="sel" id="colorSelect"><option value="issues">By Issues</option><option value="language">By Language</option><option value="size">By Size</option></select>
+      <select class="sel" id="filterSelect"><option value="all">All Files</option><option value="issues">With Issues</option><option value="clean">Clean</option></select>
+      <button class="btn gh" id="exportBtn">Export JSON</button>
+      <button class="btn" id="resetBtn">Reset</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="vis" id="visContainer"><svg id="codeMapSvg"></svg></div>
+    <div class="side">
+      <div class="sec">
+        <h4>Overview</h4>
+        <div class="grid">
+          <div class="card"><div class="v" id="totalFiles">0</div><div class="l">Files</div></div>
+          <div class="card"><div class="v" id="totalIssues">0</div><div class="l">Issues</div></div>
+          <div class="card"><div class="v g" id="healthScore">0</div><div class="l">Health</div></div>
+          <div class="card"><div class="v i" id="totalDeps">0</div><div class="l">Links</div></div>
+        </div>
+      </div>
+      <div class="sec">
+        <h4>Legend</h4>
+        <div class="leg" id="legendBox">
+          <div class="leg-i"><div class="leg-d" style="background:var(--suc)"></div><span>No Issues</span></div>
+          <div class="leg-i"><div class="leg-d" style="background:var(--warn)"></div><span>1–2 Issues</span></div>
+          <div class="leg-i"><div class="leg-d" style="background:#F97316"></div><span>3–5 Issues</span></div>
+          <div class="leg-i"><div class="leg-d" style="background:var(--err)"></div><span>6+ Issues</span></div>
+        </div>
+      </div>
+      <div class="sec fp" id="filePanel">
+        <h4>Selected File</h4>
+        <div class="fname" id="fileName">—</div>
+        <div class="meta" id="fileMeta"></div>
+        <div id="fileIssues"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tooltip"></div>
+<script nonce="NONCE">
+const vscode=acquireVsCodeApi();let cd=null,sim=null,currentView='treemap';
+const langColors={javascript:'#F7DF1E',typescript:'#3178C6',python:'#3776AB',java:'#B07219',go:'#00ADD8',rust:'#DEA584',cpp:'#f34b7d',csharp:'#178600',php:'#4F5D95',ruby:'#701516',swift:'#F05138',kotlin:'#A97BFF',html:'#E34C26',css:'#563D7C',scss:'#C6538C',json:'#CCCCCC',yaml:'#CB171E',markdown:'#083FA1',sql:'#E38C00',unknown:'#888888'};
+function req(){vscode.postMessage({command:'requestData'})}
+document.addEventListener('DOMContentLoaded',()=>{req();bind()});
+function bind(){
+  document.getElementById('exportBtn').onclick=()=>vscode.postMessage({command:'exportMap',format:'json'});
+  document.getElementById('resetBtn').onclick=()=>{document.getElementById('searchInput').value='';cd&&render(cd);};
+  document.getElementById('viewSelect').onchange=e=>{currentView=e.target.value;cd&&render(cd);};
+  document.getElementById('colorSelect').onchange=()=>cd&&render(cd);
+  document.getElementById('filterSelect').onchange=()=>cd&&render(cd);
+  document.getElementById('searchInput').oninput=()=>cd&&render(cd);
+}
+window.addEventListener('message',e=>{const m=e.data;if(m.command==='updateData'){cd=m.data;requestAnimationFrame(()=>{render(cd);updMet(m.data.metrics)});}});
+
+function getFilteredFiles(data){
+  let files=data.files||[];
+  if(!files.length)return[];
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  if(q)files=files.filter(x=>x.name.toLowerCase().includes(q)||x.path.toLowerCase().includes(q));
+  const f=document.getElementById('filterSelect').value;
+  if(f==='issues')files=files.filter(x=>(x.issues||[]).length>0);
+  else if(f==='clean')files=files.filter(x=>(x.issues||[]).length===0);
+  return files;
+}
+
+function fileColor(f){
+  const mode=document.getElementById('colorSelect').value;
+  if(mode==='language')return langColors[f.language]||'#888888';
+  if(mode==='size'){const max=Math.max(...(cd.files||[]).map(x=>x.lines||0));const t=max>0?(f.lines||0)/max:0;return d3.interpolateViridis(t)}
+  const c=(f.issues||[]).length;return c===0?'#10B981':c<=2?'#F59E0B':c<=5?'#F97316':'#EF4444';
+}
+
+function render(data){
+  const vis=document.getElementById('visContainer');
+  let svg=d3.select('#codeMapSvg');
+  if(svg.empty()){d3.select(vis).append('svg').attr('id','codeMapSvg');svg=d3.select('#codeMapSvg');}
+  d3.select(vis).selectAll('.list-view').remove();
+  let w=vis.clientWidth,h=vis.clientHeight;
+  if(!w||!h){w=800;h=600}
+  svg.attr('width',w).attr('height',h);svg.selectAll('*').remove();
+  const files=getFilteredFiles(data);
+  if(!files.length){
+    const g=svg.append('g').attr('class','empty-state');
+    g.append('text').attr('x',w/2).attr('y',h/2-30).attr('text-anchor','middle').attr('fill','var(--muted)').attr('font-size','14px').text('No files to display. Run a scan first.');
+    return;
+  }
+  if(currentView==='treemap')renderTreemap(svg,files,w,h);
+  else if(currentView==='network')renderNetwork(svg,files,data.dependencies||[],w,h);
+  else if(currentView==='sunburst')renderSunburst(svg,files,w,h);
+  else renderList(svg,files,w,h);
+}
+
+function renderTreemap(svg,files,w,h){
+  const root=d3.stratify().id(d=>d.path).parentId(d=>d.path.substring(0,d.path.lastIndexOf('/'))||null)(files.map(f=>({...f,path:f.path,value:Math.max(f.lines||0,1)})));
+  root.sum(d=>d.value).sort((a,b)=>b.value-a.value);
+  d3.treemap().size([w,h]).padding(2).round(true)(root);
+  const leaf=svg.selectAll('g').data(root.leaves()).enter().append('g').attr('transform',d=>'translate('+d.x0+','+d.y0+')');
+  leaf.append('rect').attr('class','treemap-cell').attr('width',d=>d.x1-d.x0).attr('height',d=>d.y1-d.y0).attr('fill',d=>fileColor(d.data)).attr('rx',4).attr('ry',4)
+    .on('click',(e,d)=>showDet(d.data)).on('dblclick',(e,d)=>openFile(d.data))
+    .on('mouseover',(e,d)=>showTip(e,d.data,d.data.name)).on('mouseout',hideTip);
+  leaf.filter(d=>(d.x1-d.x0)>40&&(d.y1-d.y0)>25).append('text').attr('class','treemap-label').attr('x',4).attr('y',14).text(d=>d.data.name.length>18?d.data.name.slice(0,16)+'...':d.data.name);
+  leaf.filter(d=>(d.x1-d.x0)>50&&(d.y1-d.y0)>40).append('text').attr('class','treemap-sublabel').attr('x',4).attr('y',26).text(d=>(d.data.lines||0)+' lines');
+}
+
+function renderNetwork(svg,files,deps,w,h){
+  const nodes=files.map(f=>({id:f.id,name:f.name,group:f.language,r:Math.max(6,Math.min(24,(f.lines||0)/25+5)),color:fileColor(f),data:f}));
+  const nodeIds=new Set(files.map(f=>f.id));
+  const links=deps.filter(d=>nodeIds.has(d.from)&&nodeIds.has(d.to)).map(d=>({source:d.from,target:d.to,value:d.strength}));
+  const g=svg.append('g');
+  const zoom=d3.zoom().scaleExtent([.3,4]).on('zoom',e=>g.attr('transform',e.transform));
+  svg.call(zoom);
+  const simulation=d3.forceSimulation(nodes);
+  if(links.length)simulation.force('link',d3.forceLink(links).id(d=>d.id).distance(90)).force('charge',d3.forceManyBody().strength(-250));
+  else simulation.force('charge',d3.forceManyBody().strength(-120));
+  simulation.force('center',d3.forceCenter(w/2,h/2)).force('collision',d3.forceCollide().radius(d=>d.r+4));
+  const L=g.append('g').selectAll('line').data(links).enter().append('line').attr('stroke','var(--bd)').attr('stroke-opacity',.5).attr('stroke-width',d=>Math.max(1,d.value*2));
+  const N=g.append('g').selectAll('g').data(nodes).enter().append('g').attr('class','nd').call(d3.drag().on('start',(e,d)=>{if(!e.active)simulation.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y}).on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y}).on('end',(e,d)=>{if(!e.active)simulation.alphaTarget(0);d.fx=null;d.fy=null}));
+  N.append('circle').attr('r',d=>d.r).attr('fill',d=>d.color).attr('stroke','var(--panel)').attr('stroke-width',1.5);
+  N.filter(d=>d.r>10).append('text').attr('text-anchor','middle').attr('dy','.35em').attr('fill','#fff').attr('font-size',d=>Math.min(11,d.r)+'px').attr('font-weight','600').attr('pointer-events','none').text(d=>d.name.length>10?d.name.slice(0,8)+'...':d.name).style('text-shadow','0 1px 2px rgba(0,0,0,.5)');
+  N.on('click',(e,d)=>showDet(d.data)).on('dblclick',(e,d)=>openFile(d.data)).on('mouseover',(e,d)=>showTip(e,d.data,d.data.name)).on('mouseout',hideTip);
+  simulation.on('tick',()=>{L.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);N.attr('transform',d=>'translate('+d.x+','+d.y+')');});
+}
+
+function renderSunburst(svg,files,w,h){
+  const radius=Math.min(w,h)/2-20;
+  const root=d3.stratify().id(d=>d.path).parentId(d=>{const p=d.path.substring(0,d.path.lastIndexOf('/'));return p||'root';})([{path:'root',name:'root',lines:0},...files.map(f=>({...f,path:f.path}))]);
+  root.sum(d=>Math.max(d.lines||0,1));
+  const partition=d3.partition().size([2*Math.PI,root.height?root.height+1:2]);
+  partition(root);
+  const arc=d3.arc().startAngle(d=>d.x0).endAngle(d=>d.x1).padAngle(.005).padRadius(radius/2).innerRadius(d=>d.y0*radius/root.height).outerRadius(d=>Math.max(d.y0*radius/root.height,d.y1*radius/root.height-1));
+  const g=svg.append('g').attr('transform','translate('+w/2+','+h/2+')');
+  g.selectAll('path').data(root.descendants().filter(d=>d.depth)).enter().append('path').attr('d',arc).style('fill',d=>d.depth?fileColor(d.data):'var(--panel)').style('cursor','pointer').style('stroke','var(--bg)').style('stroke-width','1.5px')
+    .on('click',(e,d)=>{if(d.data.lines!==undefined&&d.data.path!=='root')showDet(d.data)}).on('dblclick',(e,d)=>{if(d.data.lines!==undefined&&d.data.path!=='root')openFile(d.data)})
+    .on('mouseover',(e,d)=>{if(d.data.lines!==undefined&&d.data.path!=='root')showTip(e,d.data,d.data.name)}).on('mouseout',hideTip);
+  g.selectAll('text').data(root.descendants().filter(d=>d.depth&&d.x1-d.x0>.03)).enter().append('text').attr('transform',d=>'rotate('+(d.x0+d.x1)/2*180/Math.PI-90+')translate('+(d.y0+d.y1)*radius/(2*root.height)+',0)rotate('+(d.x0+d.x1)/2*180/Math.PI>Math.PI?180:0+')').attr('dy','0.35em').attr('font-size','10px').attr('fill','#fff').attr('text-anchor','middle').style('text-shadow','0 1px 2px rgba(0,0,0,.5)').text(d=>d.data.name.length>12?d.data.name.slice(0,10)+'...':d.data.name);
+}
+
+function renderList(svg,files,w,h){
+  const container=d3.select('#visContainer');container.selectAll('*').remove();
+  const list=container.append('div').style('width',w+'px').style('height',h+'px').style('overflow-y','auto');
+  files.sort((a,b)=>((b.issues||[]).length-(a.issues||[]).length)||((b.lines||0)-(a.lines||0)));
+  files.forEach(f=>{
+    const row=list.append('div').attr('class','list-row').on('click',()=>showDet(f)).on('dblclick',()=>openFile(f));
+    row.append('div').attr('class','file-icon').style('background',langColors[f.language]||'#888').text((f.language||'')[0]?.toUpperCase()||'?');
+    const info=row.append('div').attr('class','file-info');
+    info.append('div').attr('class','file-name').text(f.name);
+    info.append('div').attr('class','file-path').text(f.path);
+    const badges=row.append('div').attr('class','file-badges');
+    const issues=(f.issues||[]);if(issues.length)badges.append('span').attr('class','badge badge-'+issues[0].severity[0]).text(issues.length);
+    row.append('div').style('color','var(--muted)').style('font-size','11px').style('flex-shrink','0').text((f.lines||0)+' lines');
+  });
+}
+
+function openFile(file){const firstIssue=(file.issues||[])[0];vscode.postMessage({command:'openFile',filePath:file.path,line:firstIssue?firstIssue.line:0});}
+
+function showDet(file){
+  document.getElementById('filePanel').classList.add('on');
+  document.getElementById('fileName').textContent=file.name;
+  const meta=document.getElementById('fileMeta');meta.textContent='';
+  const fields=[['Path',file.path],['Language',file.language],['Lines',file.lines||0],['Size',formatBytes(file.size||0)],['Issues',(file.issues||[]).length],['Complexity',file.complexity||0]];
+  fields.forEach(([l,v])=>{const div=document.createElement('div');div.className='meta-i';const lbl=document.createElement('div');lbl.className='ml';lbl.textContent=l;const val=document.createElement('div');val.className='mv';val.textContent=String(v);div.appendChild(lbl);div.appendChild(val);meta.appendChild(div);});
+  const issuesDiv=document.getElementById('fileIssues');issuesDiv.textContent='';
+  if(file.issues&&file.issues.length){
+    const hdr=document.createElement('div');hdr.style.cssText='font-size:11px;font-weight:600;margin-top:10px;margin-bottom:6px;color:var(--fg);';hdr.textContent='Issues & Fixes';issuesDiv.appendChild(hdr);
+    file.issues.forEach(i=>{
+      const div=document.createElement('div');div.className='issue-row sev-'+i.severity[0];
+      const title=document.createElement('div');title.style.cssText='font-weight:600;font-size:11px;';title.textContent=esc(i.description||i.type);div.appendChild(title);
+      const info=document.createElement('div');info.style.cssText='color:var(--muted);margin-top:2px;font-size:10px;';info.textContent=esc(i.severity)+' \u2022 line '+(i.line||0);div.appendChild(info);
+      if(i.fix){const fix=document.createElement('div');fix.style.cssText='color:var(--ac);margin-top:3px;font-size:10px;';fix.textContent=esc(i.fix.description)+(i.fix.autoFixable?' [auto-fix]':'');div.appendChild(fix);}
+      div.onclick=()=>vscode.postMessage({command:'openFile',filePath:file.path,line:i.line||0});
+      issuesDiv.appendChild(div);
+    });
+  }
+}
+
+function showTip(e,data,name){
+  const t=document.getElementById('tooltip');t.textContent='';const issues=data.issues||[];
+  const tt=document.createElement('div');tt.className='tt';tt.textContent=name;t.appendChild(tt);
+  const meta=document.createElement('div');meta.className='tr';meta.textContent=esc(data.language)+' \u2022 '+(data.lines||0)+' lines';t.appendChild(meta);
+  if(issues.length){
+    const count=document.createElement('div');count.className='tr';count.style.cssText='margin-top:4px;font-weight:600;';count.textContent=issues.length+' issue'+(issues.length===1?'':'s');t.appendChild(count);
+    issues.slice(0,3).forEach(i=>{const row=document.createElement('div');row.className='tr';row.style.cssText='margin-top:3px;border-top:1px solid var(--bd);padding-top:3px;';row.textContent=esc(i.description||i.type);t.appendChild(row);});
+    if(issues.length>3){const more=document.createElement('div');more.className='tr';more.textContent='...and '+(issues.length-3)+' more';t.appendChild(more);}
+  }else{const ok=document.createElement('div');ok.className='tr';ok.style.cssText='color:var(--suc);margin-top:3px;';ok.textContent='No issues';t.appendChild(ok);}
+  t.style.left=(e.pageX||e.clientX+12)+'px';t.style.top=(e.pageY||e.clientY+12)+'px';t.style.opacity=1;
+}
+function hideTip(){document.getElementById('tooltip').style.opacity=0}
+function esc(s){const d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
+function formatBytes(b){if(b===0)return'0 B';const k=1024,s=['B','KB','MB','GB'];const i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(1))+' '+s[i];}
+function updMet(m){document.getElementById('totalFiles').textContent=m.totalFiles||0;document.getElementById('totalIssues').textContent=m.totalIssues||0;document.getElementById('healthScore').textContent=Math.round(m.healthScore||0);document.getElementById('totalDeps').textContent=m.totalDependencies||0;}
+</script>
+</body>
+</html>

@@ -2,14 +2,15 @@
  * Shared helpers for data-quality analyzers.
  */
 
+const constants = require('../../../../../../ai-platform/server/config/constants.cjs');
 const DATA_EXTENSIONS = new Set(['.json', '.csv', '.yaml', '.yml', '.xml', '.sql', '.sqlite', '.db']);
 const DATA_PATH_HINTS = [
-    'web/data',
-    'data/mock',
-    'data-central',
-    'mock',
-    'fixtures',
-    'sample',
+    'web/data', // simplebeacon:production-leak-intent: analyzer-classifier - Analyzer-internal data file classification hints
+    'data/mock', // simplebeacon:production-leak-intent: analyzer-classifier - Analyzer-internal data file classification hints
+    'data-central', // simplebeacon:production-leak-intent: analyzer-classifier - Analyzer-internal data file classification hints
+    'mock', // simplebeacon:production-leak-intent: analyzer-classifier - Analyzer-internal data file classification hints
+    'fixtures', // simplebeacon:production-leak-intent: analyzer-classifier - Analyzer-internal data file classification hints
+    'sample', // simplebeacon:production-leak-intent: analyzer-classifier - Analyzer-internal data file classification hints
     '.simplebeacon'
 ];
 
@@ -30,7 +31,7 @@ function isDataPath(relativePath) {
 function daysSince(date) {
     if (!date) return null;
     const ms = Date.now() - new Date(date).getTime();
-    return Math.floor(ms / (24 * 60 * 60 * 1000));
+    return Math.floor(ms / (24 * 60 * constants.ONE_MINUTE_MS));
 }
 
 function getGitLastCommitDate(filePath, projectRoot) {

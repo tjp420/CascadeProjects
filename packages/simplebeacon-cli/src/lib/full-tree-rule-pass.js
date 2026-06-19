@@ -13,6 +13,7 @@ const {
 const { scanEuAiActFileContent } = require('../rules/eu-ai-act-patterns');
 const { scanTextPatterns: scanTokenBleedText } = require('../rules/token-bleed-patterns');
 const { scanTextPatterns: scanArchitectureDriftText } = require('../rules/architecture-drift-patterns');
+const { scanSecurityPatterns } = require('../rules/security-pattern-scanner');
 
 function isUnderProductionPaths(relativePath, productionPaths = ['server/', 'src/']) {
     const rel = String(relativePath || '').replace(/\\/g, '/');
@@ -33,7 +34,8 @@ function runTextRulePasses(relativePath, content, ext, options = {}) {
         fictionKpi: 0,
         euAiAct: 0,
         tokenBleed: 0,
-        architectureDrift: 0
+        architectureDrift: 0,
+        security: 0
     };
 
     const cred = scanTextContent(relativePath.split(/[/\\]/).pop(), content, relativePath);
@@ -107,6 +109,12 @@ function runTextRulePasses(relativePath, content, ext, options = {}) {
             counts.architectureDrift = drift.length;
             issues.push(...drift);
         }
+    }
+
+    if (options.security !== false) {
+        const sec = scanSecurityPatterns(relativePath, content, ext);
+        counts.security = sec.length;
+        issues.push(...sec);
     }
 
     return { issues, counts, euStats };

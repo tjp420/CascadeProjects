@@ -1,0 +1,268 @@
+{
+  "summary": {
+    "project": "vscode-extension",
+    "healthScore": 25,
+    "exportedAt": "2026-06-15T03:35:00.000Z",
+    "generatedAt": "2026-06-15T03:35:00.000Z",
+    "sourceReport": "2026-06-15T03:35:00.000Z",
+    "phases": {
+      "total": 4,
+      "completed": 0,
+      "blocked": 0,
+      "inProgress": 0,
+      "pending": 4
+    },
+    "tasks": {
+      "total": 22,
+      "completed": 0,
+      "remaining": 22
+    },
+    "criticalPaths": [
+      "security-hardening",
+      "core-features"
+    ]
+  },
+  "phases": [
+    {
+      "id": "security-hardening",
+      "title": "Security Hardening",
+      "status": "pending",
+      "severity": "high",
+      "effort": "1 day",
+      "progress": 0,
+      "description": "Fix security findings before release to marketplace.",
+      "dependsOn": null,
+      "dependsOnTitle": null,
+      "impact": "Blocks marketplace submission",
+      "fix": null,
+      "taskSummary": {
+        "total": 4,
+        "done": 0,
+        "todo": 4,
+        "percent": 0
+      },
+      "tasks": [
+        {
+          "description": "Add 'use strict' directive to all source files (extension.js, scanProvider.js, webview.js)",
+          "type": "strict-mode",
+          "location": "vscode-extension/src/*.js",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Replace Math.random() nonce with crypto.randomBytes in getNonce() (already done — verify)",
+          "type": "security",
+          "location": "vscode-extension/src/webview.js:166",
+          "done": false,
+          "isStructured": true,
+          "note": "Currently uses crypto.randomBytes — confirm and mark done"
+        },
+        {
+          "description": "Expand CSP meta tag to include all required directives (img-src, font-src, connect-src, frame-src, media-src)",
+          "type": "security",
+          "location": "vscode-extension/src/webview.js:79",
+          "done": false,
+          "isStructured": true,
+          "note": "Current CSP already has these — verify completeness"
+        },
+        {
+          "description": "Escape all user-controlled data in webview HTML (report.title, file paths, descriptions)",
+          "type": "xss",
+          "location": "vscode-extension/src/webview.js:127-140",
+          "done": false,
+          "isStructured": true,
+          "note": "escapeHtml() exists — verify all inputs are passed through it"
+        }
+      ]
+    },
+    {
+      "id": "core-features",
+      "title": "Core Features Implementation",
+      "status": "pending",
+      "severity": "high",
+      "effort": "3–5 days",
+      "progress": 0,
+      "description": "Complete MVP features for marketplace-ready extension.",
+      "dependsOn": "security-hardening",
+      "dependsOnTitle": "Security Hardening",
+      "impact": "Core user value",
+      "fix": null,
+      "taskSummary": {
+        "total": 8,
+        "done": 0,
+        "todo": 8,
+        "percent": 0
+      },
+      "tasks": [
+        {
+          "description": "Implement full deactivate() with resource cleanup (disposables, timers, file watchers)",
+          "type": "stub",
+          "location": "vscode-extension/src/extension.js:182",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Convert loadExistingReport() from sync fs.readFileSync to async fs.promises.readFile",
+          "type": "sync-io",
+          "location": "vscode-extension/src/extension.js:156-180",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add scan-in-progress cancellation token to spawn child process",
+          "type": "feature",
+          "location": "vscode-extension/src/extension.js:66-80",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add multi-workspace folder support (scan each folder, merge reports)",
+          "type": "feature",
+          "location": "vscode-extension/src/extension.js:40-47",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add CLI binary auto-discovery (node_modules/.bin, global npx, bundled binary)",
+          "type": "feature",
+          "location": "vscode-extension/src/extension.js:48-50",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Implement incremental scanning (only scan changed files when autoScanOnSave)",
+          "type": "feature",
+          "location": "vscode-extension/src/extension.js:29-35",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add scan history persistence across VS Code sessions",
+          "type": "feature",
+          "location": "vscode-extension/src/extension.js",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add workspace diagnostics integration (Problem Panel / Diagnostics API)",
+          "type": "feature",
+          "location": "vscode-extension/src/extension.js",
+          "done": false,
+          "isStructured": true
+        }
+      ]
+    },
+    {
+      "id": "quality-optimization",
+      "title": "Quality Optimization",
+      "status": "pending",
+      "severity": "medium",
+      "effort": "2–3 days",
+      "progress": 0,
+      "description": "Refactor for async patterns, add tests, improve error handling.",
+      "dependsOn": "core-features",
+      "dependsOnTitle": "Core Features Implementation",
+      "impact": "Maintainability",
+      "fix": null,
+      "taskSummary": {
+        "total": 7,
+        "done": 0,
+        "todo": 7,
+        "percent": 0
+      },
+      "tasks": [
+        {
+          "description": "Add JSDoc types to all public APIs (activate, runScan, showReport, etc.)",
+          "type": "documentation",
+          "location": "vscode-extension/src/extension.js",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add unit tests for scanProvider category extraction logic",
+          "type": "testing",
+          "location": "vscode-extension/src/scanProvider.js:73-99",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add unit tests for webview HTML generation and escapeHtml",
+          "type": "testing",
+          "location": "vscode-extension/src/webview.js:48-164",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add proper error handling for missing CLI binary with helpful install instructions",
+          "type": "error-handling",
+          "location": "vscode-extension/src/extension.js:122-125",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add progress reporting for large repositories (>1000 files)",
+          "type": "ux",
+          "location": "vscode-extension/src/extension.js:61-127",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add configuration schema validation (simplebeacon.cliPath must be executable)",
+          "type": "validation",
+          "location": "vscode-extension/package.json:81-108",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add .vscodeignore patterns for dev-only files (tests, eslint config, source maps)",
+          "type": "packaging",
+          "location": "vscode-extension/.vscodeignore",
+          "done": false,
+          "isStructured": true
+        }
+      ]
+    },
+    {
+      "id": "marketplace-ready",
+      "title": "Marketplace Release",
+      "status": "pending",
+      "severity": "low",
+      "effort": "1–2 days",
+      "progress": 0,
+      "description": "Prepare for VS Code Marketplace submission.",
+      "dependsOn": "quality-optimization",
+      "dependsOnTitle": "Quality Optimization",
+      "impact": "Distribution",
+      "fix": null,
+      "taskSummary": {
+        "total": 3,
+        "done": 0,
+        "todo": 3,
+        "percent": 0
+      },
+      "tasks": [
+        {
+          "description": "Add README.md with installation, usage, and configuration instructions",
+          "type": "documentation",
+          "location": "vscode-extension/README.md",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add CHANGELOG.md with version history",
+          "type": "documentation",
+          "location": "vscode-extension/CHANGELOG.md",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Create icon set for marketplace (128x128, 256x256 PNG/SVG)",
+          "type": "assets",
+          "location": "vscode-extension/images/",
+          "done": false,
+          "isStructured": true
+        }
+      ]
+    }
+  ]
+}

@@ -7,6 +7,12 @@ const path = require('path');
 const { registerOperatorDeliverableRoute } = require('./operator-deliverable-route.cjs');
 const { registerEuAiActSprintRoute } = require('./eu-ai-act-sprint-route.cjs');
 
+/**
+ * Register operator landing pages.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function registerOperatorLandingPages(app, options = {}) {
   const landingRoot = options.landingRoot
     || path.join(options.projectRoot || path.join(__dirname, '../..'), '..', 'coming-soon');
@@ -28,6 +34,12 @@ function registerOperatorLandingPages(app, options = {}) {
   }
 }
 
+/**
+ * Register operator routes.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function registerOperatorRoutes(app, options = {}) {
   registerOperatorDeliverableRoute(app, options);
   registerEuAiActSprintRoute(app, options);

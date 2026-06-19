@@ -5,6 +5,11 @@
 const { buildTrustVerificationPayload } = require('./trust-verification-payload.cjs');
 const { buildRepositoryHealthPayload } = require('./repository-health-payload.cjs');
 
+/**
+ * Optimization compliance label.
+ * @param {any} healthHeadline
+ * @returns {any}
+ */
 function optimizationComplianceLabel(healthHeadline) {
     if (!healthHeadline) return 'unknown';
     const score = healthHeadline.repositoryHealthScore ?? 0;
@@ -13,6 +18,11 @@ function optimizationComplianceLabel(healthHeadline) {
     return 'needs_attention';
 }
 
+/**
+ * Build dev sec ops compliance payload.
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildDevSecOpsCompliancePayload(options = {}) {
     const trust = buildTrustVerificationPayload(options);
     const health = trust.repositoryHealth || buildRepositoryHealthPayload(options);
@@ -46,6 +56,11 @@ function buildDevSecOpsCompliancePayload(options = {}) {
     };
 }
 
+/**
+ * Esc.
+ * @param {any} value
+ * @returns {any}
+ */
 function esc(value) {
     return String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -54,12 +69,22 @@ function esc(value) {
         .replace(/"/g, '&quot;');
 }
 
+/**
+ * Compliance status class.
+ * @param {any} label
+ * @returns {any}
+ */
 function complianceStatusClass(label) {
     if (label === 'good') return 'pass';
     if (label === 'partial') return 'warn';
     return 'review';
 }
 
+/**
+ * Build compliance html.
+ * @param {any} payload
+ * @returns {any}
+ */
 function buildComplianceHtml(payload) {
     const gate = payload.gatePass ? 'pass' : 'review';
     const gateLabel = payload.gatePass ? 'GATE PASS' : 'GATE REVIEW';

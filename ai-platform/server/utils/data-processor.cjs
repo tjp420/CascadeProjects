@@ -17,11 +17,12 @@ const os = require('os');
 const crypto = require('crypto');
 const { exec } = require('child_process');
 const util = require('util');
+const constants = require('../config/constants.cjs');
 const execAsync = util.promisify(exec);
 const AdmZip = require('adm-zip');
 
 const SANDBOX_PREFIX = 'simplebeacon_sandbox';
-const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // 500 MB
+const MAX_UPLOAD_BYTES = 500 * constants.BYTES_PER_KB * constants.BYTES_PER_KB; // 500 MB
 
 /**
  * Generate a cryptographically random sandbox directory name.
@@ -90,7 +91,7 @@ function writeFileToSandbox(fileBuffer, relativePath, sandboxDir) {
  * Run the local SimpleBeacon CLI scan against a sandboxed directory.
  */
 async function runLocalScan(sandboxDir, options = {}) {
-    const cliBin = path.join(__dirname, '../../packages/simplebeacon-cli/bin/simplebeacon.js');
+    const cliBin = path.join(__dirname, '../../../packages/simplebeacon-cli/bin/simplebeacon.js');
     const reportOut = path.join(sandboxDir, '.simplebeacon', 'report.json');
     fs.mkdirSync(path.dirname(reportOut), { recursive: true });
 

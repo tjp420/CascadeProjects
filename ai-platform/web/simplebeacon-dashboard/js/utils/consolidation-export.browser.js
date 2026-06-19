@@ -2,12 +2,23 @@
  * Browser mirror of consolidation-export-sanitize.js — keep in sync.
  */
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Redact project path for export.
+ * @param {string} rawPath
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = String(rawPath).replace(/\\/g, '/');
@@ -18,6 +29,12 @@ function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   return normalized;
 }
 
+/**
+ * Redact consolidation project path.
+ * @param {any} value
+ * @param {Object} options
+ * @returns {any}
+ */
 function redactConsolidationProjectPath(value, options = {}) {
   if (value == null || value === '') return value;
   const normalized = String(value).replace(/\\/g, '/');
@@ -32,9 +49,21 @@ function redactConsolidationProjectPath(value, options = {}) {
   return redactProjectPathForExport(normalized, label);
 }
 
+/**
+ * Apply redacted consolidation paths.
+ * @param {any} scan
+ * @param {string} projectPath
+ * @param {any} productPlatformRoot
+ * @returns {any}
+ */
 function applyRedactedConsolidationPaths(scan, projectPath, productPlatformRoot) {
   const projectLabel = projectLabelFromPath(productPlatformRoot || projectPath || 'ai-platform');
   const pathOptions = { projectLabel, productPlatformLabel: projectLabel };
+/**
+ * Redact.
+ * @param {any} value
+ * @returns {any}
+ */
   const redact = (value) => redactConsolidationProjectPath(value, pathOptions);
   return {
     ...scan,
@@ -53,6 +82,11 @@ function applyRedactedConsolidationPaths(scan, projectPath, productPlatformRoot)
   };
 }
 
+/**
+ * Is benchmark path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function isBenchmarkPath(filePath) {
   const rel = String(filePath || '').replace(/\\/g, '/').toLowerCase();
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/');
@@ -63,10 +97,20 @@ const PRODUCT_PATH_MARKERS = [
   /^data\/roadmap\b/i
 ];
 
+/**
+ * Normalize relative path.
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function normalizeRelativePath(relativePath) {
   return String(relativePath || '').replace(/\\/g, '/');
 }
 
+/**
+ * Is ephemeral consolidation path.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function isEphemeralConsolidationPath(filePath) {
   const rel = normalizeRelativePath(filePath);
   const base = rel.split('/').pop() || '';
@@ -81,31 +125,71 @@ function isEphemeralConsolidationPath(filePath) {
   return false;
 }
 
+/**
+ * Is monorepo platform alias pair.
+ * @param {string} pathA
+ * @param {string} pathB
+ * @param {string} platformDirName
+ * @returns {any}
+ */
 function isMonorepoPlatformAliasPair(pathA, pathB, platformDirName = 'ai-platform') {
   const a = normalizeRelativePath(pathA);
   const b = normalizeRelativePath(pathB);
   if (a === b) return false;
   const prefix = `${platformDirName}/`;
+/**
+ * Strip prefix.
+ * @param {any} p
+ * @returns {any}
+ */
   const stripPrefix = (p) => (p.startsWith(prefix) ? p.slice(prefix.length) : p);
   return (a.startsWith(prefix) && b === stripPrefix(a)) || (b.startsWith(prefix) && a === stripPrefix(b));
 }
 
+/**
+ * Is browser build mirror pair.
+ * @param {string} pathA
+ * @param {string} pathB
+ * @returns {any}
+ */
 function isBrowserBuildMirrorPair(pathA, pathB) {
   const a = normalizeRelativePath(pathA);
   const b = normalizeRelativePath(pathB);
   const browserRe = /\.browser\.(js|mjs|cjs|ts|tsx)$/i;
   if (!browserRe.test(a) && !browserRe.test(b)) return false;
+/**
+ * To source.
+ * @param {any} p
+ * @returns {any}
+ */
   const toSource = (p) => p.replace(/\.browser\.(js|mjs|cjs|ts|tsx)$/i, '.$1');
   return toSource(a) === b || toSource(b) === a;
 }
 
+/**
+ * Is intentional mcp example pair.
+ * @param {string} pathA
+ * @param {string} pathB
+ * @returns {any}
+ */
 function isIntentionalMcpExamplePair(pathA, pathB) {
   const a = normalizeRelativePath(pathA);
   const b = normalizeRelativePath(pathB);
+/**
+ * Is mcp config.
+ * @param {any} p
+ * @returns {any}
+ */
   const isMcpConfig = (p) => p.endsWith('mcp.json') || /\/examples\/mcp\//.test(p);
   return isMcpConfig(a) && isMcpConfig(b);
 }
 
+/**
+ * Is consolidation excluded pair.
+ * @param {string} pathA
+ * @param {string} pathB
+ * @returns {any}
+ */
 function isConsolidationExcludedPair(pathA, pathB) {
   if (isEphemeralConsolidationPath(pathA) || isEphemeralConsolidationPath(pathB)) return true;
   if (isMonorepoPlatformAliasPair(pathA, pathB)) return true;
@@ -114,10 +198,20 @@ function isConsolidationExcludedPair(pathA, pathB) {
   return false;
 }
 
+/**
+ * Filter fuzzy pairs.
+ * @param {Array} pairs
+ * @returns {any}
+ */
 function filterFuzzyPairs(pairs = []) {
   return pairs.filter((pair) => !isConsolidationExcludedPair(pair.fileA, pair.fileB));
 }
 
+/**
+ * Count excluded fuzzy pairs.
+ * @param {Array} pairs
+ * @returns {any}
+ */
 function countExcludedFuzzyPairs(pairs = []) {
   let browserMirrorPairsExcluded = 0;
   let mcpExamplePairsExcluded = 0;
@@ -151,6 +245,11 @@ function countExcludedFuzzyPairs(pairs = []) {
   };
 }
 
+/**
+ * Consolidation path touches excluded.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function consolidationPathTouchesExcluded(filePath) {
   const rel = String(filePath || '').replace(/\\/g, '/');
   return isEphemeralConsolidationPath(rel)
@@ -161,6 +260,11 @@ function consolidationPathTouchesExcluded(filePath) {
     || rel.includes('/.github-sync/');
 }
 
+/**
+ * Resolve product platform root.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(projectPath) {
   const normalized = String(projectPath || '').replace(/\\/g, '/');
   const idx = normalized.toLowerCase().indexOf('/github-cache/');
@@ -168,6 +272,12 @@ function resolveProductPlatformRoot(projectPath) {
   return normalized.slice(0, idx);
 }
 
+/**
+ * Resolve consolidation project path.
+ * @param {any} scan
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveConsolidationProjectPath(scan, options = {}) {
   const explicit = String(
     options.projectPath
@@ -184,6 +294,12 @@ function resolveConsolidationProjectPath(scan, options = {}) {
   return inferred || explicit;
 }
 
+/**
+ * Infer consolidation scan target from hints.
+ * @param {any} scan
+ * @param {Object} options
+ * @returns {any}
+ */
 function inferConsolidationScanTargetFromHints(scan, options = {}) {
   const filename = String(options.exportFilename || options.filename || '').toLowerCase();
   if (!filename.includes('github-cache')) return '';
@@ -199,6 +315,11 @@ function inferConsolidationScanTargetFromHints(scan, options = {}) {
   return `${platformRoot.replace(/\/$/, '')}/github-cache/${cloneName}`;
 }
 
+/**
+ * Dedupe export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeExportNotes(notes = []) {
   const seen = new Set();
   const out = [];
@@ -230,6 +351,14 @@ function dedupeExportNotes(notes = []) {
   return out.slice(0, 12);
 }
 
+/**
+ * Resolve intentional pairs excluded count.
+ * @param {any} summaryBase
+ * @param {Array} pairExclusions
+ * @param {number} rawMergeCount
+ * @param {number} mergeCandidatesLength
+ * @returns {any}
+ */
 function resolveIntentionalPairsExcludedCount(summaryBase, pairExclusions, rawMergeCount, mergeCandidatesLength) {
   const fromPairs = pairExclusions?.intentionalPairsExcluded ?? 0;
   const fromDiff = rawMergeCount > mergeCandidatesLength ? rawMergeCount - mergeCandidatesLength : 0;
@@ -238,6 +367,11 @@ function resolveIntentionalPairsExcludedCount(summaryBase, pairExclusions, rawMe
   return Math.max(fromSummary, fromPairs, fromDiff, fromFuzzy);
 }
 
+/**
+ * Reconcile legacy consolidation counts.
+ * @param {any} summary
+ * @returns {any}
+ */
 function reconcileLegacyConsolidationCounts(summary = {}) {
   let benchmarkCacheCandidatesExcluded = summary.benchmarkCacheCandidatesExcluded ?? 0;
   let fuzzyPairsExcluded = summary.fuzzyPairsExcluded ?? 0;
@@ -250,10 +384,21 @@ function reconcileLegacyConsolidationCounts(summary = {}) {
   return { benchmarkCacheCandidatesExcluded, fuzzyPairsExcluded };
 }
 
+/**
+ * Refresh product consolidation scope limitations.
+ * @param {any} scanScope
+ * @param {any} summary
+ * @returns {any}
+ */
 function refreshProductConsolidationScopeLimitations(scanScope, summary = {}) {
   if (!scanScope) return scanScope;
   const { benchmarkCacheCandidatesExcluded, fuzzyPairsExcluded } = reconcileLegacyConsolidationCounts(summary);
   const staleLimitationRe = /benchmark-clone candidate|near-duplicate pair\(s\) excluded \(MCP|duplicate group\(s\) under github-cache/i;
+/**
+ * Base.
+ * @param {number} scanScope.limitations || []
+ * @returns {any}
+ */
   const base = (scanScope.limitations || []).filter((line) => !staleLimitationRe.test(String(line)));
   const extra = [];
   if (benchmarkCacheCandidatesExcluded > 0) {
@@ -269,11 +414,23 @@ function refreshProductConsolidationScopeLimitations(scanScope, summary = {}) {
   return { ...scanScope, limitations: [...base, ...extra] };
 }
 
+/**
+ * Is benchmark consolidation.
+ * @param {any} scan
+ * @param {Object} options
+ * @returns {any}
+ */
 function isBenchmarkConsolidation(scan, options = {}) {
   if (options.benchmarkScan != null) return Boolean(options.benchmarkScan);
   return isBenchmarkPath(resolveConsolidationProjectPath(scan, options));
 }
 
+/**
+ * Rewrite product scoped text.
+ * @param {string} text
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function rewriteProductScopedText(text, benchmarkScan) {
   if (!benchmarkScan || text == null) return text;
   return String(text)
@@ -283,7 +440,17 @@ function rewriteProductScopedText(text, benchmarkScan) {
     .replace(/\(includes github-cache\/\)/gi, '(OSS clone under github-cache/)');
 }
 
+/**
+ * Consolidation candidate touches excluded export.
+ * @param {string} candidate
+ * @returns {any}
+ */
 function consolidationCandidateTouchesExcludedExport(candidate) {
+/**
+ * Paths.
+ * @param {string} candidate?.files || []
+ * @returns {any}
+ */
   const paths = (candidate?.files || []).map((file) =>
     file.path || file.relativePath || file.name).filter(Boolean);
   if (consolidationCandidateTouchesExcluded(candidate)) return true;
@@ -291,17 +458,33 @@ function consolidationCandidateTouchesExcludedExport(candidate) {
   return paths.some((p) => consolidationPathTouchesExcluded(p));
 }
 
+/**
+ * Should exclude consolidation candidate.
+ * @param {string} candidate
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function shouldExcludeConsolidationCandidate(candidate, benchmarkScan) {
   if (consolidationCandidateTouchesExcluded(candidate)) return true;
   if (benchmarkScan) return false;
   return consolidationCandidateTouchesExcludedExport(candidate);
 }
 
+/**
+ * Count intentional pair exclusions.
+ * @param {Array} candidates
+ * @returns {any}
+ */
 function countIntentionalPairExclusions(candidates = []) {
   let browserMirrorPairsExcluded = 0;
   let mcpExamplePairsExcluded = 0;
   let intentionalPairsExcluded = 0;
   for (const candidate of candidates) {
+/**
+ * Paths.
+ * @param {string} candidate?.files || []
+ * @returns {any}
+ */
     const paths = (candidate?.files || []).map((file) =>
       file.path || file.relativePath || file.name).filter(Boolean);
     if (paths.length !== 2) continue;
@@ -316,6 +499,12 @@ function countIntentionalPairExclusions(candidates = []) {
   return { browserMirrorPairsExcluded, mcpExamplePairsExcluded, intentionalPairsExcluded };
 }
 
+/**
+ * Filter consolidation recommendations.
+ * @param {Array} recommendations
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function filterConsolidationRecommendations(recommendations, benchmarkScan) {
   return (recommendations || []).filter((rec) => {
     const files = rec.files || [];
@@ -326,6 +515,11 @@ function filterConsolidationRecommendations(recommendations, benchmarkScan) {
   });
 }
 
+/**
+ * Resolve benchmark consolidation health.
+ * @param {any} summary
+ * @returns {any}
+ */
 function resolveBenchmarkConsolidationHealth(summary) {
   const mergeN = summary?.mergeCandidates ?? 0;
   const savings = summary?.potentialSavingsBytes ?? 0;
@@ -334,6 +528,12 @@ function resolveBenchmarkConsolidationHealth(summary) {
   return 'benchmark-hygiene';
 }
 
+/**
+ * Build benchmark consolidation export notes.
+ * @param {any} summary
+ * @param {Array} pairExclusions
+ * @returns {any}
+ */
 function buildBenchmarkConsolidationExportNotes(summary, pairExclusions) {
   const notes = [];
   const intentional = Math.max(
@@ -357,6 +557,13 @@ function buildBenchmarkConsolidationExportNotes(summary, pairExclusions) {
   return notes;
 }
 
+/**
+ * Assemble benchmark consolidation export notes.
+ * @param {Array} existingNotes
+ * @param {any} summary
+ * @param {Array} pairExclusions
+ * @returns {any}
+ */
 function assembleBenchmarkConsolidationExportNotes(existingNotes = [], summary, pairExclusions) {
   const dynamic = buildBenchmarkConsolidationExportNotes(summary, pairExclusions);
   const scopeNotes = [
@@ -381,13 +588,29 @@ function assembleBenchmarkConsolidationExportNotes(existingNotes = [], summary, 
   return dedupeExportNotes([...filtered, ...dynamic, ...scopeNotes]);
 }
 
+/**
+ * Consolidation candidate touches excluded.
+ * @param {string} candidate
+ * @returns {any}
+ */
 function consolidationCandidateTouchesExcluded(candidate) {
+/**
+ * Paths.
+ * @param {string} candidate?.files || []
+ * @returns {any}
+ */
   const paths = (candidate?.files || []).map((file) =>
     file.path || file.relativePath || file.name).filter(Boolean);
   if (paths.length === 2 && isConsolidationExcludedPair(paths[0], paths[1])) return true;
   return paths.some((p) => isEphemeralConsolidationPath(p));
 }
 
+/**
+ * Filter advanced analysis.
+ * @param {Array} analysis
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function filterAdvancedAnalysis(analysis, benchmarkScan) {
   if (!analysis) return analysis;
   const fuzzyPairs = filterFuzzyPairs(analysis.fuzzyNearDuplicates?.pairs || [])
@@ -411,6 +634,11 @@ function filterAdvancedAnalysis(analysis, benchmarkScan) {
   };
 }
 
+/**
+ * Resolve product consolidation health.
+ * @param {any} summary
+ * @returns {any}
+ */
 function resolveProductConsolidationHealth(summary) {
   const mergeN = summary?.mergeCandidates ?? 0;
   const savings = summary?.potentialSavingsBytes ?? 0;
@@ -419,6 +647,12 @@ function resolveProductConsolidationHealth(summary) {
   return 'platform-scoped';
 }
 
+/**
+ * Resolve consolidation gate context.
+ * @param {any} scan
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveConsolidationGateContext(scan, options = {}) {
   const gateReport = options.gateReport || {};
   const repositoryFilesTotal = options.repositoryFilesTotal
@@ -459,6 +693,13 @@ function resolveConsolidationGateContext(scan, options = {}) {
   };
 }
 
+/**
+ * Build product consolidation hygiene summary.
+ * @param {any} summaryBase
+ * @param {any} scan
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildProductConsolidationHygieneSummary(summaryBase, scan, options = {}) {
   const gateContext = resolveConsolidationGateContext(scan, options);
   const { repositoryFilesTotal: gateTotal, credentialScanned, contentScanned, gateProfile, gateReport,
@@ -495,6 +736,13 @@ function buildProductConsolidationHygieneSummary(summaryBase, scan, options = {}
   };
 }
 
+/**
+ * Enrich product consolidation scan scope.
+ * @param {any} scanScope
+ * @param {any} scan
+ * @param {Object} options
+ * @returns {any}
+ */
 function enrichProductConsolidationScanScope(scanScope, scan, options = {}) {
   const gateContext = resolveConsolidationGateContext(scan, options);
   const { repositoryFilesTotal: gateTotal, gateProfile } = gateContext;
@@ -511,6 +759,13 @@ function enrichProductConsolidationScanScope(scanScope, scan, options = {}) {
   };
 }
 
+/**
+ * Build product consolidation export notes.
+ * @param {any} scan
+ * @param {any} ephemeralExcluded
+ * @param {string} context
+ * @returns {any}
+ */
 function buildProductConsolidationExportNotes(scan, ephemeralExcluded, context = {}) {
   const notes = [
     'securityHandoffEligible is false — consolidation is measured duplicate hygiene only, not vendor security handoff.',
@@ -582,6 +837,11 @@ function buildProductConsolidationExportNotes(scan, ephemeralExcluded, context =
   return [...new Set(notes)].slice(0, 12);
 }
 
+/**
+ * Build product consolidation ai summary.
+ * @param {any} scan
+ * @returns {any}
+ */
 function buildProductConsolidationAiSummary(scan) {
   const s = scan.summary || {};
   const repoTotal = s.repositoryFilesTotal ?? scan.repositoryInventory?.totalFiles;
@@ -602,6 +862,11 @@ function buildProductConsolidationAiSummary(scan) {
   return `${parts.join('; ')}.`;
 }
 
+/**
+ * Build benchmark consolidation conclusion.
+ * @param {any} scan
+ * @returns {any}
+ */
 function buildBenchmarkConsolidationConclusion(scan) {
   const s = scan.summary || {};
   const repoFiles = s.repositoryFilesTotal ?? s.repositoryFilesAudited ?? scan.repositoryInventory?.totalFiles;
@@ -619,6 +884,12 @@ function buildBenchmarkConsolidationConclusion(scan) {
   return `${parts.join('. ')}.`;
 }
 
+/**
+ * Sanitize consolidation export.
+ * @param {any} scan
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeConsolidationExport(scan, options = {}) {
   if (!scan || scan.type !== 'file-merger-reduction-report' || !scan.summary) return scan;
 

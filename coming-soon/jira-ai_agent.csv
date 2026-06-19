@@ -1,0 +1,43 @@
+Issue Type,Summary,Description,Priority,Status,Labels,Linked Issues
+Task,"[Phase 1: Consistency & Deduplication] Consolidate 8 duplicate group(s)","Eliminate redundancy: 8 duplicate group(s): 60% consistency.",High,To Do,simplebeacon high,
+Task,"[Phase 1: Consistency & Deduplication] Review consistency check failures","Eliminate redundancy: 8 duplicate group(s): 60% consistency.",High,To Do,simplebeacon high,
+Task,"[Phase 1: Consistency & Deduplication] Standardize naming conventions","Eliminate redundancy: 8 duplicate group(s): 60% consistency.",High,To Do,simplebeacon high,
+Task,"[Phase 1: Consistency & Deduplication] Document canonical file locations","Eliminate redundancy: 8 duplicate group(s): 60% consistency.",High,To Do,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] console.log('Could not find pushModule(13)'); add-modules.js:15","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] console.log('Added modules 14 and 15 after line', insertIdx + 1); add-modules.js:55","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] console.log('[MCP HTTP] Scan complete. reportJson type:', typeof reportJson); ai-platform/mcp-http-server.cjs:546","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] 11 more console.log occurrence(s)","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] Delete self-generated bloat: .simplebeacon/final-verify.json.simplebeacon-backup.2026-06-06T23-31-04-954Z","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] Delete self-generated bloat: .simplebeacon/gate-test-report.json.simplebeacon-backup.2026-06-07T03-56-18-206Z","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] Delete self-generated bloat: .simplebeacon/gate-test-report.json.simplebeacon-backup.2026-06-07T03-57-18-869Z","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] ...and 63 more bloat file(s)","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] Add bloat patterns to .simplebeaconignore","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] Purge old scan backups with retention policy","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] Install eslint-plugin-no-console for CI","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 2: Cleanup & Hygiene] Add pre-commit hook to reject console.log","5 debug artifacts + 66 bloat file(s) detected.",High,In Progress,simplebeacon high,
+Task,"[Phase 6: Quality Optimization] Remove debug artifact in add-modules.js","Drive quality score from 93/100 toward 95+. 5 debug artifact(s). Depends on: euaiact",Low,Blocked,simplebeacon low,euaiact
+Task,"[Phase 6: Quality Optimization] Remove debug artifact in ai-platform/mcp-http-server.cjs","Drive quality score from 93/100 toward 95+. 5 debug artifact(s). Depends on: euaiact",Low,Blocked,simplebeacon low,euaiact
+Task,"[Phase 6: Quality Optimization] Remove debug artifact in ai-platform/packages/simplebeacon-cli/src/reporters/ai-enhanced-report.js","Drive quality score from 93/100 toward 95+. 5 debug artifact(s). Depends on: euaiact",Low,Blocked,simplebeacon low,euaiact
+Task,"[Phase 6: Quality Optimization] Remove debug artifact in ai-platform/packages/simplebeacon-cli/src/reporters/build-report.js","Drive quality score from 93/100 toward 95+. 5 debug artifact(s). Depends on: euaiact",Low,Blocked,simplebeacon low,euaiact
+Task,"[Phase 6: Quality Optimization] Remove debug artifact in ai-platform/packages/simplebeacon-intelligence/scripts/fetch-grammars.js","Drive quality score from 93/100 toward 95+. 5 debug artifact(s). Depends on: euaiact",Low,Blocked,simplebeacon low,euaiact
+Task,"[Phase 6: Quality Optimization] Add test coverage for uncovered modules","Drive quality score from 93/100 toward 95+. 5 debug artifact(s). Depends on: euaiact",Low,Blocked,simplebeacon low,euaiact
+Task,"[Phase 6: Quality Optimization] Install pre-commit hooks for automated scanning","Drive quality score from 93/100 toward 95+. 5 debug artifact(s). Depends on: euaiact",Low,Blocked,simplebeacon low,euaiact
+Task,"[Phase 6: Quality Optimization] Schedule monthly quality gate reviews","Drive quality score from 93/100 toward 95+. 5 debug artifact(s). Depends on: euaiact",Low,Blocked,simplebeacon low,euaiact
+Task,"[Phase 7: Mock Data Review] Review 91 Mock / Fixture / Sample Files file(s)","91 mock/fixture file(s) detected — verify excluded from production.",Low,To Do,simplebeacon low,
+Task,"[Phase 7: Mock Data Review] Add .simplebeaconignore patterns for fixtures","91 mock/fixture file(s) detected — verify excluded from production.",Low,To Do,simplebeacon low,
+Task,"[Phase 7: Mock Data Review] Exclude test data from production builds","91 mock/fixture file(s) detected — verify excluded from production.",Low,To Do,simplebeacon low,
+Task,"[Phase 8: npm Audit] Review ai-agent/package.json","11 package.json file(s), 110 total dependencies.",Low,To Do,simplebeacon low,
+Task,"[Phase 8: npm Audit] Review ai-platform/package.json","11 package.json file(s), 110 total dependencies.",Low,To Do,simplebeacon low,
+Task,"[Phase 8: npm Audit] Review ai-platform/packages/simplebeacon-cli/package.json","11 package.json file(s), 110 total dependencies.",Low,To Do,simplebeacon low,
+Task,"[Phase 8: npm Audit] Review ai-platform/packages/simplebeacon-intelligence/package.json","11 package.json file(s), 110 total dependencies.",Low,To Do,simplebeacon low,
+Task,"[Phase 8: npm Audit] Review ai-tools/package.json","11 package.json file(s), 110 total dependencies.",Low,To Do,simplebeacon low,
+Task,"[Phase 8: npm Audit] Audit 110 total dependencies","11 package.json file(s), 110 total dependencies.",Low,To Do,simplebeacon low,
+Task,"[Phase 8: npm Audit] Run npm audit","11 package.json file(s), 110 total dependencies.",Low,To Do,simplebeacon low,
+Task,"[Phase 8: npm Audit] Verify lockfile integrity","11 package.json file(s), 110 total dependencies.",Low,To Do,simplebeacon low,
+Task,"[Phase 8: npm Audit] Review dependency update policy","11 package.json file(s), 110 total dependencies.",Low,To Do,simplebeacon low,
+Task,"[Phase 10: EU AI Act Compliance] Address 1 high-risk indicator(s)","Regulatory readiness: 3 AI indicators, 1 high-risk, 1 transparency gaps, 19 artifacts.",Highest,In Progress,simplebeacon critical,
+Task,"[Phase 10: EU AI Act Compliance] Close 1 transparency gap(s)","Regulatory readiness: 3 AI indicators, 1 high-risk, 1 transparency gaps, 19 artifacts.",Highest,In Progress,simplebeacon critical,
+Task,"[Phase 10: EU AI Act Compliance] Review 3 AI system indicator(s) (Art. 6)","Regulatory readiness: 3 AI indicators, 1 high-risk, 1 transparency gaps, 19 artifacts.",Highest,In Progress,simplebeacon critical,
+Task,"[Phase 10: EU AI Act Compliance] Generate documentation artifacts","Regulatory readiness: 3 AI indicators, 1 high-risk, 1 transparency gaps, 19 artifacts.",Highest,In Progress,simplebeacon critical,
+Task,"[Phase 10: EU AI Act Compliance] Review AI system classification (Art. 6)","Regulatory readiness: 3 AI indicators, 1 high-risk, 1 transparency gaps, 19 artifacts.",Highest,In Progress,simplebeacon critical,
+Task,"[Phase 10: EU AI Act Compliance] Schedule legal review","Regulatory readiness: 3 AI indicators, 1 high-risk, 1 transparency gaps, 19 artifacts.",Highest,In Progress,simplebeacon critical,

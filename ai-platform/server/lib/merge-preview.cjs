@@ -8,9 +8,16 @@ const crypto = require('crypto');
 const { hashFileContent } = require('./mock-data-schema-validator.cjs');
 const { readJsonIfExists } = require('./repository-health-payload.cjs');
 
-const PREVIEW_TTL_MS = 60 * 60 * 1000;
+const constants = require('../config/constants.cjs');
+const PREVIEW_TTL_MS = 60 * constants.ONE_MINUTE_MS;
 const CONFIRMATION_PHRASE = 'QUARANTINE_DUPLICATES';
 
+/**
+ * Resolve project file.
+ * @param {any} projectRoot
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function resolveProjectFile(projectRoot, relativePath) {
     const root = path.resolve(projectRoot);
     const abs = path.resolve(root, String(relativePath || '').replace(/\\/g, '/'));
@@ -20,6 +27,12 @@ function resolveProjectFile(projectRoot, relativePath) {
     return abs;
 }
 
+/**
+ * Pick canonical file.
+ * @param {Array} files
+ * @param {string} keepFile
+ * @returns {any}
+ */
 function pickCanonicalFile(files, keepFile) {
     if (keepFile) {
         return files.find((file) => file.path === keepFile || file.name === keepFile) || files[0];
@@ -27,6 +40,11 @@ function pickCanonicalFile(files, keepFile) {
     return [...files].sort((a, b) => String(a.path || '').length - String(b.path || '').length)[0];
 }
 
+/**
+ * Read file snapshot.
+ * @param {string} absPath
+ * @returns {any}
+ */
 async function readFileSnapshot(absPath) {
     if (!fs.existsSync(absPath)) {
         return { exists: false, absPath };
@@ -49,10 +67,21 @@ async function readFileSnapshot(absPath) {
     };
 }
 
+/**
+ * Preview dir.
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function previewDir(projectRoot) {
     return path.join(path.resolve(projectRoot), '.simplebeacon', 'merge-previews');
 }
 
+/**
+ * Save preview.
+ * @param {any} projectRoot
+ * @param {any} preview
+ * @returns {any}
+ */
 function savePreview(projectRoot, preview) {
     const dir = previewDir(projectRoot);
     fs.mkdirSync(dir, { recursive: true });
@@ -61,6 +90,12 @@ function savePreview(projectRoot, preview) {
     return filePath;
 }
 
+/**
+ * Load preview.
+ * @param {any} projectRoot
+ * @param {string} previewId
+ * @returns {any}
+ */
 function loadPreview(projectRoot, previewId) {
     const filePath = path.join(previewDir(projectRoot), `${previewId}.json`);
     const preview = readJsonIfExists(filePath);
@@ -71,6 +106,13 @@ function loadPreview(projectRoot, previewId) {
     return preview;
 }
 
+/**
+ * Assess merge risk.
+ * @param {string} candidate
+ * @param {Array} snapshots
+ * @param {Array} conflicts
+ * @returns {any}
+ */
 function assessMergeRisk(candidate, snapshots, conflicts) {
     const factors = [];
     let level = candidate?.risk || 'medium';
@@ -111,6 +153,11 @@ function assessMergeRisk(candidate, snapshots, conflicts) {
     };
 }
 
+/**
+ * Build merge preview.
+ * @param {Object} options
+ * @returns {any}
+ */
 async function buildMergePreview(options = {}) {
     const projectRoot = path.resolve(options.projectRoot);
     const candidate = options.candidate;

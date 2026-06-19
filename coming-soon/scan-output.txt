@@ -1,0 +1,29 @@
+✓ Simplebeacon running in read-only mode
+✓ Local-only scan — code is not transmitted unless you pass --upload
+✓ Your source files are never modified by Simplebeacon
+
+✓ No network activity detected during scan
+Simplebeacon
+==================
+Root: C:\Users\Trevor\CascadeProjects\coming-soon
+Repository files: 1,367
+Gate rules checked: 1367 files
+Mock/sample files: 3
+Quality score: 100/100
+
+Critical: 0  High: 0  Medium: 2  Low: 7
+Production files scanned: 17 (0 leak(s))
+Credential files scanned: 152 (0 finding(s))
+
+Gate: PASS
+
+Issues:
+  [medium] unused-file: unused-file finding
+  [medium] data-access-pattern: data-access-pattern finding
+  [low] unused-env-key: unused-env-key finding
+  [low] build-artifact: build-artifact finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding
+  [low] unused-dependency: unused-dependency finding
+  [low] orphaned-export: orphaned-export finding
+  [low] orphaned-export: orphaned-export finding

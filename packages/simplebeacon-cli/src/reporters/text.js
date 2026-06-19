@@ -36,19 +36,33 @@ function severityColor(severity) {
 }
 
 function formatTextReport(report, gateResult = null) {
+    const { detectTier } = require('../lib/tier-detector');
+    const tierInfo = detectTier();
+    const isPaid = tierInfo.paid;
+
     const lines = [];
     lines.push(paint('Simplebeacon', 'cyan'));
     lines.push('==================');
-    lines.push(`Root: ${report.projectRoot}`);
+    lines.push(`Root: ${report.projectRoot || 'unknown'}`);
     if (report.repositoryFilesTotal != null) {
         lines.push(`Repository files: ${report.repositoryFilesTotal.toLocaleString()}`);
     }
-    lines.push(`Gate rules checked: ${report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? report.totalFiles} files`);
+    lines.push(`Gate rules checked: ${(report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? report.totalFiles ?? 0)} files`);
     if (report.mockSampleFiles != null) {
         lines.push(`Mock/sample files: ${report.mockSampleFiles}`);
     }
-    lines.push(`Quality score: ${report.qualityScore}/100`);
+    // Show quality score for all users
+    lines.push(`Quality score: ${(report.qualityScore ?? 0)}/100`);
     lines.push('');
+
+    // Remove free tier limitations
+    // if (!isPaid) {
+    //     lines.push(paint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'yellow'));
+    //     lines.push(paint('  FREE TIER — showing first 5 findings only', 'yellow'));
+    //     lines.push(paint('  Upgrade: https://simplebeacon.ai/pricing', 'yellow'));
+    //     lines.push(paint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'yellow'));
+    //     lines.push('');
+    // }
 
     const counts = report.severityCounts || {};
     lines.push(
@@ -79,14 +93,16 @@ function formatTextReport(report, gateResult = null) {
         return lines.join('\n');
     }
 
+    const displayLimit = 1000; // Show all findings instead of capping
     lines.push('Issues:');
-    for (const issue of issues.slice(0, 50)) {
+    for (const issue of issues.slice(0, displayLimit)) {
         const label = `[${issue.severity}] ${issue.type}`;
         lines.push(`  ${paint(label, severityColor(issue.severity))}: ${issue.description}`);
     }
 
-    if (issues.length > 50) {
-        lines.push(`  ... and ${issues.length - 50} more`);
+    const hiddenCount = issues.length - displayLimit;
+    if (hiddenCount > 0) {
+        lines.push(`  ... and ${hiddenCount} more`);
     }
 
     return lines.join('\n');
@@ -96,8 +112,8 @@ function formatActionPlanReport(report, gateResult = null) {
     const lines = [];
     lines.push(paint('Simplebeacon Action Plan', 'cyan'));
     lines.push('========================');
-    lines.push(`Root: ${report.projectRoot}`);
-    lines.push(`Quality score: ${report.qualityScore}/100`);
+    lines.push(`Root: ${report.projectRoot || 'unknown'}`);
+    lines.push(`Quality score: ${(report.qualityScore ?? 0)}/100`);
     lines.push('');
 
     if (gateResult) {

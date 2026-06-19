@@ -4,6 +4,9 @@
 
 const EMPTY_PATTERNS = { techDebt: [], debug: [], placeholders: [], bestPractices: [], productionLeak: [] };
 
+/**
+ * Language plugin.
+ */
 class LanguagePlugin {
     constructor(config = {}) {
         this.id = config.id;
@@ -38,7 +41,7 @@ class LanguagePlugin {
         return score;
     }
 
-    analyze(content, relativePath, helpers = {}) {
+    async analyze(content, relativePath, helpers = {}) {
         const findings = [];
         const {
             scanContentPatterns,
@@ -89,18 +92,23 @@ class LanguagePlugin {
 
         if (this.useGenericTechDebt && !skipTechDebt) {
             if (TECH_DEBT_PATTERNS) {
-                findings.push(...scanContentPatterns(content, rel, TECH_DEBT_PATTERNS, 'tech-debt', 'medium'));
+                findings.push(...(await scanContentPatterns(content, rel, TECH_DEBT_PATTERNS, 'tech-debt', 'medium')));
             }
-            findings.push(...scanContentPatterns(content, rel, this.patterns.techDebt, 'tech-debt', 'medium'));
+            findings.push(...(await scanContentPatterns(content, rel, this.patterns.techDebt, 'tech-debt', 'medium')));
         }
 
         if (!isCliToolingPath?.(rel)) {
+/**
+ * Debug patterns.
+ * @param {any} this.patterns.debug || []
+ * @returns {any}
+ */
             const debugPatterns = (this.patterns.debug || []).filter((pattern) => {
                 if (pattern.id === 'r-print' && this.language === 'python') return false;
                 if (pattern.id === 'python-print' && this.language === 'r') return false;
                 return true;
             });
-            findings.push(...scanContentPatterns(content, rel, debugPatterns, 'debug-artifact', 'medium'));
+            findings.push(...(await scanContentPatterns(content, rel, debugPatterns, 'debug-artifact', 'medium')));
         }
 
         if (this.patterns.productionLeak?.length) {
@@ -108,14 +116,14 @@ class LanguagePlugin {
                 ? isProductionRelevantPath(rel)
                 : false;
             if (productionOnly) {
-                findings.push(...scanContentPatterns(
+                findings.push(...(await scanContentPatterns(
                     content,
                     rel,
                     this.patterns.productionLeak,
                     'tech-debt',
                     'high',
                     true
-                ));
+                )));
             }
         }
 
@@ -123,12 +131,12 @@ class LanguagePlugin {
 
         if (this.useGenericPlaceholders && !skipPlaceholders) {
             if (detectPlaceholderAndFictionalData) {
-                findings.push(...detectPlaceholderAndFictionalData(content, rel));
+                findings.push(...(await detectPlaceholderAndFictionalData(content, rel)));
             }
-            findings.push(...scanContentPatterns(content, rel, this.patterns.placeholders, 'meaningless-data', 'low'));
+            findings.push(...(await scanContentPatterns(content, rel, this.patterns.placeholders, 'meaningless-data', 'low')));
         }
 
-        findings.push(...scanContentPatterns(content, rel, this.patterns.bestPractices, 'tech-debt', 'low'));
+        findings.push(...(await scanContentPatterns(content, rel, this.patterns.bestPractices, 'tech-debt', 'low')));
 
         return {
             language: this.language,

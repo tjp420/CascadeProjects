@@ -10,6 +10,12 @@ const {
 const { sendClientError, ERROR_CODES } = require('./client-error.cjs');
 const { setupOutreachResendWebhook } = require('./outreach-resend-webhook.cjs');
 
+/**
+ * Handle outreach config.
+ * @param {any} _req
+ * @param {Array} res
+ * @returns {any}
+ */
 async function handleOutreachConfig(_req, res) {
   return res.json({
     configured: isOutreachConfigured(),
@@ -18,6 +24,13 @@ async function handleOutreachConfig(_req, res) {
   });
 }
 
+/**
+ * Handle outreach sent.
+ * @param {any} req
+ * @param {Array} res
+ * @param {Object} options
+ * @returns {any}
+ */
 async function handleOutreachSent(req, res, options = {}) {
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 25, 1), 100);
   const rows = await loadSentLog(options);
@@ -27,6 +40,13 @@ async function handleOutreachSent(req, res, options = {}) {
   });
 }
 
+/**
+ * Handle outreach sent delete.
+ * @param {any} req
+ * @param {Array} res
+ * @param {Object} options
+ * @returns {any}
+ */
 async function handleOutreachSentDelete(req, res, options = {}) {
   const id = String(req.params.id || req.body?.id || '').trim();
   try {
@@ -55,6 +75,13 @@ async function handleOutreachSentDelete(req, res, options = {}) {
   }
 }
 
+/**
+ * Handle outreach send.
+ * @param {any} req
+ * @param {Array} res
+ * @param {Object} options
+ * @returns {any}
+ */
 async function handleOutreachSend(req, res, options = {}) {
   if (String(req.body?.website || '').trim()) {
     return res.json({ ok: true, sent: false, ignored: 'spam' });
@@ -131,6 +158,12 @@ const OUTREACH_ROUTE_PREFIXES = [
   '/api/simplebeacon/outreach'
 ];
 
+/**
+ * Register outreach routes.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function registerOutreachRoutes(app, options = {}) {
   const prefixes = options.prefixes || OUTREACH_ROUTE_PREFIXES;
 

@@ -1,15 +1,30 @@
 import { escapeHtml, formatNumber, redactPathForDisplay, showToast } from '../utils.js';
 import { authService } from '../services/authService.js';
 
+/**
+ * Auth headers.
+ * @param {any} extra
+ * @returns {any}
+ */
 function authHeaders(extra = {}) {
   return { ...authService.getAuthHeaders(), ...extra };
 }
 
+/**
+ * Is json response.
+ * @param {Array} res
+ * @returns {any}
+ */
 function isJsonResponse(res) {
   const contentType = String(res.headers.get('content-type') || '').toLowerCase();
   return contentType.includes('application/json');
 }
 
+/**
+ * Normalize static repository health payload.
+ * @param {any} payload
+ * @returns {any}
+ */
 function normalizeStaticRepositoryHealthPayload(payload) {
   const health = payload?.repositoryHealth;
   if (!health || typeof health !== 'object') return null;
@@ -25,6 +40,10 @@ function normalizeStaticRepositoryHealthPayload(payload) {
   };
 }
 
+/**
+ * Fetch static repository health fallback.
+ * @returns {any}
+ */
 async function fetchStaticRepositoryHealthFallback() {
   const trustHttpResponse = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
   if (!trustHttpResponse || !trustHttpResponse.ok) return null;
@@ -32,12 +51,22 @@ async function fetchStaticRepositoryHealthFallback() {
   return normalizeStaticRepositoryHealthPayload(trustVerificationDocument);
 }
 
+/**
+ * Read json or default.
+ * @param {Array} res
+ * @param {any} defaultValue
+ * @returns {any}
+ */
 async function readJsonOrDefault(res, defaultValue = {}) {
   if (!isJsonResponse(res)) return defaultValue;
   const parsed = await res.json().catch(() => defaultValue);
   return parsed == null ? defaultValue : parsed;
 }
 
+/**
+ * Fetch repository health.
+ * @returns {any}
+ */
 export async function fetchRepositoryHealth() {
   const res = await fetch('/api/optimization/health', { cache: 'no-store', headers: authHeaders() });
   if (!isJsonResponse(res)) {
@@ -71,6 +100,12 @@ export async function fetchRepositoryHealth() {
   return data;
 }
 
+/**
+ * Render health snapshot.
+ * @param {any} snap
+ * @param {any} title
+ * @returns {any}
+ */
 function renderHealthSnapshot(snap, title) {
   if (!snap) {
     return `<p class="text-muted card">No ${escapeHtml(title)} consolidation report — run Analyze → Consolidation or <code>npm run optimization:scan</code>.</p>`;
@@ -101,6 +136,12 @@ function renderHealthSnapshot(snap, title) {
   `;
 }
 
+/**
+ * Render repository health section.
+ * @param {any} health
+ * @param {Object} options
+ * @returns {any}
+ */
 export function renderRepositoryHealthSection(health, { compact = false } = {}) {
   if (!health?.headline) {
     return compact
@@ -140,6 +181,9 @@ export function renderRepositoryHealthSection(health, { compact = false } = {}) 
   `;
 }
 
+/**
+ * Repository health view.
+ */
 export class RepositoryHealthView {
   constructor(app) {
     this.app = app;
@@ -160,10 +204,22 @@ export class RepositoryHealthView {
 
   render() {
     if (this.loading) {
-      return '<p class="text-muted"><span class="loading-spinner"></span> Loading repository health…</p>';
+      return `
+        <div class="analyze-hero">
+          <h1 class="page-title">Repository Health</h1>
+          <p class="text-muted analyze-hero-sub">Loading health metrics…</p>
+        </div>
+        <p class="text-muted"><span class="loading-spinner"></span> Loading repository health…</p>
+      `;
     }
     if (this.error) {
-      return `<p class="text-danger card">${escapeHtml(this.error)}</p>`;
+      return `
+        <div class="analyze-hero">
+          <h1 class="page-title">Repository Health</h1>
+          <p class="text-muted analyze-hero-sub">Health metrics unavailable</p>
+        </div>
+        <p class="text-danger card">${escapeHtml(this.error)}</p>
+      `;
     }
 
     const health = this.data;
@@ -171,28 +227,36 @@ export class RepositoryHealthView {
     const staticHost = Boolean(health?.staticHost);
 
     return `
+      <div class="analyze-hero">
+        <h1 class="page-title">Repository Health</h1>
+        <p class="text-muted analyze-hero-sub">Duplicate detection, oversized files, and consolidation opportunities.</p>
+      </div>
+
       <div class="section-block">
-        <div class="section-heading">
-          <h2>Repository health</h2>
-          <div class="roadmap-result-actions">
+        <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-4);">
+          <div class="analyze-action-info">
+            <span class="text-muted" style="font-size:var(--font-size-sm);">${headline ? `Score ${headline.repositoryHealthScore}/100` : 'No scan data'}</span>
+          </div>
+          <div class="flex gap-2">
             <button type="button" class="btn btn-primary btn-sm" id="run-optimization-scan" ${this.scanning || staticHost ? 'disabled' : ''}>
               ${this.scanning ? 'Scanning…' : 'Run consolidation scan'}
             </button>
             <a class="btn btn-secondary btn-sm" href="/api/optimization/compliance?format=html" target="_blank" rel="noopener">Compliance report</a>
-            <a class="btn btn-secondary btn-sm" href="#/trust">Trust dashboard</a>
+            <a class="btn btn-ghost btn-sm" href="#/trust">Trust dashboard</a>
+            <button type="button" class="btn btn-ghost btn-sm" id="send-health-ai-btn" title="Send repository health data to AI coding agent">🤖 Send to AI Agent</button>
           </div>
         </div>
 
         ${staticHost ? `
-          <div class="card mb-4">
+          <div class="card mb-4" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2);">
             <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
-              Static-host preview mode: optimization APIs are not available on this upload. Run <code>npm run dashboard</code> locally (or deploy backend APIs) to enable repository health scans.
+              Static-host preview: optimization APIs require <code>npm run dashboard</code> locally.
             </p>
           </div>
         ` : ''}
 
         <div class="card mb-4">
-          <p style="margin:0;font-size:var(--font-size-sm);">
+          <p style="margin:0;font-size:var(--font-size-sm);color:var(--text-secondary);">
             Measured duplicate detection and oversized-file analysis — separate from security gate scans.
             We publish our own repo health so you can verify the engine on real data.
           </p>
@@ -253,7 +317,10 @@ export class RepositoryHealthView {
               <p class="text-muted text-sm">Risk: ${escapeHtml(this.preview.riskAssessment.level || '—')}${(this.preview.riskAssessment.factors || []).length ? ` · ${escapeHtml(this.preview.riskAssessment.factors.join('; '))}` : ''}</p>
             ` : ''}
             ${this.preview.safeToExecute ? `
-              <p class="text-muted text-sm">To execute, POST <code>/api/optimization/merge-execute</code> with <code>confirmed:true</code> and phrase <code>${escapeHtml(this.preview.confirmationPhrase || '')}</code></p>
+              <div class="flex gap-2 mt-2">
+                <button type="button" class="btn btn-danger btn-sm" id="quarantine-merge-btn">Quarantine duplicates</button>
+                <span class="text-muted text-sm" style="align-self:center;">Requires phrase: <code>${escapeHtml(this.preview.confirmationPhrase || '')}</code></span>
+              </div>
             ` : ''}
           </div>
         ` : ''}
@@ -287,6 +354,11 @@ export class RepositoryHealthView {
   }
 
   async fetchCandidatesList() {
+/**
+ * Fetch list.
+ * @param {string} projectPath
+ * @returns {any}
+ */
     const fetchList = async (projectPath) => {
       const params = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
       const candRes = await fetch(`/api/optimization/candidates${params}`, { cache: 'no-store', headers: authHeaders() });
@@ -395,6 +467,17 @@ export class RepositoryHealthView {
     }
   }
 
+  _getVscodeApi() {
+    if (this._vscodeApiCached) return this._vscodeApiCached;
+    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
+    try {
+      this._vscodeApiCached = window.acquireVsCodeApi();
+      return this._vscodeApiCached;
+    } catch {
+      return null;
+    }
+  }
+
   bindEvents(container) {
     this._root = container;
 
@@ -420,6 +503,81 @@ export class RepositoryHealthView {
       } finally {
         this.scanning = false;
         this.paint(container);
+      }
+    });
+
+    container.querySelector('#quarantine-merge-btn')?.addEventListener('click', async () => {
+      if (!this.preview) return;
+      const btn = container.querySelector('#quarantine-merge-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Quarantining…'; }
+      try {
+        const res = await fetch('/api/optimization/merge-execute', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            projectPath: this.resolvePreviewProjectPath(),
+            previewId: this.preview.previewId || undefined,
+            confirmed: true,
+            confirmationPhrase: this.preview.confirmationPhrase
+          })
+        });
+        const data = await readJsonOrDefault(res, {});
+        if (!res.ok || !data.success) throw new Error(data.error || 'Quarantine failed');
+        showToast(data.message || 'Duplicates quarantined successfully', 'success');
+        this.preview = null;
+        this.previewError = null;
+        await this.loadHealth();
+        this.paint(container);
+      } catch (err) {
+        showToast(err.message, 'error');
+        if (btn) { btn.disabled = false; btn.textContent = 'Quarantine duplicates'; }
+      }
+    });
+
+    container.querySelector('#send-health-ai-btn')?.addEventListener('click', async () => {
+      const health = this.data;
+      if (!health || !health.headline) { showToast('No repository health data — run a scan first', 'error'); return; }
+      const headline = health.headline;
+      const payload = {
+        projectPath: health.projectRoot || health.projectPath || this.app.state.lastProjectPath || window.location.origin,
+        reportType: 'repository-health',
+        reportSummary: {
+          repositoryHealthScore: headline.repositoryHealthScore,
+          optimizationPotential: headline.optimizationPotential,
+          duplicateGroups: headline.duplicateGroups,
+          oversizedFiles: headline.oversizedFiles,
+          reductionOpportunities: headline.reductionOpportunities,
+          repositoryFilesTotal: headline.repositoryFilesTotal,
+          repositoryFoldersTotal: headline.repositoryFoldersTotal
+        },
+        notes: ''
+      };
+      const vscode = this._getVscodeApi();
+      if (vscode) {
+        try {
+          vscode.postMessage({ command: 'sendToAI', data: payload });
+          showToast('Repository health sent to your AI coding agent', 'success');
+          return;
+        } catch (err) {
+          console.warn('[Health-AI] vscode.postMessage failed:', err);
+        }
+      }
+      // Fallback: POST to /api/ai-context and copy to clipboard
+      try {
+        const res = await fetch('/api/ai-context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (json.success && json.content) {
+          await navigator.clipboard.writeText(json.content);
+          showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+        } else {
+          showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+        }
+      } catch (err) {
+        showToast('Failed to send: ' + err.message, 'error');
       }
     });
 

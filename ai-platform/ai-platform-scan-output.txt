@@ -1,0 +1,31 @@
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+Simplebeacon
+==================
+Root: C:\Users\Trevor\CascadeProjects\ai-platform
+Repository files: 438
+Gate rules checked: 202 files
+Mock/sample files: 50
+Quality score: [HIDDEN ΓÇö upgrade to see]
+
+ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+  FREE TIER ΓÇö showing first 5 findings only
+  Upgrade: https://simplebeacon.ai/pricing
+ΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöüΓöü
+
+Critical: 0  High: 0  Medium: 0  Low: 13
+Production files scanned: 148 (0 leak(s))
+Credential files scanned: 202 (0 finding(s))
+
+Gate: PASS
+
+Issues:
+  [low] unused-env-key: unused-env-key finding
+  [low] unused-env-key: unused-env-key finding
+  [low] unused-env-key: unused-env-key finding
+  [low] unused-env-key: unused-env-key finding
+  [low] unused-env-key: unused-env-key finding
+  ... and 8 more (upgrade to see all)

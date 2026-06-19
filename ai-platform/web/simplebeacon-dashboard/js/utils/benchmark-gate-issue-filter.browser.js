@@ -13,10 +13,20 @@ const SUPPRESSED_PRODUCTION_LEAK_INTENTS = new Set([
   'demo-tool-sample'
 ]);
 
+/**
+ * Normalize rel.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function normalizeRel(filePath) {
   return String(filePath || '').replace(/\\/g, '/');
 }
 
+/**
+ * Is scanner implementation path.
+ * @param {string} relativePath
+ * @returns {any}
+ */
 export function isScannerImplementationPath(relativePath) {
   const rel = normalizeRel(relativePath);
   if (SCANNER_IMPL_PATH_RE.test(rel.toLowerCase())) return true;
@@ -24,6 +34,11 @@ export function isScannerImplementationPath(relativePath) {
   return false;
 }
 
+/**
+ * Is benchmark clone noise issue.
+ * @param {boolean} issue
+ * @returns {any}
+ */
 export function isBenchmarkCloneNoiseIssue(issue) {
   if (!issue) return false;
   const pattern = String(issue.pattern || issue.metadata?.patternId || '');
@@ -34,6 +49,11 @@ export function isBenchmarkCloneNoiseIssue(issue) {
   return false;
 }
 
+/**
+ * Is benchmark scanner meta issue.
+ * @param {boolean} issue
+ * @returns {any}
+ */
 export function isBenchmarkScannerMetaIssue(issue) {
   if (!issue) return false;
   const intent = String(issue.metadata?.intent || issue.intent || '');
@@ -43,17 +63,35 @@ export function isBenchmarkScannerMetaIssue(issue) {
   return filePath ? isScannerImplementationPath(filePath) : false;
 }
 
+/**
+ * Is benchmark digest excluded issue.
+ * @param {boolean} issue
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 export function isBenchmarkDigestExcludedIssue(issue, benchmarkScan) {
   if (!benchmarkScan || !issue) return false;
   if (isBenchmarkCloneNoiseIssue(issue)) return true;
   return isBenchmarkScannerMetaIssue(issue);
 }
 
+/**
+ * Filter benchmark gate issues.
+ * @param {Array} issues
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 export function filterBenchmarkGateIssues(issues = [], benchmarkScan) {
   if (!benchmarkScan) return issues;
   return issues.filter((issue) => !isBenchmarkDigestExcludedIssue(issue, true));
 }
 
+/**
+ * Recompute gate from issues.
+ * @param {Array} issues
+ * @param {Object} gateConfig
+ * @returns {any}
+ */
 export function recomputeGateFromIssues(issues, gateConfig = {}) {
   const failOn = gateConfig.failOn || ['high'];
   const warnOn = gateConfig.warnOn || ['medium', 'low'];
@@ -71,6 +109,12 @@ export function recomputeGateFromIssues(issues, gateConfig = {}) {
   };
 }
 
+/**
+ * Normalize benchmark gate report.
+ * @param {number} report
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export function normalizeBenchmarkGateReport(report, projectPath) {
   if (!report || report.type !== 'simplebeacon-report') return report;
   const projectKey = normalizeRel(projectPath || report.projectRoot || '');

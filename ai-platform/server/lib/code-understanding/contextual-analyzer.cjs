@@ -7,15 +7,22 @@ const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 
+const constants = require('../../config/constants.cjs');
 const execFileAsync = promisify(execFile);
 
+/**
+ * Run git.
+ * @param {any} cwd
+ * @param {Array} args
+ * @returns {any}
+ */
 async function runGit(cwd, args) {
     try {
         const { stdout } = await execFileAsync('git', args, {
             cwd,
             windowsHide: true,
-            timeout: 8000,
-            maxBuffer: 512 * 1024
+            timeout: constants.TIMEOUT_8S,
+            maxBuffer: 512 * constants.BYTES_PER_KB
         });
         return String(stdout || '').trim();
     } catch {
@@ -23,6 +30,12 @@ async function runGit(cwd, args) {
     }
 }
 
+/**
+ * Analyze git context.
+ * @param {string} relativePath
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 async function analyzeGitContext(relativePath, projectRoot) {
     const root = path.resolve(projectRoot);
     const rel = String(relativePath || '').replace(/\\/g, '/');
@@ -45,6 +58,11 @@ async function analyzeGitContext(relativePath, projectRoot) {
     };
 }
 
+/**
+ * Infer intent from commit message.
+ * @param {any} line
+ * @returns {any}
+ */
 function inferIntentFromCommitMessage(line) {
     const msg = String(line || '').toLowerCase();
     if (/fix|bug|patch/.test(msg)) return 'Bug fix or regression repair';
@@ -55,6 +73,12 @@ function inferIntentFromCommitMessage(line) {
     return 'General change — review commit message for details';
 }
 
+/**
+ * Find adjacent documentation.
+ * @param {string} filePath
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 async function findAdjacentDocumentation(filePath, projectRoot) {
     const abs = path.resolve(projectRoot, filePath);
     const dir = path.dirname(abs);
@@ -66,7 +90,7 @@ async function findAdjacentDocumentation(filePath, projectRoot) {
         if (!fs.existsSync(docPath)) continue;
         try {
             const stat = await fs.promises.stat(docPath);
-            if (!stat.isFile() || stat.size > 120000) continue;
+            if (!stat.isFile() || stat.size > constants.TIMEOUT_2M) continue;
             const content = await fs.promises.readFile(docPath, 'utf8');
             docs.push({
                 name,
@@ -81,6 +105,13 @@ async function findAdjacentDocumentation(filePath, projectRoot) {
     return docs;
 }
 
+/**
+ * Analyze contextual layer.
+ * @param {string} filePath
+ * @param {any} projectRoot
+ * @param {any} _content
+ * @returns {any}
+ */
 async function analyzeContextualLayer(filePath, projectRoot, _content = '') {
     const gitHistory = await analyzeGitContext(filePath, projectRoot);
     const documentation = await findAdjacentDocumentation(filePath, projectRoot);

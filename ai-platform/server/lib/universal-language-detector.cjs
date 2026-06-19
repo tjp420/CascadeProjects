@@ -52,6 +52,9 @@ const CONTENT_SIGNATURES = {
     ]
 };
 
+/**
+ * Universal language detector.
+ */
 class UniversalLanguageDetector {
     constructor(options = {}) {
         this.registry = options.registry || UNIVERSAL_LANGUAGE_REGISTRY;
@@ -121,6 +124,11 @@ class UniversalLanguageDetector {
     }
 }
 
+/**
+ * Create language detector.
+ * @param {Object} options
+ * @returns {any}
+ */
 function createLanguageDetector(options) {
     return new UniversalLanguageDetector(options);
 }

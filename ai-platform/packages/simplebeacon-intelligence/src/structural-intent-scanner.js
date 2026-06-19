@@ -9,15 +9,30 @@ const {
     INTENT_RULE_IDS
 } = require('./constants');
 
+/**
+ * Is generic name.
+ * @param {string} name
+ * @returns {any}
+ */
 function isGenericName(name) {
     return GENERIC_AI_MARKERS.has(String(name || '').toLowerCase());
 }
 
+/**
+ * Credential key match.
+ * @param {any} key
+ * @returns {any}
+ */
 function credentialKeyMatch(key) {
     const lower = String(key || '').toLowerCase();
     return CREDENTIAL_KEY_FRAGMENTS.some((frag) => lower.includes(frag));
 }
 
+/**
+ * Is placeholder credential value.
+ * @param {any} value
+ * @returns {any}
+ */
 function isPlaceholderCredentialValue(value) {
     if (value == null) return true;
     const str = String(value);
@@ -26,6 +41,11 @@ function isPlaceholderCredentialValue(value) {
     return lower.includes('your_') || lower.includes('changeme') || lower.includes('placeholder');
 }
 
+/**
+ * Normalize finding.
+ * @param {any} base
+ * @returns {any}
+ */
 function normalizeFinding(base) {
     return {
         id: base.id,
@@ -44,6 +64,11 @@ function normalizeFinding(base) {
     };
 }
 
+/**
+ * Extract python functions.
+ * @param {any} content
+ * @returns {any}
+ */
 function extractPythonFunctions(content) {
     const lines = content.split('\n');
     const functions = [];
@@ -79,6 +104,23 @@ function extractPythonFunctions(content) {
     }
 
     return functions;
+}
+
+/**
+ * Extract js functions.
+ * @param {any} content
+ * @returns {any}
+ */
+function findMatchingBrace(content, openBrace) {
+    let depth = 0;
+    for (let j = openBrace; j < content.length; j += 1) {
+        if (content[j] === '{') depth += 1;
+        if (content[j] === '}') {
+            depth -= 1;
+            if (depth === 0) return j;
+        }
+    }
+    return -1;
 }
 
 function extractJsFunctions(content) {
@@ -118,6 +160,11 @@ function extractJsFunctions(content) {
     return functions;
 }
 
+/**
+ * Has placeholder return.
+ * @param {any} body
+ * @returns {any}
+ */
 function hasPlaceholderReturn(body) {
     if (/\breturn\s+(\{|\[|[\"'`\d]|true|false|null)/.test(body)) return true;
 
@@ -137,6 +184,13 @@ function hasPlaceholderReturn(body) {
     return false;
 }
 
+/**
+ * Analyze function block.
+ * @param {Function} fn
+ * @param {string} filePath
+ * @param {Object} options
+ * @returns {any}
+ */
 function analyzeFunctionBlock(fn, filePath, options = {}) {
     const findings = [];
     const threshold = options.genericVarThreshold ?? 0.6;
@@ -186,6 +240,13 @@ function analyzeFunctionBlock(fn, filePath, options = {}) {
     return findings;
 }
 
+/**
+ * Scan credential dict stubs.
+ * @param {any} content
+ * @param {string} filePath
+ * @param {any} language
+ * @returns {any}
+ */
 function scanCredentialDictStubs(content, filePath, language) {
     const findings = [];
     const lines = content.split('\n');
@@ -222,6 +283,12 @@ function scanCredentialDictStubs(content, filePath, language) {
     return findings;
 }
 
+/**
+ * Scan structural intent.
+ * @param {any} content
+ * @param {Object} options
+ * @returns {any}
+ */
 function scanStructuralIntent(content, options = {}) {
     const filePath = options.filePath || 'snippet.txt';
     const language = options.language || 'javascript';

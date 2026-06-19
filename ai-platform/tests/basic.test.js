@@ -1,6 +1,7 @@
+/* eslint-disable no-constant-binary-expression */
 /**
  * Basic Tests for Coverage
- * 
+ *
  * Simple tests that work reliably to achieve coverage thresholds
  */
 
@@ -134,8 +135,8 @@ describe('Basic Tests', () => {
 
     test('should check object properties', () => {
       const obj = { name: 'test', value: 42 };
-      expect(obj.hasOwnProperty('name')).toBe(true);
-      expect(obj.hasOwnProperty('missing')).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(obj, 'name')).toBe(true);
+      expect(Object.prototype.hasOwnProperty.call(obj, 'missing')).toBe(false);
     });
 
     test('should create objects', () => {
@@ -326,7 +327,7 @@ describe('Basic Tests', () => {
       const promise = Promise.reject(new Error('failure'));
       try {
         await promise;
-        fail('Should have thrown');
+        throw new Error('Should have thrown');
       } catch (error) {
         expect(error.message).toBe('failure');
       }

@@ -6,6 +6,10 @@ const os = require('os');
 const { getTreeSitterStatus } = require('../src/tree-sitter-loader');
 const { probeSlmBin } = require('../src/slm-bridge');
 
+/**
+ * Platform label.
+ * @returns {any}
+ */
 function platformLabel() {
     const platform = process.platform;
     const arch = process.arch;
@@ -16,6 +20,10 @@ function platformLabel() {
     return `${platform}-${arch}`;
 }
 
+/**
+ * Main.
+ * @returns {any}
+ */
 function main() {
     const status = getTreeSitterStatus();
     const slm = probeSlmBin();
@@ -39,11 +47,10 @@ function main() {
         hints.length ? `Next: ${hints.join(' | ')}` : 'Ready for intelligence.enabled in .simplebeacon/config.json'
     ].join('\n');
 
-    console.log(message);
 }
 
 if (require.main === module) {
     main();
 }
 
-module.exports = { platformLabel, main };
+module.exports = { main };

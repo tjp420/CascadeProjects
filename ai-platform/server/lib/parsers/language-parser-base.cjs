@@ -2,6 +2,9 @@
  * Base class for language-specific structure parsers (AST-like, heuristic).
  */
 
+/**
+ * Language parser.
+ */
 class LanguageParser {
     constructor(config = {}) {
         this.language = config.language || 'generic';

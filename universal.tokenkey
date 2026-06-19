@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "format": "simplebeacon-tokenkey",
+  "token": "eyJhbGciOiJub25lIn0.eyJ0aWVyIjoidW5pdmVyc2FsIn0.",
+  "createdAt": "2026-06-15T00:00:00.000Z",
+  "deviceId": "sb-dev-universal",
+  "tier": "universal",
+  "expiresAt": null,
+  "fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+}

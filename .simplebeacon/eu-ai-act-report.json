@@ -1,2166 +1,3227 @@
 {
   "type": "simplebeacon-report",
   "reportVersion": 2,
-  "generatedAt": "2026-06-06T22:17:47.932Z",
+  "generatedAt": "2026-06-16T09:40:50.357Z",
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-  "scanTargetRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
   "scanPaths": [
-    "C:\\Users\\Trevor\\CascadeProjects"
+    "C:\\Users\\Trevor\\CascadeProjects\\data"
   ],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-    "totalFiles": 1171,
-    "totalFolders": 144,
-    "profile": "audit"
+    "totalFiles": 1384,
+    "totalFolders": 207,
+    "profile": "universal"
   },
-  "mockSampleFiles": 69,
-  "totalFiles": 1158,
-  "ruleScopedFilesAnalyzed": 1158,
-  "repositoryFilesTotal": 1171,
-  "repositoryFoldersTotal": 144,
-  "filesAnalyzed": 1171,
-  "totalSizeBytes": 16026216,
-  "totalSizeLabel": "15.3MB",
-  "issueCount": 38,
+  "mockSampleFiles": 0,
+  "totalFiles": 0,
+  "ruleScopedFilesAnalyzed": 0,
+  "repositoryFilesTotal": 1384,
+  "repositoryFoldersTotal": 207,
+  "filesAnalyzed": 0,
+  "totalSizeBytes": 0,
+  "totalSizeLabel": "0B",
+  "issueCount": 169,
   "invalidJson": 0,
   "emptyFiles": 0,
   "qualityScore": 100,
-  "schemaCompliance": 100,
-  "schemaChecked": 50,
-  "schemaPassed": 50,
-  "pageSampleSchemaChecked": 50,
-  "pageSampleSchemaPassed": 50,
-  "duplicateGroups": 9,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 1,
   "roadmapSchemaChecked": 0,
   "roadmapSchemaPassed": 0,
-  "consistencyChecked": 102,
-  "consistencyPassed": 102,
+  "consistencyChecked": 155,
+  "consistencyPassed": 155,
   "consistencyScore": 100,
-  "fictionJsonFilesScanned": 102,
+  "fictionJsonFilesScanned": 155,
   "fictionSampleFilesScanned": 50,
   "fictionScope": "repository-json",
-  "credentialScanned": 983,
+  "credentialScanned": 0,
   "credentialFindings": 0,
-  "productionLeakScanned": 558,
+  "productionLeakScanned": 0,
   "productionLeakFindings": 0,
-  "productionLeakSuppressedIntent": 410,
+  "productionLeakSuppressedIntent": 0,
   "sourceCodeFilesScanned": 0,
   "sourceFictionPatternHits": 0,
-  "llmSlopFilesScanned": 444,
+  "llmSlopFilesScanned": 1,
   "llmSlopPatternHits": 0,
-  "euAiActScanned": 278,
-  "euAiActFindings": 24,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
   "euAiActSummary": {
-    "highRiskIndicators": 3,
-    "aiSystemIndicators": 18,
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
     "transparencyGaps": 0,
-    "documentationArtifacts": 167,
+    "documentationArtifacts": 169,
     "documentationFound": [
+      ".env",
       ".env.example",
+      ".simplebeaconignore",
       "AGENTS.md",
-      "ai-platform-report.json",
-      "cascade-root-report.json",
+      "ANALYZER_IMPROVEMENTS_REPORT.md",
       "CHANGELOG.md",
-      "cli-test-report.json",
-      "cli-test-report2.json",
-      "coming-soon-final.json",
-      "coming-soon-report.json",
-      "error-check2.log",
+      "consolidation-analysis.txt",
+      "DATA_AUDIT.md",
+      "EU_AI_ACT_CLASSIFICATION.md",
       "HANDOFF-2026-06-03.md",
-      "issues.json",
-      "report.json",
+      "LAUNCH-READINESS.md",
+      "README.md",
+      "REMEDIATION-TRACKER.md",
+      "render.yaml",
+      "SimpleBeacon-Universal-Coverage-Checklist.md",
+      "SimpleBeacon-Universal-Roadmap.md",
+      "SIMPLEBEACON_2_0_IMPLEMENTATION_PROGRESS.md",
+      "SIMPLEBEACON_2_0_PHASE_2_COMPLETE.md",
+      "SIMPLEBEACON_2_0_UPGRADE_ROADMAP.md",
       "ZORIN-LINUX-SETUP.md",
-      ".simplebeacon/cli-test-report.json",
-      ".simplebeacon/cli-test-report2.json",
-      ".simplebeacon/cli-test-report3.json",
-      ".simplebeacon/codebase-current.json",
-      ".simplebeacon/coming-soon-report.json",
-      ".simplebeacon/coming-soon-report2.json",
+      ".simplebeacon/bridge-report-latest.json",
+      ".simplebeacon/cli-report.json",
+      ".simplebeacon/config-full-coverage.json",
+      ".simplebeacon/config-unrestricted.json",
       ".simplebeacon/config.json",
       ".simplebeacon/eu-ai-act-assessment.json",
       ".simplebeacon/eu-ai-act-compliance.json",
-      ".simplebeacon/eu-ai-act-deliverable.html",
       ".simplebeacon/eu-ai-act-report.json",
-      ".simplebeacon/final-gate.json",
-      ".simplebeacon/gate-current.json",
+      ".simplebeacon/file-reduction.json",
+      ".simplebeacon/fresh-scan-2.json",
+      ".simplebeacon/fresh-scan.json",
+      ".simplebeacon/full-scan-log.txt",
+      ".simplebeacon/full-scan-output.json",
+      ".simplebeacon/full-scan-report.json",
+      ".simplebeacon/gate-report.json",
+      ".simplebeacon/gate-scan-log.txt",
       ".simplebeacon/gate-test-report.json",
-      ".simplebeacon/gate-workspace-fresh.json",
-      ".simplebeacon/latest-scan.json",
-      ".simplebeacon/latest-scan2.json",
-      ".simplebeacon/latest-scan3.json",
-      ".simplebeacon/latest-scan4.json",
-      ".simplebeacon/parent-scan-test-report.json",
-      ".simplebeacon/parent-verify.json",
-      ".simplebeacon/reduce-current.json",
-      ".simplebeacon/reduce-final.json",
-      ".simplebeacon/reduce-fresh.json",
-      ".simplebeacon/reduce-latest.json",
-      ".simplebeacon/reduce-report.json",
-      ".simplebeacon/reduce-verify.json",
+      ".simplebeacon/post-cleanup-scan.json",
+      ".simplebeacon/post-smtp-fix-scan.json",
+      ".simplebeacon/remediation-imported.json",
+      ".simplebeacon/remediation-report-2026-06-11.md",
       ".simplebeacon/report-fresh.json",
-      ".simplebeacon/report-test2.json",
-      ".simplebeacon/report-test3.json",
-      ".simplebeacon/report-test4.json",
       ".simplebeacon/report.json",
-      ".simplebeacon/reverted-gate.json",
-      ".simplebeacon/verify-current.json",
-      ".simplebeacon/website-scan.json",
-      ".simplebeacon/website-scan2.json",
-      ".simplebeacon/website-scan3.json"
+      ".simplebeacon/roadmap-analysis-report-2026-06-14.md",
+      ".simplebeacon/scan-debug.json",
+      ".simplebeacon/scan-fix-verify.json",
+      ".simplebeacon/scan-full-verify.json",
+      ".simplebeacon/scan-verify.json",
+      ".simplebeacon/verification-scan-smtp.json",
+      ".simplebeacon/verification-scan.json",
+      "ai-platform/docs/model-card.md",
+      "ai-platform/docs/ai-system-documentation.md",
+      "ai-platform/docs/risk-assessment.md",
+      "ai-platform/docs/conformity-declaration.md",
+      "ai-platform/docs/eu-ai-act-compliance.md",
+      "ai-platform/docs/audit-terms-of-service.md",
+      "ai-platform/docs/enterprise-positioning.md",
+      "ai-platform/docs/free-slop-audit-offer.md",
+      "ai-platform/docs/outreach-cc-campaign.md",
+      "ai-platform/docs/prospect-list.md",
+      "sales/docs/configuration.md"
     ],
     "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
   },
-  "enterpriseGuardrailScanned": 538,
-  "enterpriseGuardrailFindings": 0,
-  "fileNamingScanned": 0,
-  "fileNamingFindings": 0,
-  "structuralIntentScanned": 0,
-  "structuralIntentFindings": 0,
-  "structuralIntentEnabled": false,
-  "structuralIntentEngine": null,
-  "structuralIntentSlmReviewCount": 0,
-  "structuralIntentSlmReviews": [],
   "jestBaselineChecked": false,
   "jestBaselinePassed": true,
   "jestSummary": null,
   "severityCounts": {
     "critical": 0,
     "high": 0,
-    "medium": 11,
-    "low": 27
+    "medium": 115,
+    "low": 54
   },
-  "mockDataCategories": [
-    {
-      "category": "Other Files",
-      "fileCount": 881,
-      "totalSize": "12.7MB",
-      "qualityScore": 100,
-      "issues": 0,
-      "confidence": null,
-      "description": "Other Files discovered during filesystem scan"
-    },
-    {
-      "category": "Documentation Files",
-      "fileCount": 96,
-      "totalSize": "355.0KB",
-      "qualityScore": 100,
-      "issues": 0,
-      "confidence": null,
-      "description": "Documentation Files discovered during filesystem scan"
-    },
-    {
-      "category": "Config Files",
-      "fileCount": 27,
-      "totalSize": "61.3KB",
-      "qualityScore": 100,
-      "issues": 0,
-      "confidence": null,
-      "description": "Config Files discovered during filesystem scan"
-    },
-    {
-      "category": "JSON Files",
-      "fileCount": 115,
-      "totalSize": "1.3MB",
-      "qualityScore": 100,
-      "issues": 0,
-      "confidence": null,
-      "description": "JSON Files discovered during filesystem scan"
-    },
-    {
-      "category": "Text Files",
-      "fileCount": 35,
-      "totalSize": "836.6KB",
-      "qualityScore": 100,
-      "issues": 0,
-      "confidence": null,
-      "description": "Text Files discovered during filesystem scan"
-    },
-    {
-      "category": "Database Files",
-      "fileCount": 3,
-      "totalSize": "10.1KB",
-      "qualityScore": 100,
-      "issues": 0,
-      "confidence": null,
-      "description": "Database Files discovered during filesystem scan"
-    },
-    {
-      "category": "XML Files",
-      "fileCount": 1,
-      "totalSize": "1.4KB",
-      "qualityScore": 100,
-      "issues": 0,
-      "confidence": null,
-      "description": "XML Files discovered during filesystem scan"
-    }
-  ],
+  "mockDataCategories": [],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
   "detectedIssues": [
     {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "Duplicate Data",
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
       "count": 1,
-      "description": "2 files share identical JSON content",
+      "description": "missing-env-key finding",
       "pattern": null,
       "line": null,
-      "recommendation": "Remove duplicate entries to optimize data size",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/examples/ai-hygiene-enterprise-config.json",
-        "packages/simplebeacon-cli/examples/ai-hygiene-enterprise-config.json"
+        ".env"
       ],
       "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json"
+        ".env"
       ],
-      "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json"
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "Duplicate Data",
-      "count": 1,
-      "description": "2 files share identical JSON content",
-      "pattern": null,
-      "line": null,
-      "recommendation": "Remove duplicate entries to optimize data size",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
-      "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/examples/enterprise-config.json",
-        "packages/simplebeacon-cli/examples/enterprise-config.json"
-      ],
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\enterprise-config.json"
-      ],
-      "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json"
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "Duplicate Data",
-      "count": 1,
-      "description": "2 files share identical JSON content",
-      "pattern": null,
-      "line": null,
-      "recommendation": "Remove duplicate entries to optimize data size",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
-      "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-github.mcp.json",
-        "packages/simplebeacon-cli/examples/mcp/cursor-github.mcp.json"
-      ],
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json"
-      ],
-      "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json"
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "Duplicate Data",
-      "count": 1,
-      "description": "2 files share identical JSON content",
-      "pattern": null,
-      "line": null,
-      "recommendation": "Remove duplicate entries to optimize data size",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
-      "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-standard.mcp.json",
-        "packages/simplebeacon-cli/examples/mcp/cursor-standard.mcp.json"
-      ],
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json"
-      ],
-      "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json"
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "Duplicate Data",
-      "count": 1,
-      "description": "2 files share identical JSON content",
-      "pattern": null,
-      "line": null,
-      "recommendation": "Remove duplicate entries to optimize data size",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
-      "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor.monorepo.mcp.json",
-        "packages/simplebeacon-cli/examples/mcp/cursor.monorepo.mcp.json"
-      ],
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json"
-      ],
-      "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json"
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "Duplicate Data",
-      "count": 1,
-      "description": "2 files share identical JSON content",
-      "pattern": null,
-      "line": null,
-      "recommendation": "Remove duplicate entries to optimize data size",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
-      "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/src/compliance-checklist.defaults.json",
-        "packages/simplebeacon-cli/src/compliance-checklist.defaults.json"
-      ],
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json"
-      ],
-      "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json"
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "Duplicate Data",
-      "count": 1,
-      "description": "2 files share identical JSON content",
-      "pattern": null,
-      "line": null,
-      "recommendation": "Remove duplicate entries to optimize data size",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
-      "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/src/compliance-checklist.eu-ai-act.defaults.json",
-        "packages/simplebeacon-cli/src/compliance-checklist.eu-ai-act.defaults.json"
-      ],
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json"
-      ],
-      "file": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json"
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "Duplicate Data",
-      "count": 1,
-      "description": "3 files share identical JSON content",
-      "pattern": null,
-      "line": null,
-      "recommendation": "Remove duplicate entries to optimize data size",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
-      "affectedFiles": [
-        "coming-soon/subscriptions.json",
-        "coming-soon-dev/subscriptions.json",
-        "packages/simplebeacon-cli/test-cert/json/03-mock-data.json"
-      ],
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\subscriptions.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\coming-soon-dev\\subscriptions.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\03-mock-data.json"
-      ],
-      "file": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\subscriptions.json"
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "Duplicate Data",
-      "count": 1,
-      "description": "10 files share identical JSON content",
-      "pattern": null,
-      "line": null,
-      "recommendation": "Remove duplicate entries to optimize data size",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
-      "affectedFiles": [
-        "packages/simplebeacon-cli/test-cert/json/01-simplebeacon-gate.json",
-        "packages/simplebeacon-cli/test-cert/json/02-consolidation.json",
-        "packages/simplebeacon-cli/test-cert/json/04-roadmap.json",
-        "packages/simplebeacon-cli/test-cert/json/05-codebase.json",
-        "packages/simplebeacon-cli/test-cert/json/06-file-reduction.json",
-        "packages/simplebeacon-cli/test-cert/json/07-data-quality.json",
-        "packages/simplebeacon-cli/test-cert/json/08-cleanup.json",
-        "packages/simplebeacon-cli/test-cert/json/09-npm-audit.json"
-      ],
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\01-simplebeacon-gate.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\02-consolidation.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\04-roadmap.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\05-codebase.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\06-file-reduction.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\07-data-quality.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\08-cleanup.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\09-npm-audit.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\10-compliance.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\11-eu-ai-act.json"
-      ],
-      "file": "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\01-simplebeacon-gate.json"
+      "file": ".env"
     },
     {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "EU AI Act — AI System Indicator",
+      "type": "missing-env-key",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (2 matches in file)",
-      "pattern": "EUAI-AI-001",
+      "description": "missing-env-key finding",
+      "pattern": null,
       "line": null,
-      "recommendation": "Review EU AI Act transparency and documentation obligations for this AI integration",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/.env"
+        ".env"
       ],
       "filePaths": [
-        "ai-platform/.env"
+        ".env"
       ],
-      "file": "ai-platform/.env"
+      "file": ".env"
     },
     {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "EU AI Act — AI System Indicator",
+      "type": "missing-env-key",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (8 matches in file)",
-      "pattern": "EUAI-AI-001",
+      "description": "missing-env-key finding",
+      "pattern": null,
       "line": null,
-      "recommendation": "Review EU AI Act transparency and documentation obligations for this AI integration",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/.env.example"
+        ".env"
       ],
       "filePaths": [
-        "ai-platform/.env.example"
+        ".env"
       ],
-      "file": "ai-platform/.env.example"
+      "file": ".env"
     },
     {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "EU AI Act — AI System Indicator",
+      "type": "missing-env-key",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (8 matches in file)",
-      "pattern": "EUAI-AI-001",
+      "description": "missing-env-key finding",
+      "pattern": null,
       "line": null,
-      "recommendation": "Review EU AI Act transparency and documentation obligations for this AI integration",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/env-keys.txt"
+        ".env"
       ],
       "filePaths": [
-        "ai-platform/env-keys.txt"
+        ".env"
       ],
-      "file": "ai-platform/env-keys.txt"
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "filePaths": [
+        ".env"
+      ],
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "missing-env-key",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "filePaths": [
+        ".env"
+      ],
+      "file": ".env"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "unused-file",
+      "count": 1,
+      "description": "unused-file finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-agent/report-analyzer.cjs"
+      ],
+      "filePaths": [
+        "ai-agent/report-analyzer.cjs"
+      ],
+      "file": "ai-agent/report-analyzer.cjs"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "unused-file",
+      "count": 1,
+      "description": "unused-file finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/docs/outreach-prospects.js"
+      ],
+      "filePaths": [
+        "ai-platform/docs/outreach-prospects.js"
+      ],
+      "file": "ai-platform/docs/outreach-prospects.js"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "version-drift",
+      "count": 1,
+      "description": "version-drift finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/package.json"
+      ],
+      "filePaths": [
+        "ai-platform/package.json"
+      ],
+      "file": "ai-platform/package.json"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "version-drift",
+      "count": 1,
+      "description": "version-drift finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/package.json"
+      ],
+      "filePaths": [
+        "ai-platform/package.json"
+      ],
+      "file": "ai-platform/package.json"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "unused-file",
+      "count": 1,
+      "description": "unused-file finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/reports/ai-verdict.json"
+      ],
+      "filePaths": [
+        "ai-platform/reports/ai-verdict.json"
+      ],
+      "file": "ai-platform/reports/ai-verdict.json"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "unused-file",
+      "count": 1,
+      "description": "unused-file finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/simplebeacon-report.json"
+      ],
+      "filePaths": [
+        "ai-platform/simplebeacon-report.json"
+      ],
+      "file": "ai-platform/simplebeacon-report.json"
     }
   ],
   "rawIssues": [
     {
-      "id": "duplicate-ab7dc5e0",
+      "id": "file-reduction-missing-env-key-f3a2c4",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "REALTIME_WS_PORT",
+        "references": [
+          "ai-platform/server/routes/realtime-analysis-api.cjs"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-5f8bd8",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "LICENSE_SECRET",
+        "references": [
+          "packages/simplebeacon-cli/bin/generate-license-token.cjs"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-d97eac",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "LOCAL_AI_URL",
+        "references": [
+          "simplebeacon-vscode/out/enhancedAIProvider.js",
+          "simplebeacon-vscode/src/enhancedAIProvider.ts"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-192358",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "SECRET_NAME",
+        "references": [
+          "simplebeacon-vscode/out/fixes/remediationProvider.js",
+          "simplebeacon-vscode/src/fixes/remediationProvider.ts"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-b61569",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "VAR_NAME",
+        "references": [
+          "simplebeacon-vscode/out/fixes/remediationProvider.js",
+          "simplebeacon-vscode/src/fixes/remediationProvider.ts"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-missing-env-key-2c0d53",
+      "severity": "medium",
+      "type": "missing-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "missing-env-key finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        ".env"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "API_PROXY_URL",
+        "references": [
+          "vite.config.js"
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-de4260",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "ai-agent/report-analyzer.cjs",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-agent/report-analyzer.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-f26f9c",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "ai-platform/docs/outreach-prospects.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/docs/outreach-prospects.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-version-drift-acc687",
+      "severity": "medium",
+      "type": "version-drift",
+      "filePath": "ai-platform/package.json",
+      "count": 1,
+      "description": "version-drift finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/package.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "dependency": "eslint",
+        "entries": [
+          {
+            "path": "ai-platform/package.json",
+            "version": "^10.4.1",
+            "section": "devDependencies"
+          },
+          {
+            "path": "simplebeacon-vscode/package.json",
+            "version": "^10.5.0",
+            "section": "devDependencies"
+          }
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-version-drift-c149f1",
+      "severity": "medium",
+      "type": "version-drift",
+      "filePath": "ai-platform/package.json",
+      "count": 1,
+      "description": "version-drift finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/package.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "dependency": "jest",
+        "entries": [
+          {
+            "path": "ai-platform/package.json",
+            "version": "^29.6.2",
+            "section": "devDependencies"
+          },
+          {
+            "path": "simplebeacon-vscode/package.json",
+            "version": "^30.4.2",
+            "section": "devDependencies"
+          }
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-f2952c",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "ai-platform/reports/ai-verdict.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/reports/ai-verdict.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-72a3e0",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "ai-platform/simplebeacon-report.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/simplebeacon-report.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-638497",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "ai-platform/src/web/export-system.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/src/web/export-system.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-c79bc3",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/complete-scan.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/complete-scan.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-11aa98",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/json/cleanup-brief.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/json/cleanup-brief.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-81f618",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/json/codebase-summary.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/json/codebase-summary.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-c1aa2e",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/json/complete-scan.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/json/complete-scan.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-862377",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/json/consolidation.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/json/consolidation.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-90c849",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/json/data-quality.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/json/data-quality.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-47f09d",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/json/fiction-digest.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/json/fiction-digest.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-6c2bce",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/json/file-reduction.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/json/file-reduction.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-ad3a2b",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/json/public-summary.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/json/public-summary.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-b5c1ab",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/json/re-attestation-note.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/json/re-attestation-note.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-6d94f0",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/json/roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/json/roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-de3f19",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/json/simplebeacon-gate.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/json/simplebeacon-gate.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-740b05",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/manifest.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/manifest.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-e100d1",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/report.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/report.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-ea24a8",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/reports/agency-certificate.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/reports/agency-certificate.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-45e566",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/reports/executive-audit.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/reports/executive-audit.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-b505a1",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/accessibility.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/accessibility.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-c7be6a",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-indicators.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-indicators.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-690992",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-placeholder-block.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-placeholder-block.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-efb046",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-placeholder-comment.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-placeholder-comment.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-41dbcb",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-residue.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/ai-residue.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-182da9",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/api-contract.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/api-contract.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-6f5847",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/architecture-drift.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/architecture-drift.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-21073f",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/arrow-stub.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/arrow-stub.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-b20fa0",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/build-readiness.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/build-readiness.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-f389d1",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/cleanup-assistant.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/cleanup-assistant.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-c51998",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/codebase.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/codebase.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-cc2f30",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/complexity.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/complexity.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-1aaa61",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/compliance.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/compliance.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-38cf6a",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/config-drift.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/config-drift.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-686326",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/consolidation.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/consolidation.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-f73c8d",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/data-quality.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/data-quality.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-84fd91",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/database-patterns.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/database-patterns.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-5b37f1",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/dependency-vulns.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/dependency-vulns.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-41a9bc",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/documentation.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/documentation.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-ef7624",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/empty-stub-function.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/empty-stub-function.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-c8470e",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/eu-ai-act.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/eu-ai-act.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-68d977",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/eval-danger.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/eval-danger.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-db8764",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/fiction-kpi.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/fiction-kpi.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-cdcac2",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/file-reduction.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/file-reduction.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-51d5b1",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/fix-preview.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/fix-preview.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-854b69",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/framework-practices.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/framework-practices.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-0314ed",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/governance-marker.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/governance-marker.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-b7e93b",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/governance.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/governance.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-a132f8",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/hardcoded-completion.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/hardcoded-completion.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-02784d",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/hardcoded-confidence.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/hardcoded-confidence.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-8b22a9",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/i18n.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/i18n.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-1836c3",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/inner-html-xss.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/inner-html-xss.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-d539f6",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/insecure-random.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/insecure-random.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-85ac3f",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/junk-files.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/junk-files.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-4bfac1",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/llm-slop.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/llm-slop.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-fec398",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/logging-secrets.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/logging-secrets.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-982cb3",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/magic-number.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/magic-number.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-af11e2",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/markdown-fence-leak.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/markdown-fence-leak.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-e71ebd",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/missing-rate-limit.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/missing-rate-limit.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-2442b6",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/missing-strict-mode.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/missing-strict-mode.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-d05fb5",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-path-leak.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-path-leak.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-260711",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-scan.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-scan.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-ed44f3",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/npm-audit.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/npm-audit.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-ad8f89",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/performance.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/performance.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-c8c824",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/production-leak.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/production-leak.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-e27b43",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/prototype-pollution.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/prototype-pollution.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-15d3e0",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/removable-files.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/removable-files.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-9d21e0",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/roadmap-marker.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/roadmap-marker.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-3e9968",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/roadmap.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/roadmap.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-e72269",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/sample-json-ref.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/sample-json-ref.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-1daca6",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/security-headers.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/security-headers.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-caf1c7",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/sensitive-data.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/sensitive-data.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-e81ff6",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/simplebeacon.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/simplebeacon.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-42ef73",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/sync-io.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/sync-io.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-867efe",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/test-coverage.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/test-coverage.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-8f6351",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/token-bleed.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/token-bleed.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-0613c0",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/type-safety.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/type-safety.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-f0844f",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/unhandled-promise.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/unhandled-promise.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-7bbc4b",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/uninitialized-read.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/uninitialized-read.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-23de58",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/unused-deps.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/unused-deps.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-268fbc",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/unvalidated-redirect.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/unvalidated-redirect.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-99d15d",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/workspace-health.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/workspace-health.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-5aa3b4",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/01-simplebeacon-gate.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/01-simplebeacon-gate.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-ed3d5e",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/02-consolidation.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/02-consolidation.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-62a519",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/03-mock-data.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/03-mock-data.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-58b6eb",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/04-roadmap.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/04-roadmap.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-bc5fe8",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/05-codebase.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/05-codebase.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-9f10fb",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/06-file-reduction.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/06-file-reduction.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-1bead7",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/07-data-quality.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/07-data-quality.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-ea10c8",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/08-cleanup.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/08-cleanup.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-964320",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/09-npm-audit.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/09-npm-audit.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-cbb09d",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/10-compliance.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/10-compliance.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-4b06ec",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/11-eu-ai-act.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/11-eu-ai-act.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-839278",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "packages/simplebeacon-cli/test-cert/reports/certificate.html",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "packages/simplebeacon-cli/test-cert/reports/certificate.html"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-364a4e",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-report.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-report.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-aec4aa",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-vscode/.eslintrc.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/.eslintrc.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-4a3c77",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-vscode/build-extension.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/build-extension.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-5a9a73",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-vscode/code-map.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/code-map.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-3edee7",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-vscode/out/__mocks__/vscode.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/out/__mocks__/vscode.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-23e405",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-vscode/out/auth/apiClient.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/out/auth/apiClient.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-34bdbd",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-vscode/out/fixes/findingConverter.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/out/fixes/findingConverter.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-29c811",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-vscode/out/webviewPanel.js",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/out/webviewPanel.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-7aa38b",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-vscode/simplebeacon-report.json",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/simplebeacon-report.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-d96499",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/__mocks__/vscode.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-51c230",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-vscode/src/auth/apiClient.ts",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/auth/apiClient.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-35beee",
+      "severity": "medium",
+      "type": "unused-file",
+      "filePath": "simplebeacon-vscode/src/fixes/findingConverter.ts",
+      "count": 1,
+      "description": "unused-file finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/fixes/findingConverter.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-unused-env-key-b55a55",
       "severity": "low",
-      "type": "Duplicate Data",
-      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json",
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json"
-      ],
-      "count": 2,
-      "description": "2 files share identical JSON content",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "type": "unused-env-key",
+      "filePath": ".env",
+      "count": 1,
+      "description": "unused-env-key finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/examples/ai-hygiene-enterprise-config.json",
-        "packages/simplebeacon-cli/examples/ai-hygiene-enterprise-config.json"
+        ".env"
       ],
       "metadata": {
-        "duplicatePaths": [
-          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\ai-hygiene-enterprise-config.json"
-        ],
-        "relativePaths": [
-          "ai-platform/packages/simplebeacon-cli/examples/ai-hygiene-enterprise-config.json",
-          "packages/simplebeacon-cli/examples/ai-hygiene-enterprise-config.json"
-        ],
-        "contentHash": "ab7dc5e014143cd996f130225e7855d080bb003b6cab0e70e8343c9ccd1a584b"
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "key": "ADMIN_SECRET",
+        "files": [
+          ".env"
+        ]
       }
     },
     {
-      "id": "duplicate-f30f6cda",
+      "id": "file-reduction-build-artifact-e74d5f",
       "severity": "low",
-      "type": "Duplicate Data",
-      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json",
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\enterprise-config.json"
-      ],
-      "count": 2,
-      "description": "2 files share identical JSON content",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "type": "build-artifact",
+      "filePath": "ai-platform/coverage",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/examples/enterprise-config.json",
-        "packages/simplebeacon-cli/examples/enterprise-config.json"
+        "ai-platform/coverage"
       ],
       "metadata": {
-        "duplicatePaths": [
-          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\enterprise-config.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\enterprise-config.json"
-        ],
-        "relativePaths": [
-          "ai-platform/packages/simplebeacon-cli/examples/enterprise-config.json",
-          "packages/simplebeacon-cli/examples/enterprise-config.json"
-        ],
-        "contentHash": "f30f6cda00c1c9747f57a7e1c300a12fb297cdf7bcc213cc6227b00a3b8d1920"
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
       }
     },
     {
-      "id": "duplicate-abebfd2b",
+      "id": "file-reduction-duplicate-config-type-fb99ed",
       "severity": "low",
-      "type": "Duplicate Data",
-      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json",
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json"
-      ],
-      "count": 2,
-      "description": "2 files share identical JSON content",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "type": "duplicate-config-type",
+      "filePath": "ai-platform/vite.config.js",
+      "count": 1,
+      "description": "duplicate-config-type finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-github.mcp.json",
-        "packages/simplebeacon-cli/examples/mcp/cursor-github.mcp.json"
+        "ai-platform/vite.config.js"
       ],
       "metadata": {
-        "duplicatePaths": [
-          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-github.mcp.json"
-        ],
-        "relativePaths": [
-          "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-github.mcp.json",
-          "packages/simplebeacon-cli/examples/mcp/cursor-github.mcp.json"
-        ],
-        "contentHash": "abebfd2b2ef178a75fb4fa063fdfafebecd3c8dac9854b8578849e094905d8c9"
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "files": [
+          "ai-platform/vite.config.js",
+          "vite.config.js"
+        ]
       }
     },
     {
-      "id": "duplicate-077a8b37",
+      "id": "file-reduction-orphaned-data-c85537",
       "severity": "low",
-      "type": "Duplicate Data",
-      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json",
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json"
-      ],
-      "count": 2,
-      "description": "2 files share identical JSON content",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "type": "orphaned-data",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-path-leak.json",
+      "count": 1,
+      "description": "orphaned-data finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-standard.mcp.json",
-        "packages/simplebeacon-cli/examples/mcp/cursor-standard.mcp.json"
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-path-leak.json"
       ],
       "metadata": {
-        "duplicatePaths": [
-          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor-standard.mcp.json"
-        ],
-        "relativePaths": [
-          "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor-standard.mcp.json",
-          "packages/simplebeacon-cli/examples/mcp/cursor-standard.mcp.json"
-        ],
-        "contentHash": "077a8b3797fad419806afb7d077b5743fc3e87cf141866fdac47328c756abbba"
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "consumerCount": 0
       }
     },
     {
-      "id": "duplicate-12890bbe",
+      "id": "file-reduction-orphaned-data-79df59",
       "severity": "low",
-      "type": "Duplicate Data",
-      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json",
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json"
-      ],
-      "count": 2,
-      "description": "2 files share identical JSON content",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "type": "orphaned-data",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-scan.json",
+      "count": 1,
+      "description": "orphaned-data finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor.monorepo.mcp.json",
-        "packages/simplebeacon-cli/examples/mcp/cursor.monorepo.mcp.json"
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/mock-scan.json"
       ],
       "metadata": {
-        "duplicatePaths": [
-          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\examples\\mcp\\cursor.monorepo.mcp.json"
-        ],
-        "relativePaths": [
-          "ai-platform/packages/simplebeacon-cli/examples/mcp/cursor.monorepo.mcp.json",
-          "packages/simplebeacon-cli/examples/mcp/cursor.monorepo.mcp.json"
-        ],
-        "contentHash": "12890bbe0ca440ecdc3adbe3c5eeeadae4eda0163e9e7cdb76f31c6c01361e13"
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "consumerCount": 0
       }
     },
     {
-      "id": "duplicate-51242a7c",
+      "id": "file-reduction-orphaned-data-716736",
       "severity": "low",
-      "type": "Duplicate Data",
-      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json",
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json"
-      ],
-      "count": 2,
-      "description": "2 files share identical JSON content",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "type": "orphaned-data",
+      "filePath": "New folder/simplebeacon-export-operator-2026-06-16/steps/sample-json-ref.json",
+      "count": 1,
+      "description": "orphaned-data finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/src/compliance-checklist.defaults.json",
-        "packages/simplebeacon-cli/src/compliance-checklist.defaults.json"
+        "New folder/simplebeacon-export-operator-2026-06-16/steps/sample-json-ref.json"
       ],
       "metadata": {
-        "duplicatePaths": [
-          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\compliance-checklist.defaults.json"
-        ],
-        "relativePaths": [
-          "ai-platform/packages/simplebeacon-cli/src/compliance-checklist.defaults.json",
-          "packages/simplebeacon-cli/src/compliance-checklist.defaults.json"
-        ],
-        "contentHash": "51242a7cfd9d6124a351613d8c451fd153ee24e44f78969dbff366347216835f"
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "consumerCount": 0
       }
     },
     {
-      "id": "duplicate-ab3801dd",
+      "id": "file-reduction-build-artifact-ed47d4",
       "severity": "low",
-      "type": "Duplicate Data",
-      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json",
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json"
-      ],
-      "count": 2,
-      "description": "2 files share identical JSON content",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "type": "build-artifact",
+      "filePath": "simplebeacon-vscode/out",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/packages/simplebeacon-cli/src/compliance-checklist.eu-ai-act.defaults.json",
-        "packages/simplebeacon-cli/src/compliance-checklist.eu-ai-act.defaults.json"
+        "simplebeacon-vscode/out"
       ],
       "metadata": {
-        "duplicatePaths": [
-          "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\compliance-checklist.eu-ai-act.defaults.json"
-        ],
-        "relativePaths": [
-          "ai-platform/packages/simplebeacon-cli/src/compliance-checklist.eu-ai-act.defaults.json",
-          "packages/simplebeacon-cli/src/compliance-checklist.eu-ai-act.defaults.json"
-        ],
-        "contentHash": "ab3801dd555081f8ecd4555d481eff0093675a3491008f0be6b786528e608613"
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
       }
     },
     {
-      "id": "duplicate-4f53cda1",
+      "id": "file-reduction-unused-dependency-510526",
       "severity": "low",
-      "type": "Duplicate Data",
-      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\subscriptions.json",
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\subscriptions.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\coming-soon-dev\\subscriptions.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\03-mock-data.json"
-      ],
-      "count": 3,
-      "description": "3 files share identical JSON content",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "type": "unused-dependency",
+      "filePath": "simplebeacon-vscode/package.json",
+      "count": 1,
+      "description": "unused-dependency finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "coming-soon/subscriptions.json",
-        "coming-soon-dev/subscriptions.json",
-        "packages/simplebeacon-cli/test-cert/json/03-mock-data.json"
+        "simplebeacon-vscode/package.json"
       ],
       "metadata": {
-        "duplicatePaths": [
-          "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\subscriptions.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\coming-soon-dev\\subscriptions.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\03-mock-data.json"
-        ],
-        "relativePaths": [
-          "coming-soon/subscriptions.json",
-          "coming-soon-dev/subscriptions.json",
-          "packages/simplebeacon-cli/test-cert/json/03-mock-data.json"
-        ],
-        "contentHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "dependency": "@typescript-eslint/eslint-plugin"
       }
     },
     {
-      "id": "duplicate-44136fa3",
+      "id": "file-reduction-unused-dependency-8d482a",
       "severity": "low",
-      "type": "Duplicate Data",
-      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\01-simplebeacon-gate.json",
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\01-simplebeacon-gate.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\02-consolidation.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\04-roadmap.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\05-codebase.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\06-file-reduction.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\07-data-quality.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\08-cleanup.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\09-npm-audit.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\10-compliance.json",
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\11-eu-ai-act.json"
-      ],
-      "count": 10,
-      "description": "10 files share identical JSON content",
-      "recommendedAction": "Remove duplicate entries to optimize data size",
+      "type": "unused-dependency",
+      "filePath": "simplebeacon-vscode/package.json",
+      "count": 1,
+      "description": "unused-dependency finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "packages/simplebeacon-cli/test-cert/json/01-simplebeacon-gate.json",
-        "packages/simplebeacon-cli/test-cert/json/02-consolidation.json",
-        "packages/simplebeacon-cli/test-cert/json/04-roadmap.json",
-        "packages/simplebeacon-cli/test-cert/json/05-codebase.json",
-        "packages/simplebeacon-cli/test-cert/json/06-file-reduction.json",
-        "packages/simplebeacon-cli/test-cert/json/07-data-quality.json",
-        "packages/simplebeacon-cli/test-cert/json/08-cleanup.json",
-        "packages/simplebeacon-cli/test-cert/json/09-npm-audit.json",
-        "packages/simplebeacon-cli/test-cert/json/10-compliance.json",
-        "packages/simplebeacon-cli/test-cert/json/11-eu-ai-act.json"
+        "simplebeacon-vscode/package.json"
       ],
       "metadata": {
-        "duplicatePaths": [
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\01-simplebeacon-gate.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\02-consolidation.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\04-roadmap.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\05-codebase.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\06-file-reduction.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\07-data-quality.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\08-cleanup.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\09-npm-audit.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\10-compliance.json",
-          "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\test-cert\\json\\11-eu-ai-act.json"
-        ],
-        "relativePaths": [
-          "packages/simplebeacon-cli/test-cert/json/01-simplebeacon-gate.json",
-          "packages/simplebeacon-cli/test-cert/json/02-consolidation.json",
-          "packages/simplebeacon-cli/test-cert/json/04-roadmap.json",
-          "packages/simplebeacon-cli/test-cert/json/05-codebase.json",
-          "packages/simplebeacon-cli/test-cert/json/06-file-reduction.json",
-          "packages/simplebeacon-cli/test-cert/json/07-data-quality.json",
-          "packages/simplebeacon-cli/test-cert/json/08-cleanup.json",
-          "packages/simplebeacon-cli/test-cert/json/09-npm-audit.json",
-          "packages/simplebeacon-cli/test-cert/json/10-compliance.json",
-          "packages/simplebeacon-cli/test-cert/json/11-eu-ai-act.json"
-        ],
-        "contentHash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "dependency": "@typescript-eslint/parser"
       }
     },
     {
-      "id": "EUAI-AI-001-ai-platform/.env",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "ai-platform/.env",
+      "id": "file-reduction-dead-export-2accad",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/__mocks__/vscode.ts",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (2 matches in file)",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/.env"
+        "simplebeacon-vscode/src/__mocks__/vscode.ts"
       ],
       "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "OPENAI",
-        "matchCount": 2,
-        "matches": [
-          "OPENAI",
-          "ANTHROPIC"
-        ]
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "workspace",
+        "kind": "named"
       }
     },
     {
-      "id": "EUAI-AI-001-ai-platform/.env.example",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "ai-platform/.env.example",
+      "id": "file-reduction-dead-export-eae263",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/__mocks__/vscode.ts",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (8 matches in file)",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/.env.example"
+        "simplebeacon-vscode/src/__mocks__/vscode.ts"
       ],
       "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "OpenAI",
-        "matchCount": 8,
-        "matches": [
-          "OpenAI",
-          "Anthropic",
-          "OPENAI",
-          "ANTHROPIC"
-        ]
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ViewColumn",
+        "kind": "named"
       }
     },
     {
-      "id": "EUAI-AI-001-ai-platform/env-keys.txt",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "ai-platform/env-keys.txt",
+      "id": "file-reduction-dead-export-474bc0",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/__mocks__/vscode.ts",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (8 matches in file)",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/env-keys.txt"
+        "simplebeacon-vscode/src/__mocks__/vscode.ts"
       ],
       "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "OpenAI",
-        "matchCount": 8,
-        "matches": [
-          "OpenAI",
-          "Anthropic",
-          "ANTHROPIC",
-          "OPENAI"
-        ]
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "TreeItemCollapsibleState",
+        "kind": "named"
       }
     },
     {
-      "id": "EUAI-AI-001-ai-platform/pipeline/.env.example",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "ai-platform/pipeline/.env.example",
+      "id": "file-reduction-dead-export-761000",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/__mocks__/vscode.ts",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (5 matches in file)",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/pipeline/.env.example"
+        "simplebeacon-vscode/src/__mocks__/vscode.ts"
       ],
       "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "OpenAI",
-        "matchCount": 5,
-        "matches": [
-          "OpenAI",
-          "OPENAI",
-          "gpt-4"
-        ]
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ThemeIcon",
+        "kind": "named"
       }
     },
     {
-      "id": "EUAI-AI-001-ai-platform/pipeline/requirements.txt",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "ai-platform/pipeline/requirements.txt",
+      "id": "file-reduction-dead-export-53af4c",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/__mocks__/vscode.ts",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (2 matches in file)",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/pipeline/requirements.txt"
+        "simplebeacon-vscode/src/__mocks__/vscode.ts"
       ],
       "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "OpenAI",
-        "matchCount": 2,
-        "matches": [
-          "OpenAI",
-          "openai"
-        ]
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ThemeColor",
+        "kind": "named"
       }
     },
     {
-      "id": "EUAI-AI-001-ai-platform/server/dlp-dashboard.cjs",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "ai-platform/server/dlp-dashboard.cjs",
+      "id": "file-reduction-dead-export-397c42",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/__mocks__/vscode.ts",
       "count": 1,
-      "description": "Generative AI or LLM integration detected",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-platform/server/dlp-dashboard.cjs"
+        "simplebeacon-vscode/src/__mocks__/vscode.ts"
       ],
       "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "openai",
-        "matchCount": 1,
-        "matches": [
-          "openai"
-        ]
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "Uri",
+        "kind": "named"
       }
     },
     {
-      "id": "EUAI-AI-001-CHANGELOG.md",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "CHANGELOG.md",
+      "id": "file-reduction-dead-export-007b6c",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/__mocks__/vscode.ts",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (3 matches in file)",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "CHANGELOG.md"
+        "simplebeacon-vscode/src/__mocks__/vscode.ts"
       ],
       "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "OpenAI",
-        "matchCount": 3,
-        "matches": [
-          "OpenAI",
-          "Anthropic",
-          "HuggingFace"
-        ]
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "Range",
+        "kind": "named"
       }
     },
     {
-      "id": "EUAI-AI-001-instructions.txt",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "instructions.txt",
+      "id": "file-reduction-dead-export-aff3af",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/__mocks__/vscode.ts",
       "count": 1,
-      "description": "Generative AI or LLM integration detected",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "instructions.txt"
+        "simplebeacon-vscode/src/__mocks__/vscode.ts"
       ],
       "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "Claude",
-        "matchCount": 1,
-        "matches": [
-          "Claude"
-        ]
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ProgressLocation",
+        "kind": "named"
       }
     },
     {
-      "id": "EUAI-AI-001-logs/server-run.log",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "logs/server-run.log",
+      "id": "file-reduction-dead-export-493254",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/__mocks__/vscode.ts",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (88 matches in file)",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "logs/server-run.log"
+        "simplebeacon-vscode/src/__mocks__/vscode.ts"
       ],
       "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "openai",
-        "matchCount": 88,
-        "matches": [
-          "openai",
-          "OPENAI"
-        ]
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ColorThemeKind",
+        "kind": "named"
       }
     },
     {
-      "id": "EUAI-AI-001-report.json",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "report.json",
+      "id": "file-reduction-dead-export-22c1b0",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/auth/apiClient.ts",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (53 matches in file)",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "report.json"
+        "simplebeacon-vscode/src/auth/apiClient.ts"
       ],
       "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "gpt-4",
-        "matchCount": 53,
-        "matches": [
-          "gpt-4",
-          "anthropic",
-          "claude",
-          "openai",
-          "OPENAI",
-          "OpenAI",
-          "Anthropic",
-          "huggingface"
-        ]
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ApiClient",
+        "kind": "named"
       }
     },
     {
-      "id": "EUAI-AI-001-ZORIN-LINUX-SETUP.md",
-      "severity": "medium",
-      "type": "EU AI Act — AI System Indicator",
-      "filePath": "ZORIN-LINUX-SETUP.md",
+      "id": "file-reduction-orphaned-export-c4fcbb",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/designSystem.ts",
       "count": 1,
-      "description": "Generative AI or LLM integration detected (2 matches in file)",
-      "recommendedAction": "Review EU AI Act transparency and documentation obligations for this AI integration",
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ZORIN-LINUX-SETUP.md"
+        "simplebeacon-vscode/src/designSystem.ts"
       ],
       "metadata": {
-        "patternId": "EUAI-AI-001",
-        "category": "ai-system",
-        "annex": null,
-        "match": "Claude",
-        "matchCount": 2,
-        "matches": [
-          "Claude"
-        ]
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "spacing",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-d852e4",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/designSystem.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/designSystem.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "typography",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-487f32",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/designSystem.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/designSystem.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "shadows",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-a6a877",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/designSystem.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/designSystem.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "borderRadius",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-30f500",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/designSystem.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/designSystem.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "transitions",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-76d5f3",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/designSystem.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/designSystem.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "zIndex",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-dead-export-a80734",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/enhancedAIProvider.ts",
+      "count": 1,
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/enhancedAIProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ActionsHeaderNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-dead-export-259159",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/enhancedAIProvider.ts",
+      "count": 1,
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/enhancedAIProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "QuickActionNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-bf946e",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/enhancedSidebar.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/enhancedSidebar.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "FindingNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-dead-export-84915e",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/extension.ts",
+      "count": 1,
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/extension.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "activate",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-dead-export-b5df79",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/extension.ts",
+      "count": 1,
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/extension.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "deactivate",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-dead-export-ca1b22",
+      "severity": "low",
+      "type": "dead-export",
+      "filePath": "simplebeacon-vscode/src/fixes/findingConverter.ts",
+      "count": 1,
+      "description": "dead-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/fixes/findingConverter.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "findingToCodeIssue",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-c22dab",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/scanProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/scanProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "StatusNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-25e8c1",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/scanProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/scanProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "CategoryNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-cc075f",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/settingsProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/settingsProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "SectionNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-62c47e",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/settingsProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/settingsProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ActionNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-a640d1",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/settingsProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/settingsProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ConfigNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-bc5e34",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/settingsProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/settingsProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "StatusNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-45e441",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/summaryProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/summaryProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "SummaryNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-fe649b",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "HeaderNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-b10bb0",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "StatusNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-a2996c",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ProgressNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-310420",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ScoreCardNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-dbf2be",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "MetricsGridNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-98229d",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "MetricsItemNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-86c36c",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ActionsGroupNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-668680",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "QuickActionNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-763b77",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "IssueNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-7dd51a",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "FileIssuesCategoryNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-2ed76c",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "CategoryNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-3d81d8",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "CategoryItemNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-033bc5",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "FindingNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-a2f19d",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "FileIssuesNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-187906",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "ScanDetailsNode",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-08aa33",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "simplebeacon-vscode/src/visualSidebarProvider.ts"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "DetailNode",
+        "kind": "named"
       }
     }
   ],
   "benchmarkCacheIssues": [],
-  "sampleFiles": [
-    ".clinerules",
-    ".dockerignore",
-    ".env.example",
-    "PULL_REQUEST_TEMPLATE.md",
-    "simplebeacon-ai-hygiene-gate.yml",
-    "simplebeacon-automated-lifecycle.yml",
-    "simplebeacon-enterprise-gate.yml",
-    "simplebeacon-nightly-scan.yml",
-    "simplebeacon-npm-publish.yml",
-    "simplebeacon-pr-comment-bot.yml",
-    ".gitignore",
-    ".gitignore",
-    "applypatch-msg",
-    "commit-msg",
-    "h",
-    "husky.sh",
-    "post-applypatch",
-    "post-checkout",
-    "post-commit",
-    "post-merge",
-    "post-rewrite",
-    "pre-applypatch",
-    "pre-auto-gc",
-    "pre-commit",
-    "pre-merge-commit",
-    "pre-push",
-    "pre-rebase",
-    "prepare-commit-msg",
-    ".simplebeaconignore",
-    "AGENTS.md",
-    "orchestrator.js",
-    "package.json",
-    "prompts.js",
-    "test-agent.js",
-    ".env",
-    ".env.example",
-    ".env.production",
-    ".env.production.example",
-    ".env.v1-internal",
-    ".env.v1-internal.example",
-    "README.md",
-    "dashboard-ci.yml",
-    ".gitignore",
-    "pre-commit",
-    "auto-processor.js",
-    "AUTOMATED_SERVICE_README.md",
-    "CHANGELOG.md",
-    "contact.html",
-    "pricing.html",
-    "privacy.html",
-    "refund.html",
-    "sample-report.html",
-    "terms.html",
-    "prompts.json",
-    ".dev-jwt-secrets.json",
-    "ai-roadmap-report.json",
-    "dynamic-roadmap-last-scan.json",
-    "debug.log",
-    "config.yml",
-    "docker-compose.phase2.yml",
-    "ai-system-documentation.md",
-    "README.md",
-    "ARCHITECTURE.md",
-    "audit-terms-of-service.md",
-    "conformity-declaration.md",
-    "CONTRIBUTING.md",
-    "DEPLOY-GATE.md",
-    "enterprise-positioning.md",
-    "eu-ai-act-compliance.md",
-    "free-slop-audit-offer.md",
-    "GGUF-INTEGRATION.md",
-    "model-card.md",
-    "outreach-cc-campaign.md",
-    "outreach-prospects.js",
-    "prospect-list.md",
-    "risk-assessment.md",
-    "SECURITY.md",
-    "v1-internal-runbook.md",
-    "env-keys.txt",
-    "error.log",
-    "eslint.config.js",
-    "jest.config.js",
-    "audit.log",
-    "mcp-http-server.cjs",
-    "package-lock.json",
-    "package.json",
-    "npm-publish.yml",
-    ".gitignore",
-    ".npmignore",
-    "enrich-complete-scan.js",
-    "generate-marketing-content.js",
-    "simplebeacon-mcp.js",
-    "simplebeacon-proxy.js",
-    "simplebeacon.js",
-    "ANTI-BLOAT-MANIFESTO.md",
-    "BENCHMARKS.md",
-    "CI.md",
-    "CONFIG.md",
-    "DOCKER.md",
-    "ENTERPRISE-LICENSE-VAULT.md",
-    "assessment-report-template.json",
-    "eu-ai-act-assessment-template.json",
-    "outreach-tracker.md",
-    "GATE-CALIBRATION.md",
-    "GETTING-STARTED.md",
-    "GITHUB-ACTION-QUICKSTART.md",
-    "LAUNCH-TEMPLATE.md",
-    "blog-template.md",
-    "case-study-template.md",
-    "landing-page-template.html",
-    "linkedin-template.md",
-    "newsletter-template.md",
-    "one-pager-template.md",
-    "press-kit-template.md",
-    "twitter-thread-template.txt",
-    "README.md",
-    "MARKETING.md",
-    "MCP-USER-SETUP.md",
-    "MCP.md",
-    "NAMING.md",
-    "NPM-PUBLISH.md",
-    "OUTREACH.md",
-    "PRE-COMMIT.md",
-    "PRODUCTION-LEAK-TRIAGE.md",
-    "RULES.md",
-    "SAMPLE_REPORT.md",
-    "SCAN-PIPELINE.md",
-    "TRUST.md",
-    "ai-hygiene-enterprise-config.json",
-    "simplebeacon-scan-workflow.mdc",
-    "enterprise-config.json",
-    "README.md",
-    "simplebeacon-ai-hygiene-gate.yml",
-    "simplebeacon-enterprise-monorepo.yml",
-    "simplebeacon-enterprise-vault.yml",
-    "simplebeacon-enterprise.yml",
-    "simplebeacon-eu-ai-act.yml",
-    "simplebeacon-npm-publish-monorepo.yml",
-    "simplebeacon.yml",
-    "pre-commit",
-    "pre-push",
-    "cursor-github.mcp.json",
-    "cursor-standard.mcp.json",
-    "cursor.monorepo.mcp.json",
-    "LICENSE",
-    "npm",
-    "package.json",
-    "PUBLISH.md",
-    "publish.ps1",
-    "simplebeacon_ast_scan.py",
-    "README.md",
-    "publish.ps1",
-    "verify-npm-publish.ps1",
-    "config-management-analyzer.js",
-    "data-access-pattern-analyzer.js",
-    "data-consistency-analyzer.js",
-    "data-freshness-analyzer.js",
-    "data-lineage-analyzer.js",
-    "data-privacy-analyzer.js",
-    "dependency-health-analyzer.js",
-    "environment-variable-analyzer.js",
-    "index.js",
-    "asset-consolidation-scanner.js",
-    "build-artifact-scanner.js",
-    "dead-code-scanner.js",
-    "git-hygiene-scanner.js",
-    "index.js",
-    "supply-chain-security-scanner.js",
-    "unused-file-detector.js",
-    "assessment.js",
-    "baseline-sync.js",
-    "commands.js",
-    "compliance-checklist.defaults.json",
-    "compliance-checklist.eu-ai-act.defaults.json",
-    "compliance-checklist.js",
-    "config-schema.js",
-    "config.js",
-    "eu-ai-act-export-guard.js",
-    "eu-ai-act-legal-attestation.js",
-    "fix-dry-run.js",
-    "gate.js",
-    "hook-install.js",
-    "index.js",
-    "ai-problem-analyzer-export-sanitize.js",
-    "anonymized-export.js",
-    "assessment-export-sanitize.js",
-    "atomic-writer.js",
-    "backup-manager.js",
-    "benchmark-cache-paths.js",
-    "benchmark-digest-exclusions.js",
-    "cleanup-assistant-brief.js",
-    "cleanup-brief-export-sanitize.js",
-    "codebase-export-sanitize.js",
-    "complete-scan-artifact-profile.browser.js",
-    "complete-scan-artifact-profile.js",
-    "complete-scan-export-sanitize.js",
-    "complete-scan-target-path.js",
-    "compliance-export-sanitize.js",
-    "consolidation-export-sanitize.js",
-    "consolidation-path-exclusions.js",
-    "credential-pattern-scanner.js",
-    "cross-analyzer-intelligence.js",
-    "dashboard-payload.js",
-    "data-cleanup-export-sanitize.js",
-    "developer-onboarding.js",
-    "enrich-cleanup-report.js",
-    "enrich-complete-scan.js",
-    "errors.js",
-    "executive-summary.js",
-    "fiction-digest-export-sanitize.js",
-    "file-reduction-orchestrator.js",
-    "file-reduction-plan.js",
-    "file-validator.js",
-    "full-directory-scanner.js",
-    "full-tree-rule-pass.js",
-    "full-tree-rule-worker.js",
-    "full-tree-scan-pool.js",
-    "input-sanitizer.js",
-    "intelligence-bridge.js",
-    "issue-utils.js",
-    "javascript-ast-scanner.js",
-    "license-token.js",
-    "marketing-content-generator.js",
-    "mock-data-schema-validator.js",
-    "normalize-file-reduction-report.js",
-    "normalize-scan-report.js",
-    "npm-audit-export-sanitize.js",
-    "page-sample-specs.js",
-    "path-exclusion-filter.js",
-    "path-sanitizer.js",
-    "path-utils.js",
-    "privacy-triage.js",
-    "production-leak-intent.js",
-    "public-summary-export-sanitize.js",
-    "python-ast-scanner.js",
-    "re-attestation-note-export-sanitize.js",
-    "report-sanitizer.js",
-    "repository-inventory.js",
-    "result-aggregator.js",
-    "roadmap-export-sanitize.js",
-    "roadmap-json-specs.js",
-    "safe-write.js",
-    "sample-consistency-checker.js",
-    "sample-path-resolver.js",
-    "scan-conclusion.js",
-    "scan-history.js",
-    "scan-orchestrator.js",
-    "scan-progress.js",
-    "scanner-accuracy-tracker.js",
-    "scanner-statistics.js",
-    "simplebeacon-report-export-sanitize.js",
-    "snippet-scanner.js",
-    "transaction-manager.js",
-    "trust-guard.js",
-    "rule-catalog.js",
-    "stdio-server.js",
-    "tools.js",
-    "project-detect.js",
-    "gateway.js",
-    "inbound-enforcer.js",
-    "outbound-scanner.js",
-    "violation-log.js",
-    "ai-enhanced-report.js",
-    "audit-report.js",
-    "build-report.js",
-    "file-reduction-report.js",
-    "github-comment.js",
-    "json.js",
-    "remediation-guides.js",
-    "report-enhance.js",
-    "text.js",
-    "agency-handoff-patterns.js",
-    "ai-fiction-detection.js",
-    "ai-runtime-scan-common.js",
-    "architecture-drift-patterns.js",
-    "enterprise-guardrail-patterns.js",
-    "eu-ai-act-patterns.js",
-    "fiction-kpi-patterns.js",
-    "file-naming-patterns.js",
-    "file-reduction-rules.js",
-    "jest-baseline.js",
-    "llm-slop-patterns.js",
-    "production-leak.js",
-    "structural-intent-patterns.js",
-    "token-bleed-patterns.js",
-    "scan.js",
-    "t.txt",
-    "test-debug.txt",
-    "test-failures.txt",
-    "test-output-after-fix.txt",
-    "test-output-auto-final.txt",
-    "test-output-auto-final2.txt",
-    "test-output-complete.txt",
-    "test-output-final-cleanup.txt",
-    "test-output-final2.txt",
-    "test-output-final3.txt",
-    "test-output-fixture-focus.txt",
-    "test-output-full-coverage.txt",
-    "test-output-full.txt",
-    "test-output-marketing.txt",
-    "test-output-mcp-cleanup.txt",
-    "test-output-mcp-fixed.txt",
-    "test-output-null-default.txt",
-    "test-output-reverted.txt",
-    "test-output.txt",
-    "agency-handoff-patterns.test.js",
-    "ai-fiction-detection.test.js",
-    "ai-problem-analyzer-export-sanitize.test.js",
-    "assessment-export-sanitize.test.js",
-    "assessment.test.js",
-    "audit-report.test.js",
-    "benchmark-cache-paths.test.js",
-    "cleanup-assistant-brief.test.js",
-    "cleanup-brief-export-sanitize.test.js",
-    "cli-commands.test.js",
-    "codebase-export-sanitize.test.js",
-    "complete-scan-artifact-profile.test.js",
-    "complete-scan-export-sanitize.test.js",
-    "compliance-checklist.test.js",
-    "compliance-export-sanitize.test.js",
-    "config.test.js",
-    "consolidation-export-sanitize.test.js",
-    "data-cleanup-export-sanitize.test.js",
-    "data-cleanup.test.js",
-    "dead-code.test.js",
-    "enrich-complete-scan.test.js",
-    "enterprise-guardrail-patterns.test.js",
-    "eu-ai-act-patterns.test.js",
-    "fiction-digest-export-sanitize.test.js",
-    "fiction.test.js",
-    "file-naming-patterns.test.js",
-    "file-reduction-export-sanitize.test.js",
-    "file-reduction.test.js",
-    "fix-dry-run.test.js",
-    "full-tree-scan-pool.test.js",
-    "gate.test.js",
-    "git-hygiene.test.js",
-    "github-action.test.js",
-    "hook-install.test.js",
-    "intelligence-bridge.test.js",
-    "javascript-ast-scanner.test.js",
-    "atomic-writer.test.js",
-    "backup-manager.test.js",
-    "errors.test.js",
-    "file-validator.test.js",
-    "path-exclusion-filter.test.js",
-    "path-safety.test.js",
-    "path-sanitizer.test.js",
-    "transaction-manager.test.js",
-    "llm-slop-patterns.test.js",
-    "normalize-file-reduction-report.test.js",
-    "normalize-scan-report.test.js",
-    "npm-audit-export-sanitize.test.js",
-    "onboarding.test.js",
-    "project-walker.test.js",
-    "proxy.test.js",
-    "public-summary-export-sanitize.test.js",
-    "python-ast-scanner.test.js",
-    "re-attestation-note-export-sanitize.test.js",
-    "remediation-guides.test.js",
-    "report-enhance.test.js",
-    "report-sanitizer.test.js",
-    "repository-inventory.test.js",
-    "roadmap-export-sanitize.test.js",
-    "rules.test.js",
-    "safeguards.test.js",
-    "scan-conclusion.test.js",
-    "scan-history.test.js",
-    "scan-paths.test.js",
-    "scan-progress.test.js",
-    "scanner-accuracy-tracker.test.js",
-    "simplebeacon-report-export-sanitize.test.js",
-    "structural-intent-patterns.test.js",
-    "supply-chain-security.test.js",
-    "token-bleed-architecture-drift.test.js",
-    "trust-guard.test.js",
-    "universal-scan.test.js",
-    "tree-sitter-go.wasm",
-    "tree-sitter-javascript.wasm",
-    "tree-sitter-python.wasm",
-    "tree-sitter-typescript.wasm",
-    "package.json",
-    "README.md",
-    "fetch-grammars.js",
-    "postinstall.js",
-    "constants.js",
-    "index.js",
-    "intent-scanner.js",
-    "slm-bridge.js",
-    "structural-intent-scanner.js",
-    "tree-sitter-loader.js",
-    "tree-sitter-queries.js",
-    "vector-cache.js",
-    "intent-scanner.test.js",
-    "tree-sitter-queries.test.js",
-    "default-fingerprints.json",
-    ".env.example",
-    "Dockerfile",
-    "render.yaml",
-    "requirements.txt",
-    "README.md",
-    "deploy-simplebeacon.sh",
-    "ai-proxy-gateway.cjs",
-    "AssessmentController.cjs",
-    "index.cjs",
-    "routes.cjs",
-    "path-health.cjs",
-    "phase2-integration.cjs",
-    "public-api-routes.cjs",
-    "database.cjs",
-    "redis.cjs",
-    "stripe.cjs",
-    "demo-users.json",
-    "01-create-database.sql",
-    "schema-phase2.sql",
-    "schema-subscription.sql",
-    "dlp-dashboard.cjs",
-    "enterprise-dlp.js",
-    "enterprise-patterns.cjs",
-    "index.cjs",
-    "agency-branding-store.cjs",
-    "ai-analyst.cjs",
-    "ai-inference-audit-logger.cjs",
-    "analytics-builder.cjs",
-    "analyze-deliverable-access.cjs",
-    "analyze-export-bundle.cjs",
-    "analyze-test-sources.cjs",
-    "app-logger.cjs",
-    "assessment-retention.cjs",
-    "audit-booking-mail.cjs",
-    "audit-booking-route.cjs",
-    "audit-export-tier.cjs",
-    "audit-remediation-recipes.cjs",
-    "canonical-roadmap-files.cjs",
-    "central-data-config.cjs",
-    "client-error.cjs",
-    "code-hygiene-certificate.cjs",
-    "code-roadmap-export.cjs",
-    "code-roadmap-generator.cjs",
-    "code-roadmap-phase2.cjs",
-    "business-logic-patterns.cjs",
-    "code-understanding-engine.cjs",
-    "contextual-analyzer.cjs",
-    "expert-review-store.cjs",
-    "index.cjs",
-    "semantic-analyzer.cjs",
-    "zscript-cvar-analyzer.cjs",
-    "zscript-mod-report.cjs",
-    "zscript-structure-analyzer.cjs",
-    "codebase-analyzer.cjs",
-    "complete-scan-audit-report.cjs",
-    "compliance-rules.cjs",
-    "cors-config.cjs",
-    "coverage-reports-builder.cjs",
-    "dashboard-home-builder.cjs",
-    "dashboard-vault-auth.cjs",
-    "data-cleanup-scan.cjs",
-    "database-adapter.cjs",
-    "devsecops-compliance-payload.cjs",
-    "email-service.cjs",
-    "eu-ai-act-audit-report.cjs",
-    "eu-ai-act-export.cjs",
-    "eu-ai-act-sprint-route.cjs",
-    "eu-ai-act-sprint-service.cjs",
-    "file-audit-context.cjs",
-    "file-merger-reduction-scanner.cjs",
-    "file-quality-heuristics.cjs",
-    "sample-audit-report-data.cjs",
-    "fuzzy-content-matcher.cjs",
-    "generate-euai-sprint-deliverable.cjs",
-    "istanbul-telemetry-merge.cjs",
-    "jest-coverage-reader.cjs",
-    "json-file-cache.cjs",
-    "go-patterns.cjs",
-    "python-patterns.cjs",
-    "rust-patterns.cjs",
-    "sql-patterns.cjs",
-    "universal-baseline-patterns.cjs",
-    "zscript-patterns.cjs",
-    "legacy-page-redirects.cjs",
-    "llama-cpp-hints.cjs",
-    "merge-preview.cjs",
-    "mock-data-scanner.cjs",
-    "mock-data-schema-validator.cjs",
-    "npm-audit-runner.cjs",
-    "operator-deliverable-route.cjs",
-    "operator-deliverable-service.cjs",
-    "outreach-mail.cjs",
-    "outreach-resend-webhook.cjs",
-    "outreach-route.cjs",
-    "page-sample-specs.cjs",
-    "language-parser-base.cjs",
-    "zscript-parser.cjs",
-    "path-safety.cjs",
-    "builtin-plugins.cjs",
-    "generic-structure-hints.cjs",
-    "index.cjs",
-    "language-plugin.cjs",
-    "plugin-manager.cjs",
-    "register-generic-fallback-plugins.cjs",
-    "privacy-utils.cjs",
-    "recoverable-io.cjs",
-    "redis-cache.cjs",
-    "register-operator-routes.cjs",
-    "repository-audit-baseline.cjs",
-    "repository-health-payload.cjs",
-    "roadmap-history-metrics.cjs",
-    "safe-merge-guard.cjs",
-    "sample-overrides.json",
-    "sample-path-resolver.cjs",
-    "secret-config.cjs",
-    "security-dashboard-builder.cjs",
-    "simplebeacon-subscription-store.cjs",
-    "snapshot-resolver.cjs",
-    "snapshot-seeds.cjs",
-    "strategic-insights-engine.cjs",
-    "trust-history-store.cjs",
-    "trust-verification-payload.cjs",
-    "universal-language-config.cjs",
-    "universal-language-detector.cjs",
-    "universal-language-registry.cjs",
-    "user-ai-keys-store.cjs",
-    "audit.cjs",
-    "auth.cjs",
-    "security.cjs",
-    "simplebeacon-subscription.cjs",
-    "upload-security.cjs",
-    "README-DLP.md",
-    "chatbot-api.cjs",
-    "compliance-schema-api.cjs",
-    "eu-ai-act-audit-route.cjs",
-    "flexible-analyze-api.cjs",
-    "local-models-api.cjs",
-    "repository-scanner-api.cjs",
-    "upload.cjs",
-    "cloud-inference-service.cjs",
-    "local-model-service.cjs",
-    "model-inference-service.cjs",
-    "ollama-client.cjs",
-    "phase2-auth-handlers.cjs",
-    "user-service.cjs",
-    "test-gateway.js",
-    "data-processor.cjs",
-    "server-out.log",
-    "server.log",
-    "simplebeacon-server.cjs",
-    "simplebeacon-server.js",
-    "build-from-path-route.cjs",
-    "dashboard-stub-api.cjs",
-    "optimization-api.cjs",
-    "roadmap-analysis-history.cjs",
-    "simplebeacon-api.cjs",
-    "simplebeacon-billing-api.cjs",
-    "trust-api.cjs",
-    "GlobalContextManager.cjs",
-    "RoadmapDataAnalyzer.cjs",
-    "app-logger.cjs",
-    "production-logger.cjs",
-    "export-system.js",
-    "start-api-server.bat",
-    "start-dashboard.bat",
-    "start-mcp-server.bat",
-    "startup.log",
-    "stop-api-server.bat",
-    "stop-dashboard.bat",
-    "stop-mcp-server.bat",
-    "basic.test.js",
-    "core.test.js",
-    "github-repo-clone.test.js",
-    "auth-integration.test.js",
-    "logger-integration.test.js",
-    "path-safety-integration.test.js",
-    "server-integration.test.js",
-    "simple-integration.test.js",
-    "setup.js",
-    "THUMB-DRIVE-README.md",
-    "tokens-fresh.txt",
-    "apply-roadmap-export.js",
-    "cleanup-email-queue.cjs",
-    "generate-license-token.cjs",
-    "generate-test-token.cjs",
-    "generate-token.bat",
-    "get-test-token.cjs",
-    "kill-dashboard-ports.cjs",
-    "replay-analyze-service-patches.js",
-    "replay-scope-patches.js",
-    "run-all-tier-scans.cjs",
-    "run-eslint.cjs",
-    "run-paid-scan-for-trevor.cjs",
-    "scan-github-repo.cjs",
-    "send-all-tier-emails.cjs",
-    "send-certificate-email.cjs",
-    "send-payment-tier-emails.cjs",
-    "start-v1-internal-dashboard.cjs",
-    "start-v1-internal-dashboard.js",
-    "sync-github-public-cli.js",
-    "test-billing-pipeline.js",
-    "verify-eslint-deps.js",
-    "verify-production-deploy-readiness.cjs",
-    "verify-v1-internal-profile.cjs",
-    "_find-outreach-files.js",
-    "_restore-eu-audit.js",
-    "_restore-outreach-files.js",
-    "_restore-outreach-full.js",
-    "_restore-outreach-mail.js",
-    "ai-adoption-trends-sample.json",
-    "ai-analysis-sample.json",
-    "ai-quality-metrics-sample.json",
-    "ai-roadmap-sample.json",
-    "ai-tools-sample.json",
-    "analytics-sample.json",
-    "analyze-pipeline-sample.json",
-    "api-sample.json",
-    "assets-library-sample.json",
-    "audit-gate-sample.json",
-    "baseline-comparison-sample.json",
-    "billing-system-sample.json",
-    "cascade-roadmap-sample.json",
-    "code-generation-sample.json",
-    "code-templates-sample.json",
-    "compliance-summary-sample.json",
-    "coverage-reports-sample.json",
-    "dashboard-home-sample.json",
-    "data-maintenance-analyzers-sample.json",
-    "database-sample.json",
-    "debt-analytics-sample.json",
-    "debt-calculator-sample.json",
-    "debt-reduction-sample.json",
-    "dev-tools-sample.json",
-    "engineering-baseline-sample.json",
-    "feature-backlog-sample.json",
-    "fictional-patterns-sample.json",
-    "gguf-roadmap-sample.json",
-    "help-sample.json",
-    "implementation-plan-sample.json",
-    "issue-resolution-sample.json",
-    "launch-readiness-sample.json",
-    "local-models-sample.json",
-    "master-roadmap-sample.json",
-    "merger-tool-sample.json",
-    "mock-analysis-sample.json",
-    "performance-sample.json",
-    "project-reports-sample.json",
-    "quality-dashboard-sample.json",
-    "release-timeline-sample.json",
-    "remediation-roadmap-sb-837864.json",
-    "reports-sample.json",
-    "repository-health-sample.json",
-    "roadmap-comparison-sample.json",
-    "security-dashboard-sample.json",
-    "settings-sample.json",
-    "simplebeacon-cli-dashboard-sample.json",
-    "simplebeacon-cli-sample.json",
-    "status-sample.json",
-    "support-dashboard-sample.json",
-    "trust-verification-sample.json",
-    "favicon.svg",
-    "components.css",
-    "layout.css",
-    "reset.css",
-    "utilities.css",
-    "variables.css",
-    "index.html",
-    "CodebaseReport.js",
-    "ConsolidationReport.js",
-    "DataCleanupReport.js",
-    "IssueCard.js",
-    "LoginModal.js",
-    "Onboarding.js",
-    "PathHealthDashboard.js",
-    "QuickActions.js",
-    "ScanPaywall.js",
-    "ScanStatus.js",
-    "TrendChart.js",
-    "UnderstandingReport.js",
-    "UpgradeModal.js",
-    "ZscriptReport.js",
-    "outreach-prospects.js",
-    "demoMode.js",
-    "analyzePathAllowlist.js",
-    "analyzePathSources.js",
-    "analyzePathSuggestions.js",
-    "pageRepoScan.js",
-    "recoverable-fetch.js",
-    "main.js",
-    "platformRoutes.js",
-    "router.js",
-    "aiKeysService.js",
-    "aiProblemAnalyzerSuite.mjs",
-    "analyzeService.js",
-    "assessmentService.js",
-    "authService.js",
-    "billingService.js",
-    "extendedAnalyzers.mjs",
-    "operatorService.js",
-    "outreachService.js",
-    "pathHealthService.js",
-    "platformService.js",
-    "scanService.js",
-    "securityService.js",
-    "themeService.js",
-    "ai-problem-analyzer-export.browser.js",
-    "analyze-mode-file-results.browser.js",
-    "analyze-mode-file-scope.browser.js",
-    "assessment-export.browser.js",
-    "benchmark-gate-issue-filter.browser.js",
-    "cleanup-brief-export.browser.js",
-    "cleanupAssistant.js",
-    "codebase-export.browser.js",
-    "complete-scan-artifact-profile.browser.js",
-    "completeScanAnalysis.js",
-    "compliance-audit-export.browser.js",
-    "compliance-export.browser.js",
-    "consolidation-export.browser.js",
-    "dashboard-export.browser.js",
-    "data-cleanup-export.browser.js",
-    "eu-ai-act-export.browser.js",
-    "fiction-digest-export.browser.js",
-    "npm-audit-export.browser.js",
-    "page-export.browser.js",
-    "platform-export.browser.js",
-    "quality-export.browser.js",
-    "repository-health-export.browser.js",
-    "roadmap-export.browser.js",
-    "security-export.browser.js",
-    "simplebeacon-report-export.browser.js",
-    "snippetDiagnostic.js",
-    "utils.js",
-    "AboutView.js",
-    "AnalyzeView.js",
-    "AssessmentView.js",
-    "AuditView.js",
-    "ChatbotView.js",
-    "DashboardView.js",
-    "HelpView.js",
-    "OutreachView.js",
-    "PlatformView.js",
-    "PricingView.js",
-    "QualityView.js",
-    "RepositoryHealthView.js",
-    "ResultsView.js",
-    "SecurityView.js",
-    "SettingsView.js",
-    "SignInView.js",
-    "ToolsView.js",
-    "TrustView.js",
-    "UploadView.js",
-    "upload.html",
-    "ai-platform-report.json",
-    "ai-platform-report.json.simplebeacon-backup.2026-06-06T14-46-11-770Z",
-    "index.js",
-    "package.json",
-    "build-standalone.cjs",
-    "cascade-root-report.json",
-    "CHANGELOG.md",
-    "cli-test-report.json",
-    "cli-test-report2.json",
-    ".env",
-    ".env.example",
-    ".gitignore",
-    ".simplebeaconignore",
-    "404.html",
-    "AI-SYSTEM.md",
-    "app-links.js",
-    "certificate-upload.html",
-    "certification-post-fix.html",
-    "cloud-scan.html",
-    "CLOUDFLARE-DEPLOYMENT-PLAN.md",
-    "CODE_OF_CONDUCT.md",
-    "community.html",
-    "contact.html",
-    "contact.js",
-    "Dockerfile",
-    "diagnostic-prep.html",
-    "repo-handoff.html",
-    "email-template-universal.html",
-    "error.log",
-    "favicon.svg",
-    "index.html",
-    "landing.html",
-    "LICENSE",
-    "package-lock.json",
-    "package.json",
-    "pre-commit-hook.ps1",
-    "pre-commit-hook.sh",
-    "pricing.html",
-    "privacy.html",
-    "upload.html",
-    "refund.html",
-    "report.json",
-    "roadmap.html",
-    "robots.txt",
-    "sample-certificate.html",
-    "sample-clearance-pdf.html",
-    "sample-report.html",
-    "sample-report.json",
-    "scan-status.html",
-    "SECURITY.md",
-    "server.cjs",
-    "site-config.js",
-    "sitemap.xml",
-    "start-server.bat",
-    "stop-server.bat",
-    "styles.css",
-    "subscriptions.json",
-    "terms.html",
-    "test-audit-output.txt",
-    "test-audit-output2.txt",
-    "test-audit-report.json",
-    "test-certificate.js",
-    "test-normalize.js",
-    "test-renderPreview.js",
-    "test-technical-audit.js",
-    "test-zip-data.js",
-    "upload.html",
-    "server.log",
-    "subscriptions.json",
-    "server.test.cjs",
-    "coming-soon-final.json",
-    "coming-soon-report.json",
-    "coming-soon-server.log",
-    "coming-soon.zip",
-    "cookies.txt",
-    "dep-check.js",
-    "deploy-auto.js",
-    "deploy-to-render.js",
-    "deploy.bat",
-    "DEPLOYMENT-ROADMAP.md",
-    "env-debug-output.txt",
-    "env-debug.js",
-    "env-debug2.txt",
-    "error-check.log",
-    "error-check2.log",
-    "full-certificate.zip",
-    "HANDOFF-2026-06-03.md",
-    "instructions.txt",
-    "issues.json",
-    "launch-website.bat",
-    "audit.log",
-    "server-boot.log",
-    "server-run.log",
-    "server.log",
-    "new-cookies.txt",
-    "package-lock.json",
-    "package.json",
-    "npm-publish.yml",
-    ".gitignore",
-    ".npmignore",
-    "enrich-complete-scan.js",
-    "generate-marketing-content.js",
-    "simplebeacon-mcp.js",
-    "simplebeacon-proxy.js",
-    "simplebeacon.js",
-    "body.json",
-    "certificate.zip",
-    "ANTI-BLOAT-MANIFESTO.md",
-    "BENCHMARKS.md",
-    "CI.md",
-    "CONFIG.md",
-    "DOCKER.md",
-    "outreach-tracker.md",
-    "GATE-CALIBRATION.md",
-    "GETTING-STARTED.md",
-    "GITHUB-ACTION-QUICKSTART.md",
-    "LAUNCH-TEMPLATE.md",
-    "MARKETING.md",
-    "MCP-USER-SETUP.md",
-    "MCP.md",
-    "NAMING.md",
-    "NPM-PUBLISH.md",
-    "OUTREACH.md",
-    "PRE-COMMIT.md",
-    "PRODUCTION-LEAK-TRIAGE.md",
-    "RULES.md",
-    "SAMPLE_REPORT.md",
-    "TRUST.md",
-    "ai-hygiene-enterprise-config.json",
-    "simplebeacon-scan-workflow.mdc",
-    "enterprise-config.json",
-    "README.md",
-    "simplebeacon-ai-hygiene-gate.yml",
-    "simplebeacon-enterprise-monorepo.yml",
-    "simplebeacon-enterprise-vault.yml",
-    "simplebeacon-enterprise.yml",
-    "simplebeacon-eu-ai-act.yml",
-    "simplebeacon-npm-publish-monorepo.yml",
-    "simplebeacon.yml",
-    "pre-commit",
-    "pre-push",
-    "cursor-github.mcp.json",
-    "cursor-standard.mcp.json",
-    "cursor.monorepo.mcp.json",
-    "LICENSE",
-    "node",
-    "npm",
-    "package.json",
-    "PUBLISH.md",
-    "publish.ps1",
-    "README.md",
-    "publish.ps1",
-    "verify-npm-publish.ps1",
-    "simplebeacon-1.0.0.tgz",
-    "simplebeacon@1.0.0",
-    "config-management-analyzer.js",
-    "data-access-pattern-analyzer.js",
-    "data-consistency-analyzer.js",
-    "data-freshness-analyzer.js",
-    "data-lineage-analyzer.js",
-    "data-privacy-analyzer.js",
-    "dependency-health-analyzer.js",
-    "environment-variable-analyzer.js",
-    "index.js",
-    "analyzer-cache.js",
-    "data-file-utils.js",
-    "env-parser.js",
-    "env-profile-utils.js",
-    "workspace-path-utils.js",
-    "asset-consolidation-scanner.js",
-    "build-artifact-scanner.js",
-    "asset-extensions.json",
-    "build-artifact-patterns.json",
-    "dead-code-scanner.js",
-    "git-hygiene-scanner.js",
-    "index.js",
-    "supply-chain-security-scanner.js",
-    "unused-file-detector.js",
-    "artifact-path-utils.js",
-    "dependency-graph-builder.js",
-    "file-reference-tracker.js",
-    "hash-utils.js",
-    "import-parser.js",
-    "project-walker.js",
-    "assessment.js",
-    "baseline-sync.js",
-    "commands.js",
-    "compliance-checklist.defaults.json",
-    "compliance-checklist.eu-ai-act.defaults.json",
-    "compliance-checklist.js",
-    "config-schema.js",
-    "config.js",
-    "eu-ai-act-export-guard.js",
-    "eu-ai-act-legal-attestation.js",
-    "fix-dry-run.js",
-    "gate.js",
-    "hook-install.js",
-    "index.js",
-    "ai-problem-analyzer-cache.js",
-    "ai-problem-analyzer-export-sanitize.js",
-    "ai-problem-analyzer-suite.js",
-    "anonymized-export.js",
-    "assessment-export-sanitize.js",
-    "atomic-writer.js",
-    "backup-manager.js",
-    "benchmark-cache-paths.js",
-    "benchmark-digest-exclusions.js",
-    "cleanup-assistant-brief.js",
-    "cleanup-brief-export-sanitize.js",
-    "codebase-export-sanitize.js",
-    "complete-scan-artifact-profile.browser.js",
-    "complete-scan-artifact-profile.js",
-    "complete-scan-export-sanitize.js",
-    "complete-scan-target-path.js",
-    "compliance-export-sanitize.js",
-    "consolidation-export-sanitize.js",
-    "consolidation-path-exclusions.js",
-    "credential-pattern-scanner.js",
-    "cross-analyzer-intelligence.js",
-    "dashboard-payload.js",
-    "data-cleanup-export-sanitize.js",
-    "developer-onboarding.js",
-    "enrich-cleanup-report.js",
-    "enrich-complete-scan.js",
-    "errors.js",
-    "executive-summary.js",
-    "fiction-digest-export-sanitize.js",
-    "file-reduction-orchestrator.js",
-    "file-reduction-plan.js",
-    "file-validator.js",
-    "full-directory-scanner.js",
-    "full-tree-rule-pass.js",
-    "full-tree-rule-worker.js",
-    "full-tree-scan-pool.js",
-    "input-sanitizer.js",
-    "intelligence-bridge.js",
-    "issue-utils.js",
-    "javascript-ast-scanner.js",
-    "license-token.js",
-    "local-remediation.js",
-    "marketing-content-generator.js",
-    "mock-data-schema-validator.js",
-    "normalize-file-reduction-report.js",
-    "normalize-scan-report.js",
-    "npm-audit-export-sanitize.js",
-    "page-sample-specs.js",
-    "path-exclusion-filter.js",
-    "path-sanitizer.js",
-    "path-utils.js",
-    "pdf-generator.js",
-    "privacy-triage.js",
-    "production-leak-intent.js",
-    "public-summary-export-sanitize.js",
-    "python-ast-scanner.js",
-    "re-attestation-note-export-sanitize.js",
-    "report-sanitizer.js",
-    "repository-inventory.js",
-    "result-aggregator.js",
-    "roadmap-export-sanitize.js",
-    "roadmap-json-specs.js",
-    "runtime-sentinel.js",
-    "safe-write.js",
-    "sample-consistency-checker.js",
-    "sample-path-resolver.js",
-    "scan-conclusion.js",
-    "scan-history.js",
-    "scan-orchestrator.js",
-    "scan-progress.js",
-    "scanner-accuracy-tracker.js",
-    "scanner-statistics.js",
-    "simplebeacon-report-export-sanitize.js",
-    "snippet-scanner.js",
-    "transaction-manager.js",
-    "trust-guard.js",
-    "install-cursor-config.js",
-    "rule-catalog.js",
-    "stdio-server.js",
-    "tools.js",
-    "project-detect.js",
-    "gateway.js",
-    "inbound-enforcer.js",
-    "outbound-scanner.js",
-    "violation-log.js",
-    "ai-enhanced-report.js",
-    "audit-report.js",
-    "build-report.js",
-    "file-reduction-report.js",
-    "github-comment.js",
-    "json.js",
-    "remediation-guides.js",
-    "report-enhance.js",
-    "text.js",
-    "agency-handoff-patterns.js",
-    "ai-fiction-detection.js",
-    "ai-runtime-scan-common.js",
-    "architecture-drift-patterns.js",
-    "budget-config-scanner.js",
-    "enterprise-guardrail-patterns.js",
-    "enterprise-guardrail-patterns.test.js",
-    "eu-ai-act-patterns.js",
-    "fiction-kpi-patterns.js",
-    "file-naming-patterns.js",
-    "file-reduction-rules.js",
-    "jest-baseline.js",
-    "llm-slop-patterns.js",
-    "production-leak.js",
-    "structural-intent-patterns.js",
-    "token-bleed-patterns.js",
-    "scan.js",
-    "01-simplebeacon-gate.json",
-    "02-consolidation.json",
-    "03-mock-data.json",
-    "04-roadmap.json",
-    "05-codebase.json",
-    "06-file-reduction.json",
-    "07-data-quality.json",
-    "08-cleanup.json",
-    "09-npm-audit.json",
-    "10-compliance.json",
-    "11-eu-ai-act.json",
-    "report.json",
-    "manifest.json",
-    "README.txt",
-    "01-simplebeacon-gate.html",
-    "02-consolidation.html",
-    "03-mock-data.html",
-    "04-roadmap.html",
-    "05-codebase.html",
-    "06-file-reduction.html",
-    "07-data-quality.html",
-    "08-cleanup.html",
-    "09-npm-audit.html",
-    "10-compliance.html",
-    "11-eu-ai-act.html",
-    "certificate.html",
-    "test-certificate.zip",
-    "test-output.txt",
-    "agency-handoff-patterns.test.js",
-    "ai-fiction-detection.test.js",
-    "anonymized-export.test.js",
-    "assessment.test.js",
-    "audit-report.test.js",
-    "benchmark-cache-paths.test.js",
-    "cleanup-assistant-brief.test.js",
-    "complete-scan-artifact-profile.test.js",
-    "compliance-checklist.test.js",
-    "config.test.js",
-    "data-cleanup.test.js",
-    "dead-code.test.js",
-    "enrich-complete-scan.test.js",
-    "eu-ai-act-patterns.test.js",
-    "fiction.test.js",
-    "file-reduction.test.js",
-    "fix-dry-run.test.js",
-    "gate.test.js",
-    "git-hygiene.test.js",
-    "github-action.test.js",
-    "hook-install.test.js",
-    "atomic-writer.test.js",
-    "backup-manager.test.js",
-    "errors.test.js",
-    "file-validator.test.js",
-    "path-exclusion-filter.test.js",
-    "path-safety.test.js",
-    "path-sanitizer.test.js",
-    "transaction-manager.test.js",
-    "llm-slop-patterns.test.js",
-    "mcp-install.test.js",
-    "mcp-stdio.integration.test.js",
-    "mcp.test.js",
-    "normalize-file-reduction-report.test.js",
-    "normalize-scan-report.test.js",
-    "onboarding.test.js",
-    "project-walker.test.js",
-    "proxy.test.js",
-    "remediation-guides.test.js",
-    "report-enhance.test.js",
-    "report-sanitizer.test.js",
-    "repository-inventory.test.js",
-    "rules.test.js",
-    "safeguards.test.js",
-    "scan-conclusion.test.js",
-    "scan-history.test.js",
-    "scan-paths.test.js",
-    "smoke.test.js",
-    "supply-chain-security.test.js",
-    "trust-guard.test.js",
-    "README.md",
-    "RELEASE-PLAN.md",
-    "REMEDIATION.md",
-    "render.yaml",
-    "report.json",
-    "Running",
-    "scan-website.sh",
-    "SECURITY.md",
-    "server-start.log",
-    "setup-zorin.sh",
-    ".gitignore",
-    "app.js",
-    "index.html",
-    "netlify.toml",
-    "README.md",
-    "vercel.json",
-    "start-all-servers.bat",
-    "start-dashboard.sh",
-    "start-simplebeacon-dev.bat",
-    "stop-all-servers.bat",
-    "tmp-files.txt",
-    "tmp-list.txt",
-    "ZORIN-LINUX-SETUP.md"
-  ],
+  "sampleFiles": [],
   "scanScope": {
     "profile": "eu-ai-act",
     "scannerVersion": "1.0.0",
@@ -2173,6 +3234,9 @@
       "agency-handoff-patterns",
       "fiction-kpi-patterns",
       "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "file-reduction",
       "eu-ai-act-patterns"
     ],
     "gatePolicy": {
@@ -2184,61 +3248,38 @@
         "low"
       ]
     },
-    "mockSampleFilesInScanPaths": 1158,
+    "mockSampleFilesInScanPaths": 0,
     "pageSpecCatalogSize": 50,
-    "pageSpecsValidated": 50,
-    "pageSpecsFromScanPaths": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
     "pageSpecsFromAliasPaths": 0,
-    "productionDirsScanned": 558,
+    "productionDirsScanned": 0,
     "productionPaths": [
-      "."
+      "src/",
+      "lib/"
     ],
-    "sourceCodeScanPaths": [
-      "."
-    ],
+    "sourceCodeScanPaths": [],
     "sourceCodeFilesScanned": 0,
     "sourceFictionPatternHits": 0,
-    "llmSlopFilesScanned": 444,
+    "llmSlopFilesScanned": 1,
     "llmSlopPatternHits": 0,
-    "euAiActFilesScanned": 278,
-    "euAiActPatternHits": 24,
-    "euAiActHighRiskIndicators": 3,
-    "enterpriseGuardrailFilesScanned": 538,
-    "enterpriseGuardrailHits": 0,
-    "fileNamingFilesScanned": 0,
-    "fileNamingHits": 0,
-    "structuralIntentEnabled": false,
-    "structuralIntentAvailable": false,
-    "structuralIntentFilesScanned": 0,
-    "structuralIntentHits": 0,
-    "structuralIntentEngine": null,
-    "structuralIntentSlmReviewCount": 0,
-    "tokenBleedFilesScanned": 0,
-    "tokenBleedPatternHits": 0,
-    "architectureDriftFilesScanned": 0,
-    "architectureDriftPatternHits": 0,
-    "pythonAstFilesScanned": 0,
-    "pythonAstPatternHits": 0,
-    "pythonAstScanOk": true,
-    "javascriptAstFilesScanned": 0,
-    "javascriptAstPatternHits": 0,
-    "javascriptAstScanOk": true,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
     "jestExecutedDuringScan": false,
     "consistencyAnchorCount": 0,
     "fictionScope": "repository-json",
-    "fictionJsonFilesScanned": 102,
+    "fictionJsonFilesScanned": 155,
     "fictionSampleFilesScanned": 50,
-    "ruleScopedFilesAnalyzed": 1158,
-    "repositoryFilesTotal": 1171,
-    "repositoryFoldersTotal": 144,
-    "fullDirectoryScan": false,
-    "fullDirectoryStats": null,
+    "ruleScopedFilesAnalyzed": 0,
+    "repositoryFilesTotal": 1384,
+    "repositoryFoldersTotal": 207,
     "benchmarkCacheIssuesExcluded": 0,
-    "excludedPathsNote": "11 issue(s) from github-cache/ clones and .github-sync/ CLI mirror excluded from gate scores — scan clones with github-cache/.simplebeacon/config.json (profile: benchmark).",
+    "excludedPathsNote": null,
     "limitations": [
-      "Repository inventory: 1,171 files — gate rules checked 1158 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 1,384 files — gate rules checked 0 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-      "Fiction/KPI rules scan repository JSON (102) plus source code (0 files in .).",
+      "Fiction/KPI rules scan repository JSON (155) plus source code (0 files in configured paths).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
     ],
     "resultsViewScope": "platform-only",
@@ -2255,8 +3296,236 @@
       "low"
     ],
     "blockingCount": 0,
-    "warningCount": 20
+    "warningCount": 0,
+    "blockingIssues": [],
+    "warningIssues": [],
+    "allIssues": [],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed — no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "tier": "community",
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 1,
+    "summary": "1 duplicate file group detected.",
+    "remediation": "Consolidate duplicate files into shared modules or remove redundant copies."
+  },
+  "codebase": {
+    "totalFiles": 1384,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "1,384 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 1,
+    "summary": "1 duplicate content group found.",
+    "remediation": "Consolidate duplicate files into shared modules."
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 0,
+    "summary": "No mock data found."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 100,
+    "readinessStatus": "READY",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": true,
+        "critical": false
+      }
+    ],
+    "missingCritical": [],
+    "missingRecommended": [],
+    "totalChecks": 12,
+    "passedChecks": 12,
+    "summary": "READY — 12 of 12 checklist items present.",
+    "recommendations": [
+      "Project is fully ready for production. All checklist items present."
+    ],
+    "remediation": "No remediation needed."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2–4 days",
+      "description": "Data integrity verified — no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3–5 days",
+      "description": "Eliminate redundancy: 1 duplicate group.",
+      "tasks": [
+        "Consolidate 1 duplicate group",
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 75,
+      "status": "in-progress"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2–3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        "Audit 1 open-source license file",
+        "Review 1 security/governance file",
+        "Verify license compatibility with distribution model",
+        "Add LICENSE and SECURITY.md if missing",
+        "Document governance policies"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5–10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "low",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 100/100 toward 95+.",
+      "tasks": [
+        "Add test coverage for uncovered modules",
+        "Install pre-commit hooks for automated scanning",
+        "Schedule monthly quality gate reviews"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "qualityScore": 100,
+    "totalFiles": 1384,
+    "totalLines": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-06T22:17:47.937Z"
+  "sanitizedAt": "2026-06-16T09:40:50.370Z"
 }

@@ -2,9 +2,25 @@
 # SimpleBeacon Pre-Commit Hook
 # Place this in .git/hooks/pre-commit to run gate scan before each commit
 
-echo "[SimpleBeacon] Running pre-commit gate scan..."
+echo "[SimpleBeacon] Running pre-commit checks..."
 
-# Run gate scan (fails if blocking issues found)
+# 1. Syntax check staged JS/CJS files
+hasSyntaxError=0
+for f in $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|cjs)$'); do
+    if [ -f "$f" ]; then
+        node -c "$f" >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            echo "[SimpleBeacon] Syntax error in $f"
+            hasSyntaxError=1
+        fi
+    fi
+done
+if [ $hasSyntaxError -ne 0 ]; then
+    echo "[SimpleBeacon] Commit blocked — fix syntax errors first."
+    exit 1
+fi
+
+# 2. Run gate scan (fails if blocking issues found)
 if command -v npx >/dev/null 2>&1; then
     npx simplebeacon scan --gate --format json --output .simplebeacon/pre-commit-report.json
     EXIT_CODE=$?

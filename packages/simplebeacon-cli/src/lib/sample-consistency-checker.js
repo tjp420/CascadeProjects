@@ -1,5 +1,6 @@
 /**
  * Cross-sample KPI alignment against repository-audit baselines.
+ * simplebeacon:production-leak-intent — Validates consistency of sample JSON data files; references are intentional test/sample fixture checks.
  */
 
 const fs = require('fs');

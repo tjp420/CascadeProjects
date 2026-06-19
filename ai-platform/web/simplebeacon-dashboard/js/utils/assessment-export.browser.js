@@ -2,6 +2,12 @@
  * Browser mirror of assessment-export-sanitize.js — keep in sync.
  */
 
+/**
+ * Redact project path for export.
+ * @param {string} rawPath
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = String(rawPath).replace(/\\/g, '/');
@@ -12,20 +18,41 @@ function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   return normalized;
 }
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Is benchmark path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function isBenchmarkPath(projectPath) {
   return /\/github-cache\//i.test(String(projectPath || '').replace(/\\/g, '/'));
 }
 
+/**
+ * Normalize simple beacon branding.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizeSimpleBeaconBranding(value) {
   return String(value ?? '').replace(/\bSimplebeacon\b/g, 'SimpleBeacon');
 }
 
+/**
+ * Normalize assessment title.
+ * @param {any} assessment
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function normalizeAssessmentTitle(assessment, projectLabel) {
   const raw = String(assessment?.title || '');
   if (/Free Assessment/i.test(raw)) {
@@ -37,6 +64,11 @@ function normalizeAssessmentTitle(assessment, projectLabel) {
   return normalizeSimpleBeaconBranding(raw) || `SimpleBeacon Assessment — ${projectLabel}`;
 }
 
+/**
+ * Build files scanned note.
+ * @param {any} executiveSummary
+ * @returns {any}
+ */
 function buildFilesScannedNote(executiveSummary = {}) {
   const scoped = executiveSummary.ruleScopedFilesAnalyzed;
   const mock = executiveSummary.mockSampleFiles;
@@ -47,6 +79,12 @@ function buildFilesScannedNote(executiveSummary = {}) {
   return null;
 }
 
+/**
+ * Build assessment export notes.
+ * @param {any} assessment
+ * @param {any} _projectLabel
+ * @returns {any}
+ */
 function buildAssessmentExportNotes(assessment, _projectLabel) {
   const notes = [];
   const exec = assessment.executiveSummary || {};
@@ -64,6 +102,13 @@ function buildAssessmentExportNotes(assessment, _projectLabel) {
   return [...new Set(notes)].slice(0, 6);
 }
 
+/**
+ * Reconcile compliance ready.
+ * @param {any} executiveSummary
+ * @param {any} checklist
+ * @param {number} sourceReport
+ * @returns {any}
+ */
 function reconcileComplianceReady(executiveSummary, checklist, sourceReport) {
   const summary = checklist?.summary || {};
   let ready = summary.readyForAutomation ?? executiveSummary.complianceReady ?? false;
@@ -72,6 +117,11 @@ function reconcileComplianceReady(executiveSummary, checklist, sourceReport) {
   const ruleScoped = sourceReport.ruleScopedFilesAnalyzed
     ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed
     ?? 0;
+/**
+ * Core security skipped.
+ * @param {any} checklist?.rules || []
+ * @returns {any}
+ */
   const coreSecuritySkipped = (checklist?.rules || []).some((r) =>
     ['GATE-001', 'CRED-001', 'LEAK-001'].includes(r.id) && r.status === 'skip'
   );
@@ -87,6 +137,12 @@ function reconcileComplianceReady(executiveSummary, checklist, sourceReport) {
   return ready;
 }
 
+/**
+ * Reconcile executive summary.
+ * @param {any} assessment
+ * @param {number} sourceReport
+ * @returns {any}
+ */
 function reconcileExecutiveSummary(assessment, sourceReport) {
   const exec = { ...(assessment.executiveSummary || {}) };
   const checklist = assessment.complianceChecklist || {};
@@ -97,6 +153,13 @@ function reconcileExecutiveSummary(assessment, sourceReport) {
   return exec;
 }
 
+/**
+ * Reconcile checklist export.
+ * @param {any} checklist
+ * @param {any} projectLabel
+ * @param {number} sourceReport
+ * @returns {any}
+ */
 function reconcileChecklistExport(checklist, projectLabel, sourceReport) {
   if (!checklist) return checklist;
   const summary = checklist.summary
@@ -114,6 +177,12 @@ function reconcileChecklistExport(checklist, projectLabel, sourceReport) {
   };
 }
 
+/**
+ * Sanitize assessment export.
+ * @param {any} assessment
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeAssessmentExport(assessment, options = {}) {
   if (!assessment || assessment.type !== 'simplebeacon-assessment-report') return assessment;
 
@@ -214,6 +283,11 @@ export function sanitizeAssessmentExport(assessment, options = {}) {
   };
 }
 
+/**
+ * Assessment export filename.
+ * @param {any} date
+ * @returns {any}
+ */
 export function assessmentExportFilename(date = new Date()) {
   return `simplebeacon-assessment-${date.toISOString().slice(0, 10)}.json`;
 }

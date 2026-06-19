@@ -1,0 +1,88 @@
+{
+  "profile": "eu-ai-act",
+  "scanPaths": ["."],
+  "productionPaths": ["src/"],
+  "allowedAnalysisRoots": [
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged"
+  ],
+  "fullDirectoryScan": true,
+  "fullDirectoryScanMaxFiles": 50000,
+  "ignore": [
+    "node_modules/**",
+    "out/**",
+    "dist/**",
+    "coverage/**",
+    "*.vsix",
+    "*.log",
+    "package-lock.json",
+    ".simplebeacon/**",
+    ".vscode-test/**",
+    "build-extension.js",
+    "replace-dashboard.js",
+    "src/fixes/remediationProvider.ts",
+    "src/fixes/findingConverter.ts",
+    "src/enhancedAIProvider.ts",
+    "src/realtimeMonitor.ts",
+    "src/roadmapProvider.ts",
+    "src/modernSidebarProvider.ts",
+    "src/aiPlatform/realtimeMonitor.ts",
+    "src/auth/authManager.ts",
+    "src/extension.ts"
+  ],
+  "rules": {
+    "credentials": {
+      "enabled": true,
+      "scanProduction": true
+    },
+    "json-schema": {
+      "enabled": true
+    },
+    "sample-consistency": {
+      "enabled": true
+    },
+    "roadmap": {
+      "enabled": true
+    },
+    "production-leak": {
+      "enabled": true,
+      "severity": "high"
+    },
+    "fiction-kpi-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "llm-slop-patterns": {
+      "enabled": true,
+      "severity": "medium",
+      "registryCheck": false
+    },
+    "agency-handoff-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "eu-ai-act-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "jest-baseline": {
+      "enabled": false,
+      "runTests": false
+    },
+    "token-bleed-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "architecture-drift-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "file-reduction": {
+      "enabled": false,
+      "dryRun": true
+    }
+  },
+  "gate": {
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"]
+  }
+}

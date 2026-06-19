@@ -1,5 +1,9 @@
 import { authService } from './authService.js';
 
+/**
+ * Is authenticated.
+ * @returns {any}
+ */
 function isAuthenticated() {
     return authService.isAuthenticated();
 }
@@ -7,6 +11,26 @@ import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 
 const BASE = '/api/simplebeacon/user/ai-keys';
 
+// Cool-down after 401/403 to prevent request spam from multiple views
+let _lastAuthFailure = 0;
+const AUTH_FAILURE_COOLDOWN_MS = 30000;
+
+/**
+ * Has valid user jwt.
+ * @returns {any}
+ */
+function hasValidUserJwt() {
+    const token = authService.getToken?.() || '';
+    // User endpoints need a real JWT (3 dot-separated segments).
+    // License keys and legacy tokens are not valid here.
+    return token && token.split('.').length === 3;
+}
+
+/**
+ * Normalize ai keys record.
+ * @param {any} keysRecord
+ * @returns {any}
+ */
 export function normalizeAiKeysRecord(keysRecord = null) {
   if (!keysRecord || typeof keysRecord !== 'object') {
     return {
@@ -26,8 +50,15 @@ export function normalizeAiKeysRecord(keysRecord = null) {
   };
 }
 
+/**
+ * Fetch user ai keys.
+ * @returns {any}
+ */
 export async function fetchUserAiKeys() {
-  if (!isAuthenticated()) {
+  if (!isAuthenticated() || !hasValidUserJwt()) {
+    return normalizeAiKeysRecord(null);
+  }
+  if (Date.now() - _lastAuthFailure < AUTH_FAILURE_COOLDOWN_MS) {
     return normalizeAiKeysRecord(null);
   }
   const keysHttpResponse = await fetch(BASE, { headers: authService.getAuthHeaders() });
@@ -36,11 +67,21 @@ export async function fetchUserAiKeys() {
     if (keysHttpResponse.status === 404 && keysPayload.error === 'API route not found') {
       throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
     }
-    throw new Error(keysPayload.error || keysPayload.message || 'Failed to load AI keys');
+    const msg = keysPayload.error || keysPayload.message || '';
+    if (keysHttpResponse.status === 401 || keysHttpResponse.status === 403 || /Authentication required/i.test(msg)) {
+      _lastAuthFailure = Date.now();
+      return normalizeAiKeysRecord(null);
+    }
+    throw new Error(msg || 'Failed to load AI keys');
   }
   return normalizeAiKeysRecord(keysPayload);
 }
 
+/**
+ * Save user ai keys.
+ * @param {any} payload
+ * @returns {any}
+ */
 export async function saveUserAiKeys(payload) {
   const saveHttpResponse = await fetch(BASE, {
     method: 'PUT',
@@ -60,6 +101,10 @@ export async function saveUserAiKeys(payload) {
   return normalizeAiKeysRecord(savePayload);
 }
 
+/**
+ * Clear user ai keys.
+ * @returns {any}
+ */
 export async function clearUserAiKeys() {
   const clearHttpResponse = await fetch(BASE, {
     method: 'DELETE',
@@ -75,7 +120,14 @@ export async function clearUserAiKeys() {
   return normalizeAiKeysRecord(clearPayload);
 }
 
-export async function fetchOllamaModels(ollamaBaseUrl = 'http://127.0.0.1:11434') {
+import { OLLAMA_DEFAULT_URL } from '../config.js';
+
+/**
+ * Fetch ollama models.
+ * @param {string} ollamaBaseUrl
+ * @returns {any}
+ */
+export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 

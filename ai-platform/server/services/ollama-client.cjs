@@ -2,27 +2,53 @@
  * Ollama HTTP client for local model inference.
  */
 
-const DEFAULT_OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
-const DEFAULT_TIMEOUT_MS = 120000;
-const LIST_TIMEOUT_MS = 5000;
+const constants = require('../config/constants.cjs');
+
+const DEFAULT_OLLAMA_URL = process.env.OLLAMA_BASE_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`;
+const DEFAULT_TIMEOUT_MS = constants.TIMEOUT_2M;
+const LIST_TIMEOUT_MS = constants.TIMEOUT_5S;
 const DEFAULT_RETRY_ATTEMPTS = 1;
-const DEFAULT_TAGS_CACHE_TTL_MS = 7000;
+const DEFAULT_TAGS_CACHE_TTL_MS = constants.TIMEOUT_5S + constants.TIMEOUT_2S;
 const RETRYABLE_HTTP_CODES = new Set([408, 429, 500, 502, 503, 504]);
 const tagsCache = new Map();
 
+/**
+ * Normalize base url.
+ * @param {string} baseUrl
+ * @returns {any}
+ */
 function normalizeBaseUrl(baseUrl) {
     return String(baseUrl || DEFAULT_OLLAMA_URL).replace(/\/$/, '');
 }
 
+/**
+ * As positive int.
+ * @param {any} value
+ * @param {any} fallback
+ * @returns {any}
+ */
 function asPositiveInt(value, fallback) {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
 }
 
+/**
+ * Is abort error.
+ * @param {any} error
+ * @returns {any}
+ */
 function isAbortError(error) {
     return error?.name === 'AbortError';
 }
 
+/**
+ * Should retry.
+ * @param {any} statusCode
+ * @param {any} error
+ * @param {any} attempt
+ * @param {Array} maxAttempts
+ * @returns {any}
+ */
 function shouldRetry(statusCode, error, attempt, maxAttempts) {
     if (attempt >= maxAttempts) return false;
     if (isAbortError(error)) return true;
@@ -30,6 +56,14 @@ function shouldRetry(statusCode, error, attempt, maxAttempts) {
     return RETRYABLE_HTTP_CODES.has(statusCode);
 }
 
+/**
+ * Ollama generate.
+ * @param {string} baseUrl
+ * @param {any} model
+ * @param {any} prompt
+ * @param {Object} options
+ * @returns {any}
+ */
 async function ollamaGenerate(baseUrl, model, prompt, options = {}) {
     const url = `${normalizeBaseUrl(baseUrl)}/api/generate`;
     const timeoutMs = asPositiveInt(options.timeoutMs || process.env.OLLAMA_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
@@ -42,7 +76,7 @@ async function ollamaGenerate(baseUrl, model, prompt, options = {}) {
         options: {
             temperature: options.temperature ?? 0.1,
             top_p: options.topP ?? 0.9,
-            num_predict: options.numPredict ?? 1024
+            num_predict: options.numPredict ?? constants.BYTES_PER_KB
         }
     };
     if (options.format) body.format = options.format;
@@ -97,6 +131,11 @@ async function ollamaGenerate(baseUrl, model, prompt, options = {}) {
     }
 }
 
+/**
+ * Extract json object.
+ * @param {string} text
+ * @returns {any}
+ */
 function extractJsonObject(text) {
     if (!text) return null;
     const trimmed = String(text).trim();
@@ -117,6 +156,12 @@ function extractJsonObject(text) {
     return null;
 }
 
+/**
+ * Ollama list models.
+ * @param {string} baseUrl
+ * @param {Object} options
+ * @returns {any}
+ */
 async function ollamaListModels(baseUrl, options = {}) {
     const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
     const url = `${normalizedBaseUrl}/api/tags`;
@@ -179,5 +224,6 @@ async function ollamaListModels(baseUrl, options = {}) {
 module.exports = {
     ollamaGenerate,
     ollamaListModels,
-    extractJsonObject
+    extractJsonObject,
+    DEFAULT_OLLAMA_URL
 };

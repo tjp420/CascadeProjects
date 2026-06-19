@@ -1,0 +1,695 @@
+{
+  "id": "type-safety",
+  "status": "done",
+  "error": null,
+  "metric": "67 findings in 18 files",
+  "findingsCount": 67,
+  "fileCount": 18,
+  "severity": "low",
+  "findings": [
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/__mocks__/vscode.ts",
+      "line": 43,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/__mocks__/vscode.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/aiIntegration/aiCodeAnalyzer.ts",
+      "line": 156,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/aiIntegration/aiCodeAnalyzer.ts",
+      "match": "as any,",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/analytics/advancedAnalytics.ts",
+      "line": 84,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/analytics/advancedAnalytics.ts",
+      "match": "as any,",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/analyzers/workspaceAnalyzer.ts",
+      "line": 449,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/analyzers/workspaceAnalyzer.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "ts-ignore",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/analyzers/workspaceAnalyzer.ts",
+      "line": 433,
+      "description": "TypeScript error suppression without justification in simplebeacon-vscode/src/analyzers/workspaceAnalyzer.ts",
+      "match": "@ts-ignore",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "ts-ignore",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/analyzers/workspaceAnalyzer.ts",
+      "line": 438,
+      "description": "TypeScript error suppression without justification in simplebeacon-vscode/src/analyzers/workspaceAnalyzer.ts",
+      "match": "@ts-ignore",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/codeMapProvider.ts",
+      "line": 7,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/codeMapProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/codeMapProvider.ts",
+      "line": 8,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/codeMapProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/codeMapProvider.ts",
+      "line": 9,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/codeMapProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/codeMapProvider.ts",
+      "line": 12,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/codeMapProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/codeMapProvider.ts",
+      "line": 13,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/codeMapProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/codeMapProvider.ts",
+      "line": 549,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/codeMapProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/codeMapProvider.ts",
+      "line": 550,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/codeMapProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/codeMapProvider.ts",
+      "line": 235,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/codeMapProvider.ts",
+      "match": "as any)",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/codeMapProvider.ts",
+      "line": 237,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/codeMapProvider.ts",
+      "match": "as any)",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedAIProvider.ts",
+      "line": 551,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedAIProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedAIProvider.ts",
+      "line": 713,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedAIProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard.ts",
+      "line": 80,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard.ts",
+      "line": 540,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard.ts",
+      "line": 614,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard.ts",
+      "line": 695,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard.ts",
+      "line": 840,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "line": 897,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "line": 79,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "match": "as any)",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "line": 80,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "match": "as any)",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "line": 81,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "match": "as any)",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "line": 98,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "line": 656,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "line": 711,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "line": 792,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "line": 940,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedDashboard2_0.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedScanProvider.ts",
+      "line": 23,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/enhancedScanProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedScanProvider.ts",
+      "line": 158,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/enhancedScanProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedScanProvider.ts",
+      "line": 182,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedScanProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedScanProvider.ts",
+      "line": 231,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedScanProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedScanProvider.ts",
+      "line": 291,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedScanProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedSidebar.ts",
+      "line": 318,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/enhancedSidebar.ts",
+      "match": "as RawIssue[];",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/extension.ts",
+      "line": 29,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/extension.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/extension.ts",
+      "line": 65,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/extension.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/extension.ts",
+      "line": 465,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/extension.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/extension.ts",
+      "line": 487,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/extension.ts",
+      "match": "as any)",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/extension.ts",
+      "line": 500,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/extension.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/extension.ts",
+      "line": 529,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/extension.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/extension.ts",
+      "line": 825,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/extension.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "ts-ignore",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/fixes/findingConverter.ts",
+      "line": 30,
+      "description": "TypeScript error suppression without justification in simplebeacon-vscode/src/fixes/findingConverter.ts",
+      "match": " @ts-ignore",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/fixes/remediationProvider.ts",
+      "line": 523,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/fixes/remediationProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "ts-ignore",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/fixes/remediationProvider.ts",
+      "line": 525,
+      "description": "TypeScript error suppression without justification in simplebeacon-vscode/src/fixes/remediationProvider.ts",
+      "match": " @ts-ignore",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/fixes/remediationProvider.ts",
+      "line": 66,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/fixes/remediationProvider.ts",
+      "match": "as any)",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/scanProvider.ts",
+      "line": 71,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/scanProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/scanProvider.ts",
+      "line": 105,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/scanProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/scanProvider.ts",
+      "line": 142,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/scanProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/settingsProvider.ts",
+      "line": 63,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/settingsProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/summaryProvider.ts",
+      "line": 59,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/summaryProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "line": 253,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "any-type",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "line": 352,
+      "description": "Explicit any type — weakens TypeScript type safety in simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "match": ": any",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "line": 74,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "line": 109,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "line": 223,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "line": 251,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "line": 282,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "line": 328,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "line": 706,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "line": 721,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/visualSidebarProvider.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/webviewPanel.ts",
+      "line": 58,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/webviewPanel.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/webviewPanel.ts",
+      "line": 91,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/webviewPanel.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/webviewPanel.ts",
+      "line": 435,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/webviewPanel.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    },
+    {
+      "category": "type-safety",
+      "type": "unsafe-type-assertion",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/webviewPanel.ts",
+      "line": 497,
+      "description": "Unsafe type assertion (as any / as unknown) in simplebeacon-vscode/src/webviewPanel.ts",
+      "match": "as any;",
+      "recommendedAction": "Review and remediate before production deploy"
+    }
+  ],
+  "category": {
+    "category": "type-safety",
+    "label": "Type Safety findings",
+    "count": 67,
+    "severity": "low",
+    "fileCount": 18,
+    "topFiles": [
+      "simplebeacon-vscode/src/aiIntegration/aiCodeAnalyzer.ts",
+      "simplebeacon-vscode/src/analytics/advancedAnalytics.ts",
+      "simplebeacon-vscode/src/analyzers/workspaceAnalyzer.ts",
+      "simplebeacon-vscode/src/codeMapProvider.ts",
+      "simplebeacon-vscode/src/enhancedAIProvider.ts"
+    ]
+  }
+}

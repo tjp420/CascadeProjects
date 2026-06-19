@@ -17,28 +17,28 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
   // Unified pricing source of truth
   pricing: {
-    free: {
-      name: 'Free AI Slop Audit',
+    developer: {
+      name: 'Developer',
       price: 0,
       stripeLink: null,
       testStripeLink: null
     },
-    instant: {
-      name: 'Instant Website Report',
-      price: 19,
-      stripeLink: 'https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07',
+    startup: {
+      name: 'Startup',
+      price: 49,
+      stripeLink: null,
       testStripeLink: null
     },
-    executive: {
-      name: 'Executive Risk Certificate',
-      price: 499,
-      stripeLink: 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
+    growth: {
+      name: 'Growth',
+      price: 149,
+      stripeLink: null,
       testStripeLink: null
     },
-    euSprint: {
-      name: 'EU AI Act Sprint',
-      price: 2499,
-      stripeLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
+    enterprise: {
+      name: 'Enterprise',
+      price: null,
+      stripeLink: null,
       testStripeLink: null
     }
   },
@@ -48,7 +48,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   stripePaymentLink: 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
   euAiActPackLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
 
-  apiBase: (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? '' : 'https://simplebeacon.onrender.com',
+  apiBase: (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:3002' : 'https://simplebeacon.onrender.com',
   stagingMode: false,
   paymentsEnabled: true,
   closedSource: false,
@@ -73,23 +73,32 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       scanCommand: 'npx simplebeacon scan --gate --offline',
       tokenHelp: 'Free community token. Run the scan locally — no payment required.'
     },
-    executive: {
-      label: '$499 Exec Cert',
-      price: '$499',
+    pro: {
+      label: 'Simplebeacon Pro',
+      price: '$9/mo',
       title: 'Upload Your Scan Report',
-      subtitle: 'Full 11-engine analysis + EU AI Act readiness. Certificate ZIP generated locally.',
+      subtitle: 'Unlimited scans, CI integration, exportable reports. Certificate ZIP generated locally.',
       showUpload: true,
       scanCommand: 'npx simplebeacon scan --gate --offline',
-      tokenHelp: 'Paste the license token from your $499 payment confirmation email.'
+      tokenHelp: 'Paste your Simplebeacon Pro license token.'
     },
-    euai: {
-      label: 'EU AI Act Sprint',
-      price: '$2,499',
-      title: 'Upload Your EU AI Act Scan',
-      subtitle: 'Upload your full-coverage scan to generate the EU AI Act Readiness Report.',
+    enterprise: {
+      label: 'Compliance Suite',
+      price: 'Custom',
+      title: 'Upload Your Scan Report',
+      subtitle: 'EU AI Act documentation, quarterly compliance certificates, analyst support.',
       showUpload: true,
       scanCommand: 'npx simplebeacon scan --complete --gate --offline',
-      tokenHelp: 'Paste the license token from your $2,499 EU AI Act Sprint confirmation email.'
+      tokenHelp: 'Paste your Compliance Suite license token.'
+    },
+    custom: {
+      label: 'Custom Plan',
+      price: '',
+      title: 'Upload Your Scan Report',
+      subtitle: 'Custom module selection. Scan runs locally in your browser.',
+      showUpload: true,
+      scanCommand: 'npx simplebeacon scan --gate --offline',
+      tokenHelp: 'Paste your custom plan license token to unlock selected modules.'
     },
     universal: {
       label: 'Operator License',
@@ -151,7 +160,8 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   tierProfiles: {
     locked: [],
     community: ['gate'],
-    instant: ['gate', 'instant'],
+    instant: ['gate', 'instant', 'mock-data'],
+    aislopcop: ['gate', 'aislopcop', 'complete'],
     executive: ['gate', 'codebase', 'compliance', 'hygiene', 'complete'],
     euai: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete'],
     universal: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete']
@@ -159,65 +169,84 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
   // Feature comparison table — pricing.html source of truth
   features: [
-    { name: 'Price', free: '$0', instant: '$19', exec: '<strong>$499</strong>', sprint: '<strong>$2,499</strong>' },
-    { name: 'Zero-retention', free: '<span class="check">&#10003;</span> CLI only', instant: '<span class="check">&#10003;</span> Browser sandbox', exec: '<span class="check">&#10003;</span> Browser sandbox', sprint: '<span class="check">&#10003;</span> Browser sandbox' },
-    { name: 'Gate attestation (credentials, AI slop)', free: '<span class="check">&#10003;</span>', instant: '<span class="check">&#10003;</span>', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'Consolidation scan (duplicates, monorepo)', free: '<span class="cross">&mdash;</span>', instant: '<span class="cross">&mdash;</span>', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'Mock data / fixture detection', free: '<span class="cross">&mdash;</span>', instant: '<span class="check">&#10003;</span>', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'Roadmap markers (TODO/FIXME)', free: '<span class="cross">&mdash;</span>', instant: '<span class="cross">&mdash;</span>', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'Codebase analysis (file types, LOC)', free: '<span class="cross">&mdash;</span>', instant: '<span class="cross">&mdash;</span>', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'File reduction (unused assets, dupes)', free: '<span class="cross">&mdash;</span>', instant: '<span class="cross">&mdash;</span>', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'Data quality (empty JSON)', free: '<span class="cross">&mdash;</span>', instant: '<span class="cross">&mdash;</span>', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'Cleanup assistant (debug artifacts)', free: '<span class="cross">&mdash;</span>', instant: '<span class="cross">&mdash;</span>', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'npm audit (package.json inventory)', free: '<span class="cross">&mdash;</span>', instant: '<span class="cross">&mdash;</span>', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'Compliance (license/governance files)', free: '<span class="cross">&mdash;</span>', instant: '<span class="cross">&mdash;</span>', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'EU AI Act readiness assessment', free: '<span class="cross">&mdash;</span>', instant: '<span class="cross">&mdash;</span>', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'Certificate ZIP (PDF + 13 JSON files)', free: '<span class="cross">&mdash;</span>', instant: '<span class="check">&#10003;</span> PDF only', exec: '<span class="check">&#10003;</span>', sprint: '<span class="check">&#10003;</span>' },
-    { name: 'Analyst access', free: '<span class="cross">&mdash;</span>', instant: '<span class="cross">&mdash;</span>', exec: '<span class="cross">&mdash;</span>', sprint: '<span class="check">&#10003;</span> (30 days)' },
-    { name: 'Token validity', free: 'Unlimited', instant: '7 days', exec: '90 days', sprint: '30 days' }
+    { name: 'Price', developer: '$0', startup: '<strong>$49/mo</strong>', growth: '<strong>$149/mo</strong>', enterprise: '<strong>Custom</strong>' },
+    { name: 'Scans per month', developer: '<strong>100 local</strong>', startup: '<strong>2,500 pipeline</strong>', growth: '<strong>10,000 pipeline</strong>', enterprise: '<strong>Unlimited</strong>' },
+    { name: 'Files per scan', developer: '50', startup: '<strong>Unlimited</strong>', growth: '<strong>Unlimited</strong>', enterprise: '<strong>Unlimited</strong>' },
+    { name: 'Pipeline scans (CI)', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Developers / repos', developer: '1 dev', startup: '1-10 devs', growth: 'Scaling teams', enterprise: '<strong>5+ seats</strong>' },
+    { name: 'Real-time IDE detection', developer: '<span class="check">&#10003;</span> 24 rules', startup: '<span class="check">&#10003;</span> 38 rules', growth: '<span class="check">&#10003;</span> 38 rules', enterprise: '<span class="check">&#10003;</span> 54 rules' },
+    { name: 'AI Slop Cop IDE rules', developer: '24 real-time rules', startup: '<strong>38 IDE rules</strong>', growth: '<strong>38 IDE rules</strong>', enterprise: '<strong>54 IDE rules</strong>' },
+    { name: 'CLI / Dashboard analyzers', developer: '<span class="check">&#10003;</span> Core', startup: '<span class="check">&#10003;</span> 38 modules', growth: '<span class="check">&#10003;</span> 60+ engines', enterprise: '<span class="check">&#10003;</span> 60+ engines' },
+    { name: 'Placeholder debris detection', developer: '<span class="check">&#10003;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Markdown fence detection', developer: '<span class="check">&#10003;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Fiction KPI detection', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Token bleed detection', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Custom scanner toggles', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'URL allowlist', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Findings shown', developer: '5 max', startup: '<strong>All</strong>', growth: '<strong>All</strong>', enterprise: '<strong>All</strong>' },
+    { name: 'Quality score', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Actionable JSON summary', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Full JSON exports', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'CI gate (GitHub Action)', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Team dashboard + trends', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Slack / email alerts', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span> Slack', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'EU AI Act documentation', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Certificate ZIP (PDF + JSON)', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Analyst support', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', growth: '<span class="check">&#10003;</span> Priority', enterprise: '<span class="check">&#10003;</span> Quarterly review' },
+    { name: 'Priority support', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span> Email', growth: '<span class="check">&#10003;</span> Slack', enterprise: '<span class="check">&#10003;</span> Dedicated engineer' },
+    { name: 'Self-hosted / air-gapped', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', growth: '<span class="cross">&mdash;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Support', developer: 'Community', startup: 'Email', growth: 'Priority + Slack', enterprise: 'Dedicated engineer + SLA' }
   ],
 
   // FAQ entries — pricing.html source of truth
   faqs: [
     {
-      q: 'What is the $19 Instant Report and how does zero-retention work?',
-      a: 'The $19 Instant Code Hygiene Report runs a gate scan on your local repository for credentials, mock data, and AI imports. Pay via Stripe, run the scan in your browser sandbox, and download a PDF certificate within 60 seconds. <strong>Zero-retention means no source code ever leaves your machine.</strong> The scan runs entirely in your browser. We do not store, log, or transmit your source code. Ever.'
+      q: 'What is AI Slop Cop and how does it work?',
+      a: 'AI Slop Cop is a local-first code scanner that detects AI-generated slop, exposed credentials, and compliance gaps. It runs entirely on your machine — no source code ever leaves your laptop. Install the free VS Code extension for real-time IDE squiggles with 24 rules, or use the CLI for CI gate integration with 60+ analyzer engines.'
     },
     {
-      q: 'What is the Free Risk Assessment and what do I get?',
-      a: 'The complimentary Risk Assessment runs entirely on your machine using our open-source CLI. You get an A&ndash;F grade, a preliminary risk profile for compliance teams, a list of AI-generated slop and credential leaks, and a remediation checklist. No source code ever leaves your infrastructure. Use it to evaluate SimpleBeacon before purchasing an Executive Certificate.'
+      q: 'What do I get with the Developer (Free) tier?',
+      a: 'The Developer tier is free and includes the VS Code extension + CLI for up to 100 local scans per month. Each scan covers up to 50 files. You get real-time detection of placeholder comments, leaked markdown code fences, and empty stubs with 24 AI residue rules. No account or credit card required. Pipeline/CI scans require a paid tier.'
     },
     {
-      q: 'How is the Executive Risk Certificate different from the Free Risk Assessment?',
-      a: 'The Free Risk Assessment runs a lightweight hygiene sweep (gate scan). The $499 Executive Risk Certificate runs all 15 SimpleBeacon analysis engines — gate, consolidation, mock data, roadmap, codebase, file reduction, data quality, cleanup, npm audit, compliance, EU AI Act readiness, dependency vulns, build readiness, AI indicators, and governance. It exports a ZIP containing a printable PDF certificate with cryptographic SHA-256 seal, plus 15 per-module JSON files with full findings. Designed for auditor presentations, due diligence documentation, regulatory filings, and vendor handoff.'
+      q: 'What do I get with the Startup tier?',
+      a: 'Startup ($49/mo) includes up to 2,500 pipeline scans per month with unlimited files per scan. All findings are shown, quality score is visible, and you get full JSON exports with an actionable summary. Includes custom scanner toggles via Configuration-as-Code, GitHub Action CI gate, team dashboard, priority email support, and 38 CLI analyzer modules. 7-day money-back guarantee.'
     },
     {
-      q: 'Do I need a SaaS subscription to use these deliverables?',
-      a: 'No. The $19 Instant Report and $2,499 EU AI Act Sprint are self-service — download your PDF instantly from <a href="certificate-upload.html">certificate-upload.html</a>. Other board deliverables are one-time engagements — you run the scan locally, export anonymized JSON, and download your signed certificate within 48 hours. No recurring SaaS fees, no seat licenses, no feature gates.'
+      q: 'What do I get with the Growth tier?',
+      a: 'Growth ($149/mo) includes up to 10,000 pipeline scans per month. Everything in Startup plus URL allowlists (no false positives on internal APIs), EU AI Act compliance rules, advanced JSON export with actionable summary, and priority support with a Slack channel. 7-day money-back guarantee.'
     },
     {
-      q: 'How does the EU AI Act Sprint self-service workflow work?',
-      a: 'After payment, you receive a license token and dashboard URL instantly. The token unlocks the EU AI Act scanner in your dashboard where you can either upload your source code zip or select a local directory. The scan runs on your machine (no code leaves your infrastructure) and generates an executive PDF immediately. Download your report from <a href="certificate-upload.html">certificate-upload.html</a> — no operator review required.'
+      q: 'What do I get with the Enterprise tier?',
+      a: 'Enterprise (custom pricing) includes unlimited scans. Everything in Growth plus 16 additional IDE rules for 54 total, team management (5+ seats), SSO/SAML authentication, custom rule development, quarterly compliance certificates, dedicated support with SLA, and self-hosted / air-gapped deployment options.'
     },
     {
-      q: 'Is the EU AI Act Sprint a legal conformity certification?',
-      a: 'No. It is a <em>standardized technical attestation</em> — an automated cryptographic snapshot proving that as of the scan timestamp, local static-analysis detected specific compliance indicators inside the repository boundary. It scans your codebase for Annex III high-risk AI patterns, Article 50 transparency gaps, and documentation completeness. It produces an executive PDF with findings and a 30-day remediation plan. <strong>It does not make your company legally immune.</strong> For full legal conformity certification, engage a qualified EU legal firm.'
+      q: 'Do I need a SaaS subscription?',
+      a: 'No. All AI Slop Cop scans run locally on your machine. Team and Enterprise subscriptions unlock dashboard access and CI integration, but the scanner itself never uploads your source code. You can run the CLI offline forever.'
+    },
+    {
+      q: 'How does the 14-day free trial work?',
+      a: 'Subscribe to AI Slop Cop Pro for $9/month or $90/year (save 17%). Cancel anytime. 7-day money-back guarantee.'
+    },
+    {
+      q: 'Is this EU AI Act compliant?',
+      a: 'The AI Slop Cop Enterprise tier produces Annex III high-risk AI system documentation, Article 14 Human Oversight evaluation, and Article 50 transparency checks. This is a technical attestation, not a legal certification. For full legal conformity, engage a qualified EU legal firm.'
     },
     {
       q: 'How long are license tokens valid?',
-      a: 'License tokens expire based on your tier:<br><br><strong>Unlimited</strong> — Free AI Slop Audit (open-source CLI, no expiry)<br><strong>7 days</strong> — $19 Instant Report<br><strong>90 days</strong> — Executive Risk Certificate ($499)<br><strong>30 days</strong> — EU AI Act Sprint ($2,499) &amp; Continuous Shield<br><br>Paid tokens unlock the dashboard immediately after purchase. You can run unlimited scans during the validity period. After expiry, simply purchase a new token or <a href="contact.html?topic=enterprise">contact us</a> for a Continuous Shield subscription with auto-renewal.'
+      a: 'AI Slop Cop Pro and Enterprise tokens are valid for 1 year and auto-renew with your subscription. Free tokens have no expiry. If your subscription lapses, the CLI reverts to free-tier limits.'
     },
     {
       q: 'What is your refund policy?',
-      a: 'License tokens are digital keys consumed immediately upon issuance. For self-service tiers ($19, $499), we offer a <strong>48-hour satisfaction window</strong> — if the scanner fails to process your repository or the deliverable is materially defective, contact us for a replacement token or refund. Enterprise contracts ($2,499+) include a 14-day review period with direct analyst support. See our <a href="refund.html">refund policy</a> for complete terms.'
+      a: 'Self-service tiers include a 14-day free trial — cancel before billing starts and pay nothing. After billing begins, we offer a 48-hour satisfaction window. Enterprise contracts include a 14-day review period with analyst support. See our <a href="refund.html">refund policy</a>.'
     },
     {
-      q: 'What data does SimpleBeacon transmit during a scan?',
-      a: '<strong>Deterministic scan:</strong> Zero transmission. The scan runs entirely on your machine reading local files. No source code, file paths, or credentials are uploaded.<br><br><strong>Optional AI summary:</strong> Only anonymized scan statistics (issue counts, gate pass/fail, redacted path labels like "…/my-project/src") are sent to your chosen AI provider. Full file paths and source code are never included.'
+      q: 'What data does AI Slop Cop transmit?',
+      a: '<strong>Zero transmission during scans.</strong> The deterministic scan runs entirely on your machine reading local files. No source code, file paths, or credentials are uploaded. The optional team dashboard only receives anonymized scan statistics (issue counts, gate pass/fail).'
     },
     {
-      q: 'Can I pay by invoice or ACH instead of Stripe?',
-      a: 'For orders over $5,000 or enterprise contracts, we accept invoice, ACH, and wire transfer. <a href="contact.html?topic=enterprise">Contact us</a> for a tailored proposal and custom billing terms.'
+      q: 'Can I pay by invoice or ACH?',
+      a: 'Enterprise contracts support invoice, ACH, wire transfer, and NET-30 terms. <a href="contact.html?topic=enterprise">Contact us</a> for a tailored proposal.'
     }
   ]
 };
@@ -227,7 +256,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   try {
     var apiBase = window.SIMPLEBEACON_SITE.apiBase || '';
     fetch(apiBase + '/api/config/pricing')
-      .then(function (res) { return res.json(); })
+      .then(function (res) { if (!res.ok) return null; return res.json(); })
       .then(function (data) {
         if (!data || !data.success || !data.pricing) return;
         var cfg = window.SIMPLEBEACON_SITE;

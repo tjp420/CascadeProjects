@@ -1,0 +1,934 @@
+{
+  "name": "SimpleBeacon Project",
+  "desc": "SimpleBeacon Remediation Roadmap for CascadeProjects\nGenerated: 2026-06-07T19:04:47.254Z",
+  "labels": [
+    {
+      "id": "label_0",
+      "name": "High",
+      "color": "orange"
+    },
+    {
+      "id": "label_1",
+      "name": "Compliance",
+      "color": "blue"
+    },
+    {
+      "id": "label_2",
+      "name": "Critical",
+      "color": "red"
+    },
+    {
+      "id": "label_3",
+      "name": "Security",
+      "color": "black"
+    },
+    {
+      "id": "label_4",
+      "name": "Medium",
+      "color": "yellow"
+    },
+    {
+      "id": "label_5",
+      "name": "Cleanup",
+      "color": "lime"
+    },
+    {
+      "id": "label_6",
+      "name": "Performance",
+      "color": "sky"
+    },
+    {
+      "id": "label_7",
+      "name": "Quality",
+      "color": "purple"
+    },
+    {
+      "id": "label_8",
+      "name": "Testing",
+      "color": "pink"
+    },
+    {
+      "id": "label_9",
+      "name": "Low",
+      "color": "green"
+    },
+    {
+      "id": "label_10",
+      "name": "A11y",
+      "color": "yellow"
+    },
+    {
+      "id": "label_11",
+      "name": "Config",
+      "color": "grey"
+    },
+    {
+      "id": "label_12",
+      "name": "Deps",
+      "color": "green"
+    },
+    {
+      "id": "label_13",
+      "name": "Api",
+      "color": "sky"
+    }
+  ],
+  "lists": [
+    {
+      "id": "list_pending",
+      "name": "Pending",
+      "pos": 65536
+    },
+    {
+      "id": "list_progress",
+      "name": "In Progress",
+      "pos": 131072
+    },
+    {
+      "id": "list_review",
+      "name": "Under Review",
+      "pos": 196608
+    },
+    {
+      "id": "list_done",
+      "name": "Done",
+      "pos": 262144
+    }
+  ],
+  "cards": [
+    {
+      "id": "card_0",
+      "name": "Phase 1: EU AI Act Compliance",
+      "desc": "Regulatory readiness for EU AI Act requirements.\n\nSeverity: high\nEffort: 5–10 days\n\nAuto-generated from SimpleBeacon scan.",
+      "idList": "list_progress",
+      "pos": 1024,
+      "labels": [
+        "label_0",
+        "label_1"
+      ],
+      "checklists": [
+        {
+          "id": "check_0",
+          "name": "Remediation Tasks",
+          "checkItems": [
+            {
+              "id": "item_0_0",
+              "name": "Review AI system indicators (Art. 6)",
+              "pos": 0,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_0_1",
+              "name": "Generate documentation artifacts (Art. 10)",
+              "pos": 1024,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_0_2",
+              "name": "Review high-risk system classification (Annex III)",
+              "pos": 2048,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_0_3",
+              "name": "Schedule legal/compliance review",
+              "pos": 3072,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_0_4",
+              "name": "Prepare transparency obligations (Art. 13)",
+              "pos": 4096,
+              "state": "incomplete"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card_1",
+      "name": "Phase 2: Security & Secret Hygiene",
+      "desc": "Remove hardcoded credentials, secrets, and insecure configurations.\n\nSeverity: critical\nEffort: 2–5 days\n\nAuto-generated from SimpleBeacon scan.",
+      "idList": "list_pending",
+      "pos": 2048,
+      "labels": [
+        "label_2",
+        "label_3"
+      ],
+      "checklists": [
+        {
+          "id": "check_1",
+          "name": "Remediation Tasks",
+          "checkItems": [
+            {
+              "id": "item_1_0",
+              "name": "Audit all hardcoded credentials (API keys, passwords)",
+              "pos": 0,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_1_1",
+              "name": "Scan for secrets in logs and localStorage",
+              "pos": 1024,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_1_2",
+              "name": "Review .env files for committed secrets",
+              "pos": 2048,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_1_3",
+              "name": "Rotate exposed credentials immediately",
+              "pos": 3072,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_1_4",
+              "name": "Implement secret scanning in CI/CD",
+              "pos": 4096,
+              "state": "incomplete"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card_2",
+      "name": "Phase 3: AI Residue Cleanup",
+      "desc": "Remove AI-generated stubs, deprecated patterns, and dead code.\n\nSeverity: medium\nEffort: 3–7 days\n\nAuto-generated from SimpleBeacon scan.",
+      "idList": "list_pending",
+      "pos": 3072,
+      "labels": [
+        "label_4",
+        "label_5"
+      ],
+      "checklists": [
+        {
+          "id": "check_2",
+          "name": "Remediation Tasks",
+          "checkItems": [
+            {
+              "id": "item_2_0",
+              "name": "Remove stub implementations (TODO/placeholder functions)",
+              "pos": 0,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_2_1",
+              "name": "Fix empty catch blocks (error swallowing)",
+              "pos": 1024,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_2_2",
+              "name": "Replace deprecated API calls",
+              "pos": 2048,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_2_3",
+              "name": "Remove unreachable dead code branches",
+              "pos": 3072,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_2_4",
+              "name": "Add proper error handling and logging",
+              "pos": 4096,
+              "state": "incomplete"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card_3",
+      "name": "Phase 4: Performance Optimization",
+      "desc": "Fix nested loops, event listener leaks, and O(n²) patterns.\n\nSeverity: medium\nEffort: 3–5 days\n\nAuto-generated from SimpleBeacon scan.",
+      "idList": "list_pending",
+      "pos": 4096,
+      "labels": [
+        "label_4",
+        "label_6"
+      ],
+      "checklists": [
+        {
+          "id": "check_3",
+          "name": "Remediation Tasks",
+          "checkItems": [
+            {
+              "id": "item_3_0",
+              "name": "Optimize nested loop patterns",
+              "pos": 0,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_3_1",
+              "name": "Clean up leaked event listeners",
+              "pos": 1024,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_3_2",
+              "name": "Review and debounce expensive operations",
+              "pos": 2048,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_3_3",
+              "name": "Profile hot paths in production",
+              "pos": 3072,
+              "state": "incomplete"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card_4",
+      "name": "Phase 5: Type Safety & Documentation",
+      "desc": "Replace any types, add PropTypes, remove ts-ignore flags.\n\nSeverity: medium\nEffort: 4–8 days\n\nAuto-generated from SimpleBeacon scan.",
+      "idList": "list_pending",
+      "pos": 5120,
+      "labels": [
+        "label_4",
+        "label_7"
+      ],
+      "checklists": [
+        {
+          "id": "check_4",
+          "name": "Remediation Tasks",
+          "checkItems": [
+            {
+              "id": "item_4_0",
+              "name": "Replace TypeScript any types with proper types",
+              "pos": 0,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_4_1",
+              "name": "Add React PropTypes where missing",
+              "pos": 1024,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_4_2",
+              "name": "Remove ts-ignore annotations with fixes",
+              "pos": 2048,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_4_3",
+              "name": "Document undocumented public functions",
+              "pos": 3072,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_4_4",
+              "name": "Add JSDoc / docstrings to core modules",
+              "pos": 4096,
+              "state": "incomplete"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card_5",
+      "name": "Phase 6: Test Coverage Improvement",
+      "desc": "Unskip tests, fill empty test blocks, add missing coverage.\n\nSeverity: medium\nEffort: 5–10 days\n\nAuto-generated from SimpleBeacon scan.",
+      "idList": "list_pending",
+      "pos": 6144,
+      "labels": [
+        "label_4",
+        "label_8"
+      ],
+      "checklists": [
+        {
+          "id": "check_5",
+          "name": "Remediation Tasks",
+          "checkItems": [
+            {
+              "id": "item_5_0",
+              "name": "Unskip all .skip / xit / @Disabled tests",
+              "pos": 0,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_5_1",
+              "name": "Remove empty test/it blocks",
+              "pos": 1024,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_5_2",
+              "name": "Add tests for uncovered critical paths",
+              "pos": 2048,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_5_3",
+              "name": "Set up coverage reporting in CI",
+              "pos": 3072,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_5_4",
+              "name": "Add integration tests for key workflows",
+              "pos": 4096,
+              "state": "incomplete"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card_6",
+      "name": "Phase 7: Accessibility & Internationalization",
+      "desc": "Fix missing alt text, ARIA gaps, and hardcoded UI strings.\n\nSeverity: low\nEffort: 3–6 days\n\nAuto-generated from SimpleBeacon scan.",
+      "idList": "list_pending",
+      "pos": 7168,
+      "labels": [
+        "label_9",
+        "label_10"
+      ],
+      "checklists": [
+        {
+          "id": "check_6",
+          "name": "Remediation Tasks",
+          "checkItems": [
+            {
+              "id": "item_6_0",
+              "name": "Add alt text to all images",
+              "pos": 0,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_6_1",
+              "name": "Add aria-label to unlabeled inputs",
+              "pos": 1024,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_6_2",
+              "name": "Audit color contrast ratios",
+              "pos": 2048,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_6_3",
+              "name": "Extract hardcoded strings to i18n keys",
+              "pos": 3072,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_6_4",
+              "name": "Add locale-aware date/number formatting",
+              "pos": 4096,
+              "state": "incomplete"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card_7",
+      "name": "Phase 8: Configuration & Drift",
+      "desc": "Fix hardcoded URLs, .env references, and config drift.\n\nSeverity: medium\nEffort: 2–4 days\n\nAuto-generated from SimpleBeacon scan.",
+      "idList": "list_pending",
+      "pos": 8192,
+      "labels": [
+        "label_4",
+        "label_11"
+      ],
+      "checklists": [
+        {
+          "id": "check_7",
+          "name": "Remediation Tasks",
+          "checkItems": [
+            {
+              "id": "item_7_0",
+              "name": "Move hardcoded URLs to config files",
+              "pos": 0,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_7_1",
+              "name": "Remove .env file references from source",
+              "pos": 1024,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_7_2",
+              "name": "Audit environment-specific configs",
+              "pos": 2048,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_7_3",
+              "name": "Document configuration schema",
+              "pos": 3072,
+              "state": "incomplete"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card_8",
+      "name": "Phase 9: Dependency & Workspace Health",
+      "desc": "Remove unused deps, fix circular imports, audit vulnerabilities.\n\nSeverity: low\nEffort: 2–4 days\n\nAuto-generated from SimpleBeacon scan.",
+      "idList": "list_pending",
+      "pos": 9216,
+      "labels": [
+        "label_9",
+        "label_12"
+      ],
+      "checklists": [
+        {
+          "id": "check_8",
+          "name": "Remediation Tasks",
+          "checkItems": [
+            {
+              "id": "item_8_0",
+              "name": "Remove unused dependencies from package.json",
+              "pos": 0,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_8_1",
+              "name": "Fix circular import chains",
+              "pos": 1024,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_8_2",
+              "name": "Run npm audit and update vulnerable packages",
+              "pos": 2048,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_8_3",
+              "name": "Clean up dead code and duplicate files",
+              "pos": 3072,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_8_4",
+              "name": "Verify build readiness across environments",
+              "pos": 4096,
+              "state": "incomplete"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "card_9",
+      "name": "Phase 10: API Contract & Framework Practices",
+      "desc": "Fix REST endpoint drift, React hook misuse, missing cleanup.\n\nSeverity: medium\nEffort: 3–6 days\n\nAuto-generated from SimpleBeacon scan.",
+      "idList": "list_pending",
+      "pos": 10240,
+      "labels": [
+        "label_4",
+        "label_13"
+      ],
+      "checklists": [
+        {
+          "id": "check_9",
+          "name": "Remediation Tasks",
+          "checkItems": [
+            {
+              "id": "item_9_0",
+              "name": "Audit REST endpoints for frontend consumption",
+              "pos": 0,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_9_1",
+              "name": "Fix React hook rule violations",
+              "pos": 1024,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_9_2",
+              "name": "Add cleanup in useEffect hooks",
+              "pos": 2048,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_9_3",
+              "name": "Document API contract changes",
+              "pos": 3072,
+              "state": "incomplete"
+            },
+            {
+              "id": "item_9_4",
+              "name": "Add API versioning strategy",
+              "pos": 4096,
+              "state": "incomplete"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "members": [],
+  "memberships": [],
+  "pluginData": [],
+  "actions": [],
+  "checklists": [
+    {
+      "id": "check_0",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_0_0",
+          "name": "Review AI system indicators (Art. 6)",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_0_1",
+          "name": "Generate documentation artifacts (Art. 10)",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_0_2",
+          "name": "Review high-risk system classification (Annex III)",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_0_3",
+          "name": "Schedule legal/compliance review",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_0_4",
+          "name": "Prepare transparency obligations (Art. 13)",
+          "pos": 4096,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_1",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_1_0",
+          "name": "Audit all hardcoded credentials (API keys, passwords)",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_1",
+          "name": "Scan for secrets in logs and localStorage",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_2",
+          "name": "Review .env files for committed secrets",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_3",
+          "name": "Rotate exposed credentials immediately",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_1_4",
+          "name": "Implement secret scanning in CI/CD",
+          "pos": 4096,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_2",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_2_0",
+          "name": "Remove stub implementations (TODO/placeholder functions)",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_1",
+          "name": "Fix empty catch blocks (error swallowing)",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_2",
+          "name": "Replace deprecated API calls",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_3",
+          "name": "Remove unreachable dead code branches",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_2_4",
+          "name": "Add proper error handling and logging",
+          "pos": 4096,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_3",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_3_0",
+          "name": "Optimize nested loop patterns",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_3_1",
+          "name": "Clean up leaked event listeners",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_3_2",
+          "name": "Review and debounce expensive operations",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_3_3",
+          "name": "Profile hot paths in production",
+          "pos": 3072,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_4",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_4_0",
+          "name": "Replace TypeScript any types with proper types",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_4_1",
+          "name": "Add React PropTypes where missing",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_4_2",
+          "name": "Remove ts-ignore annotations with fixes",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_4_3",
+          "name": "Document undocumented public functions",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_4_4",
+          "name": "Add JSDoc / docstrings to core modules",
+          "pos": 4096,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_5",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_5_0",
+          "name": "Unskip all .skip / xit / @Disabled tests",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_5_1",
+          "name": "Remove empty test/it blocks",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_5_2",
+          "name": "Add tests for uncovered critical paths",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_5_3",
+          "name": "Set up coverage reporting in CI",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_5_4",
+          "name": "Add integration tests for key workflows",
+          "pos": 4096,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_6",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_6_0",
+          "name": "Add alt text to all images",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_6_1",
+          "name": "Add aria-label to unlabeled inputs",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_6_2",
+          "name": "Audit color contrast ratios",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_6_3",
+          "name": "Extract hardcoded strings to i18n keys",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_6_4",
+          "name": "Add locale-aware date/number formatting",
+          "pos": 4096,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_7",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_7_0",
+          "name": "Move hardcoded URLs to config files",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_7_1",
+          "name": "Remove .env file references from source",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_7_2",
+          "name": "Audit environment-specific configs",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_7_3",
+          "name": "Document configuration schema",
+          "pos": 3072,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_8",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_8_0",
+          "name": "Remove unused dependencies from package.json",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_8_1",
+          "name": "Fix circular import chains",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_8_2",
+          "name": "Run npm audit and update vulnerable packages",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_8_3",
+          "name": "Clean up dead code and duplicate files",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_8_4",
+          "name": "Verify build readiness across environments",
+          "pos": 4096,
+          "state": "incomplete"
+        }
+      ]
+    },
+    {
+      "id": "check_9",
+      "name": "Remediation Tasks",
+      "checkItems": [
+        {
+          "id": "item_9_0",
+          "name": "Audit REST endpoints for frontend consumption",
+          "pos": 0,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_9_1",
+          "name": "Fix React hook rule violations",
+          "pos": 1024,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_9_2",
+          "name": "Add cleanup in useEffect hooks",
+          "pos": 2048,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_9_3",
+          "name": "Document API contract changes",
+          "pos": 3072,
+          "state": "incomplete"
+        },
+        {
+          "id": "item_9_4",
+          "name": "Add API versioning strategy",
+          "pos": 4096,
+          "state": "incomplete"
+        }
+      ]
+    }
+  ],
+  "customFields": [],
+  "dateLastActivity": "2026-06-07T19:04:47.254Z"
+}

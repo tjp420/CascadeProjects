@@ -29,4 +29,6 @@ User-facing surfaces that invoke optional LLM providers must include disclosure 
 
 ## Review cadence
 
-Re-run `simplebeacon assess --profile eu-ai-act` before major releases and before the August 2026 high-risk system deadline for any product classified as high-risk.
+- **Last reviewed**: 2026-06-14 (Phase 6 Quality Optimization)
+- **Status**: No high-risk classifications identified; all transparency gaps closed; risk register updated with formal likelihood/severity/mitigation matrix
+- **Next review**: Before major releases and before the August 2026 high-risk system deadline for any product classified as high-risk

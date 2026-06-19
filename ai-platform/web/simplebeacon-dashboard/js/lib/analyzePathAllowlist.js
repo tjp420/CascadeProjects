@@ -1,16 +1,41 @@
 import { fetchAnalyzeProviders, normalizeProjectPath } from '../services/analyzeService.js?v=20260531pathfix1';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
 
+/**
+ * Is path within allowed roots.
+ * @param {string} projectPath
+ * @param {Array} allowedRoots
+ * @returns {any}
+ */
 export function isPathWithinAllowedRoots(projectPath, allowedRoots = []) {
-  const target = normalizeProjectPath(projectPath);
+  let target = normalizeProjectPath(projectPath);
   if (!target || isRemoteRepoUrl(projectPath)) return true;
-  return (allowedRoots || []).some((root) => {
+
+  // Resolve bare directory names against each allowed root
+  const roots = allowedRoots || [];
+  if (!target.includes('/') && roots.length > 0) {
+    return roots.some((root) => {
+      const rootKey = normalizeProjectPath(root);
+      if (!rootKey) return false;
+      const resolved = normalizeProjectPath(`${root}/${target}`);
+      return resolved === rootKey || resolved.startsWith(`${rootKey}/`);
+    });
+  }
+
+  return roots.some((root) => {
     const rootKey = normalizeProjectPath(root);
     if (!rootKey) return false;
     return target === rootKey || target.startsWith(`${rootKey}/`);
   });
 }
 
+/**
+ * Path allowlist message.
+ * @param {string} projectPath
+ * @param {Array} allowedRoots
+ * @param {any} summary
+ * @returns {any}
+ */
 export function pathAllowlistMessage(projectPath, allowedRoots, summary) {
   const rootsText = summary
     || (allowedRoots || []).slice(0, 4).map((entry) => String(entry).replace(/\\/g, '/')).join('; ');
@@ -22,6 +47,11 @@ export function pathAllowlistMessage(projectPath, allowedRoots, summary) {
   );
 }
 
+/**
+ * Ensure allowed analysis roots.
+ * @param {any} app
+ * @returns {any}
+ */
 export async function ensureAllowedAnalysisRoots(app) {
   if (app?.state?.allowedAnalysisRoots?.length) {
     return app.state.allowedAnalysisRoots;
@@ -41,6 +71,12 @@ export async function ensureAllowedAnalysisRoots(app) {
   }
 }
 
+/**
+ * Validate project path allowlist.
+ * @param {string} projectPath
+ * @param {any} app
+ * @returns {any}
+ */
 export async function validateProjectPathAllowlist(projectPath, app) {
   const path = String(projectPath || '').trim();
   if (!path || isRemoteRepoUrl(path)) {
@@ -57,6 +93,11 @@ export async function validateProjectPathAllowlist(projectPath, app) {
   return { allowed, path, message, roots };
 }
 
+/**
+ * Render path allowlist warning.
+ * @param {string} message
+ * @returns {any}
+ */
 export function renderPathAllowlistWarning(message) {
   if (!message) return '';
   return `
@@ -66,6 +107,11 @@ export function renderPathAllowlistWarning(message) {
   `;
 }
 
+/**
+ * Escape html.
+ * @param {any} value
+ * @returns {any}
+ */
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -74,6 +120,13 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * Update path allowlist warning dom.
+ * @param {any} container
+ * @param {any} app
+ * @param {string} projectPath
+ * @returns {any}
+ */
 export async function updatePathAllowlistWarningDom(container, app, projectPath) {
   if (!container) return;
   const slot = container.querySelector('[data-path-allowlist-warning]');

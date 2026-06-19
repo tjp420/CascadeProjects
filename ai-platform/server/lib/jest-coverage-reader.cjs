@@ -8,6 +8,12 @@ const { readJsonFileCached } = require('./json-file-cache.cjs');
 
 const DEFAULT_RELATIVE_PATH = path.join('coverage', 'dashboard', 'coverage-summary.json');
 
+/**
+ * Normalize relative path.
+ * @param {string} filePath
+ * @param {string} baseDir
+ * @returns {any}
+ */
 function normalizeRelativePath(filePath, baseDir) {
     if (!filePath || filePath === 'total') return null;
     const normalized = filePath.replace(/\\/g, '/');
@@ -18,11 +24,22 @@ function normalizeRelativePath(filePath, baseDir) {
     return normalized;
 }
 
+/**
+ * Round coverage percentage.
+ * @param {any} rawPct
+ * @returns {any}
+ */
 function roundCoveragePercentage(rawPct) {
     if (rawPct == null || Number.isNaN(Number(rawPct))) return null;
     return Math.round(Number(rawPct) * 10) / 10;
 }
 
+/**
+ * Resolve summary path.
+ * @param {string} baseDir
+ * @param {Object} options
+ * @returns {any}
+ */
 function resolveSummaryPath(baseDir, options = {}) {
     const candidate = options.relativePath
         || process.env.JEST_COVERAGE_SUMMARY_PATH
@@ -35,6 +52,12 @@ function resolveSummaryPath(baseDir, options = {}) {
     return path.join(baseDir, candidate);
 }
 
+/**
+ * Load jest coverage summary.
+ * @param {string} baseDir
+ * @param {Object} options
+ * @returns {any}
+ */
 function loadJestCoverageSummary(baseDir, options = {}) {
     const summaryPath = resolveSummaryPath(baseDir, options);
 

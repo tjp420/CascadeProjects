@@ -1,0 +1,4638 @@
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-12T00:39:32.534Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\fixtures",
+    "C:\\Users\\Trevor\\CascadeProjects\\__mocks__",
+    "C:\\Users\\Trevor\\CascadeProjects\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "totalFiles": 1200,
+    "totalFolders": 215,
+    "profile": "universal"
+  },
+  "mockSampleFiles": 0,
+  "totalFiles": 0,
+  "ruleScopedFilesAnalyzed": 0,
+  "repositoryFilesTotal": 1200,
+  "repositoryFoldersTotal": 215,
+  "filesAnalyzed": 0,
+  "totalSizeBytes": 0,
+  "totalSizeLabel": "0B",
+  "issueCount": 6,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 98,
+  "consistencyPassed": 98,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 98,
+  "fictionSampleFilesScanned": 50,
+  "fictionScope": "repository-json",
+  "credentialScanned": 0,
+  "credentialFindings": 0,
+  "productionLeakScanned": 0,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 1,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 149,
+    "documentationFound": [
+      ".env",
+      ".env.example",
+      ".simplebeaconignore",
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "consolidation-analysis.txt",
+      "DATA_AUDIT.md",
+      "EU_AI_ACT_CLASSIFICATION.md",
+      "HANDOFF-2026-06-03.md",
+      "LAUNCH-READINESS.md",
+      "README.md",
+      "render.yaml",
+      "SimpleBeacon-Universal-Coverage-Checklist.md",
+      "SimpleBeacon-Universal-Roadmap.md",
+      "ZORIN-LINUX-SETUP.md",
+      ".simplebeacon/bridge-report-latest.json",
+      ".simplebeacon/config-unrestricted.json",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/fresh-scan-2.json",
+      ".simplebeacon/fresh-scan.json",
+      ".simplebeacon/full-scan-log.txt",
+      ".simplebeacon/full-scan-output.json",
+      ".simplebeacon/full-scan-report.json",
+      ".simplebeacon/gate-report.json",
+      ".simplebeacon/gate-test-report.json",
+      ".simplebeacon/post-cleanup-scan.json",
+      ".simplebeacon/post-smtp-fix-scan.json",
+      ".simplebeacon/remediation-report-2026-06-11.md",
+      ".simplebeacon/report-fresh.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/scan-debug.json",
+      ".simplebeacon/scan-fix-verify.json",
+      ".simplebeacon/scan-full-verify.json",
+      ".simplebeacon/scan-verify.json",
+      ".simplebeacon/verification-scan-smtp.json",
+      ".simplebeacon/verification-scan.json",
+      "ai-platform/docs/model-card.md",
+      "ai-platform/docs/ai-system-documentation.md",
+      "ai-platform/docs/risk-assessment.md",
+      "ai-platform/docs/conformity-declaration.md",
+      "ai-platform/docs/eu-ai-act-compliance.md",
+      "ai-platform/docs/audit-terms-of-service.md",
+      "ai-platform/docs/enterprise-positioning.md",
+      "ai-platform/docs/free-slop-audit-offer.md",
+      "ai-platform/docs/outreach-cc-campaign.md",
+      "ai-platform/docs/prospect-list.md",
+      "sales/docs/configuration.md"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 6
+  },
+  "mockDataCategories": [],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/logs/audit.log"
+      ],
+      "filePaths": [
+        "ai-platform/logs/audit.log"
+      ],
+      "file": "ai-platform/logs/audit.log"
+    },
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/node_modules"
+      ],
+      "filePaths": [
+        "ai-platform/node_modules"
+      ],
+      "file": "ai-platform/node_modules"
+    },
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "coming-soon/node_modules"
+      ],
+      "filePaths": [
+        "coming-soon/node_modules"
+      ],
+      "file": "coming-soon/node_modules"
+    },
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "coming-soon/server.log"
+      ],
+      "filePaths": [
+        "coming-soon/server.log"
+      ],
+      "file": "coming-soon/server.log"
+    },
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "logs/audit.log"
+      ],
+      "filePaths": [
+        "logs/audit.log"
+      ],
+      "file": "logs/audit.log"
+    },
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "node_modules"
+      ],
+      "filePaths": [
+        "node_modules"
+      ],
+      "file": "node_modules"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "file-reduction-build-artifact-ee0lkv",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "ai-platform/logs/audit.log",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/logs/audit.log"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-build-artifact-q3maxj",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "ai-platform/node_modules",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "ai-platform/node_modules"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-build-artifact-n84ow3",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "coming-soon/node_modules",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "coming-soon/node_modules"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-build-artifact-p4mz2k",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "coming-soon/server.log",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "coming-soon/server.log"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-build-artifact-xwg0je",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "logs/audit.log",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "logs/audit.log"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-build-artifact-cjqcbv",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "node_modules",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "node_modules"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "file-reduction",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 0,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 0,
+    "productionPaths": [
+      "src/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 1,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 98,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 0,
+    "repositoryFilesTotal": 1200,
+    "repositoryFoldersTotal": 215,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 1,200 files ΓÇö gate rules checked 0 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths ΓÇö not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (98) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan ΓÇö use npm test or simplebeacon:full for live test verification."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 6,
+    "blockingIssues": [],
+    "warningIssues": [
+      {
+        "id": "file-reduction-build-artifact-ee0lkv",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "ai-platform/logs/audit.log",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "ai-platform/logs/audit.log"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-q3maxj",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "ai-platform/node_modules",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "ai-platform/node_modules"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-n84ow3",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "coming-soon/node_modules",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "coming-soon/node_modules"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-p4mz2k",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "coming-soon/server.log",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "coming-soon/server.log"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-xwg0je",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "logs/audit.log",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "logs/audit.log"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-cjqcbv",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "node_modules",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "node_modules"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "allIssues": [
+      {
+        "id": "file-reduction-build-artifact-ee0lkv",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "ai-platform/logs/audit.log",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "ai-platform/logs/audit.log"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-q3maxj",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "ai-platform/node_modules",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "ai-platform/node_modules"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-n84ow3",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "coming-soon/node_modules",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "coming-soon/node_modules"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-p4mz2k",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "coming-soon/server.log",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "coming-soon/server.log"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-xwg0je",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "logs/audit.log",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "logs/audit.log"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-cjqcbv",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "node_modules",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "node_modules"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed ΓÇö no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 1200,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "1,200 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 0,
+    "summary": "No mock data found."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 0,
+    "readinessStatus": "BLOCKED",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": false,
+        "critical": false
+      }
+    ],
+    "missingCritical": [
+      "package.json",
+      "README",
+      "Tests",
+      "CI/CD",
+      ".env.example",
+      ".gitignore"
+    ],
+    "missingRecommended": [
+      "CHANGELOG",
+      "Docker",
+      "Linting/Formatting",
+      "TypeScript Config",
+      "Build Tool Config",
+      ".npmignore"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 0,
+    "summary": "BLOCKED ΓÇö 0 of 12 checklist items present. 6 critical blockers.",
+    "recommendations": [
+      "Add all critical files before production deployment.",
+      "Start with package.json, README, .gitignore, and .env.example."
+    ],
+    "remediation": "Missing critical: package.json, README, Tests, CI/CD, .env.example, .gitignore."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2ΓÇô4 days",
+      "description": "Data integrity verified ΓÇö no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3ΓÇô5 days",
+      "description": "Consistency verified ΓÇö no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2ΓÇô3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        "Audit 1 open-source license file",
+        "Review 1 security/governance file",
+        "Verify license compatibility with distribution model",
+        "Add LICENSE and SECURITY.md if missing",
+        "Document governance policies"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5ΓÇô10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "low",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 100/100 toward 95+.",
+      "tasks": [
+        "Add test coverage for uncovered modules",
+        "Install pre-commit hooks for automated scanning",
+        "Schedule monthly quality gate reviews"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "totalFiles": 1200,
+    "totalLines": 0
+  },
+  "tier": "community",
+  "upgradeUrl": "https://simplebeacon.ai/pricing",
+  "upgradeMessage": "Upgrade to Executive Clearance ($499) for full findings, quality score, and board-ready PDF certificate.",
+  "sanitized": true,
+  "sanitizedAt": "2026-06-12T00:39:32.537Z"
+}
+[CONFIG_ERROR] Unknown argument: --cwd. Run with --help for usage.
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-12T22:30:40.899Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\fixtures",
+    "C:\\Users\\Trevor\\CascadeProjects\\__mocks__",
+    "C:\\Users\\Trevor\\CascadeProjects\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "totalFiles": 1238,
+    "totalFolders": 220,
+    "profile": "universal"
+  },
+  "mockSampleFiles": 0,
+  "totalFiles": 0,
+  "ruleScopedFilesAnalyzed": 0,
+  "repositoryFilesTotal": 1238,
+  "repositoryFoldersTotal": 220,
+  "filesAnalyzed": 0,
+  "totalSizeBytes": 0,
+  "totalSizeLabel": "0B",
+  "issueCount": 1,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 103,
+  "consistencyPassed": 103,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 103,
+  "fictionSampleFilesScanned": 50,
+  "fictionScope": "repository-json",
+  "credentialScanned": 0,
+  "credentialFindings": 0,
+  "productionLeakScanned": 0,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 1,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 162,
+    "documentationFound": [
+      ".env",
+      ".env.example",
+      ".simplebeaconignore",
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "consolidation-analysis.txt",
+      "DATA_AUDIT.md",
+      "EU_AI_ACT_CLASSIFICATION.md",
+      "HANDOFF-2026-06-03.md",
+      "LAUNCH-READINESS.md",
+      "README.md",
+      "REMEDIATION-TRACKER.md",
+      "render.yaml",
+      "SimpleBeacon-Universal-Coverage-Checklist.md",
+      "SimpleBeacon-Universal-Roadmap.md",
+      "ZORIN-LINUX-SETUP.md",
+      ".simplebeacon/bridge-report-latest.json",
+      ".simplebeacon/cli-report.json",
+      ".simplebeacon/config-full-coverage.json",
+      ".simplebeacon/config-unrestricted.json",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/fresh-scan-2.json",
+      ".simplebeacon/fresh-scan.json",
+      ".simplebeacon/full-scan-log.txt",
+      ".simplebeacon/full-scan-output.json",
+      ".simplebeacon/full-scan-report.json",
+      ".simplebeacon/gate-report.json",
+      ".simplebeacon/gate-scan-log.txt",
+      ".simplebeacon/gate-test-report.json",
+      ".simplebeacon/post-cleanup-scan.json",
+      ".simplebeacon/post-smtp-fix-scan.json",
+      ".simplebeacon/remediation-imported.json",
+      ".simplebeacon/remediation-report-2026-06-11.md",
+      ".simplebeacon/report-fresh.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/scan-debug.json",
+      ".simplebeacon/scan-fix-verify.json",
+      ".simplebeacon/scan-full-verify.json",
+      ".simplebeacon/scan-verify.json",
+      ".simplebeacon/verification-scan-smtp.json",
+      ".simplebeacon/verification-scan.json",
+      "ai-platform/docs/model-card.md",
+      "ai-platform/docs/ai-system-documentation.md",
+      "ai-platform/docs/risk-assessment.md",
+      "ai-platform/docs/conformity-declaration.md",
+      "ai-platform/docs/eu-ai-act-compliance.md",
+      "ai-platform/docs/audit-terms-of-service.md",
+      "ai-platform/docs/enterprise-positioning.md",
+      "ai-platform/docs/free-slop-audit-offer.md",
+      "ai-platform/docs/outreach-cc-campaign.md",
+      "ai-platform/docs/prospect-list.md",
+      "sales/docs/configuration.md"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 1
+  },
+  "mockDataCategories": [],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "filePaths": [
+        "vscode-extension/out"
+      ],
+      "file": "vscode-extension/out"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "file-reduction-build-artifact-u62yni",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "vscode-extension/out",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "file-reduction",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 0,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 0,
+    "productionPaths": [
+      "src/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 1,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 103,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 0,
+    "repositoryFilesTotal": 1238,
+    "repositoryFoldersTotal": 220,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 1,238 files ΓÇö gate rules checked 0 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths ΓÇö not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (103) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan ΓÇö use npm test or simplebeacon:full for live test verification."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 1,
+    "blockingIssues": [],
+    "warningIssues": [
+      {
+        "id": "file-reduction-build-artifact-u62yni",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "allIssues": [
+      {
+        "id": "file-reduction-build-artifact-u62yni",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed ΓÇö no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 1238,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "1,238 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 0,
+    "summary": "No mock data found."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 0,
+    "readinessStatus": "BLOCKED",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": false,
+        "critical": false
+      }
+    ],
+    "missingCritical": [
+      "package.json",
+      "README",
+      "Tests",
+      "CI/CD",
+      ".env.example",
+      ".gitignore"
+    ],
+    "missingRecommended": [
+      "CHANGELOG",
+      "Docker",
+      "Linting/Formatting",
+      "TypeScript Config",
+      "Build Tool Config",
+      ".npmignore"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 0,
+    "summary": "BLOCKED ΓÇö 0 of 12 checklist items present. 6 critical blockers.",
+    "recommendations": [
+      "Add all critical files before production deployment.",
+      "Start with package.json, README, .gitignore, and .env.example."
+    ],
+    "remediation": "Missing critical: package.json, README, Tests, CI/CD, .env.example, .gitignore."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2ΓÇô4 days",
+      "description": "Data integrity verified ΓÇö no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3ΓÇô5 days",
+      "description": "Consistency verified ΓÇö no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2ΓÇô3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        "Audit 1 open-source license file",
+        "Review 1 security/governance file",
+        "Verify license compatibility with distribution model",
+        "Add LICENSE and SECURITY.md if missing",
+        "Document governance policies"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5ΓÇô10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "low",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 100/100 toward 95+.",
+      "tasks": [
+        "Add test coverage for uncovered modules",
+        "Install pre-commit hooks for automated scanning",
+        "Schedule monthly quality gate reviews"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "totalFiles": 1238,
+    "totalLines": 0
+  },
+  "tier": "community",
+  "upgradeUrl": "https://simplebeacon.ai/pricing",
+  "upgradeMessage": "Upgrade to Executive Clearance ($499) for full findings, quality score, and board-ready PDF certificate.",
+  "sanitized": true,
+  "sanitizedAt": "2026-06-12T22:30:40.904Z"
+}
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-12T22:30:59.363Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\fixtures",
+    "C:\\Users\\Trevor\\CascadeProjects\\__mocks__",
+    "C:\\Users\\Trevor\\CascadeProjects\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "totalFiles": 1238,
+    "totalFolders": 220,
+    "profile": "universal"
+  },
+  "mockSampleFiles": 0,
+  "totalFiles": 0,
+  "ruleScopedFilesAnalyzed": 0,
+  "repositoryFilesTotal": 1238,
+  "repositoryFoldersTotal": 220,
+  "filesAnalyzed": 0,
+  "totalSizeBytes": 0,
+  "totalSizeLabel": "0B",
+  "issueCount": 1,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 103,
+  "consistencyPassed": 103,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 103,
+  "fictionSampleFilesScanned": 50,
+  "fictionScope": "repository-json",
+  "credentialScanned": 0,
+  "credentialFindings": 0,
+  "productionLeakScanned": 0,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 1,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 162,
+    "documentationFound": [
+      ".env",
+      ".env.example",
+      ".simplebeaconignore",
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "consolidation-analysis.txt",
+      "DATA_AUDIT.md",
+      "EU_AI_ACT_CLASSIFICATION.md",
+      "HANDOFF-2026-06-03.md",
+      "LAUNCH-READINESS.md",
+      "README.md",
+      "REMEDIATION-TRACKER.md",
+      "render.yaml",
+      "SimpleBeacon-Universal-Coverage-Checklist.md",
+      "SimpleBeacon-Universal-Roadmap.md",
+      "ZORIN-LINUX-SETUP.md",
+      ".simplebeacon/bridge-report-latest.json",
+      ".simplebeacon/cli-report.json",
+      ".simplebeacon/config-full-coverage.json",
+      ".simplebeacon/config-unrestricted.json",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/fresh-scan-2.json",
+      ".simplebeacon/fresh-scan.json",
+      ".simplebeacon/full-scan-log.txt",
+      ".simplebeacon/full-scan-output.json",
+      ".simplebeacon/full-scan-report.json",
+      ".simplebeacon/gate-report.json",
+      ".simplebeacon/gate-scan-log.txt",
+      ".simplebeacon/gate-test-report.json",
+      ".simplebeacon/post-cleanup-scan.json",
+      ".simplebeacon/post-smtp-fix-scan.json",
+      ".simplebeacon/remediation-imported.json",
+      ".simplebeacon/remediation-report-2026-06-11.md",
+      ".simplebeacon/report-fresh.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/scan-debug.json",
+      ".simplebeacon/scan-fix-verify.json",
+      ".simplebeacon/scan-full-verify.json",
+      ".simplebeacon/scan-verify.json",
+      ".simplebeacon/verification-scan-smtp.json",
+      ".simplebeacon/verification-scan.json",
+      "ai-platform/docs/model-card.md",
+      "ai-platform/docs/ai-system-documentation.md",
+      "ai-platform/docs/risk-assessment.md",
+      "ai-platform/docs/conformity-declaration.md",
+      "ai-platform/docs/eu-ai-act-compliance.md",
+      "ai-platform/docs/audit-terms-of-service.md",
+      "ai-platform/docs/enterprise-positioning.md",
+      "ai-platform/docs/free-slop-audit-offer.md",
+      "ai-platform/docs/outreach-cc-campaign.md",
+      "ai-platform/docs/prospect-list.md",
+      "sales/docs/configuration.md"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 1
+  },
+  "mockDataCategories": [],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "filePaths": [
+        "vscode-extension/out"
+      ],
+      "file": "vscode-extension/out"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "file-reduction-build-artifact-xtdycv",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "vscode-extension/out",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "file-reduction",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 0,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 0,
+    "productionPaths": [
+      "src/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 1,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 103,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 0,
+    "repositoryFilesTotal": 1238,
+    "repositoryFoldersTotal": 220,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 1,238 files ΓÇö gate rules checked 0 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths ΓÇö not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (103) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan ΓÇö use npm test or simplebeacon:full for live test verification."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 1,
+    "blockingIssues": [],
+    "warningIssues": [
+      {
+        "id": "file-reduction-build-artifact-xtdycv",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "allIssues": [
+      {
+        "id": "file-reduction-build-artifact-xtdycv",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed ΓÇö no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 1238,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "1,238 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 0,
+    "summary": "No mock data found."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 0,
+    "readinessStatus": "BLOCKED",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": false,
+        "critical": false
+      }
+    ],
+    "missingCritical": [
+      "package.json",
+      "README",
+      "Tests",
+      "CI/CD",
+      ".env.example",
+      ".gitignore"
+    ],
+    "missingRecommended": [
+      "CHANGELOG",
+      "Docker",
+      "Linting/Formatting",
+      "TypeScript Config",
+      "Build Tool Config",
+      ".npmignore"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 0,
+    "summary": "BLOCKED ΓÇö 0 of 12 checklist items present. 6 critical blockers.",
+    "recommendations": [
+      "Add all critical files before production deployment.",
+      "Start with package.json, README, .gitignore, and .env.example."
+    ],
+    "remediation": "Missing critical: package.json, README, Tests, CI/CD, .env.example, .gitignore."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2ΓÇô4 days",
+      "description": "Data integrity verified ΓÇö no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3ΓÇô5 days",
+      "description": "Consistency verified ΓÇö no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2ΓÇô3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        "Audit 1 open-source license file",
+        "Review 1 security/governance file",
+        "Verify license compatibility with distribution model",
+        "Add LICENSE and SECURITY.md if missing",
+        "Document governance policies"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5ΓÇô10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "low",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 100/100 toward 95+.",
+      "tasks": [
+        "Add test coverage for uncovered modules",
+        "Install pre-commit hooks for automated scanning",
+        "Schedule monthly quality gate reviews"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "totalFiles": 1238,
+    "totalLines": 0
+  },
+  "tier": "community",
+  "upgradeUrl": "https://simplebeacon.ai/pricing",
+  "upgradeMessage": "Upgrade to Executive Clearance ($499) for full findings, quality score, and board-ready PDF certificate.",
+  "sanitized": true,
+  "sanitizedAt": "2026-06-12T22:30:59.366Z"
+}
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-12T22:31:36.288Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\fixtures",
+    "C:\\Users\\Trevor\\CascadeProjects\\__mocks__",
+    "C:\\Users\\Trevor\\CascadeProjects\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "totalFiles": 1238,
+    "totalFolders": 220,
+    "profile": "universal"
+  },
+  "mockSampleFiles": 0,
+  "totalFiles": 0,
+  "ruleScopedFilesAnalyzed": 0,
+  "repositoryFilesTotal": 1238,
+  "repositoryFoldersTotal": 220,
+  "filesAnalyzed": 0,
+  "totalSizeBytes": 0,
+  "totalSizeLabel": "0B",
+  "issueCount": 1,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 103,
+  "consistencyPassed": 103,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 103,
+  "fictionSampleFilesScanned": 50,
+  "fictionScope": "repository-json",
+  "credentialScanned": 0,
+  "credentialFindings": 0,
+  "productionLeakScanned": 0,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 1,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 162,
+    "documentationFound": [
+      ".env",
+      ".env.example",
+      ".simplebeaconignore",
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "consolidation-analysis.txt",
+      "DATA_AUDIT.md",
+      "EU_AI_ACT_CLASSIFICATION.md",
+      "HANDOFF-2026-06-03.md",
+      "LAUNCH-READINESS.md",
+      "README.md",
+      "REMEDIATION-TRACKER.md",
+      "render.yaml",
+      "SimpleBeacon-Universal-Coverage-Checklist.md",
+      "SimpleBeacon-Universal-Roadmap.md",
+      "ZORIN-LINUX-SETUP.md",
+      ".simplebeacon/bridge-report-latest.json",
+      ".simplebeacon/cli-report.json",
+      ".simplebeacon/config-full-coverage.json",
+      ".simplebeacon/config-unrestricted.json",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/fresh-scan-2.json",
+      ".simplebeacon/fresh-scan.json",
+      ".simplebeacon/full-scan-log.txt",
+      ".simplebeacon/full-scan-output.json",
+      ".simplebeacon/full-scan-report.json",
+      ".simplebeacon/gate-report.json",
+      ".simplebeacon/gate-scan-log.txt",
+      ".simplebeacon/gate-test-report.json",
+      ".simplebeacon/post-cleanup-scan.json",
+      ".simplebeacon/post-smtp-fix-scan.json",
+      ".simplebeacon/remediation-imported.json",
+      ".simplebeacon/remediation-report-2026-06-11.md",
+      ".simplebeacon/report-fresh.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/scan-debug.json",
+      ".simplebeacon/scan-fix-verify.json",
+      ".simplebeacon/scan-full-verify.json",
+      ".simplebeacon/scan-verify.json",
+      ".simplebeacon/verification-scan-smtp.json",
+      ".simplebeacon/verification-scan.json",
+      "ai-platform/docs/model-card.md",
+      "ai-platform/docs/ai-system-documentation.md",
+      "ai-platform/docs/risk-assessment.md",
+      "ai-platform/docs/conformity-declaration.md",
+      "ai-platform/docs/eu-ai-act-compliance.md",
+      "ai-platform/docs/audit-terms-of-service.md",
+      "ai-platform/docs/enterprise-positioning.md",
+      "ai-platform/docs/free-slop-audit-offer.md",
+      "ai-platform/docs/outreach-cc-campaign.md",
+      "ai-platform/docs/prospect-list.md",
+      "sales/docs/configuration.md"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 1
+  },
+  "mockDataCategories": [],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "filePaths": [
+        "vscode-extension/out"
+      ],
+      "file": "vscode-extension/out"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "file-reduction-build-artifact-sdmagm",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "vscode-extension/out",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "file-reduction",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 0,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 0,
+    "productionPaths": [
+      "src/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 1,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 103,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 0,
+    "repositoryFilesTotal": 1238,
+    "repositoryFoldersTotal": 220,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 1,238 files ΓÇö gate rules checked 0 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths ΓÇö not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (103) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan ΓÇö use npm test or simplebeacon:full for live test verification."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 1,
+    "blockingIssues": [],
+    "warningIssues": [
+      {
+        "id": "file-reduction-build-artifact-sdmagm",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "allIssues": [
+      {
+        "id": "file-reduction-build-artifact-sdmagm",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed ΓÇö no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 1238,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "1,238 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 0,
+    "summary": "No mock data found."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 0,
+    "readinessStatus": "BLOCKED",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": false,
+        "critical": false
+      }
+    ],
+    "missingCritical": [
+      "package.json",
+      "README",
+      "Tests",
+      "CI/CD",
+      ".env.example",
+      ".gitignore"
+    ],
+    "missingRecommended": [
+      "CHANGELOG",
+      "Docker",
+      "Linting/Formatting",
+      "TypeScript Config",
+      "Build Tool Config",
+      ".npmignore"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 0,
+    "summary": "BLOCKED ΓÇö 0 of 12 checklist items present. 6 critical blockers.",
+    "recommendations": [
+      "Add all critical files before production deployment.",
+      "Start with package.json, README, .gitignore, and .env.example."
+    ],
+    "remediation": "Missing critical: package.json, README, Tests, CI/CD, .env.example, .gitignore."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2ΓÇô4 days",
+      "description": "Data integrity verified ΓÇö no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3ΓÇô5 days",
+      "description": "Consistency verified ΓÇö no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2ΓÇô3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        "Audit 1 open-source license file",
+        "Review 1 security/governance file",
+        "Verify license compatibility with distribution model",
+        "Add LICENSE and SECURITY.md if missing",
+        "Document governance policies"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5ΓÇô10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "low",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 100/100 toward 95+.",
+      "tasks": [
+        "Add test coverage for uncovered modules",
+        "Install pre-commit hooks for automated scanning",
+        "Schedule monthly quality gate reviews"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "totalFiles": 1238,
+    "totalLines": 0
+  },
+  "tier": "community",
+  "upgradeUrl": "https://simplebeacon.ai/pricing",
+  "upgradeMessage": "Upgrade to Executive Clearance ($499) for full findings, quality score, and board-ready PDF certificate.",
+  "sanitized": true,
+  "sanitizedAt": "2026-06-12T22:31:36.292Z"
+}
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-12T22:31:54.717Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\fixtures",
+    "C:\\Users\\Trevor\\CascadeProjects\\__mocks__",
+    "C:\\Users\\Trevor\\CascadeProjects\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "totalFiles": 1238,
+    "totalFolders": 220,
+    "profile": "universal"
+  },
+  "mockSampleFiles": 0,
+  "totalFiles": 0,
+  "ruleScopedFilesAnalyzed": 0,
+  "repositoryFilesTotal": 1238,
+  "repositoryFoldersTotal": 220,
+  "filesAnalyzed": 0,
+  "totalSizeBytes": 0,
+  "totalSizeLabel": "0B",
+  "issueCount": 1,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 103,
+  "consistencyPassed": 103,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 103,
+  "fictionSampleFilesScanned": 50,
+  "fictionScope": "repository-json",
+  "credentialScanned": 0,
+  "credentialFindings": 0,
+  "productionLeakScanned": 0,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 1,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 162,
+    "documentationFound": [
+      ".env",
+      ".env.example",
+      ".simplebeaconignore",
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "consolidation-analysis.txt",
+      "DATA_AUDIT.md",
+      "EU_AI_ACT_CLASSIFICATION.md",
+      "HANDOFF-2026-06-03.md",
+      "LAUNCH-READINESS.md",
+      "README.md",
+      "REMEDIATION-TRACKER.md",
+      "render.yaml",
+      "SimpleBeacon-Universal-Coverage-Checklist.md",
+      "SimpleBeacon-Universal-Roadmap.md",
+      "ZORIN-LINUX-SETUP.md",
+      ".simplebeacon/bridge-report-latest.json",
+      ".simplebeacon/cli-report.json",
+      ".simplebeacon/config-full-coverage.json",
+      ".simplebeacon/config-unrestricted.json",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/fresh-scan-2.json",
+      ".simplebeacon/fresh-scan.json",
+      ".simplebeacon/full-scan-log.txt",
+      ".simplebeacon/full-scan-output.json",
+      ".simplebeacon/full-scan-report.json",
+      ".simplebeacon/gate-report.json",
+      ".simplebeacon/gate-scan-log.txt",
+      ".simplebeacon/gate-test-report.json",
+      ".simplebeacon/post-cleanup-scan.json",
+      ".simplebeacon/post-smtp-fix-scan.json",
+      ".simplebeacon/remediation-imported.json",
+      ".simplebeacon/remediation-report-2026-06-11.md",
+      ".simplebeacon/report-fresh.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/scan-debug.json",
+      ".simplebeacon/scan-fix-verify.json",
+      ".simplebeacon/scan-full-verify.json",
+      ".simplebeacon/scan-verify.json",
+      ".simplebeacon/verification-scan-smtp.json",
+      ".simplebeacon/verification-scan.json",
+      "ai-platform/docs/model-card.md",
+      "ai-platform/docs/ai-system-documentation.md",
+      "ai-platform/docs/risk-assessment.md",
+      "ai-platform/docs/conformity-declaration.md",
+      "ai-platform/docs/eu-ai-act-compliance.md",
+      "ai-platform/docs/audit-terms-of-service.md",
+      "ai-platform/docs/enterprise-positioning.md",
+      "ai-platform/docs/free-slop-audit-offer.md",
+      "ai-platform/docs/outreach-cc-campaign.md",
+      "ai-platform/docs/prospect-list.md",
+      "sales/docs/configuration.md"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 1
+  },
+  "mockDataCategories": [],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "filePaths": [
+        "vscode-extension/out"
+      ],
+      "file": "vscode-extension/out"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "file-reduction-build-artifact-aqsp4c",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "vscode-extension/out",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "file-reduction",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 0,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 0,
+    "productionPaths": [
+      "src/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 1,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 103,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 0,
+    "repositoryFilesTotal": 1238,
+    "repositoryFoldersTotal": 220,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 1,238 files ΓÇö gate rules checked 0 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths ΓÇö not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (103) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan ΓÇö use npm test or simplebeacon:full for live test verification."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 1,
+    "blockingIssues": [],
+    "warningIssues": [
+      {
+        "id": "file-reduction-build-artifact-aqsp4c",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "allIssues": [
+      {
+        "id": "file-reduction-build-artifact-aqsp4c",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed ΓÇö no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 1238,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "1,238 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 0,
+    "summary": "No mock data found."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 0,
+    "readinessStatus": "BLOCKED",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": false,
+        "critical": false
+      }
+    ],
+    "missingCritical": [
+      "package.json",
+      "README",
+      "Tests",
+      "CI/CD",
+      ".env.example",
+      ".gitignore"
+    ],
+    "missingRecommended": [
+      "CHANGELOG",
+      "Docker",
+      "Linting/Formatting",
+      "TypeScript Config",
+      "Build Tool Config",
+      ".npmignore"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 0,
+    "summary": "BLOCKED ΓÇö 0 of 12 checklist items present. 6 critical blockers.",
+    "recommendations": [
+      "Add all critical files before production deployment.",
+      "Start with package.json, README, .gitignore, and .env.example."
+    ],
+    "remediation": "Missing critical: package.json, README, Tests, CI/CD, .env.example, .gitignore."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2ΓÇô4 days",
+      "description": "Data integrity verified ΓÇö no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3ΓÇô5 days",
+      "description": "Consistency verified ΓÇö no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2ΓÇô3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        "Audit 1 open-source license file",
+        "Review 1 security/governance file",
+        "Verify license compatibility with distribution model",
+        "Add LICENSE and SECURITY.md if missing",
+        "Document governance policies"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5ΓÇô10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "low",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 100/100 toward 95+.",
+      "tasks": [
+        "Add test coverage for uncovered modules",
+        "Install pre-commit hooks for automated scanning",
+        "Schedule monthly quality gate reviews"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "totalFiles": 1238,
+    "totalLines": 0
+  },
+  "tier": "community",
+  "upgradeUrl": "https://simplebeacon.ai/pricing",
+  "upgradeMessage": "Upgrade to Executive Clearance ($499) for full findings, quality score, and board-ready PDF certificate.",
+  "sanitized": true,
+  "sanitizedAt": "2026-06-12T22:31:54.720Z"
+}
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-12T22:33:03.926Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\fixtures",
+    "C:\\Users\\Trevor\\CascadeProjects\\__mocks__",
+    "C:\\Users\\Trevor\\CascadeProjects\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "totalFiles": 1238,
+    "totalFolders": 220,
+    "profile": "universal"
+  },
+  "mockSampleFiles": 0,
+  "totalFiles": 0,
+  "ruleScopedFilesAnalyzed": 0,
+  "repositoryFilesTotal": 1238,
+  "repositoryFoldersTotal": 220,
+  "filesAnalyzed": 0,
+  "totalSizeBytes": 0,
+  "totalSizeLabel": "0B",
+  "issueCount": 1,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 103,
+  "consistencyPassed": 103,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 103,
+  "fictionSampleFilesScanned": 50,
+  "fictionScope": "repository-json",
+  "credentialScanned": 0,
+  "credentialFindings": 0,
+  "productionLeakScanned": 0,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 1,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 162,
+    "documentationFound": [
+      ".env",
+      ".env.example",
+      ".simplebeaconignore",
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "consolidation-analysis.txt",
+      "DATA_AUDIT.md",
+      "EU_AI_ACT_CLASSIFICATION.md",
+      "HANDOFF-2026-06-03.md",
+      "LAUNCH-READINESS.md",
+      "README.md",
+      "REMEDIATION-TRACKER.md",
+      "render.yaml",
+      "SimpleBeacon-Universal-Coverage-Checklist.md",
+      "SimpleBeacon-Universal-Roadmap.md",
+      "ZORIN-LINUX-SETUP.md",
+      ".simplebeacon/bridge-report-latest.json",
+      ".simplebeacon/cli-report.json",
+      ".simplebeacon/config-full-coverage.json",
+      ".simplebeacon/config-unrestricted.json",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/fresh-scan-2.json",
+      ".simplebeacon/fresh-scan.json",
+      ".simplebeacon/full-scan-log.txt",
+      ".simplebeacon/full-scan-output.json",
+      ".simplebeacon/full-scan-report.json",
+      ".simplebeacon/gate-report.json",
+      ".simplebeacon/gate-scan-log.txt",
+      ".simplebeacon/gate-test-report.json",
+      ".simplebeacon/post-cleanup-scan.json",
+      ".simplebeacon/post-smtp-fix-scan.json",
+      ".simplebeacon/remediation-imported.json",
+      ".simplebeacon/remediation-report-2026-06-11.md",
+      ".simplebeacon/report-fresh.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/scan-debug.json",
+      ".simplebeacon/scan-fix-verify.json",
+      ".simplebeacon/scan-full-verify.json",
+      ".simplebeacon/scan-verify.json",
+      ".simplebeacon/verification-scan-smtp.json",
+      ".simplebeacon/verification-scan.json",
+      "ai-platform/docs/model-card.md",
+      "ai-platform/docs/ai-system-documentation.md",
+      "ai-platform/docs/risk-assessment.md",
+      "ai-platform/docs/conformity-declaration.md",
+      "ai-platform/docs/eu-ai-act-compliance.md",
+      "ai-platform/docs/audit-terms-of-service.md",
+      "ai-platform/docs/enterprise-positioning.md",
+      "ai-platform/docs/free-slop-audit-offer.md",
+      "ai-platform/docs/outreach-cc-campaign.md",
+      "ai-platform/docs/prospect-list.md",
+      "sales/docs/configuration.md"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 1
+  },
+  "mockDataCategories": [],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "filePaths": [
+        "vscode-extension/out"
+      ],
+      "file": "vscode-extension/out"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "file-reduction-build-artifact-ept69a",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "vscode-extension/out",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "file-reduction",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 0,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 0,
+    "productionPaths": [
+      "src/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 1,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 103,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 0,
+    "repositoryFilesTotal": 1238,
+    "repositoryFoldersTotal": 220,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 1,238 files ΓÇö gate rules checked 0 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths ΓÇö not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (103) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan ΓÇö use npm test or simplebeacon:full for live test verification."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 1,
+    "blockingIssues": [],
+    "warningIssues": [
+      {
+        "id": "file-reduction-build-artifact-ept69a",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "allIssues": [
+      {
+        "id": "file-reduction-build-artifact-ept69a",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed ΓÇö no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 1238,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "1,238 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 0,
+    "summary": "No mock data found."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 0,
+    "readinessStatus": "BLOCKED",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": false,
+        "critical": false
+      }
+    ],
+    "missingCritical": [
+      "package.json",
+      "README",
+      "Tests",
+      "CI/CD",
+      ".env.example",
+      ".gitignore"
+    ],
+    "missingRecommended": [
+      "CHANGELOG",
+      "Docker",
+      "Linting/Formatting",
+      "TypeScript Config",
+      "Build Tool Config",
+      ".npmignore"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 0,
+    "summary": "BLOCKED ΓÇö 0 of 12 checklist items present. 6 critical blockers.",
+    "recommendations": [
+      "Add all critical files before production deployment.",
+      "Start with package.json, README, .gitignore, and .env.example."
+    ],
+    "remediation": "Missing critical: package.json, README, Tests, CI/CD, .env.example, .gitignore."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2ΓÇô4 days",
+      "description": "Data integrity verified ΓÇö no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3ΓÇô5 days",
+      "description": "Consistency verified ΓÇö no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2ΓÇô3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        "Audit 1 open-source license file",
+        "Review 1 security/governance file",
+        "Verify license compatibility with distribution model",
+        "Add LICENSE and SECURITY.md if missing",
+        "Document governance policies"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5ΓÇô10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "low",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 100/100 toward 95+.",
+      "tasks": [
+        "Add test coverage for uncovered modules",
+        "Install pre-commit hooks for automated scanning",
+        "Schedule monthly quality gate reviews"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "totalFiles": 1238,
+    "totalLines": 0
+  },
+  "tier": "community",
+  "upgradeUrl": "https://simplebeacon.ai/pricing",
+  "upgradeMessage": "Upgrade to Executive Clearance ($499) for full findings, quality score, and board-ready PDF certificate.",
+  "sanitized": true,
+  "sanitizedAt": "2026-06-12T22:33:03.930Z"
+}
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-12T22:33:40.526Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\fixtures",
+    "C:\\Users\\Trevor\\CascadeProjects\\__mocks__",
+    "C:\\Users\\Trevor\\CascadeProjects\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "totalFiles": 1238,
+    "totalFolders": 220,
+    "profile": "universal"
+  },
+  "mockSampleFiles": 0,
+  "totalFiles": 0,
+  "ruleScopedFilesAnalyzed": 0,
+  "repositoryFilesTotal": 1238,
+  "repositoryFoldersTotal": 220,
+  "filesAnalyzed": 0,
+  "totalSizeBytes": 0,
+  "totalSizeLabel": "0B",
+  "issueCount": 1,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 103,
+  "consistencyPassed": 103,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 103,
+  "fictionSampleFilesScanned": 50,
+  "fictionScope": "repository-json",
+  "credentialScanned": 0,
+  "credentialFindings": 0,
+  "productionLeakScanned": 0,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 1,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 162,
+    "documentationFound": [
+      ".env",
+      ".env.example",
+      ".simplebeaconignore",
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "consolidation-analysis.txt",
+      "DATA_AUDIT.md",
+      "EU_AI_ACT_CLASSIFICATION.md",
+      "HANDOFF-2026-06-03.md",
+      "LAUNCH-READINESS.md",
+      "README.md",
+      "REMEDIATION-TRACKER.md",
+      "render.yaml",
+      "SimpleBeacon-Universal-Coverage-Checklist.md",
+      "SimpleBeacon-Universal-Roadmap.md",
+      "ZORIN-LINUX-SETUP.md",
+      ".simplebeacon/bridge-report-latest.json",
+      ".simplebeacon/cli-report.json",
+      ".simplebeacon/config-full-coverage.json",
+      ".simplebeacon/config-unrestricted.json",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/fresh-scan-2.json",
+      ".simplebeacon/fresh-scan.json",
+      ".simplebeacon/full-scan-log.txt",
+      ".simplebeacon/full-scan-output.json",
+      ".simplebeacon/full-scan-report.json",
+      ".simplebeacon/gate-report.json",
+      ".simplebeacon/gate-scan-log.txt",
+      ".simplebeacon/gate-test-report.json",
+      ".simplebeacon/post-cleanup-scan.json",
+      ".simplebeacon/post-smtp-fix-scan.json",
+      ".simplebeacon/remediation-imported.json",
+      ".simplebeacon/remediation-report-2026-06-11.md",
+      ".simplebeacon/report-fresh.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/scan-debug.json",
+      ".simplebeacon/scan-fix-verify.json",
+      ".simplebeacon/scan-full-verify.json",
+      ".simplebeacon/scan-verify.json",
+      ".simplebeacon/verification-scan-smtp.json",
+      ".simplebeacon/verification-scan.json",
+      "ai-platform/docs/model-card.md",
+      "ai-platform/docs/ai-system-documentation.md",
+      "ai-platform/docs/risk-assessment.md",
+      "ai-platform/docs/conformity-declaration.md",
+      "ai-platform/docs/eu-ai-act-compliance.md",
+      "ai-platform/docs/audit-terms-of-service.md",
+      "ai-platform/docs/enterprise-positioning.md",
+      "ai-platform/docs/free-slop-audit-offer.md",
+      "ai-platform/docs/outreach-cc-campaign.md",
+      "ai-platform/docs/prospect-list.md",
+      "sales/docs/configuration.md"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 1
+  },
+  "mockDataCategories": [],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "filePaths": [
+        "vscode-extension/out"
+      ],
+      "file": "vscode-extension/out"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "file-reduction-build-artifact-hy63fw",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "vscode-extension/out",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "file-reduction",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 0,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 0,
+    "productionPaths": [
+      "src/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 1,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 103,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 0,
+    "repositoryFilesTotal": 1238,
+    "repositoryFoldersTotal": 220,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 1,238 files ΓÇö gate rules checked 0 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths ΓÇö not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (103) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan ΓÇö use npm test or simplebeacon:full for live test verification."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 1,
+    "blockingIssues": [],
+    "warningIssues": [
+      {
+        "id": "file-reduction-build-artifact-hy63fw",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "allIssues": [
+      {
+        "id": "file-reduction-build-artifact-hy63fw",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed ΓÇö no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 1238,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "1,238 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 0,
+    "summary": "No mock data found."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 0,
+    "readinessStatus": "BLOCKED",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": false,
+        "critical": false
+      }
+    ],
+    "missingCritical": [
+      "package.json",
+      "README",
+      "Tests",
+      "CI/CD",
+      ".env.example",
+      ".gitignore"
+    ],
+    "missingRecommended": [
+      "CHANGELOG",
+      "Docker",
+      "Linting/Formatting",
+      "TypeScript Config",
+      "Build Tool Config",
+      ".npmignore"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 0,
+    "summary": "BLOCKED ΓÇö 0 of 12 checklist items present. 6 critical blockers.",
+    "recommendations": [
+      "Add all critical files before production deployment.",
+      "Start with package.json, README, .gitignore, and .env.example."
+    ],
+    "remediation": "Missing critical: package.json, README, Tests, CI/CD, .env.example, .gitignore."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2ΓÇô4 days",
+      "description": "Data integrity verified ΓÇö no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3ΓÇô5 days",
+      "description": "Consistency verified ΓÇö no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2ΓÇô3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        "Audit 1 open-source license file",
+        "Review 1 security/governance file",
+        "Verify license compatibility with distribution model",
+        "Add LICENSE and SECURITY.md if missing",
+        "Document governance policies"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5ΓÇô10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "low",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 100/100 toward 95+.",
+      "tasks": [
+        "Add test coverage for uncovered modules",
+        "Install pre-commit hooks for automated scanning",
+        "Schedule monthly quality gate reviews"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "totalFiles": 1238,
+    "totalLines": 0
+  },
+  "tier": "community",
+  "upgradeUrl": "https://simplebeacon.ai/pricing",
+  "upgradeMessage": "Upgrade to Executive Clearance ($499) for full findings, quality score, and board-ready PDF certificate.",
+  "sanitized": true,
+  "sanitizedAt": "2026-06-12T22:33:40.529Z"
+}
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-12T22:34:13.872Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\fixtures",
+    "C:\\Users\\Trevor\\CascadeProjects\\__mocks__",
+    "C:\\Users\\Trevor\\CascadeProjects\\data"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "totalFiles": 1238,
+    "totalFolders": 220,
+    "profile": "universal"
+  },
+  "mockSampleFiles": 0,
+  "totalFiles": 0,
+  "ruleScopedFilesAnalyzed": 0,
+  "repositoryFilesTotal": 1238,
+  "repositoryFoldersTotal": 220,
+  "filesAnalyzed": 0,
+  "totalSizeBytes": 0,
+  "totalSizeLabel": "0B",
+  "issueCount": 1,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 100,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 103,
+  "consistencyPassed": 103,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 103,
+  "fictionSampleFilesScanned": 50,
+  "fictionScope": "repository-json",
+  "credentialScanned": 0,
+  "credentialFindings": 0,
+  "productionLeakScanned": 0,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 1,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 162,
+    "documentationFound": [
+      ".env",
+      ".env.example",
+      ".simplebeaconignore",
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "consolidation-analysis.txt",
+      "DATA_AUDIT.md",
+      "EU_AI_ACT_CLASSIFICATION.md",
+      "HANDOFF-2026-06-03.md",
+      "LAUNCH-READINESS.md",
+      "README.md",
+      "REMEDIATION-TRACKER.md",
+      "render.yaml",
+      "SimpleBeacon-Universal-Coverage-Checklist.md",
+      "SimpleBeacon-Universal-Roadmap.md",
+      "ZORIN-LINUX-SETUP.md",
+      ".simplebeacon/bridge-report-latest.json",
+      ".simplebeacon/cli-report.json",
+      ".simplebeacon/config-full-coverage.json",
+      ".simplebeacon/config-unrestricted.json",
+      ".simplebeacon/config.json",
+      ".simplebeacon/eu-ai-act-assessment.json",
+      ".simplebeacon/eu-ai-act-compliance.json",
+      ".simplebeacon/eu-ai-act-report.json",
+      ".simplebeacon/fresh-scan-2.json",
+      ".simplebeacon/fresh-scan.json",
+      ".simplebeacon/full-scan-log.txt",
+      ".simplebeacon/full-scan-output.json",
+      ".simplebeacon/full-scan-report.json",
+      ".simplebeacon/gate-report.json",
+      ".simplebeacon/gate-scan-log.txt",
+      ".simplebeacon/gate-test-report.json",
+      ".simplebeacon/post-cleanup-scan.json",
+      ".simplebeacon/post-smtp-fix-scan.json",
+      ".simplebeacon/remediation-imported.json",
+      ".simplebeacon/remediation-report-2026-06-11.md",
+      ".simplebeacon/report-fresh.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/scan-debug.json",
+      ".simplebeacon/scan-fix-verify.json",
+      ".simplebeacon/scan-full-verify.json",
+      ".simplebeacon/scan-verify.json",
+      ".simplebeacon/verification-scan-smtp.json",
+      ".simplebeacon/verification-scan.json",
+      "ai-platform/docs/model-card.md",
+      "ai-platform/docs/ai-system-documentation.md",
+      "ai-platform/docs/risk-assessment.md",
+      "ai-platform/docs/conformity-declaration.md",
+      "ai-platform/docs/eu-ai-act-compliance.md",
+      "ai-platform/docs/audit-terms-of-service.md",
+      "ai-platform/docs/enterprise-positioning.md",
+      "ai-platform/docs/free-slop-audit-offer.md",
+      "ai-platform/docs/outreach-cc-campaign.md",
+      "ai-platform/docs/prospect-list.md",
+      "sales/docs/configuration.md"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 1
+  },
+  "mockDataCategories": [],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "build-artifact",
+      "count": 1,
+      "description": "build-artifact finding",
+      "pattern": null,
+      "line": null,
+      "recommendation": "Review file-reduction report",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "filePaths": [
+        "vscode-extension/out"
+      ],
+      "file": "vscode-extension/out"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "file-reduction-build-artifact-59bpd0",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "vscode-extension/out",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "vscode-extension/out"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "file-reduction",
+      "eu-ai-act-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 0,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 0,
+    "productionPaths": [
+      "src/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 1,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 103,
+    "fictionSampleFilesScanned": 50,
+    "ruleScopedFilesAnalyzed": 0,
+    "repositoryFilesTotal": 1238,
+    "repositoryFoldersTotal": 220,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 1,238 files ΓÇö gate rules checked 0 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths ΓÇö not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (103) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan ΓÇö use npm test or simplebeacon:full for live test verification."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 1,
+    "blockingIssues": [],
+    "warningIssues": [
+      {
+        "id": "file-reduction-build-artifact-59bpd0",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "allIssues": [
+      {
+        "id": "file-reduction-build-artifact-59bpd0",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "vscode-extension/out",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "vscode-extension/out"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      }
+    ],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed ΓÇö no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 1238,
+    "totalLines": 0,
+    "averageLinesPerFile": 0,
+    "summary": "1,238 files analyzed, 0 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 0,
+    "summary": "No mock data found."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 0,
+    "readinessStatus": "BLOCKED",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": false,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": false,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": false,
+        "critical": false
+      }
+    ],
+    "missingCritical": [
+      "package.json",
+      "README",
+      "Tests",
+      "CI/CD",
+      ".env.example",
+      ".gitignore"
+    ],
+    "missingRecommended": [
+      "CHANGELOG",
+      "Docker",
+      "Linting/Formatting",
+      "TypeScript Config",
+      "Build Tool Config",
+      ".npmignore"
+    ],
+    "totalChecks": 12,
+    "passedChecks": 0,
+    "summary": "BLOCKED ΓÇö 0 of 12 checklist items present. 6 critical blockers.",
+    "recommendations": [
+      "Add all critical files before production deployment.",
+      "Start with package.json, README, .gitignore, and .env.example."
+    ],
+    "remediation": "Missing critical: package.json, README, Tests, CI/CD, .env.example, .gitignore."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2ΓÇô4 days",
+      "description": "Data integrity verified ΓÇö no structural issues detected.",
+      "tasks": [
+        "Validate all JSON",
+        "Re-run scan"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3ΓÇô5 days",
+      "description": "Consistency verified ΓÇö no duplicates or naming drift.",
+      "tasks": [
+        "Standardize naming conventions",
+        "Document canonical file locations"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2ΓÇô3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        "Audit 1 open-source license file",
+        "Review 1 security/governance file",
+        "Verify license compatibility with distribution model",
+        "Add LICENSE and SECURITY.md if missing",
+        "Document governance policies"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5ΓÇô10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        "Generate documentation artifacts",
+        "Review AI system classification (Art. 6)",
+        "Schedule legal review"
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "low",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 100/100 toward 95+.",
+      "tasks": [
+        "Add test coverage for uncovered modules",
+        "Install pre-commit hooks for automated scanning",
+        "Schedule monthly quality gate reviews"
+      ],
+      "progress": 100,
+      "status": "completed"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "totalFiles": 1238,
+    "totalLines": 0
+  },
+  "tier": "community",
+  "upgradeUrl": "https://simplebeacon.ai/pricing",
+  "upgradeMessage": "Upgrade to Executive Clearance ($499) for full findings, quality score, and board-ready PDF certificate.",
+  "sanitized": true,
+  "sanitizedAt": "2026-06-12T22:34:13.875Z"
+}

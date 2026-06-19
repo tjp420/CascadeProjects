@@ -1,14 +1,15 @@
 /**
- * Run all Simplebeacon pricing tiers and email certificates to trevor_punt@live.com
+ * Run all Simplebeacon pricing tiers and email certificates
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const TARGET_EMAIL = 'trevor_punt@live.com';
-const SCAN_DIR = 'C:\\Users\\Trevor\\CascadeProjects';
-const PORT = process.env.PORT || 54355;
+const constants = require('../server/config/constants.cjs');
+const TARGET_EMAIL = process.env.SIMPLEBEACON_OWNER_EMAIL;
+const SCAN_DIR = process.env.SIMPLEBEACON_SCAN_DIR || process.cwd();
+const PORT = process.env.PORT || constants.DASHBOARD_PORT;
 const PLATFORM_ROOT = path.resolve(__dirname, '..');
 
 const SUBSCRIPTION_STORE = path.join(PLATFORM_ROOT, '.simplebeacon', 'subscriptions.json');
@@ -100,7 +101,7 @@ function uploadReport(report, licenseToken) {
   try {
     const output = execSync(
       `curl -s -X POST http://127.0.0.1:${PORT}/api/reports/upload -H "Content-Type: application/json" -d @"${payloadPath}"`,
-      { cwd: PLATFORM_ROOT, encoding: 'utf8', timeout: 60000 }
+      { cwd: PLATFORM_ROOT, encoding: 'utf8', timeout: constants.TIMEOUT_1M }
     );
     return JSON.parse(output);
   } finally {
@@ -110,7 +111,7 @@ function uploadReport(report, licenseToken) {
 
 function checkServer() {
   try {
-    execSync(`curl -s http://127.0.0.1:${PORT}/api/health`, { timeout: 5000 });
+    execSync(`curl -s http://127.0.0.1:${PORT}/api/health`, { timeout: constants.TIMEOUT_5S });
     return true;
   } catch {
     return false;
@@ -128,7 +129,7 @@ const TIERS = [
     clientName: 'Website Owner',
     projectName: 'example.com Security Audit',
     orgId: 'website-audit',
-    timeout: 120000,
+    timeout: constants.TIMEOUT_2M,
     isWebsiteReport: true
   },
   {
@@ -141,7 +142,7 @@ const TIERS = [
     clientName: 'Community User',
     projectName: 'Open Source Evaluation',
     orgId: 'community',
-    timeout: 120000
+    timeout: constants.TIMEOUT_2M
   },
   {
     id: 'clearance499',
@@ -153,7 +154,7 @@ const TIERS = [
     clientName: 'Acme Corp',
     projectName: 'Executive Audit',
     orgId: 'acme-corp',
-    timeout: 120000
+    timeout: constants.TIMEOUT_2M
   },
   {
     id: 'agency999',
@@ -201,7 +202,7 @@ const TIERS = [
     clientName: 'Zenith Systems',
     projectName: 'Warranty Re-scan',
     orgId: 'zenith-systems',
-    timeout: 120000
+    timeout: constants.TIMEOUT_2M
   }
 ];
 

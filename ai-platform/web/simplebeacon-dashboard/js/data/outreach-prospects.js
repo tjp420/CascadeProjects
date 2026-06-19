@@ -2,6 +2,9 @@
  * Tier 0 outreach pipeline — verify emails on company site before first send.
  * sent / sentAt synced with dashboard send log + docs/outreach-pipeline.md
  */
+/**
+ * O u t r e a c h  p r o s p e c t s.
+ */
 export const OUTREACH_PROSPECTS = [
   { id: '1', company: 'OmbuLabs', contactName: 'Ernesto', email: 'hello@ombulabs.com', templateId: 'email-3', sent: true, sentAt: '2026-05-30' },
   { id: '2', company: 'OpenForge', contactName: 'Jedidiah', email: 'hello@openforge.io', templateId: 'email-1', sent: true, sentAt: '2026-05-30' },
@@ -140,9 +143,3 @@ export const OUTREACH_PROSPECTS = [
   { id: '135', company: 'Comm100', contactName: 'Team', email: 'hello@comm100.com', templateId: 'email-2', personalization: 'Helpdesk agencies managing Shopify integrations see mock JSON drift show up in reviews.' }
 ];
 
-export function firstReadyProspectId(prospects = OUTREACH_PROSPECTS) {
-  const ready = prospects
-    .filter((p) => !p.sent && p.email)
-    .sort((a, b) => Number(a.id) - Number(b.id));
-  return ready[0]?.id || '';
-}

@@ -10,8 +10,10 @@ const {
     normalizeReport,
     getTierConfig,
     buildModuleHtml,
-    buildCertificateHtml
+    buildCertificateHtml,
+    buildEuComplianceCertificateHtml
 } = require('../lib/certificate-utils.cjs');
+const { getModuleAccess } = require('../lib/plans.cjs');
 
 const logger = {
     warn: (...a) => { const c = globalThis.console; c.warn(...a); },
@@ -104,6 +106,8 @@ router.post('/api/certificate/download', async (req, res) => {
         archive.on('warning', (err) => { logger.error('[Archive] Warning:', err.message); });
         const tier = payload.tier || 'executive';
         const tierConfig = getTierConfig(tier);
+        const allowedModules = getModuleAccess(tier);
+        const hasModule = (id) => allowedModules.includes(id);
         const dateStr = new Date().toISOString().slice(0,10);
         const zipName = `simplebeacon-${tierConfig.label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}-${dateStr}.zip`;
         res.setHeader('Content-Type', 'application/zip');
@@ -115,84 +119,144 @@ router.post('/api/certificate/download', async (req, res) => {
             archive.append(str, { name });
         };
 
+        // Master certificate HTML always shows total results regardless of tier
         archive.append(certificateHtml, { name: 'reports/certificate.html' });
         addJson('json/report.json', reportJson);
-        addJson('json/01-simplebeacon-gate.json', reportJson.gateReport || {});
-        addJson('json/02-consolidation.json', reportJson.consolidation || {});
-        addJson('json/03-mock-data.json', reportJson.mockDataCategories || []);
-        addJson('json/04-roadmap.json', reportJson.roadmap || {});
-        addJson('json/05-codebase.json', reportJson.codebase || {});
-        addJson('json/06-file-reduction.json', reportJson.fileReduction || {});
-        addJson('json/07-data-quality.json', reportJson.dataQuality || {});
-        addJson('json/08-cleanup.json', reportJson.cleanup || {});
-        addJson('json/09-npm-audit.json', reportJson.npmAudit || {});
-        addJson('json/10-compliance.json', reportJson.compliance || {});
-        addJson('json/11-eu-ai-act.json', reportJson.euAiActSummary || {});
-        addJson('json/12-dependency-vulns.json', reportJson.dependencyAudit || reportJson.vulnerabilityAudit || {});
-        addJson('json/13-build-readiness.json', reportJson.buildReadiness || {});
+
+        // Only package modules the account tier has access to
+        if (hasModule('gate')) {
+            addJson('json/01-simplebeacon-gate.json', reportJson.gateReport || {});
+        }
+        if (hasModule('consolidation')) {
+            addJson('json/02-consolidation.json', reportJson.consolidation || {});
+        }
+        if (hasModule('mock-data')) {
+            addJson('json/03-mock-data.json', reportJson.mockDataCategories || []);
+        }
+        if (hasModule('roadmap')) {
+            addJson('json/04-roadmap.json', reportJson.roadmap || {});
+        }
+        if (hasModule('codebase')) {
+            addJson('json/05-codebase.json', reportJson.codebase || {});
+        }
+        if (hasModule('file-reduction')) {
+            addJson('json/06-file-reduction.json', reportJson.fileReduction || {});
+        }
+        if (hasModule('data-quality')) {
+            addJson('json/07-data-quality.json', reportJson.dataQuality || {});
+        }
+        if (hasModule('cleanup')) {
+            addJson('json/08-cleanup.json', reportJson.cleanup || {});
+        }
+        if (hasModule('npm-audit')) {
+            addJson('json/09-npm-audit.json', reportJson.npmAudit || {});
+        }
+        if (hasModule('compliance')) {
+            addJson('json/10-compliance.json', reportJson.compliance || {});
+        }
+        if (hasModule('eu-ai-act')) {
+            addJson('json/11-eu-ai-act.json', reportJson.euAiActSummary || {});
+        }
+        if (hasModule('dependency-vulns')) {
+            addJson('json/12-dependency-vulns.json', reportJson.dependencyAudit || reportJson.vulnerabilityAudit || {});
+        }
+        if (hasModule('build-readiness')) {
+            addJson('json/13-build-readiness.json', reportJson.buildReadiness || {});
+        }
         addJson('json/14-remediation-roadmap.json', reportJson.remediationPhases || []);
 
-        // Human-readable HTML reports (print to PDF)
+        // Human-readable HTML reports (print to PDF) — tier-filtered
         const projectName = reportJson.projectRoot || reportJson.projectPath || reportJson.projectName || 'Project';
-        archive.append(buildModuleHtml('SimpleBeacon Gate', '🛡️', reportJson.gateReport, projectName), { name: 'reports/01-simplebeacon-gate.html' });
-        archive.append(buildModuleHtml('Consolidation', '🔀', reportJson.consolidation, projectName), { name: 'reports/02-consolidation.html' });
-        const mockDataModuleData = (reportJson.mockDataCategories || []).length ? {
-            'Detected Categories': reportJson.mockDataCategories.map(c => `${c.category || 'Unknown'}: ${c.fileCount || 0} files (${c.confidence || 'medium'} confidence) — ${c.description || ''}`.trim())
-        } : { 'Status': 'No mock data detected' };
-        archive.append(buildModuleHtml('Mock Data Detection', '🔍', mockDataModuleData, projectName), { name: 'reports/03-mock-data.html' });
-        archive.append(buildModuleHtml('Roadmap Markers', '🗺️', reportJson.roadmap, projectName), { name: 'reports/04-roadmap.html' });
-        archive.append(buildModuleHtml('Codebase Analysis', '🧹', reportJson.codebase, projectName), { name: 'reports/05-codebase.html' });
-        archive.append(buildModuleHtml('File Reduction', '📦', reportJson.fileReduction, projectName), { name: 'reports/06-file-reduction.html' });
-        archive.append(buildModuleHtml('Data Quality', '🧪', reportJson.dataQuality, projectName), { name: 'reports/07-data-quality.html' });
-        archive.append(buildModuleHtml('Cleanup Assistant', '🗂️', reportJson.cleanup, projectName), { name: 'reports/08-cleanup.html' });
-        archive.append(buildModuleHtml('npm Audit', '📦', reportJson.npmAudit, projectName), { name: 'reports/09-npm-audit.html' });
-        archive.append(buildModuleHtml('Compliance', '✅', reportJson.compliance, projectName), { name: 'reports/10-compliance.html' });
-        archive.append(buildModuleHtml('EU AI Act Readiness', '🇪🇺', reportJson.euAiActSummary, projectName), { name: 'reports/11-eu-ai-act.html' });
-        archive.append(buildModuleHtml('Dependency Vulnerabilities', '🔒', reportJson.dependencyAudit || reportJson.vulnerabilityAudit || {}, projectName), { name: 'reports/12-dependency-vulns.html' });
-        archive.append(buildModuleHtml('Build Readiness', '🏗️', reportJson.buildReadiness || {}, projectName), { name: 'reports/13-build-readiness.html' });
+        if (hasModule('gate')) {
+            archive.append(buildModuleHtml('SimpleBeacon Gate', '🛡️', reportJson.gateReport, projectName), { name: 'reports/01-simplebeacon-gate.html' });
+        }
+        if (hasModule('consolidation')) {
+            archive.append(buildModuleHtml('Consolidation', '🔀', reportJson.consolidation, projectName), { name: 'reports/02-consolidation.html' });
+        }
+        if (hasModule('mock-data')) {
+            const mockDataModuleData = (reportJson.mockDataCategories || []).length ? {
+                'Detected Categories': reportJson.mockDataCategories.map(c => `${c.category || 'Unknown'}: ${c.fileCount || 0} files (${c.confidence || 'medium'} confidence) — ${c.description || ''}`.trim())
+            } : { 'Status': 'No mock data detected' };
+            archive.append(buildModuleHtml('Mock Data Detection', '🔍', mockDataModuleData, projectName), { name: 'reports/03-mock-data.html' });
+        }
+        if (hasModule('roadmap')) {
+            archive.append(buildModuleHtml('Roadmap Markers', '🗺️', reportJson.roadmap, projectName), { name: 'reports/04-roadmap.html' });
+        }
+        if (hasModule('codebase')) {
+            archive.append(buildModuleHtml('Codebase Analysis', '🧹', reportJson.codebase, projectName), { name: 'reports/05-codebase.html' });
+        }
+        if (hasModule('file-reduction')) {
+            archive.append(buildModuleHtml('File Reduction', '📦', reportJson.fileReduction, projectName), { name: 'reports/06-file-reduction.html' });
+        }
+        if (hasModule('data-quality')) {
+            archive.append(buildModuleHtml('Data Quality', '🧪', reportJson.dataQuality, projectName), { name: 'reports/07-data-quality.html' });
+        }
+        if (hasModule('cleanup')) {
+            archive.append(buildModuleHtml('Cleanup Assistant', '🗂️', reportJson.cleanup, projectName), { name: 'reports/08-cleanup.html' });
+        }
+        if (hasModule('npm-audit')) {
+            archive.append(buildModuleHtml('npm Audit', '📦', reportJson.npmAudit, projectName), { name: 'reports/09-npm-audit.html' });
+        }
+        if (hasModule('compliance')) {
+            archive.append(buildModuleHtml('Compliance', '✅', reportJson.compliance, projectName), { name: 'reports/10-compliance.html' });
+        }
+        if (hasModule('eu-ai-act')) {
+            archive.append(buildModuleHtml('EU AI Act Readiness', '🇪🇺', reportJson.euAiActSummary, projectName), { name: 'reports/11-eu-ai-act.html' });
+        }
+        if (hasModule('dependency-vulns')) {
+            archive.append(buildModuleHtml('Dependency Vulnerabilities', '🔒', reportJson.dependencyAudit || reportJson.vulnerabilityAudit || {}, projectName), { name: 'reports/12-dependency-vulns.html' });
+        }
+        if (hasModule('build-readiness')) {
+            archive.append(buildModuleHtml('Build Readiness', '🏗️', reportJson.buildReadiness || {}, projectName), { name: 'reports/13-build-readiness.html' });
+        }
+        archive.append(buildEuComplianceCertificateHtml(reportJson, payload), { name: 'reports/eu-ai-act-compliance-certificate.html' });
 
+        const manifestFiles = [
+            'reports/certificate.html',
+            ...(hasModule('gate') ? ['reports/01-simplebeacon-gate.html', 'json/01-simplebeacon-gate.json'] : []),
+            ...(hasModule('consolidation') ? ['reports/02-consolidation.html', 'json/02-consolidation.json'] : []),
+            ...(hasModule('mock-data') ? ['reports/03-mock-data.html', 'json/03-mock-data.json'] : []),
+            ...(hasModule('roadmap') ? ['reports/04-roadmap.html', 'json/04-roadmap.json'] : []),
+            ...(hasModule('codebase') ? ['reports/05-codebase.html', 'json/05-codebase.json'] : []),
+            ...(hasModule('file-reduction') ? ['reports/06-file-reduction.html', 'json/06-file-reduction.json'] : []),
+            ...(hasModule('data-quality') ? ['reports/07-data-quality.html', 'json/07-data-quality.json'] : []),
+            ...(hasModule('cleanup') ? ['reports/08-cleanup.html', 'json/08-cleanup.json'] : []),
+            ...(hasModule('npm-audit') ? ['reports/09-npm-audit.html', 'json/09-npm-audit.json'] : []),
+            ...(hasModule('compliance') ? ['reports/10-compliance.html', 'json/10-compliance.json'] : []),
+            ...(hasModule('eu-ai-act') ? ['reports/11-eu-ai-act.html', 'json/11-eu-ai-act.json'] : []),
+            ...(hasModule('dependency-vulns') ? ['reports/12-dependency-vulns.html', 'json/12-dependency-vulns.json'] : []),
+            ...(hasModule('build-readiness') ? ['reports/13-build-readiness.html', 'json/13-build-readiness.json'] : []),
+            'reports/eu-ai-act-compliance-certificate.html',
+            'json/14-remediation-roadmap.json',
+            'json/report.json',
+            'manifest.json',
+            'README.txt'
+        ];
         addJson('manifest.json', {
             type: 'simplebeacon-export-manifest',
             version: '1.0.0',
             generatedAt: new Date().toISOString(),
             tier: tier,
             productSku: payload.productSku || tier,
-            files: [
-                'reports/certificate.html',
-                'reports/01-simplebeacon-gate.html',
-                'reports/02-consolidation.html',
-                'reports/03-mock-data.html',
-                'reports/04-roadmap.html',
-                'reports/05-codebase.html',
-                'reports/06-file-reduction.html',
-                'reports/07-data-quality.html',
-                'reports/08-cleanup.html',
-                'reports/09-npm-audit.html',
-                'reports/10-compliance.html',
-                'reports/11-eu-ai-act.html',
-                'reports/12-dependency-vulns.html',
-                'reports/13-build-readiness.html',
-                'json/14-remediation-roadmap.json',
-                'json/report.json',
-                'json/01-simplebeacon-gate.json',
-                'json/02-consolidation.json',
-                'json/03-mock-data.json',
-                'json/04-roadmap.json',
-                'json/05-codebase.json',
-                'json/06-file-reduction.json',
-                'json/07-data-quality.json',
-                'json/08-cleanup.json',
-                'json/09-npm-audit.json',
-                'json/10-compliance.json',
-                'json/11-eu-ai-act.json',
-                'json/12-dependency-vulns.json',
-                'json/13-build-readiness.json',
-                'manifest.json',
-                'README.txt'
-            ],
+            files: manifestFiles,
             certificateType: tierConfig.label,
             reportId: 'SB-AUD-' + dateStr.replace(/-/g,'') + '-' + crypto.randomBytes(4).toString('hex').toUpperCase()
         });
+        const includedModules = [
+            ...(hasModule('gate') ? ['01-simplebeacon-gate'] : []),
+            ...(hasModule('consolidation') ? ['02-consolidation'] : []),
+            ...(hasModule('mock-data') ? ['03-mock-data'] : []),
+            ...(hasModule('roadmap') ? ['04-roadmap'] : []),
+            ...(hasModule('codebase') ? ['05-codebase'] : []),
+            ...(hasModule('file-reduction') ? ['06-file-reduction'] : []),
+            ...(hasModule('data-quality') ? ['07-data-quality'] : []),
+            ...(hasModule('cleanup') ? ['08-cleanup'] : []),
+            ...(hasModule('npm-audit') ? ['09-npm-audit'] : []),
+            ...(hasModule('compliance') ? ['10-compliance'] : []),
+            ...(hasModule('eu-ai-act') ? ['11-eu-ai-act'] : []),
+            ...(hasModule('dependency-vulns') ? ['12-dependency-vulns'] : []),
+            ...(hasModule('build-readiness') ? ['13-build-readiness'] : [])
+        ];
         archive.append(`SimpleBeacon ${tierConfig.label}
 ============================
 
@@ -200,37 +264,17 @@ Generated: ${new Date().toLocaleString()}
 Tier: ${tier}
 Product SKU: ${payload.productSku || tier}
 
-Contents:
+This package includes modules attached to your tier.
+The master certificate.html shows total scan results from all engines.
+
+Packaged modules (${includedModules.length}):
   reports/
     certificate.html                      : Master certificate (open in browser, print to PDF)
-    01-simplebeacon-gate.html            : 🛡️ Gate scan — human-readable report (print to PDF)
-    02-consolidation.html                : 🔀 Consolidation — human-readable report (print to PDF)
-    03-mock-data.html                    : 🔍 Mock data — human-readable report (print to PDF)
-    04-roadmap.html                      : 🗺️ Roadmap — human-readable report (print to PDF)
-    05-codebase.html                     : 🧹 Codebase — human-readable report (print to PDF)
-    06-file-reduction.html               : 📦 File reduction — human-readable report (print to PDF)
-    07-data-quality.html                 : 🧪 Data quality — human-readable report (print to PDF)
-    08-cleanup.html                      : 🗂️ Cleanup — human-readable report (print to PDF)
-    09-npm-audit.html                    : 📦 npm audit — human-readable report (print to PDF)
-    10-compliance.html                 : ✅ Compliance — human-readable report (print to PDF)
-    11-eu-ai-act.html                    : 🇪🇺 EU AI Act — human-readable report (print to PDF)
-    12-dependency-vulns.html             : 🔒 Dependency vulnerabilities — human-readable report (print to PDF)
-    13-build-readiness.html              : 🏗️ Build readiness — human-readable report (print to PDF)
+${includedModules.map(m => `    ${m}.html                    : Human-readable report (print to PDF)`).join('\n')}
+    eu-ai-act-compliance-certificate.html : EU AI Act Compliance Certificate (print to PDF)
   json/
     report.json                           : Raw complete scan report (machine-readable JSON)
-    01-simplebeacon-gate.json            : Gate scan results (machine-readable JSON)
-    02-consolidation.json                : Monorepo & duplicate file analysis (machine-readable JSON)
-    03-mock-data.json                    : Mock / fixture / sample file detection (machine-readable JSON)
-    04-roadmap.json                      : TODO / FIXME marker inventory (machine-readable JSON)
-    05-codebase.json                     : File & line count summary (machine-readable JSON)
-    06-file-reduction.json               : Unused asset & duplicate detection (machine-readable JSON)
-    07-data-quality.json                 : Empty / trivial JSON findings (machine-readable JSON)
-    08-cleanup.json                      : Debug artifact & hygiene sweep (machine-readable JSON)
-    09-npm-audit.json                    : package.json inventory (machine-readable JSON)
-    10-compliance.json                   : License & governance file detection (machine-readable JSON)
-    11-eu-ai-act.json                    : EU AI Act readiness indicators (machine-readable JSON)
-    12-dependency-vulns.json             : Dependency vulnerability audit (machine-readable JSON)
-    13-build-readiness.json              : Build readiness checklist (machine-readable JSON)
+${includedModules.map(m => `    ${m}.json                   : Machine-readable JSON data`).join('\n')}
     14-remediation-roadmap.json          : Phased remediation plan (machine-readable JSON)
   manifest.json                           : Export manifest for verification
   README.txt                              : This file

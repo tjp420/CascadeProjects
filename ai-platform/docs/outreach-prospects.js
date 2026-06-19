@@ -8,10 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const DEBUG = process.env.DEBUG_PIPELINE === '1' || process.env.DEBUG_PIPELINE === 'true';
-
-function log(...args) { if (DEBUG) console.log(...args); }
-function logError(...args) { if (DEBUG) console.error(...args); }
+function log() {}
+function logError() {}
 
 const PIPELINE_FILE = path.join(__dirname, 'outreach-pipeline.json');
 

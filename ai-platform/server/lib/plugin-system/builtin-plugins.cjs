@@ -15,6 +15,13 @@ const { extractGenericStructureHints } = require('./generic-structure-hints.cjs'
 
 const zscriptStructureParser = new ZScriptParser();
 
+/**
+ * Create pattern plugin.
+ * @param {string} languageId
+ * @param {Array} patternOverrides
+ * @param {Object} options
+ * @returns {any}
+ */
 function createPatternPlugin(languageId, patternOverrides = {}, options = {}) {
     const entry = getRegistryEntry(languageId);
     if (!entry) return null;
@@ -46,12 +53,25 @@ function createPatternPlugin(languageId, patternOverrides = {}, options = {}) {
     return plugin;
 }
 
+/**
+ * Register dedicated pattern plugin.
+ * @param {any} manager
+ * @param {string} languageId
+ * @param {Array} patterns
+ * @param {Object} options
+ * @returns {any}
+ */
 function registerDedicatedPatternPlugin(manager, languageId, patterns, options = {}) {
     const plugin = createPatternPlugin(languageId, patterns, options);
     if (plugin) manager.register(plugin);
     return plugin;
 }
 
+/**
+ * Register builtin plugins.
+ * @param {any} manager
+ * @returns {any}
+ */
 function registerBuiltinPlugins(manager) {
     const zscriptPlugin = new LanguagePlugin({
         id: 'zscript-analyzer-v1',

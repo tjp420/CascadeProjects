@@ -1,0 +1,91 @@
+{
+  "profile": "complete",
+  "scanPaths": [
+    "."
+  ],
+  "productionPaths": [
+    "."
+  ],
+  "sourceCodeScanPaths": [
+    "."
+  ],
+  "ignore": [
+    "node_modules/**",
+    ".simplebeacon/**",
+    "coverage/**",
+    "dist/**",
+    "build/**",
+    ".git/**",
+    "**/.gitkeep",
+    "test-output*.txt",
+    "*.log",
+    "vscode-extension/**",
+    "**/out/**",
+    "**/*.d.ts",
+    "**/*.map",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "test/**",
+    "tests/**",
+    "**/*BACKUP*/**",
+    "**/*.md",
+    "**/CHANGELOG*",
+    "**/README*",
+    "**/LICENSE*",
+    "coming-soon/**",
+    "ai-platform/**",
+    "ai-tools/**",
+    "packages/**"
+  ],
+  "rules": {
+    "credentials": {
+      "enabled": true,
+      "scanProduction": true
+    },
+    "production-leak": {
+      "enabled": true,
+      "severity": "high"
+    },
+    "llm-slop-patterns": {
+      "enabled": true,
+      "severity": "medium",
+      "registryCheck": false
+    },
+    "agency-handoff-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "eu-ai-act-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    },
+    "token-bleed-patterns": {
+      "enabled": false,
+      "severity": "medium"
+    },
+    "architecture-drift-patterns": {
+      "enabled": false,
+      "severity": "high"
+    },
+    "javascript-ast-patterns": {
+      "enabled": true,
+      "severity": "medium"
+    }
+  },
+  "gate": {
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ]
+  },
+  "fullDirectoryScan": false,
+  "fullDirectoryScanSkipDirs": [
+    ".git",
+    ".github-sync",
+    "github-cache",
+    "node_modules"
+  ]
+}

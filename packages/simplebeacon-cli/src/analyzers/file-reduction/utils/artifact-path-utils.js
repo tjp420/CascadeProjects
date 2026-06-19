@@ -40,8 +40,16 @@ function selectTopLevelArtifactDirectories(directories, inventory, patterns) {
     const artifactRoots = [];
     const findings = [];
 
+    const skipPathPatterns = [
+        /(?:^|\/)simplebeacon-vscode\//,
+        /(?:^|\/)coming-soon\//,
+        /(?:^|\/)ai-agent\//,
+        /(?:^|\/)ai-tools\//,
+        new RegExp('(?:^|/)New folder/')
+    ];
     for (const candidate of candidates) {
         if (isUnderArtifactRoot(candidate.relativePath, artifactRoots)) continue;
+        if (skipPathPatterns.some((re) => re.test(candidate.relativePath))) continue;
         artifactRoots.push(candidate.relativePath);
         findings.push({
             type: 'build-artifact',

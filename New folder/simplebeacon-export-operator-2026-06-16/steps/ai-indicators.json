@@ -1,0 +1,110 @@
+{
+  "id": "ai-indicators",
+  "status": "done",
+  "error": null,
+  "metric": "8 findings in 2 files",
+  "findingsCount": 8,
+  "fileCount": 2,
+  "severity": "low",
+  "findings": [
+    {
+      "category": "ai-indicators",
+      "analyzer": "ai-indicators-analyzer",
+      "type": "model-provider",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedAIProvider.ts",
+      "line": 371,
+      "description": "LLM model provider reference in code",
+      "match": "provider: 'demo'",
+      "recommendedAction": "Review EU AI Act Article 6 applicability for AI SDK usage"
+    },
+    {
+      "category": "ai-indicators",
+      "analyzer": "ai-indicators-analyzer",
+      "type": "model-provider",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedAIProvider.ts",
+      "line": 784,
+      "description": "LLM model provider reference in code",
+      "match": "provider: 'ollama'",
+      "recommendedAction": "Review EU AI Act Article 6 applicability for AI SDK usage"
+    },
+    {
+      "category": "ai-indicators",
+      "analyzer": "ai-indicators-analyzer",
+      "type": "model-provider",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedAIProvider.ts",
+      "line": 793,
+      "description": "LLM model provider reference in code",
+      "match": "provider: 'ollama'",
+      "recommendedAction": "Review EU AI Act Article 6 applicability for AI SDK usage"
+    },
+    {
+      "category": "ai-indicators",
+      "analyzer": "ai-indicators-analyzer",
+      "type": "model-provider",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/src/enhancedAIProvider.ts",
+      "line": 794,
+      "description": "LLM model provider reference in code",
+      "match": "provider: 'ollama'",
+      "recommendedAction": "Review EU AI Act Article 6 applicability for AI SDK usage"
+    },
+    {
+      "category": "ai-indicators",
+      "analyzer": "ai-indicators-analyzer",
+      "type": "model-provider",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/enhancedAIProvider.js",
+      "line": 457,
+      "description": "LLM model provider reference in code",
+      "match": "provider: 'demo'",
+      "recommendedAction": "Review EU AI Act Article 6 applicability for AI SDK usage"
+    },
+    {
+      "category": "ai-indicators",
+      "analyzer": "ai-indicators-analyzer",
+      "type": "model-provider",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/enhancedAIProvider.js",
+      "line": 814,
+      "description": "LLM model provider reference in code",
+      "match": "provider: 'ollama'",
+      "recommendedAction": "Review EU AI Act Article 6 applicability for AI SDK usage"
+    },
+    {
+      "category": "ai-indicators",
+      "analyzer": "ai-indicators-analyzer",
+      "type": "model-provider",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/enhancedAIProvider.js",
+      "line": 824,
+      "description": "LLM model provider reference in code",
+      "match": "provider: 'ollama'",
+      "recommendedAction": "Review EU AI Act Article 6 applicability for AI SDK usage"
+    },
+    {
+      "category": "ai-indicators",
+      "analyzer": "ai-indicators-analyzer",
+      "type": "model-provider",
+      "severity": "low",
+      "filePath": "simplebeacon-vscode/out/enhancedAIProvider.js",
+      "line": 825,
+      "description": "LLM model provider reference in code",
+      "match": "provider: 'ollama'",
+      "recommendedAction": "Review EU AI Act Article 6 applicability for AI SDK usage"
+    }
+  ],
+  "category": {
+    "category": "ai-indicators",
+    "label": "ai-indicators",
+    "count": 8,
+    "severity": "low",
+    "fileCount": 2,
+    "topFiles": [
+      "simplebeacon-vscode/out/enhancedAIProvider.js",
+      "simplebeacon-vscode/src/enhancedAIProvider.ts"
+    ]
+  }
+}

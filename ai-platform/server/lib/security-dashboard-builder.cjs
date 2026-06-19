@@ -4,14 +4,29 @@
 
 const { runNpmAuditAsync } = require('./npm-audit-runner.cjs');
 
+/**
+ * Is npm audit finding.
+ * @param {any} item
+ * @returns {any}
+ */
 function isNpmAuditFinding(item) {
     return item?.source === 'npm-audit';
 }
 
+/**
+ * Is open finding.
+ * @param {any} item
+ * @returns {any}
+ */
 function isOpenFinding(item) {
     return item?.status !== 'resolved';
 }
 
+/**
+ * Build overview from vulnerabilities.
+ * @param {any} raw
+ * @returns {any}
+ */
 function buildOverviewFromVulnerabilities(raw) {
     const threats = raw.threats || [];
     const vulnerabilities = raw.vulnerabilities || [];
@@ -37,11 +52,22 @@ function buildOverviewFromVulnerabilities(raw) {
     };
 }
 
+/**
+ * Merge npm audit into security model.
+ * @param {any} model
+ * @param {any} auditPayload
+ * @returns {any}
+ */
 function mergeNpmAuditIntoSecurityModel(model, auditPayload) {
     if (!model || !auditPayload || auditPayload.error) {
         return { ...model, overview: buildOverviewFromVulnerabilities(model || {}) };
     }
 
+/**
+ * Checklist.
+ * @param {any} model.vulnerabilities || []
+ * @returns {any}
+ */
     const checklist = (model.vulnerabilities || []).filter((item) => item.source !== 'npm-audit');
     const updatedChecklist = checklist.map((item) => (
         item.id === 'SEC-004'
@@ -55,6 +81,11 @@ function mergeNpmAuditIntoSecurityModel(model, auditPayload) {
     const npmVulns = auditPayload.vulnerabilities || [];
     const mergedVulnerabilities = [...updatedChecklist, ...npmVulns];
 
+/**
+ * Insights.
+ * @param {any} model.insights || []
+ * @returns {any}
+ */
     const insights = (model.insights || []).filter((item) =>
         !String(item.title || '').match(/Run npm audit separately/i)
     );
@@ -87,6 +118,13 @@ function mergeNpmAuditIntoSecurityModel(model, auditPayload) {
     return merged;
 }
 
+/**
+ * Build security dashboard model.
+ * @param {string} baseDir
+ * @param {any} sample
+ * @param {Object} options
+ * @returns {any}
+ */
 async function buildSecurityDashboardModel(baseDir, sample = {}, options = {}) {
     const audit = await runNpmAuditAsync(baseDir, options);
     return mergeNpmAuditIntoSecurityModel(

@@ -11,6 +11,13 @@ const {
 } = require('../middleware/auth.cjs');
 const { authenticateUser } = require('./user-service.cjs');
 
+/**
+ * Handle phase2 login.
+ * @param {any} req
+ * @param {Array} res
+ * @param {any} next
+ * @returns {any}
+ */
 async function handlePhase2Login(req, res, next) {
     try {
         const { email, password } = req.body;

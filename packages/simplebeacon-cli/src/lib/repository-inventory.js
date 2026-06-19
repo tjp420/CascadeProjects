@@ -6,7 +6,9 @@ const fs = require('fs');
 const path = require('path');
 
 const SKIP_BY_PROFILE = {
+    all: [],
     explorer: [],
+    universal: ['node_modules', '.git'],
     audit: [
         'node_modules', '.git', 'coverage', 'uploads', 'dist', 'build', 'archive',
         'github-cache', 'deliverables', 'java-ai-vulnerable', '.simplebeacon', 'security-reports'
@@ -14,7 +16,7 @@ const SKIP_BY_PROFILE = {
 };
 
 async function countRepositoryInventory(rootDir, options = {}) {
-    const profile = options.profile || 'explorer';
+    const profile = options.profile || 'audit';
     const skipDirs = new Set(options.skipDirs || SKIP_BY_PROFILE[profile] || SKIP_BY_PROFILE.explorer);
     const maxDepth = options.maxDepth ?? 40;
     let totalFiles = 0;
@@ -39,6 +41,21 @@ async function countRepositoryInventory(rootDir, options = {}) {
                 if (skipDirs.has(entry.name)) continue;
                 totalFolders += 1;
                 await walk(fullPath, depth + 1);
+                continue;
+            }
+            if (entry.isSymbolicLink()) {
+                try {
+                    const stat = await fs.promises.stat(fullPath);
+                    if (stat.isDirectory()) {
+                        if (skipDirs.has(entry.name)) continue;
+                        totalFolders += 1;
+                        await walk(fullPath, depth + 1);
+                        continue;
+                    }
+                    totalFiles += 1;
+                } catch {
+                    // Broken symlink — skip
+                }
                 continue;
             }
             if (entry.isFile()) {

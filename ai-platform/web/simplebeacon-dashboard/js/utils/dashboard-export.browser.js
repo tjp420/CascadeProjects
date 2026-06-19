@@ -17,18 +17,35 @@ import {
   normalizeSimpleBeaconBranding
 } from './quality-export.browser.js?v=20260531qualityexport8';
 
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function projectLabelFromPath(projectPath) {
   const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);
   return parts[parts.length - 1] || 'ai-platform';
 }
 
+/**
+ * Is benchmark dashboard export.
+ * @param {number} report
+ * @param {string} projectPath
+ * @returns {any}
+ */
 function isBenchmarkDashboardExport(report, projectPath) {
   const root = String(report?.projectRoot || projectPath || '').replace(/\\/g, '/');
   return Boolean(report?.benchmarkScan || report?.scanTargetProfile === 'benchmark-cache')
     || /\/github-cache\//i.test(root);
 }
 
+/**
+ * Resolve product platform root.
+ * @param {number} report
+ * @param {Object} config
+ * @returns {any}
+ */
 function resolveProductPlatformRoot(report, config) {
   const explicit = String(report?.productPlatformRoot || report?.platformRoot || '').replace(/\\/g, '/');
   if (explicit && !/\/github-cache\//i.test(explicit)) return explicit;
@@ -38,6 +55,11 @@ function resolveProductPlatformRoot(report, config) {
   return null;
 }
 
+/**
+ * Dedupe export notes.
+ * @param {Array} notes
+ * @returns {any}
+ */
 function dedupeExportNotes(notes = []) {
   const seen = new Set();
   const out = [];
@@ -71,6 +93,12 @@ const ISSUE_CATEGORY_ICONS = {
   other: '📁'
 };
 
+/**
+ * Severity for issues.
+ * @param {Array} issues
+ * @param {any} defaultSev
+ * @returns {any}
+ */
 function severityForIssues(issues, defaultSev = 'low') {
   if (!issues.length) return 'none';
   if (issues.some((i) => i.severity === 'high' || i.severityBand === 'high')) return 'high';
@@ -78,6 +106,11 @@ function severityForIssues(issues, defaultSev = 'low') {
   return defaultSev;
 }
 
+/**
+ * Decorate issue categories.
+ * @param {Array} categories
+ * @returns {any}
+ */
 function decorateIssueCategories(categories = []) {
   return categories.map((cat) => ({
     ...cat,
@@ -85,6 +118,13 @@ function decorateIssueCategories(categories = []) {
   }));
 }
 
+/**
+ * Resolve page specs label.
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function resolvePageSpecsLabel(report, baseline, benchmarkScan = false) {
   const reportLabel = report?.pageSampleSchemaChecked != null
     ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
@@ -96,6 +136,14 @@ function resolvePageSpecsLabel(report, baseline, benchmarkScan = false) {
   return reportLabel || baselineLabel || null;
 }
 
+/**
+ * Build page specs note.
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} pageSpecsLabel
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function buildPageSpecsNote(report, baseline, pageSpecsLabel, benchmarkScan) {
   if (!pageSpecsLabel || pageSpecsLabel === '0/0') return null;
   const reportLabel = report?.pageSampleSchemaChecked != null
@@ -111,6 +159,12 @@ function buildPageSpecsNote(report, baseline, pageSpecsLabel, benchmarkScan) {
   return null;
 }
 
+/**
+ * Build jest not run note.
+ * @param {number} report
+ * @param {any} scanConclusion
+ * @returns {any}
+ */
 function buildJestNotRunNote(report, scanConclusion) {
   const text = String(scanConclusion || report?.scanScope?.limitations?.join(' ') || '');
   if (/jest was not run/i.test(text)
@@ -121,6 +175,13 @@ function buildJestNotRunNote(report, scanConclusion) {
   return null;
 }
 
+/**
+ * Build history scope note.
+ * @param {any} history
+ * @param {Array} repositoryFiles
+ * @param {any} benchmarkScan
+ * @returns {any}
+ */
 function buildHistoryScopeNote(history, repositoryFiles, benchmarkScan) {
   if (!benchmarkScan || !Array.isArray(history) || repositoryFiles == null) return null;
   const misScoped = history.some((entry) => (entry?.totalFilesScanned ?? 0) > repositoryFiles * 2);
@@ -128,6 +189,12 @@ function buildHistoryScopeNote(history, repositoryFiles, benchmarkScan) {
   return 'Scan history includes product-platform file counts — latest gate report scoped to benchmark clone inventory.';
 }
 
+/**
+ * Build history inventory note.
+ * @param {any} history
+ * @param {Array} repositoryFiles
+ * @returns {any}
+ */
 function buildHistoryInventoryNote(history, repositoryFiles) {
   if (!Array.isArray(history) || !history.length || repositoryFiles == null) return null;
   const counts = history
@@ -140,6 +207,11 @@ function buildHistoryInventoryNote(history, repositoryFiles) {
   return `Scan history totalFilesScanned ranges ${min.toLocaleString('en-US')}–${max.toLocaleString('en-US')} — latest gate scan indexed ${Number(repositoryFiles).toLocaleString('en-US')} repository files.`;
 }
 
+/**
+ * Split documentation paths.
+ * @param {Array} docs
+ * @returns {any}
+ */
 function splitDocumentationPaths(docs = []) {
   const all = Array.isArray(docs) ? docs : [];
   const operatorDocumentationFound = all.filter((doc) => !String(doc).startsWith('.simplebeacon/'));
@@ -153,6 +225,13 @@ function splitDocumentationPaths(docs = []) {
   };
 }
 
+/**
+ * Resolve jest tests for export.
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} dashboardHome
+ * @returns {any}
+ */
 function resolveJestTestsForExport(report, baseline, dashboardHome) {
   const baselineLabel = resolveJestTestsLabel(baseline, dashboardHome);
   const jestSummary = report?.jestSummary;
@@ -170,6 +249,11 @@ function resolveJestTestsForExport(report, baseline, dashboardHome) {
   return { jestTests: baselineLabel, jestBaselineLabel: baselineLabel || null };
 }
 
+/**
+ * Issue list for categories.
+ * @param {number} report
+ * @returns {any}
+ */
 function issueListForCategories(report) {
   if (!report) return [];
   if (Array.isArray(report.detectedIssues) && report.detectedIssues.length) {
@@ -178,12 +262,27 @@ function issueListForCategories(report) {
   return report.rawIssues || [];
 }
 
+/**
+ * Build issue categories.
+ * @param {number} report
+ * @returns {any}
+ */
 export function buildIssueCategories(report) {
   if (!report) return [];
 
   const raw = issueListForCategories(report);
+/**
+ * Count by type.
+ * @param {any} typeMatch
+ * @returns {any}
+ */
   const countByType = (typeMatch) =>
     raw.filter((i) => typeMatch(i.type)).reduce((s, i) => s + (i.count || 1), 0);
+/**
+ * Issues by type.
+ * @param {any} typeMatch
+ * @returns {any}
+ */
   const issuesByType = (typeMatch) => raw.filter((i) => typeMatch(i.type));
 
   const credCount = report.credentialFindings ?? countByType((t) => /credential/i.test(t));
@@ -209,6 +308,13 @@ export function buildIssueCategories(report) {
   ];
 }
 
+/**
+ * Build dashboard insights summary.
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} dashboardHome
+ * @returns {any}
+ */
 export function buildDashboardInsightsSummary(report, baseline, dashboardHome) {
   const sev = report?.severityCounts || {};
   const gate = report?.gate || {};
@@ -228,6 +334,11 @@ export function buildDashboardInsightsSummary(report, baseline, dashboardHome) {
   };
 }
 
+/**
+ * Dedupe scan conclusion text.
+ * @param {string} text
+ * @returns {any}
+ */
 function dedupeScanConclusionText(text) {
   if (!text) return text;
   const sentences = String(text).split(/(?<=[.!?])\s+/).filter(Boolean);
@@ -247,11 +358,24 @@ function dedupeScanConclusionText(text) {
   return unique.join(' ');
 }
 
+/**
+ * Build dashboard scan conclusion.
+ * @param {number} report
+ * @param {any} scanConclusion
+ * @returns {any}
+ */
 function buildDashboardScanConclusion(report, scanConclusion) {
   const text = scanConclusion || buildScanConclusion(report);
   return dedupeScanConclusionText(text);
 }
 
+/**
+ * Sanitize report for dashboard export.
+ * @param {number} report
+ * @param {any} projectLabel
+ * @param {Object} options
+ * @returns {any}
+ */
 function sanitizeReportForDashboardExport(report, projectLabel = 'ai-platform', options = {}) {
   if (!report) return null;
   const sanitized = sanitizeSimplebeaconReportExport(report, {
@@ -292,12 +416,23 @@ function sanitizeReportForDashboardExport(report, projectLabel = 'ai-platform', 
   };
 }
 
+/**
+ * Parse jest tests label.
+ * @param {any} label
+ * @returns {any}
+ */
 function parseJestTestsLabel(label) {
   const match = String(label || '').match(/(\d+)\s*\/\s*(\d+)/);
   if (!match) return null;
   return { passedTests: Number(match[1]), totalTests: Number(match[2]) };
 }
 
+/**
+ * Sanitize dashboard home export.
+ * @param {any} dashboardHome
+ * @param {string} context
+ * @returns {any}
+ */
 function sanitizeDashboardHomeExport(dashboardHome, context = {}) {
   if (!dashboardHome) return null;
   const { _source, ...rest } = dashboardHome;
@@ -351,6 +486,12 @@ function sanitizeDashboardHomeExport(dashboardHome, context = {}) {
   };
 }
 
+/**
+ * Sanitize baseline export.
+ * @param {any} baseline
+ * @param {string} context
+ * @returns {any}
+ */
 function sanitizeBaselineExport(baseline, context = {}) {
   if (!baseline) return null;
   const clean = stripInternalExportFields(baseline);
@@ -376,6 +517,12 @@ function sanitizeBaselineExport(baseline, context = {}) {
   };
 }
 
+/**
+ * Sanitize config export.
+ * @param {Object} config
+ * @param {any} projectLabel
+ * @returns {any}
+ */
 function sanitizeConfigExport(config, projectLabel = 'ai-platform') {
   if (!config) return null;
   return {
@@ -384,6 +531,14 @@ function sanitizeConfigExport(config, projectLabel = 'ai-platform') {
   };
 }
 
+/**
+ * Build export provenance.
+ * @param {Object} options
+ * @param {any} baseline
+ * @param {any} dashboardHome
+ * @param {any} history }
+ * @returns {any}
+ */
 function buildExportProvenance({ report, baseline, dashboardHome, history } = {}) {
   return {
     report: report?.error ? 'error' : (report ? 'live-gate-scan' : 'missing'),
@@ -482,6 +637,11 @@ export function buildDashboardExportBundle({
     benchmarkScan,
     productPlatformRoot
   });
+/**
+ * Report export notes.
+ * @param {number} sanitizedReport?.exportNotes || []
+ * @returns {any}
+ */
   const reportExportNotes = (sanitizedReport?.exportNotes || []).filter((note) => {
     const text = String(note);
     if (summary.gateFailureNote && /gate fail/i.test(text)) return false;
@@ -556,6 +716,12 @@ export function buildDashboardExportBundle({
   };
 }
 
+/**
+ * Sanitize dashboard export.
+ * @param {any} bundle
+ * @param {Object} options
+ * @returns {any}
+ */
 export function sanitizeDashboardExport(bundle, options = {}) {
   if (!bundle) return bundle;
   if (bundle.type === 'simplebeacon-dashboard-export') {
@@ -572,10 +738,20 @@ export function sanitizeDashboardExport(bundle, options = {}) {
   return buildDashboardExportBundle(bundle, options);
 }
 
+/**
+ * Csv escape.
+ * @param {any} cell
+ * @returns {any}
+ */
 function csvEscape(cell) {
   return `"${String(cell ?? '').replace(/"/g, '""')}"`;
 }
 
+/**
+ * Build issue categories csv.
+ * @param {Array} categories
+ * @returns {any}
+ */
 export function buildIssueCategoriesCsv(categories) {
   if (!categories?.length) return null;
   const header = ['id', 'title', 'count', 'severity'];
@@ -588,6 +764,11 @@ export function buildIssueCategoriesCsv(categories) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build scan history csv.
+ * @param {any} history
+ * @returns {any}
+ */
 export function buildScanHistoryCsv(history) {
   if (!history?.length) return null;
   const header = ['date', 'issueCount', 'qualityScore', 'gatePass', 'blockingCount', 'warningCount', 'totalFilesScanned'];
@@ -603,6 +784,11 @@ export function buildScanHistoryCsv(history) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build detected issues csv.
+ * @param {number} report
+ * @returns {any}
+ */
 export function buildDetectedIssuesCsv(report) {
   const issues = report?.detectedIssues || [];
   if (!issues.length) return null;
@@ -617,10 +803,23 @@ export function buildDetectedIssuesCsv(report) {
   return [header.join(','), ...rows].join('\n');
 }
 
+/**
+ * Build dashboard summary csv.
+ * @param {any} summary
+ * @returns {any}
+ */
 function buildDashboardSummaryCsv(summary) {
   return buildQualitySummaryCsv({ summary });
 }
 
+/**
+ * Build dashboard csv.
+ * @param {Object} options
+ * @param {any} history
+ * @param {number} report
+ * @param {any} summary }
+ * @returns {any}
+ */
 export function buildDashboardCsv({ issueCategories, history, report, summary } = {}) {
   const parts = [];
   const categories = buildIssueCategoriesCsv(issueCategories);
@@ -647,6 +846,11 @@ export function buildDashboardCsv({ issueCategories, history, report, summary } 
   return parts.length ? parts.join('\n') : null;
 }
 
+/**
+ * Dashboard export filename.
+ * @param {any} ext
+ * @returns {any}
+ */
 export function dashboardExportFilename(ext = 'json') {
   const stamp = new Date().toISOString().slice(0, 10);
   if (ext === 'csv') return `dashboard-metrics-${stamp}.csv`;

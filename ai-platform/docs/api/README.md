@@ -9,7 +9,8 @@ The Simplebeacon API provides RESTful endpoints for AI safety scanning, complian
 ## Base URL
 
 ```
-Development: http://localhost:54355
+Development: http://localhost:55000
+v1-Internal: http://localhost:54449
 Production: https://your-domain.com
 ```
 
@@ -26,11 +27,11 @@ Authorization: Bearer <your-jwt-token>
 ### Getting a Token
 
 ```bash
-curl -X POST http://localhost:54355/api/auth/login \
+curl -X POST http://localhost:55000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "dev@simplebeacon.ai",
-    "password": "dev-password"
+    "email": "<your-email>",
+    "password": "<your-password>"
   }'
 ```
 
@@ -42,7 +43,7 @@ Response:
   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": "vault-operator",
-    "email": "dev@simplebeacon.ai",
+    "email": "<your-email>",
     "name": "Vault Operator",
     "trustLevel": "gold",
     "permissions": ["read:own", "write:own", "analyze:public"]
@@ -53,7 +54,7 @@ Response:
 ### Refresh Token
 
 ```bash
-curl -X POST http://localhost:54355/api/auth/refresh \
+curl -X POST http://localhost:55000/api/auth/refresh \
   -H "Content-Type: application/json" \
   -d '{
     "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -70,8 +71,8 @@ Authenticate user and return JWT tokens.
 **Request Body:**
 ```json
 {
-  "email": "user@example.com",
-  "password": "password123"
+  "email": "<your-email>",
+  "password": "<your-password>"
 }
 ```
 
@@ -83,7 +84,7 @@ Authenticate user and return JWT tokens.
   "refreshToken": "refresh-token",
   "user": {
     "id": "user-id",
-    "email": "user@example.com",
+    "email": "<your-email>",
     "name": "User Name",
     "trustLevel": "gold",
     "permissions": ["read:own", "write:own"]
@@ -108,7 +109,7 @@ Refresh access token using refresh token.
   "token": "new-jwt-token",
   "user": {
     "id": "user-id",
-    "email": "user@example.com",
+    "email": "<your-email>",
     "name": "User Name"
   }
 }
@@ -127,7 +128,7 @@ Authorization: Bearer <jwt-token>
 {
   "user": {
     "id": "user-id",
-    "email": "user@example.com",
+    "email": "<your-email>",
     "name": "User Name",
     "trustLevel": "gold",
     "permissions": ["read:own", "write:own"],
@@ -182,7 +183,7 @@ Get user entitlements and feature access (public).
   "publicGateLocked": false,
   "closedVaultMode": false,
   "hasAuditDeliverableAccess": true,
-  "auditCheckoutUrl": "mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report",
+  "auditCheckoutUrl": "mailto:<audit-email>?subject=Unlock%20Pre-Launch%20Audit%20Report",
   "auditPriceLabel": "$499"
 }
 ```
@@ -199,7 +200,7 @@ Authorization: Bearer <jwt-token>
 ```json
 {
   "success": true,
-  "email": "user@example.com",
+  "email": "<your-email>",
   "providers": {
     "openai": {
       "configured": false,
@@ -528,8 +529,8 @@ class SimplebeaconAPI {
 }
 
 // Usage
-const api = new SimplebeaconAPI('http://localhost:54355');
-await api.login('dev@simplebeacon.ai', 'dev-password');
+const api = new SimplebeaconAPI('http://localhost:55000');
+await api.login('<your-email>', '<your-password>');
 const report = await api.getReport('/path/to/project');
 ```
 
@@ -563,8 +564,8 @@ class SimplebeaconAPI:
         return response.json()
 
 # Usage
-api = SimplebeaconAPI("http://localhost:54355")
-api.login("dev@simplebeacon.ai", "dev-password")
+api = SimplebeaconAPI("http://localhost:55000")
+api.login("<your-email>", "<your-password>")
 report = api.get_report("/path/to/project")
 ```
 
@@ -575,7 +576,7 @@ report = api.get_report("/path/to/project")
 Webhooks can be configured to receive notifications about scan completions and security events.
 
 ```bash
-curl -X POST http://localhost:54355/api/webhooks/configure \
+curl -X POST http://localhost:55000/api/webhooks/configure \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -621,7 +622,7 @@ curl -X POST http://localhost:54355/api/webhooks/configure \
 
 - **API Documentation**: This guide
 - **Status Page**: `/api/health`
-- **Support Email**: api-support@simplebeacon.ai
+- **Support Email**: <support-email>
 - **GitHub Issues**: [Report API Issues](https://github.com/tjp420/simplebeacon/issues)
 
 ### Troubleshooting

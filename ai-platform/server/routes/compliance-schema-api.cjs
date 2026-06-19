@@ -1,3 +1,5 @@
+const { ERROR_TYPE_CODES, LEAK_PATTERNS, RULE_CATALOG, SEVERITY_BANDS } = require('../lib/simplebeacon-proxy.cjs');
+
 /**
  * GET /api/compliance/schema — Public deterministic rule catalog.
  *
@@ -9,10 +11,11 @@
  * user source code. It only serves the Conductor's rule definitions.
  */
 
-const { ERROR_TYPE_CODES, SEVERITY_BANDS } = require('../../packages/simplebeacon-cli/src/lib/anonymized-export');
-const { RULE_CATALOG } = require('../../packages/simplebeacon-cli/src/mcp/rule-catalog');
-const { LEAK_PATTERNS } = require('../../packages/simplebeacon-cli/src/mcp/rule-catalog');
 
+/**
+ * Build schema payload.
+ * @returns {any}
+ */
 function buildSchemaPayload() {
     return {
         schemaVersion: 'simplebeacon-rules-v1',
@@ -55,6 +58,12 @@ function buildSchemaPayload() {
     };
 }
 
+/**
+ * Register compliance schema route.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function registerComplianceSchemaRoute(app, options = {}) {
     if (app.__complianceSchemaRouteRegistered) return;
     app.__complianceSchemaRouteRegistered = true;

@@ -9,3 +9,6 @@ tests/
 .simplebeacon/
 *.jsonl
 simplebeacon-*.tgz
+
+# Test certification artifacts (not shipped to npm consumers)
+test-cert/

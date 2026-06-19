@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "allowJs": true,
+    "checkJs": true,
+    "resolveJsonModule": true,
+    "declaration": false,
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "simplebeacon": ["packages/simplebeacon-cli/src/index.js"]
+    }
+  },
+  "include": [
+    "packages/**/*",
+    "ai-platform/**/*",
+    "coming-soon/**/*",
+    "scripts/**/*"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/.simplebeacon",
+    "**/github-cache",
+    "**/fixtures",
+    "**/__mocks__"
+  ]
+}

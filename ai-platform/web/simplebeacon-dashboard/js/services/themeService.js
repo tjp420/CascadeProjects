@@ -1,5 +1,8 @@
 const THEME_KEY = 'simplebeacon-theme';
 
+/**
+ * Theme service.
+ */
 export class ThemeService {
   constructor() {
     this.theme = localStorage.getItem(THEME_KEY) || 'dark';
@@ -30,4 +33,7 @@ export class ThemeService {
   }
 }
 
+/**
+ * Theme service.
+ */
 export const themeService = new ThemeService();

@@ -1,8 +1,12 @@
 {
   "name": "simplebeacon-local-agent",
   "version": "1.0.0",
-  "main": "orchestrator.js",
+  "main": "orchestrator.cjs",
   "type": "commonjs",
   "private": true,
-  "description": "Deterministic local agentic loop optimized for 2B parameter models."
+  "description": "Deterministic local agentic loop optimized for 2B parameter models.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
 }

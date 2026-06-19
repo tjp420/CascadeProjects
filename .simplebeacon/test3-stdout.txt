@@ -1,0 +1,15 @@
+Simplebeacon
+==================
+Root: C:\Users\Trevor\CascadeProjects
+Repository files: 38,653
+Gate rules checked: 1416 files
+Mock/sample files: 65
+Quality score: 100/100
+
+Critical: 0  High: 0  Medium: 0  Low: 0
+Production files scanned: 0 (0 leak(s))
+Credential files scanned: 582 (0 finding(s))
+
+Gate: PASS
+
+No issues detected.

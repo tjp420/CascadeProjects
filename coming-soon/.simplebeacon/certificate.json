@@ -1,0 +1,14 @@
+{
+  "type": "simplebeacon-certificate",
+  "version": "1.0.0",
+  "generatedAt": "2026-06-18T21:01:15.649Z",
+  "projectPath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "qualityScore": 99,
+  "gatePass": true,
+  "summary": {
+    "filesAnalyzed": 216,
+    "blockingIssues": 0,
+    "secrets": 0,
+    "vulnerabilities": 1
+  }
+}

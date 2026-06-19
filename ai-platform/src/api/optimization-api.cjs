@@ -6,7 +6,6 @@ const logger = require('../lib/production-logger.cjs');
 const path = require('path');
 const _fs = require('fs');
 const { scanFileMergerReduction } = require('../../server/lib/file-merger-reduction-scanner.cjs');
-const { resolvePlatformRoot } = require('../../packages/simplebeacon-cli/src/project-detect');
 const {
     buildRepositoryHealthPayload,
     saveConsolidationReport,
@@ -15,10 +14,15 @@ const {
 const { buildMergePreview } = require('../../server/lib/merge-preview.cjs');
 const { executeSafeMerge, rollbackMerge } = require('../../server/lib/safe-merge-guard.cjs');
 const { buildDevSecOpsCompliancePayload, buildComplianceHtml } = require('../../server/lib/devsecops-compliance-payload.cjs');
-const { sanitizeConsolidationExport } = require('../../packages/simplebeacon-cli/src/lib/consolidation-export-sanitize');
+const { sanitizeConsolidationExport, resolvePlatformRoot } = require('../../server/lib/simplebeacon-proxy.cjs');
 
 const PROJECT_ROOT = path.join(__dirname, '..', '..');
 
+/**
+ * Wants html response.
+ * @param {any} req
+ * @returns {any}
+ */
 function wantsHtmlResponse(req) {
     if (String(req.query.format || '').toLowerCase() === 'html') return true;
     if (String(req.query.format || '').toLowerCase() === 'json') return false;
@@ -26,6 +30,12 @@ function wantsHtmlResponse(req) {
     return accept.includes('text/html') && !accept.includes('application/json');
 }
 
+/**
+ * Resolve project path.
+ * @param {string} rawPath
+ * @param {any} defaultRoot
+ * @returns {any}
+ */
 function resolveProjectPath(rawPath, defaultRoot) {
     if (!rawPath) return defaultRoot;
     return path.isAbsolute(rawPath)
@@ -33,12 +43,24 @@ function resolveProjectPath(rawPath, defaultRoot) {
         : path.join(defaultRoot, rawPath);
 }
 
+/**
+ * Load merge candidate.
+ * @param {any} projectRoot
+ * @param {string} candidateId
+ * @returns {any}
+ */
 function loadMergeCandidate(projectRoot, candidateId) {
     const report = readJsonIfExists(path.join(projectRoot, '.simplebeacon', 'consolidation-report.json'));
     if (!report?.mergeCandidates?.length) return null;
     return report.mergeCandidates.find((item) => item.id === candidateId) || null;
 }
 
+/**
+ * Setup optimization a p i.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function setupOptimizationAPI(app, options = {}) {
     const defaultPlatformRoot = options.platformRoot || PROJECT_ROOT;
     const defaultMonorepoRoot = options.monorepoRoot || path.join(defaultPlatformRoot, '..');
@@ -192,8 +214,15 @@ function setupOptimizationAPI(app, options = {}) {
     logger.debug('✅ Repository optimization API at /api/optimization/* (health, compliance, merge-preview)');
 }
 
+/**
+ * Compute health from report.
+ * @param {number} report
+ * @returns {any}
+ */
 function computeHealthFromReport(report) {
-    const { computeRepositoryHealthScore } = require('../../server/lib/repository-health-payload');
+    const { computeRepositoryHealthScore } = require('../../server/lib/repository-health-payload.cjs');
+const { resolvePlatformRoot, sanitizeConsolidationExport } = require('../../server/lib/simplebeacon-proxy.cjs');
+
     return computeRepositoryHealthScore(report.summary || {});
 }
 

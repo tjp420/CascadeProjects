@@ -1,0 +1,1 @@
+[secret-config] Using ephemeral JWT_SECRET — tokens/sessions reset on restart. Set a stable secret or disable ALLOW_DEV_EPHEMERAL_SECRETS for local dev.

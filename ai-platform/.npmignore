@@ -1,0 +1,29 @@
+# Demo / fixture / sample data (not production)
+web/data/*-sample.json
+coming-soon/sample-report.html
+server/lib/fixtures/
+tests/
+tests/fixtures/
+
+# Build artifacts
+dist/
+build/
+coverage/
+
+# Runtime logs
+*.log
+logs/
+
+# SimpleBeacon local vault
+.simplebeacon/*
+
+# Secrets / env
+.env
+.env.*
+
+# Dependencies
+node_modules/
+
+# Git cache
+github-cache/
+data-central/

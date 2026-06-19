@@ -7,11 +7,23 @@ const path = require('path');
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.cache']);
 
+/**
+ * Collect zscript files.
+ * @param {string} rootDir
+ * @param {Object} options
+ * @returns {any}
+ */
 async function collectZscriptFiles(rootDir, options = {}) {
     const maxFiles = options.maxFiles ?? 600;
     const maxBytes = options.maxBytes ?? 256000;
     const results = [];
 
+/**
+ * Walk.
+ * @param {string} dir
+ * @param {any} depth
+ * @returns {any}
+ */
     async function walk(dir, depth = 0) {
         if (results.length >= maxFiles || depth > 16) return;
         let entries;
@@ -66,6 +78,12 @@ async function collectZscriptFiles(rootDir, options = {}) {
 const { ZScriptParser } = require('../parsers/zscript-parser.cjs');
 const zscriptParser = new ZScriptParser();
 
+/**
+ * Parse zscript file.
+ * @param {any} content
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function parseZscriptFile(content, relativePath) {
     const parsed = zscriptParser.parse(content, { filePath: relativePath });
     const legacy = {
@@ -86,6 +104,11 @@ function parseZscriptFile(content, relativePath) {
     return legacy;
 }
 
+/**
+ *  extract methods.
+ * @param {any} content
+ * @returns {any}
+ */
 function _extractMethods(content) {
     const names = [];
     const re = /\b(?:override\s+)?(?:static\s+)?(?:void|bool|int|float|double|string|color|Vector2|Vector3|State|Actor|EventHandler)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
@@ -98,6 +121,12 @@ function _extractMethods(content) {
     return names;
 }
 
+/**
+ * Infer purpose.
+ * @param {string} relativePath
+ * @param {Array} classes
+ * @returns {any}
+ */
 function inferPurpose(relativePath, classes) {
     const rel = relativePath.toLowerCase();
     if (rel.includes('/lights/')) return 'Light actor or lighting behavior';
@@ -109,6 +138,11 @@ function inferPurpose(relativePath, classes) {
     return 'ZScript module';
 }
 
+/**
+ * Build class hierarchy.
+ * @param {Array} zscriptFiles
+ * @returns {any}
+ */
 function buildClassHierarchy(zscriptFiles) {
     const nodes = new Map();
     for (const file of zscriptFiles) {
@@ -147,6 +181,11 @@ function buildClassHierarchy(zscriptFiles) {
     };
 }
 
+/**
+ * Analyze function logic.
+ * @param {Array} zscriptFiles
+ * @returns {any}
+ */
 function analyzeFunctionLogic(zscriptFiles) {
     const analysis = {};
     const targets = ['UpdateCVARs', 'UpdateDynamicLights', 'GetIntensityCVAR', 'AdjustBrightness', 'CalculateLightIntensity', 'WorldTick', 'OnRegister'];
@@ -175,6 +214,12 @@ function analyzeFunctionLogic(zscriptFiles) {
     return analysis;
 }
 
+/**
+ * Extract block.
+ * @param {any} content
+ * @param {number} openBraceIndex
+ * @returns {any}
+ */
 function extractBlock(content, openBraceIndex) {
     let depth = 0;
     for (let i = openBraceIndex; i < content.length; i += 1) {
@@ -187,6 +232,12 @@ function extractBlock(content, openBraceIndex) {
     return content.slice(openBraceIndex, openBraceIndex + 1200);
 }
 
+/**
+ * Summarize function block.
+ * @param {any} block
+ * @param {Function} fnName
+ * @returns {any}
+ */
 function summarizeFunctionBlock(block, fnName) {
     const steps = [];
     if (/FindCVar/.test(block)) steps.push('Reads one or more CVARs via CVar.FindCVar');
@@ -200,6 +251,11 @@ function summarizeFunctionBlock(block, fnName) {
     return steps.slice(0, 8);
 }
 
+/**
+ * Describe function purpose.
+ * @param {Function} fn
+ * @returns {any}
+ */
 function describeFunctionPurpose(fn) {
     const map = {
         UpdateCVARs: 'Refresh runtime settings from CVAR values each tick',
@@ -213,6 +269,12 @@ function describeFunctionPurpose(fn) {
     return map[fn] || 'ZScript method';
 }
 
+/**
+ * Flag function issues.
+ * @param {Function} fn
+ * @param {any} block
+ * @returns {any}
+ */
 function flagFunctionIssues(fn, block) {
     const issues = [];
     if (fn === 'UpdateCVARs' && /FindCVar/.test(block) && !/masterIntensity\s*=/.test(block) && !/intensity/i.test(block)) {
@@ -227,6 +289,12 @@ function flagFunctionIssues(fn, block) {
     return issues;
 }
 
+/**
+ * Infer data flow.
+ * @param {Function} fn
+ * @param {any} block
+ * @returns {any}
+ */
 function inferDataFlow(fn, block) {
     const flow = [];
     if (/FindCVar/.test(block)) flow.push('CVAR');
@@ -237,6 +305,12 @@ function inferDataFlow(fn, block) {
     return flow;
 }
 
+/**
+ * Build structure report.
+ * @param {string} rootDir
+ * @param {Object} options
+ * @returns {any}
+ */
 async function buildStructureReport(rootDir, options = {}) {
     const zscriptFiles = await collectZscriptFiles(rootDir, options);
     const zscript_files = {};
@@ -264,6 +338,11 @@ async function buildStructureReport(rootDir, options = {}) {
     };
 }
 
+/**
+ * Detect entry points.
+ * @param {string} zscriptFilesMap
+ * @returns {any}
+ */
 function detectEntryPoints(zscriptFilesMap) {
     const entryPoints = [];
     for (const [rel, info] of Object.entries(zscriptFilesMap)) {

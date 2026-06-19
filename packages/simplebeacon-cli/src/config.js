@@ -6,9 +6,11 @@ const fs = require('fs');
 const path = require('path');
 const { detectProjectProfile, IGNORE_DEFAULTS, CASCADE_ANCHORS, isCascadeMonorepo } = require('./project-detect');
 const { validateConfig } = require('./config-schema');
+const { getTierLimits } = require('./lib/tier-detector');
 const { ConfigError } = require('./lib/errors');
 const { normalizePathKey, assertPathWithinRoot, resolveSafeRelativePath } = require('./lib/path-utils');
 const { sanitizeFilePath } = require('./lib/input-sanitizer');
+const constants = require('../../../ai-platform/server/config/constants.cjs');
 
 const CASCADE_REJECTED_FICTION = {
     featureCounts: [47, 8, 9],
@@ -23,7 +25,7 @@ const CASCADE_REJECTED_FICTION = {
 const GENERIC_REJECTED_FICTION = {
     featureCounts: [47, 100, 156, 8, 9],
     completionRates: [74.17, 87, 94.3, 66, 62],
-    mockFileCounts: [1247, 999, 1000],
+    mockFileCounts: [1247, 999, constants.MS_PER_SECOND],
     openIssueCounts: [156, 999],
     modelNames: ['unbreakable-oracle', 'gpt-5-oracle', 'demo-oracle'],
     throughputClaims: ['1559', '1,559', '9999'],
@@ -31,7 +33,7 @@ const GENERIC_REJECTED_FICTION = {
 };
 
 const DEFAULT_MOCK_SCAN_RELATIVE_PATHS = [
-    'web/data'
+    '.'
 ];
 
 const DEFAULT_CONSISTENCY_ANCHOR_SAMPLES = CASCADE_ANCHORS;
@@ -68,7 +70,9 @@ const PROFILE_RULES = {
         'jest-baseline': { enabled: false, runTests: false },
         'fiction-kpi-patterns': { enabled: true, severity: 'medium' },
         'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
-        'agency-handoff-patterns': { enabled: true, severity: 'medium' }
+        'token-bleed-patterns': { enabled: true, severity: 'medium' },
+        'architecture-drift-patterns': { enabled: true, severity: 'medium' },
+        'file-reduction': { enabled: true, dryRun: true }
     },
     'eu-ai-act': {
         credentials: { enabled: true, scanProduction: true },
@@ -80,7 +84,10 @@ const PROFILE_RULES = {
         'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
         'agency-handoff-patterns': { enabled: true, severity: 'medium' },
         'eu-ai-act-patterns': { enabled: true, severity: 'medium' },
-        'jest-baseline': { enabled: false, runTests: false }
+        'jest-baseline': { enabled: false, runTests: false },
+        'token-bleed-patterns': { enabled: true, severity: 'medium' },
+        'architecture-drift-patterns': { enabled: true, severity: 'medium' },
+        'file-reduction': { enabled: true, dryRun: true }
     },
     cascade: {
         credentials: { enabled: true, scanProduction: true },
@@ -107,7 +114,10 @@ const PROFILE_RULES = {
             testCommand: 'npm test -- --no-coverage --passWithNoTests'
         },
         'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
-        'agency-handoff-patterns': { enabled: true, severity: 'medium' }
+        'agency-handoff-patterns': { enabled: true, severity: 'medium' },
+        'token-bleed-patterns': { enabled: true, severity: 'medium' },
+        'architecture-drift-patterns': { enabled: true, severity: 'medium' },
+        'file-reduction': { enabled: true, dryRun: true }
     }
 };
 
@@ -123,12 +133,11 @@ const DEFAULT_CONFIG = {
     profile: 'standard',
     scanPaths: DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
     productionPaths: ['server/', 'src/', 'app/', 'lib/'],
-    sampleDir: 'web/data',
     consistencyAnchorSamples: DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
     ignore: IGNORE_DEFAULTS,
     pathExclusions: [], // User-configurable path exclusion tokens
     scannerMetaFiles: DEFAULT_SCANNER_META_FILES,
-    rules: PROFILE_RULES.standard,
+    rules: { ...PROFILE_RULES.standard },
     gate: {
         failOn: ['high'],
         warnOn: ['medium', 'low']
@@ -376,6 +385,30 @@ function getRuleOptions(config, ruleName) {
     return config?.rules?.[ruleName] || {};
 }
 
+function sanitizeConfigForTier(config, tier) {
+    const limits = getTierLimits(tier);
+    const sanitized = { ...config };
+
+    if (!limits.customConfig) {
+        delete sanitized.scanners;
+        delete sanitized.allowlist;
+        const profile = sanitized.profile || 'standard';
+        sanitized.rules = { ...PROFILE_RULES[profile] || PROFILE_RULES.standard };
+        // Preserve user-disabled rules so they can suppress false positives
+        if (config.rules) {
+            for (const [ruleName, userRule] of Object.entries(config.rules)) {
+                if (userRule && userRule.enabled === false && sanitized.rules[ruleName]) {
+                    sanitized.rules[ruleName] = { ...sanitized.rules[ruleName], enabled: false };
+                }
+            }
+        }
+    } else if (!limits.allowlist) {
+        delete sanitized.allowlist;
+    }
+
+    return sanitized;
+}
+
 function getInitTemplates(baseDir = process.cwd(), options = {}) {
     const { config, detected, profile } = buildInitConfig(baseDir, options);
     return {
@@ -403,6 +436,7 @@ module.exports = {
     normalizeRelativePath,
     isRuleEnabled,
     getRuleOptions,
+    sanitizeConfigForTier,
     getInitTemplates,
     buildInitConfig,
     buildInitBaseline,

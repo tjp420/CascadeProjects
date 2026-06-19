@@ -8,10 +8,20 @@ const logger = require('./app-logger.cjs');
 
 const SNAPSHOT_PREFIX = 'dashboard:snapshot:';
 
+/**
+ * Snapshot cache key.
+ * @param {any} key
+ * @param {any} prefix
+ * @returns {any}
+ */
 function snapshotCacheKey(key, prefix) {
     return `${prefix}${SNAPSHOT_PREFIX}${key}`;
 }
 
+/**
+ * Create redis connection.
+ * @returns {any}
+ */
 async function createRedisConnection() {
     if (!isRedisEnabled()) {
         return { redis: null, status: 'disabled' };
@@ -43,6 +53,13 @@ async function createRedisConnection() {
     }
 }
 
+/**
+ * Get cached snapshot.
+ * @param {Array} redis
+ * @param {any} key
+ * @param {Object} config
+ * @returns {any}
+ */
 async function getCachedSnapshot(redis, key, config = getRedisConfig()) {
     if (!redis) return null;
     try {
@@ -54,6 +71,14 @@ async function getCachedSnapshot(redis, key, config = getRedisConfig()) {
     }
 }
 
+/**
+ * Set cached snapshot.
+ * @param {Array} redis
+ * @param {any} key
+ * @param {any} payload
+ * @param {Object} config
+ * @returns {any}
+ */
 async function setCachedSnapshot(redis, key, payload, config = getRedisConfig()) {
     if (!redis || payload == null) return;
     try {
@@ -67,6 +92,13 @@ async function setCachedSnapshot(redis, key, payload, config = getRedisConfig())
     }
 }
 
+/**
+ * Invalidate snapshot cache.
+ * @param {Array} redis
+ * @param {any} key
+ * @param {Object} config
+ * @returns {any}
+ */
 async function invalidateSnapshotCache(redis, key, config = getRedisConfig()) {
     if (!redis) return;
     try {
@@ -76,6 +108,12 @@ async function invalidateSnapshotCache(redis, key, config = getRedisConfig()) {
     }
 }
 
+/**
+ * Invalidate all snapshot caches.
+ * @param {Array} redis
+ * @param {Object} config
+ * @returns {any}
+ */
 async function invalidateAllSnapshotCaches(redis, config = getRedisConfig()) {
     if (!redis) return 0;
     try {
@@ -91,6 +129,11 @@ async function invalidateAllSnapshotCaches(redis, config = getRedisConfig()) {
     }
 }
 
+/**
+ * Redis health check.
+ * @param {Array} redis
+ * @returns {any}
+ */
 async function redisHealthCheck(redis) {
     if (!redis) {
         return { status: 'disabled', timestamp: new Date().toISOString() };
@@ -110,6 +153,11 @@ async function redisHealthCheck(redis) {
     }
 }
 
+/**
+ * Close redis.
+ * @param {Array} redis
+ * @returns {any}
+ */
 async function closeRedis(redis) {
     if (!redis) return;
     try {

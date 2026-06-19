@@ -1,8 +1,14 @@
 # Test files and artifacts
 test-*
 *.test.js
+test/
+tests/
 e2e/
 playwright.config.js
+
+# Sample / demo files (should not be on production)
+sample-*
+tmp-*
 
 # Generated reports and data
 report.json

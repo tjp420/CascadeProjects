@@ -3,11 +3,21 @@ const path = require('path');
 
 const fsp = fs.promises;
 
+/**
+ * Bookings file path.
+ * @param {Object} options
+ * @returns {any}
+ */
 function bookingsFilePath(options) {
   const dataDir = options.dataDir || path.join(__dirname, '..', '..', 'data');
   return path.join(dataDir, 'audit-bookings.json');
 }
 
+/**
+ * Load bookings.
+ * @param {Object} options
+ * @returns {any}
+ */
 async function loadBookings(options) {
   const file = bookingsFilePath(options);
   try {
@@ -21,6 +31,12 @@ async function loadBookings(options) {
   }
 }
 
+/**
+ * Save booking.
+ * @param {any} entry
+ * @param {Object} options
+ * @returns {any}
+ */
 async function saveBooking(entry, options) {
   const file = bookingsFilePath(options);
   await fsp.mkdir(path.dirname(file), { recursive: true });
@@ -30,6 +46,12 @@ async function saveBooking(entry, options) {
   return { rows, bookingId: rows.length, entry };
 }
 
+/**
+ * Booking response.
+ * @param {any} saved
+ * @param {string} emailResult
+ * @returns {any}
+ */
 function bookingResponse(saved, emailResult) {
   const emailSent = emailResult && emailResult.sent === true;
   return {
@@ -45,6 +67,13 @@ function bookingResponse(saved, emailResult) {
   };
 }
 
+/**
+ * Handle audit booking.
+ * @param {any} req
+ * @param {Array} res
+ * @param {Object} options
+ * @returns {any}
+ */
 async function handleAuditBooking(req, res, options = {}) {
   const landingEnabled = options.landingEnabled !== false;
   if (!landingEnabled) return res.status(404).json({ error: 'not_found' });
@@ -105,6 +134,13 @@ async function handleAuditBooking(req, res, options = {}) {
   }
 }
 
+/**
+ * Handle list audit bookings.
+ * @param {any} req
+ * @param {Array} res
+ * @param {Object} options
+ * @returns {any}
+ */
 async function handleListAuditBookings(req, res, options = {}) {
   const landingEnabled = options.landingEnabled !== false;
   if (!landingEnabled) return res.status(404).json({ error: 'not_found' });
@@ -117,6 +153,12 @@ async function handleListAuditBookings(req, res, options = {}) {
   });
 }
 
+/**
+ * Register operator inbox page.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function registerOperatorInboxPage(app, options = {}) {
   if (options.landingEnabled === false) return;
   const landingRoot = options.landingRoot;
@@ -125,6 +167,12 @@ function registerOperatorInboxPage(app, options = {}) {
   const inboxHtml = path.join(landingRoot, 'operator-bookings.html');
   if (!fs.existsSync(inboxHtml)) return;
 
+/**
+ * Send inbox.
+ * @param {any} _req
+ * @param {Array} res
+ * @returns {any}
+ */
   function sendInbox(_req, res) {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.type('text/html');
@@ -134,6 +182,12 @@ function registerOperatorInboxPage(app, options = {}) {
   app.get('/operator/bookings', sendInbox);
 }
 
+/**
+ * Register audit booking route.
+ * @param {any} app
+ * @param {Object} options
+ * @returns {any}
+ */
 function registerAuditBookingRoute(app, options = {}) {
   app.post('/api/audit-booking', (req, res) => {
     handleAuditBooking(req, res, options).catch((err) => {

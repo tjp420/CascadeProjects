@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const { readJsonFileCached } = require('./json-file-cache.cjs');
 
+const constants = require('../config/constants.cjs');
 const PRODUCTS = {
   moneyPrinter19: {
     label: 'Money Printer Tier ($19)',
@@ -97,6 +98,11 @@ const PRODUCTS = {
   }
 };
 
+/**
+ * Slugify.
+ * @param {string} text
+ * @returns {any}
+ */
 function slugify(text) {
   return String(text || 'client')
     .toLowerCase()
@@ -105,10 +111,20 @@ function slugify(text) {
     .slice(0, 48) || 'client';
 }
 
+/**
+ * Read json safe.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function readJsonSafe(filePath) {
   return readJsonFileCached(filePath);
 }
 
+/**
+ * Infer product from booking.
+ * @param {any} booking
+ * @returns {any}
+ */
 function inferProductFromBooking(booking = {}) {
   const explicit = String(booking.productSku || booking.product || '').trim().toLowerCase();
   if (explicit && PRODUCTS[explicit]) return explicit;
@@ -126,6 +142,11 @@ function inferProductFromBooking(booking = {}) {
   return 'clearance499';
 }
 
+/**
+ * Validate gate report.
+ * @param {number} reportPath
+ * @returns {any}
+ */
 function validateGateReport(reportPath) {
   const payload = readJsonSafe(reportPath);
   if (!payload) {
@@ -144,6 +165,12 @@ function validateGateReport(reportPath) {
   };
 }
 
+/**
+ * Resolve report path.
+ * @param {string} inputPath
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function resolveReportPath(inputPath, projectRoot) {
   if (!inputPath) return null;
   const resolved = path.resolve(projectRoot, inputPath);
@@ -153,6 +180,11 @@ function resolveReportPath(inputPath, projectRoot) {
   return resolved;
 }
 
+/**
+ * Load vault password.
+ * @param {any} projectRoot
+ * @returns {any}
+ */
 function loadVaultPassword(projectRoot) {
   const envPath = path.join(projectRoot, '.env.v1-internal');
   if (!fs.existsSync(envPath)) return null;
@@ -162,8 +194,14 @@ function loadVaultPassword(projectRoot) {
   return match[1].trim().replace(/^["']|["']$/g, '');
 }
 
+/**
+ * Vault urls.
+ * @param {any} projectRoot
+ * @param {Object} options
+ * @returns {any}
+ */
 function vaultUrls(projectRoot, options = {}) {
-  const port = options.port || process.env.PORT || 54355;
+  const port = options.port || process.env.PORT || constants.DASHBOARD_PORT;
   const password = options.vaultPassword ?? loadVaultPassword(projectRoot);
   const base = process.env.OPERATOR_DASHBOARD_BASE_URL
     || process.env.PUBLIC_APP_URL
@@ -179,6 +217,12 @@ function vaultUrls(projectRoot, options = {}) {
   };
 }
 
+/**
+ * Load agency project.
+ * @param {any} projectRoot
+ * @param {string} projectId
+ * @returns {any}
+ */
 function loadAgencyProject(projectRoot, projectId) {
   const storePath = path.join(projectRoot, '.simplebeacon', 'agency-projects.json');
   const store = readJsonSafe(storePath);
@@ -187,6 +231,12 @@ function loadAgencyProject(projectRoot, projectId) {
   return projects[projectId] || null;
 }
 
+/**
+ * Build outbound md.
+ * @param {any} product
+ * @param {any} ctx
+ * @returns {any}
+ */
 function buildOutboundMd(product, ctx) {
   const lines = [
     `# Outbound — ${product.label}`,
@@ -243,6 +293,11 @@ function buildOutboundMd(product, ctx) {
   return lines.join('\n');
 }
 
+/**
+ * Enrich booking.
+ * @param {any} row
+ * @returns {any}
+ */
 function enrichBooking(row) {
   const sku = inferProductFromBooking(row);
   const product = PRODUCTS[sku];
@@ -254,6 +309,14 @@ function enrichBooking(row) {
   };
 }
 
+/**
+ * Update booking deliverable.
+ * @param {any} projectRoot
+ * @param {any} bookingKey
+ * @param {any} patch
+ * @param {Object} options
+ * @returns {any}
+ */
 async function updateBookingDeliverable(projectRoot, bookingKey, patch, options = {}) {
   const file = options.bookingsPath || path.join(projectRoot, 'data', 'audit-bookings.json');
   let rows;
@@ -271,6 +334,12 @@ async function updateBookingDeliverable(projectRoot, bookingKey, patch, options 
   return true;
 }
 
+/**
+ * Create deliverable workspace.
+ * @param {any} input
+ * @param {Object} options
+ * @returns {any}
+ */
 async function createDeliverableWorkspace(input, options = {}) {
   const projectRoot = path.resolve(options.projectRoot || path.join(__dirname, '../..'));
   const deliverablesRoot = path.join(projectRoot, 'deliverables', 'clients');
@@ -371,6 +440,10 @@ async function createDeliverableWorkspace(input, options = {}) {
   };
 }
 
+/**
+ * List products.
+ * @returns {any}
+ */
 function listProducts() {
   return Object.values(PRODUCTS).map((p) => ({
     sku: p.sku,

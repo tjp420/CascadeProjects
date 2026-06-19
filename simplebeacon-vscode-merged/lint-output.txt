@@ -1,0 +1,238 @@
+
+> simplebeacon@3.0.0 lint
+> eslint src --ext .ts
+
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\__mocks__\vscode.ts
+  43:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\aiIntegration\aiCodeAnalyzer.ts
+    3:10  error    'designTokens' is defined but never used  @typescript-eslint/no-unused-vars
+  156:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\aiIntegration\aiReportExporter.ts
+  1:31  error  'MatchEntry' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\aiPlatform\dashboardPanel.ts
+    3:10  error    'provider' is defined but never used                                       @typescript-eslint/no-unused-vars
+    3:20  error    'diagnosticsManager' is defined but never used                             @typescript-eslint/no-unused-vars
+   81:47  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  151:20  error    'webview' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  530:57  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\aiPlatform\extension.ts
+  140:22  error    A `require()` style import is forbidden      @typescript-eslint/no-require-imports
+  145:19  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  147:38  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  224:17  error    'scanId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  315:23  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  317:42  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\aiPlatform\realtimeMonitor.ts
+  373:18  error  'regexErr' is defined but never used                                             @typescript-eslint/no-unused-vars
+  543:5   error  'fileExtension' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\aiPlatform\scanPanel.ts
+    2:13  error    'path' is defined but never used                                           @typescript-eslint/no-unused-vars
+    4:10  error    'SimpleBeaconProvider' is defined but never used                           @typescript-eslint/no-unused-vars
+    5:10  error    'DiagnosticsManager' is defined but never used                             @typescript-eslint/no-unused-vars
+  153:91  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  160:38  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  274:30  error    'webview' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  681:41  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  681:72  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  719:57  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\aiPlatform\uploadPanel.ts
+   60:30  error    'webview' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  445:37  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  463:19  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\analytics\advancedAnalytics.ts
+    2:13  error    'path' is defined but never used                                                   @typescript-eslint/no-unused-vars
+    3:10  error    'designTokens' is defined but never used                                           @typescript-eslint/no-unused-vars
+   84:23  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+   85:28  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  248:32  error    'workspaceFolder' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  248:82  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+  261:37  error    'workspaceFolder' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  261:87  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\analyzers\__tests__\workspaceAnalyzer.test.ts
+  5:3  error  'escapeRegex' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\analyzers\workspaceAnalyzer.ts
+  1158:13  error  'firstDef' is assigned a value but never used                               @typescript-eslint/no-unused-vars
+  1465:45  error  'findings' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\auth\apiClient.ts
+  35:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  46:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  68:14  error    'error' is defined but never used         @typescript-eslint/no-unused-vars
+  76:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  83:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\auth\authManager.ts
+  4:7  error  'SERVER_URL_KEY' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\codeMapProvider.ts
+    7:15  warning  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+    8:20  warning  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+    9:14  warning  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   12:14  warning  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   13:18  warning  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   14:31  warning  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  227:59  warning  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  229:27  warning  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  419:22  error    'filters' is defined but never used. Allowed unused args must match /^_/u       @typescript-eslint/no-unused-vars
+  427:29  error    'extensionUri' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  555:11  warning  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  556:13  warning  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\collaboration\teamDashboard.ts
+  2:13  error  'path' is defined but never used          @typescript-eslint/no-unused-vars
+  3:10  error  'designTokens' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\enhancedAIProvider.ts
+     3:13  error    'fs' is defined but never used                                                 @typescript-eslint/no-unused-vars
+    21:45  warning  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+    51:32  warning  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+    51:68  warning  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+    51:90  warning  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+   669:44  warning  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+   805:88  warning  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+   837:47  warning  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+   866:39  error    'projectPath' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  1000:11  error    'findings' is assigned a value but never used                                  @typescript-eslint/no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\enhancedDashboard.ts
+  112:30  warning  Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+  123:11  error    'consistencyScore' is assigned a value but never used                @typescript-eslint/no-unused-vars
+  584:25  warning  Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+  666:25  warning  Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+  749:25  warning  Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+  861:16  error    'i' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  892:14  error    'i' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  917:37  warning  Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+  920:63  warning  Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\enhancedDashboard2_0.ts
+   102:14  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+   103:14  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+   104:14  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+   111:19  error    A `require()` style import is forbidden          @typescript-eslint/no-require-imports
+   121:30  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+   125:11  error    'passColor' is assigned a value but never used   @typescript-eslint/no-unused-vars
+   126:11  error    'scoreColor' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   692:25  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+   774:25  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+   857:25  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+   980:48  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  1028:37  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  1031:63  warning  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\enhancedScanProvider.ts
+    4:3   error    'ProgressNode' is defined but never used     @typescript-eslint/no-unused-vars
+    5:3   error    'MetricNode' is defined but never used       @typescript-eslint/no-unused-vars
+    7:3   error    'QuickActionNode' is defined but never used  @typescript-eslint/no-unused-vars
+    8:3   error    'StatusCardNode' is defined but never used   @typescript-eslint/no-unused-vars
+   10:3   error    'HealthScoreNode' is defined but never used  @typescript-eslint/no-unused-vars
+   11:3   error    'RecentScanNode' is defined but never used   @typescript-eslint/no-unused-vars
+   20:34  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+   23:24  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+   25:39  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  196:47  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  224:25  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  275:25  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  335:25  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\enhancedSidebar.ts
+  2:10  error  'Finding' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\extension.ts
+     5:29  error    'TaskNode' is defined but never used                                       @typescript-eslint/no-unused-vars
+    11:10  error    'ReportWebview' is defined but never used                                  @typescript-eslint/no-unused-vars
+    36:23  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+    78:23  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+   108:41  error    'result' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+   341:25  error    A `require()` style import is forbidden                                    @typescript-eslint/no-require-imports
+   346:19  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+   348:38  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+   379:85  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+   407:24  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+   493:9   error    'maxFiles' is assigned a value but never used                              @typescript-eslint/no-unused-vars
+   541:13  error    'stderr' is assigned a value but never used                                @typescript-eslint/no-unused-vars
+   613:21  error    'lines' is assigned a value but never used                                 @typescript-eslint/no-unused-vars
+   715:30  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+   738:46  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+   760:25  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+   797:27  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+   915:10  error    'refreshTree' is defined but never used                                    @typescript-eslint/no-unused-vars
+   920:10  error    'openFileAtLine' is defined but never used                                 @typescript-eslint/no-unused-vars
+   927:16  error    'analyzeWithAI' is defined but never used                                  @typescript-eslint/no-unused-vars
+   982:13  error    'stdout' is assigned a value but never used                                @typescript-eslint/no-unused-vars
+   983:13  error    'stderr' is assigned a value but never used                                @typescript-eslint/no-unused-vars
+  1049:50  error    'context' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  1118:26  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  1237:27  error    A `require()` style import is forbidden                                    @typescript-eslint/no-require-imports
+  1245:23  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  1247:42  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  1300:51  error    A `require()` style import is forbidden                                    @typescript-eslint/no-require-imports
+  1300:70  error    A `require()` style import is forbidden                                    @typescript-eslint/no-require-imports
+  1307:47  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  1317:30  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  1328:27  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\fixes\remediationProvider.ts
+   68:116  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  268:19   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  269:19   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  270:19   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\modernSidebarProvider.ts
+   12:5   error    'context' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  102:30  error    'webview' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  649:46  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\realtimeMonitor.ts
+    2:10  error  'spawn' is defined but never used                                                @typescript-eslint/no-unused-vars
+    4:10  error  'join' is defined but never used                                                 @typescript-eslint/no-unused-vars
+  338:18  error  'regexErr' is defined but never used                                             @typescript-eslint/no-unused-vars
+  519:5   error  'fileExtension' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\scanProvider.ts
+   71:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  142:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\settingsProvider.ts
+  66:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\summaryProvider.ts
+   7:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   9:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  60:84  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\visualSidebarProvider.ts
+   77:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  235:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  263:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  265:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  296:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  344:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  369:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  371:58  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  378:69  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  732:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  745:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\src\webviewPanel.ts
+   72:25  warning  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  112:30  warning  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  116:11  error    'passColor' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  460:25  warning  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  534:25  warning  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+
+Γ£û 173 problems (66 errors, 107 warnings)
+

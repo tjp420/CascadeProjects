@@ -6,6 +6,7 @@
  *   const content = generateMarketingContent(report, { channel: 'blog', tone: 'professional' });
  *
  * Channels: blog, twitter, linkedin, newsletter, case-study, press-kit, one-pager
+ * simplebeacon:production-leak-intent — Marketing content references sample JSON files as intentional demo data descriptions.
  */
 
 const fs = require('fs');

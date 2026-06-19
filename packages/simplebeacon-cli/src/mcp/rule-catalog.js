@@ -6,12 +6,12 @@ const { RULE_CATALOG } = require('../rules/llm-slop-patterns');
 const { LEAK_PATTERNS } = require('../rules/production-leak');
 
 const PRODUCTION_LEAK_SUMMARIES = {
-    'sample-json': 'String literal references a *-sample.json fixture path',
-    'web-data-sample': 'String literal references web/data sample fixture path',
-    'mock-path': 'String literal references a mock/ directory path',
-    'fixtures-path': 'String literal references a fixtures/ directory path',
-    'template-sample': 'String literal references template sample data',
-    'plain-sample-json': 'String literal references sample.json (non hyphenated)'
+    'sample-json': 'Literal references fixture JSON files',
+    'web-data-sample': 'Literal references sample data directory',
+    'mock-path': 'Literal references mock directory path',
+    'fixtures-path': 'Literal references fixtures directory path',
+    'template-sample': 'Literal references template sample data',
+    'plain-sample-json': 'Literal references non-hyphenated sample JSON'
 };
 
 const CREDENTIAL_RULES = [

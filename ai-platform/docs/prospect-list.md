@@ -103,6 +103,10 @@
 
 ---
 
+## EU AI Act Compliance Disclaimer
+
+SimpleBeacon is a **deterministic code-scanning and audit tool** operated by human analysts. It does not make autonomous employment, credit, or healthcare decisions. All scan results are reviewed by qualified personnel before any compliance certification is issued. Clients retain full authority to override, challenge, or disregard any automated finding. Human-in-the-loop review is mandatory for every Executive Risk Certificate.
+
 ## Outreach Execution Sequence
 
 ### Week 1: Batch 1 (15 prospects)
@@ -126,6 +130,6 @@ node docs/outreach-prospects.js stage <id> audit_requested
 node docs/outreach-prospects.js report
 ```
 
-### Conversion Target
-- 50 outreach attempts → 10 audit requests (20%) → 3 paid conversions (30% of audits) = $1,497–$7,497
-- Rinse and repeat monthly to hit $2,000,000
+### Conversion Target (Projected)
+- 50 outreach attempts → 10 audit requests (projected 20%) → 3 paid conversions (projected 30% of audits) = $1,497–$7,497 estimated revenue
+- These are business targets, not measured or guaranteed outcomes.

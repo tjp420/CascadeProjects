@@ -13,6 +13,9 @@ const {
     sanitizeApiRouteList
 } = require('../../server/lib/code-roadmap-generator.cjs');
 
+/**
+ * Roadmap data analyzer.
+ */
 class RoadmapDataAnalyzer {
     constructor(globalContextManager, options = {}) {
         this.globalContextManager = globalContextManager;
@@ -224,27 +227,57 @@ class RoadmapDataAnalyzer {
                 dependencies: {}
             };
 
+            let filesToProcess = [];
+
             // Get file analysis from Global Context Manager
             if (this.globalContextManager) {
                 const context = this.globalContextManager.getContext();
                 if (context.files) {
-                    Object.values(context.files).forEach(file => {
-                        if (file.content && file.extension) {
-                            // Count lines of code
-                            const lines = file.content.split('\n').length;
-                            metrics.totalLinesOfCode += lines;
+                    filesToProcess = Object.values(context.files).map(file => ({
+                        path: file.path,
+                        ext: file.extension,
+                        content: file.content || null
+                    }));
+                }
+            }
 
-                            // Categorize by language
-                            const language = this.getLanguageFromExtension(file.extension);
-                            metrics.languages[language] = (metrics.languages[language] || 0) + 1;
+            // Fallback: walk filesystem when global context has no files
+            if (!filesToProcess.length && this.projectRoot) {
+                filesToProcess = await this.walkCodeFiles(this.projectRoot);
+            }
 
-                            // Analyze complexity (simplified)
-                            if (this.isCodeFile(file.extension)) {
-                                const complexity = this.calculateComplexity(file.content);
-                                metrics.complexity[language] = (metrics.complexity[language] || 0) + complexity;
-                            }
-                        }
-                    });
+            for (const file of filesToProcess) {
+                const ext = file.ext || '';
+                let content = file.content;
+                if (!content && file.path) {
+                    try {
+                        content = await fs.readFile(file.path, 'utf8');
+                    } catch {
+                        continue;
+                    }
+                }
+                if (!content) continue;
+
+                // Count lines of code
+                const lines = content.split('\n').length;
+                metrics.totalLinesOfCode += lines;
+
+                // Categorize by language
+                const language = this.getLanguageFromExtension(ext);
+                metrics.languages[language] = (metrics.languages[language] || 0) + 1;
+
+                // Analyze complexity (simplified)
+                if (this.isCodeFile(ext)) {
+                    const complexity = this.calculateComplexity(content);
+                    metrics.complexity[language] = (metrics.complexity[language] || 0) + complexity;
+                }
+
+                // Count documentation files
+                if (/\.(md|rst|txt)$/i.test(file.path || '')) {
+                    metrics.documentation.totalDocs += 1;
+                }
+                if (/readme/i.test(file.path || '')) {
+                    metrics.documentation.readmeFiles += 1;
                 }
             }
 

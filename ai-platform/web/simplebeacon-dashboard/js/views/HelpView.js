@@ -1,4 +1,4 @@
-import { escapeHtml, formatNumber, formatPercent } from '../utils.js';
+import { escapeHtml, formatNumber, formatPercent, renderEmptyState, showToast } from '../utils.js';
 import { FEATURE_CATALOG } from '../services/platformService.js';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
 import {
@@ -78,7 +78,7 @@ const DASHBOARD_PAGES = [
 const STATIC_FAQ = [
   {
     question: 'Why does the dashboard show 42 mock/sample files but 40k+ repo files?',
-    answer: 'Simplebeacon gate scans configured scanPaths (web/data, data/mock, etc.) — typically ~42 mock/sample JSON files. The repo inventory is an explorer-style index of the whole project root for context; it is not a full-fiction scan of every file.'
+    answer: 'Simplebeacon gate scans configured scanPaths (web/data, data/mock, etc.) — typically ~42 mock/sample JSON files. The repo inventory is an audit-style index of the project root (skips node_modules, .git, build artifacts) for context; it is not a full-fiction scan of every file.'
   },
   {
     question: 'What is the difference between quality score and consistency score?',
@@ -90,16 +90,25 @@ const STATIC_FAQ = [
   },
   {
     question: 'How do I run the v1-internal dashboard locally?',
-    answer: 'Community CLI: npm install simplebeacon or /community. Cloud Teams requires Stripe subscription. Operators: npm run dashboard:v1-internal (port 54355).'
+    answer: 'Community CLI: npm install simplebeacon or /community. Cloud Teams requires Stripe subscription. Operators: npm run dashboard:v1-internal (port 3002).'
   }
 ];
 
+/**
+ * Render live scan strip.
+ * @param {number} report
+ * @param {any} baseline
+ * @param {any} dashboardHome
+ * @returns {any}
+ */
 function renderLiveScanStrip(report, baseline, dashboardHome) {
   if (!report) {
     return `
-      <div class="card mb-6" style="padding: var(--space-4);">
-        <p class="text-muted" style="margin: 0;">No scan report loaded yet. Run a scan from Dashboard or Analyze to see live metrics here.</p>
-      </div>
+      ${renderEmptyState({
+        icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+        title: 'No scan report loaded yet',
+        body: 'Run a scan from Dashboard or Analyze to see live metrics here.'
+      })}
     `;
   }
 
@@ -126,6 +135,9 @@ function renderLiveScanStrip(report, baseline, dashboardHome) {
   `;
 }
 
+/**
+ * Help view.
+ */
 export class HelpView {
   constructor(app) {
     this.app = app;
@@ -142,49 +154,118 @@ export class HelpView {
 
     const el = document.createElement('div');
     el.className = 'fade-in';
+
+    const scanModes = [
+      { mode: 'Complete', desc: 'Runs all core scans in sequence: gate, consolidation, fiction digest, roadmap, codebase analysis, file reduction, data quality, cleanup assistant, npm audit, and compliance checklist. Browser analyzers (security, AI/LLM, code quality, architecture) run inside the codebase step. Optional AI narrative attaches to consolidation and codebase results.', icon: '🔬' },
+      { mode: 'Simplebeacon', desc: 'Uses .simplebeacon/config.json scan paths, all rules, and gate policy. Primary mode for CI.', icon: '🛡️' },
+      { mode: 'Mock data', desc: 'Fiction/KPI digest derived from the Simplebeacon gate report. Requires gate scan to complete first — filters fiction-type issues from the same results.', icon: '🧪' },
+      { mode: 'Roadmap', desc: 'Filesystem sprint scan for planning. Exports belong in reports/.', icon: '🗺️' },
+      { mode: 'Consolidation', desc: 'Duplicate JSON groups and similar schemas across the full repository inventory. Pick canonical files.', icon: '📦' },
+      { mode: 'Codebase', desc: 'File type breakdown, line counts, ESLint results, and structure. Feeds browser analyzers (security, AI/LLM, quality, architecture).', icon: '💻' },
+      { mode: 'File reduction', desc: 'Unused image assets and duplicate content detection.', icon: '🗑️' },
+      { mode: 'Data quality', desc: 'Empty or trivial JSON files and schema issues.', icon: '📋' },
+      { mode: 'Cleanup assistant', desc: 'Aggregates file reduction + data quality into an actionable cleanup brief.', icon: '🧹' },
+      { mode: 'npm audit', desc: 'Package.json dependency vulnerability check.', icon: '🔒' },
+      { mode: 'Compliance', desc: 'License, security, and governance checklist. Requires gate scan first.', icon: '✅' },
+      { mode: 'EU AI Act', desc: 'Regulatory sprint scan for EU AI Act compliance. Runs on product root.', icon: '🇪🇺' },
+      { mode: 'Auto', desc: 'Picks Simplebeacon when path contains web/data, ai-platform, /data/mock, or simplebeacon; otherwise picks Roadmap.', icon: '⚡' }
+    ];
+
+    const metricDefs = [
+      { term: 'mock/sample', meaning: 'Files in configured scanPaths (e.g. web/data/*-sample.json) — the gate target (~42 on ai-platform).' },
+      { term: 'rule-scoped', meaning: 'Files read by credential + production-leak rules (often ~117) — broader than mock paths alone.' },
+      { term: 'page specs', meaning: 'Page-sample JSON validated against Jest specs (e.g. 42/42) — includes aliased roadmap samples outside scanPaths.' },
+      { term: 'repo files', meaning: 'Audit inventory of project root (~1k on ai-platform, skips node_modules/.git) — context only.' },
+      { term: 'consistency', meaning: 'Fiction/KPI drift score on samples — prefer this over capped quality score for pass/fail.' },
+      { term: 'gate PASS + 0 issues', meaning: 'Expected for a clean repo on current config — not a broken scan.' }
+    ];
+
+    const steps = [
+      { icon: '✏️', title: 'Write code', desc: 'Developer writes code and pushes to repo' },
+      { icon: '🔍', title: 'Scan', desc: 'Simplebeacon scans on commit, push, CI, or manual trigger' },
+      { icon: '🐛', title: 'Find', desc: 'Detects passwords, API keys, fake KPIs, mock paths in production' },
+      { icon: '🚫', title: 'Block', desc: 'High-severity findings stop the gate — no merge or deploy' },
+      { icon: '🔧', title: 'Fix', desc: 'Developer fixes issues and re-scans until clean' },
+      { icon: '🚀', title: 'Ship', desc: 'Gate green, code deploys to production' }
+    ];
+
     el.innerHTML = `
-      <h1 class="page-title">Help & Docs</h1>
-      <p class="text-muted mb-6">${escapeHtml(help.title || 'Simplebeacon dashboard — scan modes, metrics, and troubleshooting')}</p>
+      <style>
+        .help-hero { text-align:center; padding: var(--space-10) var(--space-6); }
+        .help-hero h1 { font-size: 2rem; font-weight: 700; margin: 0 0 var(--space-2); }
+        .help-hero p { color: var(--text-muted); margin: 0 0 var(--space-6); }
+        .help-search { max-width: 480px; margin: 0 auto; position: relative; }
+        .help-search input { width: 100%; padding: var(--space-3) var(--space-4); padding-left: 40px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); color: var(--text-primary); font-size: 0.875rem; }
+        .help-search::before { content: '🔍'; position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: 0.6; }
+        .help-section { margin-bottom: var(--space-8); }
+        .help-section-title { font-size: 1.125rem; font-weight: 600; margin: 0 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2); }
+        .help-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
+        .help-step { text-align: center; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+        .help-step-icon { font-size: 1.5rem; margin-bottom: var(--space-2); }
+        .help-step-title { font-weight: 600; font-size: 0.875rem; margin-bottom: var(--space-1); }
+        .help-step-desc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; }
+        .help-metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
+        .help-metric-card { padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+        .help-metric-card code { font-size: 0.75rem; background: var(--background); padding: 2px 6px; border-radius: 4px; }
+        .help-metric-card strong { display: block; font-size: 0.875rem; margin-bottom: var(--space-1); }
+        .help-metric-card p { font-size: 0.75rem; color: var(--text-muted); margin: 0; line-height: 1.5; }
+        .help-mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-3); }
+        .help-mode-card { padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); display: flex; align-items: flex-start; gap: var(--space-3); }
+        .help-mode-card .mode-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+        .help-mode-card h4 { margin: 0 0 4px; font-size: 0.875rem; }
+        .help-mode-card p { margin: 0; font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; }
+        .help-page-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-3); }
+        .help-page-card { text-align: left; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); cursor: pointer; transition: all 150ms; }
+        .help-page-card:hover { border-color: var(--primary); background: rgba(99,102,241,0.03); }
+        .help-page-card .page-icon { font-size: 1.5rem; margin-bottom: var(--space-2); }
+        .help-page-card h4 { margin: 0 0 4px; font-size: 0.875rem; }
+        .help-page-card p { margin: 0; font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; }
+        .help-faq-item { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); margin-bottom: var(--space-2); overflow: hidden; }
+        .help-faq-item summary { padding: var(--space-3) var(--space-4); font-weight: 500; font-size: 0.875rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+        .help-faq-item summary::after { content: '▼'; font-size: 0.7rem; color: var(--text-muted); transition: transform 150ms; }
+        .help-faq-item[open] summary::after { transform: rotate(180deg); }
+        .help-faq-item p { padding: 0 var(--space-4) var(--space-3); margin: 0; font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
+        .help-cli { position: relative; }
+        .help-cli .copy-btn { position: absolute; top: var(--space-3); right: var(--space-3); padding: 4px 10px; font-size: 0.7rem; border-radius: var(--radius-md); background: var(--surface-elevated); border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; }
+        .help-cli .copy-btn:hover { background: var(--surface-hover); }
+        .help-cli pre { margin: 0; padding: var(--space-4); background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-lg); font-family: var(--font-mono); font-size: 0.75rem; overflow-x: auto; }
+      </style>
 
-      ${renderLiveScanStrip(report, baseline, dashboardHome)}
-
-      <div class="section-block">
-        <div class="section-heading"><h2>How it works (simple)</h2></div>
-        <div class="card">
-          <p style="margin-bottom: var(--space-3);">
-            Simplebeacon is an <strong>automated security checkpoint for code</strong> — like airport security for your repository.
-          </p>
-          <ol style="margin: 0; padding-left: 1.25rem; line-height: 1.7; font-size: var(--font-size-sm);">
-            <li><strong>Developer writes code</strong> — passenger arrives at the airport</li>
-            <li><strong>Simplebeacon scans</strong> — security scans bags (git commit, push, CI, or manual Run Scan)</li>
-            <li><strong>Finds problems</strong> — passwords, API keys, fake KPIs, mock paths in production code</li>
-            <li><strong>Blocks bad code</strong> — high-severity findings stop the gate (won't merge or deploy)</li>
-            <li><strong>Shows what's wrong</strong> — Dashboard, Results, Compliance Audit, PR comments</li>
-            <li><strong>Developer fixes</strong> — remove prohibited items, re-scan until clean</li>
-            <li><strong>Code passes</strong> — gate green, dashboard updates</li>
-            <li><strong>Enterprise path</strong> — Assessment Portal for client deliverables; human triage sells the audit</li>
-            <li><strong>Ships to production</strong> — deploy workflow + live monitoring</li>
-          </ol>
-          <p class="text-muted mt-4" style="font-size: var(--font-size-sm); margin-bottom: 0;">
-            The guard never sleeps: pre-commit hooks, CI on every PR, optional production collector, and this SPA dashboard for overall security health.
-          </p>
+      <div class="help-hero">
+        <h1>Help Center</h1>
+        <p>Scan modes, metrics, and troubleshooting</p>
+        <div class="help-search">
+          <input type="search" id="help-search" placeholder="Search help topics…" autocomplete="off">
         </div>
       </div>
 
-      <div class="section-block">
-        <div class="section-heading"><h2>Understanding scan numbers</h2></div>
-        <div class="card">
-          <table class="results-table">
-            <thead><tr><th>Metric</th><th>Meaning</th></tr></thead>
-            <tbody>
-              <tr><td><strong>mock/sample</strong></td><td>Files in configured <code>scanPaths</code> (e.g. <code>web/data/*-sample.json</code>) — the gate target (~42 on ai-platform). <!-- simplebeacon:production-leak-intent - legitimate example in documentation --></td></tr>
-              <tr><td><strong>rule-scoped</strong></td><td>Files read by credential + production-leak rules (often ~117) — broader than mock paths alone.</td></tr>
-              <tr><td><strong>page specs</strong></td><td>Page-sample JSON validated against Jest specs (e.g. 42/42) — includes aliased roadmap samples outside <code>scanPaths</code>.</td></tr>
-              <tr><td><strong>repo files</strong></td><td>Explorer-style inventory of project root (~42k on ai-platform) — context only, not a full-fiction scan.</td></tr>
-              <tr><td><strong>consistency</strong></td><td>Fiction/KPI drift score on samples — prefer this over capped quality score for pass/fail.</td></tr>
-              <tr><td><strong>gate PASS + 0 issues</strong></td><td>Expected for a clean repo on current config — not a broken scan.</td></tr>
-            </tbody>
-          </table>
+      ${renderLiveScanStrip(report, baseline, dashboardHome)}
+
+      <div class="help-section">
+        <h2 class="help-section-title">🔄 How it works</h2>
+        <div class="help-steps">
+          ${steps.map(s => `
+            <div class="help-step">
+              <div class="help-step-icon">${s.icon}</div>
+              <div class="help-step-title">${escapeHtml(s.title)}</div>
+              <div class="help-step-desc">${escapeHtml(s.desc)}</div>
+            </div>
+          `).join('')}
+        </div>
+        <p class="text-muted" style="font-size:0.75rem; text-align:center; margin:0;">
+          The guard never sleeps: pre-commit hooks, CI on every PR, optional production collector, and this SPA dashboard.
+        </p>
+      </div>
+
+      <div class="help-section">
+        <h2 class="help-section-title">📊 Understanding metrics</h2>
+        <div class="help-metric-grid">
+          ${metricDefs.map(m => `
+            <div class="help-metric-card">
+              <strong>${escapeHtml(m.term)}</strong>
+              <p>${escapeHtml(m.meaning).replace(/\`(.+?)\`/g, '<code>$1</code>')}</p>
+            </div>
+          `).join('')}
         </div>
       </div>
 
@@ -203,39 +284,24 @@ export class HelpView {
         </div>
       </div>
 
-      <div class="section-block">
-        <div class="section-heading"><h2>Dashboard pages</h2></div>
-        <div class="tool-grid">
+      <div class="help-section">
+        <h2 class="help-section-title">📑 Dashboard pages</h2>
+        <div class="help-page-grid">
           ${DASHBOARD_PAGES.map((page) => `
-            <button type="button" class="tool-card help-page-card" data-route="${page.route}">
-              <div class="tool-card-header"><span>${page.icon}</span></div>
-              <h3>${escapeHtml(page.title)}</h3>
+            <button type="button" class="help-page-card" data-route="${page.route}">
+              <div class="page-icon">${page.icon}</div>
+              <h4>${escapeHtml(page.title)}</h4>
               <p>${escapeHtml(page.description)}</p>
-              <div class="tool-card-meta">Open →</div>
             </button>
           `).join('')}
         </div>
       </div>
 
-      <div class="section-block">
-        <div class="section-heading"><h2>Quick Links</h2></div>
-        <div class="tool-grid">
-          ${quickLinks.map((link, _index) => `
-            <div class="tool-card">
-              <div class="tool-card-header"><span>${link.icon || '📄'}</span></div>
-              <h3>${escapeHtml(link.title)}</h3>
-              <p>${escapeHtml(link.description)}</p>
-              <div class="tool-card-meta">${escapeHtml(link.category || '')}</div>
-            </div>
-          `).join('') || '<p class="text-muted">No quick links loaded.</p>'}
-        </div>
-      </div>
-
-      <div class="section-block">
-        <div class="section-heading"><h2>FAQ</h2></div>
-        <div class="faq-list">
+      <div class="help-section">
+        <h2 class="help-section-title">❓ FAQ</h2>
+        <div>
           ${faq.slice(0, 12).map((item) => `
-            <details class="faq-item card">
+            <details class="help-faq-item">
               <summary>${escapeHtml(item.question || item.title)}</summary>
               <p>${escapeHtml(item.answer || item.description || '')}</p>
             </details>
@@ -243,40 +309,26 @@ export class HelpView {
         </div>
       </div>
 
-      <div class="section-block">
-        <div class="section-heading"><h2>Scan modes (Analyze)</h2></div>
-        <div class="card mb-4">
-          <h3 style="font-size: var(--font-size-base); margin-bottom: var(--space-2);">Complete</h3>
-          <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--space-3);">
-            Gate + consolidation + fiction digest + roadmap in one run. Optional AI narrative after deterministic steps when a provider is selected.
-          </p>
-          <h3 style="font-size: var(--font-size-base); margin-bottom: var(--space-2);">Simplebeacon</h3>
-          <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--space-3);">
-            Uses <code>.simplebeacon/config.json</code> scan paths, all rules, and gate policy. Primary mode for CI and day-to-day checks.
-          </p>
-          <h3 style="font-size: var(--font-size-base); margin-bottom: var(--space-2);">Mock data</h3>
-          <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--space-3);">
-            Fiction/KPI digest scoped to sample paths when you enter the platform root. Same path scope as the gate — not a whole-monorepo fiction walk unless you pass a subdirectory.
-          </p>
-          <h3 style="font-size: var(--font-size-base); margin-bottom: var(--space-2);">Roadmap</h3>
-          <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--space-3);">
-            Filesystem sprint scan for planning. Exports belong in <code>reports/</code>, not <code>web/data/</code>.
-          </p>
-          <h3 style="font-size: var(--font-size-base); margin-bottom: var(--space-2);">Consolidation</h3>
-          <p class="text-muted" style="font-size: var(--font-size-sm); margin-bottom: var(--space-3);">
-            Duplicate JSON groups and similar schemas in sample paths. Pick one canonical file per group, then re-run Simplebeacon scan.
-          </p>
-          <h3 style="font-size: var(--font-size-base); margin-bottom: var(--space-2);">Auto</h3>
-          <p class="text-muted" style="font-size: var(--font-size-sm);">
-            Picks Simplebeacon when the path looks like ai-platform / mock data; otherwise roadmap.
-          </p>
+      <div class="help-section">
+        <h2 class="help-section-title">🔬 Scan modes</h2>
+        <div class="help-mode-grid">
+          ${scanModes.map((m) => `
+            <div class="help-mode-card">
+              <span class="mode-icon">${m.icon}</span>
+              <div>
+                <h4>${escapeHtml(m.mode)}</h4>
+                <p>${escapeHtml(m.desc)}</p>
+              </div>
+            </div>
+          `).join('')}
         </div>
       </div>
 
-      <div class="section-block">
-        <div class="section-heading"><h2>CLI & server commands</h2></div>
-        <div class="card">
-          <pre class="audit-log"># Simplebeacon CLI (npm: simplebeacon@1.0.0)
+      <div class="help-section">
+        <h2 class="help-section-title">⌨️ CLI & server commands</h2>
+        <div class="help-cli">
+          <button type="button" class="copy-btn" id="help-copy-cli">Copy</button>
+          <pre id="help-cli-code"># Simplebeacon CLI (npm: simplebeacon@1.0.0)
 npm install -D simplebeacon
 npx simplebeacon init
 npx simplebeacon scan --gate --path .
@@ -286,7 +338,7 @@ npx simplebeacon hook install
 npm run simplebeacon:report
 npm run trust:refresh
 
-# Local dashboard (v1-internal, port 54355)
+# Local dashboard (v1-internal, port 3002)
 npm run dashboard:v1-internal
 
 # Tests
@@ -295,14 +347,35 @@ npm test -- --testPathPattern=page-samples</pre>
         </div>
       </div>
 
-      <div class="section-block">
-        <div class="section-heading">
-          <h2>All features</h2>
-          <button type="button" class="btn btn-ghost btn-sm" id="help-open-features">Browse catalog →</button>
+      <div class="help-section" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-3);">
+        <div>
+          <h2 class="help-section-title" style="margin:0;">🧭 All features</h2>
+          <p class="text-muted" style="font-size:0.875rem;margin:var(--space-1) 0 0;">Browse every in-app destination — no duplicate legacy HTML pages.</p>
         </div>
-        <p class="text-muted">See every in-app destination on the All Features page — no duplicate legacy HTML routes.</p>
+        <button type="button" class="btn btn-primary btn-sm" id="help-open-features">Browse catalog →</button>
       </div>
     `;
+
+    // Search filter
+    const searchInput = el.querySelector('#help-search');
+    searchInput?.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      el.querySelectorAll('.help-page-card, .help-faq-item, .help-mode-card, .help-metric-card, .help-step').forEach((node) => {
+        const text = node.textContent.toLowerCase();
+        node.style.display = text.includes(q) ? '' : 'none';
+      });
+    });
+
+    // Copy CLI
+    el.querySelector('#help-copy-cli')?.addEventListener('click', async () => {
+      const code = el.querySelector('#help-cli-code')?.textContent || '';
+      try {
+        await navigator.clipboard.writeText(code);
+        showToast('Commands copied', 'success');
+      } catch {
+        showToast('Copy failed', 'error');
+      }
+    });
 
     el.querySelectorAll('[data-route]').forEach((btn) => {
       btn.addEventListener('click', () => this.app.navigate(btn.dataset.route));
@@ -464,5 +537,8 @@ export class FeaturesView {
 }
 
 // Backward compat alias
+/**
+ * Legacy hub view.
+ */
 export const LegacyHubView = FeaturesView;
 

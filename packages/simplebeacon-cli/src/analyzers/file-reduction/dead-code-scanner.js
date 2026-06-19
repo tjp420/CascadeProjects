@@ -31,11 +31,43 @@ const BUILT_IN_GLOBALS = new Set([
     'clearTimeout', 'clearInterval', 'requestAnimationFrame'
 ]);
 
+const SKIP_DEAD_CODE_PATHS = [
+    /(?:^|\/)web\/simplebeacon-dashboard\/js\/components\//,
+    /(?:^|\/)web\/simplebeacon-dashboard\/js\/services\//,
+    /(?:^|\/)web\/simplebeacon-dashboard\/js\/lib\//,
+    /(?:^|\/)web\/simplebeacon-dashboard\/js\/utils\//,
+    /(?:^|\/)web\/simplebeacon-dashboard\/js\/views\//,
+    /(?:^|\/)vscode-extension\/src\//,
+    /(?:^|\/)simplebeacon-vscode\//,
+    /complete-scan-artifact-profile\.browser\.js$/,
+    /(?:^|\/)coming-soon\/js\/dashboard\/phase-registry\.js$/,
+    // Skip landing page projects — exports are consumed by HTML script tags, not ES module imports
+    /(?:^|\/)coming-soon\//,
+    /(?:^|\/)ai-platform\/tools\/replay-scope-patches\.js$/,
+    /(?:^|\/)scripts\/bulk-fix-jsdoc\.js$/,
+    // Skip scanner infrastructure files — exports are used internally or by server routes, not by static imports
+    /(?:^|\/)server\/lib\/codebase-analyzer\.(js|cjs)$/,
+    /(?:^|\/)server\/lib\/token-db\.(js|cjs)$/,
+    /(?:^|\/)server\/lib\/code-roadmap-generator\.(js|cjs)$/,
+    /(?:^|\/)server\/lib\/code-roadmap-phase2\.(js|cjs)$/,
+    /(?:^|\/)server\/lib\/file-merger-reduction-scanner\.(js|cjs)$/,
+    /(?:^|\/)server\/lib\/json-file-cache\.(js|cjs)$/
+];
+
+function stripStringLiterals(content) {
+    // Remove single-line strings (both single and double quotes)
+    let cleaned = content.replace(/['"](?:[^'"\\]|\\.)*['"]/g, "''");
+    // Remove template literals
+    cleaned = cleaned.replace(/`(?:[^`\\]|\\.)*`/g, '``');
+    return cleaned;
+}
+
 function extractNamedExports(content) {
     const exports = [];
+    const cleanedContent = stripStringLiterals(content);
     for (const pattern of EXPORT_PATTERNS) {
         const regex = new RegExp(pattern.regex.source, pattern.regex.flags.includes('g') ? pattern.regex.flags : pattern.regex.flags + 'g');
-        let match = regex.exec(content);
+        let match = regex.exec(cleanedContent);
         while (match) {
             if (pattern.kind === 'named-list' && match[1]) {
                 const names = match[1].split(',').map((n) => n.trim()).filter(Boolean);
@@ -47,7 +79,7 @@ function extractNamedExports(content) {
             } else if (match[1]) {
                 exports.push({ name: match[1], kind: pattern.kind });
             }
-            match = regex.exec(content);
+            match = regex.exec(cleanedContent);
         }
     }
     return exports;
@@ -133,6 +165,9 @@ class DeadCodeScanner {
         const allImports = new Map();
 
         for (const file of sourceFiles) {
+            const normalizedRel = (file.relativePath || '').replace(/\\/g, '/');
+            if (SKIP_DEAD_CODE_PATHS.some((re) => re.test(normalizedRel))) continue;
+
             let content;
             try {
                 content = fs.readFileSync(file.path, 'utf8');
@@ -218,8 +253,9 @@ class DeadCodeScanner {
         } catch {
             return false;
         }
+        const cleanedContent = stripStringLiterals(content);
         const exportDeclRegex = new RegExp(`export\\s+.*?\\b${symbolName}\\b[^\\n]*\\n?`, 'g');
-        const withoutExport = content.replace(exportDeclRegex, '');
+        const withoutExport = cleanedContent.replace(exportDeclRegex, '');
         const regex = new RegExp(`\\b${symbolName}\\b`, 'g');
         return regex.test(withoutExport);
     }

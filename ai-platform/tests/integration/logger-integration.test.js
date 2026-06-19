@@ -7,6 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 
+const constants = require('../../server/config/constants.cjs');
 // Mock the logger module
 jest.mock('../../server/lib/app-logger.cjs', () => {
   const mockLogger = {
@@ -144,7 +145,7 @@ describe('Logger Integration', () => {
     it('should log system events', () => {
       const systemEvent = {
         event: 'SERVER_START',
-        port: 54355,
+        port: constants.DASHBOARD_PORT,
         environment: 'test',
         timestamp: new Date().toISOString()
       };

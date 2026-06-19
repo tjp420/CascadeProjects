@@ -5,8 +5,9 @@
 const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
-const { resolvePlatformRoot } = require('../../packages/simplebeacon-cli/src/project-detect');
 const { readJsonFileCached } = require('./json-file-cache.cjs');
+const { resolvePlatformRoot } = require('./simplebeacon-proxy.cjs');
+
 
 const ARTIFACT_NAMES = {
   report: 'eu-ai-act-report.json',
@@ -14,6 +15,11 @@ const ARTIFACT_NAMES = {
   assessment: 'eu-ai-act-assessment.json'
 };
 
+/**
+ * Escape html.
+ * @param {any} value
+ * @returns {any}
+ */
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -22,10 +28,21 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * Read json sync.
+ * @param {string} filePath
+ * @returns {any}
+ */
 function readJsonSync(filePath) {
   return readJsonFileCached(filePath);
 }
 
+/**
+ * Resolve platform root for path.
+ * @param {string} inputPath
+ * @param {any} fallbackRoot
+ * @returns {any}
+ */
 function resolvePlatformRootForPath(inputPath, fallbackRoot) {
   const raw = String(inputPath || '').trim();
   if (!raw) return path.resolve(fallbackRoot || process.cwd());
@@ -37,6 +54,11 @@ function resolvePlatformRootForPath(inputPath, fallbackRoot) {
   }
 }
 
+/**
+ * Load eu ai act artifacts.
+ * @param {Object} options
+ * @returns {any}
+ */
 async function loadEuAiActArtifacts(options = {}) {
   const platformRoot = resolvePlatformRootForPath(options.projectPath, options.platformRoot);
   const simplebeaconDir = path.join(platformRoot, '.simplebeacon');
@@ -56,6 +78,12 @@ async function loadEuAiActArtifacts(options = {}) {
   return { platformRoot, report, compliance, assessment };
 }
 
+/**
+ * Unique eu items.
+ * @param {Array} items
+ * @param {number} limit
+ * @returns {any}
+ */
 function uniqueEuItems(items, limit = 8) {
   const seen = new Set();
   const out = [];
@@ -69,6 +97,12 @@ function uniqueEuItems(items, limit = 8) {
   return out;
 }
 
+/**
+ * Collect eu finding items.
+ * @param {number} report
+ * @param {any} assessment
+ * @returns {any}
+ */
 function collectEuFindingItems(report, assessment) {
   const fromAssessment = assessment?.findings?.euAiAct?.items;
   if (Array.isArray(fromAssessment) && fromAssessment.length) {
@@ -87,12 +121,23 @@ function collectEuFindingItems(report, assessment) {
   );
 }
 
+/**
+ * Build report id.
+ * @returns {any}
+ */
 function buildReportId() {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `SB-EUAI-${stamp}-${suffix}`;
 }
 
+/**
+ * Resolve client label.
+ * @param {Object} options
+ * @param {number} report
+ * @param {any} assessment
+ * @returns {any}
+ */
 function resolveClientLabel(options = {}, report, assessment) {
   if (options.clientName) return options.clientName;
   const root = report?.projectRoot || assessment?.projectRoot || options.projectPath || '';
@@ -100,6 +145,11 @@ function resolveClientLabel(options = {}, report, assessment) {
   return base;
 }
 
+/**
+ * Build eu ai act audit html.
+ * @param {any} input
+ * @returns {any}
+ */
 function buildEuAiActAuditHtml(input = {}) {
   const { compliance, assessment, report, clientName, reportId } = input;
   const rawSummary = compliance?.summary || assessment?.complianceChecklist?.summary || null;
@@ -109,7 +159,8 @@ function buildEuAiActAuditHtml(input = {}) {
   const generatedAt = new Date(
     compliance?.evaluatedAt || assessment?.generatedAt || report?.generatedAt || Date.now()
   ).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const title = resolveClientLabel({ clientName }, report, assessment);
+  const creds = input.credentials || {};
+  const title = resolveClientLabel({ clientName: creds.projectName || clientName }, report, assessment);
   const id = reportId || buildReportId();
   const gatePass = report?.gate?.pass === true;
 
@@ -213,7 +264,7 @@ function buildEuAiActAuditHtml(input = {}) {
     <div class="cover-meta">
       <div><strong>Report ID:</strong> ${escapeHtml(id)}</div>
       <div><strong>Executed:</strong> ${escapeHtml(generatedAt)}</div>
-      <div><strong>Assessor:</strong> SimpleBeacon (automated + operator template)</div>
+      <div><strong>Assessor:</strong> ${escapeHtml(creds.signatoryName || 'SimpleBeacon (automated + operator template)')}</div>
       <div><strong>Deadline:</strong> August 2, 2026 (EU AI Act high-risk compliance)</div>
       <div><strong>Repository:</strong> ${escapeHtml(report?.projectRoot || assessment?.projectRoot || title)}</div>
     </div>
@@ -266,6 +317,11 @@ npx simplebeacon compliance --checklist eu-ai-act --gate</pre>
 </html>`;
 }
 
+/**
+ * Build eu ai act audit report.
+ * @param {Object} options
+ * @returns {any}
+ */
 async function buildEuAiActAuditReport(options = {}) {
   let artifacts;
   if (options.artifacts) {

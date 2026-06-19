@@ -53,10 +53,22 @@ const LEGACY_REDIRECTS = {
   '/enhanced-roadmap-dashboard': '/#/platform'
 };
 
+/**
+ * Should log runtime info.
+ * @returns {any}
+ */
 function shouldLogRuntimeInfo() {
   return process.env.LOG_RUNTIME_INFO === 'true' || process.env.RUNTIME_DEBUG === 'true';
 }
 
+/**
+ * Resolve legacy target.
+ * @param {any} from
+ * @param {any} to
+ * @param {any} landingEnabled
+ * @param {any} internalDashboard
+ * @returns {any}
+ */
 function resolveLegacyTarget(from, to, landingEnabled, internalDashboard) {
   if (!landingEnabled) return to;
   const dashboardAtRoot = internalDashboard === true;
@@ -69,6 +81,11 @@ function resolveLegacyTarget(from, to, landingEnabled, internalDashboard) {
   return to;
 }
 
+/**
+ * Register legacy page redirects.
+ * @param {any} app
+ * @returns {any}
+ */
 function registerLegacyPageRedirects(app) {
   const landingEnabled = process.env.SIMPLEBEACON_LANDING === 'true';
   const internalDashboard = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true';

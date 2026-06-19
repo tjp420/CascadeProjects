@@ -4,6 +4,7 @@
 
 const { loadJestCoverageSummary, roundPct } = require('./jest-coverage-reader.cjs');
 const { REPOSITORY_AUDIT_BASELINE } = require('./repository-audit-baseline.cjs');
+const constants = require('../config/constants.cjs');
 
 const FILE_TO_PROJECT = {
     'web/scripts/payload-routing.js': 'proj_routing',
@@ -15,12 +16,23 @@ const FILE_TO_PROJECT = {
     'server/lib/snapshot-resolver.js': 'proj_unit_misc'
 };
 
+/**
+ * Average.
+ * @param {Array} values
+ * @returns {any}
+ */
 function average(values) {
     const nums = values.filter((value) => value != null && !Number.isNaN(value));
     if (!nums.length) return null;
     return roundPct(nums.reduce((sum, value) => sum + value, 0) / nums.length);
 }
 
+/**
+ * Apply project coverage.
+ * @param {Array} projects
+ * @param {Array} files
+ * @returns {any}
+ */
 function applyProjectCoverage(projects, files) {
     const byProject = new Map();
     for (const file of files) {
@@ -52,6 +64,11 @@ function applyProjectCoverage(projects, files) {
     });
 }
 
+/**
+ * Build uncovered files.
+ * @param {Array} files
+ * @returns {any}
+ */
 function buildUncoveredFiles(files) {
     return files
         .filter((file) => file.lines != null)
@@ -69,6 +86,13 @@ function buildUncoveredFiles(files) {
         }));
 }
 
+/**
+ * Build coverage reports model.
+ * @param {string} baseDir
+ * @param {any} sample
+ * @param {Object} options
+ * @returns {any}
+ */
 function buildCoverageReportsModel(baseDir, sample = {}, options = {}) {
     const istanbul = loadJestCoverageSummary(baseDir, options);
     const baseline = REPOSITORY_AUDIT_BASELINE;
@@ -87,7 +111,7 @@ function buildCoverageReportsModel(baseDir, sample = {}, options = {}) {
                 failedTests: sample.overview?.failedTests ?? 0,
                 testSuites: baseline.jestSuites ?? sample.overview?.testSuites ?? null,
                 testPassRate: passedTests != null && totalTests
-                    ? Math.round((passedTests / totalTests) * 1000) / 10
+                    ? Math.round((passedTests / totalTests) * constants.PERCENTAGE_MULTIPLIER)
                     : sample.overview?.testPassRate ?? null
             }
         };

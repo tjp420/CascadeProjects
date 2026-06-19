@@ -19,6 +19,13 @@ const STRUCTURE_PATTERNS = {
     ]
 };
 
+/**
+ * Count pattern matches.
+ * @param {any} content
+ * @param {Array} patterns
+ * @param {number} limit
+ * @returns {any}
+ */
 function countPatternMatches(content, patterns, limit = 40) {
     let total = 0;
     for (const pattern of patterns) {
@@ -31,6 +38,12 @@ function countPatternMatches(content, patterns, limit = 40) {
     return total;
 }
 
+/**
+ * Extract generic structure hints.
+ * @param {any} content
+ * @param {string} context
+ * @returns {any}
+ */
 function extractGenericStructureHints(content, context = {}) {
     const text = String(content || '');
     const lines = text.split(/\r?\n/).length;

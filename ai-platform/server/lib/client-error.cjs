@@ -1,11 +1,23 @@
 /**
  * Sanitize errors returned to API clients — generic messages in production.
+ *
+ * @license MIT
  */
 
+/**
+ * Is production.
+ * @returns {any}
+ */
 function isProduction() {
     return String(process.env.NODE_ENV || '').toLowerCase() === 'production';
 }
 
+/**
+ * To client error.
+ * @param {any} error
+ * @param {any} fallback
+ * @returns {any}
+ */
 function toClientError(error, fallback = 'An unexpected error occurred') {
     if (!error) return fallback;
     const message = typeof error === 'string' ? error : error.message;
@@ -18,6 +30,12 @@ function toClientError(error, fallback = 'An unexpected error occurred') {
     return message || fallback;
 }
 
+/**
+ * Client error payload.
+ * @param {any} error
+ * @param {Object} options
+ * @returns {any}
+ */
 function clientErrorPayload(error, options = {}) {
     const fallback = options.fallback || 'An unexpected error occurred';
     const payload = {
@@ -26,11 +44,22 @@ function clientErrorPayload(error, options = {}) {
     };
     if (options.requestId) payload.requestId = options.requestId;
     if (options.extra && typeof options.extra === 'object') {
-        Object.assign(payload, options.extra);
+        for (const key of Object.keys(options.extra)) {
+            if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+            payload[key] = options.extra[key];
+        }
     }
     return payload;
 }
 
+/**
+ * Send client error.
+ * @param {Array} res
+ * @param {Array} status
+ * @param {any} error
+ * @param {Object} options
+ * @returns {any}
+ */
 function sendClientError(res, status, error, options = {}) {
     const errorResponseBody = clientErrorPayload(error, options);
     return res.status(status).json(errorResponseBody);

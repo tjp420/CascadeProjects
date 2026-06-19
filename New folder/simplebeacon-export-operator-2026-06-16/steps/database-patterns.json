@@ -1,0 +1,32 @@
+{
+  "id": "database-patterns",
+  "status": "done",
+  "error": null,
+  "metric": "1 finding in 1 file",
+  "findingsCount": 1,
+  "fileCount": 1,
+  "severity": "high",
+  "findings": [
+    {
+      "category": "database-patterns",
+      "analyzer": "database-patterns-analyzer",
+      "type": "unbounded-select",
+      "severity": "high",
+      "filePath": "simplebeacon-vscode/build-extension.js",
+      "line": 57,
+      "description": "SELECT without LIMIT clause — unbounded read",
+      "match": "select \"Install from VSIX...\"');",
+      "recommendedAction": "Use parameterized queries and add pagination limits"
+    }
+  ],
+  "category": {
+    "category": "database-patterns",
+    "label": "database-patterns",
+    "count": 1,
+    "severity": "high",
+    "fileCount": 1,
+    "topFiles": [
+      "simplebeacon-vscode/build-extension.js"
+    ]
+  }
+}

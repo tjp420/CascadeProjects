@@ -1,25 +1,21 @@
 {
   "type": "ai-analysis-model",
   "overview": {
-    "issuesFound": 12
+    "issuesFound": 0
   },
   "codeQuality": {},
   "security": {},
   "performance": {},
-  "severityBreakdown": [
-    {}
-  ],
+  "severityBreakdown": [],
   "categories": [
-    {}
+    { "name": "code-quality", "count": 0 }
   ],
-  "issues": [
-    {}
-  ],
+  "issues": [],
   "recommendations": [
-    {}
+    { "id": "sample-rec", "title": "Sample recommendation", "priority": "low" }
   ],
   "activity": [
-    {}
+    { "timestamp": "2026-06-10T00:00:00Z", "action": "scan-initiated" }
   ],
   "patterns": {}
 }

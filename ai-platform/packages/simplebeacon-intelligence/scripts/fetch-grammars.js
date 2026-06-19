@@ -32,6 +32,12 @@ const GRAMMARS = [
 
 const OUT_DIR = path.join(__dirname, '..', 'grammars');
 
+/**
+ * Download.
+ * @param {string} url
+ * @param {any} dest
+ * @returns {any}
+ */
 function download(url, dest) {
     return new Promise((resolve, reject) => {
         const file = fs.createWriteStream(dest);
@@ -59,19 +65,20 @@ function download(url, dest) {
     });
 }
 
+/**
+ * Main.
+ * @returns {any}
+ */
 async function main() {
     fs.mkdirSync(OUT_DIR, { recursive: true });
 
     for (const grammar of GRAMMARS) {
         const dest = path.join(OUT_DIR, grammar.file);
         if (fs.existsSync(dest)) {
-            console.log(`[fetch-grammars] skip ${grammar.file} (exists)`);
             continue;
         }
-        console.log(`[fetch-grammars] downloading ${grammar.language}...`);
         try {
             await download(grammar.url, dest);
-            console.log(`[fetch-grammars] saved ${dest}`);
         } catch (err) {
             console.warn(`[fetch-grammars] failed ${grammar.language}: ${err.message}`);
         }

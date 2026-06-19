@@ -31,8 +31,8 @@ function runSmokeTest() {
 
     const snippet = JSON.parse(
         handlers.scan_snippet({
-            content: "import data from '../web/data/status-sample.json';\n",
-            filePath: 'src/example.js',
+            content: "const apiKey = process.env.API_KEY;\n",
+            filePath: 'src/config.js',
             projectRoot
         }).content[0].text
     );

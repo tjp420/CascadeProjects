@@ -17,7 +17,7 @@ const SCANNABLE_EXTENSIONS = new Set([
 ]);
 const SKIP_DIRS = new Set([
     'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'examples',
+    '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'examples', 'docs',
     'coming-soon', 'reports', 'security-reports', 'templates', 'data-central',
     'deployments', 'public', 'functions', 'cloudflare-deploy', 'temp', 'tests-legacy',
     '.github-sync', '.cursor', '.vscode', 'downloads', 'findings',
@@ -184,7 +184,9 @@ function isExcludedPath(relativePath) {
     if (/(?:^|\/)server\/test-gateway\.js$/.test(normalized)) return true;
     if (/(?:^|\/)simplebeacon-frameworkless\//.test(normalized)) return true;
     if (/\.(?:env|env\.example)$/.test(normalized)) return true;
+    if (/(?:^|\/)docs\//.test(normalized)) return true;
     if (/(?:^|\/)server\/(?:routes|services|lib)\//.test(normalized)) return true;
+    if (/(?:^|\/)ai-agent\//.test(normalized)) return true;
     if (/(?:^|\/)simplebeacon-rule-tests\//.test(normalized)) return true;
     if (/(?:^|\/)simplebeacon-toxic-fixtures\//.test(normalized)) return true;
     if (/(?:^|\/)\.github-sync\//.test(normalized)) return true;

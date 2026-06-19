@@ -5,8 +5,14 @@
 import { escapeHtml, formatNumber } from '../utils.js';
 import { buildCompleteScanAnalysis } from './completeScanAnalysis.js?v=20260527cleanup1';
 
+/**
+ * C l e a n u p  a s s i s t a n t  p r e f s  k e y.
+ */
 export const CLEANUP_ASSISTANT_PREFS_KEY = 'simplebeaconCleanupAssistantPrefs';
 
+/**
+ * D e f a u l t  p r o t e c t e d  p a t h s.
+ */
 export const DEFAULT_PROTECTED_PATHS = [
   'web/data', // simplebeacon:production-leak-intent - legitimate sample data reference for cleanup policy
   'data/mock', // simplebeacon:production-leak-intent - legitimate sample data reference for cleanup policy
@@ -18,15 +24,24 @@ export const DEFAULT_PROTECTED_PATHS = [
 
 const DEFAULT_POLICY = {
   protectedPaths: DEFAULT_PROTECTED_PATHS,
-  allowNodeModules: true,
+  allowNodeModules: false,
   allowSimplebeaconCache: false,
   aggressiveness: 'moderate'
 };
 
+/**
+ * Normalize path.
+ * @param {any} value
+ * @returns {any}
+ */
 function normalizePath(value) {
   return String(value || '').replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase();
 }
 
+/**
+ * Load cleanup policy.
+ * @returns {any}
+ */
 export function loadCleanupPolicy() {
   try {
     const raw = localStorage.getItem(CLEANUP_ASSISTANT_PREFS_KEY);
@@ -44,10 +59,21 @@ export function loadCleanupPolicy() {
   }
 }
 
+/**
+ * Save cleanup policy.
+ * @param {any} policy
+ * @returns {any}
+ */
 export function saveCleanupPolicy(policy) {
   localStorage.setItem(CLEANUP_ASSISTANT_PREFS_KEY, JSON.stringify(policy));
 }
 
+/**
+ * Path matches protected.
+ * @param {string} relativePath
+ * @param {Array} protectedPaths
+ * @returns {any}
+ */
 export function pathMatchesProtected(relativePath, protectedPaths = []) {
   const norm = normalizePath(relativePath);
   return protectedPaths.some((entry) => {
@@ -57,6 +83,11 @@ export function pathMatchesProtected(relativePath, protectedPaths = []) {
   });
 }
 
+/**
+ * Format bytes.
+ * @param {Array} bytes
+ * @returns {any}
+ */
 function formatBytes(bytes) {
   const n = Number(bytes) || 0;
   if (n < 1024) return `${n} B`;
@@ -65,15 +96,31 @@ function formatBytes(bytes) {
   return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+/**
+ * Is simplebeacon cache path.
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function isSimplebeaconCachePath(relativePath) {
   return normalizePath(relativePath).includes('.simplebeacon/');
 }
 
+/**
+ * Is node modules path.
+ * @param {string} relativePath
+ * @returns {any}
+ */
 function isNodeModulesPath(relativePath) {
   const norm = normalizePath(relativePath);
   return norm === 'node_modules' || norm.endsWith('/node_modules') || norm.includes('/node_modules/');
 }
 
+/**
+ * Classify directory.
+ * @param {any} entry
+ * @param {any} policy
+ * @returns {any}
+ */
 function classifyDirectory(entry, policy) {
   const path = entry.path || '';
   if (pathMatchesProtected(path, policy.protectedPaths)) {
@@ -88,6 +135,11 @@ function classifyDirectory(entry, policy) {
   return 'safe';
 }
 
+/**
+ * Is directory artifact.
+ * @param {any} finding
+ * @returns {any}
+ */
 function isDirectoryArtifact(finding) {
   return finding?.action === 'safe-to-delete'
     && (finding.kind === 'directory' || / directory$/i.test(String(finding.reason || '')));
@@ -106,12 +158,15 @@ export function resolveFileReductionPlan(fileReduction) {
 
   const buildArtifacts = fileReduction.findings?.buildArtifacts || [];
   const assetConsolidation = fileReduction.findings?.assetConsolidation || [];
+  const directoryBloat = fileReduction.findings?.directoryBloat || [];
   const buildSummary = fileReduction.scanners?.['build-artifacts'] || {};
   const assetSummary = fileReduction.scanners?.['asset-consolidation'] || {};
   const unusedSummary = fileReduction.scanners?.['unused-files'] || {};
 
-  const safeDirectories = buildArtifacts
-    .filter(isDirectoryArtifact)
+  const safeDirectories = [
+    ...buildArtifacts.filter(isDirectoryArtifact),
+    ...directoryBloat.filter((f) => f.action === 'safe-to-delete')
+  ]
     .sort((left, right) => (right.sizeBytes || 0) - (left.sizeBytes || 0))
     .slice(0, 12)
     .map((finding) => ({
@@ -178,6 +233,13 @@ export function resolveFileReductionPlan(fileReduction) {
   };
 }
 
+/**
+ * Is cleanup brief runnable.
+ * @param {Object} options
+ * @param {string} fileReduction
+ * @param {any} dataQuality }
+ * @returns {any}
+ */
 export function isCleanupBriefRunnable({ brief, fileReduction, dataQuality } = {}) {
   if (brief?.inventory?.totalFiles != null) return true;
   if (fileReduction?.inventory?.totalFiles != null) return true;
@@ -191,6 +253,11 @@ export function isCleanupBriefRunnable({ brief, fileReduction, dataQuality } = {
   return false;
 }
 
+/**
+ * Build cleanup assistant conclusion.
+ * @param {any} brief
+ * @returns {any}
+ */
 export function buildCleanupAssistantConclusion(brief) {
   if (!brief) return 'Cleanup assistant complete.';
   const files = brief.estimatedReduction?.files || 0;
@@ -327,6 +394,11 @@ export function buildCleanupAssistantBrief({
   };
 }
 
+/**
+ * Resolve cleanup scan inputs.
+ * @param {string} lastResult
+ * @returns {any}
+ */
 function resolveCleanupScanInputs(lastResult) {
   if (!lastResult) {
     return {
@@ -360,6 +432,12 @@ function resolveCleanupScanInputs(lastResult) {
   };
 }
 
+/**
+ * Build cleanup brief from last result.
+ * @param {string} lastResult
+ * @param {any} policy
+ * @returns {any}
+ */
 export function buildCleanupBriefFromLastResult(lastResult, policy) {
   const inputs = resolveCleanupScanInputs(lastResult);
   if (!inputs.projectPath) return null;
@@ -372,6 +450,11 @@ export function buildCleanupBriefFromLastResult(lastResult, policy) {
   });
 }
 
+/**
+ * Build agent instructions.
+ * @param {string} context
+ * @returns {any}
+ */
 function buildAgentInstructions(context) {
   const lines = [
     'Execute cleanup in phases: (1) safeNow directories, (2) duplicate asset consolidation, (3) reviewFirst items only after confirmation.',
@@ -388,6 +471,15 @@ function buildAgentInstructions(context) {
   return lines;
 }
 
+/**
+ * Build agent prompt.
+ * @param {Object} options
+ * @param {any} estimatedReduction
+ * @param {any} inventory
+ * @param {any} projectedInventory
+ * @param {any} policy }
+ * @returns {any}
+ */
 export function buildAgentPrompt({ projectPath, estimatedReduction, inventory, projectedInventory, policy }) {
   return [
     `Proceed in agent mode using the attached cleanup brief for: ${projectPath}`,
@@ -405,6 +497,12 @@ export function buildAgentPrompt({ projectPath, estimatedReduction, inventory, p
   ].join('\n');
 }
 
+/**
+ * Render tier list.
+ * @param {Array} items
+ * @param {any} emptyLabel
+ * @returns {any}
+ */
 function renderTierList(items, emptyLabel) {
   if (!items?.length) {
     return `<li class="text-muted">${escapeHtml(emptyLabel)}</li>`;
@@ -418,10 +516,21 @@ function renderTierList(items, emptyLabel) {
   `).join('');
 }
 
+/**
+ * Render cleanup assistant panel.
+ * @param {any} brief
+ * @param {Object} options
+ * @returns {any}
+ */
 export function renderCleanupAssistantPanel(brief, { policy = loadCleanupPolicy() } = {}) {
   if (!brief) return '';
 
   const protectedValue = (policy.protectedPaths || DEFAULT_PROTECTED_PATHS).join('\n');
+/**
+ * Actions.
+ * @param {any} brief.dataQualityActions || []
+ * @returns {any}
+ */
   const actions = (brief.dataQualityActions || []).slice(0, 5).map((action) => `
     <li><strong>${escapeHtml(action.title)}</strong> <span class="text-muted">— ${escapeHtml(action.detail)}</span></li>
   `).join('') || '<li class="text-muted">No data-quality actions flagged.</li>';
@@ -491,6 +600,11 @@ export function renderCleanupAssistantPanel(brief, { policy = loadCleanupPolicy(
   `;
 }
 
+/**
+ * Read cleanup policy from dom.
+ * @param {any} root
+ * @returns {any}
+ */
 export function readCleanupPolicyFromDom(root) {
   const textarea = root?.querySelector('#cleanup-protected-paths');
   const protectedPaths = String(textarea?.value || '')

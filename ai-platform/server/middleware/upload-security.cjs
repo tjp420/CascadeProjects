@@ -14,6 +14,10 @@ const logger = require('../lib/app-logger.cjs');
 const fs = require('fs').promises;
 const path = require('path');
 
+const constants = require('../config/constants.cjs');
+/**
+ * Upload security middleware.
+ */
 class UploadSecurityMiddleware {
     constructor(options = {}) {
         this.options = {
@@ -227,8 +231,9 @@ class UploadSecurityMiddleware {
 
         try {
             // Read file content (limit to first 10KB for security scanning)
+            const SCAN_CONTENT_LIMIT = 10 * constants.BYTES_PER_KB;
             const buffer = await fs.readFile(file.path);
-            const content = buffer.slice(0, 10240).toString('utf8', 0, 10240);
+            const content = buffer.slice(0, SCAN_CONTENT_LIMIT).toString('utf8', 0, SCAN_CONTENT_LIMIT);
             
             // Check for suspicious patterns
             const suspiciousCheck = this.checkSuspiciousContent(content);
@@ -268,7 +273,7 @@ class UploadSecurityMiddleware {
      */
     checkRateLimit(user) {
         const now = Date.now();
-        const windowMs = 15 * 60 * 1000; // 15 minutes
+        const windowMs = constants.RATE_LIMIT_WINDOW_MS; // 15 minutes
         const maxUploads = this.getUserUploadLimit(user);
         
         // Initialize user upload tracking
@@ -327,10 +332,10 @@ class UploadSecurityMiddleware {
         }
         
         const userLimit = global.userUploadLimits.get(user.id);
-        const windowMs = 15 * 60 * 1000;
+        const windowMs = constants.RATE_LIMIT_WINDOW_MS;
         const timeUntilReset = windowMs - (Date.now() - userLimit.windowStart);
         
-        return Math.max(60, Math.ceil(timeUntilReset / 1000)); // At least 1 minute
+        return Math.max(60, Math.ceil(timeUntilReset / constants.MS_PER_SECOND)); // At least 1 minute
     }
 
     /**
@@ -479,7 +484,7 @@ class UploadSecurityMiddleware {
      * Parse size string to bytes
      */
     parseSize(sizeStr) {
-        const units = { B: 1, KB: 1024, MB: 1024 * 1024, GB: 1024 * 1024 * 1024 };
+        const units = { B: 1, KB: constants.BYTES_PER_KB, MB: constants.BYTES_PER_KB * constants.BYTES_PER_KB, GB: constants.BYTES_PER_KB * constants.BYTES_PER_KB * constants.BYTES_PER_KB };
         const match = sizeStr.match(/^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB)$/i);
         if (!match) throw new Error('Invalid size format');
         return parseFloat(match[1]) * units[match[2].toUpperCase()];
@@ -493,8 +498,8 @@ class UploadSecurityMiddleware {
         let size = bytes;
         let unitIndex = 0;
         
-        while (size >= 1024 && unitIndex < units.length - 1) {
-            size /= 1024;
+        while (size >= constants.BYTES_PER_KB && unitIndex < units.length - 1) {
+            size /= constants.BYTES_PER_KB;
             unitIndex++;
         }
         
