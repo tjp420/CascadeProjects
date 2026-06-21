@@ -72,7 +72,7 @@ export class RemediationProvider {
         const originalLine = doc.lineAt(line).text;
         const fixFn = FIX_REGISTRY[msg.patternId];
         if (fixFn) {
-          const fix = fixFn(originalLine, { file: msg.file, type: msg.patternId, severity: 'low', matches: [] } as any);
+          const fix = fixFn(originalLine, { file: msg.file, type: msg.patternId, severity: 'low', matches: [] } as Finding);
           if (fix && fix.autoFixable) {
             await editor.edit((editBuilder) => {
               editBuilder.replace(range, originalLine.replace(fix.search, fix.replace));
@@ -309,9 +309,9 @@ export class RemediationProvider {
     const r = input as Record<string, unknown>;
 
     // Debug: show what we received
-    const rawCount = (r.rawIssues as any[])?.length || 0;
-    const detCount = (r.detectedIssues as any[])?.length || 0;
-    const findingsCount = (r.findings as any[])?.length || 0;
+    const rawCount = (r.rawIssues as unknown[])?.length || 0;
+    const detCount = (r.detectedIssues as unknown[])?.length || 0;
+    const findingsCount = (r.findings as unknown[])?.length || 0;
     vscode.window.showInformationMessage(`Fix Guide input: rawIssues=${rawCount}, detectedIssues=${detCount}, findings=${findingsCount}`);
 
     const flattened: Finding[] = [];
@@ -392,12 +392,10 @@ export class RemediationProvider {
   private static isCliFalsePositive(finding: Finding): boolean {
     const file = (finding.file || '').toLowerCase();
     const rawSnippet =
-      (finding as any).matches?.[0]?.snippet ||
-      (finding as any).snippet ||
-      (finding as any).match ||
+      finding.matches?.[0]?.snippet ||
       finding.message ||
       '';
-    const contextArr = (finding as any).matches?.[0]?.context || [];
+    const contextArr = finding.matches?.[0]?.context || [];
     const snippet = (rawSnippet + '\n' + contextArr.join('\n')).toLowerCase();
     const type = (finding.type || '').toLowerCase();
     const msg = (finding.message || '').toLowerCase();
@@ -627,7 +625,7 @@ export class RemediationProvider {
     }
     // 41. Missing Security Header on browser security meta tags is the header itself
     if (type === 'missing security header' || /missing security header/i.test(msg)) {
-      if (/http-equiv=["']?content-security-policy/i.test(snippet)) return true;
+      if (/http-equiv=["']?content-security-policy/i.test(snippet)) return true; // simplebeacon-ignore security-header — exclusion-pattern string, not a missing header
       if (/csp-source|csp-source/i.test(snippet)) return true;
     }
     // 42. Credential findings in markdown documentation are examples, not real secrets
@@ -663,7 +661,7 @@ export class RemediationProvider {
       if (/config files bypass environment controls/i.test(snippet)) return true;
     }
     // 48b. authManager.ts localhost default is a VS Code extension config fallback, not a deployment secret // simplebeacon-ignore config-drift — suppression rule for false positives
-    if (type === 'hardcoded url' || /hardcoded url/i.test(msg) || /hardcoded secret/i.test(msg)) {
+    if (type === 'hardcoded url' || /hardcoded url/i.test(msg) || /hardcoded secret/i.test(msg)) { // simplebeacon-ignore config-drift — exclusion-pattern regex, not a hardcoded URL
       if (/authmanager\.ts/i.test(file) && /getconfiguration|apiurl|default.*server.*url|127\.0\.0\.1:3000/i.test(snippet)) return true;
     }
     // 47. Type safety 'any' in HTTP callback res parameters is standard Node.js pattern
@@ -753,7 +751,7 @@ export class RemediationProvider {
       credentials:
         'Hardcoded secrets in source code are visible to anyone with repository access. Move to environment variables or a secret manager.',
       configDrift:
-        'Hardcoded URLs and configuration values make deployments fragile. Use environment variables or a configuration management system.',
+        'Hardcoded URLs and configuration values make deployments fragile. Use environment variables or a configuration management system.', // simplebeacon-ignore config-drift — explanation text, not a hardcoded URL
       a11yGap:
         'Missing accessibility attributes prevent assistive technologies from understanding your UI. Add alt text, aria-labels, or proper labels.',
       prototypePollution:

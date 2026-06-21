@@ -92,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.commands.registerCommand('simplebeacon.openBrowser', async () => {
       const config = vscode.workspace.getConfiguration('simplebeacon');
-      const apiUrl = config.get<string>('apiUrl', '').trim();
+      const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
       if (!apiUrl) {
         vscode.window.showWarningMessage('SimpleBeacon API URL not configured. Run "Set API Server URL" command first.');
         return;
@@ -103,7 +103,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.commands.registerCommand('simplebeacon.openAnalyze', async () => {
       const config = vscode.workspace.getConfiguration('simplebeacon');
-      const apiUrl = config.get<string>('apiUrl', '').trim();
+      const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
       if (!apiUrl) {
         vscode.window.showWarningMessage('SimpleBeacon API URL not configured. Run "Set API Server URL" command first.');
         return;
@@ -114,7 +114,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.commands.registerCommand('simplebeacon.openUpload', async () => {
       const config = vscode.workspace.getConfiguration('simplebeacon');
-      const apiUrl = config.get<string>('apiUrl', '').trim();
+      const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
       if (!apiUrl) {
         vscode.window.showWarningMessage('SimpleBeacon API URL not configured. Run "Set API Server URL" command first.');
         return;
@@ -124,7 +124,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
 
     vscode.commands.registerCommand('simplebeacon.openPreview', async (url?: string, title?: string) => {
-      const configUrl = vscode.workspace.getConfiguration('simplebeacon').get<string>('apiUrl', '').trim();
+      const configUrl = (vscode.workspace.getConfiguration('simplebeacon').get<string>('apiServerUrl') || vscode.workspace.getConfiguration('simplebeacon').get<string>('apiUrl', '')).trim();
       const targetUrl = url || configUrl;
       if (!targetUrl) {
         vscode.window.showWarningMessage('SimpleBeacon API URL not configured. Run "Set API Server URL" command first.');
@@ -156,7 +156,7 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
       const config = vscode.workspace.getConfiguration('simplebeacon');
-      const apiUrl = config.get<string>('apiUrl', '').trim();
+      const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
       if (!apiUrl) {
         vscode.window.showWarningMessage('SimpleBeacon API URL not configured. Run "Set API Server URL" command first.');
         return;
@@ -170,9 +170,9 @@ export function activate(context: vscode.ExtensionContext) {
         const result: { content?: string; path?: string } = await new Promise((resolve, reject) => {
           const req = http.request(
             { hostname: parsed.hostname, port: parsed.port, path: parsed.pathname + parsed.search, method: 'GET' },
-            (res: any) => {
+            (res: http.IncomingMessage) => {
               let body = '';
-              res.on('data', (chunk: any) => {
+              res.on('data', (chunk: Buffer) => {
                 body += chunk;
               });
               res.on('end', () => {
@@ -276,7 +276,9 @@ async function openPreviewPanel(url: string, title: string) {
     const html = await fetchHtml(url);
     const { html: rewritten, origin } = rewritePageHtml(html, url);
     const parsedUrl = new URL(url);
-    panel.webview.html = injectPreviewScripts(rewritten, origin, parsedUrl.hash || '');
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    const workspacePath = workspaceFolders && workspaceFolders[0] ? workspaceFolders[0].uri.fsPath.replace(/\\/g, '/') : '';
+    panel.webview.html = injectPreviewScripts(rewritten, origin, parsedUrl.hash || '', workspacePath);
 
     panel.webview.onDidReceiveMessage(async (msg) => {
       if (msg.command === 'updateStats') {
@@ -289,7 +291,7 @@ async function openPreviewPanel(url: string, title: string) {
       }
       if (msg.command === 'sendToAI' && msg.data) {
         const config = vscode.workspace.getConfiguration('simplebeacon');
-        const apiUrl = config.get<string>('apiUrl', '').trim();
+        const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
         if (!apiUrl) {
           vscode.window.showWarningMessage('SimpleBeacon API URL not configured. Run "Set API Server URL" command first.');
           return;

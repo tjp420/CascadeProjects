@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as os from 'os';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -10,16 +11,15 @@ import { VisualSidebarProvider } from './visualSidebarProvider';
 import { ModernSidebarProvider } from './modernSidebarProvider';
 import { SummaryProvider } from './summaryProvider';
 import { RoadmapProvider } from './roadmapProvider';
-import { ReportWebview } from './webviewPanel';
-import { EnhancedDashboard } from './enhancedDashboard';
+import { EnhancedDashboard30 } from './enhancedDashboard3_0';
 import { Web2Panel } from './web2Panel';
 import { SettingsProvider } from './settingsProvider';
 import { EnhancedAIProvider } from './enhancedAIProvider';
 import { CodeMapProvider } from './codeMapProvider';
 import { RealtimeMonitor } from './realtimeMonitor';
-import { Dashboard20 } from './dashboard2_0';
 import { AICodeAnalyzer } from './aiIntegration/aiCodeAnalyzer';
 import { exportAIReport, AIReportOptions } from './aiIntegration/aiReportExporter';
+import { startDataServer, stopDataServer, updateServerState } from './dataServer';
 import { AdvancedAnalytics } from './analytics/advancedAnalytics';
 import { TeamDashboard } from './collaboration/teamDashboard';
 import { ScanResult, exportScanResultToJson } from './analyzers/workspaceAnalyzer';
@@ -31,6 +31,7 @@ import { ScanPanel } from './aiPlatform/scanPanel';
 import { UploadPanel } from './aiPlatform/uploadPanel';
 import { DiagnosticsManager } from './aiPlatform/diagnostics';
 import { DashboardPanel } from './aiPlatform/dashboardPanel';
+import { mergeLiveIssues, convertRealtimeIssues } from './reportMerge';
 
 interface DetectedIssue {
   severity?: string;
@@ -116,6 +117,7 @@ let hasEnhancedAnalysis = false;
 let statusBarItem: vscode.StatusBarItem;
 let authManager: AuthManager;
 let lastScannedProjectPath: string | null = null;
+let scanInProgress = false;
 
 // aiPlatform globals (exported for aiPlatform panels)
 /** Global SimpleBeacon provider instance. */
@@ -157,13 +159,30 @@ async function checkServerReachable(url: string, timeout = 3000): Promise<boolea
   }
 }
 
-function showServerOfflineMessage(apiUrl: string): void {
-  const hasLocal = !!currentReport && ((currentReport as any).issueCount > 0 || (currentReport as any).detectedIssues?.length > 0 || (currentReport as any).rawIssues?.length > 0);
-  if (hasLocal) {
-    outputChannel.appendLine(`[SimpleBeacon] Server offline at ${apiUrl} — local scan data available`);
-  } else {
-    vscode.window.showInformationMessage('SimpleBeacon server is not reachable at ' + apiUrl + '. Start the server or update the URL in settings.');
+async function withServerRetry<T>(action: () => Promise<T>, actionName = 'Open dashboard'): Promise<T | undefined> {
+  const apiUrl = getConfiguredApiUrl();
+  if (await checkServerReachable(apiUrl)) {
+    return action();
   }
+  const choice = await vscode.window.showErrorMessage(
+    `SimpleBeacon server is not reachable at ${apiUrl}. Start the server or update the URL in settings.`,
+    'Set Server URL',
+    'Retry',
+    'Open Settings'
+  );
+  if (choice === 'Set Server URL') {
+    await authManager.promptForServerUrl();
+    const newUrl = getConfiguredApiUrl();
+    if (await checkServerReachable(newUrl)) {
+      return action();
+    }
+    vscode.window.showWarningMessage(`Server still unreachable at ${newUrl}. Please verify the URL and try again.`);
+  } else if (choice === 'Retry') {
+    return withServerRetry(action, actionName);
+  } else if (choice === 'Open Settings') {
+    vscode.commands.executeCommand('simplebeacon.openSettings');
+  }
+  return undefined;
 }
 
 function updateStatusBar(report?: unknown) {
@@ -197,6 +216,7 @@ function updateStatusBar(report?: unknown) {
 export function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel('SimpleBeacon');
   context.subscriptions.push(outputChannel);
+  startDataServer(context);
 
   authManager = new AuthManager(context);
 
@@ -219,85 +239,64 @@ export function activate(context: vscode.ExtensionContext) {
     updateStatusBar(currentReport);
     if (currentReport) {
       roadmapProvider.updateFromReport(currentReport as ScanResult);
+      modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
     }
+    updateServerState({ currentReport, scanStatus: 'completed', scanMessage: 'Scan complete', lastScanTime: Date.now() });
   });
   realtimeMonitor = RealtimeMonitor.getInstance();
+
+  function safeUpdateUIs(report: unknown, statusMessage?: string) {
+    try {
+      EnhancedDashboard30.updateIfOpen(report);
+    } catch (e) {
+      outputChannel.appendLine(`[SimpleBeacon] Dashboard update failed: ${e}`);
+    }
+    try {
+      modernSidebarProvider.updateReport(report as Record<string, unknown>);
+    } catch (e) {
+      outputChannel.appendLine(`[SimpleBeacon] Sidebar update failed: ${e}`);
+    }
+    try {
+      summaryProvider.updateReport(report as Record<string, unknown>);
+    } catch (e) {
+      outputChannel.appendLine(`[SimpleBeacon] Summary update failed: ${e}`);
+    }
+    try {
+      updateStatusBar(report);
+    } catch (e) {
+      outputChannel.appendLine(`[SimpleBeacon] Status bar update failed: ${e}`);
+    }
+    if (statusMessage) {
+      try {
+        modernSidebarProvider.updateStatus('completed', statusMessage);
+      } catch (e) {
+        outputChannel.appendLine(`[SimpleBeacon] Status update failed: ${e}`);
+      }
+    }
+  }
 
   // Wire live findings to dashboard
   realtimeMonitor.onLiveFindings((issues) => {
     const report = (currentReport || enhancedAIProvider.getRawScanResult() || enhancedAIProvider.getScanResult()) as any;
     if (!report) return;
 
-    // Convert RealtimeIssues to rawIssues format
-    const liveIssues = issues.map((it) => ({
-      type: it.type,
-      severity: it.severity === 'error' ? 'high' : it.severity === 'warning' ? 'medium' : 'low',
-      description: it.message,
-      filePath: it.file,
-      file: it.file,
-      line: it.line,
-      message: it.message,
-      patternId: it.type,
-    }));
-
-    // Merge into report
-    report.rawIssues = report.rawIssues || [];
-    // Remove old live issues for this file to avoid duplicates
-    const fileSet = new Set(liveIssues.map((i: any) => i.filePath));
-    report.rawIssues = report.rawIssues.filter((ri: any) => !fileSet.has(ri.filePath || ri.file));
-    report.rawIssues.push(...liveIssues);
-
-    // Recalculate severity counts
-    const sc = report.severityCounts || {};
-    sc.critical = report.rawIssues.filter((i: any) => i.severity === 'critical').length;
-    sc.high = report.rawIssues.filter((i: any) => i.severity === 'high').length;
-    sc.medium = report.rawIssues.filter((i: any) => i.severity === 'medium').length;
-    sc.low = report.rawIssues.filter((i: any) => i.severity === 'low').length;
-    report.severityCounts = sc;
-    report.totalIssues = (sc.critical || 0) + (sc.high || 0) + (sc.medium || 0) + (sc.low || 0);
-
-    // Update dashboard if open
-    EnhancedDashboard.updateCurrentPanel(report);
-
-    // Update all sidebar providers in real time
-    scanProvider.updateReport(report);
-    enhancedScanProvider.updateReport(report);
-    visualSidebarProvider.updateReport(report);
-    modernSidebarProvider.updateReport(report);
-    summaryProvider.updateReport(report);
-    settingsProvider.updateReport(report);
-    updateStatusBar(report);
-    modernSidebarProvider.updateStatus('completed', `${report.totalIssues || 0} issues found`);
+    mergeLiveIssues(report, convertRealtimeIssues(issues));
+    safeUpdateUIs(report, `${report.totalIssues || 0} issues found`);
   });
 
   // Wire AI session events to update dashboard webview
   realtimeMonitor.onAiSessionEnd((files) => {
     outputChannel.appendLine(`[AI Session] Dashboard updating with ${files.length} AI-edited files`);
-    // Post AI session end message to dashboard webview
-    EnhancedDashboard.postMessage({
+    EnhancedDashboard30.postMessage({
       command: 'aiSessionEnd',
       fileCount: files.length,
       files: files.map((f) => f.split(/[\\/]/).pop() || f),
     });
     const report = (currentReport || enhancedAIProvider.getRawScanResult() || enhancedAIProvider.getScanResult()) as any;
     if (report) {
-      EnhancedDashboard.updateCurrentPanel(report);
-      // Update sidebar providers after AI session
-      scanProvider.updateReport(report);
-      enhancedScanProvider.updateReport(report);
-      visualSidebarProvider.updateReport(report);
-      modernSidebarProvider.updateReport(report);
-      summaryProvider.updateReport(report);
-      settingsProvider.updateReport(report);
-      updateStatusBar(report);
+      safeUpdateUIs(report);
     }
   });
-
-  // Auto-start real-time AI slop monitoring if enabled
-  const autoMonitor = vscode.workspace.getConfiguration('simplebeacon').get('autoMonitorAI');
-  if (autoMonitor) {
-    realtimeMonitor.start();
-  }
 
   // Initialize Phase 2 components
   aiCodeAnalyzer = AICodeAnalyzer.getInstance();
@@ -337,7 +336,7 @@ export function activate(context: vscode.ExtensionContext) {
     const parsed = new URL(apiUrl + '/api/vscode-heartbeat');
     const req = http.request(
       { hostname: parsed.hostname, port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80), path: parsed.pathname, method: 'POST', headers: { 'Content-Type': 'application/json' } },
-      (res: any) => { /* silently consume response */ }
+      (res: http.IncomingMessage) => { /* silently consume response */ }
     );
     req.on('error', () => { /* ignore — server may not be running yet */ });
     req.write(JSON.stringify({ version: context.extension.packageJSON?.version || '3.0.1' }));
@@ -368,19 +367,22 @@ export function activate(context: vscode.ExtensionContext) {
       Web2Panel.createOrShow(context.extensionUri);
     }),
     vscode.commands.registerCommand('simplebeacon.showReport', async () => {
+      // Always prefer local IDE dashboard — it's reliable and doesn't depend on external server
+      if (currentReport) {
+        const hasFindings = (currentReport as any).issueCount > 0 || (currentReport as any).detectedIssues?.length > 0 || (currentReport as any).rawIssues?.length > 0;
+        EnhancedDashboard30.createOrShow(context.extensionUri, currentReport, undefined, hasFindings);
+        return;
+      }
+      // No local report — try external web dashboard as fallback
       const apiUrl = getConfiguredApiUrl();
-      const reportUrl = apiUrl + '/scan-status.html';
+      const reportUrl = apiUrl + '/simplebeacon-dashboard/index.html#/analyze';
       if (await checkServerReachable(apiUrl)) {
         await vscode.commands.executeCommand('simpleBrowser.show', reportUrl);
         return;
       }
-      // Server offline — open local dashboard instead
-      if (currentReport) {
-        const hasFindings = (currentReport as any).issueCount > 0 || (currentReport as any).detectedIssues?.length > 0 || (currentReport as any).rawIssues?.length > 0;
-        EnhancedDashboard.createOrShow(context.extensionUri, currentReport, undefined, hasFindings);
-      } else {
-        showServerOfflineMessage(apiUrl);
-      }
+      await withServerRetry(async () => {
+        await vscode.commands.executeCommand('simpleBrowser.show', reportUrl);
+      }, 'Open dashboard');
     }),
     vscode.commands.registerCommand('simplebeacon.generateCertificate', () => {
       generateCertificate(enhancedAIProvider.getScanResult());
@@ -394,11 +396,12 @@ export function activate(context: vscode.ExtensionContext) {
       const result = enhancedAIProvider.getScanResult();
       if (result) {
         currentReport = enhancedAIProvider.convertScanResultToReport(result);
+        updateServerState({ currentReport, scanStatus: 'completed', scanMessage: 'Enhanced analysis complete', lastScanTime: Date.now() });
       }
       hasEnhancedAnalysis = true;
+      // Always open dashboard after enhanced analysis so user sees results immediately
       if (currentReport) {
-        EnhancedDashboard.createOrShow(context.extensionUri, currentReport, undefined, true);
-        Dashboard20.updateIfOpen(currentReport as import('./dashboard2_0').Dashboard20Report);
+        EnhancedDashboard30.createOrShow(context.extensionUri, currentReport, undefined, true);
       }
     }),
     vscode.commands.registerCommand('simplebeacon.realtimeAnalysis', () => {
@@ -410,33 +413,82 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('simplebeacon.modelHealth', () => {
       enhancedAIProvider.checkModelHealth();
     }),
-    vscode.commands.registerCommand('simplebeacon.showCodeMap', () => {
-      const report = currentReport || enhancedAIProvider.getScanResult();
-      if (!report) {
-        vscode.window.showInformationMessage('Run a scan first to generate code map');
-        return;
+    vscode.commands.registerCommand('simplebeacon.showCodeMap', async () => {
+      try {
+        let report = currentReport || enhancedAIProvider.getScanResult();
+        if (!report) {
+          const choice = await vscode.window.showInformationMessage(
+            'No scan data available. Run a workspace scan to generate the code map?',
+            'Scan Now',
+            'Cancel'
+          );
+          if (choice === 'Scan Now') {
+            await vscode.commands.executeCommand('simplebeacon.scanWorkspace');
+            // Poll for scan completion (up to 60 seconds) with progress feedback
+            const maxWait = 60;
+            let waited = 0;
+            await vscode.window.withProgress({
+              location: vscode.ProgressLocation.Notification,
+              title: 'Waiting for scan to complete for Code Map...',
+              cancellable: false
+            }, async () => {
+              while (!currentReport && waited < maxWait) {
+                await new Promise(r => setTimeout(r, 1000));
+                waited++;
+              }
+            });
+            report = currentReport || enhancedAIProvider.getScanResult();
+            if (!report) {
+              vscode.window.showWarningMessage('Scan is taking longer than expected. Code Map will open when data is available.');
+              return;
+            }
+          } else {
+            return;
+          }
+        }
+        CodeMapProvider.getInstance().showCodeMap(report, context);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage('Code Map error: ' + msg);
+        outputChannel.appendLine('[CodeMap] Error: ' + msg);
       }
-      CodeMapProvider.getInstance().showCodeMap(report, context);
     }),
     vscode.commands.registerCommand('simplebeacon.showRemediationGuide', () => {
-      let report: any = null;
+      function getIssueCount(data: unknown): number {
+        if (!data || typeof data !== 'object') return 0;
+        const r = data as Record<string, unknown>;
+        return (r.issueCount as number | undefined) || (r.rawIssues as unknown[])?.length || (r.detectedIssues as unknown[])?.length || 0;
+      }
+      function getFindingCount(data: unknown): number {
+        if (!data || typeof data !== 'object') return 0;
+        const r = data as Record<string, unknown>;
+        return ((r.summary as Record<string, unknown> | undefined)?.totalFindings as number | undefined) || (r.findings as unknown[])?.length || 0;
+      }
 
-      // PRIORITY 1: in-memory current report (most recent scan)
-      report = enhancedAIProvider.getRawScanResult() || currentReport || enhancedAIProvider.getScanResult();
+      // Pick the report that actually has findings (CLI vs workspace analyzer)
+      const cliReport = enhancedAIProvider.getRawScanResult() || currentReport;
+      const wsReport = enhancedAIProvider.getScanResult();
+      const cliCount = getIssueCount(cliReport);
+      const wsCount = getFindingCount(wsReport);
+      let report: unknown = cliCount >= wsCount ? cliReport : wsReport;
+
       if (report) {
-        const count = report.rawIssues?.length || report.detectedIssues?.length || report.issueCount || 0;
+        const count = getIssueCount(report) || getFindingCount(report);
         vscode.window.showInformationMessage(`🚀 Fix Guide: Loaded ${count} issues from current scan`);
       }
 
       // Fallback: direct file read from disk
       if (!report) {
         try {
+          const workspaceFolders = vscode.workspace.workspaceFolders;
           const reportPath = lastScannedProjectPath
             ? path.join(lastScannedProjectPath, '.simplebeacon', 'vscode-report.json')
-            : path.join('c:\\Users\\Trevor\\CascadeProjects\\coming-soon', '.simplebeacon', 'vscode-report.json');
-          if (fs.existsSync(reportPath)) {
+            : workspaceFolders && workspaceFolders.length > 0
+              ? path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'vscode-report.json')
+              : null;
+          if (reportPath && fs.existsSync(reportPath)) {
             report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-            const count = report.rawIssues?.length || report.detectedIssues?.length || 0;
+            const count = getIssueCount(report);
             vscode.window.showInformationMessage(`🚀 Fix Guide: Loaded ${count} issues from ${path.basename(path.dirname(reportPath))}`);
           }
         } catch (e) {
@@ -467,16 +519,9 @@ export function activate(context: vscode.ExtensionContext) {
           await vscode.workspace.fs.writeFile(uri, Buffer.from(html, 'utf8'));
           vscode.window.showInformationMessage('Email report saved');
         }
-      } catch (err: any) {
-        vscode.window.showErrorMessage(`Failed to export email: ${err.message}`);
+      } catch (err: unknown) {
+        vscode.window.showErrorMessage(`Failed to export email: ${err instanceof Error ? err.message : String(err)}`);
       }
-    }),
-    vscode.commands.registerCommand('simplebeacon.openEnhancedDashboard20', async () => {
-      if (!currentReport) {
-        vscode.window.showInformationMessage('Run a scan first to open Dashboard 2.0');
-        return;
-      }
-      Dashboard20.createOrShow(context.extensionUri, currentReport as import('./dashboard2_0').Dashboard20Report);
     }),
     vscode.commands.registerCommand('simplebeacon.runAdvancedAnalytics', async () => {
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -496,11 +541,9 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('simplebeacon.showTeamDashboard', async () => {
       const apiUrl = getConfiguredApiUrl();
       const teamUrl = apiUrl + '/simplebeacon-dashboard/';
-      if (!(await checkServerReachable(apiUrl))) {
-        showServerOfflineMessage(apiUrl);
-        return;
-      }
-      await vscode.commands.executeCommand('simpleBrowser.show', teamUrl);
+      await withServerRetry(async () => {
+        await vscode.commands.executeCommand('simpleBrowser.show', teamUrl);
+      }, 'Open team dashboard');
     }),
     vscode.commands.registerCommand('simplebeacon.setApiToken', async () => {
       await authManager.promptForToken();
@@ -511,6 +554,10 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand('simplebeacon.setServerUrl', async () => {
       await authManager.promptForServerUrl();
+      // Refresh sidebar with new URL
+      const cfg = vscode.workspace.getConfiguration('simplebeacon');
+      const newUrl = cfg.get<string>('apiServerUrl') || cfg.get<string>('apiUrl', 'http://127.0.0.1:3000') || 'http://127.0.0.1:3000';
+      modernSidebarProvider.updateServerUrl(newUrl);
     }),
     vscode.commands.registerCommand('simplebeacon.toggleRealtimeMonitoring', () => {
       if (realtimeMonitor['isMonitoring']) {
@@ -551,20 +598,40 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('simplebeacon.openInBrowser', async (path?: string) => {
       const apiUrl = getConfiguredApiUrl();
       const fullUrl = apiUrl + (path || '/');
-      if (!(await checkServerReachable(apiUrl))) {
-        showServerOfflineMessage(apiUrl);
-        return;
+      const mode = vscode.workspace.getConfiguration('simplebeacon').get<string>('browserOpenMode', 'externalBrowser');
+      if (mode === 'externalBrowser') {
+        await vscode.env.openExternal(vscode.Uri.parse(fullUrl));
+      } else {
+        await withServerRetry(async () => {
+          await vscode.commands.executeCommand('simpleBrowser.show', fullUrl);
+        }, 'Open in browser');
       }
-      await vscode.commands.executeCommand('simpleBrowser.show', fullUrl);
+    }),
+    vscode.commands.registerCommand('simplebeacon.openInternalDashboard', async () => {
+      const apiUrl = getConfiguredApiUrl();
+      const dashboardUrl = apiUrl + '/simplebeacon-dashboard/index.html#/analyze';
+      await withServerRetry(async () => {
+        await openPreviewPanel(dashboardUrl, 'SimpleBeacon Dashboard');
+      }, 'Open dashboard');
+    }),
+    vscode.commands.registerCommand('simplebeacon.toggleBrowserOpenMode', async () => {
+      const config = vscode.workspace.getConfiguration('simplebeacon');
+      const current = config.get<string>('browserOpenMode', 'externalBrowser');
+      const next = current === 'externalBrowser' ? 'simpleBrowser' : 'externalBrowser';
+      await config.update('browserOpenMode', next, true);
+      const label = next === 'externalBrowser' ? 'Internet Browser' : 'IDE';
+      vscode.window.showInformationMessage(`Browser open mode set to: ${label}`);
     }),
     vscode.commands.registerCommand('simplebeacon.openInPreview', async (path?: string) => {
-      const apiUrl = getConfiguredApiUrl();
-      const fullUrl = apiUrl + (path || '/');
-      if (!(await checkServerReachable(apiUrl))) {
-        showServerOfflineMessage(apiUrl);
+      if (path && /^https?:\/\//.test(path)) {
+        await openPreviewPanel(path, 'SimpleBeacon Preview');
         return;
       }
-      await openPreviewPanel(fullUrl, 'SimpleBeacon Preview');
+      const apiUrl = getConfiguredApiUrl();
+      const fullUrl = apiUrl + (path || '/');
+      await withServerRetry(async () => {
+        await openPreviewPanel(fullUrl, 'SimpleBeacon Preview');
+      }, 'Open preview');
     }),
     // aiPlatform commands
     vscode.commands.registerCommand('simplebeacon.scanFolder', (uri: vscode.Uri) => {
@@ -578,11 +645,9 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('simplebeacon.uploadReport', async () => {
       const apiUrl = getConfiguredApiUrl();
       const uploadUrl = apiUrl + '/audit.html';
-      if (!(await checkServerReachable(apiUrl))) {
-        showServerOfflineMessage(apiUrl);
-        return;
-      }
-      await vscode.commands.executeCommand('simpleBrowser.show', uploadUrl);
+      await withServerRetry(async () => {
+        await vscode.commands.executeCommand('simpleBrowser.show', uploadUrl);
+      }, 'Upload report');
     }),
     vscode.commands.registerCommand('simplebeacon.refreshResults', async () => {
       provider.refresh();
@@ -606,21 +671,24 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand('simplebeacon.openAnalyze', async () => {
       const apiUrl = getConfiguredApiUrl();
-      const analyzeUrl = apiUrl + '/scan.html';
-      if (!(await checkServerReachable(apiUrl))) {
-        showServerOfflineMessage(apiUrl);
-        return;
-      }
-      await vscode.commands.executeCommand('simpleBrowser.show', analyzeUrl);
+      const analyzeUrl = apiUrl + '/simplebeacon-dashboard/index.html#/analyze';
+      await withServerRetry(async () => {
+        await vscode.commands.executeCommand('simpleBrowser.show', analyzeUrl);
+      }, 'Open analyze page');
     }),
     vscode.commands.registerCommand('simplebeacon.openUpload', async () => {
       const apiUrl = getConfiguredApiUrl();
       const uploadUrl = apiUrl + '/audit.html';
-      if (!(await checkServerReachable(apiUrl))) {
-        showServerOfflineMessage(apiUrl);
-        return;
-      }
-      await vscode.commands.executeCommand('simpleBrowser.show', uploadUrl);
+      await withServerRetry(async () => {
+        await vscode.commands.executeCommand('simpleBrowser.show', uploadUrl);
+      }, 'Open upload page');
+    }),
+    vscode.commands.registerCommand('simplebeacon.openReport', async () => {
+      const apiUrl = getConfiguredApiUrl();
+      const reportUrl = apiUrl + '/simplebeacon-dashboard/index.html';
+      await withServerRetry(async () => {
+        await openPreviewPanel(reportUrl, 'SimpleBeacon Report');
+      }, 'Open report');
     }),
     vscode.commands.registerCommand('simplebeacon.syncTokenFromDashboard', async () => {
       const token = await authManager.promptForToken();
@@ -630,11 +698,9 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand('simplebeacon.openPreview', async (url?: string, title?: string) => {
       const targetUrl = url || getConfiguredApiUrl();
-      if (!(await checkServerReachable(targetUrl))) {
-        showServerOfflineMessage(targetUrl);
-        return;
-      }
-      await openPreviewPanel(targetUrl, title || 'SimpleBeacon Preview');
+      await withServerRetry(async () => {
+        await openPreviewPanel(targetUrl, title || 'SimpleBeacon Preview');
+      }, 'Open preview');
     }),
     vscode.commands.registerCommand('simplebeacon.openAiContext', async () => {
       const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -656,19 +722,15 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showWarningMessage('No workspace folder open');
         return;
       }
-      const apiUrl = getConfiguredApiUrl();
       const projectPath = workspaceFolders[0].uri.fsPath;
-      if (!(await checkServerReachable(apiUrl))) {
-        showServerOfflineMessage(apiUrl);
-        return;
-      }
-      try {
+      await withServerRetry(async () => {
+        const apiUrl = getConfiguredApiUrl();
         const url = `${apiUrl}/api/ai-context?projectPath=${encodeURIComponent(projectPath)}`;
-        const httpMod = require('http');
         const parsed = new URL(url);
+        const httpMod = parsed.protocol === 'https:' ? require('https') : require('http');
         const result: { content?: string; path?: string } = await new Promise((resolve, reject) => {
           const req = httpMod.request(
-            { hostname: parsed.hostname, port: parsed.port || 80, path: parsed.pathname + parsed.search, method: 'GET' },
+            { hostname: parsed.hostname, port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80), path: parsed.pathname + parsed.search, method: 'GET' },
             (res: NodeJS.ReadableStream) => {
               let body = '';
               res.on('data', (chunk: Buffer | string) => {
@@ -696,11 +758,7 @@ export function activate(context: vscode.ExtensionContext) {
             'No AI context found. Run a scan and click "Send to AI" on the dashboard first.'
           );
         }
-      } catch (err) {
-        vscode.window.showErrorMessage(
-          'Failed to fetch AI context: ' + (err instanceof Error ? err.message : String(err))
-        );
-      }
+      }, 'Send to AI');
     }),
     vscode.commands.registerCommand('simplebeacon.sendSidebarToAi', async (report?: unknown) => {
       const data = (report || currentReport) as SidebarReport | null;
@@ -742,6 +800,65 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('simplebeacon.refreshDashboard', (stats) => {
       dashboardPanel.updateStats(stats);
     }),
+    vscode.commands.registerCommand('simplebeacon.openSidebarDebug', () => {
+      modernSidebarProvider.openDebugPreview();
+    }),
+    vscode.commands.registerCommand('simplebeacon.openSidebarInBrowser', () => {
+      modernSidebarProvider.openSidebarInBrowser();
+    }),
+    vscode.commands.registerCommand('simplebeacon.openStandaloneDebug', () => {
+      modernSidebarProvider.openStandaloneDebug();
+    }),
+    vscode.commands.registerCommand('simplebeacon.openSidebarDebugFile', (filePath?: string) => {
+      const target = filePath || path.join(os.tmpdir(), 'simplebeacon-sidebar-debug.html');
+      modernSidebarProvider.openSidebarDebugFile(target);
+    }),
+    vscode.commands.registerCommand('simplebeacon.diagnoseSidebar', async () => {
+      vscode.window.showInformationMessage('Running SimpleBeacon sidebar diagnose... check Output panel');
+      const diagChannel = vscode.window.createOutputChannel('SimpleBeacon Sidebar Diagnose');
+      diagChannel.clear();
+      diagChannel.appendLine('=== SimpleBeacon Sidebar External Diagnose ===');
+      diagChannel.appendLine(`Extension version: ${context.extension.packageJSON?.version || 'unknown'}`);
+      diagChannel.appendLine(`VS Code version: ${vscode.version}`);
+      diagChannel.appendLine(`ModernSidebarProvider registered: ${!!modernSidebarProvider}`);
+      diagChannel.appendLine(`Sidebar HTML cached: ${ModernSidebarProvider._sidebarHtml ? 'YES (' + ModernSidebarProvider._sidebarHtml.length + ' chars)' : 'NO'}`);
+      diagChannel.appendLine(`Dashboard HTML cached: ${ModernSidebarProvider._dashboardHtml ? 'YES (' + ModernSidebarProvider._dashboardHtml.length + ' chars)' : 'NO'}`);
+      diagChannel.appendLine(`Current report: ${currentReport ? 'YES (' + Object.keys(currentReport as any).length + ' keys)' : 'NO'}`);
+      diagChannel.appendLine(`_view reference: ${(modernSidebarProvider as any)._view ? 'SET' : 'NULL'}`);
+      // Check _view state
+      const view: any = (modernSidebarProvider as any)._view;
+      diagChannel.appendLine(`Webview view (_view) set: ${!!view}`);
+      if (view) {
+        diagChannel.appendLine(`Webview view visible: ${view.visible ?? 'unknown'}`);
+        diagChannel.appendLine(`Webview view disposed: ${!!view._isDisposed}`);
+        diagChannel.appendLine(`Webview HTML length: ${view.webview?.html?.length ?? 'N/A'}`);
+      }
+      const cfg = vscode.workspace.getConfiguration('simplebeacon');
+      const apiUrl = cfg.get<string>('apiServerUrl') || cfg.get<string>('apiUrl', 'http://127.0.0.1:3000') || 'http://127.0.0.1:3000';
+      diagChannel.appendLine(`Configured API URL: ${apiUrl}`);
+      // Check if relay server is running
+      const relayPort = (ModernSidebarProvider as any)._relayPort;
+      diagChannel.appendLine(`Relay port: ${relayPort || 'NOT STARTED'}`);
+      // Test API reachability
+      const reachable = await checkServerReachable(apiUrl, 3000);
+      diagChannel.appendLine(`API reachable: ${reachable ? 'YES' : 'NO'}`);
+      // Try to open the sidebar view if not already visible
+      try {
+        await vscode.commands.executeCommand('simplebeacon-modern.focus');
+        diagChannel.appendLine('Sidebar focus command: SENT');
+      } catch (e) {
+        diagChannel.appendLine(`Sidebar focus command: FAILED (${e instanceof Error ? e.message : String(e)})`);
+      }
+      // Send a test status update to the sidebar
+      try {
+        modernSidebarProvider.updateStatus('ready', 'External diagnose complete');
+        diagChannel.appendLine('Test status update: SENT');
+      } catch (e) {
+        diagChannel.appendLine(`Test status update: FAILED (${e instanceof Error ? e.message : String(e)})`);
+      }
+      diagChannel.appendLine('=== End Diagnose ===');
+      diagChannel.show(true);
+    }),
   ];
 
   context.subscriptions.push(...commands);
@@ -752,6 +869,16 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   loadExistingReport(context);
+
+  // Auto-start realtime monitoring if workspace is open
+  const folders = vscode.workspace.workspaceFolders;
+  if (folders && folders.length > 0) {
+    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const autoMonitor = config.get<boolean>('autoStartRealtimeMonitor', true);
+    if (autoMonitor && !realtimeMonitor['isMonitoring']) {
+      realtimeMonitor.start();
+    }
+  }
 
   // aiPlatform: watch for new AI context files and auto-open them
   const workspaceFoldersAP = vscode.workspace.workspaceFolders;
@@ -788,10 +915,45 @@ export function activate(context: vscode.ExtensionContext) {
               })
               .catch(() => {});
           }
+          return;
+        }
+        // Sidebar deep-link navigation from browser URLs
+        if (uri.path === '/sidebar' || uri.path === 'sidebar') {
+          const params = new URLSearchParams(uri.query);
+          const page = params.get('page') || '';
+          if (page) {
+            modernSidebarProvider.navigateToPage(page);
+          }
+          return;
         }
       },
     })
   );
+}
+
+/**
+ * Resolve the SimpleBeacon CLI entry point.
+ * Tries bundled, workspace-local, and npx global paths.
+ */
+function resolveCliPath(): { cmd: string; args: string[] } | null {
+  // 1. Bundled CLI (development build)
+  const bundled = path.join(__dirname, '..', 'packages', 'simplebeacon-cli', 'bin', 'simplebeacon.js');
+  if (fs.existsSync(bundled)) {
+    return { cmd: 'node', args: [bundled] };
+  }
+
+  // 2. Workspace-local CLI (if user cloned the repo)
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (workspaceFolders && workspaceFolders.length > 0) {
+    const localCli = path.join(workspaceFolders[0].uri.fsPath, 'packages', 'simplebeacon-cli', 'bin', 'simplebeacon.js');
+    if (fs.existsSync(localCli)) {
+      return { cmd: 'node', args: [localCli] };
+    }
+  }
+
+  // 3. Global npx install (use npx.cmd on Windows so spawn(shell:false) works)
+  const isWindows = process.platform === 'win32';
+  return { cmd: isWindows ? 'npx.cmd' : 'npx', args: ['simplebeacon'] };
 }
 
 /**
@@ -800,11 +962,20 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
   outputChannel?.dispose();
   diagnosticsManager?.dispose();
+  stopDataServer();
 }
 
 async function runScan(context: vscode.ExtensionContext) {
-  const cliOk = await checkCliAvailable();
+  if (scanInProgress) {
+    vscode.window.showInformationMessage('A scan is already running. Please wait for it to complete.');
+    return;
+  }
+  scanInProgress = true;
+
+  const cliResolved = resolveCliPath();
+  const cliOk = cliResolved !== null;
   if (!cliOk) {
+    scanInProgress = false;
     const install = await vscode.window.showWarningMessage(
       'SimpleBeacon CLI not found. Install it with: npm install -g simplebeacon-cli',
       'Copy Command',
@@ -818,7 +989,10 @@ async function runScan(context: vscode.ExtensionContext) {
   }
 
   const projectPath = await pickWorkspaceFolder();
-  if (!projectPath) return;
+  if (!projectPath) {
+    scanInProgress = false;
+    return;
+  }
   lastScannedProjectPath = projectPath;
 
   // Clear stale vscode-report.json so sidebar doesn't show old scan data
@@ -859,7 +1033,8 @@ async function runScan(context: vscode.ExtensionContext) {
   visualSidebarProvider.setScanning(true, { phase: 'Initializing', progress: 0, total: 100 });
   modernSidebarProvider.updateStatus('scanning', 'Scanning...');
 
-  const args = ['scan', '--full', '--format', 'json', '--output', '.simplebeacon/report.json'];
+  const normalizedPath = projectPath.replace(/\\/g, '/');
+  const args = ['scan', '--full', '--format', 'json', '--output', '.simplebeacon/report.json', '--path', normalizedPath];
 
   const configPath = path.join(projectPath, '.simplebeacon', 'config.json');
   if (fs.existsSync(configPath)) {
@@ -870,22 +1045,19 @@ async function runScan(context: vscode.ExtensionContext) {
     args.push('--exclude', excludePatterns.join(','));
   }
 
-  // Find the best CLI executable: prefer local dev build over broken npx global
-  function resolveSimpleBeaconCli(): { cmd: string; cliArgs: string[] } {
-    const candidates = [
-      path.join('c:', 'Users', 'Trevor', 'CascadeProjects', 'packages', 'simplebeacon-cli', 'bin', 'simplebeacon.js'),
-      path.join('c:', 'Users', 'Trevor', 'CascadeProjects', 'coming-soon', 'packages', 'simplebeacon-cli', 'bin', 'simplebeacon.js'),
-    ];
-    for (const candidate of candidates) {
-      if (fs.existsSync(candidate)) {
-        return { cmd: 'node', cliArgs: [candidate, ...args] };
-      }
-    }
-    // Fall back to npx global (may be broken, but best effort)
-    return { cmd: 'npx', cliArgs: ['simplebeacon', ...args] };
+  if (!cliResolved) {
+    vscode.window.showErrorMessage('SimpleBeacon CLI not found. Install with: npm install -g simplebeacon-cli');
+    return;
   }
-  const { cmd, cliArgs } = resolveSimpleBeaconCli();
-  outputChannel.appendLine(`[SimpleBeacon] CLI: ${cmd} ${cliArgs[0]}`);
+
+  const cmd = cliResolved.cmd;
+  const cliArgs = [...cliResolved.args, ...args];
+  outputChannel.appendLine(`[SimpleBeacon] CLI: ${cmd} ${cliArgs.join(' ')}`);
+  outputChannel.appendLine(`[SimpleBeacon] DEBUG projectPath: ${projectPath}`);
+  outputChannel.appendLine(`[SimpleBeacon] DEBUG normalizedPath: ${normalizedPath}`);
+  outputChannel.appendLine(`[SimpleBeacon] DEBUG path exists: ${fs.existsSync(projectPath)}`);
+  outputChannel.appendLine(`[SimpleBeacon] DEBUG isDirectory: ${fs.existsSync(projectPath) && fs.statSync(projectPath).isDirectory()}`);
+  outputChannel.appendLine(`[SimpleBeacon] DEBUG args: ${JSON.stringify(cliArgs)}`);
 
   return vscode.window.withProgress(
     {
@@ -895,9 +1067,11 @@ async function runScan(context: vscode.ExtensionContext) {
     },
     (progress, token) => {
       return new Promise((resolve, reject) => {
+        // Windows .cmd files need shell:true to execute properly
+        const useShell = process.platform === 'win32' && (cmd.endsWith('.cmd') || cmd.endsWith('.bat'));
         const child = spawn(cmd, cliArgs, {
           cwd: projectPath,
-          shell: true,
+          shell: useShell,
           env: { ...process.env, FORCE_COLOR: '0' },
         });
 
@@ -906,6 +1080,7 @@ async function runScan(context: vscode.ExtensionContext) {
 
         token.onCancellationRequested(() => {
           child.kill();
+          scanInProgress = false;
           outputChannel.appendLine('[SimpleBeacon] Scan cancelled');
           enhancedScanProvider.setScanning(false);
           visualSidebarProvider.setScanning(false);
@@ -913,8 +1088,20 @@ async function runScan(context: vscode.ExtensionContext) {
           reject(new Error('Cancelled'));
         });
 
+        child.on('error', (err: Error) => {
+          scanInProgress = false;
+          outputChannel.appendLine(`[SimpleBeacon] DEBUG spawn error: ${err.message}`);
+          vscode.window.showErrorMessage(`SimpleBeacon spawn failed: ${err.message}`);
+          reject(err);
+        });
+
+        let firstChunk = true;
         child.stdout.on('data', (data: Buffer) => {
           const chunk = data.toString();
+          if (firstChunk) {
+            firstChunk = false;
+            outputChannel.appendLine(`[SimpleBeacon] DEBUG first stdout chunk: ${chunk.slice(0, 200).replace(/\n/g, '\\n')}`);
+          }
           stdout += chunk;
           chunk.split('\n').forEach((line: string) => {
             if (line.trim()) {
@@ -951,6 +1138,7 @@ async function runScan(context: vscode.ExtensionContext) {
           // Only treat as error if both stdout and stderr are empty
           const output = stdout.trim() || stderr.trim();
           if (code !== 0 && code !== null && !output) {
+            scanInProgress = false;
             const errDetail = 'No output from CLI. Ensure simplebeacon is installed: npm install -g simplebeacon-cli';
             outputChannel.appendLine(`[SimpleBeacon] Scan failed (exit ${code}): ${errDetail}`);
             vscode.window.showErrorMessage(`Scan failed (exit ${code}): ${errDetail}`);
@@ -986,6 +1174,7 @@ async function runScan(context: vscode.ExtensionContext) {
 
             // Detect quota/blocking errors from the CLI report
             if (report && (report.error || report.scan_summary?.status === 'BLOCKED')) {
+              scanInProgress = false;
               const reason = report.error || report.scan_summary?.reason || 'scan blocked';
               vscode.window.showWarningMessage(
                 `SimpleBeacon scan blocked: ${reason}. ` +
@@ -1016,8 +1205,11 @@ async function runScan(context: vscode.ExtensionContext) {
               while ((match = issueRegex.exec(output)) !== null) {
                 const [, severity, type, description] = match;
                 const fileMatch = description.match(/^(.+?):(\d+)\s*(?:[-\u2013\u2014]\s+)?(.+)$/);
-                const filePath = fileMatch ? fileMatch[1] : '';
-                const lineNum = fileMatch ? parseInt(fileMatch[2]) : 1;
+                let filePath = fileMatch ? fileMatch[1] : '';
+                let lineNum = fileMatch ? parseInt(fileMatch[2]) : 1;
+                if (!filePath && description) {
+                  filePath = description;
+                }
                 rawIssues.push({
                   severity,
                   type,
@@ -1068,6 +1260,7 @@ async function runScan(context: vscode.ExtensionContext) {
             }
 
             currentReport = report;
+            updateServerState({ currentReport: report, scanStatus: 'completed', scanMessage: 'CLI scan complete', lastScanTime: Date.now() });
             hasEnhancedAnalysis = false;
             enhancedAIProvider.setScanResult(report);
 
@@ -1090,9 +1283,12 @@ async function runScan(context: vscode.ExtensionContext) {
             CodeMapProvider.getInstance().updateData(report as ScanResult);
             vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
             updateStatusBar(report);
-            // Open dashboard with findings visible immediately
-            const hasFindings = (report.issueCount || 0) > 0 || (report.detectedIssues?.length || 0) > 0 || (report.rawIssues?.length || 0) > 0;
-            EnhancedDashboard.createOrShow(context.extensionUri, report, undefined, hasFindings);
+            // Open dashboard only if explicitly enabled
+            const autoOpen = vscode.workspace.getConfiguration('simplebeacon').get<boolean>('autoOpenPreviewPanel', false);
+            if (autoOpen) {
+              const hasFindings = (report.issueCount || 0) > 0 || (report.detectedIssues?.length || 0) > 0 || (report.rawIssues?.length || 0) > 0;
+              EnhancedDashboard30.createOrShow(context.extensionUri, report, undefined, hasFindings);
+            }
 
             const score = report.qualityScore ?? '[HIDDEN]';
             const gateStatus = report.gate?.pass ? 'PASS' : 'FAIL';
@@ -1105,18 +1301,15 @@ async function runScan(context: vscode.ExtensionContext) {
               }
             }).catch(() => {});
             outputChannel.appendLine(`[SimpleBeacon] Scan complete. Score: ${score}/100 — Gate: ${gateStatus}`);
+            scanInProgress = false;
             resolve(report);
           } catch (err: unknown) {
+            scanInProgress = false;
             const e = err instanceof Error ? err : new Error(String(err));
             outputChannel.appendLine(`[SimpleBeacon] Failed to parse report: ${e.message}`);
             outputChannel.appendLine(`[SimpleBeacon] Raw output: ${stdout.slice(0, 200)}...`);
             reject(err);
           }
-        });
-
-        child.on('error', (err: Error) => {
-          vscode.window.showErrorMessage(`Failed to start scan: ${err.message}`);
-          reject(err);
         });
       });
     }
@@ -1125,6 +1318,7 @@ async function runScan(context: vscode.ExtensionContext) {
 
 function clearResults() {
   currentReport = null;
+  updateServerState({ currentReport: null, scanStatus: 'idle', scanMessage: 'Ready to scan' });
   scanProvider.clear();
   enhancedScanProvider.clear();
   visualSidebarProvider.clear();
@@ -1194,7 +1388,20 @@ function generateCertificate(report?: unknown) {
   fs.writeFileSync(certPath, JSON.stringify(certificate, null, 2));
   fs.writeFileSync(certHtmlPath, html);
   vscode.window.showInformationMessage(`Certificate saved to ${certPath}`);
-  vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(certHtmlPath).toString());
+  modernSidebarProvider?.addDownloadedFile('certificate.json', certPath);
+  modernSidebarProvider?.addDownloadedFile('certificate.html', certHtmlPath);
+
+  const openInBrowser = vscode.workspace.getConfiguration('simplebeacon').get<boolean>('openInExternalBrowser', false);
+  if (openInBrowser) {
+    // Convert file:// URI to an externally accessible URI for the browser
+    vscode.env.asExternalUri(vscode.Uri.file(certHtmlPath)).then((externalUri) => {
+      vscode.env.openExternal(externalUri);
+    });
+  } else {
+    // Open certificate in a VS Code webview panel (default)
+    const panel = vscode.window.createWebviewPanel('simplebeaconCertificate', 'SimpleBeacon Certificate', vscode.ViewColumn.One, { enableScripts: true });
+    panel.webview.html = html;
+  }
 }
 
 function buildCertificateHtml(cert: CertificateData): string {
@@ -1284,6 +1491,7 @@ async function exportReport() {
   if (uri) {
     fs.writeFileSync(uri.fsPath, JSON.stringify(currentReport, null, 2));
     vscode.window.showInformationMessage(`Report exported to ${uri.fsPath}`);
+    modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
   }
 }
 
@@ -1302,6 +1510,7 @@ async function exportReportJson() {
   if (uri) {
     fs.writeFileSync(uri.fsPath, exportScanResultToJson(report, true));
     vscode.window.showInformationMessage(`Structured report exported to ${uri.fsPath}`);
+    modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
   }
 }
 
@@ -1368,6 +1577,7 @@ async function exportAIReportCommand(context: vscode.ExtensionContext) {
     if (uri) {
       fs.writeFileSync(uri.fsPath, reportText, 'utf8');
       vscode.window.showInformationMessage(`AI report saved to ${uri.fsPath}`);
+      modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
     }
   } else if (action === 'Open in Editor') {
     const doc = await vscode.workspace.openTextDocument({
@@ -1472,8 +1682,9 @@ async function analyzeWithAI(context: vscode.ExtensionContext) {
           }
 
           hasEnhancedAnalysis = true;
-          if (currentReport) {
-            EnhancedDashboard.createOrShow(context.extensionUri, currentReport, undefined, true);
+          const autoOpenAI = vscode.workspace.getConfiguration('simplebeacon').get<boolean>('autoOpenPreviewPanel', false);
+          if (currentReport && autoOpenAI) {
+            EnhancedDashboard30.createOrShow(context.extensionUri, currentReport, undefined, true);
           }
 
           const analysisPath = path.join(sbDir, 'ai-analysis', 'analysis.json');
@@ -1488,7 +1699,7 @@ async function analyzeWithAI(context: vscode.ExtensionContext) {
                   )
                   .then((selection) => {
                     if (selection === 'Open Dashboard' && currentReport) {
-                      EnhancedDashboard.createOrShow(context.extensionUri, currentReport, undefined, true);
+                      EnhancedDashboard30.createOrShow(context.extensionUri, currentReport, undefined, true);
                     }
                   }, () => {});
               } else {
@@ -1628,6 +1839,7 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
         return false;
       }
       currentReport = report;
+      updateServerState({ currentReport: report, scanStatus: 'completed', scanMessage: 'Loaded previous scan', lastScanTime: Date.now() });
       enhancedAIProvider.setScanResult(report);
       scanProvider.updateReport(report);
       enhancedScanProvider.updateReport(report);
@@ -1684,6 +1896,7 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
         const rp = path.join(sbDir, backups[0]);
         const report = JSON.parse(fs.readFileSync(rp, 'utf8'));
         currentReport = report;
+        updateServerState({ currentReport: report, scanStatus: 'completed', scanMessage: 'Loaded backup report', lastScanTime: Date.now() });
         enhancedAIProvider.setScanResult(report);
         scanProvider.updateReport(report);
         enhancedScanProvider.updateReport(report);
@@ -1715,7 +1928,7 @@ async function openPreviewPanel(url: string, title: string) {
     enableScripts: true,
     retainContextWhenHidden: true,
   });
-  const baseUrl = url.replace(/#.*$/, '').replace(/\/[^\/]*$/, '/');
+  const baseUrl = url.replace(/\?.*$/, '').replace(/#.*$/, '').replace(/\/[^\/]*$/, '/');
   const origin = url.replace(/^(https?:\/\/[^\/]+).*$/, '$1');
   try {
     const html = await fetchHtml(url);
@@ -1746,11 +1959,31 @@ async function openPreviewPanel(url: string, title: string) {
     const hashRoute = parsedUrl.hash || '';
     const initialView = hashRoute.replace(/^#\//, '');
     const routeScript = initialView ? '<script>window.__SB_INITIAL_ROUTE__ = "' + initialView + '";<\/script>' : '';
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    const workspacePath = workspaceFolders && workspaceFolders[0] ? workspaceFolders[0].uri.fsPath.replace(/\\/g, '/') : '';
+    const projectPathScript = '<script>window.__SB_DEFAULT_PROJECT_PATH__ = ' + JSON.stringify(workspacePath) + ';<\/script>';
+    const fetchInterceptorScript = `<script>
+(function() {
+  const origFetch = window.fetch;
+  window.fetch = function() {
+    const args = arguments;
+    const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
+    return origFetch.apply(this, args).then(function(res) {
+      if (res.status >= 400) {
+        res.clone().text().then(function(body) {
+          /* Fetch errors logged by server; silence in webview */
+        });
+      }
+      return res;
+    });
+  };
+})();
+<\/script>`;
     const headClose = rewritten.indexOf('</head>');
     if (headClose > 0) {
-      rewritten = rewritten.slice(0, headClose) + cspTag + apiHostScript + routeScript + rewritten.slice(headClose);
+      rewritten = rewritten.slice(0, headClose) + cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + rewritten.slice(headClose);
     } else {
-      rewritten = cspTag + apiHostScript + routeScript + rewritten;
+      rewritten = cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + rewritten;
     }
     panel.webview.html = rewritten;
     panel.webview.onDidReceiveMessage(async (msg) => {
@@ -1811,13 +2044,28 @@ async function openPreviewPanel(url: string, title: string) {
       } else if (msg.command === 'scanComplete' && msg.stats) {
         vscode.commands.executeCommand('simplebeacon.refreshDashboard', msg.stats);
       } else if (msg.command === 'updateReport' && msg.report) {
+        const report = msg.report;
+        // Store full report so the extension can use it everywhere
+        currentReport = report;
+        enhancedAIProvider.setScanResult(report);
+        updateServerState({ currentReport: report, scanStatus: 'completed', scanMessage: 'Report updated', lastScanTime: Date.now() });
+        // Update all UI providers with the full report
+        summaryProvider.updateReport(report);
+        settingsProvider.updateReport(report);
+        modernSidebarProvider.updateReport(report);
+        dashboardPanel?.updateReport(report);
+        EnhancedDashboard30.updateIfOpen(report);
+        vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
+        updateStatusBar(report);
+        // Also refresh stats for the sidebar badge
+        const sev = report.severityCounts || {};
         vscode.commands.executeCommand('simplebeacon.refreshDashboard', {
-          issues: msg.report.issueCount || 0,
-          critical: msg.report.severityCounts?.critical || 0,
-          high: msg.report.severityCounts?.high || 0,
-          medium: msg.report.severityCounts?.medium || 0,
-          low: msg.report.severityCounts?.low || 0,
-          score: msg.report.qualityScore || 0,
+          issues: report.issueCount || 0,
+          critical: sev.critical || 0,
+          high: sev.high || 0,
+          medium: sev.medium || 0,
+          low: sev.low || 0,
+          score: report.qualityScore || 0,
         });
       }
     });
@@ -1866,6 +2114,7 @@ function fetchHtml(url: string, maxRedirects = 5): Promise<string> {
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function renderEmailTemplate(report: any, extensionPath: string): string {
   const r = report || {};
   const sev = r.severityCounts || {};
@@ -1884,7 +2133,7 @@ function renderEmailTemplate(report: any, extensionPath: string): string {
   // Build findings HTML from rawIssues
   const raw = r.rawIssues || r.detectedIssues || [];
   const findingsHtml = raw.length > 0
-    ? raw.map((it: any) => {
+    ? raw.map((it: { severity: string; type?: string; file?: string; filePath?: string; line?: number; description?: string; message?: string }) => {
         const sevColor = it.severity === 'critical' || it.severity === 'high' ? '#ef4444'
           : it.severity === 'medium' ? '#f59e0b' : '#10b981';
         return `<div class="finding">

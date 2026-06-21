@@ -81,8 +81,8 @@ export class AdvancedAnalytics {
         timestamp: new Date(),
         metrics,
         issues,
-        trends: {} as any,
-        predictions: {} as any,
+        trends: { codeQuality: [], securityScore: [], maintainability: [] },
+        predictions: { nextIssues: 0, qualityTrend: 'stable', riskLevel: 'low', recommendations: [] },
       };
 
       const trends = this.calculateTrends([tempAnalyticsData]);

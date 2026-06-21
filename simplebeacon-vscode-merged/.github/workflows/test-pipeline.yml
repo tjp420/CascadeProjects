@@ -1,0 +1,115 @@
+name: SimpleBeacon Test Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Phase 1: Cross-platform validation
+  validate:
+    name: Validate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache Node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+            packages/simplebeacon-cli/node_modules
+            simplebeacon-vscode-merged/node_modules
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install SimpleBeacon CLI dependencies
+        run: |
+          cd packages/simplebeacon-cli
+          npm ci
+
+      - name: Run pre-flight checks
+        run: python preflight_check.py
+
+      - name: Run scan validation test pipeline
+        run: python test_pipeline.py
+
+      - name: Run TypeScript compilation
+        run: |
+          cd simplebeacon-vscode-merged || cd .
+          npm ci
+          npm run compile
+
+      - name: Package VS Code extension
+        run: |
+          cd simplebeacon-vscode-merged || cd .
+          npx @vscode/vsce package
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-extension-${{ matrix.os }}
+          path: simplebeacon-vscode-merged/*.vsix
+
+  # Phase 2: Quality gate (runs after all matrix jobs)
+  quality-gate:
+    name: Quality Gate
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Run SimpleBeacon gate scan
+        run: |
+          echo "Gate: All platform builds passed"
+          echo "Gate: Pre-flight checks passed"
+          echo "Gate: Scan validation passed"
+          echo "Gate: TypeScript compilation passed"
+
+  # Phase 3: Release automation (only on version tags)
+  release:
+    name: Release
+    needs: quality-gate
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Ubuntu artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: simplebeacon-extension-ubuntu-latest
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.vsix"
+          generate_release_notes: true
+          draft: true

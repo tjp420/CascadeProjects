@@ -115,8 +115,8 @@ export class VisualSidebarProvider implements vscode.TreeDataProvider<VisualNode
     const score = r?.qualityScore ?? 0;
     const gatePass = r?.gate?.pass ?? false;
 
-    // Show total repository files scanned, not just gate-checked subset
-    const files = r?.totalFiles || r?.filesAnalyzed || r?.ruleScopedFilesAnalyzed || 0;
+    // Show actual analyzed files, not the full repository inventory
+    const files = r?.filesAnalyzed || r?.ruleScopedFilesAnalyzed || r?.totalFiles || 0;
     const categories = this.extractCategories(r);
     const totalFindings = categories.reduce((sum, c) => sum + c.count, 0);
 
@@ -264,7 +264,7 @@ export class VisualSidebarProvider implements vscode.TreeDataProvider<VisualNode
   private extractCategories(report: unknown): { label: string; count: number; severity: string; icon: string }[] {
     const r = report as any;
     const cats: { label: string; count: number; severity: string; icon: string }[] = [];
-    const push = (label: string, sev: string, items: any[], icon: string) => {
+    const push = (label: string, sev: string, items: unknown[], icon: string) => {
       if (items?.length) cats.push({ label, count: items.length, severity: sev, icon });
     };
 

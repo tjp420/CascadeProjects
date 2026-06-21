@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as http from 'http';
+import * as crypto from 'crypto';
 import { provider, diagnosticsManager } from '../extension';
 
 /**
@@ -39,6 +40,9 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
           return;
         case 'openBrowser':
           await vscode.commands.executeCommand('simplebeacon.openBrowser');
+          return;
+        case 'openReport':
+          await vscode.commands.executeCommand('simplebeacon.openReport');
           return;
         case 'openAnalyze':
           await vscode.commands.executeCommand('simplebeacon.openAnalyze');
@@ -97,7 +101,7 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
 
   private _startReportPolling() {
     const config = vscode.workspace.getConfiguration('simplebeacon');
-    const apiUrl = config.get<string>('apiUrl', '').trim();
+    const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     const apiKey = config.get<string>('apiKey', '');
     if (!apiUrl) { return; }
 
@@ -163,7 +167,7 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
   private _getHtml(webview: vscode.Webview): string {
     const nonce = getNonce();
     const config = vscode.workspace.getConfiguration('simplebeacon');
-    const apiUrl = config.get<string>('apiUrl', '').trim();
+    const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -412,6 +416,10 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
             <span class="btn-icon">🌐</span>
             <span>Open Dashboard</span>
         </button>
+        <button class="btn btn-primary" id="btn-openReport">
+            <span class="btn-icon">📊</span>
+            <span>Report</span>
+        </button>
         <button class="btn" id="btn-openAnalyze">
             <span class="btn-icon">📊</span>
             <span>Analyze Page</span>
@@ -449,6 +457,7 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
 
         document.getElementById('btn-scanWorkspace')?.addEventListener('click', () => send('scanWorkspace'));
         document.getElementById('btn-openBrowser')?.addEventListener('click', () => send('openBrowser'));
+        document.getElementById('btn-openReport')?.addEventListener('click', () => send('openReport'));
         document.getElementById('btn-openAnalyze')?.addEventListener('click', () => send('openAnalyze'));
         document.getElementById('btn-openUpload')?.addEventListener('click', () => send('openUpload'));
         document.getElementById('btn-sendToAi')?.addEventListener('click', () => send('sendToAi'));
@@ -541,12 +550,7 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
 }
 
 function getNonce(): string {
-  let text = '';
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
+  return crypto.randomBytes(16).toString('hex');
 }
 
 function getJson(url: string, apiKey?: string): Promise<any> {

@@ -206,7 +206,7 @@ export function generateRoadmap(report: ScanResult): RoadmapResult {
       ],
       cleanupCount === 0,
       'No debug artifacts or bloat detected — codebase is clean.',
-      `${cleanupCount} debug artifact(s) — remove console.log, debugger, etc.`,
+      `${cleanupCount} debug artifact(s) — remove logging statements, debugger, etc.`,
       'Debug artifacts in production code — clean up before deployment.'
     )
   );

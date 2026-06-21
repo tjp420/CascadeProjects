@@ -3,7 +3,7 @@ import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
 
-interface RealtimeIssue {
+export interface RealtimeIssue {
   file: string;
   line: number;
   column: number;
@@ -50,6 +50,11 @@ export class RealtimeMonitor {
   private aiEditedFiles: Set<string> = new Set();
   private onAiSessionEndCallback?: (files: string[]) => void;
 
+  // AI session metrics
+  private aiSessionCount: number = 0;
+  private aiSessionStartTime: number = 0;
+  private aiTotalFilesEdited: number = 0;
+
   private constructor() {
     this.outputChannel = vscode.window.createOutputChannel('SimpleBeacon Real-time Monitor');
     this.diagnosticsCollection = vscode.languages.createDiagnosticCollection('simplebeacon-ai-slop');
@@ -85,7 +90,7 @@ export class RealtimeMonitor {
       // Generic variable names (AI often uses temp, result, data)
       {
         regex:
-          /\b(const|let|var)\s+(temp|tmp|result|res|data|dat|item|itm|value|val|obj|object|arr|array|num|number|str|string|bool|boolean|func|function|fn)\d*\s*[:=]/gi,
+          /\b(const|let|var)\s+(temp|tmp|dat|itm|val|num|str|bool|func|fn)\d*\s*[:=]/gi,
         severity: 'info',
         type: 'generic-variable',
         message: 'Generic AI-style variable name',
@@ -110,7 +115,7 @@ export class RealtimeMonitor {
       },
       // Perfectly uniform indentation after generation
       {
-        regex: /^(\s{4}|\t)\1{3,}\S/gm,
+        regex: /^(\s{4}|\t)\1{15,}\S/gm,
         severity: 'info',
         type: 'uniform-indent',
         message: 'Suspiciously uniform code structure',
@@ -183,6 +188,7 @@ export class RealtimeMonitor {
     }
 
     this.isMonitoring = true;
+    this.resetAiSessionState();
     this.updateStatus('🟢 Active', 'Real-time monitoring active');
     this.outputChannel.appendLine('🚀 Starting real-time code monitoring...');
 
@@ -217,19 +223,27 @@ export class RealtimeMonitor {
       this.monitorInterval = null;
     }
 
+    if (this.aiSessionTimer) {
+      clearTimeout(this.aiSessionTimer);
+      this.aiSessionTimer = null;
+    }
+
     this.debounceTimers.forEach((timer) => clearTimeout(timer));
     this.debounceTimers.clear();
+
+    // Reset AI session state so it doesn't leak across stop/start cycles
+    this.resetAiSessionState();
   }
 
   private setupFileWatchers(): void {
     const config = vscode.workspace.getConfiguration('simplebeacon');
-    const monitorDir = config.get<string>('realtimeMonitorDirectory', '');
+    const monitorDir = config.get<string>('realtimeMonitorDirectory', '').replace(/\\/g, '/');
     const pattern = monitorDir ? `${monitorDir}/**/*` : '**/*';
 
     this.outputChannel.appendLine(`[Realtime] Watching pattern: ${pattern}`);
     const watcher = vscode.workspace.createFileSystemWatcher(pattern);
     const changeDisposable = watcher.onDidChange((uri) => this.handleFileChange(uri.fsPath));
-    const createDisposable = watcher.onDidCreate((uri) => this.handleFileChange(uri.fsPath));
+    const createDisposable = watcher.onDidCreate((uri) => this.handleFileCreate(uri.fsPath));
     this.disposables.push(watcher, changeDisposable, createDisposable);
   }
 
@@ -251,7 +265,18 @@ export class RealtimeMonitor {
     this.disposables.push(textDocumentChangeDisposable, activeEditorChangeDisposable);
   }
 
+  private resetAiSessionState(): void {
+    if (this.aiSessionTimer) {
+      clearTimeout(this.aiSessionTimer);
+      this.aiSessionTimer = null;
+    }
+    this.aiSessionActive = false;
+    this.aiEditedFiles.clear();
+    this.aiSessionStartTime = 0;
+  }
+
   private handleFileChange(filePath: string): void {
+    if (!this.isMonitoring) return;
     const monitor = this.fileMonitors.get(filePath);
     const now = new Date();
 
@@ -275,13 +300,42 @@ export class RealtimeMonitor {
     this.debounceFileAnalysis(filePath);
   }
 
+  /**
+   * Handle file creation events (onDidCreate).
+   * We do NOT track these as AI sessions because bulk file creation
+   * (e.g. git checkout, npm install) would trigger false positives.
+   */
+  private handleFileCreate(filePath: string): void {
+    if (!this.isMonitoring) return;
+    const monitor = this.fileMonitors.get(filePath);
+    const now = new Date();
+
+    if (!monitor) {
+      this.fileMonitors.set(filePath, {
+        filePath,
+        lastModified: now.getTime(),
+        isBeingEdited: true,
+        lastCheck: now,
+      });
+    } else {
+      monitor.lastModified = now.getTime();
+      monitor.isBeingEdited = true;
+      monitor.lastCheck = now;
+    }
+
+    // Debounce the analysis (no AI session tracking)
+    this.debounceFileAnalysis(filePath);
+  }
+
   private trackAiSession(filePath: string): void {
     this.aiEditedFiles.add(filePath);
 
     // If not already in AI session, start one
     if (!this.aiSessionActive) {
       this.aiSessionActive = true;
-      this.outputChannel.appendLine(`[AI Session] AI editing session started`);
+      this.aiSessionCount++;
+      this.aiSessionStartTime = Date.now();
+      this.outputChannel.appendLine(`[AI Session] AI editing session started (#${this.aiSessionCount})`);
       this.updateStatus('🤖 AI Editing...', 'AI is actively editing files');
     }
 
@@ -300,16 +354,23 @@ export class RealtimeMonitor {
     if (!this.aiSessionActive) return;
 
     const files = Array.from(this.aiEditedFiles);
+    const sessionDuration = this.aiSessionStartTime > 0 ? Date.now() - this.aiSessionStartTime : 0;
     this.aiSessionActive = false;
     this.aiEditedFiles.clear();
-    this.outputChannel.appendLine(`[AI Session] AI editing session ended — ${files.length} files modified`);
+    this.aiSessionStartTime = 0;
+    this.aiTotalFilesEdited += files.length;
+    this.outputChannel.appendLine(
+      `[AI Session] AI editing session ended — ${files.length} files modified in ${sessionDuration}ms (total sessions: ${this.aiSessionCount}, total files: ${this.aiTotalFilesEdited})`
+    );
     this.updateStatus('🟢 Active', 'Real-time monitoring active');
 
-    // Trigger analysis of all modified files
+    // Trigger analysis of all modified files with error boundaries
     if (files.length > 0) {
       this.outputChannel.appendLine(`[AI Session] Analyzing ${files.length} modified files...`);
       for (const file of files) {
-        this.analyzeFile(file);
+        this.analyzeFile(file).catch((err) => {
+          this.outputChannel.appendLine(`[AI Session] Analysis failed for ${file}: ${err}`);
+        });
       }
       // Notify listeners that AI session ended with modified files
       this.onAiSessionEndCallback?.(files);
@@ -326,6 +387,14 @@ export class RealtimeMonitor {
 
   public getAiEditedFiles(): string[] {
     return Array.from(this.aiEditedFiles);
+  }
+
+  public getAiSessionMetrics(): { sessionCount: number; totalFilesEdited: number; isActive: boolean } {
+    return {
+      sessionCount: this.aiSessionCount,
+      totalFilesEdited: this.aiTotalFilesEdited,
+      isActive: this.aiSessionActive,
+    };
   }
 
   private handleTextDocumentChange(event: vscode.TextDocumentChangeEvent): void {
@@ -410,6 +479,19 @@ export class RealtimeMonitor {
     }
   }
 
+  private isInsideStringLiteral(line: string, index: number): boolean {
+    let inDouble = false, inSingle = false, inTemplate = false, escaped = false;
+    for (let i = 0; i < index; i++) {
+      const ch = line[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
+      if (ch === '"' && !inSingle && !inTemplate) inDouble = !inDouble;
+      else if (ch === "'" && !inDouble && !inTemplate) inSingle = !inSingle;
+      else if (ch === '`' && !inDouble && !inSingle) inTemplate = !inTemplate;
+    }
+    return inDouble || inSingle || inTemplate;
+  }
+
   private async detectIssues(filePath: string, content: string, fileExtension: string): Promise<RealtimeIssue[]> {
     const issues: RealtimeIssue[] = [];
     const lines = content.split('\n');
@@ -430,6 +512,10 @@ export class RealtimeMonitor {
           continue;
         }
         for (const match of matches) {
+          // Skip matches inside string literals for patterns that commonly produce false positives in rule definitions
+          if (['eval-usage', 'innerhtml-usage', 'console-log', 'todo-comment'].includes(pattern.type)) {
+            if (this.isInsideStringLiteral(line, match.index || 0)) continue;
+          }
           const column = match.index ? match.index + 1 : 1;
 
           issues.push({
@@ -550,7 +636,7 @@ export class RealtimeMonitor {
             suggestion: 'Use let or const instead of var',
           },
           {
-            regex: '==\\s*["\'][^"\']+["\']|["\'][^"\']+["\']\\s*==',
+            regex: '(?<![=!])==(?!=)\\s*["\'][^"\']+["\']|["\'][^"\']+["\']\\s*(?<![=!])==(?![=])',
             severity: 'warning' as const,
             type: 'equality-comparison',
             message: 'String comparison with == detected',
@@ -567,14 +653,14 @@ export class RealtimeMonitor {
       case 'json':
         return [
           {
-            regex: ',\\s*[,\\s*]',
+            regex: ',\\s*[\\]\\}]',
             severity: 'error' as const,
             type: 'json-trailing-comma',
             message: 'Trailing comma in JSON',
             suggestion: 'Remove trailing comma',
           },
           {
-            regex: '"[^"]*"\\s*:\\s*"[^"]*"\\s*[,\\s*]',
+            regex: '^\s*[a-zA-Z_]\w*\s*:',
             severity: 'warning' as const,
             type: 'json-key-quotes',
             message: 'JSON key should be quoted',

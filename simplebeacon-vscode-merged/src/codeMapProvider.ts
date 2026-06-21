@@ -1,20 +1,31 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import { getFixForFinding } from './fixes/fixRegistry';
+import { Finding } from './analyzers/workspaceAnalyzer';
 
 // Loose input shape that covers both CLI report and ScanResult formats
 interface AnalysisInput {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rawIssues?: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   detectedIssues?: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   findings?: any[];
+  allFilePaths?: string[];
   totalFiles?: number;
   filesAnalyzed?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   patterns?: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dependencies?: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories?: Record<string, any[]>;
   repositoryInventory?: { filePaths?: string[]; allFiles?: string[] };
   projectRoot?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  gate?: { pass?: boolean; blockingIssues?: any[]; warningIssues?: any[] };
 }
 
 // Code Map Visualization Provider
@@ -35,29 +46,57 @@ export class CodeMapProvider {
   }
 
   showCodeMap(analysisData: AnalysisInput, context: vscode.ExtensionContext) {
-    this.analysisData = analysisData;
+    try {
+      this.analysisData = analysisData;
+      const keys = Object.keys(analysisData || {});
+      const diLen = Array.isArray(analysisData?.detectedIssues) ? analysisData.detectedIssues.length : 0;
+      const fiLen = Array.isArray(analysisData?.findings) ? analysisData.findings.length : 0;
+      const riLen = Array.isArray(analysisData?.rawIssues) ? analysisData.rawIssues.length : 0;
+      const out = (this as any).outputChannel || vscode.window.createOutputChannel('SimpleBeacon CodeMap');
+      (this as any).outputChannel = out;
+      out.appendLine(`[CodeMap] keys: ${keys.join(', ')} | detectedIssues: ${diLen} | findings: ${fiLen} | rawIssues: ${riLen}`);
+      out.appendLine(`[CodeMap] gate.blocking: ${Array.isArray(analysisData?.gate?.blockingIssues) ? analysisData.gate.blockingIssues.length : 'none'} | gate.warning: ${Array.isArray(analysisData?.gate?.warningIssues) ? analysisData.gate.warningIssues.length : 'none'}`);
+      // Debug: log first finding from each source
+      const sampleDI = analysisData?.detectedIssues?.[0];
+      if (sampleDI) {
+        out.appendLine(`[CodeMap] sample detectedIssue keys: ${Object.keys(sampleDI).join(', ')}`);
+        out.appendLine(`[CodeMap] sample detectedIssue file=${sampleDI.file || sampleDI.filePath || sampleDI.path || 'N/A'} | has findings=${Array.isArray(sampleDI.findings)} | has matches=${Array.isArray(sampleDI.matches)}`);
+      }
+      if (analysisData?.rawIssues?.[0]) {
+        out.appendLine(`[CodeMap] sample rawIssue keys: ${Object.keys(analysisData.rawIssues[0]).join(', ')} | file=${analysisData.rawIssues[0].file}`);
+      }
+      if (analysisData?.gate?.warningIssues?.[0]) {
+        out.appendLine(`[CodeMap] sample gate.warningIssue keys: ${Object.keys(analysisData.gate.warningIssues[0]).join(', ')} | file=${analysisData.gate.warningIssues[0].file}`);
+      }
+      // Show visible notification so user can debug without opening output panel
+      vscode.window.showInformationMessage(`CodeMap data: detectedIssues=${diLen}, rawIssues=${riLen}. Open "SimpleBeacon CodeMap" output channel for details.`);
 
-    if (this.webviewPanel) {
-      this.webviewPanel.reveal();
-      this.updateWebview();
-      return;
+      if (this.webviewPanel) {
+        this.webviewPanel.reveal();
+        this.updateWebview();
+        return;
+      }
+
+      this.extensionUri = context.extensionUri;
+      this.webviewPanel = vscode.window.createWebviewPanel('codeMap', 'Code Map Visualization', vscode.ViewColumn.One, {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [context.extensionUri, vscode.Uri.joinPath(context.extensionUri, 'media')],
+      });
+
+      this.webviewPanel.webview.html = this.getWebviewContent(this.webviewPanel.webview);
+      this.updateWebview(); // Send data immediately so webview renders before requestData arrives
+
+      this.webviewPanel.onDidDispose(() => {
+        this.webviewPanel = undefined;
+      });
+
+      // Handle messages from webview
+      this.webviewPanel.webview.onDidReceiveMessage((message) => this.handleWebviewMessage(message), undefined);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      vscode.window.showErrorMessage('Code Map panel error: ' + msg);
     }
-
-    this.extensionUri = context.extensionUri;
-    this.webviewPanel = vscode.window.createWebviewPanel('codeMap', 'Code Map Visualization', vscode.ViewColumn.One, {
-      enableScripts: true,
-      retainContextWhenHidden: true,
-      localResourceRoots: [context.extensionUri, vscode.Uri.joinPath(context.extensionUri, 'media')],
-    });
-
-    this.webviewPanel.webview.html = this.getWebviewContent(this.webviewPanel.webview);
-
-    this.webviewPanel.onDidDispose(() => {
-      this.webviewPanel = undefined;
-    });
-
-    // Handle messages from webview
-    this.webviewPanel.webview.onDidReceiveMessage((message) => this.handleWebviewMessage(message), undefined);
   }
 
   updateData(analysisData: AnalysisInput) {
@@ -65,7 +104,7 @@ export class CodeMapProvider {
     this.updateWebview();
   }
 
-  private handleWebviewMessage(message: { command: string; format?: string; filters?: unknown; filePath?: string; line?: number }) {
+  private handleWebviewMessage(message: { command: string; format?: string; filters?: unknown; filePath?: string; line?: number; path?: string }) {
     switch (message.command) {
       case 'requestData':
         this.updateWebview();
@@ -90,23 +129,92 @@ export class CodeMapProvider {
           }, () => {});
         }
         break;
+      case 'loadFolder':
+        this.handleLoadFolder();
+        break;
+      case 'scanFolder':
+        if (message.path) {
+          this.scanFolder(message.path);
+        }
+        break;
+    }
+  }
+
+  private async handleLoadFolder() {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: 'Select Folder to Visualize',
+    });
+    if (result && result.length > 0) {
+      this.scanFolder(result[0].fsPath);
+    }
+  }
+
+  private scanFolder(folderPath: string) {
+    try {
+      const out = (this as any).outputChannel || vscode.window.createOutputChannel('SimpleBeacon CodeMap');
+      (this as any).outputChannel = out;
+      out.appendLine(`[CodeMap] Scanning folder: ${folderPath}`);
+      const files = this.scanWorkspaceFiles(folderPath);
+      out.appendLine(`[CodeMap] Found ${files.length} files`);
+      const fileEntries: CodeMapFile[] = [];
+      for (const fp of files) {
+        const stats = this.readFileStats(fp);
+        fileEntries.push({
+          id: fp,
+          name: path.basename(fp),
+          path: fp,
+          size: stats.size,
+          lines: stats.lines,
+          language: this.detectLanguage(fp),
+          complexity: stats.lines,
+          issues: [],
+          patterns: [],
+          metrics: {},
+        });
+      }
+      const data: CodeMapData = {
+        files: fileEntries,
+        dependencies: [],
+        patterns: [],
+        issues: [],
+        metrics: this.calculateMetrics(fileEntries, [], [], []),
+        layout: this.generateLayout(fileEntries, []),
+      };
+      this.webviewPanel?.webview.postMessage({ command: 'updateData', data });
+      vscode.window.showInformationMessage(`Code Map: ${files.length} files loaded from ${path.basename(folderPath)}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      vscode.window.showErrorMessage('Code Map folder scan error: ' + msg);
     }
   }
 
   private updateWebview() {
     if (this.webviewPanel && this.analysisData) {
-      this.webviewPanel.webview.postMessage({
-        command: 'updateData',
-        data: this.processAnalysisData(this.analysisData),
-      });
+      try {
+        const data = this.processAnalysisData(this.analysisData);
+        this.webviewPanel.webview.postMessage({
+          command: 'updateData',
+          data,
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage('Code Map data error: ' + msg);
+      }
     }
   }
 
   private processAnalysisData(rawData: AnalysisInput): CodeMapData {
+    const out = (this as any).outputChannel || vscode.window.createOutputChannel('SimpleBeacon CodeMap');
+    (this as any).outputChannel = out;
     const files = this.extractFiles(rawData);
+    out.appendLine(`[CodeMap] extractFiles returned ${files.length} files`);
     const dependencies = this.extractDependencies(rawData);
     const patterns = this.extractPatterns(rawData);
     const issues = this.extractIssues(rawData);
+    out.appendLine(`[CodeMap] issues: ${issues.length} | patterns: ${patterns.length} | deps: ${dependencies.length}`);
 
     return {
       files,
@@ -120,44 +228,67 @@ export class CodeMapProvider {
 
   private extractFiles(data: AnalysisInput): CodeMapFile[] {
     const fileMap = new Map<string, CodeMapFile>();
+    const out = (this as any).outputChannel || vscode.window.createOutputChannel('SimpleBeacon CodeMap');
+    (this as any).outputChannel = out;
 
-    // 1. Flatten detectedIssues → individual findings → file entries
+    // Resolve workspace root for relative paths
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+    const resolvePath = (p: string) => {
+      if (!p || p === 'unknown') return null;
+      if (path.isAbsolute(p)) return p;
+      if (workspaceRoot) return path.join(workspaceRoot, p);
+      return p;
+    };
+
+    // 1. Flatten detectedIssues → individual findings/matches → file entries
     const detectedIssues = data.detectedIssues || [];
+    out.appendLine(`[CodeMap] extractFiles: detectedIssues categories = ${detectedIssues.length}`);
     for (const category of detectedIssues) {
-      // Handle nested category.findings array (workspace analyzer format)
-      const catFindings = category.findings || [];
+      const catFindings = category.findings || category.matches || [];
+      out.appendLine(`[CodeMap]   category "${category.type || '?'}: findings = ${catFindings.length}`);
       for (const finding of catFindings) {
-        const filePath = finding.file || finding.filePath || finding.path || 'unknown';
-        if (!filePath || filePath === 'unknown') continue;
-        if (!fileMap.has(filePath)) {
-          const stats = this.readFileStats(filePath);
-          fileMap.set(filePath, {
-            id: filePath,
-            name: path.basename(filePath),
-            path: filePath,
-            size: stats.size,
-            lines: stats.lines,
-            language: this.detectLanguage(filePath),
-            complexity: stats.lines,
-            issues: [],
-            patterns: [],
-            metrics: {},
-          });
+        const rawFp = finding.file || finding.filePath || finding.path || category.file || category.filePath || category.path || 'unknown';
+        // Handle both string and array filePath
+        const filePaths = Array.isArray(rawFp) ? rawFp : [rawFp];
+        for (const fp of filePaths) {
+          const filePath = resolvePath(fp);
+          if (!filePath || filePath === 'unknown') continue;
+          if (!fileMap.has(filePath)) {
+            const stats = this.readFileStats(filePath);
+            fileMap.set(filePath, {
+              id: filePath,
+              name: path.basename(filePath),
+              path: filePath,
+              size: stats.size,
+              lines: stats.lines,
+              language: this.detectLanguage(filePath),
+              complexity: stats.lines,
+              issues: [],
+              patterns: [],
+              metrics: {},
+            });
+          }
+          const matchLine = finding.matches?.[0]?.line || finding.line || 0;
+          fileMap.get(filePath)!.issues.push({
+            id: (finding.type || category.type || 'issue') + '-' + matchLine,
+            severity: finding.dynamicSeverity || category.severity || 'low',
+            type: finding.type || category.type || 'Unknown',
+            file: filePath,
+            line: matchLine,
+            description: finding.matches?.[0]?.snippet || finding.snippet || category.message || '',
+            category: category.type || 'Unknown',
+          } as CodeMapIssue);
         }
-        fileMap.get(filePath)!.issues.push({
-          id: finding.type + '-' + (finding.matches?.[0]?.line || 0),
-          severity: finding.dynamicSeverity || category.severity || 'low',
-          type: finding.type || category.type || 'Unknown',
-          file: filePath,
-          line: finding.matches?.[0]?.line || 0,
-          description: finding.matches?.[0]?.snippet || category.message || '',
-          category: category.type || 'Unknown',
-        } as CodeMapIssue);
       }
-      // Also handle flat detectedIssues format (CLI report)
-      if (!catFindings.length && (category.file || category.filePath || category.path || category.affectedFiles)) {
-        const filePaths = category.affectedFiles || [category.file || category.filePath || category.path || 'unknown'];
-        for (const filePath of filePaths) {
+      // Also handle flat detectedIssues format (CLI report) when no findings/matches
+      const cliFilePaths = (category.affectedFiles?.length ? category.affectedFiles : null)
+        || (category.filePaths?.length ? category.filePaths : null)
+        || (category.filePath ? [category.filePath] : null)
+        || (category.file ? [category.file] : null)
+        || (category.path ? [category.path] : null);
+      if (!catFindings.length && cliFilePaths) {
+        for (const fp of cliFilePaths) {
+          const filePath = resolvePath(fp);
           if (!filePath || filePath === 'unknown') continue;
           if (!fileMap.has(filePath)) {
             const stats = this.readFileStats(filePath);
@@ -185,9 +316,10 @@ export class CodeMapProvider {
           } as CodeMapIssue);
         }
       }
-      // Also handle category-level filePath array
-      const catFiles = Array.isArray(category.filePath) ? category.filePath : [category.filePath].filter(Boolean);
-      for (const filePath of catFiles) {
+      // Also handle category-level filePath array (CLI uses filePaths plural)
+      const catFiles = Array.isArray(category.filePaths) ? category.filePaths : (Array.isArray(category.filePath) ? category.filePath : [category.filePath].filter(Boolean));
+      for (const fp of catFiles) {
+        const filePath = resolvePath(fp);
         if (!filePath || fileMap.has(filePath)) continue;
         const stats = this.readFileStats(filePath);
         fileMap.set(filePath, {
@@ -206,9 +338,9 @@ export class CodeMapProvider {
     }
 
     // 2. Legacy rawIssues / findings format (flat CLI report)
-    const rawIssues = data.rawIssues || data.findings || [];
+    const rawIssues = (data.rawIssues?.length ? data.rawIssues : null) || (data.findings?.length ? data.findings : null) || [];
     for (const issue of rawIssues) {
-      const filePath = issue.file || issue.filePath || issue.path || issue.affectedFiles?.[0] || 'unknown';
+      const filePath = resolvePath(issue.file || issue.filePath || issue.path || issue.affectedFiles?.[0] || 'unknown');
       if (!filePath || filePath === 'unknown') continue;
       if (!fileMap.has(filePath)) {
         const stats = this.readFileStats(filePath);
@@ -228,10 +360,12 @@ export class CodeMapProvider {
       fileMap.get(filePath)!.issues.push(issue);
     }
 
-    // 3. Repository inventory files
+    // 3. Repository inventory files (from CLI report or sidebar analyzer)
     const inventory = data.repositoryInventory;
-    if (inventory?.allFiles && Array.isArray(inventory.allFiles)) {
-      for (const filePath of inventory.allFiles) {
+    const allFiles = inventory?.allFiles ?? data.allFilePaths;
+    if (allFiles && Array.isArray(allFiles)) {
+      for (const fp of allFiles) {
+        const filePath = resolvePath(fp);
         if (!filePath || fileMap.has(filePath)) continue;
         const stats = this.readFileStats(filePath);
         fileMap.set(filePath, {
@@ -249,7 +383,32 @@ export class CodeMapProvider {
       }
     }
 
-    // 4. Fallback placeholder
+    // 4. Fallback: scan workspace files if report has no file list
+    if (fileMap.size === 0) {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (workspaceFolders && workspaceFolders.length > 0) {
+        const rootPath = workspaceFolders[0].uri.fsPath;
+        const scannedFiles = this.scanWorkspaceFiles(rootPath);
+        for (const filePath of scannedFiles) {
+          if (fileMap.has(filePath)) continue;
+          const stats = this.readFileStats(filePath);
+          fileMap.set(filePath, {
+            id: filePath,
+            name: path.basename(filePath),
+            path: filePath,
+            size: stats.size,
+            lines: stats.lines,
+            language: this.detectLanguage(filePath),
+            complexity: stats.lines,
+            issues: [],
+            patterns: [],
+            metrics: {},
+          });
+        }
+      }
+    }
+
+    // 5. Last-resort placeholder
     if (fileMap.size === 0 && data.totalFiles) {
       fileMap.set('root', {
         id: 'root',
@@ -265,6 +424,46 @@ export class CodeMapProvider {
       });
     }
 
+    // 6. Synthetic fallback: extract unique file paths from all issue sources
+    if (fileMap.size === 0) {
+      const gateIssues = [
+        ...(data.gate?.blockingIssues || []),
+        ...(data.gate?.warningIssues || []),
+      ];
+      const allSources = [
+        ...(data.rawIssues || []),
+        ...(data.findings || []),
+        ...gateIssues,
+        ...(data.detectedIssues || []).flatMap((c: { findings?: unknown[]; matches?: unknown[] }) => c.findings || c.matches || []),
+      ];
+      out.appendLine(`[CodeMap] synthetic fallback: ${allSources.length} total source items (gate: ${gateIssues.length})`);
+      const seen = new Set<string>();
+      for (const item of allSources) {
+        const rawFp = item?.file || item?.filePath || item?.path || (typeof item === 'string' ? item : null);
+        if (!rawFp || rawFp === 'unknown') continue;
+        const fp = Array.isArray(rawFp) ? rawFp : [rawFp];
+        for (const p of fp) {
+          const filePath = resolvePath(p);
+          if (!filePath || seen.has(filePath)) continue;
+          seen.add(filePath);
+          fileMap.set(filePath, {
+            id: filePath,
+            name: path.basename(filePath),
+            path: filePath,
+            size: 0,
+            lines: 0,
+            language: this.detectLanguage(filePath),
+            complexity: 0,
+            issues: [],
+            patterns: [],
+            metrics: {},
+          });
+        }
+      }
+    }
+
+    out.appendLine(`[CodeMap] extractFiles final count: ${fileMap.size}`);
+    vscode.window.showInformationMessage(`Code Map: ${fileMap.size} files extracted`);
     return Array.from(fileMap.values());
   }
 
@@ -280,10 +479,47 @@ export class CodeMapProvider {
     return { size: 0, lines: 0 };
   }
 
+  private scanWorkspaceFiles(rootPath: string): string[] {
+    const results: string[] = [];
+    const skipDirs = new Set([
+      'node_modules', '.git', 'dist', 'build', 'out', '.vscode',
+      'coverage', '.nyc_output', '.simplebeacon', 'vendor', 'third_party',
+      '__pycache__', '.pytest_cache', '.mypy_cache', 'target', 'bin', 'obj',
+    ]);
+    const skipExts = new Set([
+      '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.svg', '.webp',
+      '.mp3', '.mp4', '.wav', '.avi', '.mov', '.pdf', '.zip', '.tar', '.gz',
+      '.rar', '.7z', '.exe', '.dll', '.so', '.dylib', '.bin', '.o', '.obj',
+      '.class', '.jar', '.war', '.ear', '.min.js', '.min.css', '.map',
+    ]);
+    const scan = (dir: string) => {
+      try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            if (!skipDirs.has(entry.name)) {
+              scan(fullPath);
+            }
+          } else if (entry.isFile()) {
+            const ext = path.extname(entry.name).toLowerCase();
+            if (!skipExts.has(ext)) {
+              results.push(fullPath);
+            }
+          }
+        }
+      } catch {
+        // ignore permission errors
+      }
+    };
+    scan(rootPath);
+    return results;
+  }
+
   private extractDependencies(data: AnalysisInput): CodeMapDependency[] {
     const dependencies: CodeMapDependency[] = [];
     const seenPaths = new Set<string>();
-    const files = data.rawIssues || data.detectedIssues || data.findings || [];
+    const files = (data.rawIssues?.length ? data.rawIssues : null) || (data.detectedIssues?.length ? data.detectedIssues : null) || (data.findings?.length ? data.findings : null) || [];
     for (const issue of files) {
       const fp = issue.file || issue.filePath || issue.path;
       if (fp) seenPaths.add(fp);
@@ -374,13 +610,13 @@ export class CodeMapProvider {
   private extractIssues(data: AnalysisInput): CodeMapIssue[] {
     const issues: CodeMapIssue[] = [];
     // Support CLI report (rawIssues/detectedIssues) and ScanResult (findings/categories)
-    const rawIssues = data.rawIssues || data.detectedIssues || data.findings || [];
+    const rawIssues = (data.rawIssues?.length ? data.rawIssues : null) || (data.detectedIssues?.length ? data.detectedIssues : null) || (data.findings?.length ? data.findings : null) || [];
 
     for (const issue of rawIssues) {
       // ScanResult Finding structure: { file, type, severity, matches, confidence, message }
       const line = issue.matches?.[0]?.line ?? issue.line ?? 0;
       const desc = issue.message || issue.description || (typeof issue === 'string' ? issue : JSON.stringify(issue));
-      const enrichedIssue = {
+      const enrichedIssue: CodeMapIssue = {
         id: issue.id || `${issue.file || 'unknown'}-${line}`,
         type: issue.type || issue.category || 'finding',
         severity: issue.severity || 'medium',
@@ -391,9 +627,9 @@ export class CodeMapProvider {
         patternId: issue.patternId || issue.type || 'unknown',
       };
       // Attach fix suggestion if available
-      const fixResult = getFixForFinding(enrichedIssue as any);
+      const fixResult = getFixForFinding(enrichedIssue as unknown as Finding);
       if (fixResult) {
-        (enrichedIssue as any).fix = {
+        enrichedIssue.fix = {
           description: fixResult.description,
           autoFixable: fixResult.autoFixable,
         };
@@ -580,12 +816,7 @@ export class CodeMapProvider {
   }
 
   private getNonce(): string {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
+    return crypto.randomBytes(16).toString('hex');
   }
 
   private calculateDependencyStrength(dep: { from?: string; to?: string; type?: string }): number {
@@ -689,6 +920,8 @@ interface CodeMapIssue {
   line: number;
   description: string;
   category: string;
+  patternId?: string;
+  fix?: { description: string; autoFixable: boolean };
 }
 
 interface CodeMapMetrics {

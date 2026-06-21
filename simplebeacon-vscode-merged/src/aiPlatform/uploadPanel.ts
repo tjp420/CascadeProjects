@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 
 /**
  * Webview panel for uploading scan reports to the SimpleBeacon platform.
@@ -605,7 +606,7 @@ export class UploadPanel {
 
   private async _uploadReport(data: Record<string, unknown>) {
     const config = vscode.workspace.getConfiguration('simplebeacon');
-    const apiUrl = config.get<string>('apiUrl', '').trim();
+    const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     const apiKey = config.get<string>('apiKey', '');
     if (!apiUrl) {
       vscode.window.showWarningMessage('SimpleBeacon API URL not configured. Run "Set API Server URL" command first.');
@@ -642,10 +643,5 @@ export class UploadPanel {
 }
 
 function getNonce(): string {
-  let text = '';
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
+  return crypto.randomBytes(16).toString('hex');
 }

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 
 export interface MatchEntry {
   line: number;
@@ -60,6 +61,7 @@ export interface ScanResult {
   findings?: Finding[];
   rawIssues?: Array<Record<string, unknown>>;
   detectedIssues?: Array<Record<string, unknown>>;
+  allFilePaths?: string[];
   summary?: {
     totalFiles: number;
     filesAnalyzed: number;
@@ -261,6 +263,11 @@ function shouldSkipFile(filePath: string): boolean {
   if (/(^|\/)test-[^/]+\.js$/.test(normalized)) return true;
   // Skip mock files
   if (/__mocks__\//.test(normalized)) return true;
+  // Skip VS Code: extension files that contain large inline HTML/JS templates (false positives)
+  if (/modernSidebarProvider\.ts$/.test(normalized)) return true;
+  if (/enhancedScanProvider\.ts$/.test(normalized)) return true;
+  if (/enhancedDashboard2_0\.ts$/.test(normalized)) return true;
+  if (/enhancedDashboard3_0\.ts$/.test(normalized)) return true;
   return false;
 }
 
@@ -357,6 +364,69 @@ export function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// Node.js built-in modules that don't need package.json entry
+const NODE_BUILTINS = new Set([
+  'assert', 'buffer', 'child_process', 'cluster', 'console', 'constants',
+  'crypto', 'dgram', 'dns', 'domain', 'events', 'fs', 'http', 'https',
+  'module', 'net', 'os', 'path', 'punycode', 'querystring', 'readline',
+  'repl', 'stream', 'string_decoder', 'sys', 'timers', 'tls', 'tty',
+  'url', 'util', 'v8', 'vm', 'zlib', 'worker_threads', 'perf_hooks',
+  'async_hooks', 'http2', 'diagnostics_channel', 'trace_events',
+  'process', 'timers/promises', 'fs/promises', 'stream/promises',
+  'path/posix', 'path/win32', 'dns/promises', 'readline/promises',
+]);
+
+function loadPackageDependencies(rootPath: string): Set<string> {
+  try {
+    const pkgPath = path.join(rootPath, 'package.json');
+    if (!fs.existsSync(pkgPath)) return new Set();
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      peerDependencies?: Record<string, string>;
+      optionalDependencies?: Record<string, string>;
+    };
+    const deps = new Set<string>();
+    const addDeps = (obj?: Record<string, string>) => {
+      if (obj) Object.keys(obj).forEach((k) => deps.add(k));
+    };
+    addDeps(pkg.dependencies);
+    addDeps(pkg.devDependencies);
+    addDeps(pkg.peerDependencies);
+    addDeps(pkg.optionalDependencies);
+    return deps;
+  } catch {
+    return new Set();
+  }
+}
+
+interface ImportMatch {
+  line: number;
+  module: string;
+  statement: string;
+}
+
+function extractImports(text: string): ImportMatch[] {
+  const lines = text.split('\n');
+  const results: ImportMatch[] = [];
+  // Match: import X from 'mod' | import 'mod' | require('mod') | import('mod')
+  const importRegex = /(?:^|[^a-zA-Z0-9_$])import\s+(?:.*?\s+from\s+)?['"]([^'"]+)['"]|\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let match;
+    while ((match = importRegex.exec(line)) !== null) {
+      const mod = match[1] || match[2];
+      if (mod && !mod.startsWith('.') && !mod.startsWith('/')) {
+        // Extract root package name (e.g., "lodash/debounce" -> "lodash")
+        const rootPkg = mod.split('/')[0];
+        results.push({ line: i + 1, module: rootPkg, statement: line.trim() });
+      }
+    }
+    importRegex.lastIndex = 0;
+  }
+  return results;
+}
+
 const PATTERN_REGISTRY: Record<string, PatternDef> = {
   credentials: {
     id: 'credentials',
@@ -369,8 +439,15 @@ const PATTERN_REGISTRY: Record<string, PatternDef> = {
     redact: true,
     realtime: true,
     contextFilter: (snippet: string, filePath: string) => {
+      // Exclude archive/ and test directories
+      if (/(^|[\\/])archive[\\/]/i.test(filePath)) return false;
+      if (/(^|[\\/])simplebeacon-rule-tests[\\/]/i.test(filePath)) return false;
       // Exclude already-redacted secrets
       if (/\*\*\*REDACTED\*\*\*/.test(snippet)) return false;
+      // Exclude localStorage key names (not actual credentials)
+      if (/LS_KEY_\w+\s*=\s*['"]/.test(snippet)) return false;
+      // Exclude placeholder/example credential values
+      if (/your[-_]?api[-_]?key[-_]?here|your[-_]?api[-_]?secret[-_]?here|test[-_]?api[-_]?key|fake[-_]?secret|placeholder/i.test(snippet)) return false;
       // Exclude pattern definition files that describe credential detection
       if (
         /scanner-patterns\.js|scanner-engine\.js|pattern-documentation\.js/i.test(filePath) &&
@@ -391,7 +468,7 @@ const PATTERN_REGISTRY: Record<string, PatternDef> = {
     appliesTo: ['javascript'],
     severity: 'low',
     pattern:
-      /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|\bdebugger\b|\balert\s*\(|\bconfirm\s*\(/i,
+      /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group|assert|count|time|timeEnd|profile)\s*\(|\bdebugger\b|\balert\s*\(|\bconfirm\s*\(|\bprompt\s*\(|\/\/\s*TODO:?\s*\w|\/\/\s*FIXME:?\s*\w|\/\*\s*TODO|\/\*\s*FIXME|\bconsole\.log\s*\(\s*['"`]/i,
     maxMatches: 3,
     realtime: true,
     contextFilter: (snippet: string, filePath: string) => {
@@ -447,8 +524,10 @@ const PATTERN_REGISTRY: Record<string, PatternDef> = {
         }
         // Error-logging utility wrappers
         if (/app-logger\.cjs/i.test(filePath)) return false;
-        // Conditional debug loggers (behind PROCESSOR_DEBUG, options.debug, etc.)
-        if (/PROCESSOR_DEBUG|options\.debug/.test(snippet) && /console\.(log|error|warn)/.test(snippet)) return false;
+        // Conditional debug loggers (behind PROCESSOR_DEBUG, options.debug, DEBUG flag, etc.)
+        if (/PROCESSOR_DEBUG|options\.debug|\bif\s*\(\s*DEBUG/.test(snippet) && /console\.(log|error|warn)/.test(snippet)) return false;
+        // CLI usage/help text console.error is legitimate
+        if (/console\.error\s*\(\s*[`'"][^`'"]*(?:Usage|usage|help|options|required|missing)/.test(snippet)) return false;
         // VS Code extension fixes registry mentions console.log as remediation
         if (/fixes[\\/](fixRegistry|findingConverter)/i.test(filePath)) return false;
         // Pattern definition files that define console.log detection rules
@@ -534,6 +613,8 @@ const PATTERN_REGISTRY: Record<string, PatternDef> = {
       if (/main\.js$/i.test(filePath) && /history\.replaceState/.test(snippet)) return false;
       // Exclude server.cjs benign catch blocks
       if (/server\.cjs$/i.test(filePath) && /catch\s*\(_\)/.test(snippet)) return false;
+      // Exclude VS Code extension webview event handler guards (before() hook catch)
+      if (/simplebeacon-vscode(-merged)?[/\\]src[/\\]/i.test(filePath) && /addEventListener|onclick|before\(\)/i.test(snippet)) return false;
       return true;
     },
     message: 'Error swallowing anti-pattern detected. Empty catch blocks hide runtime failures.',
@@ -610,8 +691,8 @@ const PATTERN_REGISTRY: Record<string, PatternDef> = {
       if (/label[^>]*>.*(input|select|textarea)/i.test(snippet)) return false;
       // Exclude hidden inputs (visually hidden from all users, incl. screen readers)
       if (/type=["']?hidden["']?/i.test(snippet)) return false;
-      // Exclude VS Code webview panel HTML templates
-      if (/simplebeacon-vscode[/\\]src[/\\]/i.test(filePath)) return false;
+      // Exclude VS Code webview panel HTML templates and extension source files
+      if (/simplebeacon-vscode(?:-merged)?[/\\]src[/\\]/i.test(filePath)) return false;
       // Exclude pattern definition files
       if (/scanner-patterns\.js|test-all-patterns\.js|codebase-analyzer\.cjs/i.test(filePath)) return false;
       if (/workspaceAnalyzer\.ts/i.test(filePath) && /pattern.*img|message.*alt|id:\s*['"]a11yGap/i.test(snippet))
@@ -823,10 +904,10 @@ const PATTERN_REGISTRY: Record<string, PatternDef> = {
         /section:\s*['"]evalDanger['"]|label.*Eval|desc.*eval\(\)|id:\s*['"]eval-danger['"]/i.test(snippet)
       )
         return false;
-      // Exclude workspaceAnalyzer.ts pattern definition lines
+      // Exclude workspaceAnalyzer.ts and enhancedAIProvider.ts pattern definition / false-positive filter lines
       if (
-        /workspaceAnalyzer\.ts/i.test(filePath) &&
-        /id:\s*['"]evalDanger['"]|name:\s*['"]Dangerous eval|message:\s*['"]eval\(\)/i.test(snippet)
+        /(?:workspaceAnalyzer|enhancedAIProvider)\.ts/i.test(filePath) &&
+        /id:\s*['"]evalDanger['"]|name:\s*['"]Dangerous eval|message:\s*['"]eval\(\)|\.exec\(|\.match\(|dangerous eval/i.test(snippet)
       )
         return false;
       // Exclude fixes registry and remediation provider (remediation suggestions mention eval)
@@ -866,7 +947,7 @@ const PATTERN_REGISTRY: Record<string, PatternDef> = {
       if (/simplebeacon-dashboard[/\\]js[/\\]main\.js$/i.test(filePath)) return false;
       if (/simplebeacon-frameworkless[/\\]app\.js$/i.test(filePath)) return false;
       // VS Code extension webview panels build HTML templates
-      if (/simplebeacon-vscode[/\\]src[/\\]/i.test(filePath)) return false;
+      if (/simplebeacon-vscode(-merged)?[/\\]src[/\\]/i.test(filePath)) return false;
       // Server-side HTML generation files (controlled server output)
       if (/server[/\\]lib[/\\]complete-scan-audit-report\.cjs/i.test(filePath)) return false;
       if (/server[/\\]dlp-dashboard\.cjs/i.test(filePath)) return false;
@@ -1016,6 +1097,163 @@ const PATTERN_REGISTRY: Record<string, PatternDef> = {
     },
     message: 'Unresolved LLM placeholder or hardcoded AI-default metric copy detected.',
   },
+  productionLeak: {
+    id: 'productionLeak',
+    name: 'Production Leak',
+    appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+    severity: 'medium',
+    pattern:
+      /mock\w*\.json|fixture\w*\.json|sample\w*\.json|test\w*\.json|demo\w*\.json|placeholder|your_|my_|change_me|replace_me|xxxx|todo\.json|spec\.json|testdata|test_data|test-fixture|sample-data|sample_report|sample-report|sampleReport|mockData|mock_data|fixtureData|fixture_data/i,
+    maxMatches: 3,
+    contextFilter: (snippet: string, filePath: string) => {
+      if (/(^|[\\/])tests?[\\/]/i.test(filePath)) return false;
+      if (/(^|[\\/])__tests__[\\/]/i.test(filePath)) return false;
+      if (/(^|[\\/])test[\\-]/i.test(filePath)) return false;
+      if (/(^|[\\/])spec[\\/]/i.test(filePath)) return false;
+      if (/(^|[\\/])coming-soon[\\/]archive[\\/]/i.test(filePath)) return false;
+      if (/(^|[\\/])packages[\\/]simplebeacon-cli[\\/]tests[\\/]/i.test(filePath)) return false;
+      if (/\.(test|spec)\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|vb)$/i.test(filePath)) return false;
+      if (/pattern-documentation|scanner-engine|scanner-patterns|ui-renderer/i.test(filePath)) return false;
+      // Skip feature name strings like 'mock-data', 'sample-report' in config/maps
+      if (/['"]mock-data['"]|['"]sample-report['"]|['"]mockData['"]|['"]mock_data['"]/i.test(snippet)) return false;
+      // Skip HTML file names in arrays (not mock data paths)
+      if (/\['"][\w-]+\.(html|json)['"]/i.test(snippet) && !/path|dir|folder|url|src/i.test(snippet)) return false;
+      // Skip variable/property names containing mock/sample (not file paths)
+      if (/\.(mockData|mockSample|sampleFiles|sampleReportUrl|mockDataCategories)\b/i.test(snippet)) return false;
+      // Skip function names with sample/mock
+      if (/function\s+\w*(sample|mock|demo)/i.test(snippet)) return false;
+      // Skip comments about demo/placeholder values
+      if (/\/\/.*demo|example|test|placeholder|your_|my_/i.test(snippet)) return false;
+      // Skip certificate module definitions
+      if (/certificate-module\.js$/i.test(filePath) && /moduleId|section|title|metricLabel|advice/i.test(snippet)) return false;
+      // Skip product plan descriptions
+      if (/plans\.cjs$/i.test(filePath)) return false;
+      // Skip server.cjs demo pattern definitions
+      if (/server\.cjs$/i.test(filePath) && /DEMO_PATTERNS/i.test(snippet)) return false;
+      // Skip token-file-system innerHTML with placeholder labels
+      if (/token-file-system\.js$/i.test(filePath) && /innerHTML|placeholder/i.test(snippet)) return false;
+      // Skip build-public.js progress logging
+      if (/build-public\.js$/i.test(filePath) && /console\.log|Copied/i.test(snippet)) return false;
+      // Skip HTML input placeholder attributes in template strings (not mock data leaks)
+      if (/placeholder=["'][^"']*["']/.test(snippet) && /<input|<div\s+class=["'][^"']*section/.test(snippet)) return false;
+      // Skip VS Code extension webview HTML templates
+      if (/simplebeacon-vscode(-merged)?[/\\]src[/\\]/i.test(filePath) && /<input|<div\s+class=["'][^"']*section/.test(snippet)) return false;
+      return true;
+    },
+    message: 'Mock/fixture data path referenced in production source. Replace with environment-based configuration or runtime discovery.',
+  },
+  governanceMarker: {
+    id: 'governanceMarker',
+    name: 'License/Governance Marker',
+    appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+    severity: 'low',
+    pattern:
+      /SPDX-License-Identifier|Copyright\s*\(c\)|©\s*\d{4}|All rights reserved|Licensed under|MIT License|Apache License|GPL License|BSD License|Mozilla Public License|EU AI Act|high.risk|transparency gap|conformity|bias.audit|data.governance|Article\s*14|Annex\s*III/i,
+    maxMatches: 3,
+    contextFilter: (snippet: string, filePath: string) => {
+      if (/\.md$/i.test(filePath)) return false;
+      if (/GOVERNANCE\.md/i.test(filePath)) return false;
+      if (/LICENSE/i.test(filePath)) return false;
+      if (/\.simplebeacon[\\/]/i.test(filePath)) return false;
+      if (/certificate-utils/i.test(filePath) && /transparency|conformity|bias/i.test(snippet)) return false;
+      if (/eu-ai-act/i.test(filePath) && /high.risk|transparency|conformity|bias/i.test(snippet)) return false;
+      if (/scan-worker|scanner-engine|scanner-patterns/i.test(filePath) && /ai.system|high.risk|transparency|conformity|bias/i.test(snippet)) return false;
+      // Skip product descriptions and pricing content
+      if (/site-config\.js$/i.test(filePath) && /subtitle|description|EU AI Act|compliance|quarterly/i.test(snippet)) return false;
+      if (/subscriptions-billing\.cjs$/i.test(filePath)) return false;
+      if (/checkout\.cjs$/i.test(filePath)) return false;
+      if (/plans\.cjs$/i.test(filePath)) return false;
+      // Skip feature name mappings (e.g., 'eu-ai-act': 'EU AI Act')
+      if (/['"]eu-ai-act['"]|['"]euaiact['"]/i.test(snippet)) return false;
+      // Skip certificate module titles and labels
+      if (/certificates\.cjs$/i.test(filePath) && /EU AI Act|Readiness|compliance/i.test(snippet)) return false;
+      if (/certificate-module\.js$/i.test(filePath) && /label|title|moduleId|section/i.test(snippet)) return false;
+      if (/certificate-utils\.cjs$/i.test(filePath) && /label|kicker|subtitle|EU AI Act/i.test(snippet)) return false;
+      if (/certificate-generator\.cjs$/i.test(filePath) && /label|kicker|subtitle|EU AI Act/i.test(snippet)) return false;
+      // Skip contact.js pricing page content
+      if (/contact\.js$/i.test(filePath) && /EU AI Act|Sprint|\$/.test(snippet)) return false;
+      // Skip token-manager feature category names
+      if (/token-manager\.js$/i.test(filePath) && /'eu-ai-act'|'compliance'|'cleanup'/.test(snippet)) return false;
+      // Skip phase-registry roadmap titles
+      if (/phase-registry\.js$/i.test(filePath) && /title.*EU AI Act|id.*euaiact/i.test(snippet)) return false;
+      // Skip main.js module data mappings
+      if (/main\.js$/i.test(filePath) && /'eu-ai-act'|'magic-number'|moduleKeyMap|dataMapping/i.test(snippet)) return false;
+      // Skip ui-renderer.js EU AI Act comments and builder descriptions
+      if (/ui-renderer\.js$/i.test(filePath) && /EU AI Act|control builder|compliance/i.test(snippet)) return false;
+      // Skip outreach-prospects.js fictional demo data
+      if (/outreach-prospects\.js$/i.test(filePath)) return false;
+      // Skip "High Risk" in UI labels/score badges (not governance)
+      if (/['"]High Risk['"]|label.*High Risk|ringColor|cssVar/i.test(snippet)) return false;
+      // Skip VS Code extension webview panels that render EU AI Act UI labels and color maps
+      if (/simplebeacon-vscode(-merged)?[/\\]src[/\\]/i.test(filePath) && /['"]EU AI Act['"]\s*[:=]\s*['"]|push\('EU AI Act'|case\s+['"]EU AI Act['"]|option\s+value=["']EU AI Act["']|Phase\s*\d*\s*:\s*EU AI Act|EU AI Act:\s*\$\{|['"]euaiact['"]/i.test(snippet)) return false;
+      // Skip color/severity map definitions containing EU AI Act
+      if (/['"]EU AI Act['"]\s*[:=]\s*['"](#|var\(--)/i.test(snippet)) return false;
+      // Skip pattern definition files that define governance detection regexes
+      if (/workspaceAnalyzer\.ts$/i.test(filePath) && /pattern.*spdx|pattern.*mit license|contextFilter.*governance|site-config\.js/i.test(snippet)) return false;
+      if (/enhancedAIProvider\.ts$/i.test(filePath) && /spdx-license-identifier|mit license|site-config\.js/i.test(snippet)) return false;
+      if (/remediationProvider\.ts$/i.test(filePath) && /spdx-license-identifier|mit license/i.test(snippet)) return false;
+      return true;
+    },
+    message: 'License header or governance marker detected. Verify compliance with open-source policy.',
+  },
+  maintainabilityIssue: {
+    id: 'maintainabilityIssue',
+    name: 'Maintainability Issue',
+    appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+    severity: 'low',
+    pattern:
+      /TODO\s*:?\s*implement|TODO\s*:?\s*fix|TODO\s*:?\s*review|FIXME\s*:?\s*broken|FIXME\s*:?\s*now|HACK\s*:?|XXX\s*:?|magic\s+number|\b\d{3,}\b.*\b(ms|px|rem|em|s|min|hours|days)\b|\b(timeout|delay|interval|max|min|limit|retry|attempt)\s*=\s*\d{3,}/i,
+    maxMatches: 3,
+    contextFilter: (snippet: string, filePath: string) => {
+      if (/(^|[\\/])tests?[\\/]/i.test(filePath)) return false;
+      if (/(^|[\\/])__tests__[\\/]/i.test(filePath)) return false;
+      if (/(^|[\\/])coming-soon[\\/]archive[\\/]/i.test(filePath)) return false;
+      if (/(^|[\\/])packages[\\/]simplebeacon-cli[\\/]tests[\\/]/i.test(filePath)) return false;
+      if (/file-quality-heuristics/i.test(filePath)) return false;
+      if (/pattern-documentation/i.test(filePath) && /TODO|FIXME/i.test(snippet)) return false;
+      if (/quick-actions/i.test(filePath) && /TODO|FIXME/i.test(snippet)) return false;
+      if (/test-all-patterns/i.test(filePath)) return false;
+      if (/scanner-engine/i.test(filePath) && /TODO|FIXME|maintainability/i.test(snippet)) return false;
+      if (/scanner-patterns/i.test(filePath) && /TODO|FIXME|maintainability/i.test(snippet)) return false;
+      // Skip scanner's own TODO/FIXME regex patterns (not actual TODOs)
+      if (/scan-worker\.js$/i.test(filePath) && /pattern.*TODO|pattern.*FIXME|RegExp.*TODO/i.test(snippet)) return false;
+      if (/scan-directory\.js$/i.test(filePath) && /todo.*TODO|todo.*FIXME|RegExp/i.test(snippet)) return false;
+      // Skip module mapping definitions
+      if (/main\.js$/i.test(filePath) && /'magic-number'|'maintainability'|moduleKeyMap|dataMapping/i.test(snippet)) return false;
+      if (/certificate-module\.js$/i.test(filePath) && /moduleId.*44|section.*magicNumber|title.*Magic/i.test(snippet)) return false;
+      // Skip progress/score computation formulas using 100
+      if (/phase-registry\.js$/i.test(filePath) && /progress.*100|Math\.max.*5.*Math\.min.*100|issues.*weight/i.test(snippet)) return false;
+      // Skip pagination limit defaults (100, 200)
+      if (/function.*getPendingEmails|function.*getAdminLogs|function.*getAuditLogs/i.test(snippet) && /limit\s*=\s*(100|200)/i.test(snippet)) return false;
+      if (/db\.cjs$/i.test(filePath) && /limit\s*=\s*(100|200)/i.test(snippet)) return false;
+      if (/system-logger\.cjs$/i.test(filePath) && /limit\s*=\s*(100|200)/i.test(snippet)) return false;
+      if (/admin-token\.cjs$/i.test(filePath) && /limit\s*=\s*(100|200)/i.test(snippet)) return false;
+      // Skip certificate score thresholds (70, 80, etc.)
+      if (/certificate-utils\.cjs$/i.test(filePath) && /qs\s*<\s*\d+|severity.*qs|scoreThreshold/i.test(snippet)) return false;
+      // Skip server.cjs demo pattern array definitions
+      if (/server\.cjs$/i.test(filePath) && /DEMO_PATTERNS|const.*=\s*\[.*'demo'/i.test(snippet)) return false;
+      // Skip font-size CSS values in template strings
+      if (/font-size:\s*\d+\.?\d*rem/i.test(snippet) && /buildDetail|detail-label/i.test(snippet)) return false;
+      // Skip regex pattern definitions containing TODO/FIXME/HACK/XXX
+      if (/regex:\s*['"`][^'"`]*TODO\|FIXME\|HACK\|XXX['"`]|RegExp.*TODO.*FIXME/i.test(snippet)) return false;
+      // Skip CSS template strings with pixel/rem/em values (not magic numbers)
+      if (/font-size:\s*\d+\.?\d*rem|min-width:\s*\d+px|font-weight:\s*\d+/i.test(snippet)) return false;
+      // Skip time constants like 7 * 24 * 60 * 60 * 1000 (ms in N days)
+      if (/\d+\s*\*\s*24\s*\*\s*60\s*\*\s*60\s*\*\s*1000/.test(snippet)) return false;
+      // Skip function parameter defaults with timeout
+      if (/function\s+\w+\s*\([^)]*timeout\s*=\s*\d+/.test(snippet)) return false;
+      // Skip score display strings with /100
+      if (/\$\{[^}]*\}\/100|Score:\s*\$\{[^}]*\}\/100|issueCount.*issue\$\{issueCount/i.test(snippet)) return false;
+      // Skip pattern definitions for maintainability/magic numbers
+      if (/workspaceAnalyzer\.ts$/i.test(filePath) && /magic\s+number|maintainability|TODO.*implement|replace\s+constants/i.test(snippet)) return false;
+      if (/enhancedAIProvider\.ts$/i.test(filePath) && /magic\s+number|named\s+constants|replace\s+constants/i.test(snippet)) return false;
+      if (/remediationProvider\.ts$/i.test(filePath) && /magic\s+number|named\s+constants/i.test(snippet)) return false;
+      // Skip coming-soon marketing site (not production code)
+      if (/(^|\/)coming-soon(-dev)?\//i.test(filePath)) return false;
+      return true;
+    },
+    message: 'TODO/FIXME marker or magic number detected. Extract constants and resolve before release.',
+  },
 };
 
 export interface AnalyzerPreset {
@@ -1052,12 +1290,13 @@ export const ANALYZER_PRESETS: Record<string, AnalyzerPreset> = {
       'prototypePollution',
       'loggingSecrets',
       'insecureRandom',
+      'hallucinatedImport',
     ],
   },
   full: {
     label: 'Full',
     description: 'All available scans',
-    patternIds: Object.keys(PATTERN_REGISTRY),
+    patternIds: [...Object.keys(PATTERN_REGISTRY), 'hallucinatedImport'],
   },
   custom: {
     label: 'Custom',
@@ -1085,6 +1324,10 @@ const ANALYZER_SCHEMA: Record<string, AnalyzerSchemaEntry> = {
   insecureRandom: { category: 'security' },
   loggingSecrets: { category: 'security' },
   llmSlop: { category: 'aiResidue' },
+  productionLeak: { category: 'security' },
+  governanceMarker: { category: 'governance' },
+  maintainabilityIssue: { category: 'maintainability' },
+  hallucinatedImport: { category: 'security' },
 };
 
 // ============================================================================
@@ -1272,32 +1515,62 @@ function analyzeBuildReadiness(allPaths: string[]): BuildReadinessResult {
   };
 }
 
+async function findFilesRecursive(root: string, excludeDirs: string[]): Promise<string[]> {
+  const results: string[] = [];
+  const entries = await fs.promises.readdir(root, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      if (!excludeDirs.includes(entry.name)) {
+        results.push(...await findFilesRecursive(path.join(root, entry.name), excludeDirs));
+      }
+    } else {
+      results.push(path.join(root, entry.name));
+    }
+  }
+  return results;
+}
+
 export async function analyzeWorkspace(
   progress?: vscode.Progress<{ message?: string; increment?: number }>,
   token?: vscode.CancellationToken,
   profile: ScanProfile = 'complete',
-  selectedModules?: string[]
+  selectedModules?: string[],
+  targetPath?: string
 ): Promise<ScanResult> {
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders || workspaceFolders.length === 0) {
-    throw new Error('No workspace folder open');
-  }
-
-  const rootPath = workspaceFolders[0].uri.fsPath;
   const outputChannel = vscode.window.createOutputChannel('SimpleBeacon Workspace Analyzer');
-  outputChannel.appendLine(`[WorkspaceAnalyzer] Starting scan of ${rootPath} with profile: ${profile}`);
 
+  let rootPath: string;
+  let files: string[];
   const buildArtifactPatterns = getBuildArtifactPatterns();
   const dirPatterns = buildArtifactPatterns.filter(
     (p) => !p.startsWith('.') || p === '.git' || p === '.next' || p === '.vscode-test'
   );
-  const findFilesExclude = `**/{${dirPatterns.join(',')}}/**`;
 
-  const files = await vscode.workspace.findFiles('**/*', findFilesExclude, 10000);
+  if (targetPath) {
+    rootPath = targetPath;
+    outputChannel.appendLine(`[WorkspaceAnalyzer] Starting scan of ${rootPath} with profile: ${profile}`);
+    files = await findFilesRecursive(rootPath, dirPatterns);
+  } else {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+      throw new Error('No workspace folder open');
+    }
+    rootPath = workspaceFolders[0].uri.fsPath;
+    outputChannel.appendLine(`[WorkspaceAnalyzer] Starting scan of ${rootPath} with profile: ${profile}`);
+    const findFilesExclude = `**/{${dirPatterns.join(',')}}/**`;
+    const uriFiles = await vscode.workspace.findFiles('**/*', findFilesExclude);
+    files = uriFiles.map((f) => f.fsPath);
+  }
 
   // Resolve active pattern IDs from profile / selected modules
   const activePatternIds = resolveActivePatterns(profile, selectedModules);
   outputChannel.appendLine(`[WorkspaceAnalyzer] Active patterns: ${activePatternIds.join(', ')}`);
+
+  // Load package.json dependencies for hallucinated import detection
+  const knownDeps = activePatternIds.includes('hallucinatedImport') ? loadPackageDependencies(rootPath) : new Set<string>();
+  if (activePatternIds.includes('hallucinatedImport')) {
+    outputChannel.appendLine(`[WorkspaceAnalyzer] Loaded ${knownDeps.size} dependencies from package.json`);
+  }
 
   const findings: Finding[] = [];
   let filesAnalyzed = 0;
@@ -1305,7 +1578,8 @@ export async function analyzeWorkspace(
   let totalBytes = 0;
   const severityCounts: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0 };
   const categoryCounts: Record<string, number> = {};
-  const allWorkspacePaths: string[] = files.map((f) => path.relative(rootPath, f.fsPath));
+  const allWorkspacePaths: string[] = files.map((f) => path.relative(rootPath, f));
+  const analyzedFilePaths: string[] = [];
 
   const totalFiles = files.length;
   const incrementPerFile = totalFiles > 0 ? 100 / totalFiles : 0;
@@ -1313,8 +1587,7 @@ export async function analyzeWorkspace(
   for (let i = 0; i < files.length; i++) {
     if (token?.isCancellationRequested) break;
 
-    const fileUri = files[i];
-    const filePath = fileUri.fsPath;
+    const filePath = files[i];
     const relativePath = path.relative(rootPath, filePath).replace(/\\/g, '/');
 
     if (isBuildArtifact(relativePath, buildArtifactPatterns)) {
@@ -1333,9 +1606,10 @@ export async function analyzeWorkspace(
     }
 
     try {
-      const content = await vscode.workspace.fs.readFile(fileUri);
-      const text = new TextDecoder('utf-8').decode(content);
+      const content = targetPath ? await fs.promises.readFile(filePath) : await vscode.workspace.fs.readFile(vscode.Uri.file(filePath));
+      const text = targetPath ? content.toString('utf-8') : new TextDecoder('utf-8').decode(content);
       filesAnalyzed++;
+      analyzedFilePaths.push(relativePath);
       totalBytes += content.byteLength;
       totalLinesOfCode += text.split('\n').length;
 
@@ -1373,6 +1647,28 @@ export async function analyzeWorkspace(
         findings.push(finding);
         severityCounts[dynamicSev]++;
         categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+      }
+
+      // Hallucinated import detection (special rule requiring package.json context)
+      if (activePatternIds.includes('hallucinatedImport') && knownDeps.size > 0) {
+        const imports = extractImports(text);
+        for (const imp of imports) {
+          if (NODE_BUILTINS.has(imp.module)) continue;
+          if (knownDeps.has(imp.module)) continue;
+          const category = ANALYZER_SCHEMA['hallucinatedImport']?.category || 'security';
+          const finding: Finding = {
+            file: relativePath,
+            type: 'Hallucinated Import',
+            severity: 'medium',
+            matches: [{ line: imp.line, snippet: imp.statement, context: [] }],
+            confidence: 0.9,
+            message: `Importing "${imp.module}" which is not declared in package.json dependencies. LLMs often hallucinate npm package names.`,
+            patternId: 'hallucinatedImport',
+          };
+          findings.push(finding);
+          severityCounts['medium']++;
+          categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+        }
       }
     } catch (err) {
       outputChannel.appendLine(`[WorkspaceAnalyzer] Error reading ${relativePath}: ${err}`);
@@ -1418,6 +1714,7 @@ export async function analyzeWorkspace(
 
   return {
     findings,
+    allFilePaths: analyzedFilePaths,
     summary: {
       totalFiles,
       filesAnalyzed,

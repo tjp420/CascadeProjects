@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import * as http from 'http';
 import { SimpleBeaconProvider, ScanResult, ScanIssue } from './simplebeaconProvider';
 import { DiagnosticsManager } from './diagnostics';
@@ -141,7 +142,7 @@ export class ScanPanel {
     }
 
     const config = vscode.workspace.getConfiguration('simplebeacon');
-    const apiUrl = config.get<string>('apiUrl', '').trim();
+    const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     const apiKey = config.get<string>('apiKey', '');
     if (!apiUrl) {
       this._panel.webview.postMessage({ command: 'error', message: 'API URL not configured. Run "Set API Server URL" command first.' });
@@ -256,7 +257,7 @@ export class ScanPanel {
   private _getHtmlForWebview(webview: vscode.Webview): string {
     const nonce = getNonce();
     const config = vscode.workspace.getConfiguration('simplebeacon');
-    const apiUrl = config.get<string>('apiUrl', '').trim();
+    const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     const connectSrc = apiUrl ? `connect-src ${apiUrl};` : "";
 
     return `<!DOCTYPE html>
@@ -648,12 +649,7 @@ export class ScanPanel {
 }
 
 function getNonce(): string {
-  let text = '';
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
+  return crypto.randomBytes(16).toString('hex');
 }
 
 function escapeHtml(text: string): string {

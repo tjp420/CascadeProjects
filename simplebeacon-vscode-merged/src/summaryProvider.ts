@@ -60,7 +60,7 @@ export class SummaryProvider implements vscode.TreeDataProvider<SummaryNode> {
     const folders = r.repositoryFoldersTotal || r.repositoryInventory?.totalFolders || 0;
     items.push(new SummaryNode(`Files: ${files}${folders ? ` (${folders} folders)` : ''}`, 'info'));
 
-    const push = (label: string, sev: 'pass' | 'fail' | 'warn' | 'info', itemsArr: any[]) => {
+    const push = (label: string, sev: 'pass' | 'fail' | 'warn' | 'info', itemsArr: unknown[]) => {
       if (itemsArr?.length > 0) items.push(new SummaryNode(`${label}: ${itemsArr.length}`, sev));
     };
 

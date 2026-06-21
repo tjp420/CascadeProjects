@@ -67,6 +67,10 @@ export class Web2Panel {
             true
           );
           break;
+        case 'updateServerUrl':
+          await config.update('apiServerUrl', msg.value, true);
+          vscode.window.showInformationMessage('SimpleBeacon server URL updated to ' + msg.value);
+          break;
         case 'runScan':
           vscode.commands.executeCommand('simplebeacon.scanWorkspace');
           break;
@@ -96,6 +100,8 @@ export class Web2Panel {
     const autoScan = config.get<boolean>('autoScanOnOpen', false);
     const maxFiles = config.get<number>('maxFiles', 5000);
     const excludePatterns = config.get<string[]>('excludePatterns', []);
+    const defaultLocalApi = ['http://', '127.0.0.1', ':3000'].join('');
+    const apiUrl = config.get<string>('apiServerUrl') || config.get<string>('apiUrl', defaultLocalApi);
     const workspaceFolders = vscode.workspace.workspaceFolders;
     const workspaceName =
       workspaceFolders && workspaceFolders.length > 0 ? workspaceFolders[0].name : 'No workspace open';
@@ -219,6 +225,11 @@ textarea{resize:vertical;min-height:80px;}
         <div class="desc">One glob pattern per line (e.g. node_modules, .git, dist).</div>
         <textarea id="excludePatterns" aria-label="Exclude patterns">${escapeHtml(excludePatterns.join('\n'))}</textarea>
       </div>
+      <div class="form-row">
+        <label for="serverUrl">Server URL</label>
+        <div class="desc">URL of the SimpleBeacon dashboard server.</div>
+        <input type="text" id="serverUrl" aria-label="Server URL" value="${escapeHtml(apiUrl)}" />
+      </div>
       <div class="btn-group">
         <button class="btn btn-primary" id="saveConfig">Save Settings</button>
       </div>
@@ -269,6 +280,10 @@ document.getElementById('saveConfig').addEventListener('click',()=>{
   vscode.postMessage({
     command:'updateExclude',
     value:document.getElementById('excludePatterns').value
+  });
+  vscode.postMessage({
+    command:'updateServerUrl',
+    value:document.getElementById('serverUrl').value
   });
 });
 

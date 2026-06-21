@@ -1,9 +1,21 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
+import { ModernSidebarProvider } from './modernSidebarProvider';
 import * as crypto from 'crypto';
 import { themeColors } from './designSystem';
 import { RawIssue } from './scanProvider';
+
+/** Safely read a nested property path from an unknown object. */
+function getNested<T>(obj: unknown, ...keys: string[]): T | undefined {
+  let current: unknown = obj;
+  for (const key of keys) {
+    if (current == null || typeof current !== 'object') { return undefined; }
+    current = (current as Record<string, unknown>)[key];
+  }
+  return current as T | undefined;
+}
 
 export interface Dashboard20Report {
   qualityScore?: number;
@@ -27,6 +39,7 @@ export interface Dashboard20Report {
  */
 export class Dashboard20 {
   private static currentPanel: Dashboard20 | undefined;
+  private static browserPanel: vscode.WebviewPanel | undefined;
   private readonly panel: vscode.WebviewPanel;
   private readonly extUri: vscode.Uri;
   private report: Dashboard20Report | undefined;
@@ -91,20 +104,23 @@ export class Dashboard20 {
         vscode.commands.executeCommand('simplebeacon.showCodeMap');
         break;
       case 'openInBrowser':
-        this.openInBrowser();
+        vscode.window.showInformationMessage('Open in Browser is only available in the browser preview tab.');
         break;
     }
   }
 
-  private openInBrowser() {
-    const html = this.buildHtml();
-    const tmpFile = path.join(this.extUri.fsPath, 'simplebeacon-dashboard-20.html');
-    fs.writeFileSync(tmpFile, html.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i, ''));
-    vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(tmpFile).toString());
-  }
-
   private render() {
     this.panel.webview.html = this.buildHtml();
+    this.syncBrowserHtml();
+  }
+
+  private syncBrowserHtml() {
+    let browserHtml = this.buildHtml().replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i, '');
+    browserHtml = browserHtml.replace(
+      /const\s+vscode\s*=\s*acquireVsCodeApi\s*\(\)\s*;?/g,
+      `const vscode={postMessage:(msg)=>{if(msg.command==='openInBrowser'||msg.command==='showCodeMap')return;const feat=msg.command||'This feature';alert(feat+' is only available inside VS Code.');},getState:()=>({}),setState:()=>{}};`
+    );
+    ModernSidebarProvider._dashboardHtml = browserHtml;
   }
 
   private buildHtml(): string {
@@ -187,30 +203,31 @@ export class Dashboard20 {
     const push = (label: string, sev: string, items?: RawIssue[]) => {
       if (items?.length) cats.push({ label, count: items.length, severity: sev });
     };
-    push('Blocking', 'fail', report.gate?.blockingIssues as any);
-    push('Secrets', 'fail', (report as any).credentialHygiene?.secrets);
-    push('Vulnerabilities', 'fail', (report as any).dependencyAudit?.vulnerabilities);
-    push('Debug Markers', 'low', (report as any).cleanup?.debugMarkers);
-    push('AI Residue', 'medium', (report as any).aiResidue?.aiResidueFindings);
-    push('Performance', 'medium', (report as any).performance?.performanceFindings);
-    push('Type Safety', 'low', (report as any).typeSafety?.typeSafetyFindings);
-    push('Test Coverage', 'low', (report as any).testCoverage?.testCoverageFindings);
-    push('Sensitive Data', 'high', (report as any).sensitiveData?.sensitiveDataFindings);
-    push('Config Drift', 'medium', (report as any).configDrift?.configDriftFindings);
-    push('Security Headers', 'high', (report as any).securityHeaders?.securityHeaderFindings);
-    push('Database Patterns', 'high', (report as any).databasePatterns?.dbPatternFindings);
-    push('Framework Practices', 'medium', (report as any).frameworkPractices?.frameworkFindings);
-    push('Workspace Health', 'low', (report as any).workspaceHealth?.workspaceFindings);
-    push('Unused Deps', 'low', (report as any).unusedDeps?.unusedDepFindings);
-    push('Complexity', 'medium', (report as any).complexity?.complexityFindings);
-    push('LLM Slop', 'medium', (report as any).llmSlop?.llmSlopFindings);
-    push('Production Leak', 'high', (report as any).productionLeak?.productionLeakFindings);
-    push('Security', 'high', (report as any).security?.securityFindings);
-    push('Quality', 'medium', (report as any).quality?.qualityFindings);
+    push('Blocking', 'fail', report.gate?.blockingIssues);
+    push('Secrets', 'fail', getNested<RawIssue[]>(report, 'credentialHygiene', 'secrets'));
+    push('Vulnerabilities', 'fail', getNested<RawIssue[]>(report, 'dependencyAudit', 'vulnerabilities'));
+    push('Debug Markers', 'low', getNested<RawIssue[]>(report, 'cleanup', 'debugMarkers'));
+    push('AI Residue', 'medium', getNested<RawIssue[]>(report, 'aiResidue', 'aiResidueFindings'));
+    push('Performance', 'medium', getNested<RawIssue[]>(report, 'performance', 'performanceFindings'));
+    push('Type Safety', 'low', getNested<RawIssue[]>(report, 'typeSafety', 'typeSafetyFindings'));
+    push('Test Coverage', 'low', getNested<RawIssue[]>(report, 'testCoverage', 'testCoverageFindings'));
+    push('Sensitive Data', 'high', getNested<RawIssue[]>(report, 'sensitiveData', 'sensitiveDataFindings'));
+    push('Config Drift', 'medium', getNested<RawIssue[]>(report, 'configDrift', 'configDriftFindings'));
+    push('Security Headers', 'high', getNested<RawIssue[]>(report, 'securityHeaders', 'securityHeaderFindings'));
+    push('Database Patterns', 'high', getNested<RawIssue[]>(report, 'databasePatterns', 'dbPatternFindings'));
+    push('Framework Practices', 'medium', getNested<RawIssue[]>(report, 'frameworkPractices', 'frameworkFindings'));
+    push('Workspace Health', 'low', getNested<RawIssue[]>(report, 'workspaceHealth', 'workspaceFindings'));
+    push('Unused Deps', 'low', getNested<RawIssue[]>(report, 'unusedDeps', 'unusedDepFindings'));
+    push('Complexity', 'medium', getNested<RawIssue[]>(report, 'complexity', 'complexityFindings'));
+    push('LLM Slop', 'medium', getNested<RawIssue[]>(report, 'llmSlop', 'llmSlopFindings'));
+    push('Production Leak', 'high', getNested<RawIssue[]>(report, 'productionLeak', 'productionLeakFindings'));
+    push('Security', 'high', getNested<RawIssue[]>(report, 'security', 'securityFindings'));
+    push('Quality', 'medium', getNested<RawIssue[]>(report, 'quality', 'qualityFindings'));
 
-    if (cats.length === 0 && (report as any).detectedIssues?.length) {
-      for (const di of (report as any).detectedIssues) {
-        cats.push({ label: di.type || 'Finding', count: di.count || 0, severity: di.severity || 'medium' });
+    if (cats.length === 0 && getNested<unknown[]>(report, 'detectedIssues')?.length) {
+      for (const di of getNested<unknown[]>(report, 'detectedIssues') || []) {
+        const typedDi = di as Record<string, unknown>;
+        cats.push({ label: (typedDi.type as string) || 'Finding', count: (typedDi.count as number) || 0, severity: (typedDi.severity as string) || 'medium' });
       }
     }
     if (cats.length === 0 && report.rawIssues?.length) {
@@ -253,11 +270,16 @@ export class Dashboard20 {
     const push = (cat: string, sev: string, items?: RawIssue[]) => {
       items?.forEach((it) => all.push({ cat, sev: it.severity || sev, desc: it.description || it.message || it.type || 'Finding', file: this.resolveFilePath(it), line: it.line || '', patternId: it.patternId || '' }));
     };
-    if ((report as any).detectedIssues?.length) {
-      for (const di of (report as any).detectedIssues) {
-        for (const f of di.findings || []) {
-          const firstMatch = (f.matches || [])[0] || {};
-          all.push({ cat: di.type || 'Finding', sev: firstMatch.dynamicSeverity || firstMatch.baseSeverity || di.severity || 'medium', desc: f.type || di.type || 'Finding', file: f.file || '', line: firstMatch.line || '', patternId: di.rule || '' });
+    const detectedIssues = getNested<unknown[]>(report, 'detectedIssues');
+    if (detectedIssues?.length) {
+      for (const di of detectedIssues) {
+        const typedDi = di as Record<string, unknown>;
+        const findings = (typedDi.findings as unknown[]) || [];
+        for (const f of findings) {
+          const typedF = f as Record<string, unknown>;
+          const matches = (typedF.matches as unknown[]) || [];
+          const firstMatch = (matches[0] as Record<string, unknown>) || {};
+          all.push({ cat: (typedDi.type as string) || 'Finding', sev: (firstMatch.dynamicSeverity as string) || (firstMatch.baseSeverity as string) || (typedDi.severity as string) || 'medium', desc: (typedF.type as string) || (typedDi.type as string) || 'Finding', file: (typedF.file as string) || '', line: (firstMatch.line as number) || '', patternId: (typedDi.rule as string) || '' });
         }
       }
       return all;
@@ -266,25 +288,25 @@ export class Dashboard20 {
       report.rawIssues.forEach((it) => all.push({ cat: it.type || 'Finding', sev: it.severity || 'medium', desc: it.description || it.type || 'Finding', file: this.resolveFilePath(it), line: it.line || '' }));
       return all;
     }
-    push('Blocking', 'high', report.gate?.blockingIssues as any);
-    push('Secrets', 'high', (report as any).credentialHygiene?.secrets);
-    push('Vulnerabilities', 'high', (report as any).dependencyAudit?.vulnerabilities);
-    push('Debug Markers', 'low', (report as any).cleanup?.debugMarkers);
-    push('AI Residue', 'medium', (report as any).aiResidue?.aiResidueFindings);
-    push('Performance', 'medium', (report as any).performance?.performanceFindings);
-    push('Type Safety', 'low', (report as any).typeSafety?.typeSafetyFindings);
-    push('Sensitive Data', 'high', (report as any).sensitiveData?.sensitiveDataFindings);
-    push('Config Drift', 'medium', (report as any).configDrift?.configDriftFindings);
-    push('Security Headers', 'high', (report as any).securityHeaders?.securityHeaderFindings);
-    push('Database Patterns', 'high', (report as any).databasePatterns?.dbPatternFindings);
-    push('Framework Practices', 'medium', (report as any).frameworkPractices?.frameworkFindings);
-    push('Workspace Health', 'low', (report as any).workspaceHealth?.workspaceFindings);
-    push('Unused Deps', 'low', (report as any).unusedDeps?.unusedDepFindings);
-    push('Complexity', 'medium', (report as any).complexity?.complexityFindings);
-    push('LLM Slop', 'medium', (report as any).llmSlop?.llmSlopFindings);
-    push('Production Leak', 'high', (report as any).productionLeak?.productionLeakFindings);
-    push('Security', 'high', (report as any).security?.securityFindings);
-    push('Quality', 'medium', (report as any).quality?.qualityFindings);
+    push('Blocking', 'high', report.gate?.blockingIssues);
+    push('Secrets', 'high', getNested<RawIssue[]>(report, 'credentialHygiene', 'secrets'));
+    push('Vulnerabilities', 'high', getNested<RawIssue[]>(report, 'dependencyAudit', 'vulnerabilities'));
+    push('Debug Markers', 'low', getNested<RawIssue[]>(report, 'cleanup', 'debugMarkers'));
+    push('AI Residue', 'medium', getNested<RawIssue[]>(report, 'aiResidue', 'aiResidueFindings'));
+    push('Performance', 'medium', getNested<RawIssue[]>(report, 'performance', 'performanceFindings'));
+    push('Type Safety', 'low', getNested<RawIssue[]>(report, 'typeSafety', 'typeSafetyFindings'));
+    push('Sensitive Data', 'high', getNested<RawIssue[]>(report, 'sensitiveData', 'sensitiveDataFindings'));
+    push('Config Drift', 'medium', getNested<RawIssue[]>(report, 'configDrift', 'configDriftFindings'));
+    push('Security Headers', 'high', getNested<RawIssue[]>(report, 'securityHeaders', 'securityHeaderFindings'));
+    push('Database Patterns', 'high', getNested<RawIssue[]>(report, 'databasePatterns', 'dbPatternFindings'));
+    push('Framework Practices', 'medium', getNested<RawIssue[]>(report, 'frameworkPractices', 'frameworkFindings'));
+    push('Workspace Health', 'low', getNested<RawIssue[]>(report, 'workspaceHealth', 'workspaceFindings'));
+    push('Unused Deps', 'low', getNested<RawIssue[]>(report, 'unusedDeps', 'unusedDepFindings'));
+    push('Complexity', 'medium', getNested<RawIssue[]>(report, 'complexity', 'complexityFindings'));
+    push('LLM Slop', 'medium', getNested<RawIssue[]>(report, 'llmSlop', 'llmSlopFindings'));
+    push('Production Leak', 'high', getNested<RawIssue[]>(report, 'productionLeak', 'productionLeakFindings'));
+    push('Security', 'high', getNested<RawIssue[]>(report, 'security', 'securityFindings'));
+    push('Quality', 'medium', getNested<RawIssue[]>(report, 'quality', 'qualityFindings'));
     return all;
   }
 

@@ -97,6 +97,16 @@ export async function pickWorkspaceFolder(): Promise<string | undefined> {
   const BROWSE = '__browse__';
   const CURRENT_FILE = '__current_file__';
 
+  // Check for configured projectPath setting first
+  const config = vscode.workspace.getConfiguration('simplebeacon');
+  const configuredPath = config.get<string>('projectPath', '');
+  if (configuredPath && fs.existsSync(configuredPath)) {
+    const stats = fs.statSync(configuredPath);
+    if (stats.isDirectory()) {
+      return configuredPath;
+    }
+  }
+
   type PickerItem = { label: string; description: string; value: string; kind?: vscode.QuickPickItemKind };
   const items: PickerItem[] = [];
 

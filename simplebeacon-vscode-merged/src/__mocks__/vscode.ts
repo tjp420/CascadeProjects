@@ -48,7 +48,7 @@ export const ThemeColor = jest.fn();
 /** Mock Uri factory. */
 export const Uri = {
   file: jest.fn((path: string) => ({ fsPath: path })),
-  joinPath: jest.fn((...args: any[]) => ({ fsPath: args.join('/') })),
+  joinPath: jest.fn((...args: string[]) => ({ fsPath: args.join('/') })),
 };
 
 /** Mock Range constructor. */

@@ -1,0 +1,34 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "generatedAt": "2026-06-20T12:31:07.479Z",
+  "generatedBy": "SimpleBeacon",
+  "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src",
+  "totalFiles": 31618,
+  "filesAnalyzed": 158,
+  "ruleScopedFilesAnalyzed": 158,
+  "issueCount": 0,
+  "qualityScore": 100,
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 0,
+    "blockingIssues": [],
+    "warningIssues": []
+  },
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "detectedIssues": [],
+  "rawIssues": []
+}

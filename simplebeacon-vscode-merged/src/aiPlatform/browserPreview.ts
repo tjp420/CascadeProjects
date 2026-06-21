@@ -136,19 +136,39 @@ export function buildCspTag(origin: string): string {
  * @param hashRoute - Initial hash route for the preview.
  * @returns Modified HTML with injected scripts.
  */
-export function injectPreviewScripts(html: string, origin: string, hashRoute: string): string {
+export function injectPreviewScripts(html: string, origin: string, hashRoute: string, defaultProjectPath = ''): string {
   const cspTag = buildCspTag(origin);
   const apiHostScript = `<script>window.__SB_API_HOST__ = "${origin}";<\/script>`;
   const initialView = hashRoute.replace(/^#\//, '');
   const routeScript = initialView
     ? `<script>window.__SB_INITIAL_ROUTE__ = "${initialView}";<\/script>`
     : '';
+  const projectPathScript = defaultProjectPath
+    ? `<script>window.__SB_DEFAULT_PROJECT_PATH__ = ${JSON.stringify(defaultProjectPath)};<\/script>`
+    : '';
+  const fetchInterceptorScript = `<script>
+(function() {
+  const origFetch = window.fetch;
+  window.fetch = function() {
+    const args = arguments;
+    const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
+    return origFetch.apply(this, args).then(function(res) {
+      if (res.status >= 400) {
+        res.clone().text().then(function(body) {
+          /* Fetch errors logged by server; silence in webview */
+        });
+      }
+      return res;
+    });
+  };
+})();
+<\/script>`;
 
   const headClose = html.indexOf('</head>');
   if (headClose > 0) {
-    return html.slice(0, headClose) + cspTag + apiHostScript + routeScript + html.slice(headClose);
+    return html.slice(0, headClose) + cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + html.slice(headClose);
   }
-  return cspTag + apiHostScript + routeScript + html;
+  return cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + html;
 }
 
 export function postAiContext(

@@ -364,6 +364,19 @@ export class RealtimeMonitor {
     }
   }
 
+  private isInsideStringLiteral(line: string, index: number): boolean {
+    let inDouble = false, inSingle = false, inTemplate = false, escaped = false;
+    for (let i = 0; i < index; i++) {
+      const ch = line[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
+      if (ch === '"' && !inSingle && !inTemplate) inDouble = !inDouble;
+      else if (ch === "'" && !inDouble && !inTemplate) inSingle = !inSingle;
+      else if (ch === '`' && !inDouble && !inSingle) inTemplate = !inTemplate;
+    }
+    return inDouble || inSingle || inTemplate;
+  }
+
   private async detectIssues(filePath: string, content: string, fileExtension: string): Promise<RealtimeIssue[]> {
     const issues: RealtimeIssue[] = [];
     const lines = content.split('\n');
@@ -381,6 +394,10 @@ export class RealtimeMonitor {
           continue;
         }
         for (const match of matches) {
+          // Skip matches inside string literals for patterns that commonly produce false positives in rule definitions
+          if (['eval-usage', 'innerhtml-usage', 'console-log', 'todo-comment'].includes(pattern.type)) {
+            if (this.isInsideStringLiteral(line, match.index || 0)) continue;
+          }
           const column = match.index ? match.index + 1 : 1;
           issues.push({
             file: filePath,
@@ -490,7 +507,7 @@ export class RealtimeMonitor {
             suggestion: 'Use let or const instead of var',
           },
           {
-            regex: '==\\s*["\'][^"\']+["\']|["\'][^"\']+["\']\\s*==',
+            regex: '(?<![=!])==(?!=)\\s*["\'][^"\']+["\']|["\'][^"\']+["\']\\s*(?<![=!])==(?![=])',
             severity: 'warning' as const,
             type: 'equality-comparison',
             message: 'String comparison with == detected',
