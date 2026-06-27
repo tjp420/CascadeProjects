@@ -1,0 +1,119 @@
+{
+  "command": "hydrateRemediationWorkbench",
+  "payload": {
+    "projectName": "coming-soon",
+    "metrics": {
+      "adjustedScore": 77,
+      "remainingCount": 72,
+      "gateVerdict": "REVIEW",
+      "criticalCount": 0,
+      "highCount": 10,
+      "mediumCount": 31,
+      "lowCount": 31,
+      "filteredMatches": 76,
+      "filteredFindings": 39,
+      "filteredCategories": 4
+    },
+    "tasks": [
+      {
+        "id": "task_sec_001",
+        "phase": "Security Hardening",
+        "severity": "High",
+        "title": "Sensitive Data Exposure in AnalyzeTargetConfig",
+        "filePath": "simplebeacon-vscode-merged/dashboard-web/js/views/AnalyzeTargetConfig.js",
+        "line": 20,
+        "description": "Hardcoded local dev paths and git remote URLs embedded in frontend config source.",
+        "patchAvailable": true,
+        "actionGuide": "Replace literal paths with generic placeholders and move dev-specific values to environment config."
+      },
+      {
+        "id": "task_sec_002",
+        "phase": "Security Hardening",
+        "severity": "High",
+        "title": "Mock User Data in dataServer.ts",
+        "filePath": "simplebeacon-vscode-merged/src/dataServer.ts",
+        "line": 769,
+        "description": "Mock user object containing email literal (local@simplebeacon.ai) returned in JSON response.",
+        "patchAvailable": true,
+        "actionGuide": "Tokenize or remove mock user objects before production bundling; gate behind dev-only flags."
+      },
+      {
+        "id": "task_sec_003",
+        "phase": "Security Hardening",
+        "severity": "Medium",
+        "title": "Test Fixture Token in Archive",
+        "filePath": "coming-soon/archive/test-certificate.js",
+        "line": 4,
+        "description": "JWT-style test token committed inside an archived test fixture.",
+        "patchAvailable": true,
+        "actionGuide": "Move token to .env.test or add coming-soon/archive/ to .simplebeaconignore."
+      },
+      {
+        "id": "task_config_001",
+        "phase": "Structural Integrity",
+        "severity": "Medium",
+        "title": "Hardcoded API Server Fallback URL",
+        "filePath": "simplebeacon-vscode-merged/src/modernSidebarProvider.ts",
+        "line": 499,
+        "description": "Literal fallback URL http://127.0.0.1:55000 in VS Code extension provider.",
+        "patchAvailable": true,
+        "actionGuide": "Move fallback to package.json configuration contribution instead of source literal."
+      },
+      {
+        "id": "task_config_002",
+        "phase": "Structural Integrity",
+        "severity": "Medium",
+        "title": "Missing Security Header Verification",
+        "filePath": "simplebeacon-vscode-merged/dashboard-web/js/views/AnalyzeEngineGrid.js",
+        "line": 22,
+        "description": "UI references security-headers scan category but backend CSP/HSTS coverage is unverified.",
+        "patchAvailable": true,
+        "actionGuide": "Add helmet middleware or reverse-proxy rules to emit CSP, X-Frame-Options, and HSTS."
+      },
+      {
+        "id": "task_hygiene_001",
+        "phase": "Code Hygiene",
+        "severity": "Low",
+        "title": "Debug console.log in analyze-directory.js",
+        "filePath": "coming-soon/analyze-directory.js",
+        "line": 138,
+        "description": "Banner and stats output via console.log in CLI analyzer.",
+        "patchAvailable": true,
+        "actionGuide": "Gate output behind a --verbose flag or SILENT environment variable."
+      },
+      {
+        "id": "task_hygiene_002",
+        "phase": "Code Hygiene",
+        "severity": "Low",
+        "title": "Empty catch Blocks in authService.js",
+        "filePath": "simplebeacon-vscode-merged/dashboard-web/js/services/authService.js",
+        "line": 149,
+        "description": "Error-swallowing catch blocks suppress auth failures silently.",
+        "patchAvailable": true,
+        "actionGuide": "Replace empty catches with console.warn, telemetry, or re-throw logic."
+      },
+      {
+        "id": "task_a11y_001",
+        "phase": "Accessibility",
+        "severity": "Medium",
+        "title": "Unlabeled Checkbox Inputs in HelpView",
+        "filePath": "simplebeacon-vscode-merged/dashboard-web/js/views/HelpView.js",
+        "line": 111,
+        "description": "Checkbox inputs missing aria-label or explicit label for association.",
+        "patchAvailable": true,
+        "actionGuide": "Add aria-label attributes or wrap inputs in properly bound <label for=...> elements."
+      },
+      {
+        "id": "task_ai_001",
+        "phase": "Compliance",
+        "severity": "Low",
+        "title": "Hardcoded OpenAI Model List in Dev Server",
+        "filePath": "simplebeacon-vscode-merged/dashboard-web/serve.cjs",
+        "line": 59,
+        "description": "Mock response embeds gpt-4 and gpt-3.5-turbo model names in dev server source.",
+        "patchAvailable": true,
+        "actionGuide": "Fetch model list dynamically from provider API or move to environment-driven config."
+      }
+    ]
+  }
+}

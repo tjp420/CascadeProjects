@@ -1,555 +1,164 @@
 {
-  "timestamp": "2026-06-11T01:55:39.230Z",
+  "timestamp": "2026-06-27T21:44:57.640Z",
   "gate": {
     "pass": false,
-    "errors": 7,
-    "warnings": 36,
-    "infos": 15,
-    "errorThreshold": 0,
-    "warningThreshold": 10
+    "errors": 0,
+    "warnings": 0,
+    "infos": 0
   },
-  "files": 27,
+  "files": 237,
   "findings": [
     {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\5c85ee96",
-      "findings": [
-        {
-          "ruleId": "git-sensitive-commit",
-          "message": "[Batch] git-sensitive-commit: git-sensitive-commit finding",
-          "severity": "error",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "git-sensitive-commit",
-          "message": "[Batch] git-sensitive-commit: git-sensitive-commit finding",
-          "severity": "error",
-          "line": 1,
-          "column": 1
-        }
-      ]
+      "id": "llm-slop-SB-FICTION-002-packages/simplebeacon-cli/src/rules/llm-slop-catalog.json-579",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json",
+      "file": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json",
+      "line": 14,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json:14 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "llm-slop-catalog.json"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```javascript"
+      }
     },
     {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\82227c2f",
-      "findings": [
-        {
-          "ruleId": "git-sensitive-commit",
-          "message": "[Batch] git-sensitive-commit: git-sensitive-commit finding",
-          "severity": "error",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "git-sensitive-commit",
-          "message": "[Batch] git-sensitive-commit: git-sensitive-commit finding",
-          "severity": "error",
-          "line": 1,
-          "column": 1
-        }
-      ]
+      "id": "llm-slop-SB-FICTION-002-packages/simplebeacon-cli/src/rules/llm-slop-catalog.json-593",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json",
+      "file": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json",
+      "line": 14,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json:14 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "llm-slop-catalog.json"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```typescript"
+      }
     },
     {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\839a285d",
-      "findings": [
-        {
-          "ruleId": "git-sensitive-commit",
-          "message": "[Batch] git-sensitive-commit: git-sensitive-commit finding",
-          "severity": "error",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "git-sensitive-commit",
-          "message": "[Batch] git-sensitive-commit: git-sensitive-commit finding",
-          "severity": "error",
-          "line": 1,
-          "column": 1
-        }
-      ]
+      "id": "llm-slop-SB-FICTION-002-packages/simplebeacon-cli/src/rules/llm-slop-catalog.json-607",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json",
+      "file": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json",
+      "line": 14,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json:14 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "llm-slop-catalog.json"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```python"
+      }
     },
     {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\lib\\license-token.js",
-      "findings": [
-        {
-          "ruleId": "git-sensitive-file",
-          "message": "[Batch] git-sensitive-file: git-sensitive-file finding",
-          "severity": "error",
-          "line": 1,
-          "column": 1
-        }
-      ]
+      "id": "llm-slop-SB-FICTION-002-packages/simplebeacon-cli/src/rules/llm-slop-catalog.json-617",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json",
+      "file": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json",
+      "line": 14,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "packages/simplebeacon-cli/src/rules/llm-slop-catalog.json:14 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "llm-slop-catalog.json"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```json"
+      }
     },
     {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\.env",
-      "findings": [
-        {
-          "ruleId": "config-sprawl",
-          "message": "[Batch] config-sprawl: config-sprawl finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "env-inconsistency",
-          "message": "[Batch] env-inconsistency: env-inconsistency finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "env-inconsistency",
-          "message": "[Batch] env-inconsistency: env-inconsistency finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "env-inconsistency",
-          "message": "[Batch] env-inconsistency: env-inconsistency finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "env-inconsistency",
-          "message": "[Batch] env-inconsistency: env-inconsistency finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "env-inconsistency",
-          "message": "[Batch] env-inconsistency: env-inconsistency finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "env-inconsistency",
-          "message": "[Batch] env-inconsistency: env-inconsistency finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "missing-env-key",
-          "message": "[Batch] missing-env-key: missing-env-key finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "unused-env-key",
-          "message": "[Batch] unused-env-key: unused-env-key finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "unused-env-key",
-          "message": "[Batch] unused-env-key: unused-env-key finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "unused-env-key",
-          "message": "[Batch] unused-env-key: unused-env-key finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        }
-      ]
+      "id": "llm-slop-SB-FICTION-002-simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json-579",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+      "file": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+      "line": 14,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json:14 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "llm-slop-catalog.json"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```javascript"
+      }
     },
     {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\backups\\Domain-backup-2026-06-08\\Backend\\.eslintrc.cjs",
-      "findings": [
-        {
-          "ruleId": "unused-file",
-          "message": "[Batch] unused-file: unused-file finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
+      "id": "llm-slop-SB-FICTION-002-simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json-593",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+      "file": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+      "line": 14,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json:14 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "llm-slop-catalog.json"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```typescript"
+      }
     },
     {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\backups\\Domain-backup-2026-06-08\\Frontend\\404.html",
-      "findings": [
-        {
-          "ruleId": "unused-file",
-          "message": "[Batch] unused-file: unused-file finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
+      "id": "llm-slop-SB-FICTION-002-simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json-607",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+      "file": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+      "line": 14,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json:14 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "llm-slop-catalog.json"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```python"
+      }
     },
     {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\backups\\Domain-backup-2026-06-08\\Frontend\\certification-post-fix.html",
-      "findings": [
-        {
-          "ruleId": "unused-file",
-          "message": "[Batch] unused-file: unused-file finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\backups\\Domain-backup-2026-06-08\\Frontend\\css\\report(31).json",
-      "findings": [
-        {
-          "ruleId": "unused-file",
-          "message": "[Batch] unused-file: unused-file finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\backups\\Domain-backup-2026-06-08\\Frontend\\downloads\\diagnostic-prep.html",
-      "findings": [
-        {
-          "ruleId": "unused-file",
-          "message": "[Batch] unused-file: unused-file finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\backups\\Domain-backup-2026-06-08\\Frontend\\downloads\\repo-handoff.html",
-      "findings": [
-        {
-          "ruleId": "unused-file",
-          "message": "[Batch] unused-file: unused-file finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\backups\\Domain-backup-2026-06-08\\Frontend\\report.json",
-      "findings": [
-        {
-          "ruleId": "unused-file",
-          "message": "[Batch] unused-file: unused-file finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\backups\\Domain-backup-2026-06-08\\Frontend\\sample-clearance-pdf.html",
-      "findings": [
-        {
-          "ruleId": "unused-file",
-          "message": "[Batch] unused-file: unused-file finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\commands.js",
-      "findings": [
-        {
-          "ruleId": "unused-file",
-          "message": "[Batch] unused-file: unused-file finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "data-access-pattern",
-          "message": "[Batch] data-access-pattern: data-access-pattern finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\lib\\complete-scan-target-path.js",
-      "findings": [
-        {
-          "ruleId": "unused-file",
-          "message": "[Batch] unused-file: unused-file finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\lib\\runtime-sentinel.js",
-      "findings": [
-        {
-          "ruleId": "data-access-pattern",
-          "message": "[Batch] data-access-pattern: data-access-pattern finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\lib\\scanner-accuracy-tracker.js",
-      "findings": [
-        {
-          "ruleId": "data-access-pattern",
-          "message": "[Batch] data-access-pattern: data-access-pattern finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\mcp\\handlers\\report-handlers.js",
-      "findings": [
-        {
-          "ruleId": "data-access-pattern",
-          "message": "[Batch] data-access-pattern: data-access-pattern finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\mcp\\handlers\\utility-handlers.js",
-      "findings": [
-        {
-          "ruleId": "data-access-pattern",
-          "message": "[Batch] data-access-pattern: data-access-pattern finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\rules\\budget-config-scanner.js",
-      "findings": [
-        {
-          "ruleId": "data-access-pattern",
-          "message": "[Batch] data-access-pattern: data-access-pattern finding",
-          "severity": "warning",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\node_modules",
-      "findings": [
-        {
-          "ruleId": "build-artifact",
-          "message": "[Batch] build-artifact: build-artifact finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\node_modules",
-      "findings": [
-        {
-          "ruleId": "build-artifact",
-          "message": "[Batch] build-artifact: build-artifact finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\api\\node_modules",
-      "findings": [
-        {
-          "ruleId": "build-artifact",
-          "message": "[Batch] build-artifact: build-artifact finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\src\\lib\\complete-scan-artifact-profile.browser.js",
-      "findings": [
-        {
-          "ruleId": "orphaned-export",
-          "message": "[Batch] orphaned-export: orphaned-export finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "dead-export",
-          "message": "[Batch] dead-export: dead-export finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "dead-export",
-          "message": "[Batch] dead-export: dead-export finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "orphaned-export",
-          "message": "[Batch] orphaned-export: orphaned-export finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "orphaned-export",
-          "message": "[Batch] orphaned-export: orphaned-export finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\server-out.log",
-      "findings": [
-        {
-          "ruleId": "build-artifact",
-          "message": "[Batch] build-artifact: build-artifact finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\vscode-extension\\node_modules",
-      "findings": [
-        {
-          "ruleId": "build-artifact",
-          "message": "[Batch] build-artifact: build-artifact finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "file": "c:\\Users\\Trevor\\CascadeProjects\\vscode-extension\\package.json",
-      "findings": [
-        {
-          "ruleId": "unused-dependency",
-          "message": "[Batch] unused-dependency: unused-dependency finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        },
-        {
-          "ruleId": "unused-dependency",
-          "message": "[Batch] unused-dependency: unused-dependency finding",
-          "severity": "info",
-          "line": 1,
-          "column": 1
-        }
-      ]
+      "id": "llm-slop-SB-FICTION-002-simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json-617",
+      "severity": "high",
+      "type": "LLM Slop Pattern",
+      "filePath": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+      "file": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+      "line": 14,
+      "pattern": "SB-FICTION-002",
+      "count": 1,
+      "description": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json:14 Raw markdown code fence leaked into source/config",
+      "recommendedAction": "Replace placeholder copy with production-ready values before client handoff",
+      "affectedFiles": [
+        "llm-slop-catalog.json"
+      ],
+      "metadata": {
+        "ruleId": "SB-FICTION-002",
+        "match": "```json"
+      }
     }
   ]
 }

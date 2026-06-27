@@ -29,10 +29,6 @@ const PATTERN_REGISTRY = {
         appliesTo: ['javascript','python','java','go','rust','php','ruby','dotnet'],
         pattern: /(password|passwd|pwd|secret|token|api[_-]?key|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
     },
-    mockData: {
-        appliesTo: ['javascript','python','java','go','rust','php','ruby','dotnet'],
-        pattern: /test[-_]?data|fixture|mock|stub|dummy|sample|example.*data/gi
-    },
     euAiAct: {
         appliesTo: ['javascript'],
         pattern: /ai_system|high_risk|transparency|conformity|bias_audit|data_governance/gi

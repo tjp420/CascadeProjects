@@ -87,7 +87,7 @@ const FILE_COUNT_HIGH = 65000;
 const FILE_COUNT_VERY_HIGH = 100000;
 
 // Local server ports to probe
-const LOCAL_SERVER_PORTS = [38000, 50559, 3002, 3001, 3000, 8080, 5000];
+const LOCAL_SERVER_PORTS = [38000, 50559, 3002, 3001, 3000, 5000];
 
 // API base URL — localhost uses same-origin; production uses Render backend
 const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? '' : 'https://simplebeacon.onrender.com';
@@ -98,7 +98,7 @@ function getFreeTokenUrl() {
     const storedHost = localStorage.getItem('sb_api_host');
     if (storedHost) return storedHost + '/api/free-token';
     const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    const knownPorts = [38000, 50559, 3002, 3001, 3000, 8080, 5000];
+    const knownPorts = [38000, 50559, 3002, 3001, 3000, 5000];
     const currentPort = parseInt(location.port, 10);
     if (isLocal && knownPorts.includes(currentPort)) {
         return location.origin + '/api/free-token';
@@ -108,7 +108,7 @@ function getFreeTokenUrl() {
         const devPort = '3000';
         return `http://${devHost}:${devPort}/api/free-token`;
     }
-    return '/api/free-token';
+    return API_BASE + '/api/free-token';
 }
 
 // DOM element declarations — licenseInput declared in token-manager.js (same global scope)
@@ -1589,7 +1589,7 @@ function updateStepper() {
 }
 
 // localStorage persistence
-const LS_KEY_TOKEN = 'simplebeacon_token';
+const LS_KEY_TOKEN = 'simplebeacon_token'; // simplebeacon-ignore credential — localStorage key name, not a secret
 const LS_KEY_SCAN = 'simplebeacon_scan_data';
 
 // v10-stale-guard — always purge cached scan data on fresh page load
@@ -2512,8 +2512,8 @@ async function uploadFilesToServer(files, serverUrl) {
         showToast('License token required for server scan.', 'warning');
         return false;
     }
-    if (files.length > 100000) {
-        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ' + files.length.toLocaleString() + ' files exceed server upload limit (100k). Falling back to browser scan.', 'warn');
+    if (files.length > 500000) {
+        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ' + files.length.toLocaleString() + ' files exceed server upload limit (500k). Falling back to browser scan.', 'warn');
         return false;
     }
     const formData = new FormData();
@@ -2579,6 +2579,40 @@ async function uploadFilesToServer(files, serverUrl) {
         return false;
     }
 }
+// Direct server-side scan — bypasses browser file picker limits entirely
+async function startServerScan(projectPath) {
+    const url = serverUploadUrl || '';
+    const scanUrl = url + '/api/simplebeacon/scan';
+    const payload = { projectPath: projectPath || '', fullDirectoryScan: true, format: 'json' };
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Starting server-side scan...', 'info');
+    try {
+        const res = await fetch(scanUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            const text = await res.text().catch(() => 'HTTP ' + res.status);
+            appendTerminalLine('Server scan failed: ' + text, 'error');
+            return false;
+        }
+        const data = await res.json();
+        const report = data.report || data;
+        appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#10004;</span> Server scan complete — ' + (report.filesAnalyzed || report.totalFiles || 0).toLocaleString() + ' files analyzed.', 'success');
+        reportData = report;
+        window._scanPreviewData = null;
+        window._scanPreviewModules = null;
+        if (typeof selectedModules !== 'undefined' && selectedModules.clear) selectedModules.clear();
+        if (scanPreview) { scanPreview.innerHTML = ''; }
+        renderFullReport(report);
+        return true;
+    } catch (err) {
+        appendTerminalLine('Server scan error: ' + (err && err.message ? err.message : String(err)), 'error');
+        console.error('[startServerScan] error:', err);
+        return false;
+    }
+}
+
 window._startAccumulatedScan = async function() {
     console.log('[_startAccumulatedScan] called, accumulated=' + accumulatedPickerFiles.length);
     isPickerActive = false;
@@ -2596,6 +2630,17 @@ window._startAccumulatedScan = async function() {
     }
     appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Starting scan with <strong>' + files.length.toLocaleString() + '</strong> files...');
 
+    // Low file count from browser picker — fall back to server-side scan for full coverage
+    if (files.length < 1000 && serverUploadUrl) {
+        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888;</span> Browser picker returned only ' + files.length.toLocaleString() + ' files. Falling back to server-side scan for full coverage...', 'warn');
+        const ok = await startServerScan();
+        if (ok) {
+            console.log('[_startAccumulatedScan] server scan fallback completed');
+            return;
+        }
+        appendTerminalLine('Server fallback failed, continuing with browser scan...', 'warn');
+    }
+
     // Try server upload first for full CLI scan
     if (serverUploadUrl) {
         const ok = await uploadFilesToServer(files, serverUploadUrl);
@@ -2605,7 +2650,7 @@ window._startAccumulatedScan = async function() {
         }
         appendTerminalLine('Server scan failed, falling back to browser scan...', 'warn');
     }
-if (typeof window.processLocalCLIScan !== 'function') {
+    if (typeof window.processLocalCLIScan !== 'function') {
         appendTerminalLine('Scanner engine not loaded. Hard reload the page (Ctrl+Shift+R).', 'error');
         console.error('[_startAccumulatedScan] processLocalCLIScan not found');
         return;
@@ -2930,10 +2975,97 @@ async function probeLocalBridge() {
             bridgeAvailable = true;
             const panel = document.getElementById('local-scanner-panel');
             if (panel) panel.style.display = 'block';
-            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#9889; Local Scanner Bridge detected</span> — scans will use native file system (no file limits).', 'info');
+            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#9889; Local Scanner Bridge detected</span> — scans will use native filesystem—no file limits.', 'info');
         }
     } catch (_) {
         bridgeAvailable = false;
+    }
+}
+
+// VS Code: Extension Data Server — auto-discovery (sidebar scan results)
+// ═══════════════════════════════════════════════════════════════════════════════
+const DATA_SERVER_PORT = 54358;
+const DATA_SERVER_URL = localStorage.getItem('simplebeacon-data-url') || 'http://127.0.0.1:' + DATA_SERVER_PORT;
+let dataServerAvailable = false;
+let dataServerSse = null;
+
+async function probeDataServer() {
+    try {
+        const res = await fetch(`${DATA_SERVER_URL}/api/health`, { method: 'GET', mode: 'cors', signal: AbortSignal.timeout(2000) });
+        if (res.ok) {
+            dataServerAvailable = true;
+            const panel = document.getElementById('data-server-panel');
+            if (panel) panel.style.display = 'block';
+            const statusEl = document.getElementById('dataServerStatus');
+            if (statusEl) {
+                statusEl.textContent = 'Connected to VS Code: sidebar';
+                statusEl.style.color = '#34D399';
+            }
+            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#128225; Sidebar data server detected</span> — scan results available from VS Code: extension.', 'info');
+            // Start SSE to get real-time updates
+            startDataServerSse();
+        }
+    } catch (_) {
+        dataServerAvailable = false;
+        const statusEl = document.getElementById('dataServerStatus');
+        if (statusEl) {
+            statusEl.textContent = 'Not connected — open VS Code: sidebar to enable';
+            statusEl.style.color = '#888';
+        }
+    }
+}
+
+function startDataServerSse() {
+    if (dataServerSse) { dataServerSse.close(); dataServerSse = null; }
+    try {
+        dataServerSse = new EventSource(`${DATA_SERVER_URL}/api/stream`);
+        dataServerSse.onmessage = (e) => {
+            try {
+                const msg = JSON.parse(e.data);
+                if (msg.type === 'state') {
+                    const st = msg.payload;
+                    const statusEl = document.getElementById('dataServerStatus');
+                    if (statusEl && st.scanStatus) {
+                        statusEl.textContent = `Connected — ${st.scanStatus}`;
+                    }
+                }
+            } catch (_) {}
+        };
+        dataServerSse.onerror = () => {
+            if (dataServerSse) { dataServerSse.close(); dataServerSse = null; }
+        };
+    } catch (_) {}
+}
+
+async function fetchSidebarData() {
+    if (!dataServerAvailable) {
+        showToast('Sidebar data server not connected. Open the VS Code: sidebar first.', 'warning');
+        return;
+    }
+    const btn = document.getElementById('fetchSidebarBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Fetching...'; }
+    try {
+        const res = await fetch(`${DATA_SERVER_URL}/api/report`, { mode: 'cors' });
+        if (!res.ok) throw new Error('Report endpoint returned ' + res.status);
+        const report = await res.json();
+        if (!report || Object.keys(report).length === 0) {
+            showToast('No scan data available in sidebar yet. Run a scan in VS Code: first.', 'info');
+            if (btn) { btn.disabled = false; btn.textContent = 'Fetch from Sidebar'; }
+            return;
+        }
+        reportData = report;
+        if (typeof window.renderPreview === 'function') {
+            window.renderPreview(reportData);
+            scanPreview.style.display = 'block';
+            updateSubmit();
+        }
+        appendTerminalLine(`<span style="color:#34D399;font-weight:700;">&#128229;</span> Loaded sidebar report — ${report.totalFiles || report.filesAnalyzed || '?'} files, score ${report.qualityScore != null ? report.qualityScore : '?'}/100`, 'success');
+        showToast(`Sidebar report loaded: ${report.totalFiles || report.filesAnalyzed || '?'} files`, 'success');
+    } catch (err) {
+        appendTerminalLine(`<span style="color:#EF4444;">&#10008;</span> Failed to fetch sidebar data: ${err.message}`, 'error');
+        showToast('Failed to fetch sidebar data: ' + err.message, 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Fetch from Sidebar'; }
     }
 }
 
@@ -2957,9 +3089,9 @@ async function probeLocalServer() {
             const vaultLink = document.getElementById('vaultLink');
             if (banner) {
                 banner.style.display = 'flex';
-                if (link) link.href = `http://127.0.0.1:${port}/#/analyze`;
+                if (link) link.href = `http://127.0.0.1:${port}/dashboard/analyze`;
             }
-            if (vaultLink) vaultLink.href = `http://127.0.0.1:${port}/#/dashboard`;
+            if (vaultLink) vaultLink.href = '/dashboard/dashboard';
             return;
         } catch (_) {
             // Server not running on this port
@@ -3001,16 +3133,26 @@ async function startLocalScan() {
     const directoryPath = rawPath.trim();
     console.log('[startLocalScan] pathInput=' + (pathInput ? 'found' : 'null') + ' rawPath=' + JSON.stringify(rawPath) + ' directoryPath=' + JSON.stringify(directoryPath));
 
-    // No path typed → show drag-and-drop guidance (browser blocks all programmatic pickers)
+    // No path typed → prefer server-side scan for full coverage, else browser picker
     if (!directoryPath) {
+        if (serverUploadUrl) {
+            console.log('[startLocalScan] no path — server available, starting server-side scan');
+            await startServerScan();
+            return;
+        }
         console.log('[startLocalScan] no path — showing drag-and-drop guidance');
         _pickerTriggeredByButton = true;
         triggerDirectoryPicker();
         return;
     }
 
-    // Path typed + bridge available → use native bridge scan
+    // Path typed + bridge available → use native bridge scan; else server scan
     if (!bridgeAvailable) {
+        if (serverUploadUrl) {
+            console.log('[startLocalScan] bridge unavailable — falling back to server-side scan for path: ' + directoryPath);
+            await startServerScan(directoryPath);
+            return;
+        }
         showToast('Local bridge not running. Enter a path only when the bridge is active, or use drag & drop.', 'warning');
         return;
     }
@@ -3098,8 +3240,11 @@ async function fetchReportAndLoad() {
 function initLocalScannerUI() {
     probeLocalBridge();
     probeLocalServer();
+    probeDataServer();
     const panel = document.getElementById('local-scanner-panel');
     if (panel) panel.style.display = 'block';
+    const dataPanel = document.getElementById('data-server-panel');
+    if (dataPanel) dataPanel.style.display = 'block';
 
     // Wire up elements that previously used inline event handlers (CSP compliance)
     document.querySelectorAll('.cmd-copy[data-copy-target]').forEach(btn => {
@@ -3167,9 +3312,69 @@ function initLocalScannerUI() {
     } else {
         console.warn('[main.js] startLocalScanBtn not found in DOM');
     }
+
+    const fetchBtn = document.getElementById('fetchSidebarBtn');
+    if (fetchBtn) {
+        fetchBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            fetchSidebarData();
+        });
+    }
 }
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initLocalScannerUI);
 } else {
     initLocalScannerUI();
 }
+
+// Auto-sync to VS Code: watch for report data changes and push automatically
+(function() {
+    var lastReportJson = null;
+    function checkAndSync() {
+        try {
+            var report = (typeof window.currentReport !== 'undefined' ? window.currentReport : null) || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null) || (typeof reportData !== 'undefined' ? reportData : null);
+            if (!report) return;
+            var json = JSON.stringify(report);
+            if (json === lastReportJson) return;
+            lastReportJson = json;
+            if (typeof window.__postReportToVsCode === 'function') {
+                window.__postReportToVsCode(report);
+            }
+        } catch (e) {
+            console.warn('[AutoSync] Error:', e);
+        }
+    }
+    // Poll every 3 seconds; initial delay gives page time to settle
+    setTimeout(checkAndSync, 2000);
+    setInterval(checkAndSync, 3000);
+})();
+
+// Auto-load report from ?report= URL query parameter
+(function autoLoadReportFromUrl() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const reportPath = params.get('report');
+        if (!reportPath) return;
+        const url = reportPath.startsWith('http') ? reportPath : (reportPath.startsWith('/') ? reportPath : '/' + reportPath);
+        fetch(url)
+            .then(function(res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function(data) {
+                reportData = data;
+                if (typeof window.renderPreview === 'function') window.renderPreview(reportData);
+                const scanPreview = document.getElementById('scanPreview');
+                if (scanPreview) scanPreview.style.display = 'block';
+                if (typeof updateSubmit === 'function') updateSubmit();
+                if (typeof showToast === 'function') showToast('Auto-loaded report from URL', 'success');
+            })
+            .catch(function(err) {
+                if (typeof showToast === 'function') showToast('Failed to auto-load report: ' + err.message, 'error');
+                else console.warn('[AutoLoad] Failed to load report:', err);
+            });
+    } catch (e) {
+        console.warn('[AutoLoad] Error:', e);
+    }
+})();

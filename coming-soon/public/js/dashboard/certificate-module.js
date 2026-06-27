@@ -124,7 +124,7 @@ async function generateSovereignCertificate(report, token, options = {}) {
     const profileLabelOverride = options.profileLabel || '';
     const signatoryName = options.signatoryName || 'SimpleBeacon';
     const signatoryTitle = options.signatoryTitle || 'Automated Compliance Engine';
-    const contactEmail = options.contactEmail || 'trevor_punt@live.com';
+    const contactEmail = options.contactEmail || 'contact@simplebeacon.ai';
     const fileCount = report.filesAnalyzed || report.totalFiles || report.fileCount || 0;
     const lineCount = report.totalLines || report.linesOfCode || 0;
     const gateReport = report.gateReport || report.gate || {};
@@ -855,22 +855,41 @@ Generated entirely in-browser. Zero data uploaded.
         includedModules: allowedModules
     }, null, 2));
 
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(zipBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `simplebeacon-certificate-${isoDate.slice(0,10)}.zip`;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    try { a.click(); } catch (e) { window.open(url, '_blank'); }
-    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 5000);
+    try {
+        const zipBlob = await zip.generateAsync({
+            type: 'blob',
+            mimeType: 'application/zip',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
+        if (!zipBlob || zipBlob.size === 0) {
+            throw new Error('ZIP generation produced empty file');
+        }
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `simplebeacon-certificate-${isoDate.slice(0,10)}.zip`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        try { a.click(); } catch (e) { window.open(url, '_blank'); }
+        setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 30000);
+    } catch (zipErr) {
+        throw new Error('Failed to generate certificate ZIP: ' + (zipErr.message || zipErr));
+    }
 }
 
+let __certGenerating = false;
 async function doGenerateCertificate(buttonEl) {
+    if (__certGenerating) {
+        showToast('Certificate generation already in progress...', 'info');
+        return;
+    }
+    __certGenerating = true;
     const token = licenseInput ? licenseInput.value.trim() : '';
     const tokenError = document.getElementById('tokenError');
     if (tokenError) tokenError.classList.add('hidden-display');
     if (!reportData) {
+        __certGenerating = false;
         showToast('No scan report loaded. Upload a JSON || run a browser scan first.', 'error');
         showStatus('No report data. Upload || scan first.', 'error');
         return;
@@ -895,15 +914,26 @@ async function doGenerateCertificate(buttonEl) {
         showToast(errMsg || 'Certificate generation failed', 'error');
         const statusEl = document.getElementById('status');
         if (statusEl) {
-            const safeErr = String(errMsg || 'Unknown error').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-            statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span>${safeErr}</span><button id="retryCertBtn" style="padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;">&#128260; Retry</button></div>`;
+            statusEl.textContent = '';
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
+            const span = document.createElement('span');
+            span.textContent = errMsg || 'Unknown error';
+            const btn = document.createElement('button');
+            btn.id = 'retryCertBtn';
+            btn.style.cssText = 'padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;';
+            btn.textContent = 'Retry';
+            wrap.appendChild(span);
+            wrap.appendChild(btn);
+            statusEl.appendChild(wrap);
             statusEl.className = 'status error';
             statusEl.style.display = 'block';
-            document.getElementById('retryCertBtn')?.addEventListener('click', () => {
+            btn.addEventListener('click', () => {
                 doGenerateCertificate(buttonEl);
             });
         }
     } finally {
+        __certGenerating = false;
         if (buttonEl) {
             buttonEl.disabled = false;
             buttonEl.classList.remove('btn-loading');

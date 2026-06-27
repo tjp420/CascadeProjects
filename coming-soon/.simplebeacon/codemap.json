@@ -1,0 +1,1092 @@
+{
+  "generatedAt": "2026-06-26T06:55:12.565Z",
+  "projectPath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "totalFiles": 260,
+  "totalLines": 113756,
+  "languages": [
+    {
+      "extension": ".js",
+      "count": 75
+    },
+    {
+      "extension": ".html",
+      "count": 53
+    },
+    {
+      "extension": ".md",
+      "count": 32
+    },
+    {
+      "extension": ".json",
+      "count": 30
+    },
+    {
+      "extension": ".cjs",
+      "count": 29
+    },
+    {
+      "extension": ".txt",
+      "count": 14
+    },
+    {
+      "extension": ".css",
+      "count": 6
+    },
+    {
+      "extension": ".csv",
+      "count": 5
+    }
+  ],
+  "architecture": "Node.js",
+  "dependencyGraph": {
+    "nodes": [
+      {
+        "id": "analyze-directory.js",
+        "label": "analyze-directory.js",
+        "group": ".js",
+        "size": 205
+      },
+      {
+        "id": "analyze-report.cjs",
+        "label": "analyze-report.cjs",
+        "group": ".cjs",
+        "size": 140
+      },
+      {
+        "id": "app-links.js",
+        "label": "app-links.js",
+        "group": ".js",
+        "size": 204
+      },
+      {
+        "id": "archive/count-all-files.js",
+        "label": "count-all-files.js",
+        "group": ".js",
+        "size": 59
+      },
+      {
+        "id": "archive/count-files.js",
+        "label": "count-files.js",
+        "group": ".js",
+        "size": 69
+      },
+      {
+        "id": "archive/generate-account-token.js",
+        "label": "generate-account-token.js",
+        "group": ".js",
+        "size": 70
+      },
+      {
+        "id": "archive/generate-token.js",
+        "label": "generate-token.js",
+        "group": ".js",
+        "size": 36
+      },
+      {
+        "id": "archive/js/scan-worker.js",
+        "label": "scan-worker.js",
+        "group": ".js",
+        "size": 248
+      },
+      {
+        "id": "archive/lib/account-types.cjs",
+        "label": "account-types.cjs",
+        "group": ".cjs",
+        "size": 94
+      },
+      {
+        "id": "archive/local-scanner-bridge.cjs",
+        "label": "local-scanner-bridge.cjs",
+        "group": ".cjs",
+        "size": 581
+      },
+      {
+        "id": "archive/run-cli-scan.js",
+        "label": "run-cli-scan.js",
+        "group": ".js",
+        "size": 60
+      },
+      {
+        "id": "archive/scan-directory.js",
+        "label": "scan-directory.js",
+        "group": ".js",
+        "size": 213
+      },
+      {
+        "id": "archive/services/certificate-generator.cjs",
+        "label": "certificate-generator.cjs",
+        "group": ".cjs",
+        "size": 225
+      },
+      {
+        "id": "archive/test-all-patterns.js",
+        "label": "test-all-patterns.js",
+        "group": ".js",
+        "size": 339
+      },
+      {
+        "id": "archive/test-certificate.js",
+        "label": "test-certificate.js",
+        "group": ".js",
+        "size": 57
+      },
+      {
+        "id": "archive/test-generate-roadmap.js",
+        "label": "test-generate-roadmap.js",
+        "group": ".js",
+        "size": 202
+      },
+      {
+        "id": "archive/test-normalize.js",
+        "label": "test-normalize.js",
+        "group": ".js",
+        "size": 168
+      },
+      {
+        "id": "archive/test-renderPreview.js",
+        "label": "test-renderPreview.js",
+        "group": ".js",
+        "size": 142
+      },
+      {
+        "id": "archive/test-roadmap.js",
+        "label": "test-roadmap.js",
+        "group": ".js",
+        "size": 16
+      },
+      {
+        "id": "archive/test-technical-audit.js",
+        "label": "test-technical-audit.js",
+        "group": ".js",
+        "size": 356
+      },
+      {
+        "id": "archive/test-zip-data.js",
+        "label": "test-zip-data.js",
+        "group": ".js",
+        "size": 91
+      },
+      {
+        "id": "build-public.js",
+        "label": "build-public.js",
+        "group": ".js",
+        "size": 58
+      },
+      {
+        "id": "check-sidebar.js",
+        "label": "check-sidebar.js",
+        "group": ".js",
+        "size": 18
+      },
+      {
+        "id": "contact.js",
+        "label": "contact.js",
+        "group": ".js",
+        "size": 368
+      },
+      {
+        "id": "content/outreach-prospects.js",
+        "label": "outreach-prospects.js",
+        "group": ".js",
+        "size": 83
+      },
+      {
+        "id": "js/dashboard/certificate-module.js",
+        "label": "certificate-module.js",
+        "group": ".js",
+        "size": 949
+      },
+      {
+        "id": "js/dashboard/main.js",
+        "label": "main.js",
+        "group": ".js",
+        "size": 3381
+      },
+      {
+        "id": "js/dashboard/pattern-documentation.js",
+        "label": "pattern-documentation.js",
+        "group": ".js",
+        "size": 395
+      },
+      {
+        "id": "js/dashboard/phase-registry.js",
+        "label": "phase-registry.js",
+        "group": ".js",
+        "size": 153
+      },
+      {
+        "id": "js/dashboard/quick-actions.js",
+        "label": "quick-actions.js",
+        "group": ".js",
+        "size": 317
+      },
+      {
+        "id": "js/dashboard/scanner-engine.js",
+        "label": "scanner-engine.js",
+        "group": ".js",
+        "size": 3078
+      },
+      {
+        "id": "js/dashboard/scanner-patterns.js",
+        "label": "scanner-patterns.js",
+        "group": ".js",
+        "size": 1464
+      },
+      {
+        "id": "js/dashboard/token-file-system.js",
+        "label": "token-file-system.js",
+        "group": ".js",
+        "size": 350
+      },
+      {
+        "id": "js/dashboard/token-manager.js",
+        "label": "token-manager.js",
+        "group": ".js",
+        "size": 478
+      },
+      {
+        "id": "js/dashboard/ui-renderer.js",
+        "label": "ui-renderer.js",
+        "group": ".js",
+        "size": 861
+      },
+      {
+        "id": "js/dashboard/usb-token-manager.js",
+        "label": "usb-token-manager.js",
+        "group": ".js",
+        "size": 404
+      },
+      {
+        "id": "js/dashboard/utils.js",
+        "label": "utils.js",
+        "group": ".js",
+        "size": 63
+      },
+      {
+        "id": "js/scan-utils.js",
+        "label": "scan-utils.js",
+        "group": ".js",
+        "size": 172
+      },
+      {
+        "id": "js/scan-worker.js",
+        "label": "scan-worker.js",
+        "group": ".js",
+        "size": 272
+      },
+      {
+        "id": "js/vendor/html2canvas.min.js",
+        "label": "html2canvas.min.js",
+        "group": ".js",
+        "size": 20
+      },
+      {
+        "id": "js/vendor/jszip.min.js",
+        "label": "jszip.min.js",
+        "group": ".js",
+        "size": 13
+      },
+      {
+        "id": "js-es2018/dashboard/certificate-module.js",
+        "label": "certificate-module.js",
+        "group": ".js",
+        "size": 939
+      },
+      {
+        "id": "js-es2018/dashboard/main.js",
+        "label": "main.js",
+        "group": ".js",
+        "size": 3576
+      },
+      {
+        "id": "js-es2018/dashboard/pattern-documentation.js",
+        "label": "pattern-documentation.js",
+        "group": ".js",
+        "size": 379
+      },
+      {
+        "id": "js-es2018/dashboard/phase-registry.js",
+        "label": "phase-registry.js",
+        "group": ".js",
+        "size": 164
+      },
+      {
+        "id": "js-es2018/dashboard/quick-actions.js",
+        "label": "quick-actions.js",
+        "group": ".js",
+        "size": 301
+      },
+      {
+        "id": "js-es2018/dashboard/scanner-engine.js",
+        "label": "scanner-engine.js",
+        "group": ".js",
+        "size": 3244
+      },
+      {
+        "id": "js-es2018/dashboard/scanner-patterns.js",
+        "label": "scanner-patterns.js",
+        "group": ".js",
+        "size": 1591
+      },
+      {
+        "id": "js-es2018/dashboard/token-file-system.js",
+        "label": "token-file-system.js",
+        "group": ".js",
+        "size": 343
+      },
+      {
+        "id": "js-es2018/dashboard/token-manager.js",
+        "label": "token-manager.js",
+        "group": ".js",
+        "size": 486
+      },
+      {
+        "id": "js-es2018/dashboard/ui-renderer.js",
+        "label": "ui-renderer.js",
+        "group": ".js",
+        "size": 816
+      },
+      {
+        "id": "js-es2018/dashboard/usb-token-manager.js",
+        "label": "usb-token-manager.js",
+        "group": ".js",
+        "size": 371
+      },
+      {
+        "id": "js-es2018/dashboard/utils.js",
+        "label": "utils.js",
+        "group": ".js",
+        "size": 58
+      },
+      {
+        "id": "js-es2018/scan-utils.js",
+        "label": "scan-utils.js",
+        "group": ".js",
+        "size": 164
+      },
+      {
+        "id": "js-es2018/scan-worker.js",
+        "label": "scan-worker.js",
+        "group": ".js",
+        "size": 263
+      },
+      {
+        "id": "lib/account-store.cjs",
+        "label": "account-store.cjs",
+        "group": ".cjs",
+        "size": 484
+      },
+      {
+        "id": "lib/admin-token.cjs",
+        "label": "admin-token.cjs",
+        "group": ".cjs",
+        "size": 106
+      },
+      {
+        "id": "lib/certificate-utils.cjs",
+        "label": "certificate-utils.cjs",
+        "group": ".cjs",
+        "size": 793
+      },
+      {
+        "id": "lib/db.cjs",
+        "label": "db.cjs",
+        "group": ".cjs",
+        "size": 187
+      },
+      {
+        "id": "lib/license-utils.cjs",
+        "label": "license-utils.cjs",
+        "group": ".cjs",
+        "size": 31
+      },
+      {
+        "id": "lib/plans.cjs",
+        "label": "plans.cjs",
+        "group": ".cjs",
+        "size": 170
+      },
+      {
+        "id": "lib/system-logger.cjs",
+        "label": "system-logger.cjs",
+        "group": ".cjs",
+        "size": 130
+      },
+      {
+        "id": "lib/time-tokens.cjs",
+        "label": "time-tokens.cjs",
+        "group": ".cjs",
+        "size": 132
+      },
+      {
+        "id": "lib/token-chain-store.cjs",
+        "label": "token-chain-store.cjs",
+        "group": ".cjs",
+        "size": 226
+      },
+      {
+        "id": "lib/token-chain-utils.cjs",
+        "label": "token-chain-utils.cjs",
+        "group": ".cjs",
+        "size": 114
+      },
+      {
+        "id": "public/app-links.js",
+        "label": "app-links.js",
+        "group": ".js",
+        "size": 204
+      },
+      {
+        "id": "public/contact.js",
+        "label": "contact.js",
+        "group": ".js",
+        "size": 368
+      },
+      {
+        "id": "public/content/outreach-prospects.js",
+        "label": "outreach-prospects.js",
+        "group": ".js",
+        "size": 83
+      },
+      {
+        "id": "public/js/dashboard/certificate-module.js",
+        "label": "certificate-module.js",
+        "group": ".js",
+        "size": 948
+      },
+      {
+        "id": "public/js/dashboard/main.js",
+        "label": "main.js",
+        "group": ".js",
+        "size": 3176
+      },
+      {
+        "id": "public/js/dashboard/pattern-documentation.js",
+        "label": "pattern-documentation.js",
+        "group": ".js",
+        "size": 395
+      },
+      {
+        "id": "public/js/dashboard/phase-registry.js",
+        "label": "phase-registry.js",
+        "group": ".js",
+        "size": 153
+      },
+      {
+        "id": "public/js/dashboard/quick-actions.js",
+        "label": "quick-actions.js",
+        "group": ".js",
+        "size": 317
+      },
+      {
+        "id": "public/js/dashboard/scanner-engine.js",
+        "label": "scanner-engine.js",
+        "group": ".js",
+        "size": 3067
+      },
+      {
+        "id": "public/js/dashboard/scanner-patterns.js",
+        "label": "scanner-patterns.js",
+        "group": ".js",
+        "size": 1121
+      },
+      {
+        "id": "public/js/dashboard/token-file-system.js",
+        "label": "token-file-system.js",
+        "group": ".js",
+        "size": 350
+      },
+      {
+        "id": "public/js/dashboard/token-manager.js",
+        "label": "token-manager.js",
+        "group": ".js",
+        "size": 478
+      },
+      {
+        "id": "public/js/dashboard/ui-renderer.js",
+        "label": "ui-renderer.js",
+        "group": ".js",
+        "size": 859
+      },
+      {
+        "id": "public/js/dashboard/usb-token-manager.js",
+        "label": "usb-token-manager.js",
+        "group": ".js",
+        "size": 404
+      },
+      {
+        "id": "public/js/dashboard/utils.js",
+        "label": "utils.js",
+        "group": ".js",
+        "size": 63
+      },
+      {
+        "id": "public/js/scan-utils.js",
+        "label": "scan-utils.js",
+        "group": ".js",
+        "size": 172
+      },
+      {
+        "id": "public/js/vendor/html2canvas.min.js",
+        "label": "html2canvas.min.js",
+        "group": ".js",
+        "size": 20
+      },
+      {
+        "id": "public/js/vendor/jszip.min.js",
+        "label": "jszip.min.js",
+        "group": ".js",
+        "size": 13
+      },
+      {
+        "id": "public/site-config.js",
+        "label": "site-config.js",
+        "group": ".js",
+        "size": 282
+      },
+      {
+        "id": "routes/admin.cjs",
+        "label": "admin.cjs",
+        "group": ".cjs",
+        "size": 321
+      },
+      {
+        "id": "routes/certificates.cjs",
+        "label": "certificates.cjs",
+        "group": ".cjs",
+        "size": 299
+      },
+      {
+        "id": "routes/checkout.cjs",
+        "label": "checkout.cjs",
+        "group": ".cjs",
+        "size": 436
+      },
+      {
+        "id": "routes/free-token.cjs",
+        "label": "free-token.cjs",
+        "group": ".cjs",
+        "size": 155
+      },
+      {
+        "id": "routes/subscriptions-billing.cjs",
+        "label": "subscriptions-billing.cjs",
+        "group": ".cjs",
+        "size": 340
+      },
+      {
+        "id": "routes/subscriptions.cjs",
+        "label": "subscriptions.cjs",
+        "group": ".cjs",
+        "size": 47
+      },
+      {
+        "id": "routes/token-chain.cjs",
+        "label": "token-chain.cjs",
+        "group": ".cjs",
+        "size": 186
+      },
+      {
+        "id": "routes/token-validate.cjs",
+        "label": "token-validate.cjs",
+        "group": ".cjs",
+        "size": 47
+      },
+      {
+        "id": "server.cjs",
+        "label": "server.cjs",
+        "group": ".cjs",
+        "size": 1002
+      },
+      {
+        "id": "services/email.cjs",
+        "label": "email.cjs",
+        "group": ".cjs",
+        "size": 94
+      },
+      {
+        "id": "site-config.js",
+        "label": "site-config.js",
+        "group": ".js",
+        "size": 283
+      },
+      {
+        "id": "test/db.test.cjs",
+        "label": "db.test.cjs",
+        "group": ".cjs",
+        "size": 75
+      },
+      {
+        "id": "test/payment-workflow-v2.test.cjs",
+        "label": "payment-workflow-v2.test.cjs",
+        "group": ".cjs",
+        "size": 308
+      },
+      {
+        "id": "test/payment-workflow.test.cjs",
+        "label": "payment-workflow.test.cjs",
+        "group": ".cjs",
+        "size": 352
+      },
+      {
+        "id": "test/scan-utils.test.cjs",
+        "label": "scan-utils.test.cjs",
+        "group": ".cjs",
+        "size": 56
+      },
+      {
+        "id": "test/token-chain.test.cjs",
+        "label": "token-chain.test.cjs",
+        "group": ".cjs",
+        "size": 123
+      },
+      {
+        "id": "tests/dashboard.test.js",
+        "label": "dashboard.test.js",
+        "group": ".js",
+        "size": 256
+      },
+      {
+        "id": "trello-roadmap-export.js",
+        "label": "trello-roadmap-export.js",
+        "group": ".js",
+        "size": 266
+      },
+      {
+        "id": "update-cache.js",
+        "label": "update-cache.js",
+        "group": ".js",
+        "size": 20
+      },
+      {
+        "id": "zip-for-upload.js",
+        "label": "zip-for-upload.js",
+        "group": ".js",
+        "size": 139
+      }
+    ],
+    "edges": [
+      {
+        "source": "lib/account-store.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "lib/account-store.cjs",
+        "target": "lib/plans.cjs"
+      },
+      {
+        "source": "lib/time-tokens.cjs",
+        "target": "lib/plans.cjs"
+      },
+      {
+        "source": "lib/time-tokens.cjs",
+        "target": "lib/account-store.cjs"
+      },
+      {
+        "source": "lib/token-chain-store.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "lib/token-chain-utils.cjs",
+        "target": "lib/token-chain-store.cjs"
+      },
+      {
+        "source": "routes/admin.cjs",
+        "target": "lib/admin-token.cjs"
+      },
+      {
+        "source": "routes/admin.cjs",
+        "target": "lib/system-logger.cjs"
+      },
+      {
+        "source": "routes/admin.cjs",
+        "target": "lib/token-chain-store.cjs"
+      },
+      {
+        "source": "routes/admin.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "routes/admin.cjs",
+        "target": "routes/checkout.cjs"
+      },
+      {
+        "source": "routes/admin.cjs",
+        "target": "lib/token-chain-store.cjs"
+      },
+      {
+        "source": "routes/admin.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "routes/admin.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "routes/admin.cjs",
+        "target": "lib/token-chain-store.cjs"
+      },
+      {
+        "source": "routes/certificates.cjs",
+        "target": "lib/certificate-utils.cjs"
+      },
+      {
+        "source": "routes/certificates.cjs",
+        "target": "lib/plans.cjs"
+      },
+      {
+        "source": "routes/checkout.cjs",
+        "target": "services/email.cjs"
+      },
+      {
+        "source": "routes/checkout.cjs",
+        "target": "lib/license-utils.cjs"
+      },
+      {
+        "source": "routes/checkout.cjs",
+        "target": "lib/token-chain-store.cjs"
+      },
+      {
+        "source": "routes/free-token.cjs",
+        "target": "lib/system-logger.cjs"
+      },
+      {
+        "source": "routes/subscriptions-billing.cjs",
+        "target": "lib/license-utils.cjs"
+      },
+      {
+        "source": "routes/subscriptions-billing.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "routes/subscriptions-billing.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "routes/subscriptions-billing.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "routes/subscriptions-billing.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "routes/subscriptions-billing.cjs",
+        "target": "lib/token-chain-store.cjs"
+      },
+      {
+        "source": "routes/subscriptions-billing.cjs",
+        "target": "services/email.cjs"
+      },
+      {
+        "source": "routes/subscriptions.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "routes/token-chain.cjs",
+        "target": "lib/token-chain-store.cjs"
+      },
+      {
+        "source": "routes/token-chain.cjs",
+        "target": "lib/token-chain-utils.cjs"
+      },
+      {
+        "source": "routes/token-chain.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "routes/token-chain.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "services/email.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "lib/certificate-utils.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "lib/system-logger.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "routes/checkout.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "routes/subscriptions-billing.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "routes/subscriptions-billing.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "routes/subscriptions.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "routes/checkout.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "routes/free-token.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "routes/certificates.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "routes/token-chain.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "routes/admin.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "lib/token-chain-utils.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "server.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "services/email.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "test/db.test.cjs",
+        "target": "lib/db.cjs"
+      },
+      {
+        "source": "test/scan-utils.test.cjs",
+        "target": "js/scan-utils.js"
+      },
+      {
+        "source": "test/token-chain.test.cjs",
+        "target": "lib/token-chain-store.cjs"
+      },
+      {
+        "source": "test/token-chain.test.cjs",
+        "target": "lib/token-chain-utils.cjs"
+      }
+    ]
+  },
+  "cycles": [],
+  "entryPoints": [
+    "analyze-directory.js",
+    "analyze-report.cjs",
+    "app-links.js",
+    "count-all-files.js",
+    "count-files.js",
+    "generate-account-token.js",
+    "generate-token.js",
+    "scan-worker.js",
+    "account-types.cjs",
+    "local-scanner-bridge.cjs",
+    "run-cli-scan.js",
+    "scan-directory.js",
+    "certificate-generator.cjs",
+    "test-all-patterns.js",
+    "test-certificate.js",
+    "test-generate-roadmap.js",
+    "test-normalize.js",
+    "test-renderPreview.js",
+    "test-roadmap.js",
+    "test-technical-audit.js",
+    "test-zip-data.js",
+    "build-public.js",
+    "check-sidebar.js",
+    "contact.js",
+    "outreach-prospects.js",
+    "certificate-module.js",
+    "main.js",
+    "pattern-documentation.js",
+    "phase-registry.js",
+    "quick-actions.js",
+    "scanner-engine.js",
+    "scanner-patterns.js",
+    "token-file-system.js",
+    "token-manager.js",
+    "ui-renderer.js",
+    "usb-token-manager.js",
+    "utils.js",
+    "scan-worker.js",
+    "html2canvas.min.js",
+    "jszip.min.js",
+    "certificate-module.js",
+    "main.js",
+    "pattern-documentation.js",
+    "phase-registry.js",
+    "quick-actions.js",
+    "scanner-engine.js",
+    "scanner-patterns.js",
+    "token-file-system.js",
+    "token-manager.js",
+    "ui-renderer.js",
+    "usb-token-manager.js",
+    "utils.js",
+    "scan-utils.js",
+    "scan-worker.js",
+    "time-tokens.cjs",
+    "app-links.js",
+    "contact.js",
+    "outreach-prospects.js",
+    "certificate-module.js",
+    "main.js",
+    "pattern-documentation.js",
+    "phase-registry.js",
+    "quick-actions.js",
+    "scanner-engine.js",
+    "scanner-patterns.js",
+    "token-file-system.js",
+    "token-manager.js",
+    "ui-renderer.js",
+    "usb-token-manager.js",
+    "utils.js",
+    "scan-utils.js",
+    "html2canvas.min.js",
+    "jszip.min.js",
+    "site-config.js",
+    "token-validate.cjs",
+    "server.cjs",
+    "site-config.js",
+    "db.test.cjs",
+    "payment-workflow-v2.test.cjs",
+    "payment-workflow.test.cjs",
+    "scan-utils.test.cjs",
+    "token-chain.test.cjs",
+    "dashboard.test.js",
+    "trello-roadmap-export.js",
+    "update-cache.js",
+    "zip-for-upload.js"
+  ],
+  "leafModules": [
+    "analyze-directory.js",
+    "analyze-report.cjs",
+    "app-links.js",
+    "count-all-files.js",
+    "count-files.js",
+    "generate-account-token.js",
+    "generate-token.js",
+    "scan-worker.js",
+    "account-types.cjs",
+    "local-scanner-bridge.cjs",
+    "run-cli-scan.js",
+    "scan-directory.js",
+    "certificate-generator.cjs",
+    "test-all-patterns.js",
+    "test-certificate.js",
+    "test-generate-roadmap.js",
+    "test-normalize.js",
+    "test-renderPreview.js",
+    "test-roadmap.js",
+    "test-technical-audit.js",
+    "test-zip-data.js",
+    "build-public.js",
+    "check-sidebar.js",
+    "contact.js",
+    "outreach-prospects.js",
+    "certificate-module.js",
+    "main.js",
+    "pattern-documentation.js",
+    "phase-registry.js",
+    "quick-actions.js",
+    "scanner-engine.js",
+    "scanner-patterns.js",
+    "token-file-system.js",
+    "token-manager.js",
+    "ui-renderer.js",
+    "usb-token-manager.js",
+    "utils.js",
+    "scan-utils.js",
+    "scan-worker.js",
+    "html2canvas.min.js",
+    "jszip.min.js",
+    "certificate-module.js",
+    "main.js",
+    "pattern-documentation.js",
+    "phase-registry.js",
+    "quick-actions.js",
+    "scanner-engine.js",
+    "scanner-patterns.js",
+    "token-file-system.js",
+    "token-manager.js",
+    "ui-renderer.js",
+    "usb-token-manager.js",
+    "utils.js",
+    "scan-utils.js",
+    "scan-worker.js",
+    "admin-token.cjs",
+    "certificate-utils.cjs",
+    "db.cjs",
+    "license-utils.cjs",
+    "plans.cjs",
+    "system-logger.cjs",
+    "app-links.js",
+    "contact.js",
+    "outreach-prospects.js",
+    "certificate-module.js",
+    "main.js",
+    "pattern-documentation.js",
+    "phase-registry.js",
+    "quick-actions.js",
+    "scanner-engine.js",
+    "scanner-patterns.js",
+    "token-file-system.js",
+    "token-manager.js",
+    "ui-renderer.js",
+    "usb-token-manager.js",
+    "utils.js",
+    "scan-utils.js",
+    "html2canvas.min.js",
+    "jszip.min.js",
+    "site-config.js",
+    "token-validate.cjs",
+    "site-config.js",
+    "payment-workflow-v2.test.cjs",
+    "payment-workflow.test.cjs",
+    "dashboard.test.js",
+    "trello-roadmap-export.js",
+    "update-cache.js",
+    "zip-for-upload.js"
+  ],
+  "mostConnected": [
+    {
+      "name": "db.cjs",
+      "count": 18
+    },
+    {
+      "name": "server.cjs",
+      "count": 17
+    },
+    {
+      "name": "admin.cjs",
+      "count": 10
+    },
+    {
+      "name": "token-chain-store.cjs",
+      "count": 9
+    },
+    {
+      "name": "subscriptions-billing.cjs",
+      "count": 9
+    }
+  ]
+}

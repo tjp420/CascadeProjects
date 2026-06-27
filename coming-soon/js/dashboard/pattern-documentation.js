@@ -36,7 +36,7 @@ const PATTERN_DOCUMENTATION = {
             ],
             good: [
                 'const apiKey = process.env.API_KEY;',
-                '// TODO: Implement error handling by 2025-01-15',
+                '// TODO: Implement error handling by 2025-01-15', // simplebeacon-ignore maintainability-pattern — documentation example string
                 'const x = 1;',
                 'const uptime = calculateUptime();'
             ]
@@ -161,7 +161,7 @@ const PATTERN_DOCUMENTATION = {
         `,
         examples: {
             bad: [
-                'const apiKey = "your-api-key-here";',
+                'const apiKey = "your-api-key-here";', // simplebeacon-ignore credential — Example code in documentation
                 'const password = "changeme";',
                 'const secretKey = "your-secret-key";'
             ],

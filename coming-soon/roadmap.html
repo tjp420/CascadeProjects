@@ -1,12 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script>/* force-reload: add h= timestamp if missing */
-(function(){
-  var q = new URLSearchParams(location.search);
-  if(!q.get('h')){ q.set('h',Date.now()); location.replace(location.pathname+'?'+q.toString()+(location.hash||'')); }
-})();
-  </script>
+
   <script>/* v9-stale-guard — always purge stale hash/localStorage on fresh load unless share=1 */
 (function(){
   try {
@@ -51,6 +46,37 @@
     .phase-complete-flash { animation:phaseFlash 0.8s ease-out; }
     .phase-tasks li:focus { outline:2px solid var(--accent); outline-offset:-2px; border-radius:4px; }
     .phase-tasks li:focus .task-check { border-color:var(--accent); }
+
+    /* --- Visual Patch Diff Canvas --- */
+    .patch-diff-wrap { display:flex; gap:8px; margin-top:8px; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--bg-card); font-family:'SF Mono',Monaco,monospace; font-size:0.72rem; }
+    .patch-diff-col { flex:1; min-width:0; }
+    .patch-diff-header { padding:6px 10px; background:rgba(148,163,184,0.08); border-bottom:1px solid var(--border); font-weight:700; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
+    .patch-diff-line { padding:3px 10px; white-space:pre-wrap; word-break:break-word; line-height:1.5; border-bottom:1px solid rgba(148,163,184,0.04); }
+    .patch-diff-line.del { background:rgba(239,68,68,0.08); color:#f87171; }
+    .patch-diff-line.add { background:rgba(34,197,94,0.08); color:#4ade80; }
+    .patch-diff-line.ctx { color:var(--text-dim); }
+    .patch-diff-line .diff-gutter { display:inline-block; width:20px; text-align:right; margin-right:8px; opacity:0.4; font-size:0.65rem; }
+
+    /* --- Sprint Velocity Tracker --- */
+    .sprint-tracker { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:16px; }
+    .sprint-metric { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px 14px; text-align:center; }
+    .sprint-metric-value { font-size:1.15rem; font-weight:800; color:var(--text-main); }
+    .sprint-metric-label { font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin-top:4px; }
+    .sprint-metric-delta { font-size:0.72rem; margin-top:4px; font-weight:600; }
+    .sprint-metric-delta.positive { color:var(--success); }
+    .sprint-metric-delta.negative { color:var(--error); }
+    .sprint-effort-bar { display:flex; align-items:center; gap:8px; margin-top:6px; }
+    .sprint-effort-bar .bar-track { flex:1; height:5px; background:var(--bg-input); border-radius:3px; overflow:hidden; }
+    .sprint-effort-bar .bar-fill { height:100%; border-radius:3px; transition:width .4s ease; }
+
+    /* --- Print page-break guards --- */
+    @media print {
+      .phase-card, .task-detail-card, .timeline-phase { page-break-inside: avoid; break-inside: avoid; }
+      .issue-item { page-break-inside: avoid; break-inside: avoid; }
+      pre, code, .task-code-block, .patch-diff-wrap { page-break-inside: auto; }
+      .filter-bar, .search-bar, .phase-action-btn, .task-timer, .btn { display: none !important; }
+    }
+
     /* Sign-in Modal (copied from dashboard.css) */
     .signin-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:1000; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
     .signin-overlay.active { display:flex; }
@@ -74,7 +100,7 @@
     .signin-tabs button { flex:1; padding:8px; border:none; background:transparent; color:var(--text-muted); font-size:0.85rem; cursor:pointer; transition:background 0.2s, color 0.2s; }
     .signin-tabs button.active { background:var(--accent); color:#fff; }
   </style>
-  <script type="module" src="js/dashboard/phase-registry.js?v=20260615a"></script>
+  <script type="module" src="js-es2018/dashboard/phase-registry.js?v=20260615a"></script>
 </head>
 <body>
   <div class="container">
@@ -84,7 +110,7 @@
         <a href="roadmap.html">Roadmap</a>
         <a href="audit.html">Audit</a>
         <a href="pricing.html">Pricing</a>
-        <a href="/simplebeacon-dashboard/" id="vaultLink">Teams Dashboard</a>
+        <a href="/dashboard/dashboard" id="vaultLink">Team Dashboard</a>
         <script>
         (function() {
           var params = new URLSearchParams(window.location.search);
@@ -164,6 +190,28 @@
           <div style="height:6px;background:var(--bg-card);border-radius:3px;overflow:hidden;">
             <div id="globalProgressFill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:3px;transition:width 0.4s ease;"></div>
           </div>
+          <div class="sprint-tracker" id="sprintTracker" style="margin-top:12px;">
+            <div class="sprint-metric">
+              <div class="sprint-metric-value" id="sprintVelocity">0</div>
+              <div class="sprint-metric-label">Tasks / Hour</div>
+              <div class="sprint-metric-delta positive" id="sprintVelocityLabel">Velocity</div>
+            </div>
+            <div class="sprint-metric">
+              <div class="sprint-metric-value" id="sprintBurned">0m</div>
+              <div class="sprint-metric-label">Tech Debt Burned</div>
+              <div class="sprint-metric-delta positive">Cumulative</div>
+            </div>
+            <div class="sprint-metric">
+              <div class="sprint-metric-value" id="sprintRemaining">0</div>
+              <div class="sprint-metric-label">Tasks Remaining</div>
+              <div class="sprint-effort-bar"><div class="bar-track"><div class="bar-fill" id="sprintRemainingBar" style="width:0%;background:var(--warning);"></div></div></div>
+            </div>
+            <div class="sprint-metric">
+              <div class="sprint-metric-value" id="sprintEta">—</div>
+              <div class="sprint-metric-label">Est. Completion</div>
+              <div class="sprint-metric-delta" id="sprintEtaLabel">based on velocity</div>
+            </div>
+          </div>
         </div>
         <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
           <button class="btn btn-secondary" id="toggleShowAllTimeline" style="font-size:0.8rem;padding:6px 16px;">Show All</button>
@@ -239,15 +287,7 @@
       });
     }
 
-    // Bfcache bust: force reload if page was restored from back-forward cache (old code may still be active)
-    window.addEventListener('pageshow', function(e){
-      if(e.persisted){
-        const clean=location.protocol+'//'+location.host+location.pathname;
-        if(!location.search.includes('_nocache=')){
-          location.replace(clean+'?_nocache='+Date.now()+(location.hash||''));
-        }
-      }
-    });
+
     function showToast(msg,type='info'){toastEl.textContent=msg;toastEl.className='toast show toast-'+type;setTimeout(()=>toastEl.classList.remove('show'),3000);}
     async function loadFile(file){
       const name=file.name.toLowerCase();
@@ -462,6 +502,37 @@
       return phases;
     }
 
+    function buildPatchDiffHtml(patchText) {
+      if (!patchText) return '';
+      const lines = patchText.split('\n');
+      const oldLines = [];
+      const newLines = [];
+      let oldIdx = 0, newIdx = 0;
+      for (const line of lines) {
+        if (line.startsWith('@@')) {
+          oldLines.push({ cls: 'ctx', text: line, gutter: '@@' });
+          newLines.push({ cls: 'ctx', text: line, gutter: '@@' });
+        } else if (line.startsWith('+') && !line.startsWith('+++')) {
+          newLines.push({ cls: 'add', text: line.slice(1), gutter: '+' });
+          oldLines.push({ cls: 'ctx', text: '', gutter: ' ' });
+          newIdx++;
+        } else if (line.startsWith('-') && !line.startsWith('---')) {
+          oldLines.push({ cls: 'del', text: line.slice(1), gutter: '-' });
+          newLines.push({ cls: 'ctx', text: '', gutter: ' ' });
+          oldIdx++;
+        } else {
+          oldLines.push({ cls: 'ctx', text: line.startsWith(' ') ? line.slice(1) : line, gutter: ' ' });
+          newLines.push({ cls: 'ctx', text: line.startsWith(' ') ? line.slice(1) : line, gutter: ' ' });
+          oldIdx++; newIdx++;
+        }
+      }
+      const renderCol = (title, rows) => {
+        const rowHtml = rows.map(r => `<div class="patch-diff-line ${r.cls}"><span class="diff-gutter">${escapeHtml(r.gutter)}</span>${escapeHtml(r.text)}</div>`).join('');
+        return `<div class="patch-diff-col"><div class="patch-diff-header">${title}</div>${rowHtml}</div>`;
+      };
+      return `<div class="patch-diff-wrap">${renderCol('Before', oldLines)}${renderCol('After', newLines)}</div>`;
+    }
+
     function buildAiTaskHtml(fix) {
       const parts = [];
       parts.push(`<span class="task-meta">${escapeHtml(fix.type)}</span>`);
@@ -475,8 +546,9 @@
         const ctx = fix.context.map(c => escapeHtml(c.slice(0, 120))).join('<br>');
         parts.push(`<div style="margin:4px 0;padding:6px 10px;background:#0a0e17;border:1px solid var(--border);border-radius:4px;font-family:'SF Mono',monospace;font-size:0.7rem;color:var(--text-dim);line-height:1.4;">${ctx}</div>`);
       }
-      if (fix.suggestedPatch) {
-        parts.push(`<div style="margin:4px 0;padding:6px 10px;background:#0a0e17;border:1px solid var(--border);border-radius:4px;font-family:'SF Mono',monospace;font-size:0.68rem;color:var(--text-muted);line-height:1.4;white-space:pre-wrap;">${escapeHtml(fix.suggestedPatch.slice(0, 500))}</div>`);
+      if (fix.patch || fix.suggestedPatch) {
+        parts.push(`<div style="margin:4px 0;font-size:0.7rem;color:var(--info);font-weight:600;">🔍 Patch Preview</div>`);
+        parts.push(buildPatchDiffHtml(fix.patch || fix.suggestedPatch));
       }
       if (fix.verificationCommand) {
         parts.push(`<div style="margin:4px 0;font-size:0.7rem;color:var(--info);">Verify: <code style="background:#0a0e17;padding:2px 6px;border-radius:3px;">${escapeHtml(fix.verificationCommand)}</code></div>`);
@@ -1096,6 +1168,7 @@
       // Wire up interactivity
       wirePhaseInteractions(projectKey);
       wireSearchFilter();
+      updateSprintTracker();
       applyPhaseFilter(currentFilter||'all');
 
       // All Issues section: render every raw issue from the report
@@ -1341,6 +1414,46 @@
         hitsEl.textContent=hitCount+' task'+(hitCount===1?'':'s')+' matched';
       });
     }
+    function computeSprintMetrics() {
+      if (!window._currentRoadmap) return;
+      const rm = window._currentRoadmap;
+      const pk = window._roadmapProjectKey || 'project';
+      let totalTasks = 0, doneTasks = 0, totalSeconds = 0;
+      rm.phases.forEach(p => {
+        if (!Array.isArray(p.tasks)) return;
+        p.tasks.forEach((t, idx) => {
+          totalTasks++;
+          const lsDone = loadTaskState(pk, p.id, idx);
+          if (lsDone) { doneTasks++; totalSeconds += loadTaskTime(pk, p.id, idx); }
+        });
+      });
+      const remaining = totalTasks - doneTasks;
+      const burnedMinutes = Math.round(totalSeconds / 60);
+      // Velocity = tasks per hour (assume avg 5 min per task if no timer data)
+      const velocity = totalSeconds > 0 ? Math.round((doneTasks / (totalSeconds / 3600)) * 10) / 10 : (doneTasks > 0 ? Math.round((doneTasks / (doneTasks * 5 / 60)) * 10) / 10 : 0);
+      const etaHours = velocity > 0 ? Math.ceil(remaining / velocity) : 0;
+      const etaDays = Math.ceil(etaHours / 8);
+      return { totalTasks, doneTasks, remaining, burnedMinutes, velocity, etaHours, etaDays };
+    }
+    function updateSprintTracker() {
+      const m = computeSprintMetrics();
+      const velEl = document.getElementById('sprintVelocity');
+      const burnedEl = document.getElementById('sprintBurned');
+      const remEl = document.getElementById('sprintRemaining');
+      const remBar = document.getElementById('sprintRemainingBar');
+      const etaEl = document.getElementById('sprintEta');
+      const etaLabel = document.getElementById('sprintEtaLabel');
+      if (velEl) velEl.textContent = m.velocity;
+      if (burnedEl) burnedEl.textContent = m.burnedMinutes + 'm';
+      if (remEl) remEl.textContent = m.remaining;
+      if (remBar) remBar.style.width = (m.totalTasks ? (m.remaining / m.totalTasks * 100) : 0) + '%';
+      if (etaEl) {
+        if (m.remaining === 0) { etaEl.textContent = 'Done'; etaLabel.textContent = 'all tasks complete'; }
+        else if (m.velocity === 0) { etaEl.textContent = '—'; etaLabel.textContent = 'complete a task to estimate'; }
+        else { etaEl.textContent = m.etaDays + 'd'; etaLabel.textContent = m.etaHours + ' hours at current velocity'; }
+      }
+    }
+
     function wirePhaseInteractions(projectKey){
       document.querySelectorAll('.phase-card').forEach(card=>{
         card.addEventListener('click',e=>{
@@ -1370,6 +1483,7 @@
           // Update in-memory roadmap and overall health ring
           updatePhaseState(phaseId);
           updateOverallHealth();
+          updateSprintTracker();
           // Completion flash when phase reaches 100%
           if(pct>=95){
             const phaseEl=li.closest('.timeline-phase');
@@ -1487,6 +1601,7 @@
             btn.textContent=allDone?'✓ Mark All Done':'↺ Undo All';
             updatePhaseState(phaseId);
             updateOverallHealth();
+            updateSprintTracker();
             if(pct>=95){
               const phaseEl=card.closest('.timeline-phase');
               if(phaseEl){phaseEl.classList.add('phase-complete-flash');setTimeout(()=>phaseEl.classList.remove('phase-complete-flash'),900);}
@@ -2066,8 +2181,65 @@
     document.getElementById('exportPdfBtn').addEventListener('click', generatePdf);
     document.getElementById('importPhaseBtn').addEventListener('click',()=>document.getElementById('phaseImportInput').click());
     document.getElementById('phaseImportInput').addEventListener('change',e=>{if(e.target.files[0]){importPhaseJson(e.target.files[0]);e.target.value='';}});
-    document.getElementById('shareUrlBtn').addEventListener('click',()=>{if(!currentReport){showToast('Load a report first','warning');return;}const json=JSON.stringify(currentReport);const b64=btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,(m,p)=>String.fromCharCode('0x'+p)));const q=new URLSearchParams(location.search);q.set('share','1');const url=location.protocol+'//'+location.host+location.pathname+'?'+q.toString()+'#'+b64;navigator.clipboard.writeText(url).then(()=>showToast('Share URL copied to clipboard','success'));});
-    if(location.hash.length>1){try{const b64=location.hash.slice(1);const json=decodeURIComponent(atob(b64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));const report=JSON.parse(json);const src=report.sourceReport||report;if(src.qualityScore==null&&src.schemaCompliance==null&&src.consistencyScore==null){history.replaceState(null,'',location.pathname+location.search);showToast('Cleared stale report — re-run scan with updated scanner.','warning');}else{loadReport(report);showToast('Roadmap restored from URL','success');}}catch(e){showToast('Invalid share URL','error');}}
+    async function compressSharePayload(jsonStr) {
+      try {
+        const encoder = new TextEncoder();
+        const stream = new CompressionStream('gzip');
+        const writer = stream.writable.getWriter();
+        writer.write(encoder.encode(jsonStr));
+        writer.close();
+        const reader = stream.readable.getReader();
+        const chunks = [];
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+        const blob = new Blob(chunks);
+        const arrayBuffer = await blob.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) { binary += String.fromCharCode(bytes[i]); }
+        return btoa(binary);
+      } catch (e) {
+        // Fallback to raw base64 if CompressionStream unsupported
+        return btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g,(m,p)=>String.fromCharCode('0x'+p)));
+      }
+    }
+    async function decompressSharePayload(b64) {
+      try {
+        const binary = atob(b64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+        const stream = new DecompressionStream('gzip');
+        const writer = stream.writable.getWriter();
+        writer.write(bytes);
+        writer.close();
+        const reader = stream.readable.getReader();
+        const chunks = [];
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+        const blob = new Blob(chunks);
+        return await blob.text();
+      } catch (e) {
+        // Fallback to legacy decompression
+        return decodeURIComponent(atob(b64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+      }
+    }
+    document.getElementById('shareUrlBtn').addEventListener('click',async ()=>{if(!currentReport){showToast('Load a report first','warning');return;}const json=JSON.stringify(currentReport);const compressed=await compressSharePayload(json);const q=new URLSearchParams(location.search);q.set('share','1');const url=location.protocol+'//'+location.host+location.pathname+'?'+q.toString()+'#'+compressed;navigator.clipboard.writeText(url).then(()=>{const saved=Math.round((1-compressed.length/(btoa(json).length))*100);showToast('Share URL copied — '+saved+'% smaller via gzip','success');});});
+    (async function(){
+      if(location.hash.length<=1)return;
+      try{
+        const payload=await decompressSharePayload(location.hash.slice(1));
+        const report=JSON.parse(payload);
+        const src=report.sourceReport||report;
+        if(src.qualityScore==null&&src.schemaCompliance==null&&src.consistencyScore==null){history.replaceState(null,'',location.pathname+location.search);showToast('Cleared stale report — re-run scan with updated scanner.','warning');}else{loadReport(report);showToast('Roadmap restored from URL','success');}
+      }catch(e){showToast('Invalid share URL','error');}
+    })();
+
   </script>
 
   <!-- Sign-in Modal -->

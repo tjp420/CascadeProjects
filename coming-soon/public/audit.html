@@ -8,19 +8,19 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>SimpleBeacon — Upload Your Scan Report</title>
+    <title>SimpleBeacon — Audit</title>
     <script src="site-config.js?h=1781475000000" defer></script>
-    <script src="js/scan-utils.js?h=1781475000001" defer></script>
-    <script src="js/dashboard/utils.js?h=1781475000000" defer></script>
-    <script src="js/dashboard/token-manager.js?h=1781475000002" defer></script>
-    <script src="js/dashboard/token-file-system.js?h=1781475000003" defer></script>
-    <script src="js/dashboard/usb-token-manager.js?h=1781475000003" defer></script>
-    <script src="js/dashboard/scanner-patterns.js?h=1781475000004" defer></script>
-    <script src="js/dashboard/quick-actions.js?h=1781475000005" defer></script>
-    <script src="js/dashboard/pattern-documentation.js?h=1781475000005" defer></script>
-    <script src="js/dashboard/scanner-engine.js?h=1781475000010" defer></script>
-    <script src="js/dashboard/ui-renderer.js?h=1781475000000" defer></script>
-    <script src="js/dashboard/certificate-module.js?h=1781475000007" defer></script>
+    <script src="js-es2018/scan-utils.js?h=1781475000001" defer></script>
+    <script src="js-es2018/dashboard/utils.js?h=1781475000000" defer></script>
+    <script src="js-es2018/dashboard/token-manager.js?h=1781475000002" defer></script>
+    <script src="js-es2018/dashboard/token-file-system.js?h=1781475000003" defer></script>
+    <script src="js-es2018/dashboard/usb-token-manager.js?h=1781475000003" defer></script>
+    <script src="js-es2018/dashboard/scanner-patterns.js?h=1781475000004" defer></script>
+    <script src="js-es2018/dashboard/quick-actions.js?h=1781475000005" defer></script>
+    <script src="js-es2018/dashboard/pattern-documentation.js?h=1781475000005" defer></script>
+    <script src="js-es2018/dashboard/scanner-engine.js?h=1781475000010" defer></script>
+    <script src="js-es2018/dashboard/ui-renderer.js?h=1781475000000" defer></script>
+    <script src="js-es2018/dashboard/certificate-module.js?h=1781475000007" defer></script>
     <script src="js/vendor/jszip.min.js?h=1781475000000" defer></script>
     <script src="js/vendor/html2canvas.min.js?h=1781475000000" defer></script>
     <link rel="stylesheet" href="css/dashboard.css?h=1781475000000">
@@ -41,7 +41,7 @@
                 <a href="roadmap.html">Roadmap</a>
                 <a href="audit.html">Audit</a>
                 <a href="pricing.html">Pricing</a>
-                <a href="/simplebeacon-dashboard/" id="vaultLink">Teams Dashboard</a>
+                <a href="/dashboard/dashboard" id="vaultLink">Team Dashboard</a>
                 <script>
                 (function() {
                     var params = new URLSearchParams(window.location.search);
@@ -64,7 +64,7 @@
                 <span id="productLabel">Certificate Generation</span>
             </div>
             <h1 id="pageTitle">Audit Your Scan Reports</h1>
-            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a> or upload a CLI report JSON.</p>
+            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a>, <a href="http://127.0.0.1:54800/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">open analyzer (port 54800)</a>, or upload a CLI report JSON.</p>
         </header>
 
         <div id="serverDetectedBanner" style="display:none;background:linear-gradient(135deg,rgba(5,150,105,0.12),rgba(99,102,241,0.08));border:1px solid rgba(5,150,105,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
@@ -343,13 +343,13 @@
                         <input type="text" id="auth-token-display" readonly style="background:var(--bg-input);color:var(--text-muted);" />
                       </div>
                       <div class="auth-modal-field">
-                        <label for="auth-token-email">Email Address</label>
-                        <input type="email" id="auth-token-email" autocomplete="off" placeholder="your@email.com" />
+                        <label for="auth-token-password">Token Password</label>
+                        <input type="password" id="auth-token-password" autocomplete="off" placeholder="Enter token password…" />
                       </div>
                       <p id="auth-token-error" style="color:var(--error);font-size:0.8rem;margin:0 0 8px;" hidden></p>
                       <div class="auth-modal-actions">
                         <button type="button" class="btn btn-secondary" id="auth-modal-cancel-2">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Register Token</button>
+                        <button type="submit" class="btn btn-primary">Unlock Dashboard</button>
                       </div>
                     </form>
                   </div>
@@ -784,7 +784,6 @@
             <div class="footer-inner">
                 <span>SimpleBeacon Engine v1.3.0 &mdash; Zero-Dependency Static Analysis</span>
                 <div class="footer-links">
-                    <a href="scan-status.html">Scan Status</a>
                     <a href="pricing.html">Pricing</a>
                     <a href="cloud-scan.html" class="cloud-link">Cloud Scan</a>
                     <a href="contact.html">Contact</a>
@@ -983,7 +982,7 @@
                     signinError.style.display = 'block'; return;
                 }
                 const payload = decodeJwtPayload(token);
-                const tier = payload?.tier || payload?.product || '';
+                const tier = (payload && payload.tier) || (payload && payload.product) || '';
                 const freeTiers = ['community','starter','instant','free','developer','sandbox'];
                 if (freeTiers.includes(tier)) {
                     signinError.innerHTML = 'Free sandbox tokens are for local testing only. <a href="pricing.html" style="color:var(--accent);">Purchase a license</a> for full dashboard access.';
@@ -1036,12 +1035,12 @@
                 const token = licenseInput ? licenseInput.value.trim() : '';
                 const payload = token ? decodeJwtPayload(token) : null;
                 const defaultProject = report.projectName || 'Untitled Project';
-                const defaultTier = (payload?.tier || payload?.product || 'EXECUTIVE').toUpperCase();
+                const defaultTier = ((payload && payload.tier) || (payload && payload.product) || 'EXECUTIVE').toUpperCase();
                 if (certProjectName && !certProjectName.value) certProjectName.value = defaultProject;
                 if (certProfileLabel && !certProfileLabel.value) certProfileLabel.value = defaultTier;
                 if (certSignatoryName && !certSignatoryName.value) certSignatoryName.value = 'SimpleBeacon';
                 if (certSignatoryTitle && !certSignatoryTitle.value) certSignatoryTitle.value = 'Automated Compliance Engine';
-                if (certContactEmail && !certContactEmail.value) certContactEmail.value = 'trevor_punt@live.com';
+                if (certContactEmail && !certContactEmail.value) certContactEmail.value = 'contact@simplebeacon.ai';
                 certCredentialsOverlay.classList.add('active');
                 if (certProjectName) certProjectName.focus();
             };
@@ -1260,26 +1259,22 @@
                             const data = await res.json();
                             updateTokenStatusCard(token, data);
                             if (data.registered) {
-                                // Known token → login directly (treat as password)
-                                directUnlock(token);
-                                if (typeof applyProductFromToken === 'function') applyProductFromToken(token);
-                                if (typeof registerTokenInVault === 'function') registerTokenInVault(token);
-                                if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-                                if (typeof showToast === 'function') showToast('Welcome back! Token authenticated.', 'success');
-                            } else {
-                                // Unknown token → show register modal
-                                openTab('token');
+                                // Token bound to an account → force email sign-in popup
+                                openTab('email');
                                 openModal(token);
-                                const tokenError = document.getElementById('auth-token-error');
-                                if (tokenError) {
-                                    tokenError.textContent = 'This token is not registered. Create an account below to activate it.';
-                                    tokenError.hidden = false;
+                                const emailError = document.getElementById('auth-email-error');
+                                if (emailError) {
+                                    emailError.textContent = 'This token is registered to an account. Please sign in with your email and password.';
+                                    emailError.hidden = false;
                                 }
+                            } else {
+                                // Non-registered token → unlock directly, no popup
+                                directUnlock(token);
                             }
                         } catch (err) {
-                            // Network/downstream failure → fallback to direct unlock
-                            directUnlock(token);
-                            if (typeof applyProductFromToken === 'function') applyProductFromToken(token);
+                            // Network/downstream failure → fallback to modal for safety
+                            openTab('token');
+                            openModal(token);
                         }
                     });
                 }
@@ -1359,7 +1354,7 @@
                         adminCreateTokenBtn.disabled = true;
                         adminCreateTokenBtn.textContent = 'Creating…';
                         try {
-                            const res = await fetch('/api/admin/token/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'trevor_punt@live.com' }) });
+                            const res = await fetch('/api/admin/token/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'contact@simplebeacon.ai' }) });
                             const data = await res.json();
                             if (data.success) { if (typeof showToast === 'function') showToast('Admin token created', 'success'); }
                             else { if (typeof showToast === 'function') showToast(data.error || 'Already exists', 'warning'); }
@@ -1408,39 +1403,22 @@
                     });
                 }
 
-                // Token form — register unknown token
+                // Token form
                 const tokenForm = document.getElementById('auth-token-form');
                 if (tokenForm) {
                     tokenForm.addEventListener('submit', async function(e) {
                         e.preventDefault();
                         const token = tokenInput ? tokenInput.value.trim() : '';
-                        const email = document.getElementById('auth-token-email')?.value.trim();
+                        const password = document.getElementById('auth-token-password').value;
                         const error = document.getElementById('auth-token-error');
                         error.hidden = true;
-                        if (!email || !email.includes('@')) {
-                            error.textContent = 'Please enter a valid email address to register this token.';
-                            error.hidden = false;
-                            return;
-                        }
                         try {
-                            const res = await fetch('/api/auth/register-token', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ token, email })
-                            });
-                            const data = await res.json();
-                            if (!res.ok) {
-                                throw new Error(data.error || 'Registration failed');
-                            }
                             localStorage.setItem('sb-token', token);
-                            localStorage.setItem('sb-user', JSON.stringify({ email, plan: data.tier || 'pro' }));
-                            if (typeof applyProductFromToken === 'function') applyProductFromToken(token);
-                            if (typeof registerTokenInVault === 'function') registerTokenInVault(token);
-                            if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-                            if (typeof showToast === 'function') showToast('Token registered successfully! Welcome to SimpleBeacon.', 'success');
+                            localStorage.setItem('sb-user', JSON.stringify({ email: 'token-user@simplebeacon.ai', plan: 'pro' }));
+                            if (typeof showToast === 'function') showToast('Dashboard unlocked', 'success');
                             closeModal();
                         } catch (err) {
-                            error.textContent = err.message || 'Token registration failed';
+                            error.textContent = err.message || 'Token validation failed';
                             error.hidden = false;
                         }
                     });
@@ -1565,6 +1543,6 @@
         }
     })();
     </script>
-    <script src="js/dashboard/main.js?h=1781470050008" defer></script>
+    <script src="js-es2018/dashboard/main.js?h=1781470050008" defer></script>
 </body>
 </html>

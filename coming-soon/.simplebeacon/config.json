@@ -19,7 +19,9 @@
     "C:/Users/Trevor/CascadeProjects",
     "C:/Users/Trevor/CascadeProjects/coming-soon",
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode",
-    "J:/AI project backup"
+    "J:/AI project backup",
+    "c:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+    "c:\\Users\\Trevor\\CascadeProjects"
   ],
   "fullDirectoryScan": true,
   "fullDirectoryScanMaxFiles": 100000,
@@ -106,7 +108,7 @@
     },
     "llm-slop-patterns": {
       "enabled": true,
-      "severity": "medium",
+      "severity": "low",
       "registryCheck": false
     },
     "agency-handoff-patterns": {

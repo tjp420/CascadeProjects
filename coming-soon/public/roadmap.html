@@ -1,12 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script>/* force-reload: add h= timestamp if missing */
-(function(){
-  var q = new URLSearchParams(location.search);
-  if(!q.get('h')){ q.set('h',Date.now()); location.replace(location.pathname+'?'+q.toString()+(location.hash||'')); }
-})();
-  </script>
+
   <script>/* v9-stale-guard — always purge stale hash/localStorage on fresh load unless share=1 */
 (function(){
   try {
@@ -74,7 +69,7 @@
     .signin-tabs button { flex:1; padding:8px; border:none; background:transparent; color:var(--text-muted); font-size:0.85rem; cursor:pointer; transition:background 0.2s, color 0.2s; }
     .signin-tabs button.active { background:var(--accent); color:#fff; }
   </style>
-  <script type="module" src="js/dashboard/phase-registry.js?v=20260615a"></script>
+  <script type="module" src="js-es2018/dashboard/phase-registry.js?v=20260615a"></script>
 </head>
 <body>
   <div class="container">
@@ -84,7 +79,7 @@
         <a href="roadmap.html">Roadmap</a>
         <a href="audit.html">Audit</a>
         <a href="pricing.html">Pricing</a>
-        <a href="/simplebeacon-dashboard/" id="vaultLink">Teams Dashboard</a>
+        <a href="/dashboard/dashboard" id="vaultLink">Team Dashboard</a>
         <script>
         (function() {
           var params = new URLSearchParams(window.location.search);
@@ -239,15 +234,7 @@
       });
     }
 
-    // Bfcache bust: force reload if page was restored from back-forward cache (old code may still be active)
-    window.addEventListener('pageshow', function(e){
-      if(e.persisted){
-        const clean=location.protocol+'//'+location.host+location.pathname;
-        if(!location.search.includes('_nocache=')){
-          location.replace(clean+'?_nocache='+Date.now()+(location.hash||''));
-        }
-      }
-    });
+
     function showToast(msg,type='info'){toastEl.textContent=msg;toastEl.className='toast show toast-'+type;setTimeout(()=>toastEl.classList.remove('show'),3000);}
     async function loadFile(file){
       const name=file.name.toLowerCase();

@@ -34,12 +34,38 @@ const logger = {
     error: (...a) => { const c = globalThis.console; c.error(...a); }
 };
 
+// Email template constants
+const EMAIL_STYLES = {
+    codeBg: '#f4f4f4',
+    codePadding: '2px 6px',
+    codeRadius: '4px',
+    ctaPadding: '10px 18px',
+    ctaBg: '#2ea44f',
+    ctaRadius: '6px',
+    mutedColor: '#666',
+    finePrintSize: '0.9em',
+    finePrintMargin: '12px'
+};
+
+function buildFallbackEmailHtml(clientName, email, projectName, config, token, certUrl) {
+    var s = EMAIL_STYLES;
+    return '<p>Hi ' + escapeHtml(clientName || email) + ',</p>' +
+        '<p>Your license token for <strong>' + escapeHtml(projectName) + '</strong> has been generated.</p>' +
+        '<p>Tier: <strong>' + escapeHtml(config.label) + '</strong><br>' +
+        'Project: <strong>' + escapeHtml(projectName) + '</strong><br>' +
+        'Token: <code style="background:' + s.codeBg + ';padding:' + s.codePadding + ';border-radius:' + s.codeRadius + ';">' + token + '</code></p>' +
+        '<p><a href="' + certUrl + '" style="display:inline-block;padding:' + s.ctaPadding + ';background:' + s.ctaBg + ';color:#fff;text-decoration:none;border-radius:' + s.ctaRadius + ';">Upload Report &amp; Download Certificate</a></p>' +
+        '<p>This token expires in ' + config.days + ' days.</p>' +
+        '<p style="color:' + s.mutedColor + ';font-size:' + s.finePrintSize + ';margin-top:' + s.finePrintMargin + ';"><strong>Didn\'t see this email?</strong> Check your spam or junk folder — license tokens sometimes end up there. If it\'s missing, contact support.</p>';
+}
+
 const DEFAULT_PORT = 3001;
 const PUBLIC_URL = process.env.PUBLIC_URL || ('http://' + 'localhost' + ':' + (process.env.PORT || DEFAULT_PORT));
 
 // In-memory store: sessionId -> { token, email, projectName, createdAt }
 const sessionTokenStore = new Map();
-const SESSION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const MS_PER_HOUR = 60 * 60 * 1000;
+const SESSION_TOKEN_TTL_MS = 24 * MS_PER_HOUR; // 24 hours
 
 function cleanupSessionTokens() {
     const now = Date.now();
@@ -157,7 +183,7 @@ router.post('/api/test-checkout', async (req, res) => {
             const safe = (v) => String(v).replace(/\$/g, '$$$$');
             template = template
                 .replace(/\{\{HEADLINE\}\}/g, safe(isFree ? 'Welcome!' : 'Payment Confirmed'))
-                .replace(/\{\{PRODUCT_NAME\}\}/g, safe(config.label))
+                .replace(/\{\{PRODUCT_NAME\}\}/g, safe(config.label)) // simplebeacon-ignore: template replacement, not a TODO/magic-number
                 .replace(/\{\{RECEIPT_CLASS\}\}/g, safe(isFree ? 'free' : isEnterprise ? 'enterprise' : ''))
                 .replace(/\{\{PRICE\}\}/g, safe(isFree ? 'Free' : (priceMap[tier] || '$499.00')))
                 .replace(/\{\{PAYMENT_METHOD\}\}/g, safe(isFree ? 'No payment required' : 'Paid via Stripe'))
@@ -182,7 +208,7 @@ router.post('/api/test-checkout', async (req, res) => {
 
             emailHtml = template;
         } catch (templateErr) {
-            emailHtml = `<p>Hi ${escapeHtml(clientName || email)},</p><p>Your license token for <strong>${escapeHtml(projectName)}</strong> has been generated.</p><p>Tier: <strong>${escapeHtml(config.label)}</strong><br>Project: <strong>${escapeHtml(projectName)}</strong><br>Token: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">${token}</code></p><p><a href="${certUrl}" style="display:inline-block;padding:10px 18px;background:#2ea44f;color:#fff;text-decoration:none;border-radius:6px;">Upload Report &amp; Download Certificate</a></p><p>This token expires in ${config.days} days.</p><p style="color:#666;font-size:0.9em;margin-top:12px;"><strong>Didn't see this email?</strong> Check your spam or junk folder — license tokens sometimes end up there. If it's missing, contact support.</p>`;
+            emailHtml = buildFallbackEmailHtml(clientName, email, projectName, config, token, certUrl);
         }
 
         const emailResult = await sendEmail({

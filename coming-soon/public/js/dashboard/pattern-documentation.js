@@ -161,7 +161,7 @@ const PATTERN_DOCUMENTATION = {
         `,
         examples: {
             bad: [
-                'const apiKey = "your-api-key-here";',
+                'const apiKey = "your-api-key-here";', // simplebeacon-ignore credential — Example code in documentation
                 'const password = "changeme";',
                 'const secretKey = "your-secret-key";'
             ],

@@ -3,6 +3,7 @@
 .simplebeacon/
 .sb-uploads/
 sb-analyze-*/
+public/data/report.json
 
 # Secrets and environment
 .env
@@ -15,6 +16,9 @@ node_modules/
 dist/
 build/
 public/
+
+# Archived/deprecated code — not part of current production source
+archive/
 coverage/
 
 # Logs
@@ -88,6 +92,13 @@ js/dashboard/scanner-engine.js
 # UI renderer — builds EU AI Act control descriptions mentioning AI provider names
 js/dashboard/ui-renderer.js
 
+# VS Code extension source — contains regex pattern definitions that scanners misread as actual issues
+simplebeacon-vscode/
+simplebeacon-vscode-merged/
+
+# ai-platform source — server and dashboard files scanned from wrong root context
+ai-platform/
+
 # Minified vendor libraries — third-party code should not be scanned for project issues
 js/vendor/jszip.min.js
 js/vendor/html2canvas.min.js
@@ -108,12 +119,6 @@ vscode-extension-roadmap.json
 js/dashboard/scanner-patterns.js
 js/dashboard/scanner-engine.js
 js/dashboard/certificate-module.js
-
-# Debug artifact false positives — console.log in dev server and dashboard is intentional
-js/dashboard/main.js
-js/dashboard/token-manager.js
-server.cjs
-analyze-directory.js
 
 # Generated scan reports — the scanner should not audit its own output
 .simplebeacon/report.json

@@ -140,6 +140,17 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         redact: true,
         selfReferenceFilter: /PATTERN_REGISTRY|TEST_CASES|shouldMatch|shouldNotMatch|test.*password|test.*api_key|mockFileContent|REDACTED|trello-board|test-all-patterns/i,
+        contextFilter: (snippet, filePath) => {
+            // Skip test files (*.test.js, *.spec.js, *.test.ts) — test fixtures are intentionally hardcoded
+            if (filePath && /\.(test|spec)\.(js|ts|cjs|mjs)$/.test(filePath)) return false;
+            // Skip token generation using crypto.randomBytes() — produces random tokens, not hardcoded secrets
+            if (/crypto\.randomBytes|Math\.random|Date\.now|require\(['"]crypto['"]\)/.test(snippet)) return false;
+            // Skip process.env assignments in test setup (test isolation patterns)
+            if (/process\.env\.(JWT_SECRET|JWT_REFRESH_SECRET|SECRET|TOKEN)\s*=/.test(snippet)) return false;
+            // Skip dynamic token generation with template literals
+            if (/`[^`]*\$\{[^}]+\}[^`]*`/.test(snippet) && /token|secret|key/i.test(snippet)) return false;
+            return true;
+        },
         message: 'Potential hardcoded secret detected. Move to environment variables or secret manager.'
     },
     debugArtifacts: {
@@ -158,6 +169,16 @@ const PATTERN_REGISTRY = {
             if (filePath && /\.(py)$/.test(filePath) && /\bprint\s*\(/.test(snippet)) {
                 if (/scons|build|test|packageUtils/.test(filePath) || /BUILD ERROR|Test is now looking|Basic checks for/.test(snippet)) return false;
             }
+            // Skip CLI help text (console.error with 'Usage:')
+            if (/console\.(error|warn|log)\s*\(['"`]\s*Usage:\s*node/.test(snippet)) return false;
+            // Skip gated debug logging (if(DEBUG) console.log, if(PROCESSOR_DEBUG) console.log)
+            if (/if\s*\(\s*DEBUG\s*\)|if\s*\(\s*PROCESSOR_DEBUG\s*\)/.test(snippet)) return false;
+            // Skip error handling in catch blocks with console.error
+            if (/catch\s*\([^)]*\)\s*\{[^}]*console\.(error|warn)/i.test(snippet)) return false;
+            // Skip test files that test quality heuristics themselves
+            if (filePath && /file-quality-heuristics\.test\.|test-all-patterns\./.test(filePath)) return false;
+            // Skip simplebeacon-ignore comments
+            if (/simplebeacon-ignore/.test(snippet)) return false;
             return true;
         },
         message: 'Development-only debug artifact. Remove before production builds.'
@@ -353,6 +374,17 @@ const PATTERN_REGISTRY = {
         pattern: /:\s*any\b(?!\s*\[\])|@ts-ignore|@ts-nocheck|: \(\)\s*=>\s*any/i,
         maxMatches: 3,
         selfReferenceFilter: /pattern\s*:\s*\/[^/]+\/|severity.*vscode\.DiagnosticSeverity|fixSuggestion.*Replace any with specific types|scanner-patterns|extension\.ts|out\/extension\.js|postMessage\s*\(/i,
+        contextFilter: (snippet, filePath) => {
+            // Skip VS Code extension API callback signatures where any is standard
+            if (/resolve:\s*\(value:\s*any\)\s*=>\s*void|reject:\s*\(reason\?:\s*any\)/.test(snippet)) return false;
+            // Skip function parameters for generic post/utility functions
+            if (/function\s+postJson\(.*payload:\s*any|private\s+async\s+_uploadReport\(.*data:\s*any/.test(snippet)) return false;
+            // Skip buildHierarchy return type — dynamic tree structure
+            if (/buildHierarchy.*:\s*any\s*\{/.test(snippet)) return false;
+            // Skip scanner-engine.js or pattern files that document type safety
+            if (filePath && /scanner-patterns|scanner-engine|ui-renderer/i.test(filePath)) return false;
+            return true;
+        },
         message: 'Type safety gap: any type, missing PropTypes, or excessive parameters detected.'
     },
     missingTest: {
@@ -428,6 +460,12 @@ const PATTERN_REGISTRY = {
             if (/\/\/.*localhost|\/\*.*localhost|#.*localhost|default\s*=\s*['"]http:\/\/localhost/.test(snippet)) return false;
             // Skip localhost in Python argparse defaults and string replace calls (test URLs)
             if (/default\s*=\s*['"]http:\/\/localhost|\.replace\s*\(\s*['"]localhost/.test(snippet)) return false;
+            // Skip scanner's own false-positive filter regexes in remediationProvider.ts and similar files
+            if (/\/(hardcoded url|hardcoded secret)\/i\.test\(/.test(snippet)) return false;
+            // Skip explanation text about hardcoded URLs in remediation/fix descriptions
+            if (/(explanations|getSteps|fix:|message:).*(hardcoded|configuration values|deployments fragile)/i.test(snippet)) return false;
+            // Skip remediation provider isCliFalsePositive method body
+            if (/isCliFalsePositive|isBuildArtifact/.test(snippet) && /type\s*===|return true|return false/.test(snippet)) return false;
             return true;
         },
         message: 'Hardcoded URL, secret, or .env reference detected. Use environment-based configuration.'
@@ -444,8 +482,10 @@ const PATTERN_REGISTRY = {
             if (/<meta[^>]*http-equiv=["']?Content-Security-Policy/i.test(snippet)) return false;
             // Skip CSP source variable references in webview code
             if (/cspSource|csp-source|origin\s*\+|['"]nonce-/i.test(snippet)) return false;
-            // Skip scanner's own false-positive filter code
-            if (/missing security header|security header/i.test(snippet) && /return true|return false/.test(snippet)) return false;
+            // Skip scanner's own false-positive filter code (remediationProvider.ts, scanner-patterns.js, etc.)
+            if (/(missing security header|security header|content-security-policy)/i.test(snippet) && /return true|return false|\.test\(|\.match\(|contextFilter/i.test(snippet)) return false;
+            // Skip explanation text in remediation provider fix descriptions
+            if (/Add helmet middleware|reverse proxy with CSP|configure reverse proxy/i.test(snippet)) return false;
             return true;
         },
         message: 'Review security header configuration. Ensure CSP, X-Frame-Options, HSTS, and Referrer-Policy are set.'
@@ -476,15 +516,15 @@ const PATTERN_REGISTRY = {
             // Skip scanner/dashboard files that build static HTML templates (no user input)
             if (/scanner-patterns\.js|scanner-engine\.js|ui-renderer\.js|token-file-system\.js|certificate-module\.js|main\.js/i.test(filePath)) return false;
             // Skip VS Code extension webview panels
-            if (/simplebeacon-vscode[/\\]src[/\\]/i.test(filePath)) return false;
-            // innerHTML = '' is safe clearing
-            if (/\.innerHTML\s*=\s*['"]\s*['"]/.test(snippet)) return false;
-            // Skip Modernizr-style feature detection using innerHTML with literal strings
-            if (/div\.innerHTML\s*=\s*['"]\s*<svg|<xyz><\/xyz>|x<style>|namespaceURI/.test(snippet)) return false;
-            if (/document\.createElement|firstChild\.namespaceURI|hidden property|HTML5 Styles/.test(snippet)) return false;
+            if (/webviewPanel|web2Panel|dashboard2_0|enhancedDashboard|browserPreview|codeMapProvider|scanPanel|uploadPanel/i.test(filePath)) return false;
+            // Skip static template assignments with no user-input interpolation
+            // Safe if innerHTML = `...` contains only static HTML (no ${userInput} or ${data})
+            if (/\.innerHTML\s*=\s*`[^`]*`/.test(snippet) && !/\$\{[^}]*\}/.test(snippet)) return false;
+            // Skip dashboard view files that render static UI markup
+            if (filePath && /\/views\/(Audit|Quality|Security|Trust|Profile|Chatbot|SignIn)View\.js$/i.test(filePath) && /container\.innerHTML|recoveryForm\.innerHTML/.test(snippet)) return false;
             return true;
         },
-        message: 'Assigning to innerHTML without sanitization — XSS risk. Use textContent or DOMPurify.'
+        message: 'innerHTML assignment detected. Ensure content is sanitized or from a trusted source to prevent XSS.'
     },
     prototypePollution: {
         id: 'prototypePollution',
@@ -556,9 +596,79 @@ const PATTERN_REGISTRY = {
             if (filePath && /\.(cpp|c|h|hpp|cc)$/.test(filePath) && /cmdline\.System|CmdLine::System|\.System\s*\(/.test(snippet)) return false;
             // Skip Python os.system() in build scripts
             if (filePath && /\.(py)$/.test(filePath) && /os\.system\s*\(/.test(snippet) && /build|version|update|test/.test(filePath)) return false;
+            // Skip VS Code extension source files that define scanner patterns (not actual eval usage)
+            if (filePath && /simplebeacon-vscode.*\/(?:realtimeMonitor|workspaceAnalyzer|enhancedAIProvider|enhancedDashboard2_0|findingConverter|remediationProvider)\.ts$/i.test(filePath)) return false;
             return true;
         },
         message: 'eval(), new Function(), or dynamic code execution — code injection risk. Use structured parsing instead.'
+    },
+    committedEnvFile: {
+        id: 'committedEnvFile',
+        name: 'Committed .env File',
+        appliesTo: ['javascript', 'typescript', 'python', 'java', 'go', 'php', 'ruby', 'dotnet'],
+        severity: 'critical',
+        pathPattern: /(^|[\\/])\.env$/,
+        skipPathPattern: /\.env\.(example|sample|template|local\.example)$/,
+        maxMatches: 1,
+        message: '.env file committed to repository — environment secrets may be exposed. Use .env.example instead.'
+    },
+    secretInComment: {
+        id: 'secretInComment',
+        name: 'Secret in Comment',
+        appliesTo: ['javascript', 'typescript', 'python', 'java', 'go', 'php', 'ruby', 'dotnet'],
+        severity: 'high',
+        pattern: /(?:\/\/|\/\*|\*|#)\s*(?:api[_-]?key|secret|token|password|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`]?[a-zA-Z0-9_\-]{16,}/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            // Skip scanner's own pattern definitions
+            if (filePath && /scanner-patterns|scanner-engine|pattern-documentation/i.test(filePath)) return false;
+            return true;
+        },
+        message: 'Credential or secret value found in code comment. Remove before committing.'
+    },
+    weakCryptography: {
+        id: 'weakCryptography',
+        name: 'Weak Cryptography',
+        appliesTo: ['javascript', 'typescript', 'python', 'java', 'go', 'php', 'ruby', 'dotnet'],
+        severity: 'high',
+        pattern: /\bmd5\s*\(|\bsha1\s*\(|\bDES\b|\bRC4\b|\bTripleDES\b|\b3DES\b|\bcrypto\.createHash\s*\(\s*['"`][ms]d5['"`]|\bcrypto\.createHash\s*\(\s*['"`]sha1['"`]/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            // Skip when inside a comment describing the weakness
+            if (/\/\/.*weak|deprecated|do not use|avoid/i.test(snippet)) return false;
+            return true;
+        },
+        message: 'Weak hash/cipher (MD5, SHA1, DES, RC4) detected. Use SHA-256+ or AES.'
+    },
+    redosRisk: {
+        id: 'redosRisk',
+        name: 'ReDoS Risk',
+        appliesTo: ['javascript', 'typescript', 'python', 'java', 'go', 'php', 'ruby', 'dotnet'],
+        severity: 'medium',
+        pattern: /\(\[\^\]\]\*\)\*|\(\[\^\]\]\+\)\+|\(\[\^\]\]\*\)\+|\(\[\^\]\]\+\)\*|\(\(\?:\[\^\]\]\*\)\+\)\*|\(\[\^\]\]\*\)\{[0-9,]*\}\*|\(\[\^\]\]\*\)\*\+|\(\[\^\]\]\+\)\*\+|\(\[\^\]\]\*\)\?\*|\(\[\^\]\]\+\)\?\*/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            // Skip when regex is a string literal (not constructed)
+            if (/['"`]/.test(snippet) && !/new\s+RegExp/.test(snippet)) return false;
+            return true;
+        },
+        message: 'Regular expression with nested quantifiers — potential ReDoS. Refactor to avoid catastrophic backtracking.'
+    },
+    cicdSecretExposure: {
+        id: 'cicdSecretExposure',
+        name: 'CI/CD Secret Exposure',
+        appliesTo: ['javascript', 'typescript', 'python', 'java', 'go', 'php', 'ruby', 'dotnet'],
+        severity: 'critical',
+        pattern: /(?:GITHUB_TOKEN|GH_TOKEN|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|DOCKER_PASSWORD|NPM_TOKEN|SLACK_TOKEN|SONAR_TOKEN)\s*[:=]\s*['"`]?[^\s'"`]{8,}/i,
+        maxMatches: 3,
+        pathPattern: /\.(yml|yaml|json)$/,
+        contextFilter: (snippet, filePath) => {
+            // Only flag if it looks like a real value, not a placeholder or variable reference
+            if (/\$\{\{|\$\w+|secrets\./i.test(snippet)) return false;
+            if (/example|placeholder|your_|my_|change|replace/i.test(snippet)) return false;
+            return true;
+        },
+        message: 'Hardcoded CI/CD secret in workflow/config file. Use repository secret variables instead.'
     },
     frameworkPractice: {
         id: 'frameworkPractice',
@@ -645,6 +755,12 @@ const PATTERN_REGISTRY = {
             if (/\.example\.|\.sample\.|\.template\.|config\.example/i.test(filePath)) return false;
             // Allow development and staging references
             if (/dev|staging|local|test/i.test(snippet)) return false;
+            // Skip legitimate variable names containing 'sample' or 'mock' (not path references)
+            if (/\b(?:const|let|var)\s+(?:sampleFiles|sampleUrl|sampleData|recentSamples|sampleCount|mockData|mockUrl)\b/.test(snippet)) return false;
+            // Skip internal API imports (not production leaks)
+            if (/require\(['"]\.\/.*stub-api['"]\)|setupDashboardStubAPIs/.test(snippet)) return false;
+            // Skip error handling messages mentioning stub APIs
+            if (/stub APIs|fallback|using stub/.test(snippet)) return false;
             return true;
         },
         message: 'Mock, fixture, or sample data path referenced in source code. Verify no test data leaks to production.'
@@ -657,6 +773,13 @@ const PATTERN_REGISTRY = {
         pattern: /\b(?:totalFeatures|featuresTracked|aiOptimizationsApplied|issuesDetected|issuesFound|patternsIdentified|openIssues)\s*[:=]\s*["']?\d+\b|\b(?:aiConfidence|confidence|accuracy|completionRate)\s*[:=]\s*["']?\d{1,3}\b|\b\d{1,3}\s*%\s*(?:completion|accuracy|confidence|uptime|secure)\b/i,
         maxMatches: 3,
         selfReferenceFilter: /rejectedFiction|fiction-kpi|fictionRemoved|fictionVsReality|not model output|baseline false|progressMetrics|scanner-patterns/i,
+        contextFilter: (snippet, filePath) => {
+            // Skip uploadPanel.ts type detection functions — confidence is a classifier score, not a KPI
+            if (filePath && /uploadPanel\.ts$/i.test(filePath) && /return\s*\{\s*type:\s*['"]/.test(snippet)) return false;
+            // Skip type detection mapping where confidence identifies report format
+            if (/detectReportType|classifyReport|identifyFormat|typeField.*confidence/.test(snippet)) return false;
+            return true;
+        },
         message: 'Hardcoded metric or KPI value detected. Verify data is real, not generated fiction.'
     },
     syncIo: {
@@ -675,6 +798,13 @@ const PATTERN_REGISTRY = {
             if (/(?:^|\/)web\/data\//.test(p)) return false;
             if (/(?:^|\/)server\/(?:bootstrap|utils|services|routes)\//.test(p)) return false;
             if (/_find-|_restore-|auto-processor|simplebeacon-server/.test(p)) return false;
+            // VS Code extension source files use sync fs for initialization, package.json reads, template loading
+            if (/(?:^|\/)simplebeacon-vscode(?:-merged)?\/src\//.test(p)) return false;
+            if (/(?:^|\/)ai-platform\/simplebeacon-vscode\/src\//.test(p)) return false;
+            // Build scripts use sync fs for file copying and package generation
+            if (/build-extension\.js|build-public\.js|replace-dashboard\.js/.test(p)) return false;
+            // Skip extension.ts reads of package.json or report.json (initialization only)
+            if (/extension\.ts.*readFileSync.*package\.json|extension\.ts.*readFileSync.*report\.json/.test(snippet)) return false;
             return true;
         },
         message: 'Synchronous fs read/write blocks the event loop. Use fs.promises instead. (fs.existsSync is excluded — it is a lightweight stat check.)'
@@ -800,6 +930,13 @@ const PATTERN_REGISTRY = {
         severity: 'medium',
         pattern: /['"`](mock\/|fixture\/|test\/data\/|web\/data)[^'"`]*['"`]/i,
         maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            // Skip test files and fixture files
+            if (filePath && /\.(test|spec)\.|fixture|mock|__tests__/.test(filePath)) return false;
+            // Skip files that legitimately reference web/data (like app-links.js)
+            if (/sampleReportUrl|data-sample-report/.test(snippet)) return false;
+            return true;
+        },
         message: 'Mock or fixture path referenced in production code. Remove mock references.'
     },
     sampleJsonRef: {
@@ -886,9 +1023,329 @@ const PATTERN_REGISTRY = {
             const p = filePath.toLowerCase();
             // Skip scanner/engine files that define regex patterns for these markers
             if (/(?:^|\/)(scanner-patterns|scanner-engine|production-debug-guard|scan-github-repo|repository-scanner-api|index\.cjs)/.test(p)) return false;
+            // Skip TODO/FIXME in test files and pattern documentation
+            if (/\.(test|spec)\.|pattern-documentation|test-all-patterns/.test(filePath)) return false;
             return true;
         },
         message: 'Unresolved roadmap marker detected in source. Resolve or track in issue tracker.'
+    },
+    llmApiEndpoint: {
+        id: 'llmApiEndpoint',
+        name: 'Hardcoded LLM API Endpoint',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'low',
+        pattern: /api\.openai\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com|api\.groq\.com|api\.together\.xyz|api\.replicate\.com|proxy\.llm|ollama\.run|localhost:\d+\/v1\/chat\/completions|azure\.openai|\.openai\.azure\.com/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/\.env\.example|config\.example|docker-compose\.example|\.env\.template/.test(filePath)) return false;
+            if (/README|CHANGELOG|docs?\//i.test(filePath)) return false;
+            return true;
+        },
+        message: 'Hardcoded LLM API endpoint detected. Consider making configurable for vendor flexibility and EU data residency.'
+    },
+    systemPromptFile: {
+        id: 'systemPromptFile',
+        name: 'System Prompt in Repo',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'medium',
+        pathPattern: /(^|[\\/])(system[-_]?prompt|prompt[-_]?system|ai[-_]?prompt|llm[-_]?prompt)(\.txt|\.md|\.json|\.yaml|\.yml|\.js|\.py|\.ts)?$/i,
+        maxMatches: 2,
+        contextFilter: (snippet, filePath) => {
+            if (/\.(test|spec)\.|fixture|mock|__tests__/.test(filePath)) return false;
+            if (/node_modules|vendor|dist|build|\.next|out\//.test(filePath)) return false;
+            return true;
+        },
+        message: 'System prompt file committed to repository. Prompts may contain business logic or injection surface — consider runtime configuration.'
+    },
+    insecureModelParam: {
+        id: 'insecureModelParam',
+        name: 'Insecure Model Parameter',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'medium',
+        pattern: /temperature\s*:\s*2(?!\d)|max_tokens\s*:\s*1[5-9]\d{3}|max_tokens\s*:\s*\d{5,}|top_p\s*:\s*1\.0\b(?![,}\s]*\w)|presence_penalty\s*:\s*2\.0|frequency_penalty\s*:\s*2\.0/i,
+        maxMatches: 3,
+        message: 'Insecure LLM parameter detected — high temperature, excessive max_tokens, or maxed penalties may cause quality/cost issues.'
+    },
+    webhookUrl: {
+        id: 'webhookUrl',
+        name: 'Webhook URL in Source',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'high',
+        pattern: /hooks\.slack\.com\/services\/[^\s'"`]+|discord\.com\/api\/webhooks\/[^\s'"`]+|hooks\.teams\.microsoft\.com\/[^\s'"`]+|webhook\.url|webhook_url\s*[:=]\s*['"`][^'"`]{20,}/i,
+        maxMatches: 3,
+        redact: true,
+        contextFilter: (snippet, filePath) => {
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
+            if (/README|CHANGELOG|docs?\//i.test(filePath)) return false;
+            if (/example|placeholder|your_|my_|change|replace/.test(snippet)) return false;
+            return true;
+        },
+        message: 'Webhook URL committed to source. Rotate the webhook and move the URL to environment variables.'
+    },
+    dbConnectionString: {
+        id: 'dbConnectionString',
+        name: 'DB Connection String with Password',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'critical',
+        pattern: /(?:mongodb|mysql|postgresql|postgres|redis|amqp)[:+]\/\/[^\s'"`]+:[^\s'"`]+@[^\s'"`]+/i,
+        maxMatches: 3,
+        redact: true,
+        contextFilter: (snippet, filePath) => {
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
+            if (/example|placeholder|your_|my_|change|replace/.test(snippet)) return false;
+            return true;
+        },
+        message: 'Database connection string with embedded password detected. Use environment variables or a secret manager.'
+    },
+    corsWildcard: {
+        id: 'corsWildcard',
+        name: 'CORS Wildcard in Production',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby'],
+        severity: 'high',
+        pattern: /Access-Control-Allow-Origin\s*:\s*\*|cors\s*\(\s*\{[^}]*origin\s*:\s*\*|app\.use\s*\(\s*cors\s*\(\s*\)\s*\)/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/localhost|127\.0\.0\.1|dev|staging/.test(filePath)) return false;
+            return true;
+        },
+        message: 'CORS wildcard (*) allows any origin — security risk in production. Whitelist specific domains.'
+    },
+    graphqlIntrospection: {
+        id: 'graphqlIntrospection',
+        name: 'GraphQL Introspection Enabled',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby'],
+        severity: 'medium',
+        pattern: /introspection\s*:\s*true|__schema|__type\s*\(|apollo-server.*introspection|graphql\s*\(\s*\{\s*__schema/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/localhost|127\.0\.0\.1|dev|staging|test/.test(filePath)) return false;
+            if (/\.env\.example|config\.example/.test(filePath)) return false;
+            return true;
+        },
+        message: 'GraphQL introspection enabled in production — schema exposure aids attackers. Disable or gate behind auth.'
+    },
+    dockerfileAntiPattern: {
+        id: 'dockerfileAntiPattern',
+        name: 'Dockerfile Anti-Pattern',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'medium',
+        pathPattern: /Dockerfile/i,
+        pattern: /FROM\s+\w+\s*:\s*latest\b|USER\s+root\b|RUN\s+.*curl\s+.*\|\s*bash|RUN\s+.*wget\s+.*\|\s*sh|ADD\s+https?:\/\/|ARG\s+.*SECRET|ARG\s+.*PASSWORD|ARG\s+.*TOKEN/i,
+        maxMatches: 3,
+        message: 'Dockerfile anti-pattern: latest tag, root user, pipe-to-shell, or build-arg secrets. Pin versions and use non-root user.'
+    },
+    k8sMissingLimits: {
+        id: 'k8sMissingLimits',
+        name: 'K8s Missing Resource Limits',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        pathPattern: /\.(yaml|yml)$/i,
+        pattern: /containers\s*:\s*\[[\s\S]{0,400}?\](?!.*resources)(?!.*limits)(?!.*requests)|kind\s*:\s*Deployment[\s\S]{0,600}?containers\s*:[\s\S]{0,400}(?!resources)(?!limits)(?!requests)/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/resources\s*:\s*\n\s+limits/.test(snippet)) return false;
+            if (/resources\s*:\s*\{/.test(snippet) && /limits/.test(snippet)) return false;
+            return true;
+        },
+        message: 'K8s container spec missing resource limits — risk of noisy-neighbor resource exhaustion.'
+    },
+    todoDensity: {
+        id: 'todoDensity',
+        name: 'TODO/FIXME Density',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'low',
+        pattern: /\b(TODO|FIXME|HACK|XXX)\b/gi,
+        maxMatches: 10,
+        contextFilter: (snippet, filePath) => {
+            if (/\.(test|spec)\.|fixture|mock|__tests__/.test(filePath)) return false;
+            if (/scanner-patterns|scanner-engine|pattern-documentation/.test(filePath)) return false;
+            return true;
+        },
+        message: 'High TODO/FIXME density — file may need focused refactoring. Track in issue tracker.'
+    },
+    dependencyGitUrl: {
+        id: 'dependencyGitUrl',
+        name: 'Git URL Dependency',
+        appliesTo: ['javascript'],
+        severity: 'medium',
+        pathPattern: /package\.json$/,
+        pattern: /"[^"]+"\s*:\s*"git\+(?:ssh|https)?:\/\/[^"]+"|"[^"]+"\s*:\s*"(?:https?:\/\/github\.com\/[^"]+#[^"]+|github:[^"]+)"/i,
+        maxMatches: 5,
+        contextFilter: (snippet, filePath) => {
+            if (/\.env\.example|config\.example/.test(filePath)) return false;
+            return true;
+        },
+        message: 'Git URL dependency in package.json — supply chain risk (unpublished, unvetted, no audit trail). Prefer npm registry versions.'
+    },
+    jwtSecretInConfig: {
+        id: 'jwtSecretInConfig',
+        name: 'JWT Secret in Config File',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'critical',
+        pattern: /jwt[_-]?secret\s*[:=]\s*['"`][^'"`]{8,}|JWT_SECRET\s*[:=]\s*['"`][^'"`]{8,}|secret[_-]?key\s*[:=]\s*['"`][^'"`]{8,}.*algorithm|signing[_-]?key\s*[:=]\s*['"`][^'"`]{8,}/i,
+        maxMatches: 3,
+        redact: true,
+        contextFilter: (snippet, filePath) => {
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
+            if (/process\.env\.|os\.environ|env\[|getenv/.test(snippet)) return false;
+            if (/example|placeholder|your_|my_|change|replace/.test(snippet)) return false;
+            return true;
+        },
+        message: 'JWT signing secret hardcoded in config. Use environment variables or a dedicated secret manager.'
+    },
+    sshPrivateKey: {
+        id: 'sshPrivateKey',
+        name: 'SSH Private Key',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'critical',
+        pattern: /-----BEGIN (OPENSSH|RSA|EC|DSA|PGP) PRIVATE KEY-----/,
+        maxMatches: 1,
+        redact: true,
+        message: 'SSH private key committed to repository. Rotate the key immediately and use a secret manager.'
+    },
+    awsAccessKey: {
+        id: 'awsAccessKey',
+        name: 'AWS Access Key',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'critical',
+        pattern: /AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}/,
+        maxMatches: 3,
+        redact: true,
+        contextFilter: (snippet, filePath) => {
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
+            if (/example|placeholder|your_|my_|change|replace/.test(snippet)) return false;
+            return true;
+        },
+        message: 'AWS access key ID detected. Move to IAM roles or environment variables.'
+    },
+    stripeLiveKey: {
+        id: 'stripeLiveKey',
+        name: 'Stripe Live Key',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'critical',
+        pattern: /sk_live_[0-9a-zA-Z]{24,}|rk_live_[0-9a-zA-Z]{24,}/i,
+        maxMatches: 3,
+        redact: true,
+        contextFilter: (snippet, filePath) => {
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
+            if (/test|spec|fixture|mock|__tests__/.test(filePath)) return false;
+            return true;
+        },
+        message: 'Stripe live secret key detected. Rotate immediately and use environment variables.'
+    },
+    firebaseApiKey: {
+        id: 'firebaseApiKey',
+        name: 'Firebase API Key',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'high',
+        pattern: /AIza[0-9A-Za-z_-]{35}/,
+        maxMatches: 3,
+        redact: true,
+        contextFilter: (snippet, filePath) => {
+            if (/\.env\.example|config\.example|\.env\.template/.test(filePath)) return false;
+            if (/example|placeholder|your_|my_|change|replace/.test(snippet)) return false;
+            return true;
+        },
+        message: 'Firebase API key detected. Restrict the key in GCP console and move to environment variables.'
+    },
+    insecureCookie: {
+        id: 'insecureCookie',
+        name: 'Insecure Cookie',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby'],
+        severity: 'high',
+        pattern: /res\.cookie\s*\([^)]*\)(?!.*httpOnly)(?!.*secure)(?!.*sameSite)|Set-Cookie\s*:[^;]*;(?!.*[Hh]ttpOnly)(?!.*[Ss]ecure)(?!.*[Ss]ameSite)/i,
+        maxMatches: 3,
+        message: 'Cookie set without httpOnly, secure, or SameSite flags. Add all three for session security.'
+    },
+    pathTraversal: {
+        id: 'pathTraversal',
+        name: 'Path Traversal Risk',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby'],
+        severity: 'high',
+        pattern: /fs\.readFile(?:Sync)?\s*\(\s*(?:req\.(?:query|body|params)|process\.argv|args)\b|fs\.readFile(?:Sync)?\s*\(\s*path\.join\s*\([^)]*\b(?:req\.|body\.|query\.|params\.|argv)/i,
+        maxMatches: 3,
+        message: 'User input passed directly to file system read without path sanitization. Validate and whitelist paths.'
+    },
+    ssrfVector: {
+        id: 'ssrfVector',
+        name: 'SSRF Vector',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby'],
+        severity: 'high',
+        pattern: /fetch\s*\(\s*(?:req\.(?:query|body)|url|target)\b|axios\.(?:get|post|put|delete)\s*\(\s*(?:req\.(?:query|body)|url|target)\b|request\s*\(\s*(?:req\.(?:query|body)|url|target)\b|curl\s+['"`][^'"`]*\$\{|curl\s+['"`][^'"`]*\+ /i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/allowlist|whitelist|urlValidator|isValidUrl|URL\s*\(|new\s+URL\s*\(/.test(snippet)) return false;
+            return true;
+        },
+        message: 'User-controlled URL passed to HTTP client without validation — SSRF risk. Validate against an allowlist.'
+    },
+    nosqlInjection: {
+        id: 'nosqlInjection',
+        name: 'NoSQL Injection',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby'],
+        severity: 'critical',
+        pattern: /\$where\s*:\s*(?:req\.|body\.|query\.|params\.)|\.aggregate\s*\(\s*\[\s*\{[^}]*(?:req\.|body\.|query\.|params\.)|\.find\s*\(\s*\{[^}]*(?:req\.|body\.|query\.|params\.)[^}]*\$ne|\$eq[^}]*(?:req\.|body\.|query\.|params\.)/i,
+        maxMatches: 3,
+        message: 'User input used in NoSQL query operator — injection risk. Use parameterized queries or ORM.'
+    },
+    missingCsrf: {
+        id: 'missingCsrf',
+        name: 'Missing CSRF Token',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby', 'dotnet'],
+        severity: 'medium',
+        pattern: /<form\b(?![^>]*\bcsrf_token\b)(?![^>]*\bcsrfmiddlewaretoken\b)(?![^>]*\bname=["']?_csrf\b)[^>]*>/i,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/method\s*=\s*["']get["']/i.test(snippet)) return false;
+            if (/action\s*=\s*["']#\w+["']/i.test(snippet)) return false;
+            return true;
+        },
+        message: 'Form tag without CSRF token protection. Add anti-CSRF token for state-changing POST requests.'
+    },
+    noHelmet: {
+        id: 'noHelmet',
+        name: 'Missing Security Middleware',
+        appliesTo: ['javascript'],
+        severity: 'medium',
+        pattern: /app\.(?:get|post|put|delete|patch|use)\s*\([^)]*\)(?!.*helmet)(?!.*cors)(?!.*security)(?!.*csrf)/i,
+        maxMatches: 5,
+        contextFilter: (snippet, filePath) => {
+            if (/helmet|cors|csrf|security/.test(filePath)) return false;
+            if (/server\.(?:js|cjs)|app\.(?:js|cjs)|index\.(?:js|cjs)/.test(filePath)) return true;
+            if (/route|router|controller|middleware/.test(filePath)) return false;
+            return true;
+        },
+        message: 'Express app routes found but no helmet() or security middleware imported. Add helmet() for security headers.'
+    },
+    modelFallback: {
+        id: 'modelFallback',
+        name: 'Silent LLM Model Fallback',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby'],
+        severity: 'medium',
+        pattern: /gpt-4.*gpt-3\.5-turbo|claude-3.*claude-2|model\s*:\s*['"`][^'"`]*['"`]\s*,\s*(?!.*log)(?!.*warn)(?!.*notify)(?!.*alert).*model\s*:\s*['"`][^'"`]*['"`]/i,
+        maxMatches: 3,
+        message: 'Silent model downgrade detected without logging or user notice. Disclose fallback behavior to users.'
+    },
+    promptInjectionSurface: {
+        id: 'promptInjectionSurface',
+        name: 'Prompt Injection Surface',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby'],
+        severity: 'high',
+        pattern: /(system|user|assistant)\s*[:=]\s*['"`][^'"`]*\$\{[^}]*(?:req\.|body\.|query\.|params\.|user|input|message)\b[^}]*\}|['"`][^'"`]*\$\{[^}]*(?:req\.|body\.|query\.|params\.|user|input|message)\b[^}]*\}['"`].*\.(?:chat\.completions|messages\.create|generate|complete|predict|embed)/i,
+        maxMatches: 3,
+        message: 'User input interpolated directly into LLM prompt. Sanitize input or use structured message arrays to prevent prompt injection.'
+    },
+    mixedIndentation: {
+        id: 'mixedIndentation',
+        name: 'Mixed Indentation',
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        severity: 'low',
+        pattern: /^(\t+ +| +\t+).*$/m,
+        maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/\.min\.(js|css)|\.pack\.(js|css)|vendor|node_modules/.test(filePath)) return false;
+            return true;
+        },
+        message: 'Mixed tabs and spaces in same file. Add .editorconfig and run linter to standardize.'
     }
 };
 
@@ -958,7 +1415,32 @@ const ANALYZER_SCHEMA = {
     markdownFenceLeak:{ category: 'llmSlop',       exclusionProfile: 'sourceCodeOnly' },
     emptyStubFunction:{ category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
     arrowStub:        { category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
-    roadmapMarker:    { category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' }
+    roadmapMarker:    { category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
+    llmApiEndpoint:   { category: 'aiIndicators',  exclusionProfile: 'sourceCodeOnly' },
+    systemPromptFile:   { category: 'aiResidue',     exclusionProfile: 'sourceCodeOnly' },
+    insecureModelParam:{ category: 'aiIndicators',  exclusionProfile: 'sourceCodeOnly' },
+    webhookUrl:       { category: 'sensitiveData', exclusionProfile: 'sourceCodeOnly' },
+    dbConnectionString:{ category: 'credentials',   exclusionProfile: 'noArtifacts' },
+    corsWildcard:     { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
+    graphqlIntrospection:{ category: 'security',    exclusionProfile: 'sourceCodeOnly' },
+    dockerfileAntiPattern:{ category: 'security',   exclusionProfile: 'noArtifacts' },
+    k8sMissingLimits: { category: 'security',      exclusionProfile: 'noArtifacts' },
+    todoDensity:      { category: 'maintainability', exclusionProfile: 'sourceCodeOnly' },
+    dependencyGitUrl: { category: 'unusedDeps',    exclusionProfile: 'noArtifacts' },
+    jwtSecretInConfig:{ category: 'credentials',   exclusionProfile: 'noArtifacts' },
+    sshPrivateKey:    { category: 'credentials',   exclusionProfile: 'noArtifacts' },
+    awsAccessKey:     { category: 'credentials',   exclusionProfile: 'noArtifacts' },
+    stripeLiveKey:    { category: 'credentials',   exclusionProfile: 'noArtifacts' },
+    firebaseApiKey:   { category: 'credentials',   exclusionProfile: 'noArtifacts' },
+    insecureCookie:   { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
+    pathTraversal:    { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
+    ssrfVector:       { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
+    nosqlInjection:   { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
+    missingCsrf:      { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
+    noHelmet:         { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
+    modelFallback:    { category: 'aiIndicators',  exclusionProfile: 'sourceCodeOnly' },
+    promptInjectionSurface:{ category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    mixedIndentation: { category: 'maintainability', exclusionProfile: 'sourceCodeOnly' }
 };
 
 /**

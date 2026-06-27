@@ -173,7 +173,7 @@ const QUICK_ACTIONS = {
                 pattern: /api[_-]?key\s*[:=]\s*["'][^"']+["']/i,
                 suggestion: 'Replace hardcoded API keys with environment variables',
                 example: {
-                    before: 'const apiKey = "your-api-key-here";',
+                    before: 'const apiKey = "your-api-key-here";', // simplebeacon-ignore credential — Example code in documentation
                     after: 'const apiKey = process.env.API_KEY;'
                 }
             },

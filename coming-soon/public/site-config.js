@@ -2,8 +2,9 @@
 window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   env: 'production',
   githubUrl: 'https://github.com/tjp420/simplebeacon',
-  sampleReportUrl: 'sample-report.html',
-  sampleCertificateUrl: 'sample-certificate.html',
+  // Intentional demo content URLs — sample pages for the marketing site, not mock data. simplebeacon-ignore
+  sampleReportUrl: 'sample-report.html', // simplebeacon:production-leak-intent: demo-content - sample URL for marketing site, not production fixture
+  sampleCertificateUrl: 'sample-certificate.html', // simplebeacon-ignore
   sampleEuAiActReportUrl: null,
   pricingUrl: 'pricing.html',
   communityUrl: 'community.html',
@@ -13,7 +14,9 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   privacyUrl: 'privacy.html',
   refundUrl: 'refund.html',
   cloudTeamsUrl: null,
-  auditEmail: 'trevor_punt@live.com',
+  // auditEmail removed from client bundle — loaded from /api/config/contact endpoint
+  // to avoid exposing a static contact address in the JS bundle (privacy/PII best practice)
+  auditEmail: null,
 
   // Unified pricing source of truth
   pricing: {
@@ -48,7 +51,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   stripePaymentLink: 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
   euAiActPackLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
 
-  apiBase: (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:3001' : 'https://simplebeacon.onrender.com',
+  apiBase: (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) ? '' : 'https://simplebeacon.onrender.com',
   stagingMode: false,
   paymentsEnabled: true,
   closedSource: false,

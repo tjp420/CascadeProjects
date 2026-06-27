@@ -1,0 +1,11 @@
+[
+  {
+    "id": "err-1782170237452-5v6is",
+    "timestamp": "2026-06-22T23:17:17.452Z",
+    "type": "runtime-error",
+    "severity": "high",
+    "message": "Canceled",
+    "context": "command:simplebeacon.showTeamDashboard",
+    "stack": "Canceled: Canceled\n\tat ta (file:///c:/Users/Trevor/AppData/Local/Programs/Devin/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:383:1546)\n\tat file:///c:/Users/Trevor/AppData/Local/Programs/Devin/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:407:136692\n\tat Array.forEach (<anonymous>)\n\tat r.dispose (file:///c:/Users/Trevor/AppData/Local/Programs/Devin/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:407:136600)\n\tat Vw.terminate (file:///c:/Users/Trevor/AppData/Local/Programs/Devin/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:499:12612)\n\tat r.terminate (file:///c:/Users/Trevor/AppData/Local/Programs/Devin/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:502:1072)\n\tat Zs (file:///c:/Users/Trevor/AppData/Local/Programs/Devin/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:774:12553)\n\tat MessagePortMain.<anonymous> (file:///c:/Users/Trevor/AppData/Local/Programs/Devin/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:774:8119)\n\tat MessagePortMain.emit (node:events:519:28)\n\tat MessagePortMain._internalPort.emit (node:electron/js2c/utility_init:2:2959)"
+  }
+]

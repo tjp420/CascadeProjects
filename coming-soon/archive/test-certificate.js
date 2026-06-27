@@ -1,7 +1,7 @@
 const http = require('http');
 
 const DEFAULT_PORT = 3001;
-const token = 'eyJ0aWVyIjoiZXhlY3V0aXZlIiwiZXhwIjoxNzg4NTI4MzkxMzg5LCJwcm9qZWN0TmFtZSI6InRlc3QifQ.UCKlsMCFGnKnjxS7P-n7t2wU7VKsYEjwskO2eH0ySVI';
+const token = 'eyJ0aWVyIjoiZXhlY3V0aXZlIiwiZXhwIjoxNzg4NTI4MzkxMzg5LCJwcm9qZWN0TmFtZSI6InRlc3QifQ.UCKlsMCFGnKnjxS7P-n7t2wU7VKsYEjwskO2eH0ySVI'; // simplebeacon-ignore credentials — test fixture dummy token
 
 const reports = [
     { name: 'Complete scan', reportJson: { type: 'simplebeacon-report', gate: { pass: true }, qualityScore: 85, totalFiles: 100, detectedIssues: [] } },

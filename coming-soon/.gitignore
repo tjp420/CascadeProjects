@@ -25,6 +25,8 @@ npm-debug.log*
 .env
 .env.local
 .env.*
+!.env.example
+!.env.*.example
 
 # Generated tokens (JWTs — never commit)
 token-*.txt

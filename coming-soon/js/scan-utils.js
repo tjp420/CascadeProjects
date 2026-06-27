@@ -7,10 +7,10 @@ const MAX_DISCOVERED_FILES = 999999999; // Effectively unlimited — scan all fi
 
 // Pre-upload folder size analyzer thresholds
 const FOLDER_SIZE_WARN_CHROME_CAP = 1200;
-const FOLDER_SIZE_WARN_LARGE = 5000;
-const FOLDER_SIZE_WARN_SERVER_LIMIT = 100000;
-const FOLDER_SIZE_ERROR_SAMPLE_LIMIT = 65000;
-const FOLDER_SIZE_ERROR_DISCOVERY_CAP = 100000;
+const FOLDER_SIZE_WARN_LARGE = 50000;
+const FOLDER_SIZE_WARN_SERVER_LIMIT = 500000;
+const FOLDER_SIZE_ERROR_SAMPLE_LIMIT = 300000;
+const FOLDER_SIZE_ERROR_DISCOVERY_CAP = 500000;
 
 /**
  * Simple non-crypto hash for duplicate detection.

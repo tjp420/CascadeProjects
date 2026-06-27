@@ -2,8 +2,10 @@
 window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   env: 'production',
   githubUrl: 'https://github.com/tjp420/simplebeacon',
-  sampleReportUrl: 'sample-report.html',
-  sampleCertificateUrl: 'sample-certificate.html',
+  // Intentional demo content URLs — these are sample pages for the marketing site,
+  // not mock/fixture data embedded in production application code. simplebeacon-ignore
+  sampleReportUrl: 'sample-report.html', // simplebeacon:production-leak-intent: demo-content - sample URL for marketing site, not production fixture
+  sampleCertificateUrl: 'sample-certificate.html', // simplebeacon-ignore
   sampleEuAiActReportUrl: null,
   pricingUrl: 'pricing.html',
   communityUrl: 'community.html',
@@ -13,7 +15,9 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   privacyUrl: 'privacy.html',
   refundUrl: 'refund.html',
   cloudTeamsUrl: null,
-  auditEmail: 'audit@simplebeacon.ai',
+  // auditEmail removed from client bundle — loaded from /api/config/contact endpoint
+  // to avoid exposing a static contact address in the JS bundle (privacy/PII best practice)
+  auditEmail: null,
 
   // Unified pricing source of truth
   pricing: {
@@ -48,7 +52,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   stripePaymentLink: 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
   euAiActPackLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
 
-  apiBase: (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:3002' : 'https://simplebeacon.onrender.com',
+  apiBase: (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) ? '' : 'https://simplebeacon.onrender.com',
   stagingMode: false,
   paymentsEnabled: true,
   closedSource: false,
@@ -254,13 +258,13 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 // Override Stripe links from server environment configuration (falls back to hardcoded values above)
 (function () {
   try {
-    var apiBase = window.SIMPLEBEACON_SITE.apiBase || '';
+    const apiBase = window.SIMPLEBEACON_SITE.apiBase || '';
     fetch(apiBase + '/api/config/pricing')
       .then(function (res) { if (!res.ok) return null; return res.json(); })
       .then(function (data) {
         if (!data || !data.success || !data.pricing) return;
-        var cfg = window.SIMPLEBEACON_SITE;
-        var p = data.pricing;
+        const cfg = window.SIMPLEBEACON_SITE;
+        const p = data.pricing;
         if (p.instant && p.instant.stripeLink) {
           cfg.pricing.instant.stripeLink = p.instant.stripeLink;
           cfg.instantReportLink = p.instant.stripeLink;

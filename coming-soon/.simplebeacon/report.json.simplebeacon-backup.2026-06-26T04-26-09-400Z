@@ -4,39 +4,39 @@
   "scan_summary": {
     "status": "PASSED",
     "block_merge": false,
-    "total_risks_found": 66,
+    "total_risks_found": 688,
     "high_severity_count": 0,
-    "medium_severity_count": 63,
-    "low_severity_count": 3,
-    "estimated_incident_cost_saved": "$330,000",
-    "scan_id": "sb_scan_xe3v4wrl4",
-    "timestamp": "2026-06-17T13:08:39.602Z",
+    "medium_severity_count": 413,
+    "low_severity_count": 275,
+    "estimated_incident_cost_saved": "$3,440,000",
+    "scan_id": "sb_scan_7e535c9b7246",
+    "timestamp": "2026-06-26T03:48:46.419Z",
     "tier": "developer",
-    "scans_remaining": 46,
+    "scans_remaining": 62,
     "pipeline_scan": false
   },
-  "generatedAt": "2026-06-17T13:08:39.602Z",
+  "generatedAt": "2026-06-26T03:48:46.419Z",
   "generatedBy": "Simplebeacon",
-  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
-  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\.simplebeacon\\config.json",
+  "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+  "configPath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\.simplebeacon\\config.json",
   "scanPaths": [
-    "C:\\Users\\Trevor\\CascadeProjects\\coming-soon"
+    "c:\\Users\\Trevor\\CascadeProjects\\coming-soon"
   ],
   "repositoryInventory": {
-    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
-    "totalFiles": 928,
-    "totalFolders": 168,
+    "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+    "totalFiles": 1531,
+    "totalFolders": 275,
     "profile": "all"
   },
   "mockSampleFiles": 2,
-  "totalFiles": 928,
-  "ruleScopedFilesAnalyzed": 928,
-  "repositoryFilesTotal": 928,
-  "repositoryFoldersTotal": 168,
-  "filesAnalyzed": 928,
-  "totalSizeBytes": 9566422,
-  "totalSizeLabel": "9.1MB",
-  "issueCount": 66,
+  "totalFiles": 1488,
+  "ruleScopedFilesAnalyzed": 1488,
+  "repositoryFilesTotal": 1531,
+  "repositoryFoldersTotal": 275,
+  "filesAnalyzed": 1488,
+  "totalSizeBytes": 51659623,
+  "totalSizeLabel": "49.3MB",
+  "issueCount": 63,
   "invalidJson": 0,
   "emptyFiles": 0,
   "qualityScore": 100,
@@ -45,100 +45,129 @@
   "schemaPassed": 0,
   "pageSampleSchemaChecked": 0,
   "pageSampleSchemaPassed": 0,
-  "duplicateGroups": 0,
+  "duplicateGroups": 1,
   "roadmapSchemaChecked": 0,
   "roadmapSchemaPassed": 0,
-  "consistencyChecked": 29,
-  "consistencyPassed": 29,
+  "consistencyChecked": 5,
+  "consistencyPassed": 5,
   "consistencyScore": 100,
-  "fictionJsonFilesScanned": 29,
+  "fictionJsonFilesScanned": 5,
   "fictionSampleFilesScanned": 0,
   "fictionScope": "repository-json",
-  "credentialScanned": 126,
+  "credentialScanned": 103,
   "credentialFindings": 0,
-  "productionLeakScanned": 11,
+  "productionLeakScanned": 18,
   "productionLeakFindings": 0,
   "productionLeakSuppressedIntent": 0,
   "sourceCodeFilesScanned": 0,
   "sourceFictionPatternHits": 0,
-  "llmSlopFilesScanned": 21,
+  "llmSlopFilesScanned": 29,
   "llmSlopPatternHits": 0,
-  "euAiActScanned": 11,
+  "euAiActScanned": 18,
   "euAiActFindings": 0,
   "euAiActSummary": {
     "highRiskIndicators": 0,
     "aiSystemIndicators": 0,
     "transparencyGaps": 0,
-    "documentationArtifacts": 98,
+    "documentationArtifacts": 109,
     "documentationFound": [
       "model-card.md",
       "risk-assessment.md",
       "conformity-declaration.md",
+      ".env",
       ".simplebeaconignore",
       "AI-SYSTEM.md",
       "app-links.js",
+      "audit.html",
       "AUTOPILOT_ROADMAP.md",
-      "bin-roadmap.json",
       "CERTIFICATE-REMEDIATION-PLAN.md",
       "certificate-upload.html",
-      "certification-post-fix.html",
       "CHANGELOG.md",
-      "coming-soon-roadmap.json",
       "coming-soon.log",
       "contact.html",
       "contact.js",
       "cross-reference-report.md",
+      "cs-out.txt",
+      "cs.txt",
+      "email-template-preview.html",
+      "email-template-redesign.html",
       "EU_AI_ACT_SPRINT_IMPLEMENTATION_PLAN.md",
-      "generate-token.js",
       "github-issues-ai_agent.md",
+      "index.html",
       "jira-ai_agent.csv",
       "jira-row-vulns.csv",
-      "local-scanner-bridge.cjs",
       "pricing.html",
       "README.md",
       "refund.html",
       "roadmap.html",
       "sample-certificate.html",
-      "scan-status.html",
-      "simplebeacon-platform-gate.json",
-      "simplebeacon-platform-roadmap.json",
+      "server-restart.log",
+      "server.log",
       "site-config.js",
       "styles.css",
       "technical-documentation.md",
+      "terminal-walkthrough.html",
       "terms.html",
-      "test-generate-roadmap.js",
-      "test-report.json",
       "trello-ai_agent-1780863316487.json",
       "trello-board-ai_agent-full.json",
       "trello-board-ai_agent.json",
       "trello-export-1780859087255.json",
       "trello-roadmap-export.js",
-      "unlock.html",
       "upload-file-list.txt",
-      "upload.html",
+      ".simplebeacon/app.db-wal",
       ".simplebeacon/bridge-report-scan-1781164483194.json",
+      ".simplebeacon/codemap.html",
       ".simplebeacon/config.json",
       ".simplebeacon/eu-ai-act-assessment.json",
       ".simplebeacon/eu-ai-act-compliance.json",
       ".simplebeacon/eu-ai-act-report.json",
-      ".simplebeacon/report.json"
+      ".simplebeacon/report-medium-only.json",
+      ".simplebeacon/report.json",
+      ".simplebeacon/simplebeacon-analytics-report-cleaned.json"
     ],
     "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
   },
+  "securityPatternFilesScanned": 18,
+  "securityPatternFindings": 0,
+  "hardcodedUrlFilesScanned": 8,
+  "hardcodedUrlFindings": 27,
+  "weakCryptoFilesScanned": 0,
+  "weakCryptoFindings": 0,
+  "secretInCommentsFilesScanned": 0,
+  "secretInCommentsFindings": 0,
+  "syncIoFilesScanned": 2,
+  "syncIoFindings": 7,
+  "envInGitFilesScanned": 0,
+  "envInGitFindings": 0,
+  "redosFilesScanned": 9,
+  "redosFindings": 25,
+  "piiLoggingFilesScanned": 10,
+  "piiLoggingFindings": 30,
+  "deadCodeFilesScanned": 47,
+  "deadCodeFindings": 227,
+  "memoryLeakFilesScanned": 45,
+  "memoryLeakFindings": 323,
+  "typeSafetyFilesScanned": 37,
+  "typeSafetyFindings": 2,
+  "hallucinatedImportFilesScanned": 37,
+  "hallucinatedImportFindings": 1,
+  "astStructuralFilesScanned": 37,
+  "astStructuralFindings": 0,
+  "astAvailable": false,
   "jestBaselineChecked": false,
   "jestBaselinePassed": true,
   "jestSummary": null,
   "severityCounts": {
     "critical": 0,
     "high": 0,
-    "medium": 63,
-    "low": 3
+    "medium": 44,
+    "low": 19
   },
   "mockDataCategories": [
     {
       "category": "Stale inventory (full-tree scan)",
       "fileCount": 2,
-      "totalSize": "9.1MB",
+      "totalSize": "49.3MB",
       "qualityScore": null,
       "issues": null,
       "confidence": null,
@@ -156,230 +185,334 @@
   },
   "detectedIssues": [
     {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "missing-env-key",
+      "severity": "low",
+      "severityBand": "low",
+      "type": "Hardcoded URL",
       "count": 1,
-      "description": "missing-env-key finding",
+      "description": "require('http'); const req = http.get('http://127.0.0.1:64512/', (res) => { let d = ''; res.on('da",
       "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        ".env"
-      ],
+      "line": 2,
+      "recommendation": null,
+      "affectedFiles": [],
       "filePaths": [
-        ".env"
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\check-sidebar.js"
       ],
-      "file": ".env"
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\check-sidebar.js"
     },
     {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "missing-env-key",
+      "type": "Sync I/O in Async Path",
       "count": 1,
-      "description": "missing-env-key finding",
+      "description": "if (!projectPath || !fsSync.existsSync(projectPath)) {",
       "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        ".env"
-      ],
+      "line": 389,
+      "recommendation": null,
+      "affectedFiles": [],
       "filePaths": [
-        ".env"
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs"
       ],
-      "file": ".env"
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs"
     },
     {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "missing-env-key",
+      "type": "Sync I/O in Async Path",
       "count": 1,
-      "description": "missing-env-key finding",
+      "description": "if (!projectPath || !fsSync.existsSync(projectPath)) {",
       "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        ".env"
-      ],
+      "line": 389,
+      "recommendation": null,
+      "affectedFiles": [],
       "filePaths": [
-        ".env"
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs"
       ],
-      "file": ".env"
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs"
     },
     {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "missing-env-key",
+      "type": "ReDoS Risk",
       "count": 1,
-      "description": "missing-env-key finding",
+      "description": "Regex: /(\"(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\\"])*\"(\\s*:)?)/g — Alternation groups with quantifiers can cause polynomial backtracking",
       "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        ".env"
-      ],
+      "line": 312,
+      "recommendation": null,
+      "affectedFiles": [],
       "filePaths": [
-        ".env"
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\contact.js"
       ],
-      "file": ".env"
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\contact.js"
     },
     {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "missing-env-key",
+      "type": "ReDoS Risk",
       "count": 1,
-      "description": "missing-env-key finding",
+      "description": "Regex: /Math\\.random\\s*\\(\\)(?=.*(?:token|password|secret|salt|nonce|uuid|id|key))/i — Lookahead containing quantifiers can cause performance degradation",
       "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        ".env"
-      ],
+      "line": 555,
+      "recommendation": null,
+      "affectedFiles": [],
       "filePaths": [
-        ".env"
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\public\\js\\dashboard\\scanner-patterns.js"
       ],
-      "file": ".env"
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\public\\js\\dashboard\\scanner-patterns.js"
     },
     {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "missing-env-key",
+      "type": "PII Logging",
       "count": 1,
-      "description": "missing-env-key finding",
+      "description": "logger.warn('[TokenChain] Routes not loaded:', err.message);",
       "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        ".env"
-      ],
+      "line": 743,
+      "recommendation": null,
+      "affectedFiles": [],
       "filePaths": [
-        ".env"
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs"
       ],
-      "file": ".env"
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs"
     },
     {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "missing-env-key",
+      "type": "PII Logging",
       "count": 1,
-      "description": "missing-env-key finding",
+      "description": "systemLogger.logTokenOp(action, { ...details, admin: req.adminPayload.email });",
       "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        ".env"
-      ],
+      "line": 316,
+      "recommendation": null,
+      "affectedFiles": [],
       "filePaths": [
-        ".env"
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\routes\\admin.cjs"
       ],
-      "file": ".env"
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\routes\\admin.cjs"
+    },
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "Dead Code",
+      "count": 1,
+      "description": "Code after return statement is unreachable",
+      "pattern": null,
+      "line": 171,
+      "recommendation": null,
+      "affectedFiles": [],
+      "filePaths": [
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\app-links.js"
+      ],
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\app-links.js"
+    },
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "Dead Code",
+      "count": 1,
+      "description": "Import \"sendEmail\" from \"./services/email.cjs\" is never referenced",
+      "pattern": null,
+      "line": 33,
+      "recommendation": null,
+      "affectedFiles": [],
+      "filePaths": [
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs"
+      ],
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs"
+    },
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "Dead Code",
+      "count": 1,
+      "description": "Always-false condition makes the following block unreachable",
+      "pattern": null,
+      "line": 110,
+      "recommendation": null,
+      "affectedFiles": [],
+      "filePaths": [
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\public\\js\\dashboard\\certificate-module.js"
+      ],
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\public\\js\\dashboard\\certificate-module.js"
     },
     {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "unused-file",
+      "type": "Memory Leak",
       "count": 1,
-      "description": "unused-file finding",
+      "description": "eadErrors++; continue; } for (const entry of entries) { const full = path.join(dir, entry.name); const rel = path.relati",
       "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        ".eslintrc.cjs"
-      ],
+      "line": 85,
+      "recommendation": null,
+      "affectedFiles": [],
       "filePaths": [
-        ".eslintrc.cjs"
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\analyze-directory.js"
       ],
-      "file": ".eslintrc.cjs"
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\analyze-directory.js"
     },
     {
       "severity": "medium",
       "severityBand": "medium",
-      "type": "unused-file",
+      "type": "Memory Leak",
       "count": 1,
-      "description": "unused-file finding",
+      "description": "r buttons, attach click handler el.addEventListener('click', function (e) { e.preventDefaul",
       "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "404.html"
-      ],
+      "line": 90,
+      "recommendation": null,
+      "affectedFiles": [],
       "filePaths": [
-        "404.html"
+        "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\app-links.js"
       ],
-      "file": "404.html"
-    },
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "unused-file",
-      "count": 1,
-      "description": "unused-file finding",
-      "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "ai-agent-gate.json"
-      ],
-      "filePaths": [
-        "ai-agent-gate.json"
-      ],
-      "file": "ai-agent-gate.json"
-    },
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "unused-file",
-      "count": 1,
-      "description": "unused-file finding",
-      "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "ai-agent-roadmap.html"
-      ],
-      "filePaths": [
-        "ai-agent-roadmap.html"
-      ],
-      "file": "ai-agent-roadmap.html"
-    },
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "unused-file",
-      "count": 1,
-      "description": "unused-file finding",
-      "pattern": null,
-      "line": null,
-      "recommendation": "Review file-reduction report",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "ai-agent-roadmap.json"
-      ],
-      "filePaths": [
-        "ai-agent-roadmap.json"
-      ],
-      "file": "ai-agent-roadmap.json"
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\app-links.js"
     }
   ],
   "rawIssues": [
     {
-      "id": "file-reduction-missing-env-key-d8b345",
+      "id": "SB-SEC-005b",
+      "severity": "low",
+      "type": "Hardcoded URL",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\check-sidebar.js",
+      "line": 2,
+      "count": 1,
+      "description": "require('http'); const req = http.get('http://127.0.0.1:64512/', (res) => { let d = ''; res.on('da",
+      "match": "http://127.0.0.1:64512/"
+    },
+    {
+      "id": "SB-PERF-001",
       "severity": "medium",
-      "type": "missing-env-key",
+      "type": "Sync I/O in Async Path",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+      "line": 389,
+      "count": 1,
+      "description": "if (!projectPath || !fsSync.existsSync(projectPath)) {",
+      "match": "if (!projectPath || !fsSync.existsSync(projectPath)) {"
+    },
+    {
+      "id": "SB-PERF-001c",
+      "severity": "medium",
+      "type": "Sync I/O in Async Path",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+      "line": 389,
+      "count": 1,
+      "description": "if (!projectPath || !fsSync.existsSync(projectPath)) {",
+      "match": "if (!projectPath || !fsSync.existsSync(projectPath)) {"
+    },
+    {
+      "id": "SB-SEC-009b",
+      "severity": "medium",
+      "type": "ReDoS Risk",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\contact.js",
+      "line": 312,
+      "count": 1,
+      "description": "Regex: /(\"(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\\"])*\"(\\s*:)?)/g — Alternation groups with quantifiers can cause polynomial backtracking",
+      "match": "/(\"(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\\"])*\"(\\s*:)?)/g"
+    },
+    {
+      "id": "SB-SEC-009d",
+      "severity": "medium",
+      "type": "ReDoS Risk",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\public\\js\\dashboard\\scanner-patterns.js",
+      "line": 555,
+      "count": 1,
+      "description": "Regex: /Math\\.random\\s*\\(\\)(?=.*(?:token|password|secret|salt|nonce|uuid|id|key))/i — Lookahead containing quantifiers can cause performance degradation",
+      "match": "/Math\\.random\\s*\\(\\)(?=.*(?:token|password|secret|salt|nonce"
+    },
+    {
+      "id": "SB-SEC-010b",
+      "severity": "medium",
+      "type": "PII Logging",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+      "line": 743,
+      "count": 1,
+      "description": "logger.warn('[TokenChain] Routes not loaded:', err.message);",
+      "match": "logger.warn('[TokenChain] Routes not loaded:', err.message);"
+    },
+    {
+      "id": "SB-SEC-010",
+      "severity": "medium",
+      "type": "PII Logging",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\routes\\admin.cjs",
+      "line": 316,
+      "count": 1,
+      "description": "systemLogger.logTokenOp(action, { ...details, admin: req.adminPayload.email });",
+      "match": "systemLogger.logTokenOp(action, { ...details, admin: req.adminPayload.email });"
+    },
+    {
+      "id": "SB-QUAL-001c",
+      "severity": "low",
+      "type": "Dead Code",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\app-links.js",
+      "line": 171,
+      "count": 1,
+      "description": "Code after return statement is unreachable",
+      "match": "return String(str)"
+    },
+    {
+      "id": "SB-QUAL-001",
+      "severity": "low",
+      "type": "Dead Code",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+      "line": 33,
+      "count": 1,
+      "description": "Import \"sendEmail\" from \"./services/email.cjs\" is never referenced",
+      "match": "sendEmail"
+    },
+    {
+      "id": "SB-QUAL-001b",
+      "severity": "low",
+      "type": "Dead Code",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\public\\js\\dashboard\\certificate-module.js",
+      "line": 110,
+      "count": 1,
+      "description": "Always-false condition makes the following block unreachable",
+      "match": "if (false) { /* token optional for certificate generation */"
+    },
+    {
+      "id": "SB-PERF-002d",
+      "severity": "medium",
+      "type": "Memory Leak",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\analyze-directory.js",
+      "line": 85,
+      "count": 1,
+      "description": "eadErrors++; continue; } for (const entry of entries) { const full = path.join(dir, entry.name); const rel = path.relati",
+      "match": "for (const entry of entries) {\n      const full = path.join(dir, entry.name);\n      const rel = path.relative(TARGET_DIR, full).replace(/\\\\/g, '/');\n\n      if (entry.isDirectory()) {\n        if (SKIP_DIRS.test(entry.name)) {\n          dirSkipped++;\n          continue;\n        }\n        totalFolders++;\n        stack.push(full)"
+    },
+    {
+      "id": "SB-PERF-002",
+      "severity": "medium",
+      "type": "Memory Leak",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\app-links.js",
+      "line": 90,
+      "count": 1,
+      "description": "r buttons, attach click handler el.addEventListener('click', function (e) { e.preventDefaul",
+      "match": ".addEventListener('click'"
+    },
+    {
+      "id": "SB-PERF-002b",
+      "severity": "medium",
+      "type": "Memory Leak",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+      "line": 83,
+      "count": 1,
+      "description": "} } // Run cleanup every 30 minutes setInterval(cleanupExpiredRateLimiters, 30 * 60 * 10",
+      "match": "setInterval("
+    },
+    {
+      "id": "SB-PERF-002e",
+      "severity": "low",
+      "type": "Memory Leak",
+      "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\routes\\subscriptions-billing.cjs",
+      "line": 166,
+      "count": 1,
+      "description": "ble) if (!global.teamReportLog) global.teamReportLog = []; global.teamReportLog.push({",
+      "match": "global.teamReportLog = ["
+    },
+    {
+      "id": "file-reduction-env-inconsistency-72b928",
+      "severity": "medium",
+      "type": "env-inconsistency",
       "filePath": ".env",
       "count": 1,
-      "description": "missing-env-key finding",
+      "description": "env-inconsistency finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
         ".env"
@@ -387,21 +520,26 @@
       "metadata": {
         "scanner": "file-reduction",
         "reclaimableBytes": 0,
-        "key": "API_KEY",
-        "references": [
-          "js/dashboard/pattern-documentation.js",
-          "js/dashboard/quick-actions.js",
-          "js/dashboard/scanner-engine.js"
+        "key": "SMTP_FROM",
+        "values": [
+          {
+            "file": ".env",
+            "value": "noreply@simplebeacon.ai"
+          },
+          {
+            "file": ".env.example",
+            "value": "noreply@yourdomain.com"
+          }
         ]
       }
     },
     {
-      "id": "file-reduction-missing-env-key-81cd85",
+      "id": "file-reduction-env-inconsistency-b97eb6",
       "severity": "medium",
-      "type": "missing-env-key",
+      "type": "env-inconsistency",
       "filePath": ".env",
       "count": 1,
-      "description": "missing-env-key finding",
+      "description": "env-inconsistency finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
         ".env"
@@ -409,56 +547,25 @@
       "metadata": {
         "scanner": "file-reduction",
         "reclaimableBytes": 0,
-        "key": "DB_PASSWORD",
-        "references": [
-          "js/dashboard/pattern-documentation.js",
-          "js/dashboard/quick-actions.js"
+        "key": "SMTP_FROM",
+        "values": [
+          {
+            "file": ".env",
+            "value": "noreply@simplebeacon.ai",
+            "line": 24,
+            "key": "SMTP_FROM"
+          },
+          {
+            "file": ".env.example",
+            "value": "noreply@yourdomain.com",
+            "line": 26,
+            "key": "SMTP_FROM"
+          }
         ]
       }
     },
     {
-      "id": "file-reduction-missing-env-key-0fca45",
-      "severity": "medium",
-      "type": "missing-env-key",
-      "filePath": ".env",
-      "count": 1,
-      "description": "missing-env-key finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        ".env"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0,
-        "key": "SECRET_KEY",
-        "references": [
-          "js/dashboard/pattern-documentation.js",
-          "js/dashboard/quick-actions.js"
-        ]
-      }
-    },
-    {
-      "id": "file-reduction-missing-env-key-dc99c2",
-      "severity": "medium",
-      "type": "missing-env-key",
-      "filePath": ".env",
-      "count": 1,
-      "description": "missing-env-key finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        ".env"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0,
-        "key": "API_URL",
-        "references": [
-          "js/dashboard/pattern-documentation.js"
-        ]
-      }
-    },
-    {
-      "id": "file-reduction-missing-env-key-1bde35",
+      "id": "file-reduction-missing-env-key-9c8b9d",
       "severity": "medium",
       "type": "missing-env-key",
       "filePath": ".env",
@@ -473,32 +580,12 @@
         "reclaimableBytes": 0,
         "key": "DEBUG",
         "references": [
-          "js/dashboard/pattern-documentation.js"
+          "js-es2018/dashboard/pattern-documentation.js"
         ]
       }
     },
     {
-      "id": "file-reduction-missing-env-key-b0172f",
-      "severity": "medium",
-      "type": "missing-env-key",
-      "filePath": ".env",
-      "count": 1,
-      "description": "missing-env-key finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        ".env"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0,
-        "key": "DATABASE_URL",
-        "references": [
-          "js/dashboard/quick-actions.js"
-        ]
-      }
-    },
-    {
-      "id": "file-reduction-missing-env-key-f98c76",
+      "id": "file-reduction-missing-env-key-eb9c5b",
       "severity": "medium",
       "type": "missing-env-key",
       "filePath": ".env",
@@ -513,20 +600,20 @@
         "reclaimableBytes": 0,
         "key": "X",
         "references": [
-          "js/dashboard/scanner-engine.js"
+          "js-es2018/dashboard/scanner-engine.js"
         ]
       }
     },
     {
-      "id": "file-reduction-unused-file-9a8985",
+      "id": "file-reduction-unused-file-b39e36",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": ".eslintrc.cjs",
+      "filePath": "analyze-report.cjs",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        ".eslintrc.cjs"
+        "analyze-report.cjs"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -534,15 +621,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-46d08b",
+      "id": "file-reduction-unused-file-ea6b68",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "404.html",
+      "filePath": "build-public.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "404.html"
+        "build-public.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -550,15 +637,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-f7e910",
+      "id": "file-reduction-unused-file-b09ea6",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "ai-agent-gate.json",
+      "filePath": "check-sidebar.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-agent-gate.json"
+        "check-sidebar.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -566,15 +653,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-9bce21",
+      "id": "file-reduction-unused-file-ea5440",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "ai-agent-roadmap.html",
+      "filePath": "js-es2018/scan-worker.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-agent-roadmap.html"
+        "js-es2018/scan-worker.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -582,15 +669,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-17327c",
+      "id": "file-reduction-unused-file-7c4f94",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "ai-agent-roadmap.json",
+      "filePath": "js/dashboard/certificate-module.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-agent-roadmap.json"
+        "js/dashboard/certificate-module.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -598,15 +685,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-d3dc3d",
+      "id": "file-reduction-unused-file-d4818f",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "ai-slop-cop-report.json",
+      "filePath": "js/dashboard/pattern-documentation.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-slop-cop-report.json"
+        "js/dashboard/pattern-documentation.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -614,15 +701,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-cbb9e6",
+      "id": "file-reduction-unused-file-516d83",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "ai-tools-roadmap.html",
+      "filePath": "js/dashboard/phase-registry.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "ai-tools-roadmap.html"
+        "js/dashboard/phase-registry.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -630,15 +717,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-ec5fba",
+      "id": "file-reduction-unused-file-b344ac",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "bin-roadmap.json",
+      "filePath": "js/dashboard/quick-actions.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "bin-roadmap.json"
+        "js/dashboard/quick-actions.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -646,15 +733,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-9096e2",
+      "id": "file-reduction-unused-file-7c6083",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "blog-roadmap.json",
+      "filePath": "js/dashboard/scanner-engine.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "blog-roadmap.json"
+        "js/dashboard/scanner-engine.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -662,15 +749,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-1ce1c8",
+      "id": "file-reduction-unused-file-ce5584",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "certification-post-fix.html",
+      "filePath": "js/dashboard/scanner-patterns.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "certification-post-fix.html"
+        "js/dashboard/scanner-patterns.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -678,15 +765,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-d6f205",
+      "id": "file-reduction-unused-file-da9f3b",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "coming-soon-roadmap.json",
+      "filePath": "js/dashboard/token-file-system.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "coming-soon-roadmap.json"
+        "js/dashboard/token-file-system.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -694,15 +781,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-e11133",
+      "id": "file-reduction-unused-file-6a860d",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "count-all-files.js",
+      "filePath": "js/dashboard/token-manager.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "count-all-files.js"
+        "js/dashboard/token-manager.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -710,15 +797,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-04ae25",
+      "id": "file-reduction-unused-file-b7c83d",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "count-files.js",
+      "filePath": "js/dashboard/ui-renderer.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "count-files.js"
+        "js/dashboard/ui-renderer.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -726,15 +813,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-ab1934",
+      "id": "file-reduction-unused-file-3e3e2a",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "dashboard.html",
+      "filePath": "js/dashboard/usb-token-manager.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "dashboard.html"
+        "js/dashboard/usb-token-manager.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -742,15 +829,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-edc218",
+      "id": "file-reduction-unused-file-73c465",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "demo-report.html",
+      "filePath": "js/dashboard/utils.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "demo-report.html"
+        "js/dashboard/utils.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -758,71 +845,7 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-6806e5",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "downloads/diagnostic-prep.html",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "downloads/diagnostic-prep.html"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-ed8b48",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "downloads/repo-handoff.html",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "downloads/repo-handoff.html"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-b0261a",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "generate-account-token.js",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "generate-account-token.js"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-588c07",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "generate-token.js",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "generate-token.js"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-24d274",
+      "id": "file-reduction-unused-file-92a314",
       "severity": "medium",
       "type": "unused-file",
       "filePath": "js/scan-worker.js",
@@ -838,15 +861,32 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-abd021",
+      "id": "file-reduction-data-access-pattern-2cefc0",
+      "severity": "medium",
+      "type": "data-access-pattern",
+      "filePath": "lib/admin-token.cjs",
+      "count": 1,
+      "description": "data-access-pattern finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "lib/admin-token.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "patternId": "parse-sync-read"
+      }
+    },
+    {
+      "id": "file-reduction-unused-file-04a1e3",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "lib/account-types.cjs",
+      "filePath": "public/js/dashboard/certificate-module.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "lib/account-types.cjs"
+        "public/js/dashboard/certificate-module.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -854,15 +894,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-1ecea1",
+      "id": "file-reduction-unused-file-8790ee",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "local-scanner-bridge.cjs",
+      "filePath": "public/js/dashboard/pattern-documentation.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "local-scanner-bridge.cjs"
+        "public/js/dashboard/pattern-documentation.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -870,15 +910,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-c7a14a",
+      "id": "file-reduction-unused-file-2f963f",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "report-editor.html",
+      "filePath": "public/js/dashboard/phase-registry.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "report-editor.html"
+        "public/js/dashboard/phase-registry.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -886,15 +926,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-f54c57",
+      "id": "file-reduction-unused-file-3172f4",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "run-cli-scan.js",
+      "filePath": "public/js/dashboard/quick-actions.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "run-cli-scan.js"
+        "public/js/dashboard/quick-actions.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -902,15 +942,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-5c7f6e",
+      "id": "file-reduction-unused-file-dd29d8",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "sample-clearance-pdf.html",
+      "filePath": "public/js/dashboard/scanner-engine.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "sample-clearance-pdf.html"
+        "public/js/dashboard/scanner-engine.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -918,15 +958,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-91481d",
+      "id": "file-reduction-unused-file-6a8eff",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "scan-directory.js",
+      "filePath": "public/js/dashboard/scanner-patterns.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "scan-directory.js"
+        "public/js/dashboard/scanner-patterns.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -934,15 +974,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-d9d40c",
+      "id": "file-reduction-unused-file-cc9250",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "scripts-roadmap.json",
+      "filePath": "public/js/dashboard/token-file-system.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "scripts-roadmap.json"
+        "public/js/dashboard/token-file-system.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -950,15 +990,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-0e205c",
+      "id": "file-reduction-unused-file-c7b40b",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "services/certificate-generator.cjs",
+      "filePath": "public/js/dashboard/token-manager.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "services/certificate-generator.cjs"
+        "public/js/dashboard/token-manager.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -966,15 +1006,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-b971bb",
+      "id": "file-reduction-unused-file-d23c18",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "simplebeacon-frameworkless-roadmap.json",
+      "filePath": "public/js/dashboard/ui-renderer.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "simplebeacon-frameworkless-roadmap.json"
+        "public/js/dashboard/ui-renderer.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -982,15 +1022,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-950e4d",
+      "id": "file-reduction-unused-file-cb2a52",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "simplebeacon-platform-gate.json",
+      "filePath": "public/js/dashboard/usb-token-manager.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "simplebeacon-platform-gate.json"
+        "public/js/dashboard/usb-token-manager.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -998,15 +1038,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-fd9077",
+      "id": "file-reduction-unused-file-92cbb9",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "simplebeacon-platform-roadmap.json",
+      "filePath": "public/js/dashboard/utils.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "simplebeacon-platform-roadmap.json"
+        "public/js/dashboard/utils.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -1014,15 +1054,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-9bbad9",
+      "id": "file-reduction-unused-file-b174d4",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "src-roadmap.json",
+      "filePath": "public/js/scan-utils.js",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "src-roadmap.json"
+        "public/js/scan-utils.js"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -1030,15 +1070,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-27ca72",
+      "id": "file-reduction-unused-file-074c4a",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "subscriptions.json",
+      "filePath": "routes/token-validate.cjs",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "subscriptions.json"
+        "routes/token-validate.cjs"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -1046,15 +1086,15 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-c172d9",
+      "id": "file-reduction-unused-file-2fb460",
       "severity": "medium",
       "type": "unused-file",
-      "filePath": "test-all-patterns.js",
+      "filePath": "tsconfig.dashboard.json",
       "count": 1,
       "description": "unused-file finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "test-all-patterns.js"
+        "tsconfig.dashboard.json"
       ],
       "metadata": {
         "scanner": "file-reduction",
@@ -1062,359 +1102,47 @@
       }
     },
     {
-      "id": "file-reduction-unused-file-f7edb2",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "test-certificate.js",
+      "id": "file-reduction-unused-env-key-e4b24b",
+      "severity": "low",
+      "type": "unused-env-key",
+      "filePath": ".env",
       "count": 1,
-      "description": "unused-file finding",
+      "description": "unused-env-key finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "test-certificate.js"
+        ".env"
       ],
       "metadata": {
         "scanner": "file-reduction",
-        "reclaimableBytes": 0
+        "reclaimableBytes": 0,
+        "key": "ALLOW_DEV_EPHEMERAL_SECRETS",
+        "files": [
+          ".env"
+        ]
       }
     },
     {
-      "id": "file-reduction-unused-file-c00c2c",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "test-generate-roadmap.js",
+      "id": "file-reduction-unused-env-key-4cc7ab",
+      "severity": "low",
+      "type": "unused-env-key",
+      "filePath": ".env",
       "count": 1,
-      "description": "unused-file finding",
+      "description": "unused-env-key finding",
       "recommendedAction": "Review file-reduction report",
       "affectedFiles": [
-        "test-generate-roadmap.js"
+        ".env"
       ],
       "metadata": {
         "scanner": "file-reduction",
-        "reclaimableBytes": 0
+        "reclaimableBytes": 0,
+        "key": "STRIPE_PRICE_ID_EU_AI_ACT",
+        "files": [
+          ".env"
+        ]
       }
     },
     {
-      "id": "file-reduction-unused-file-292b22",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "test-normalize.js",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "test-normalize.js"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-bd07bf",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "test-renderPreview.js",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "test-renderPreview.js"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-42575c",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "test-report.json",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "test-report.json"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-0ebec7",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "test-roadmap.js",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "test-roadmap.js"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-5d4d79",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "test-roadmap.json",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "test-roadmap.json"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-04f626",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "test-technical-audit.js",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "test-technical-audit.js"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-3f0f62",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "test-zip-data.js",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "test-zip-data.js"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-d5be05",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "trello-ai_agent-1780863316487.json",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "trello-ai_agent-1780863316487.json"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-07da24",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "trello-board-ai_agent-full.json",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "trello-board-ai_agent-full.json"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-adc128",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "trello-board-ai_agent-v2.json",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "trello-board-ai_agent-v2.json"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-c03390",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "trello-board-ai_agent.json",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "trello-board-ai_agent.json"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-7776ed",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "trello-card-consistency.json",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "trello-card-consistency.json"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-5f9325",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "trello-card-vulns.json",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "trello-card-vulns.json"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-c18afb",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "trello-export-1780859087255.json",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "trello-export-1780859087255.json"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-665cbd",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "trello-export-ai_agent-1780863207806.json",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "trello-export-ai_agent-1780863207806.json"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-f06a8a",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "trello-roadmap-export.js",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "trello-roadmap-export.js"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-6a3f77",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "unlock.html",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "unlock.html"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-9e1070",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "update-cache.js",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "update-cache.js"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-cd0148",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "vscode-extension-roadmap.json",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "vscode-extension-roadmap.json"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-unused-file-9e5abc",
-      "severity": "medium",
-      "type": "unused-file",
-      "filePath": "zip-for-upload.js",
-      "count": 1,
-      "description": "unused-file finding",
-      "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "zip-for-upload.js"
-      ],
-      "metadata": {
-        "scanner": "file-reduction",
-        "reclaimableBytes": 0
-      }
-    },
-    {
-      "id": "file-reduction-build-artifact-480a54",
+      "id": "file-reduction-build-artifact-4de474",
       "severity": "low",
       "type": "build-artifact",
       "filePath": "coming-soon.log",
@@ -1430,7 +1158,59 @@
       }
     },
     {
-      "id": "file-reduction-orphaned-export-a44f7b",
+      "id": "file-reduction-build-artifact-903adb",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "dist",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "dist"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-73ec1f",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "js-es2018/dashboard/phase-registry.js",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "js-es2018/dashboard/phase-registry.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "computePhaseMetrics",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-262bf0",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "js-es2018/dashboard/phase-registry.js",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "js-es2018/dashboard/phase-registry.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "PHASE_REGISTRY",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-36092b",
       "severity": "low",
       "type": "orphaned-export",
       "filePath": "js/dashboard/phase-registry.js",
@@ -1448,7 +1228,7 @@
       }
     },
     {
-      "id": "file-reduction-orphaned-export-eeee16",
+      "id": "file-reduction-orphaned-export-ee4ee2",
       "severity": "low",
       "type": "orphaned-export",
       "filePath": "js/dashboard/phase-registry.js",
@@ -1464,44 +1244,145 @@
         "symbol": "PHASE_REGISTRY",
         "kind": "named"
       }
+    },
+    {
+      "id": "file-reduction-build-artifact-6f7282",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "logs/audit.log",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "logs/audit.log"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-build-artifact-9def77",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "node_modules",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "node_modules"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-b9c50f",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "public/js/dashboard/phase-registry.js",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "public/js/dashboard/phase-registry.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "computePhaseMetrics",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-orphaned-export-dca197",
+      "severity": "low",
+      "type": "orphaned-export",
+      "filePath": "public/js/dashboard/phase-registry.js",
+      "count": 1,
+      "description": "orphaned-export finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "public/js/dashboard/phase-registry.js"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "symbol": "PHASE_REGISTRY",
+        "kind": "named"
+      }
+    },
+    {
+      "id": "file-reduction-build-artifact-e0ec14",
+      "severity": "low",
+      "type": "build-artifact",
+      "filePath": "server-restart.log",
+      "count": 1,
+      "description": "build-artifact finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "server-restart.log"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0
+      }
+    },
+    {
+      "id": "file-reduction-duplicate-config-type-d14a67",
+      "severity": "low",
+      "type": "duplicate-config-type",
+      "filePath": "tsconfig.dashboard.json",
+      "count": 1,
+      "description": "duplicate-config-type finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "tsconfig.dashboard.json"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "files": [
+          "tsconfig.dashboard.json",
+          "tsconfig.json"
+        ]
+      }
     }
   ],
   "benchmarkCacheIssues": [],
   "sampleFiles": [
+    "$null",
     ".env",
     ".env.example",
-    ".eslintrc.cjs",
     "ci.yml",
     ".gitignore",
     ".netlifyignore",
     ".npmignore",
     ".prettierrc",
+    ".server-pid.txt",
     ".simplebeaconignore",
-    "404.html",
-    "ai-agent-gate.json",
-    "ai-agent-roadmap.html",
-    "ai-agent-roadmap.json",
+    "admin.html",
     "ai-slop-cop-pro-token.txt",
-    "ai-slop-cop-report.json",
     "AI-SYSTEM.md",
-    "ai-tools-roadmap.html",
     "analyze-directory.js",
+    "analyze-report.cjs",
+    "ap-out.txt",
     "API_CONTRACT_AUDIT.md",
     "app-links.js",
+    "audit.html",
     "AUTOPILOT_ROADMAP.md",
-    "bin-roadmap.json",
     "case-study-ai-slop-1-25m.html",
-    "blog-roadmap.json",
     "build-hash.json",
+    "build-public.js",
     "CERTIFICATE-REMEDIATION-PLAN.md",
     "certificate-upload.html",
-    "certification-post-fix.html",
     "CHANGELOG.md",
+    "check-sidebar.js",
     "cloud-scan.html",
     "cloud-teams.html",
     "CLOUDFLARE-DEPLOYMENT-PLAN.md",
     "CODE_OF_CONDUCT.md",
-    "coming-soon-roadmap.json",
     "coming-soon.log",
     "community.html",
     "conformity-declaration.md",
@@ -1515,23 +1396,165 @@
     "touch1-email-script.md",
     "week4-iterate-checklist.md",
     "CONTRIBUTING.md",
-    "count-all-files.js",
-    "count-files.js",
     "cross-reference-report.md",
+    "cs-log.txt",
+    "cs-out.txt",
+    "cs.txt",
     "dashboard.css",
     "roadmap.css",
-    "dashboard.html",
-    "re-attestation-metadata.json",
-    "demo-report.html",
+    "dashboard-preview.html",
+    "certificate-module.d.ts",
+    "certificate-module.d.ts.map",
+    "certificate-module.js",
+    "certificate-module.js.map",
+    "main.d.ts",
+    "main.d.ts.map",
+    "main.js",
+    "main.js.map",
+    "pattern-documentation.d.ts",
+    "pattern-documentation.d.ts.map",
+    "pattern-documentation.js",
+    "pattern-documentation.js.map",
+    "phase-registry.d.ts",
+    "phase-registry.d.ts.map",
+    "phase-registry.js",
+    "phase-registry.js.map",
+    "quick-actions.d.ts",
+    "quick-actions.d.ts.map",
+    "quick-actions.js",
+    "quick-actions.js.map",
+    "scanner-engine.d.ts",
+    "scanner-engine.d.ts.map",
+    "scanner-engine.js",
+    "scanner-engine.js.map",
+    "scanner-patterns.d.ts",
+    "scanner-patterns.d.ts.map",
+    "scanner-patterns.js",
+    "scanner-patterns.js.map",
+    "token-file-system.d.ts",
+    "token-file-system.d.ts.map",
+    "token-file-system.js",
+    "token-file-system.js.map",
+    "token-manager.d.ts",
+    "token-manager.d.ts.map",
+    "token-manager.js",
+    "token-manager.js.map",
+    "ui-renderer.d.ts",
+    "ui-renderer.d.ts.map",
+    "ui-renderer.js",
+    "ui-renderer.js.map",
+    "usb-token-manager.d.ts",
+    "usb-token-manager.d.ts.map",
+    "usb-token-manager.js",
+    "usb-token-manager.js.map",
+    "utils.d.ts",
+    "utils.d.ts.map",
+    "utils.js",
+    "utils.js.map",
+    "scan-utils.d.ts",
+    "scan-utils.d.ts.map",
+    "scan-utils.js",
+    "scan-utils.js.map",
+    "scan-worker.d.ts",
+    "scan-worker.d.ts.map",
+    "scan-worker.js",
+    "scan-worker.js.map",
+    "account-store.cjs",
+    "account-store.cjs.map",
+    "account-store.d.cts",
+    "account-store.d.cts.map",
+    "admin-token.cjs",
+    "admin-token.cjs.map",
+    "admin-token.d.cts",
+    "admin-token.d.cts.map",
+    "certificate-utils.cjs",
+    "certificate-utils.cjs.map",
+    "certificate-utils.d.cts",
+    "certificate-utils.d.cts.map",
+    "db.cjs",
+    "db.cjs.map",
+    "db.d.cts",
+    "db.d.cts.map",
+    "license-utils.cjs",
+    "license-utils.cjs.map",
+    "license-utils.d.cts",
+    "license-utils.d.cts.map",
+    "plans.cjs",
+    "plans.cjs.map",
+    "plans.d.cts",
+    "plans.d.cts.map",
+    "system-logger.cjs",
+    "system-logger.cjs.map",
+    "system-logger.d.cts",
+    "system-logger.d.cts.map",
+    "time-tokens.cjs",
+    "time-tokens.cjs.map",
+    "time-tokens.d.cts",
+    "time-tokens.d.cts.map",
+    "token-chain-store.cjs",
+    "token-chain-store.cjs.map",
+    "token-chain-store.d.cts",
+    "token-chain-store.d.cts.map",
+    "token-chain-utils.cjs",
+    "token-chain-utils.cjs.map",
+    "token-chain-utils.d.cts",
+    "token-chain-utils.d.cts.map",
+    "admin.cjs",
+    "admin.cjs.map",
+    "admin.d.cts",
+    "admin.d.cts.map",
+    "certificates.cjs",
+    "certificates.cjs.map",
+    "certificates.d.cts",
+    "certificates.d.cts.map",
+    "checkout.cjs",
+    "checkout.cjs.map",
+    "checkout.d.cts",
+    "checkout.d.cts.map",
+    "free-token.cjs",
+    "free-token.cjs.map",
+    "free-token.d.cts",
+    "free-token.d.cts.map",
+    "subscriptions-billing.cjs",
+    "subscriptions-billing.cjs.map",
+    "subscriptions-billing.d.cts",
+    "subscriptions-billing.d.cts.map",
+    "subscriptions.cjs",
+    "subscriptions.cjs.map",
+    "subscriptions.d.cts",
+    "subscriptions.d.cts.map",
+    "token-chain.cjs",
+    "token-chain.cjs.map",
+    "token-chain.d.cts",
+    "token-chain.d.cts.map",
+    "token-validate.cjs",
+    "token-validate.cjs.map",
+    "token-validate.d.cts",
+    "token-validate.d.cts.map",
+    "email.cjs",
+    "email.cjs.map",
+    "email.d.cts",
+    "email.d.cts.map",
+    "db.test.cjs",
+    "db.test.cjs.map",
+    "db.test.d.cts",
+    "db.test.d.cts.map",
+    "scan-utils.test.cjs",
+    "scan-utils.test.cjs.map",
+    "scan-utils.test.d.cts",
+    "scan-utils.test.d.cts.map",
+    "token-chain.test.cjs",
+    "token-chain.test.cjs.map",
+    "token-chain.test.d.cts",
+    "token-chain.test.d.cts.map",
     "Dockerfile",
     "ai-readiness-audit-checklist.md",
-    "diagnostic-prep.html",
-    "repo-handoff.html",
+    "email-template-preview.html",
+    "email-template-redesign.html",
     "email-template-universal.html",
+    "err.txt",
     "EU_AI_ACT_SPRINT_IMPLEMENTATION_PLAN.md",
     "faq.html",
-    "generate-account-token.js",
-    "generate-token.js",
     "github-issue-consistency.md",
     "github-issue-vulns.md",
     "github-issues-ai_agent.md",
@@ -1555,32 +1578,83 @@
     "scan-worker.js",
     "html2canvas.min.js",
     "jszip.min.js",
+    "certificate-module.js",
+    "main.js",
+    "pattern-documentation.js",
+    "phase-registry.js",
+    "quick-actions.js",
+    "scanner-engine.js",
+    "scanner-patterns.js",
+    "token-file-system.js",
+    "token-manager.js",
+    "ui-renderer.js",
+    "usb-token-manager.js",
+    "utils.js",
+    "scan-utils.js",
+    "scan-worker.js",
     "landing.html",
     "account-store.cjs",
-    "account-types.cjs",
+    "admin-token.cjs",
     "certificate-utils.cjs",
     "db.cjs",
     "license-utils.cjs",
     "plans.cjs",
+    "system-logger.cjs",
     "time-tokens.cjs",
     "token-chain-store.cjs",
     "token-chain-utils.cjs",
     "LICENSE",
-    "local-scanner-bridge.cjs",
+    "audit.log",
     "model-card.md",
     "netlify.toml",
     "mime",
     "mime.cmd",
     "mime.ps1",
+    "nanoid",
+    "nanoid.cmd",
+    "nanoid.ps1",
+    "rolldown",
+    "rolldown.cmd",
+    "rolldown.ps1",
     "semver",
     "semver.cmd",
     "semver.ps1",
+    "vite",
+    "vite.cmd",
+    "vite.ps1",
+    "pages.json",
+    "wrangler-account.json",
     ".package-lock.json",
+    "package.json",
+    "_metadata.json",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "types.d.ts",
+    "package.json",
+    "README.md",
+    "rolldown-binding.win32-x64-msvc.node",
+    "index.d.mts",
+    "index.mjs",
+    "filter-B_mD-HGz.mjs",
+    "index.d.mts",
+    "index.mjs",
+    "LICENSE",
+    "package.json",
+    "README.md",
     "HISTORY.md",
     "index.js",
     "LICENSE",
     "package.json",
     "README.md",
+    ".npmignore",
+    "index.js",
+    "parse-path.js",
+    "set-value.js",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "forms.js",
     "array-flatten.js",
     "LICENSE",
     "package.json",
@@ -1601,6 +1675,32 @@
     "LICENSE.txt",
     "package.json",
     "README.md",
+    "test.js",
+    "index.js",
+    "LICENSE",
+    "package.json",
+    "readme.md",
+    ".eslintrc.js",
+    "ci.yml",
+    "lint.yml",
+    "bench-multipart-fields-100mb-big.js",
+    "bench-multipart-fields-100mb-small.js",
+    "bench-multipart-files-100mb-big.js",
+    "bench-multipart-files-100mb-small.js",
+    "bench-urlencoded-fields-100pairs-small.js",
+    "bench-urlencoded-fields-900pairs-small-alt.js",
+    "index.js",
+    "multipart.js",
+    "urlencoded.js",
+    "utils.js",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "common.js",
+    "test-types-multipart-charsets.js",
+    "test-types-multipart-stream-pause.js",
+    "test-types-multipart.js",
+    "test-types-urlencoded.js",
     "test.js",
     "History.md",
     "index.js",
@@ -1639,6 +1739,10 @@
     "README.md",
     "index.js",
     "tsconfig.json",
+    "index.js",
+    "LICENSE",
+    "package.json",
+    "readme.md",
     "HISTORY.md",
     "index.js",
     "LICENSE",
@@ -1682,6 +1786,14 @@
     "package.json",
     "Readme.md",
     "index.js",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "index.d.ts",
+    "detect-libc.js",
+    "elf.js",
+    "filesystem.js",
+    "process.js",
     "LICENSE",
     "package.json",
     "README.md",
@@ -1789,6 +1901,13 @@
     "LICENSE",
     "package.json",
     "Readme.md",
+    "index.cjs",
+    "index.d.cts",
+    "index.d.mts",
+    "index.mjs",
+    "LICENSE",
+    "package.json",
+    "README.md",
     "HISTORY.md",
     "index.js",
     "LICENSE",
@@ -1955,6 +2074,24 @@
     "opslevel.yml",
     "package.json",
     "readme.md",
+    "LICENSE",
+    "ast.d.ts",
+    "ast.js.flow",
+    "browserslistToTargets.js",
+    "composeVisitors.js",
+    "flags.js",
+    "index.d.ts",
+    "index.js",
+    "index.js.flow",
+    "index.mjs",
+    "targets.d.ts",
+    "targets.js.flow",
+    "package.json",
+    "README.md",
+    "LICENSE",
+    "lightningcss.win32-x64-msvc.node",
+    "package.json",
+    "README.md",
     "index.js",
     "LICENSE",
     "package.json",
@@ -2061,6 +2198,43 @@
     "license.md",
     "package.json",
     "readme.md",
+    "index.js",
+    "counter.js",
+    "file-appender.js",
+    "make-middleware.js",
+    "multer-error.js",
+    "remove-uploaded-files.js",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "disk.js",
+    "memory.js",
+    "settings.local.json",
+    "index.browser.cjs",
+    "index.browser.js",
+    "index.cjs",
+    "index.d.ts",
+    "index.js",
+    "index.native.js",
+    "package.json",
+    "nanoid.cjs",
+    "index.browser.cjs",
+    "index.browser.js",
+    "index.cjs",
+    "index.d.cts",
+    "index.d.ts",
+    "index.js",
+    "LICENSE",
+    "nanoid.js",
+    "index.cjs",
+    "index.d.ts",
+    "index.js",
+    "package.json",
+    "package.json",
+    "README.md",
+    "index.cjs",
+    "index.js",
+    "package.json",
     "HISTORY.md",
     "index.js",
     "charset.js",
@@ -2118,6 +2292,78 @@
     "LICENSE",
     "package.json",
     "Readme.md",
+    "LICENSE",
+    "package.json",
+    "picocolors.browser.js",
+    "picocolors.d.ts",
+    "picocolors.js",
+    "README.md",
+    "types.d.ts",
+    "index.js",
+    "constants.js",
+    "parse.js",
+    "picomatch.js",
+    "scan.js",
+    "utils.js",
+    "LICENSE",
+    "package.json",
+    "posix.js",
+    "README.md",
+    "at-rule.d.ts",
+    "at-rule.js",
+    "comment.d.ts",
+    "comment.js",
+    "container.d.ts",
+    "container.js",
+    "css-syntax-error.d.ts",
+    "css-syntax-error.js",
+    "declaration.d.ts",
+    "declaration.js",
+    "document.d.ts",
+    "document.js",
+    "fromJSON.d.ts",
+    "fromJSON.js",
+    "input.d.ts",
+    "input.js",
+    "lazy-result.d.ts",
+    "lazy-result.js",
+    "list.d.ts",
+    "list.js",
+    "map-generator.js",
+    "no-work-result.d.ts",
+    "no-work-result.js",
+    "node.d.ts",
+    "node.js",
+    "parse.d.ts",
+    "parse.js",
+    "parser.js",
+    "postcss.d.mts",
+    "postcss.d.ts",
+    "postcss.js",
+    "postcss.mjs",
+    "previous-map.d.ts",
+    "previous-map.js",
+    "processor.d.ts",
+    "processor.js",
+    "result.d.ts",
+    "result.js",
+    "root.d.ts",
+    "root.js",
+    "rule.d.ts",
+    "rule.js",
+    "stringifier.d.ts",
+    "stringifier.js",
+    "stringify.d.ts",
+    "stringify.js",
+    "symbols.js",
+    "terminal-highlight.js",
+    "tokenize.js",
+    "warn-once.js",
+    "warning.d.ts",
+    "warning.js",
+    "LICENSE",
+    "package.json",
+    "README.md",
     "HISTORY.md",
     "index.js",
     "LICENSE",
@@ -2150,6 +2396,79 @@
     "README.md",
     "index.d.ts",
     "index.js",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "CONTRIBUTING.md",
+    "errors-browser.js",
+    "errors.js",
+    "experimentalWarning.js",
+    "GOVERNANCE.md",
+    "async_iterator.js",
+    "buffer_list.js",
+    "destroy.js",
+    "end-of-stream.js",
+    "from-browser.js",
+    "from.js",
+    "pipeline.js",
+    "state.js",
+    "stream-browser.js",
+    "stream.js",
+    "_stream_duplex.js",
+    "_stream_passthrough.js",
+    "_stream_readable.js",
+    "_stream_transform.js",
+    "_stream_writable.js",
+    "LICENSE",
+    "package.json",
+    "readable-browser.js",
+    "readable.js",
+    "README.md",
+    "cli.mjs",
+    "cli.d.mts",
+    "cli.mjs",
+    "config.d.mts",
+    "config.mjs",
+    "experimental-index.d.mts",
+    "experimental-index.mjs",
+    "experimental-runtime-types.d.ts",
+    "filter-index.d.mts",
+    "filter-index.mjs",
+    "get-log-filter.d.mts",
+    "get-log-filter.mjs",
+    "index.d.mts",
+    "index.mjs",
+    "parallel-plugin-worker.d.mts",
+    "parallel-plugin-worker.mjs",
+    "parallel-plugin.d.mts",
+    "parallel-plugin.mjs",
+    "parse-ast-index.d.mts",
+    "parse-ast-index.mjs",
+    "plugins-index.d.mts",
+    "plugins-index.mjs",
+    "binding-BaCZTfMx.d.mts",
+    "binding-CXquf8ay.mjs",
+    "bindingify-input-options-ClrST5Xx.mjs",
+    "constructors-BiPdtLBB.mjs",
+    "constructors-CbNaT434.d.mts",
+    "define-config-3BX_X2Am.d.mts",
+    "define-config-Demdg3_4.mjs",
+    "error-BuvQYXuZ.mjs",
+    "get-log-filter-BpNVNJ5-.d.mts",
+    "load-config-K94jokAZ.mjs",
+    "logging-BSNejiLS.d.mts",
+    "logs-aMKUxRpj.mjs",
+    "misc-CoQm4NHO.mjs",
+    "normalize-string-or-regex-CNPF6PU9.mjs",
+    "parse-Bg2pr2Q5.mjs",
+    "prompt-DYnaB1Nb.mjs",
+    "resolve-tsconfig-CcfxWrib.mjs",
+    "rolldown-BjTk_MS0.mjs",
+    "rolldown-build-CrPk_lZe.mjs",
+    "transform-7xCUVrpL.d.mts",
+    "watch-BZza93fH.mjs",
+    "utils-index.d.mts",
+    "utils-index.mjs",
     "LICENSE",
     "package.json",
     "README.md",
@@ -2288,14 +2607,46 @@
     "README.md",
     "index.js",
     "tsconfig.json",
+    "array-set.js",
+    "base64-vlq.js",
+    "base64.js",
+    "binary-search.js",
+    "mapping-list.js",
+    "quick-sort.js",
+    "source-map-consumer.d.ts",
+    "source-map-consumer.js",
+    "source-map-generator.d.ts",
+    "source-map-generator.js",
+    "source-node.d.ts",
+    "source-node.js",
+    "util.js",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "source-map.d.ts",
+    "source-map.js",
     "codes.json",
     "HISTORY.md",
     "index.js",
     "LICENSE",
     "package.json",
     "README.md",
-    "HISTORY.md",
-    "index.js",
+    ".eslintrc.js",
+    "ci.yml",
+    "lint.yml",
+    "sbmh.js",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "test.js",
+    "string_decoder.js",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "index.cjs",
+    "index.d.cts",
+    "index.d.mts",
+    "index.mjs",
     "LICENSE",
     "package.json",
     "README.md",
@@ -2307,6 +2658,25 @@
     "HISTORY.md",
     "index.js",
     "LICENSE",
+    "package.json",
+    "README.md",
+    ".travis.yml",
+    "tarray.js",
+    "index.js",
+    "LICENSE",
+    "package.json",
+    "readme.markdown",
+    "undef_globals.js",
+    "tarray.js",
+    "HISTORY.md",
+    "index.js",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "browser.js",
+    "History.md",
+    "LICENSE",
+    "node.js",
     "package.json",
     "README.md",
     ".npmignore",
@@ -2319,64 +2689,137 @@
     "LICENSE",
     "package.json",
     "README.md",
+    "openChrome.js",
+    "vite.js",
+    "client.d.ts",
+    "client.mjs",
+    "env.mjs",
+    "build.js",
+    "dist.js",
+    "lib.js",
+    "logger.js",
+    "moduleRunnerTransport.d.ts",
+    "node.js",
+    "postcss-import.js",
+    "cli.js",
+    "index.d.ts",
+    "index.js",
+    "internal.d.ts",
+    "internal.js",
+    "module-runner.d.ts",
+    "module-runner.js",
+    "LICENSE.md",
+    "false.js",
+    "true.js",
+    "package.json",
+    "README.md",
+    "customEvent.d.ts",
+    "hmrPayload.d.ts",
+    "hot.d.ts",
+    "import-meta.d.ts",
+    "importGlob.d.ts",
+    "importMeta.d.ts",
+    "cssPreprocessorOptions.d.ts",
+    "esbuildOptions.d.ts",
+    "lightningcssOptions.d.ts",
+    "rollupTypeCompat.d.ts",
+    "terserOptions.d.ts",
+    "metadata.d.ts",
+    "out.txt",
     "package-lock.json",
     "package.json",
     "pre-commit-hook.ps1",
     "pre-commit-hook.sh",
     "pricing.html",
     "privacy.html",
+    "app-links.js",
+    "audit.html",
+    "case-study-ai-slop-1-25m.html",
+    "certificate-upload.html",
+    "cloud-scan.html",
+    "community.html",
+    "contact.html",
+    "contact.js",
+    "case-study-ai-slop-1-25m.md",
+    "demo-gif-script.md",
+    "email-tracking.csv",
+    "outreach-prospects.js",
+    "social-posts.md",
+    "touch1-email-script.md",
+    "week4-iterate-checklist.md",
+    "dashboard.css",
+    "roadmap.css",
+    "re-attestation-metadata.json",
+    "ai-readiness-audit-checklist.md",
+    "email-template-universal.html",
+    "faq.html",
+    "index.html",
+    "certificate-module.js",
+    "main.js",
+    "pattern-documentation.js",
+    "phase-registry.js",
+    "quick-actions.js",
+    "scanner-engine.js",
+    "scanner-patterns.js",
+    "token-file-system.js",
+    "token-manager.js",
+    "ui-renderer.js",
+    "usb-token-manager.js",
+    "utils.js",
+    "scan-utils.js",
+    "html2canvas.min.js",
+    "jszip.min.js",
+    "landing.html",
+    "pricing.html",
+    "privacy.html",
+    "refund.html",
+    "roadmap.html",
+    "robots.txt",
+    "sample-certificate.html",
+    "security.html",
+    "site-config.js",
+    "sitemap.xml",
+    "styles.css",
+    "terms.html",
+    "unlock.html",
     "README.md",
     "refund.html",
-    "report-editor.html",
     "risk-assessment.md",
     "roadmap.html",
     "robots.txt",
+    "admin.cjs",
     "certificates.cjs",
     "checkout.cjs",
     "free-token.cjs",
     "subscriptions-billing.cjs",
     "subscriptions.cjs",
     "token-chain.cjs",
-    "run-cli-scan.js",
+    "token-validate.cjs",
     "sample-certificate.html",
-    "sample-clearance-pdf.html",
-    "scan-directory.js",
-    "scan-status.html",
-    "scan.html",
-    "scripts-roadmap.json",
+    "scan-output.txt",
     "security.html",
     "SECURITY.md",
+    "server-output.txt",
+    "server-restart.log",
     "server.cjs",
-    "certificate-generator.cjs",
+    "server.log",
     "email.cjs",
-    "simplebeacon-frameworkless-roadmap.json",
-    "simplebeacon-platform-gate.json",
-    "simplebeacon-platform-roadmap.json",
     "site-config.js",
     "sitemap.xml",
-    "src-roadmap.json",
     "start-server.bat",
     "stop-server.bat",
     "styles.css",
-    "subscriptions.json",
     "technical-documentation.md",
+    "terminal-walkthrough.html",
     "terms.html",
     "db.test.cjs",
+    "payment-workflow-v2.test.cjs",
+    "payment-workflow.test.cjs",
     "scan-utils.test.cjs",
     "token-chain.test.cjs",
-    "test-all-patterns.js",
     "test-audit-output.txt",
     "test-audit-output2.txt",
     "test-audit-report.json",
-    "test-certificate.js",
-    "test-generate-roadmap.js",
-    "test-normalize.js",
-    "test-renderPreview.js",
-    "test-report.json",
-    "test-roadmap.js",
-    "test-roadmap.json",
-    "test-technical-audit.js",
-    "test-zip-data.js",
     "dashboard.test.js",
     "trello-ai_agent-1780863316487.json",
     "trello-board-ai_agent-full.json",
@@ -2387,14 +2830,15 @@
     "trello-export-1780859087255.json",
     "trello-export-ai_agent-1780863207806.json",
     "trello-roadmap-export.js",
+    "tsconfig.dashboard.json",
     "tsconfig.json",
     "unlock.html",
     "UNUSED_DEPENDENCIES_AUDIT.md",
     "update-cache.js",
     "upload-bundle.zip",
     "upload-file-list.txt",
-    "upload.html",
     "vscode-extension-roadmap.json",
+    "walkthrough-embed.html",
     "zip-for-upload.js"
   ],
   "scanScope": {
@@ -2412,6 +2856,7 @@
       "eu-ai-act-patterns",
       "token-bleed-patterns",
       "architecture-drift-patterns",
+      "security-patterns",
       "file-reduction"
     ],
     "gatePolicy": {
@@ -2423,38 +2868,45 @@
         "low"
       ]
     },
-    "mockSampleFilesInScanPaths": 928,
+    "mockSampleFilesInScanPaths": 1488,
     "pageSpecCatalogSize": 50,
     "pageSpecsValidated": 0,
     "pageSpecsFromScanPaths": 0,
     "pageSpecsFromAliasPaths": 0,
-    "productionDirsScanned": 11,
+    "productionDirsScanned": 18,
     "productionPaths": [
       "lib/",
-      "services/"
+      "services/",
+      "js/",
+      "src/",
+      "server/",
+      "ai-platform/",
+      "simplebeacon-vscode-merged/",
+      "simplebeacon-vscode/",
+      "packages/"
     ],
     "sourceCodeScanPaths": [],
     "sourceCodeFilesScanned": 0,
     "sourceFictionPatternHits": 0,
-    "llmSlopFilesScanned": 21,
+    "llmSlopFilesScanned": 29,
     "llmSlopPatternHits": 0,
-    "euAiActFilesScanned": 11,
+    "euAiActFilesScanned": 18,
     "euAiActPatternHits": 0,
     "euAiActHighRiskIndicators": 0,
     "jestExecutedDuringScan": false,
     "consistencyAnchorCount": 0,
     "fictionScope": "repository-json",
-    "fictionJsonFilesScanned": 29,
+    "fictionJsonFilesScanned": 5,
     "fictionSampleFilesScanned": 0,
-    "ruleScopedFilesAnalyzed": 928,
-    "repositoryFilesTotal": 928,
-    "repositoryFoldersTotal": 168,
+    "ruleScopedFilesAnalyzed": 1488,
+    "repositoryFilesTotal": 1531,
+    "repositoryFoldersTotal": 275,
     "benchmarkCacheIssuesExcluded": 0,
     "excludedPathsNote": null,
     "limitations": [
-      "Repository inventory: 928 files — gate rules checked 928 (mock paths, credentials, server/ leaks).",
+      "Repository inventory: 1,531 files — gate rules checked 1488 (mock paths, credentials, server/ leaks).",
       "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
-      "Fiction/KPI rules scan repository JSON (29) plus source code (0 files in configured paths).",
+      "Fiction/KPI rules scan repository JSON (5) plus source code (0 files in configured paths).",
       "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
       "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
       "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
@@ -2474,16 +2926,156 @@
       "low"
     ],
     "blockingCount": 0,
-    "warningCount": 66,
+    "warningCount": 63,
     "blockingIssues": [],
     "warningIssues": [
       {
-        "id": "file-reduction-missing-env-key-d8b345",
+        "id": "SB-SEC-005b",
+        "severity": "low",
+        "type": "Hardcoded URL",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\check-sidebar.js",
+        "line": 2,
+        "count": 1,
+        "description": "require('http'); const req = http.get('http://127.0.0.1:64512/', (res) => { let d = ''; res.on('da",
+        "match": "http://127.0.0.1:64512/"
+      },
+      {
+        "id": "SB-PERF-001",
         "severity": "medium",
-        "type": "missing-env-key",
+        "type": "Sync I/O in Async Path",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+        "line": 389,
+        "count": 1,
+        "description": "if (!projectPath || !fsSync.existsSync(projectPath)) {",
+        "match": "if (!projectPath || !fsSync.existsSync(projectPath)) {"
+      },
+      {
+        "id": "SB-PERF-001c",
+        "severity": "medium",
+        "type": "Sync I/O in Async Path",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+        "line": 389,
+        "count": 1,
+        "description": "if (!projectPath || !fsSync.existsSync(projectPath)) {",
+        "match": "if (!projectPath || !fsSync.existsSync(projectPath)) {"
+      },
+      {
+        "id": "SB-SEC-009b",
+        "severity": "medium",
+        "type": "ReDoS Risk",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\contact.js",
+        "line": 312,
+        "count": 1,
+        "description": "Regex: /(\"(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\\"])*\"(\\s*:)?)/g — Alternation groups with quantifiers can cause polynomial backtracking",
+        "match": "/(\"(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\\"])*\"(\\s*:)?)/g"
+      },
+      {
+        "id": "SB-SEC-009d",
+        "severity": "medium",
+        "type": "ReDoS Risk",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\public\\js\\dashboard\\scanner-patterns.js",
+        "line": 555,
+        "count": 1,
+        "description": "Regex: /Math\\.random\\s*\\(\\)(?=.*(?:token|password|secret|salt|nonce|uuid|id|key))/i — Lookahead containing quantifiers can cause performance degradation",
+        "match": "/Math\\.random\\s*\\(\\)(?=.*(?:token|password|secret|salt|nonce"
+      },
+      {
+        "id": "SB-SEC-010b",
+        "severity": "medium",
+        "type": "PII Logging",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+        "line": 743,
+        "count": 1,
+        "description": "logger.warn('[TokenChain] Routes not loaded:', err.message);",
+        "match": "logger.warn('[TokenChain] Routes not loaded:', err.message);"
+      },
+      {
+        "id": "SB-SEC-010",
+        "severity": "medium",
+        "type": "PII Logging",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\routes\\admin.cjs",
+        "line": 316,
+        "count": 1,
+        "description": "systemLogger.logTokenOp(action, { ...details, admin: req.adminPayload.email });",
+        "match": "systemLogger.logTokenOp(action, { ...details, admin: req.adminPayload.email });"
+      },
+      {
+        "id": "SB-QUAL-001c",
+        "severity": "low",
+        "type": "Dead Code",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\app-links.js",
+        "line": 171,
+        "count": 1,
+        "description": "Code after return statement is unreachable",
+        "match": "return String(str)"
+      },
+      {
+        "id": "SB-QUAL-001",
+        "severity": "low",
+        "type": "Dead Code",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+        "line": 33,
+        "count": 1,
+        "description": "Import \"sendEmail\" from \"./services/email.cjs\" is never referenced",
+        "match": "sendEmail"
+      },
+      {
+        "id": "SB-QUAL-001b",
+        "severity": "low",
+        "type": "Dead Code",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\public\\js\\dashboard\\certificate-module.js",
+        "line": 110,
+        "count": 1,
+        "description": "Always-false condition makes the following block unreachable",
+        "match": "if (false) { /* token optional for certificate generation */"
+      },
+      {
+        "id": "SB-PERF-002d",
+        "severity": "medium",
+        "type": "Memory Leak",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\analyze-directory.js",
+        "line": 85,
+        "count": 1,
+        "description": "eadErrors++; continue; } for (const entry of entries) { const full = path.join(dir, entry.name); const rel = path.relati",
+        "match": "for (const entry of entries) {\n      const full = path.join(dir, entry.name);\n      const rel = path.relative(TARGET_DIR, full).replace(/\\\\/g, '/');\n\n      if (entry.isDirectory()) {\n        if (SKIP_DIRS.test(entry.name)) {\n          dirSkipped++;\n          continue;\n        }\n        totalFolders++;\n        stack.push(full)"
+      },
+      {
+        "id": "SB-PERF-002",
+        "severity": "medium",
+        "type": "Memory Leak",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\app-links.js",
+        "line": 90,
+        "count": 1,
+        "description": "r buttons, attach click handler el.addEventListener('click', function (e) { e.preventDefaul",
+        "match": ".addEventListener('click'"
+      },
+      {
+        "id": "SB-PERF-002b",
+        "severity": "medium",
+        "type": "Memory Leak",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+        "line": 83,
+        "count": 1,
+        "description": "} } // Run cleanup every 30 minutes setInterval(cleanupExpiredRateLimiters, 30 * 60 * 10",
+        "match": "setInterval("
+      },
+      {
+        "id": "SB-PERF-002e",
+        "severity": "low",
+        "type": "Memory Leak",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\routes\\subscriptions-billing.cjs",
+        "line": 166,
+        "count": 1,
+        "description": "ble) if (!global.teamReportLog) global.teamReportLog = []; global.teamReportLog.push({",
+        "match": "global.teamReportLog = ["
+      },
+      {
+        "id": "file-reduction-env-inconsistency-72b928",
+        "severity": "medium",
+        "type": "env-inconsistency",
         "filePath": ".env",
         "count": 1,
-        "description": "missing-env-key finding",
+        "description": "env-inconsistency finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
           ".env"
@@ -2491,21 +3083,26 @@
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
-          "key": "API_KEY",
-          "references": [
-            "js/dashboard/pattern-documentation.js",
-            "js/dashboard/quick-actions.js",
-            "js/dashboard/scanner-engine.js"
+          "key": "SMTP_FROM",
+          "values": [
+            {
+              "file": ".env",
+              "value": "noreply@simplebeacon.ai"
+            },
+            {
+              "file": ".env.example",
+              "value": "noreply@yourdomain.com"
+            }
           ]
         }
       },
       {
-        "id": "file-reduction-missing-env-key-81cd85",
+        "id": "file-reduction-env-inconsistency-b97eb6",
         "severity": "medium",
-        "type": "missing-env-key",
+        "type": "env-inconsistency",
         "filePath": ".env",
         "count": 1,
-        "description": "missing-env-key finding",
+        "description": "env-inconsistency finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
           ".env"
@@ -2513,56 +3110,25 @@
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
-          "key": "DB_PASSWORD",
-          "references": [
-            "js/dashboard/pattern-documentation.js",
-            "js/dashboard/quick-actions.js"
+          "key": "SMTP_FROM",
+          "values": [
+            {
+              "file": ".env",
+              "value": "noreply@simplebeacon.ai",
+              "line": 24,
+              "key": "SMTP_FROM"
+            },
+            {
+              "file": ".env.example",
+              "value": "noreply@yourdomain.com",
+              "line": 26,
+              "key": "SMTP_FROM"
+            }
           ]
         }
       },
       {
-        "id": "file-reduction-missing-env-key-0fca45",
-        "severity": "medium",
-        "type": "missing-env-key",
-        "filePath": ".env",
-        "count": 1,
-        "description": "missing-env-key finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          ".env"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0,
-          "key": "SECRET_KEY",
-          "references": [
-            "js/dashboard/pattern-documentation.js",
-            "js/dashboard/quick-actions.js"
-          ]
-        }
-      },
-      {
-        "id": "file-reduction-missing-env-key-dc99c2",
-        "severity": "medium",
-        "type": "missing-env-key",
-        "filePath": ".env",
-        "count": 1,
-        "description": "missing-env-key finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          ".env"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0,
-          "key": "API_URL",
-          "references": [
-            "js/dashboard/pattern-documentation.js"
-          ]
-        }
-      },
-      {
-        "id": "file-reduction-missing-env-key-1bde35",
+        "id": "file-reduction-missing-env-key-9c8b9d",
         "severity": "medium",
         "type": "missing-env-key",
         "filePath": ".env",
@@ -2577,32 +3143,12 @@
           "reclaimableBytes": 0,
           "key": "DEBUG",
           "references": [
-            "js/dashboard/pattern-documentation.js"
+            "js-es2018/dashboard/pattern-documentation.js"
           ]
         }
       },
       {
-        "id": "file-reduction-missing-env-key-b0172f",
-        "severity": "medium",
-        "type": "missing-env-key",
-        "filePath": ".env",
-        "count": 1,
-        "description": "missing-env-key finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          ".env"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0,
-          "key": "DATABASE_URL",
-          "references": [
-            "js/dashboard/quick-actions.js"
-          ]
-        }
-      },
-      {
-        "id": "file-reduction-missing-env-key-f98c76",
+        "id": "file-reduction-missing-env-key-eb9c5b",
         "severity": "medium",
         "type": "missing-env-key",
         "filePath": ".env",
@@ -2617,20 +3163,20 @@
           "reclaimableBytes": 0,
           "key": "X",
           "references": [
-            "js/dashboard/scanner-engine.js"
+            "js-es2018/dashboard/scanner-engine.js"
           ]
         }
       },
       {
-        "id": "file-reduction-unused-file-9a8985",
+        "id": "file-reduction-unused-file-b39e36",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": ".eslintrc.cjs",
+        "filePath": "analyze-report.cjs",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          ".eslintrc.cjs"
+          "analyze-report.cjs"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2638,15 +3184,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-46d08b",
+        "id": "file-reduction-unused-file-ea6b68",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "404.html",
+        "filePath": "build-public.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "404.html"
+          "build-public.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2654,15 +3200,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-f7e910",
+        "id": "file-reduction-unused-file-b09ea6",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "ai-agent-gate.json",
+        "filePath": "check-sidebar.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "ai-agent-gate.json"
+          "check-sidebar.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2670,15 +3216,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-9bce21",
+        "id": "file-reduction-unused-file-ea5440",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "ai-agent-roadmap.html",
+        "filePath": "js-es2018/scan-worker.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "ai-agent-roadmap.html"
+          "js-es2018/scan-worker.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2686,15 +3232,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-17327c",
+        "id": "file-reduction-unused-file-7c4f94",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "ai-agent-roadmap.json",
+        "filePath": "js/dashboard/certificate-module.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "ai-agent-roadmap.json"
+          "js/dashboard/certificate-module.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2702,15 +3248,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-d3dc3d",
+        "id": "file-reduction-unused-file-d4818f",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "ai-slop-cop-report.json",
+        "filePath": "js/dashboard/pattern-documentation.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "ai-slop-cop-report.json"
+          "js/dashboard/pattern-documentation.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2718,15 +3264,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-cbb9e6",
+        "id": "file-reduction-unused-file-516d83",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "ai-tools-roadmap.html",
+        "filePath": "js/dashboard/phase-registry.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "ai-tools-roadmap.html"
+          "js/dashboard/phase-registry.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2734,15 +3280,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-ec5fba",
+        "id": "file-reduction-unused-file-b344ac",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "bin-roadmap.json",
+        "filePath": "js/dashboard/quick-actions.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "bin-roadmap.json"
+          "js/dashboard/quick-actions.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2750,15 +3296,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-9096e2",
+        "id": "file-reduction-unused-file-7c6083",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "blog-roadmap.json",
+        "filePath": "js/dashboard/scanner-engine.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "blog-roadmap.json"
+          "js/dashboard/scanner-engine.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2766,15 +3312,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-1ce1c8",
+        "id": "file-reduction-unused-file-ce5584",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "certification-post-fix.html",
+        "filePath": "js/dashboard/scanner-patterns.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "certification-post-fix.html"
+          "js/dashboard/scanner-patterns.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2782,15 +3328,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-d6f205",
+        "id": "file-reduction-unused-file-da9f3b",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "coming-soon-roadmap.json",
+        "filePath": "js/dashboard/token-file-system.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "coming-soon-roadmap.json"
+          "js/dashboard/token-file-system.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2798,15 +3344,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-e11133",
+        "id": "file-reduction-unused-file-6a860d",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "count-all-files.js",
+        "filePath": "js/dashboard/token-manager.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "count-all-files.js"
+          "js/dashboard/token-manager.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2814,15 +3360,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-04ae25",
+        "id": "file-reduction-unused-file-b7c83d",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "count-files.js",
+        "filePath": "js/dashboard/ui-renderer.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "count-files.js"
+          "js/dashboard/ui-renderer.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2830,15 +3376,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-ab1934",
+        "id": "file-reduction-unused-file-3e3e2a",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "dashboard.html",
+        "filePath": "js/dashboard/usb-token-manager.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "dashboard.html"
+          "js/dashboard/usb-token-manager.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2846,15 +3392,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-edc218",
+        "id": "file-reduction-unused-file-73c465",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "demo-report.html",
+        "filePath": "js/dashboard/utils.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "demo-report.html"
+          "js/dashboard/utils.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2862,71 +3408,7 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-6806e5",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "downloads/diagnostic-prep.html",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "downloads/diagnostic-prep.html"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-ed8b48",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "downloads/repo-handoff.html",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "downloads/repo-handoff.html"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-b0261a",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "generate-account-token.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "generate-account-token.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-588c07",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "generate-token.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "generate-token.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-24d274",
+        "id": "file-reduction-unused-file-92a314",
         "severity": "medium",
         "type": "unused-file",
         "filePath": "js/scan-worker.js",
@@ -2942,15 +3424,32 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-abd021",
+        "id": "file-reduction-data-access-pattern-2cefc0",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/admin-token.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/admin-token.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "parse-sync-read"
+        }
+      },
+      {
+        "id": "file-reduction-unused-file-04a1e3",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "lib/account-types.cjs",
+        "filePath": "public/js/dashboard/certificate-module.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "lib/account-types.cjs"
+          "public/js/dashboard/certificate-module.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2958,15 +3457,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-1ecea1",
+        "id": "file-reduction-unused-file-8790ee",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "local-scanner-bridge.cjs",
+        "filePath": "public/js/dashboard/pattern-documentation.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "local-scanner-bridge.cjs"
+          "public/js/dashboard/pattern-documentation.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2974,15 +3473,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-c7a14a",
+        "id": "file-reduction-unused-file-2f963f",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "report-editor.html",
+        "filePath": "public/js/dashboard/phase-registry.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "report-editor.html"
+          "public/js/dashboard/phase-registry.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -2990,15 +3489,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-f54c57",
+        "id": "file-reduction-unused-file-3172f4",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "run-cli-scan.js",
+        "filePath": "public/js/dashboard/quick-actions.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "run-cli-scan.js"
+          "public/js/dashboard/quick-actions.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3006,15 +3505,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-5c7f6e",
+        "id": "file-reduction-unused-file-dd29d8",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "sample-clearance-pdf.html",
+        "filePath": "public/js/dashboard/scanner-engine.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "sample-clearance-pdf.html"
+          "public/js/dashboard/scanner-engine.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3022,15 +3521,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-91481d",
+        "id": "file-reduction-unused-file-6a8eff",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "scan-directory.js",
+        "filePath": "public/js/dashboard/scanner-patterns.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "scan-directory.js"
+          "public/js/dashboard/scanner-patterns.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3038,15 +3537,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-d9d40c",
+        "id": "file-reduction-unused-file-cc9250",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "scripts-roadmap.json",
+        "filePath": "public/js/dashboard/token-file-system.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "scripts-roadmap.json"
+          "public/js/dashboard/token-file-system.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3054,15 +3553,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-0e205c",
+        "id": "file-reduction-unused-file-c7b40b",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "services/certificate-generator.cjs",
+        "filePath": "public/js/dashboard/token-manager.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "services/certificate-generator.cjs"
+          "public/js/dashboard/token-manager.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3070,15 +3569,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-b971bb",
+        "id": "file-reduction-unused-file-d23c18",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "simplebeacon-frameworkless-roadmap.json",
+        "filePath": "public/js/dashboard/ui-renderer.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "simplebeacon-frameworkless-roadmap.json"
+          "public/js/dashboard/ui-renderer.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3086,15 +3585,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-950e4d",
+        "id": "file-reduction-unused-file-cb2a52",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "simplebeacon-platform-gate.json",
+        "filePath": "public/js/dashboard/usb-token-manager.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "simplebeacon-platform-gate.json"
+          "public/js/dashboard/usb-token-manager.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3102,15 +3601,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-fd9077",
+        "id": "file-reduction-unused-file-92cbb9",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "simplebeacon-platform-roadmap.json",
+        "filePath": "public/js/dashboard/utils.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "simplebeacon-platform-roadmap.json"
+          "public/js/dashboard/utils.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3118,15 +3617,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-9bbad9",
+        "id": "file-reduction-unused-file-b174d4",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "src-roadmap.json",
+        "filePath": "public/js/scan-utils.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "src-roadmap.json"
+          "public/js/scan-utils.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3134,15 +3633,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-27ca72",
+        "id": "file-reduction-unused-file-074c4a",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "subscriptions.json",
+        "filePath": "routes/token-validate.cjs",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "subscriptions.json"
+          "routes/token-validate.cjs"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3150,15 +3649,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-c172d9",
+        "id": "file-reduction-unused-file-2fb460",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "test-all-patterns.js",
+        "filePath": "tsconfig.dashboard.json",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "test-all-patterns.js"
+          "tsconfig.dashboard.json"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3166,359 +3665,47 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-f7edb2",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-certificate.js",
+        "id": "file-reduction-unused-env-key-e4b24b",
+        "severity": "low",
+        "type": "unused-env-key",
+        "filePath": ".env",
         "count": 1,
-        "description": "unused-file finding",
+        "description": "unused-env-key finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "test-certificate.js"
+          ".env"
         ],
         "metadata": {
           "scanner": "file-reduction",
-          "reclaimableBytes": 0
+          "reclaimableBytes": 0,
+          "key": "ALLOW_DEV_EPHEMERAL_SECRETS",
+          "files": [
+            ".env"
+          ]
         }
       },
       {
-        "id": "file-reduction-unused-file-c00c2c",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-generate-roadmap.js",
+        "id": "file-reduction-unused-env-key-4cc7ab",
+        "severity": "low",
+        "type": "unused-env-key",
+        "filePath": ".env",
         "count": 1,
-        "description": "unused-file finding",
+        "description": "unused-env-key finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "test-generate-roadmap.js"
+          ".env"
         ],
         "metadata": {
           "scanner": "file-reduction",
-          "reclaimableBytes": 0
+          "reclaimableBytes": 0,
+          "key": "STRIPE_PRICE_ID_EU_AI_ACT",
+          "files": [
+            ".env"
+          ]
         }
       },
       {
-        "id": "file-reduction-unused-file-292b22",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-normalize.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-normalize.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-bd07bf",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-renderPreview.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-renderPreview.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-42575c",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-report.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-report.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-0ebec7",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-roadmap.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-roadmap.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-5d4d79",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-roadmap.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-roadmap.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-04f626",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-technical-audit.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-technical-audit.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-3f0f62",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-zip-data.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-zip-data.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-d5be05",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-ai_agent-1780863316487.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-ai_agent-1780863316487.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-07da24",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-board-ai_agent-full.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-board-ai_agent-full.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-adc128",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-board-ai_agent-v2.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-board-ai_agent-v2.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-c03390",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-board-ai_agent.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-board-ai_agent.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-7776ed",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-card-consistency.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-card-consistency.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-5f9325",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-card-vulns.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-card-vulns.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-c18afb",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-export-1780859087255.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-export-1780859087255.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-665cbd",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-export-ai_agent-1780863207806.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-export-ai_agent-1780863207806.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-f06a8a",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-roadmap-export.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-roadmap-export.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-6a3f77",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "unlock.html",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "unlock.html"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-9e1070",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "update-cache.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "update-cache.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-cd0148",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "vscode-extension-roadmap.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "vscode-extension-roadmap.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-9e5abc",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "zip-for-upload.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "zip-for-upload.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-build-artifact-480a54",
+        "id": "file-reduction-build-artifact-4de474",
         "severity": "low",
         "type": "build-artifact",
         "filePath": "coming-soon.log",
@@ -3534,7 +3721,59 @@
         }
       },
       {
-        "id": "file-reduction-orphaned-export-a44f7b",
+        "id": "file-reduction-build-artifact-903adb",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "dist",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "dist"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-orphaned-export-73ec1f",
+        "severity": "low",
+        "type": "orphaned-export",
+        "filePath": "js-es2018/dashboard/phase-registry.js",
+        "count": 1,
+        "description": "orphaned-export finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "js-es2018/dashboard/phase-registry.js"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "symbol": "computePhaseMetrics",
+          "kind": "named"
+        }
+      },
+      {
+        "id": "file-reduction-orphaned-export-262bf0",
+        "severity": "low",
+        "type": "orphaned-export",
+        "filePath": "js-es2018/dashboard/phase-registry.js",
+        "count": 1,
+        "description": "orphaned-export finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "js-es2018/dashboard/phase-registry.js"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "symbol": "PHASE_REGISTRY",
+          "kind": "named"
+        }
+      },
+      {
+        "id": "file-reduction-orphaned-export-36092b",
         "severity": "low",
         "type": "orphaned-export",
         "filePath": "js/dashboard/phase-registry.js",
@@ -3552,7 +3791,7 @@
         }
       },
       {
-        "id": "file-reduction-orphaned-export-eeee16",
+        "id": "file-reduction-orphaned-export-ee4ee2",
         "severity": "low",
         "type": "orphaned-export",
         "filePath": "js/dashboard/phase-registry.js",
@@ -3567,17 +3806,261 @@
           "reclaimableBytes": 0,
           "symbol": "PHASE_REGISTRY",
           "kind": "named"
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-6f7282",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "logs/audit.log",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "logs/audit.log"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-9def77",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "node_modules",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "node_modules"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-orphaned-export-b9c50f",
+        "severity": "low",
+        "type": "orphaned-export",
+        "filePath": "public/js/dashboard/phase-registry.js",
+        "count": 1,
+        "description": "orphaned-export finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "public/js/dashboard/phase-registry.js"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "symbol": "computePhaseMetrics",
+          "kind": "named"
+        }
+      },
+      {
+        "id": "file-reduction-orphaned-export-dca197",
+        "severity": "low",
+        "type": "orphaned-export",
+        "filePath": "public/js/dashboard/phase-registry.js",
+        "count": 1,
+        "description": "orphaned-export finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "public/js/dashboard/phase-registry.js"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "symbol": "PHASE_REGISTRY",
+          "kind": "named"
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-e0ec14",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "server-restart.log",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "server-restart.log"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-duplicate-config-type-d14a67",
+        "severity": "low",
+        "type": "duplicate-config-type",
+        "filePath": "tsconfig.dashboard.json",
+        "count": 1,
+        "description": "duplicate-config-type finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "tsconfig.dashboard.json"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "files": [
+            "tsconfig.dashboard.json",
+            "tsconfig.json"
+          ]
         }
       }
     ],
     "allIssues": [
       {
-        "id": "file-reduction-missing-env-key-d8b345",
+        "id": "SB-SEC-005b",
+        "severity": "low",
+        "type": "Hardcoded URL",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\check-sidebar.js",
+        "line": 2,
+        "count": 1,
+        "description": "require('http'); const req = http.get('http://127.0.0.1:64512/', (res) => { let d = ''; res.on('da",
+        "match": "http://127.0.0.1:64512/"
+      },
+      {
+        "id": "SB-PERF-001",
         "severity": "medium",
-        "type": "missing-env-key",
+        "type": "Sync I/O in Async Path",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+        "line": 389,
+        "count": 1,
+        "description": "if (!projectPath || !fsSync.existsSync(projectPath)) {",
+        "match": "if (!projectPath || !fsSync.existsSync(projectPath)) {"
+      },
+      {
+        "id": "SB-PERF-001c",
+        "severity": "medium",
+        "type": "Sync I/O in Async Path",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+        "line": 389,
+        "count": 1,
+        "description": "if (!projectPath || !fsSync.existsSync(projectPath)) {",
+        "match": "if (!projectPath || !fsSync.existsSync(projectPath)) {"
+      },
+      {
+        "id": "SB-SEC-009b",
+        "severity": "medium",
+        "type": "ReDoS Risk",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\contact.js",
+        "line": 312,
+        "count": 1,
+        "description": "Regex: /(\"(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\\"])*\"(\\s*:)?)/g — Alternation groups with quantifiers can cause polynomial backtracking",
+        "match": "/(\"(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\\"])*\"(\\s*:)?)/g"
+      },
+      {
+        "id": "SB-SEC-009d",
+        "severity": "medium",
+        "type": "ReDoS Risk",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\public\\js\\dashboard\\scanner-patterns.js",
+        "line": 555,
+        "count": 1,
+        "description": "Regex: /Math\\.random\\s*\\(\\)(?=.*(?:token|password|secret|salt|nonce|uuid|id|key))/i — Lookahead containing quantifiers can cause performance degradation",
+        "match": "/Math\\.random\\s*\\(\\)(?=.*(?:token|password|secret|salt|nonce"
+      },
+      {
+        "id": "SB-SEC-010b",
+        "severity": "medium",
+        "type": "PII Logging",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+        "line": 743,
+        "count": 1,
+        "description": "logger.warn('[TokenChain] Routes not loaded:', err.message);",
+        "match": "logger.warn('[TokenChain] Routes not loaded:', err.message);"
+      },
+      {
+        "id": "SB-SEC-010",
+        "severity": "medium",
+        "type": "PII Logging",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\routes\\admin.cjs",
+        "line": 316,
+        "count": 1,
+        "description": "systemLogger.logTokenOp(action, { ...details, admin: req.adminPayload.email });",
+        "match": "systemLogger.logTokenOp(action, { ...details, admin: req.adminPayload.email });"
+      },
+      {
+        "id": "SB-QUAL-001c",
+        "severity": "low",
+        "type": "Dead Code",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\app-links.js",
+        "line": 171,
+        "count": 1,
+        "description": "Code after return statement is unreachable",
+        "match": "return String(str)"
+      },
+      {
+        "id": "SB-QUAL-001",
+        "severity": "low",
+        "type": "Dead Code",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+        "line": 33,
+        "count": 1,
+        "description": "Import \"sendEmail\" from \"./services/email.cjs\" is never referenced",
+        "match": "sendEmail"
+      },
+      {
+        "id": "SB-QUAL-001b",
+        "severity": "low",
+        "type": "Dead Code",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\public\\js\\dashboard\\certificate-module.js",
+        "line": 110,
+        "count": 1,
+        "description": "Always-false condition makes the following block unreachable",
+        "match": "if (false) { /* token optional for certificate generation */"
+      },
+      {
+        "id": "SB-PERF-002d",
+        "severity": "medium",
+        "type": "Memory Leak",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\analyze-directory.js",
+        "line": 85,
+        "count": 1,
+        "description": "eadErrors++; continue; } for (const entry of entries) { const full = path.join(dir, entry.name); const rel = path.relati",
+        "match": "for (const entry of entries) {\n      const full = path.join(dir, entry.name);\n      const rel = path.relative(TARGET_DIR, full).replace(/\\\\/g, '/');\n\n      if (entry.isDirectory()) {\n        if (SKIP_DIRS.test(entry.name)) {\n          dirSkipped++;\n          continue;\n        }\n        totalFolders++;\n        stack.push(full)"
+      },
+      {
+        "id": "SB-PERF-002",
+        "severity": "medium",
+        "type": "Memory Leak",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\app-links.js",
+        "line": 90,
+        "count": 1,
+        "description": "r buttons, attach click handler el.addEventListener('click', function (e) { e.preventDefaul",
+        "match": ".addEventListener('click'"
+      },
+      {
+        "id": "SB-PERF-002b",
+        "severity": "medium",
+        "type": "Memory Leak",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\server.cjs",
+        "line": 83,
+        "count": 1,
+        "description": "} } // Run cleanup every 30 minutes setInterval(cleanupExpiredRateLimiters, 30 * 60 * 10",
+        "match": "setInterval("
+      },
+      {
+        "id": "SB-PERF-002e",
+        "severity": "low",
+        "type": "Memory Leak",
+        "filePath": "c:\\Users\\Trevor\\CascadeProjects\\coming-soon\\routes\\subscriptions-billing.cjs",
+        "line": 166,
+        "count": 1,
+        "description": "ble) if (!global.teamReportLog) global.teamReportLog = []; global.teamReportLog.push({",
+        "match": "global.teamReportLog = ["
+      },
+      {
+        "id": "file-reduction-env-inconsistency-72b928",
+        "severity": "medium",
+        "type": "env-inconsistency",
         "filePath": ".env",
         "count": 1,
-        "description": "missing-env-key finding",
+        "description": "env-inconsistency finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
           ".env"
@@ -3585,21 +4068,26 @@
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
-          "key": "API_KEY",
-          "references": [
-            "js/dashboard/pattern-documentation.js",
-            "js/dashboard/quick-actions.js",
-            "js/dashboard/scanner-engine.js"
+          "key": "SMTP_FROM",
+          "values": [
+            {
+              "file": ".env",
+              "value": "noreply@simplebeacon.ai"
+            },
+            {
+              "file": ".env.example",
+              "value": "noreply@yourdomain.com"
+            }
           ]
         }
       },
       {
-        "id": "file-reduction-missing-env-key-81cd85",
+        "id": "file-reduction-env-inconsistency-b97eb6",
         "severity": "medium",
-        "type": "missing-env-key",
+        "type": "env-inconsistency",
         "filePath": ".env",
         "count": 1,
-        "description": "missing-env-key finding",
+        "description": "env-inconsistency finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
           ".env"
@@ -3607,56 +4095,25 @@
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
-          "key": "DB_PASSWORD",
-          "references": [
-            "js/dashboard/pattern-documentation.js",
-            "js/dashboard/quick-actions.js"
+          "key": "SMTP_FROM",
+          "values": [
+            {
+              "file": ".env",
+              "value": "noreply@simplebeacon.ai",
+              "line": 24,
+              "key": "SMTP_FROM"
+            },
+            {
+              "file": ".env.example",
+              "value": "noreply@yourdomain.com",
+              "line": 26,
+              "key": "SMTP_FROM"
+            }
           ]
         }
       },
       {
-        "id": "file-reduction-missing-env-key-0fca45",
-        "severity": "medium",
-        "type": "missing-env-key",
-        "filePath": ".env",
-        "count": 1,
-        "description": "missing-env-key finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          ".env"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0,
-          "key": "SECRET_KEY",
-          "references": [
-            "js/dashboard/pattern-documentation.js",
-            "js/dashboard/quick-actions.js"
-          ]
-        }
-      },
-      {
-        "id": "file-reduction-missing-env-key-dc99c2",
-        "severity": "medium",
-        "type": "missing-env-key",
-        "filePath": ".env",
-        "count": 1,
-        "description": "missing-env-key finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          ".env"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0,
-          "key": "API_URL",
-          "references": [
-            "js/dashboard/pattern-documentation.js"
-          ]
-        }
-      },
-      {
-        "id": "file-reduction-missing-env-key-1bde35",
+        "id": "file-reduction-missing-env-key-9c8b9d",
         "severity": "medium",
         "type": "missing-env-key",
         "filePath": ".env",
@@ -3671,32 +4128,12 @@
           "reclaimableBytes": 0,
           "key": "DEBUG",
           "references": [
-            "js/dashboard/pattern-documentation.js"
+            "js-es2018/dashboard/pattern-documentation.js"
           ]
         }
       },
       {
-        "id": "file-reduction-missing-env-key-b0172f",
-        "severity": "medium",
-        "type": "missing-env-key",
-        "filePath": ".env",
-        "count": 1,
-        "description": "missing-env-key finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          ".env"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0,
-          "key": "DATABASE_URL",
-          "references": [
-            "js/dashboard/quick-actions.js"
-          ]
-        }
-      },
-      {
-        "id": "file-reduction-missing-env-key-f98c76",
+        "id": "file-reduction-missing-env-key-eb9c5b",
         "severity": "medium",
         "type": "missing-env-key",
         "filePath": ".env",
@@ -3711,20 +4148,20 @@
           "reclaimableBytes": 0,
           "key": "X",
           "references": [
-            "js/dashboard/scanner-engine.js"
+            "js-es2018/dashboard/scanner-engine.js"
           ]
         }
       },
       {
-        "id": "file-reduction-unused-file-9a8985",
+        "id": "file-reduction-unused-file-b39e36",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": ".eslintrc.cjs",
+        "filePath": "analyze-report.cjs",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          ".eslintrc.cjs"
+          "analyze-report.cjs"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3732,15 +4169,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-46d08b",
+        "id": "file-reduction-unused-file-ea6b68",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "404.html",
+        "filePath": "build-public.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "404.html"
+          "build-public.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3748,15 +4185,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-f7e910",
+        "id": "file-reduction-unused-file-b09ea6",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "ai-agent-gate.json",
+        "filePath": "check-sidebar.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "ai-agent-gate.json"
+          "check-sidebar.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3764,15 +4201,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-9bce21",
+        "id": "file-reduction-unused-file-ea5440",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "ai-agent-roadmap.html",
+        "filePath": "js-es2018/scan-worker.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "ai-agent-roadmap.html"
+          "js-es2018/scan-worker.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3780,15 +4217,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-17327c",
+        "id": "file-reduction-unused-file-7c4f94",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "ai-agent-roadmap.json",
+        "filePath": "js/dashboard/certificate-module.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "ai-agent-roadmap.json"
+          "js/dashboard/certificate-module.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3796,15 +4233,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-d3dc3d",
+        "id": "file-reduction-unused-file-d4818f",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "ai-slop-cop-report.json",
+        "filePath": "js/dashboard/pattern-documentation.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "ai-slop-cop-report.json"
+          "js/dashboard/pattern-documentation.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3812,15 +4249,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-cbb9e6",
+        "id": "file-reduction-unused-file-516d83",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "ai-tools-roadmap.html",
+        "filePath": "js/dashboard/phase-registry.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "ai-tools-roadmap.html"
+          "js/dashboard/phase-registry.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3828,15 +4265,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-ec5fba",
+        "id": "file-reduction-unused-file-b344ac",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "bin-roadmap.json",
+        "filePath": "js/dashboard/quick-actions.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "bin-roadmap.json"
+          "js/dashboard/quick-actions.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3844,15 +4281,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-9096e2",
+        "id": "file-reduction-unused-file-7c6083",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "blog-roadmap.json",
+        "filePath": "js/dashboard/scanner-engine.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "blog-roadmap.json"
+          "js/dashboard/scanner-engine.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3860,15 +4297,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-1ce1c8",
+        "id": "file-reduction-unused-file-ce5584",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "certification-post-fix.html",
+        "filePath": "js/dashboard/scanner-patterns.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "certification-post-fix.html"
+          "js/dashboard/scanner-patterns.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3876,15 +4313,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-d6f205",
+        "id": "file-reduction-unused-file-da9f3b",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "coming-soon-roadmap.json",
+        "filePath": "js/dashboard/token-file-system.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "coming-soon-roadmap.json"
+          "js/dashboard/token-file-system.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3892,15 +4329,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-e11133",
+        "id": "file-reduction-unused-file-6a860d",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "count-all-files.js",
+        "filePath": "js/dashboard/token-manager.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "count-all-files.js"
+          "js/dashboard/token-manager.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3908,15 +4345,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-04ae25",
+        "id": "file-reduction-unused-file-b7c83d",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "count-files.js",
+        "filePath": "js/dashboard/ui-renderer.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "count-files.js"
+          "js/dashboard/ui-renderer.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3924,15 +4361,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-ab1934",
+        "id": "file-reduction-unused-file-3e3e2a",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "dashboard.html",
+        "filePath": "js/dashboard/usb-token-manager.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "dashboard.html"
+          "js/dashboard/usb-token-manager.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3940,15 +4377,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-edc218",
+        "id": "file-reduction-unused-file-73c465",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "demo-report.html",
+        "filePath": "js/dashboard/utils.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "demo-report.html"
+          "js/dashboard/utils.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -3956,71 +4393,7 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-6806e5",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "downloads/diagnostic-prep.html",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "downloads/diagnostic-prep.html"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-ed8b48",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "downloads/repo-handoff.html",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "downloads/repo-handoff.html"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-b0261a",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "generate-account-token.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "generate-account-token.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-588c07",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "generate-token.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "generate-token.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-24d274",
+        "id": "file-reduction-unused-file-92a314",
         "severity": "medium",
         "type": "unused-file",
         "filePath": "js/scan-worker.js",
@@ -4036,15 +4409,32 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-abd021",
+        "id": "file-reduction-data-access-pattern-2cefc0",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/admin-token.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/admin-token.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "parse-sync-read"
+        }
+      },
+      {
+        "id": "file-reduction-unused-file-04a1e3",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "lib/account-types.cjs",
+        "filePath": "public/js/dashboard/certificate-module.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "lib/account-types.cjs"
+          "public/js/dashboard/certificate-module.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4052,15 +4442,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-1ecea1",
+        "id": "file-reduction-unused-file-8790ee",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "local-scanner-bridge.cjs",
+        "filePath": "public/js/dashboard/pattern-documentation.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "local-scanner-bridge.cjs"
+          "public/js/dashboard/pattern-documentation.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4068,15 +4458,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-c7a14a",
+        "id": "file-reduction-unused-file-2f963f",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "report-editor.html",
+        "filePath": "public/js/dashboard/phase-registry.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "report-editor.html"
+          "public/js/dashboard/phase-registry.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4084,15 +4474,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-f54c57",
+        "id": "file-reduction-unused-file-3172f4",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "run-cli-scan.js",
+        "filePath": "public/js/dashboard/quick-actions.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "run-cli-scan.js"
+          "public/js/dashboard/quick-actions.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4100,15 +4490,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-5c7f6e",
+        "id": "file-reduction-unused-file-dd29d8",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "sample-clearance-pdf.html",
+        "filePath": "public/js/dashboard/scanner-engine.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "sample-clearance-pdf.html"
+          "public/js/dashboard/scanner-engine.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4116,15 +4506,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-91481d",
+        "id": "file-reduction-unused-file-6a8eff",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "scan-directory.js",
+        "filePath": "public/js/dashboard/scanner-patterns.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "scan-directory.js"
+          "public/js/dashboard/scanner-patterns.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4132,15 +4522,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-d9d40c",
+        "id": "file-reduction-unused-file-cc9250",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "scripts-roadmap.json",
+        "filePath": "public/js/dashboard/token-file-system.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "scripts-roadmap.json"
+          "public/js/dashboard/token-file-system.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4148,15 +4538,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-0e205c",
+        "id": "file-reduction-unused-file-c7b40b",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "services/certificate-generator.cjs",
+        "filePath": "public/js/dashboard/token-manager.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "services/certificate-generator.cjs"
+          "public/js/dashboard/token-manager.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4164,15 +4554,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-b971bb",
+        "id": "file-reduction-unused-file-d23c18",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "simplebeacon-frameworkless-roadmap.json",
+        "filePath": "public/js/dashboard/ui-renderer.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "simplebeacon-frameworkless-roadmap.json"
+          "public/js/dashboard/ui-renderer.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4180,15 +4570,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-950e4d",
+        "id": "file-reduction-unused-file-cb2a52",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "simplebeacon-platform-gate.json",
+        "filePath": "public/js/dashboard/usb-token-manager.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "simplebeacon-platform-gate.json"
+          "public/js/dashboard/usb-token-manager.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4196,15 +4586,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-fd9077",
+        "id": "file-reduction-unused-file-92cbb9",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "simplebeacon-platform-roadmap.json",
+        "filePath": "public/js/dashboard/utils.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "simplebeacon-platform-roadmap.json"
+          "public/js/dashboard/utils.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4212,15 +4602,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-9bbad9",
+        "id": "file-reduction-unused-file-b174d4",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "src-roadmap.json",
+        "filePath": "public/js/scan-utils.js",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "src-roadmap.json"
+          "public/js/scan-utils.js"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4228,15 +4618,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-27ca72",
+        "id": "file-reduction-unused-file-074c4a",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "subscriptions.json",
+        "filePath": "routes/token-validate.cjs",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "subscriptions.json"
+          "routes/token-validate.cjs"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4244,15 +4634,15 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-c172d9",
+        "id": "file-reduction-unused-file-2fb460",
         "severity": "medium",
         "type": "unused-file",
-        "filePath": "test-all-patterns.js",
+        "filePath": "tsconfig.dashboard.json",
         "count": 1,
         "description": "unused-file finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "test-all-patterns.js"
+          "tsconfig.dashboard.json"
         ],
         "metadata": {
           "scanner": "file-reduction",
@@ -4260,359 +4650,47 @@
         }
       },
       {
-        "id": "file-reduction-unused-file-f7edb2",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-certificate.js",
+        "id": "file-reduction-unused-env-key-e4b24b",
+        "severity": "low",
+        "type": "unused-env-key",
+        "filePath": ".env",
         "count": 1,
-        "description": "unused-file finding",
+        "description": "unused-env-key finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "test-certificate.js"
+          ".env"
         ],
         "metadata": {
           "scanner": "file-reduction",
-          "reclaimableBytes": 0
+          "reclaimableBytes": 0,
+          "key": "ALLOW_DEV_EPHEMERAL_SECRETS",
+          "files": [
+            ".env"
+          ]
         }
       },
       {
-        "id": "file-reduction-unused-file-c00c2c",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-generate-roadmap.js",
+        "id": "file-reduction-unused-env-key-4cc7ab",
+        "severity": "low",
+        "type": "unused-env-key",
+        "filePath": ".env",
         "count": 1,
-        "description": "unused-file finding",
+        "description": "unused-env-key finding",
         "recommendedAction": "Review file-reduction report",
         "affectedFiles": [
-          "test-generate-roadmap.js"
+          ".env"
         ],
         "metadata": {
           "scanner": "file-reduction",
-          "reclaimableBytes": 0
+          "reclaimableBytes": 0,
+          "key": "STRIPE_PRICE_ID_EU_AI_ACT",
+          "files": [
+            ".env"
+          ]
         }
       },
       {
-        "id": "file-reduction-unused-file-292b22",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-normalize.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-normalize.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-bd07bf",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-renderPreview.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-renderPreview.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-42575c",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-report.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-report.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-0ebec7",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-roadmap.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-roadmap.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-5d4d79",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-roadmap.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-roadmap.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-04f626",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-technical-audit.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-technical-audit.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-3f0f62",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "test-zip-data.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "test-zip-data.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-d5be05",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-ai_agent-1780863316487.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-ai_agent-1780863316487.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-07da24",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-board-ai_agent-full.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-board-ai_agent-full.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-adc128",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-board-ai_agent-v2.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-board-ai_agent-v2.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-c03390",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-board-ai_agent.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-board-ai_agent.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-7776ed",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-card-consistency.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-card-consistency.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-5f9325",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-card-vulns.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-card-vulns.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-c18afb",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-export-1780859087255.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-export-1780859087255.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-665cbd",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-export-ai_agent-1780863207806.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-export-ai_agent-1780863207806.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-f06a8a",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "trello-roadmap-export.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "trello-roadmap-export.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-6a3f77",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "unlock.html",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "unlock.html"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-9e1070",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "update-cache.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "update-cache.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-cd0148",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "vscode-extension-roadmap.json",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "vscode-extension-roadmap.json"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-unused-file-9e5abc",
-        "severity": "medium",
-        "type": "unused-file",
-        "filePath": "zip-for-upload.js",
-        "count": 1,
-        "description": "unused-file finding",
-        "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "zip-for-upload.js"
-        ],
-        "metadata": {
-          "scanner": "file-reduction",
-          "reclaimableBytes": 0
-        }
-      },
-      {
-        "id": "file-reduction-build-artifact-480a54",
+        "id": "file-reduction-build-artifact-4de474",
         "severity": "low",
         "type": "build-artifact",
         "filePath": "coming-soon.log",
@@ -4628,7 +4706,59 @@
         }
       },
       {
-        "id": "file-reduction-orphaned-export-a44f7b",
+        "id": "file-reduction-build-artifact-903adb",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "dist",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "dist"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-orphaned-export-73ec1f",
+        "severity": "low",
+        "type": "orphaned-export",
+        "filePath": "js-es2018/dashboard/phase-registry.js",
+        "count": 1,
+        "description": "orphaned-export finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "js-es2018/dashboard/phase-registry.js"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "symbol": "computePhaseMetrics",
+          "kind": "named"
+        }
+      },
+      {
+        "id": "file-reduction-orphaned-export-262bf0",
+        "severity": "low",
+        "type": "orphaned-export",
+        "filePath": "js-es2018/dashboard/phase-registry.js",
+        "count": 1,
+        "description": "orphaned-export finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "js-es2018/dashboard/phase-registry.js"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "symbol": "PHASE_REGISTRY",
+          "kind": "named"
+        }
+      },
+      {
+        "id": "file-reduction-orphaned-export-36092b",
         "severity": "low",
         "type": "orphaned-export",
         "filePath": "js/dashboard/phase-registry.js",
@@ -4646,7 +4776,7 @@
         }
       },
       {
-        "id": "file-reduction-orphaned-export-eeee16",
+        "id": "file-reduction-orphaned-export-ee4ee2",
         "severity": "low",
         "type": "orphaned-export",
         "filePath": "js/dashboard/phase-registry.js",
@@ -4661,6 +4791,110 @@
           "reclaimableBytes": 0,
           "symbol": "PHASE_REGISTRY",
           "kind": "named"
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-6f7282",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "logs/audit.log",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "logs/audit.log"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-9def77",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "node_modules",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "node_modules"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-orphaned-export-b9c50f",
+        "severity": "low",
+        "type": "orphaned-export",
+        "filePath": "public/js/dashboard/phase-registry.js",
+        "count": 1,
+        "description": "orphaned-export finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "public/js/dashboard/phase-registry.js"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "symbol": "computePhaseMetrics",
+          "kind": "named"
+        }
+      },
+      {
+        "id": "file-reduction-orphaned-export-dca197",
+        "severity": "low",
+        "type": "orphaned-export",
+        "filePath": "public/js/dashboard/phase-registry.js",
+        "count": 1,
+        "description": "orphaned-export finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "public/js/dashboard/phase-registry.js"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "symbol": "PHASE_REGISTRY",
+          "kind": "named"
+        }
+      },
+      {
+        "id": "file-reduction-build-artifact-e0ec14",
+        "severity": "low",
+        "type": "build-artifact",
+        "filePath": "server-restart.log",
+        "count": 1,
+        "description": "build-artifact finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "server-restart.log"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0
+        }
+      },
+      {
+        "id": "file-reduction-duplicate-config-type-d14a67",
+        "severity": "low",
+        "type": "duplicate-config-type",
+        "filePath": "tsconfig.dashboard.json",
+        "count": 1,
+        "description": "duplicate-config-type finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "tsconfig.dashboard.json"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "files": [
+            "tsconfig.dashboard.json",
+            "tsconfig.json"
+          ]
         }
       }
     ],
@@ -4673,15 +4907,15 @@
   "tier": "developer",
   "consolidation": {
     "monorepoMarkers": 0,
-    "duplicateGroups": 0,
-    "summary": "No duplicate files detected.",
-    "remediation": null
+    "duplicateGroups": 1,
+    "summary": "1 duplicate file group detected.",
+    "remediation": "Consolidate duplicate files into shared modules or remove redundant copies."
   },
   "codebase": {
-    "totalFiles": 928,
+    "totalFiles": 1488,
     "totalLines": 0,
     "averageLinesPerFile": 0,
-    "summary": "928 files analyzed, 0 lines of code."
+    "summary": "1,488 files analyzed, 0 lines of code."
   },
   "dataQuality": {
     "emptyJsonCount": 0,
@@ -4699,9 +4933,9 @@
     "remediation": null
   },
   "fileReduction": {
-    "duplicateGroups": 0,
-    "summary": "No file reduction opportunities.",
-    "remediation": null
+    "duplicateGroups": 1,
+    "summary": "1 duplicate content group found.",
+    "remediation": "Consolidate duplicate files into shared modules."
   },
   "npmAudit": {
     "packageJsonCount": 0,
@@ -4840,23 +5074,29 @@
       "title": "Phase 2: Consistency & Deduplication",
       "severity": "medium",
       "effort": "3–5 days",
-      "description": "Consistency verified — no duplicates or naming drift.",
+      "description": "Eliminate redundancy: 1 duplicate group.",
       "tasks": [
+        {
+          "description": "Consolidate 1 duplicate group",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
         {
           "description": "Standardize naming conventions",
           "type": "doc",
-          "done": true,
+          "done": false,
           "isStructured": true
         },
         {
           "description": "Document canonical file locations",
           "type": "doc",
-          "done": true,
+          "done": false,
           "isStructured": true
         }
       ],
-      "progress": 100,
-      "status": "completed"
+      "progress": 75,
+      "status": "in-progress"
     },
     {
       "id": "compliance",
@@ -4961,9 +5201,9 @@
   "summary": {
     "gatePass": true,
     "qualityScore": 100,
-    "totalFiles": 928,
+    "totalFiles": 1488,
     "totalLines": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-06-17T13:08:39.611Z"
+  "sanitizedAt": "2026-06-26T03:48:46.432Z"
 }

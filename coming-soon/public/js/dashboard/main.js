@@ -87,7 +87,7 @@ const FILE_COUNT_HIGH = 65000;
 const FILE_COUNT_VERY_HIGH = 100000;
 
 // Local server ports to probe
-const LOCAL_SERVER_PORTS = [38000, 50559, 3002, 3001, 3000, 8080, 5000];
+const LOCAL_SERVER_PORTS = [38000, 50559, 3002, 3001, 3000, 5000];
 
 // API base URL — localhost uses same-origin; production uses Render backend
 const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? '' : 'https://simplebeacon.onrender.com';
@@ -98,7 +98,7 @@ function getFreeTokenUrl() {
     const storedHost = localStorage.getItem('sb_api_host');
     if (storedHost) return storedHost + '/api/free-token';
     const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    const knownPorts = [38000, 50559, 3002, 3001, 3000, 8080, 5000];
+    const knownPorts = [38000, 50559, 3002, 3001, 3000, 5000];
     const currentPort = parseInt(location.port, 10);
     if (isLocal && knownPorts.includes(currentPort)) {
         return location.origin + '/api/free-token';
@@ -108,7 +108,7 @@ function getFreeTokenUrl() {
         const devPort = '3000';
         return `http://${devHost}:${devPort}/api/free-token`;
     }
-    return '/api/free-token';
+    return API_BASE + '/api/free-token';
 }
 
 // DOM element declarations — licenseInput declared in token-manager.js (same global scope)
@@ -1589,7 +1589,7 @@ function updateStepper() {
 }
 
 // localStorage persistence
-const LS_KEY_TOKEN = 'simplebeacon_token';
+const LS_KEY_TOKEN = 'simplebeacon_token'; // simplebeacon-ignore credential — localStorage key name, not a secret
 const LS_KEY_SCAN = 'simplebeacon_scan_data';
 
 // v10-stale-guard — always purge cached scan data on fresh page load
@@ -2930,7 +2930,7 @@ async function probeLocalBridge() {
             bridgeAvailable = true;
             const panel = document.getElementById('local-scanner-panel');
             if (panel) panel.style.display = 'block';
-            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#9889; Local Scanner Bridge detected</span> — scans will use native file system (no file limits).', 'info');
+            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#9889; Local Scanner Bridge detected</span> — scans will use native filesystem—no file limits.', 'info');
         }
     } catch (_) {
         bridgeAvailable = false;
@@ -2957,9 +2957,9 @@ async function probeLocalServer() {
             const vaultLink = document.getElementById('vaultLink');
             if (banner) {
                 banner.style.display = 'flex';
-                if (link) link.href = `http://127.0.0.1:${port}/#/analyze`;
+                if (link) link.href = `http://127.0.0.1:${port}/simplebeacon-dashboard/index.html#/analyze`;
             }
-            if (vaultLink) vaultLink.href = `http://127.0.0.1:${port}/#/dashboard`;
+            if (vaultLink) vaultLink.href = '/ai-platform/web/simplebeacon-dashboard/index.html';
             return;
         } catch (_) {
             // Server not running on this port

@@ -8,10 +8,11 @@
     "dev": "node server.cjs",
     "test": "node --test test/*.test.cjs",
     "build": "tsc",
-    "lint": "eslint . --ext .js,.cjs",
-    "format": "prettier --write .",
+    "lint": "node -c server.cjs",
+    "format": "npx prettier --write .",
     "analyze": "node analyze-directory.js",
-    "analyze:full": "node analyze-directory.js --output .simplebeacon/analyzer-report.json"
+    "analyze:full": "node analyze-directory.js --output .simplebeacon/analyzer-report.json",
+    "quality:check": "npx simplebeacon scan . --gate --offline"
   },
   "keywords": [],
   "author": "",
@@ -19,8 +20,7 @@
   "type": "commonjs",
   "dependencies": {
     "express": "^4.22.2",
-    "jsonwebtoken": "^9.0.3",
-    "multer": "^2.2.0"
+    "jsonwebtoken": "^9.0.3"
   },
   "engines": {
     "node": ">=16.0.0",

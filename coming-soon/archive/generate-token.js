@@ -26,7 +26,7 @@ const payload = {
 const token = jwt.sign(payload, secret, { expiresIn: 7 * 24 * 60 * 60 });
 
 console.log(cfg.label + ':');
-console.log(token);
+console.log(token); // simplebeacon-ignore pii-logging — dev token generation script, outputs to stdout
 
 const fs = require('fs');
 const path = require('path');

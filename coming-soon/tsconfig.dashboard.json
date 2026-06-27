@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "ES2015",
+    "moduleResolution": "node",
+    "allowJs": true,
+    "checkJs": false,
+    "outDir": "./js-es2018",
+    "rootDir": "./js",
+    "declaration": false,
+    "sourceMap": false,
+    "skipLibCheck": true,
+    "esModuleInterop": false
+  },
+  "include": ["js/**/*"],
+  "exclude": ["node_modules"]
+}

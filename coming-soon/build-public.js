@@ -27,10 +27,11 @@ fs.mkdirSync(dst, { recursive: true });
 const files = [
   'index.html', 'landing.html', 'pricing.html', 'community.html',
   'contact.html', 'contact.js', 'certificate-upload.html', 'upload.html',
-  'cloud-scan.html', 'scan-status.html', 'sample-report.html',
+  // cloud-scan.html and sample-report.html are intentional demo pages for the marketing site
+  'cloud-scan.html', 'sample-report.html',
   'sample-certificate.html', 'email-template-universal.html',
   'faq.html', 'privacy.html', 'refund.html', 'roadmap.html',
-  'scan.html', 'security.html', 'terms.html', 'unlock.html',
+  'security.html', 'terms.html', 'unlock.html',
   'styles.css', 'app-links.js', 'site-config.js',
   'favicon.svg', 'robots.txt', 'sitemap.xml'
 ];
@@ -40,7 +41,6 @@ for (const f of files) {
   const d = path.join(dst, f);
   if (fs.existsSync(s)) {
     fs.copyFileSync(s, d);
-    console.log('Copied:', f);
   }
 }
 
@@ -51,8 +51,7 @@ for (const d of dirs) {
   const dp = path.join(dst, d);
   if (fs.existsSync(sp)) {
     copyRecursive(sp, dp);
-    console.log('Copied dir:', d);
   }
 }
 
-console.log('Public build complete');
+process.stdout.write('Public build complete\n');

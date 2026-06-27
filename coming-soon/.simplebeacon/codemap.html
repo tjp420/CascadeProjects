@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Map - coming-soon</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0b1120;color:#e2e8f0;min-height:100vh}
+.sidebar{width:320px;background:#0f172a;border-right:1px solid #1e293b;height:100vh;overflow-y:auto;position:fixed;left:0;top:0;padding:16px}
+.sidebar h1{font-size:18px;margin-bottom:4px;color:#f8fafc}
+.sidebar .subtitle{font-size:12px;color:#64748b;margin-bottom:16px}
+.stat-row{display:flex;gap:8px;margin-bottom:16px}
+.stat-chip{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 12px;font-size:12px}
+.stat-chip b{display:block;font-size:14px;color:#f8fafc}
+.search-box{width:100%;padding:8px 12px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:13px;margin-bottom:12px}
+.search-box:focus{outline:none;border-color:#06b6d4}
+.tree-node{display:flex;align-items:center;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:13px;gap:6px;white-space:nowrap}
+.tree-node:hover{background:#1e293b}
+.tree-node .toggle{width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#94a3b8;cursor:pointer;flex-shrink:0}
+.tree-node .toggle-spacer{width:16px;flex-shrink:0}
+.tree-node .node-icon{flex-shrink:0;font-size:14px}
+.tree-node .node-name{flex:1;overflow:hidden;text-overflow:ellipsis}
+.tree-node .node-meta{color:#64748b;font-size:11px;flex-shrink:0}
+.tree-children{overflow:hidden;transition:max-height 0.2s ease}
+.tree-children.collapsed{max-height:0}
+.tree-children.expanded{max-height:99999px}
+.main{margin-left:320px;padding:24px}
+.main h2{font-size:20px;margin-bottom:16px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;margin-bottom:20px}
+.card h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:12px}
+.lang-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.lang-item{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;text-align:center}
+.lang-item .lang-icon{font-size:20px;margin-bottom:2px}
+.lang-item .lang-name{font-size:11px;color:#94a3b8}
+.lang-item .lang-count{font-size:16px;font-weight:700;color:#f8fafc}
+.ext-bar{height:24px;border-radius:4px;margin:4px 0;display:flex;align-items:center;padding:0 10px;font-size:11px;color:#0f172a;font-weight:600}
+.graph-wrap{position:relative;height:500px;background:#0f172a;border-radius:8px;border:1px solid #334155;overflow:hidden}
+#graphCanvas{width:100%;height:100%;cursor:grab}
+#graphCanvas:active{cursor:grabbing}
+.graph-legend{position:absolute;top:8px;right:8px;background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;padding:8px 12px;font-size:11px}
+.graph-controls{position:absolute;bottom:12px;left:12px;display:flex;gap:6px;z-index:10}
+.graph-controls button{background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;color:#e2e8f0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:background 0.15s}
+.graph-controls button:hover{background:#1e293b;border-color:#475569}
+.graph-controls .ctrl-label{position:absolute;bottom:40px;left:0;background:rgba(15,23,42,0.95);border:1px solid #334155;border-radius:4px;padding:4px 8px;font-size:11px;color:#94a3b8;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.15s}
+.graph-controls button:hover .ctrl-label{opacity:1}
+.graph-legend-item{display:flex;align-items:center;gap:6px;margin:3px 0}
+.graph-legend-dot{width:10px;height:10px;border-radius:50%}
+.dep-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.dep-stat-card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:14px}
+.dep-stat-card h4{font-size:12px;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+.dep-stat-card ul{list-style:none;padding:0;margin:0;font-size:12px}
+.dep-stat-card li{padding:3px 0;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between}
+.dep-stat-card li:last-child{border-bottom:none}
+.cycle-badge{background:#ef4444;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600}
+.empty-state{text-align:center;padding:40px 20px;color:#64748b}
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <h1>Code Map</h1>
+  <div class="subtitle">coming-soon</div>
+  <div class="stat-row">
+    <div class="stat-chip"><b>260</b>Files</div>
+    <div class="stat-chip"><b>113,756</b>Lines</div>
+    <div class="stat-chip"><b>Node.js</b>Stack</div>
+  </div>
+  <input type="text" class="search-box" id="searchBox" placeholder="Search files...">
+  <div id="treeRoot"><div class="tree-node" data-type="dir" style="padding-left:0px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="">coming-soon</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="$null">$null</span>
+        <span class="node-meta">(100 B, 2 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title=".github">.github</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title=".github/workflows">workflows</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">⚙️</span>
+        <span class="node-name" title=".github/workflows/ci.yml">ci.yml</span>
+        <span class="node-meta">(309 B, 20 lines)</span>
+      </div></div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="admin.html">admin.html</span>
+        <span class="node-meta">(21.0 KB, 501 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="ai-slop-cop-pro-token.txt">ai-slop-cop-pro-token.txt</span>
+        <span class="node-meta">(405 B, 2 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="AI-SYSTEM.md">AI-SYSTEM.md</span>
+        <span class="node-meta">(4.8 KB, 111 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="analyze-directory.js">analyze-directory.js</span>
+        <span class="node-meta">(7.7 KB, 205 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="analyze-report.cjs">analyze-report.cjs</span>
+        <span class="node-meta">(5.8 KB, 140 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="ap-out.txt">ap-out.txt</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="API_CONTRACT_AUDIT.md">API_CONTRACT_AUDIT.md</span>
+        <span class="node-meta">(6.1 KB, 143 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="app-links.js">app-links.js</span>
+        <span class="node-meta">(7.7 KB, 204 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="archive">archive</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="archive/404.html">404.html</span>
+        <span class="node-meta">(2.2 KB, 90 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/ai-agent-gate.json">ai-agent-gate.json</span>
+        <span class="node-meta">(11.8 KB, 154 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="archive/ai-agent-roadmap.html">ai-agent-roadmap.html</span>
+        <span class="node-meta">(1.4 KB, 34 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/ai-agent-roadmap.json">ai-agent-roadmap.json</span>
+        <span class="node-meta">(18.0 KB, 124 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/ai-slop-cop-report.json">ai-slop-cop-report.json</span>
+        <span class="node-meta">(15.8 KB, 555 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="archive/ai-tools-roadmap.html">ai-tools-roadmap.html</span>
+        <span class="node-meta">(1.4 KB, 34 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/bin-roadmap.json">bin-roadmap.json</span>
+        <span class="node-meta">(17.5 KB, 96 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/blog-roadmap.json">blog-roadmap.json</span>
+        <span class="node-meta">(13.5 KB, 366 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="archive/certification-post-fix.html">certification-post-fix.html</span>
+        <span class="node-meta">(4.2 KB, 59 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/coming-soon-roadmap.json">coming-soon-roadmap.json</span>
+        <span class="node-meta">(13.5 KB, 524 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/count-all-files.js">count-all-files.js</span>
+        <span class="node-meta">(1.7 KB, 59 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/count-files.js">count-files.js</span>
+        <span class="node-meta">(1.9 KB, 69 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="archive/dashboard.html">dashboard.html</span>
+        <span class="node-meta">(16.5 KB, 264 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="archive/demo-report.html">demo-report.html</span>
+        <span class="node-meta">(27.6 KB, 449 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="archive/downloads">downloads</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="archive/downloads/diagnostic-prep.html">diagnostic-prep.html</span>
+        <span class="node-meta">(13.0 KB, 420 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="archive/downloads/repo-handoff.html">repo-handoff.html</span>
+        <span class="node-meta">(5.7 KB, 112 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/generate-account-token.js">generate-account-token.js</span>
+        <span class="node-meta">(2.6 KB, 70 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/generate-token.js">generate-token.js</span>
+        <span class="node-meta">(3.7 KB, 36 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="archive/js">js</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/js/scan-worker.js">scan-worker.js</span>
+        <span class="node-meta">(8.8 KB, 248 lines)</span>
+      </div></div><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="archive/lib">lib</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="archive/lib/account-types.cjs">account-types.cjs</span>
+        <span class="node-meta">(2.2 KB, 94 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="archive/local-scanner-bridge.cjs">local-scanner-bridge.cjs</span>
+        <span class="node-meta">(23.0 KB, 581 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="archive/report-editor.html">report-editor.html</span>
+        <span class="node-meta">(21.4 KB, 396 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/run-cli-scan.js">run-cli-scan.js</span>
+        <span class="node-meta">(2.1 KB, 60 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="archive/sample-clearance-pdf.html">sample-clearance-pdf.html</span>
+        <span class="node-meta">(27.6 KB, 449 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/scan-directory.js">scan-directory.js</span>
+        <span class="node-meta">(11.1 KB, 213 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/scripts-roadmap.json">scripts-roadmap.json</span>
+        <span class="node-meta">(16.6 KB, 96 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="archive/services">services</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="archive/services/certificate-generator.cjs">certificate-generator.cjs</span>
+        <span class="node-meta">(10.2 KB, 225 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/simplebeacon-frameworkless-roadmap.json">simplebeacon-frameworkless-roadmap.json</span>
+        <span class="node-meta">(2.3 KB, 91 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/simplebeacon-platform-gate.json">simplebeacon-platform-gate.json</span>
+        <span class="node-meta">(3.5 KB, 120 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/simplebeacon-platform-roadmap.json">simplebeacon-platform-roadmap.json</span>
+        <span class="node-meta">(1.9 KB, 74 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/src-roadmap.json">src-roadmap.json</span>
+        <span class="node-meta">(2.1 KB, 83 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/subscriptions.json">subscriptions.json</span>
+        <span class="node-meta">(2 B, 1 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/test-all-patterns.js">test-all-patterns.js</span>
+        <span class="node-meta">(14.3 KB, 339 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/test-certificate.js">test-certificate.js</span>
+        <span class="node-meta">(2.5 KB, 57 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/test-generate-roadmap.js">test-generate-roadmap.js</span>
+        <span class="node-meta">(14.2 KB, 202 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/test-normalize.js">test-normalize.js</span>
+        <span class="node-meta">(9.7 KB, 168 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/test-renderPreview.js">test-renderPreview.js</span>
+        <span class="node-meta">(7.9 KB, 142 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/test-report.json">test-report.json</span>
+        <span class="node-meta">(4.3 KB, 109 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/test-roadmap.js">test-roadmap.js</span>
+        <span class="node-meta">(885 B, 16 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="archive/test-roadmap.json">test-roadmap.json</span>
+        <span class="node-meta">(1.9 KB, 70 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/test-technical-audit.js">test-technical-audit.js</span>
+        <span class="node-meta">(17.3 KB, 356 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="archive/test-zip-data.js">test-zip-data.js</span>
+        <span class="node-meta">(3.8 KB, 91 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="audit.html">audit.html</span>
+        <span class="node-meta">(118.8 KB, 1672 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="AUTOPILOT_ROADMAP.md">AUTOPILOT_ROADMAP.md</span>
+        <span class="node-meta">(12.1 KB, 395 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="blog">blog</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="blog/case-study-ai-slop-1-25m.html">case-study-ai-slop-1-25m.html</span>
+        <span class="node-meta">(11.1 KB, 210 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="build-hash.json">build-hash.json</span>
+        <span class="node-meta">(32 B, 4 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="build-public.js">build-public.js</span>
+        <span class="node-meta">(1.7 KB, 58 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="CERTIFICATE-REMEDIATION-PLAN.md">CERTIFICATE-REMEDIATION-PLAN.md</span>
+        <span class="node-meta">(9.4 KB, 275 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="certificate-upload.html">certificate-upload.html</span>
+        <span class="node-meta">(57.1 KB, 1279 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="CHANGELOG.md">CHANGELOG.md</span>
+        <span class="node-meta">(413 B, 15 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="check-sidebar.js">check-sidebar.js</span>
+        <span class="node-meta">(590 B, 18 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="cloud-scan.html">cloud-scan.html</span>
+        <span class="node-meta">(18.1 KB, 362 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="cloud-teams.html">cloud-teams.html</span>
+        <span class="node-meta">(1.8 KB, 34 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="CLOUDFLARE-DEPLOYMENT-PLAN.md">CLOUDFLARE-DEPLOYMENT-PLAN.md</span>
+        <span class="node-meta">(12.0 KB, 350 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="CODE_OF_CONDUCT.md">CODE_OF_CONDUCT.md</span>
+        <span class="node-meta">(1.3 KB, 38 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="coming-soon.log">coming-soon.log</span>
+        <span class="node-meta">(646 B, 8 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="community.html">community.html</span>
+        <span class="node-meta">(10.0 KB, 161 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="conformity-declaration.md">conformity-declaration.md</span>
+        <span class="node-meta">(2.4 KB, 67 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="contact.html">contact.html</span>
+        <span class="node-meta">(12.1 KB, 195 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="contact.js">contact.js</span>
+        <span class="node-meta">(15.7 KB, 368 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="content">content</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="content/case-study-ai-slop-1-25m.md">case-study-ai-slop-1-25m.md</span>
+        <span class="node-meta">(5.3 KB, 130 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="content/demo-gif-script.md">demo-gif-script.md</span>
+        <span class="node-meta">(5.0 KB, 142 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="content/email-tracking.csv">email-tracking.csv</span>
+        <span class="node-meta">(8.4 KB, 45 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="content/outreach-prospects.js">outreach-prospects.js</span>
+        <span class="node-meta">(14.7 KB, 83 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="content/social-posts.md">social-posts.md</span>
+        <span class="node-meta">(9.5 KB, 270 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="content/touch1-email-script.md">touch1-email-script.md</span>
+        <span class="node-meta">(6.6 KB, 199 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="content/week4-iterate-checklist.md">week4-iterate-checklist.md</span>
+        <span class="node-meta">(7.7 KB, 255 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="CONTRIBUTING.md">CONTRIBUTING.md</span>
+        <span class="node-meta">(577 B, 24 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="cross-reference-report.md">cross-reference-report.md</span>
+        <span class="node-meta">(13.5 KB, 295 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="cs-log.txt">cs-log.txt</span>
+        <span class="node-meta">(159 B, 2 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="cs-out.txt">cs-out.txt</span>
+        <span class="node-meta">(671 B, 9 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="cs.txt">cs.txt</span>
+        <span class="node-meta">(671 B, 9 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="css">css</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#563d7c">🎨</span>
+        <span class="node-name" title="css/dashboard.css">dashboard.css</span>
+        <span class="node-meta">(60.8 KB, 2418 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#563d7c">🎨</span>
+        <span class="node-name" title="css/roadmap.css">roadmap.css</span>
+        <span class="node-meta">(21.3 KB, 201 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="dashboard-preview.html">dashboard-preview.html</span>
+        <span class="node-meta">(9.7 KB, 163 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="Dockerfile">Dockerfile</span>
+        <span class="node-meta">(442 B, 21 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="downloads">downloads</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="downloads/ai-readiness-audit-checklist.md">ai-readiness-audit-checklist.md</span>
+        <span class="node-meta">(4.5 KB, 115 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="email-template-preview.html">email-template-preview.html</span>
+        <span class="node-meta">(14.1 KB, 422 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="email-template-redesign.html">email-template-redesign.html</span>
+        <span class="node-meta">(14.1 KB, 422 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="email-template-universal.html">email-template-universal.html</span>
+        <span class="node-meta">(9.1 KB, 307 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="err.txt">err.txt</span>
+        <span class="node-meta">(155 B, 2 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="EU_AI_ACT_SPRINT_IMPLEMENTATION_PLAN.md">EU_AI_ACT_SPRINT_IMPLEMENTATION_PLAN.md</span>
+        <span class="node-meta">(10.5 KB, 249 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="faq.html">faq.html</span>
+        <span class="node-meta">(3.1 KB, 63 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="github-issue-consistency.md">github-issue-consistency.md</span>
+        <span class="node-meta">(515 B, 21 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="github-issue-vulns.md">github-issue-vulns.md</span>
+        <span class="node-meta">(421 B, 20 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="github-issues-ai_agent.md">github-issues-ai_agent.md</span>
+        <span class="node-meta">(18.2 KB, 782 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="index.html">index.html</span>
+        <span class="node-meta">(29.8 KB, 829 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="jira-ai_agent.csv">jira-ai_agent.csv</span>
+        <span class="node-meta">(7.7 KB, 43 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="jira-row-consistency.csv">jira-row-consistency.csv</span>
+        <span class="node-meta">(239 B, 2 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="jira-row-vulns.csv">jira-row-vulns.csv</span>
+        <span class="node-meta">(209 B, 2 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="js">js</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="js/dashboard">dashboard</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/certificate-module.js">certificate-module.js</span>
+        <span class="node-meta">(70.9 KB, 949 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/main.js">main.js</span>
+        <span class="node-meta">(183.0 KB, 3381 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/pattern-documentation.js">pattern-documentation.js</span>
+        <span class="node-meta">(18.7 KB, 395 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/phase-registry.js">phase-registry.js</span>
+        <span class="node-meta">(10.2 KB, 153 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/quick-actions.js">quick-actions.js</span>
+        <span class="node-meta">(12.4 KB, 317 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/scanner-engine.js">scanner-engine.js</span>
+        <span class="node-meta">(228.2 KB, 3078 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/scanner-patterns.js">scanner-patterns.js</span>
+        <span class="node-meta">(89.2 KB, 1464 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/token-file-system.js">token-file-system.js</span>
+        <span class="node-meta">(14.4 KB, 350 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/token-manager.js">token-manager.js</span>
+        <span class="node-meta">(26.6 KB, 478 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/ui-renderer.js">ui-renderer.js</span>
+        <span class="node-meta">(87.2 KB, 861 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/usb-token-manager.js">usb-token-manager.js</span>
+        <span class="node-meta">(13.1 KB, 404 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/dashboard/utils.js">utils.js</span>
+        <span class="node-meta">(2.0 KB, 63 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/scan-utils.js">scan-utils.js</span>
+        <span class="node-meta">(5.8 KB, 172 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/scan-worker.js">scan-worker.js</span>
+        <span class="node-meta">(9.7 KB, 272 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="js/vendor">vendor</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/vendor/html2canvas.min.js">html2canvas.min.js</span>
+        <span class="node-meta">(194.0 KB, 20 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js/vendor/jszip.min.js">jszip.min.js</span>
+        <span class="node-meta">(95.3 KB, 13 lines)</span>
+      </div></div></div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="js-es2018">js-es2018</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="js-es2018/dashboard">dashboard</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/certificate-module.js">certificate-module.js</span>
+        <span class="node-meta">(70.8 KB, 939 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/main.js">main.js</span>
+        <span class="node-meta">(188.0 KB, 3576 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/pattern-documentation.js">pattern-documentation.js</span>
+        <span class="node-meta">(18.7 KB, 379 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/phase-registry.js">phase-registry.js</span>
+        <span class="node-meta">(13.2 KB, 164 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/quick-actions.js">quick-actions.js</span>
+        <span class="node-meta">(12.3 KB, 301 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/scanner-engine.js">scanner-engine.js</span>
+        <span class="node-meta">(238.2 KB, 3244 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/scanner-patterns.js">scanner-patterns.js</span>
+        <span class="node-meta">(89.3 KB, 1591 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/token-file-system.js">token-file-system.js</span>
+        <span class="node-meta">(16.1 KB, 343 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/token-manager.js">token-manager.js</span>
+        <span class="node-meta">(27.2 KB, 486 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/ui-renderer.js">ui-renderer.js</span>
+        <span class="node-meta">(89.2 KB, 816 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/usb-token-manager.js">usb-token-manager.js</span>
+        <span class="node-meta">(15.5 KB, 371 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/dashboard/utils.js">utils.js</span>
+        <span class="node-meta">(2.0 KB, 58 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/scan-utils.js">scan-utils.js</span>
+        <span class="node-meta">(5.8 KB, 164 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="js-es2018/scan-worker.js">scan-worker.js</span>
+        <span class="node-meta">(9.5 KB, 263 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="landing.html">landing.html</span>
+        <span class="node-meta">(6.7 KB, 183 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="lib">lib</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="lib/account-store.cjs">account-store.cjs</span>
+        <span class="node-meta">(15.7 KB, 484 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="lib/admin-token.cjs">admin-token.cjs</span>
+        <span class="node-meta">(2.9 KB, 106 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="lib/certificate-utils.cjs">certificate-utils.cjs</span>
+        <span class="node-meta">(53.5 KB, 793 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="lib/db.cjs">db.cjs</span>
+        <span class="node-meta">(6.9 KB, 187 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="lib/license-utils.cjs">license-utils.cjs</span>
+        <span class="node-meta">(856 B, 31 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="lib/plans.cjs">plans.cjs</span>
+        <span class="node-meta">(6.2 KB, 170 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="lib/system-logger.cjs">system-logger.cjs</span>
+        <span class="node-meta">(3.4 KB, 130 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="lib/time-tokens.cjs">time-tokens.cjs</span>
+        <span class="node-meta">(4.0 KB, 132 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="lib/token-chain-store.cjs">token-chain-store.cjs</span>
+        <span class="node-meta">(6.7 KB, 226 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="lib/token-chain-utils.cjs">token-chain-utils.cjs</span>
+        <span class="node-meta">(3.3 KB, 114 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="LICENSE">LICENSE</span>
+        <span class="node-meta">(1.0 KB, 22 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="logs">logs</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="logs/audit.log">audit.log</span>
+        <span class="node-meta">(36.1 KB, 81 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="model-card.md">model-card.md</span>
+        <span class="node-meta">(2.2 KB, 66 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="netlify.toml">netlify.toml</span>
+        <span class="node-meta">(101 B, 5 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="out.txt">out.txt</span>
+        <span class="node-meta">(1.0 KB, 31 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="package-lock.json">package-lock.json</span>
+        <span class="node-meta">(64.3 KB, 1913 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="package.json">package.json</span>
+        <span class="node-meta">(784 B, 32 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">🔲</span>
+        <span class="node-name" title="pre-commit-hook.ps1">pre-commit-hook.ps1</span>
+        <span class="node-meta">(1.3 KB, 40 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">🔲</span>
+        <span class="node-name" title="pre-commit-hook.sh">pre-commit-hook.sh</span>
+        <span class="node-meta">(1.1 KB, 40 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="pricing.html">pricing.html</span>
+        <span class="node-meta">(86.5 KB, 1347 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="privacy.html">privacy.html</span>
+        <span class="node-meta">(6.6 KB, 106 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="public">public</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/app-links.js">app-links.js</span>
+        <span class="node-meta">(7.4 KB, 204 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/audit.html">audit.html</span>
+        <span class="node-meta">(110.3 KB, 1549 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="public/blog">blog</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/blog/case-study-ai-slop-1-25m.html">case-study-ai-slop-1-25m.html</span>
+        <span class="node-meta">(11.1 KB, 210 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/certificate-upload.html">certificate-upload.html</span>
+        <span class="node-meta">(57.3 KB, 1283 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/cloud-scan.html">cloud-scan.html</span>
+        <span class="node-meta">(18.1 KB, 362 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/community.html">community.html</span>
+        <span class="node-meta">(10.0 KB, 161 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/contact.html">contact.html</span>
+        <span class="node-meta">(12.1 KB, 195 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/contact.js">contact.js</span>
+        <span class="node-meta">(15.7 KB, 368 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="public/content">content</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="public/content/case-study-ai-slop-1-25m.md">case-study-ai-slop-1-25m.md</span>
+        <span class="node-meta">(5.3 KB, 130 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="public/content/demo-gif-script.md">demo-gif-script.md</span>
+        <span class="node-meta">(5.0 KB, 142 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="public/content/email-tracking.csv">email-tracking.csv</span>
+        <span class="node-meta">(8.4 KB, 45 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/content/outreach-prospects.js">outreach-prospects.js</span>
+        <span class="node-meta">(14.7 KB, 83 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="public/content/social-posts.md">social-posts.md</span>
+        <span class="node-meta">(9.5 KB, 270 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="public/content/touch1-email-script.md">touch1-email-script.md</span>
+        <span class="node-meta">(6.6 KB, 199 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="public/content/week4-iterate-checklist.md">week4-iterate-checklist.md</span>
+        <span class="node-meta">(7.7 KB, 255 lines)</span>
+      </div></div><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="public/css">css</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#563d7c">🎨</span>
+        <span class="node-name" title="public/css/dashboard.css">dashboard.css</span>
+        <span class="node-meta">(60.8 KB, 2418 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#563d7c">🎨</span>
+        <span class="node-name" title="public/css/roadmap.css">roadmap.css</span>
+        <span class="node-meta">(21.3 KB, 201 lines)</span>
+      </div></div><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="public/data">data</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="public/data/re-attestation-metadata.json">re-attestation-metadata.json</span>
+        <span class="node-meta">(133 B, 8 lines)</span>
+      </div></div><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="public/downloads">downloads</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="public/downloads/ai-readiness-audit-checklist.md">ai-readiness-audit-checklist.md</span>
+        <span class="node-meta">(4.5 KB, 115 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/email-template-universal.html">email-template-universal.html</span>
+        <span class="node-meta">(9.1 KB, 307 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/faq.html">faq.html</span>
+        <span class="node-meta">(3.1 KB, 63 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/index.html">index.html</span>
+        <span class="node-meta">(31.4 KB, 862 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:40px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="public/js">js</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="dir" style="padding-left:60px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="public/js/dashboard">dashboard</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/certificate-module.js">certificate-module.js</span>
+        <span class="node-meta">(70.8 KB, 948 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/main.js">main.js</span>
+        <span class="node-meta">(173.4 KB, 3176 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/pattern-documentation.js">pattern-documentation.js</span>
+        <span class="node-meta">(18.7 KB, 395 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/phase-registry.js">phase-registry.js</span>
+        <span class="node-meta">(10.2 KB, 153 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/quick-actions.js">quick-actions.js</span>
+        <span class="node-meta">(12.4 KB, 317 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/scanner-engine.js">scanner-engine.js</span>
+        <span class="node-meta">(226.0 KB, 3067 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/scanner-patterns.js">scanner-patterns.js</span>
+        <span class="node-meta">(70.0 KB, 1121 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/token-file-system.js">token-file-system.js</span>
+        <span class="node-meta">(14.4 KB, 350 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/token-manager.js">token-manager.js</span>
+        <span class="node-meta">(26.6 KB, 478 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/ui-renderer.js">ui-renderer.js</span>
+        <span class="node-meta">(87.1 KB, 859 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/usb-token-manager.js">usb-token-manager.js</span>
+        <span class="node-meta">(13.1 KB, 404 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/dashboard/utils.js">utils.js</span>
+        <span class="node-meta">(2.0 KB, 63 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:60px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/scan-utils.js">scan-utils.js</span>
+        <span class="node-meta">(5.8 KB, 172 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:60px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="public/js/vendor">vendor</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/vendor/html2canvas.min.js">html2canvas.min.js</span>
+        <span class="node-meta">(194.0 KB, 20 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:80px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/js/vendor/jszip.min.js">jszip.min.js</span>
+        <span class="node-meta">(95.3 KB, 13 lines)</span>
+      </div></div></div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/landing.html">landing.html</span>
+        <span class="node-meta">(6.7 KB, 183 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/pricing.html">pricing.html</span>
+        <span class="node-meta">(86.5 KB, 1347 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/privacy.html">privacy.html</span>
+        <span class="node-meta">(6.6 KB, 106 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/refund.html">refund.html</span>
+        <span class="node-meta">(8.6 KB, 112 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/roadmap.html">roadmap.html</span>
+        <span class="node-meta">(146.3 KB, 2223 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="public/robots.txt">robots.txt</span>
+        <span class="node-meta">(69 B, 5 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/sample-certificate.html">sample-certificate.html</span>
+        <span class="node-meta">(10.5 KB, 309 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/security.html">security.html</span>
+        <span class="node-meta">(2.6 KB, 61 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="public/site-config.js">site-config.js</span>
+        <span class="node-meta">(17.8 KB, 282 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="public/sitemap.xml">sitemap.xml</span>
+        <span class="node-meta">(1.4 KB, 54 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#563d7c">🎨</span>
+        <span class="node-name" title="public/styles.css">styles.css</span>
+        <span class="node-meta">(46.3 KB, 2581 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/terms.html">terms.html</span>
+        <span class="node-meta">(6.9 KB, 106 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="public/unlock.html">unlock.html</span>
+        <span class="node-meta">(3.3 KB, 82 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="README.md">README.md</span>
+        <span class="node-meta">(1008 B, 37 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="refund.html">refund.html</span>
+        <span class="node-meta">(8.6 KB, 112 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="risk-assessment.md">risk-assessment.md</span>
+        <span class="node-meta">(5.2 KB, 119 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="roadmap.html">roadmap.html</span>
+        <span class="node-meta">(146.3 KB, 2223 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="robots.txt">robots.txt</span>
+        <span class="node-meta">(69 B, 5 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="routes">routes</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="routes/admin.cjs">admin.cjs</span>
+        <span class="node-meta">(13.1 KB, 321 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="routes/certificates.cjs">certificates.cjs</span>
+        <span class="node-meta">(15.6 KB, 299 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="routes/checkout.cjs">checkout.cjs</span>
+        <span class="node-meta">(24.7 KB, 436 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="routes/free-token.cjs">free-token.cjs</span>
+        <span class="node-meta">(6.1 KB, 155 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="routes/subscriptions-billing.cjs">subscriptions-billing.cjs</span>
+        <span class="node-meta">(15.7 KB, 340 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="routes/subscriptions.cjs">subscriptions.cjs</span>
+        <span class="node-meta">(1.5 KB, 47 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="routes/token-chain.cjs">token-chain.cjs</span>
+        <span class="node-meta">(6.1 KB, 186 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="routes/token-validate.cjs">token-validate.cjs</span>
+        <span class="node-meta">(1.5 KB, 47 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="sample-certificate.html">sample-certificate.html</span>
+        <span class="node-meta">(10.5 KB, 309 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="scan-output.txt">scan-output.txt</span>
+        <span class="node-meta">(995 B, 30 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="security.html">security.html</span>
+        <span class="node-meta">(2.6 KB, 61 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="SECURITY.md">SECURITY.md</span>
+        <span class="node-meta">(894 B, 26 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="server-output.txt">server-output.txt</span>
+        <span class="node-meta">(783 B, 19 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="server-restart.log">server-restart.log</span>
+        <span class="node-meta">(78.9 KB, 631 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="server.cjs">server.cjs</span>
+        <span class="node-meta">(47.6 KB, 1002 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="server.log">server.log</span>
+        <span class="node-meta">(616 B, 9 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="services">services</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="services/email.cjs">email.cjs</span>
+        <span class="node-meta">(3.9 KB, 94 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="site-config.js">site-config.js</span>
+        <span class="node-meta">(17.9 KB, 283 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="sitemap.xml">sitemap.xml</span>
+        <span class="node-meta">(1.4 KB, 54 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">🔲</span>
+        <span class="node-name" title="start-server.bat">start-server.bat</span>
+        <span class="node-meta">(371 B, 13 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">🔲</span>
+        <span class="node-name" title="stop-server.bat">stop-server.bat</span>
+        <span class="node-meta">(401 B, 13 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#563d7c">🎨</span>
+        <span class="node-name" title="styles.css">styles.css</span>
+        <span class="node-meta">(46.3 KB, 2581 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="technical-documentation.md">technical-documentation.md</span>
+        <span class="node-meta">(5.1 KB, 110 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="terminal-walkthrough.html">terminal-walkthrough.html</span>
+        <span class="node-meta">(14.1 KB, 434 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="terms.html">terms.html</span>
+        <span class="node-meta">(6.9 KB, 106 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="test">test</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="test/db.test.cjs">db.test.cjs</span>
+        <span class="node-meta">(2.4 KB, 75 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="test/payment-workflow-v2.test.cjs">payment-workflow-v2.test.cjs</span>
+        <span class="node-meta">(14.3 KB, 308 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="test/payment-workflow.test.cjs">payment-workflow.test.cjs</span>
+        <span class="node-meta">(13.9 KB, 352 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="test/scan-utils.test.cjs">scan-utils.test.cjs</span>
+        <span class="node-meta">(2.0 KB, 56 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f0db4f">📜</span>
+        <span class="node-name" title="test/token-chain.test.cjs">token-chain.test.cjs</span>
+        <span class="node-meta">(4.9 KB, 123 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="test-audit-output.txt">test-audit-output.txt</span>
+        <span class="node-meta">(4.0 KB, 55 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="test-audit-output2.txt">test-audit-output2.txt</span>
+        <span class="node-meta">(3.7 KB, 61 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="test-audit-report.json">test-audit-report.json</span>
+        <span class="node-meta">(1.3 KB, 51 lines)</span>
+      </div><div class="tree-node" data-type="dir" style="padding-left:20px">
+        <span class="toggle">&#x25B6;</span><span class="node-icon" style="color:">📁</span>
+        <span class="node-name" title="tests">tests</span>
+        <span class="node-meta"></span>
+      </div><div class="tree-children collapsed"><div class="tree-node" data-type="file" style="padding-left:40px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="tests/dashboard.test.js">dashboard.test.js</span>
+        <span class="node-meta">(12.6 KB, 256 lines)</span>
+      </div></div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="trello-ai_agent-1780863316487.json">trello-ai_agent-1780863316487.json</span>
+        <span class="node-meta">(13.0 KB, 592 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="trello-board-ai_agent-full.json">trello-board-ai_agent-full.json</span>
+        <span class="node-meta">(13.1 KB, 117 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="trello-board-ai_agent-v2.json">trello-board-ai_agent-v2.json</span>
+        <span class="node-meta">(11.0 KB, 105 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="trello-board-ai_agent.json">trello-board-ai_agent.json</span>
+        <span class="node-meta">(15.8 KB, 592 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="trello-card-consistency.json">trello-card-consistency.json</span>
+        <span class="node-meta">(1001 B, 41 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="trello-card-vulns.json">trello-card-vulns.json</span>
+        <span class="node-meta">(794 B, 35 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="trello-export-1780859087255.json">trello-export-1780859087255.json</span>
+        <span class="node-meta">(24.2 KB, 934 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="trello-export-ai_agent-1780863207806.json">trello-export-ai_agent-1780863207806.json</span>
+        <span class="node-meta">(6.2 KB, 290 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="trello-roadmap-export.js">trello-roadmap-export.js</span>
+        <span class="node-meta">(8.2 KB, 266 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="tsconfig.dashboard.json">tsconfig.dashboard.json</span>
+        <span class="node-meta">(368 B, 18 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="tsconfig.json">tsconfig.json</span>
+        <span class="node-meta">(683 B, 36 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="unlock.html">unlock.html</span>
+        <span class="node-meta">(3.3 KB, 82 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#083fa1">📝</span>
+        <span class="node-name" title="UNUSED_DEPENDENCIES_AUDIT.md">UNUSED_DEPENDENCIES_AUDIT.md</span>
+        <span class="node-meta">(7.0 KB, 186 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="update-cache.js">update-cache.js</span>
+        <span class="node-meta">(564 B, 20 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="upload-bundle.zip">upload-bundle.zip</span>
+        <span class="node-meta">(4.0 MB, 15349 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#64748b">📄</span>
+        <span class="node-name" title="upload-file-list.txt">upload-file-list.txt</span>
+        <span class="node-meta">(55.0 KB, 1201 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#292929">📋</span>
+        <span class="node-name" title="vscode-extension-roadmap.json">vscode-extension-roadmap.json</span>
+        <span class="node-meta">(8.7 KB, 269 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#e34c26">🌐</span>
+        <span class="node-name" title="walkthrough-embed.html">walkthrough-embed.html</span>
+        <span class="node-meta">(3.7 KB, 145 lines)</span>
+      </div><div class="tree-node" data-type="file" style="padding-left:20px">
+        <span class="toggle-spacer"></span><span class="node-icon" style="color:#f7df1e">📜</span>
+        <span class="node-name" title="zip-for-upload.js">zip-for-upload.js</span>
+        <span class="node-meta">(3.5 KB, 139 lines)</span>
+      </div></div></div>
+</div>
+<div class="main">
+  <h2>Dependency Graph</h2>
+  <div class="card">
+    <div class="graph-wrap">
+      <canvas id="graphCanvas"></canvas>
+      <div class="graph-controls">
+        <button id="zoomInBtn" title="Zoom In">+</button>
+        <button id="zoomOutBtn" title="Zoom Out">−</button>
+        <button id="resetViewBtn" title="Reset View">⌂</button>
+      </div>
+      <div class="graph-legend">
+        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#f7df1e"></div>.js</div>
+        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#3178c6"></div>.ts/.tsx</div>
+        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#f0db4f"></div>.cjs/.mjs</div>
+        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#3776ab"></div>.py</div>
+        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#64748b"></div>Other</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card"><h3>Dependency Analysis</h3>
+    <div class="dep-stat-grid" id="depStats"></div>
+  </div>
+
+  <div class="card"><h3>Languages</h3>
+    <div class="lang-grid">
+    <div class="lang-item"><div class="lang-icon" style="color:#f7df1e">📜</div><div class="lang-name">.js</div><div class="lang-count">75</div></div>
+  
+    <div class="lang-item"><div class="lang-icon" style="color:#e34c26">🌐</div><div class="lang-name">.html</div><div class="lang-count">53</div></div>
+  
+    <div class="lang-item"><div class="lang-icon" style="color:#083fa1">📝</div><div class="lang-name">.md</div><div class="lang-count">32</div></div>
+  
+    <div class="lang-item"><div class="lang-icon" style="color:#292929">📋</div><div class="lang-name">.json</div><div class="lang-count">30</div></div>
+  
+    <div class="lang-item"><div class="lang-icon" style="color:#f0db4f">📜</div><div class="lang-name">.cjs</div><div class="lang-count">29</div></div>
+  
+    <div class="lang-item"><div class="lang-icon" style="color:#64748b">📄</div><div class="lang-name">.txt</div><div class="lang-count">14</div></div>
+  
+    <div class="lang-item"><div class="lang-icon" style="color:#563d7c">🎨</div><div class="lang-name">.css</div><div class="lang-count">6</div></div>
+  
+    <div class="lang-item"><div class="lang-icon" style="color:#64748b">📄</div><div class="lang-name">.csv</div><div class="lang-count">5</div></div>
+  </div>
+  </div>
+  <div class="card"><h3>Language Breakdown</h3><div class="ext-bar" style="background:#f7df1e;width:29%">.js 75 (29%)</div><div class="ext-bar" style="background:#e34c26;width:20%">.html 53 (20%)</div><div class="ext-bar" style="background:#083fa1;width:12%">.md 32 (12%)</div><div class="ext-bar" style="background:#292929;width:12%">.json 30 (12%)</div><div class="ext-bar" style="background:#f0db4f;width:11%">.cjs 29 (11%)</div><div class="ext-bar" style="background:#64748b;width:5%">.txt 14 (5%)</div><div class="ext-bar" style="background:#563d7c;width:3%">.css 6 (2%)</div><div class="ext-bar" style="background:#64748b;width:3%">.csv 5 (2%)</div></div>
+</div>
+<script type="application/json" id="graphData">{"nodes":[{"id":"analyze-directory.js","label":"analyze-directory.js","group":".js","size":205},{"id":"analyze-report.cjs","label":"analyze-report.cjs","group":".cjs","size":140},{"id":"app-links.js","label":"app-links.js","group":".js","size":204},{"id":"archive/count-all-files.js","label":"count-all-files.js","group":".js","size":59},{"id":"archive/count-files.js","label":"count-files.js","group":".js","size":69},{"id":"archive/generate-account-token.js","label":"generate-account-token.js","group":".js","size":70},{"id":"archive/generate-token.js","label":"generate-token.js","group":".js","size":36},{"id":"archive/js/scan-worker.js","label":"scan-worker.js","group":".js","size":248},{"id":"archive/lib/account-types.cjs","label":"account-types.cjs","group":".cjs","size":94},{"id":"archive/local-scanner-bridge.cjs","label":"local-scanner-bridge.cjs","group":".cjs","size":581},{"id":"archive/run-cli-scan.js","label":"run-cli-scan.js","group":".js","size":60},{"id":"archive/scan-directory.js","label":"scan-directory.js","group":".js","size":213},{"id":"archive/services/certificate-generator.cjs","label":"certificate-generator.cjs","group":".cjs","size":225},{"id":"archive/test-all-patterns.js","label":"test-all-patterns.js","group":".js","size":339},{"id":"archive/test-certificate.js","label":"test-certificate.js","group":".js","size":57},{"id":"archive/test-generate-roadmap.js","label":"test-generate-roadmap.js","group":".js","size":202},{"id":"archive/test-normalize.js","label":"test-normalize.js","group":".js","size":168},{"id":"archive/test-renderPreview.js","label":"test-renderPreview.js","group":".js","size":142},{"id":"archive/test-roadmap.js","label":"test-roadmap.js","group":".js","size":16},{"id":"archive/test-technical-audit.js","label":"test-technical-audit.js","group":".js","size":356},{"id":"archive/test-zip-data.js","label":"test-zip-data.js","group":".js","size":91},{"id":"build-public.js","label":"build-public.js","group":".js","size":58},{"id":"check-sidebar.js","label":"check-sidebar.js","group":".js","size":18},{"id":"contact.js","label":"contact.js","group":".js","size":368},{"id":"content/outreach-prospects.js","label":"outreach-prospects.js","group":".js","size":83},{"id":"js/dashboard/certificate-module.js","label":"certificate-module.js","group":".js","size":949},{"id":"js/dashboard/main.js","label":"main.js","group":".js","size":3381},{"id":"js/dashboard/pattern-documentation.js","label":"pattern-documentation.js","group":".js","size":395},{"id":"js/dashboard/phase-registry.js","label":"phase-registry.js","group":".js","size":153},{"id":"js/dashboard/quick-actions.js","label":"quick-actions.js","group":".js","size":317},{"id":"js/dashboard/scanner-engine.js","label":"scanner-engine.js","group":".js","size":3078},{"id":"js/dashboard/scanner-patterns.js","label":"scanner-patterns.js","group":".js","size":1464},{"id":"js/dashboard/token-file-system.js","label":"token-file-system.js","group":".js","size":350},{"id":"js/dashboard/token-manager.js","label":"token-manager.js","group":".js","size":478},{"id":"js/dashboard/ui-renderer.js","label":"ui-renderer.js","group":".js","size":861},{"id":"js/dashboard/usb-token-manager.js","label":"usb-token-manager.js","group":".js","size":404},{"id":"js/dashboard/utils.js","label":"utils.js","group":".js","size":63},{"id":"js/scan-utils.js","label":"scan-utils.js","group":".js","size":172},{"id":"js/scan-worker.js","label":"scan-worker.js","group":".js","size":272},{"id":"js/vendor/html2canvas.min.js","label":"html2canvas.min.js","group":".js","size":20},{"id":"js/vendor/jszip.min.js","label":"jszip.min.js","group":".js","size":13},{"id":"js-es2018/dashboard/certificate-module.js","label":"certificate-module.js","group":".js","size":939},{"id":"js-es2018/dashboard/main.js","label":"main.js","group":".js","size":3576},{"id":"js-es2018/dashboard/pattern-documentation.js","label":"pattern-documentation.js","group":".js","size":379},{"id":"js-es2018/dashboard/phase-registry.js","label":"phase-registry.js","group":".js","size":164},{"id":"js-es2018/dashboard/quick-actions.js","label":"quick-actions.js","group":".js","size":301},{"id":"js-es2018/dashboard/scanner-engine.js","label":"scanner-engine.js","group":".js","size":3244},{"id":"js-es2018/dashboard/scanner-patterns.js","label":"scanner-patterns.js","group":".js","size":1591},{"id":"js-es2018/dashboard/token-file-system.js","label":"token-file-system.js","group":".js","size":343},{"id":"js-es2018/dashboard/token-manager.js","label":"token-manager.js","group":".js","size":486},{"id":"js-es2018/dashboard/ui-renderer.js","label":"ui-renderer.js","group":".js","size":816},{"id":"js-es2018/dashboard/usb-token-manager.js","label":"usb-token-manager.js","group":".js","size":371},{"id":"js-es2018/dashboard/utils.js","label":"utils.js","group":".js","size":58},{"id":"js-es2018/scan-utils.js","label":"scan-utils.js","group":".js","size":164},{"id":"js-es2018/scan-worker.js","label":"scan-worker.js","group":".js","size":263},{"id":"lib/account-store.cjs","label":"account-store.cjs","group":".cjs","size":484},{"id":"lib/admin-token.cjs","label":"admin-token.cjs","group":".cjs","size":106},{"id":"lib/certificate-utils.cjs","label":"certificate-utils.cjs","group":".cjs","size":793},{"id":"lib/db.cjs","label":"db.cjs","group":".cjs","size":187},{"id":"lib/license-utils.cjs","label":"license-utils.cjs","group":".cjs","size":31},{"id":"lib/plans.cjs","label":"plans.cjs","group":".cjs","size":170},{"id":"lib/system-logger.cjs","label":"system-logger.cjs","group":".cjs","size":130},{"id":"lib/time-tokens.cjs","label":"time-tokens.cjs","group":".cjs","size":132},{"id":"lib/token-chain-store.cjs","label":"token-chain-store.cjs","group":".cjs","size":226},{"id":"lib/token-chain-utils.cjs","label":"token-chain-utils.cjs","group":".cjs","size":114},{"id":"public/app-links.js","label":"app-links.js","group":".js","size":204},{"id":"public/contact.js","label":"contact.js","group":".js","size":368},{"id":"public/content/outreach-prospects.js","label":"outreach-prospects.js","group":".js","size":83},{"id":"public/js/dashboard/certificate-module.js","label":"certificate-module.js","group":".js","size":948},{"id":"public/js/dashboard/main.js","label":"main.js","group":".js","size":3176},{"id":"public/js/dashboard/pattern-documentation.js","label":"pattern-documentation.js","group":".js","size":395},{"id":"public/js/dashboard/phase-registry.js","label":"phase-registry.js","group":".js","size":153},{"id":"public/js/dashboard/quick-actions.js","label":"quick-actions.js","group":".js","size":317},{"id":"public/js/dashboard/scanner-engine.js","label":"scanner-engine.js","group":".js","size":3067},{"id":"public/js/dashboard/scanner-patterns.js","label":"scanner-patterns.js","group":".js","size":1121},{"id":"public/js/dashboard/token-file-system.js","label":"token-file-system.js","group":".js","size":350},{"id":"public/js/dashboard/token-manager.js","label":"token-manager.js","group":".js","size":478},{"id":"public/js/dashboard/ui-renderer.js","label":"ui-renderer.js","group":".js","size":859},{"id":"public/js/dashboard/usb-token-manager.js","label":"usb-token-manager.js","group":".js","size":404},{"id":"public/js/dashboard/utils.js","label":"utils.js","group":".js","size":63},{"id":"public/js/scan-utils.js","label":"scan-utils.js","group":".js","size":172},{"id":"public/js/vendor/html2canvas.min.js","label":"html2canvas.min.js","group":".js","size":20},{"id":"public/js/vendor/jszip.min.js","label":"jszip.min.js","group":".js","size":13},{"id":"public/site-config.js","label":"site-config.js","group":".js","size":282},{"id":"routes/admin.cjs","label":"admin.cjs","group":".cjs","size":321},{"id":"routes/certificates.cjs","label":"certificates.cjs","group":".cjs","size":299},{"id":"routes/checkout.cjs","label":"checkout.cjs","group":".cjs","size":436},{"id":"routes/free-token.cjs","label":"free-token.cjs","group":".cjs","size":155},{"id":"routes/subscriptions-billing.cjs","label":"subscriptions-billing.cjs","group":".cjs","size":340},{"id":"routes/subscriptions.cjs","label":"subscriptions.cjs","group":".cjs","size":47},{"id":"routes/token-chain.cjs","label":"token-chain.cjs","group":".cjs","size":186},{"id":"routes/token-validate.cjs","label":"token-validate.cjs","group":".cjs","size":47},{"id":"server.cjs","label":"server.cjs","group":".cjs","size":1002},{"id":"services/email.cjs","label":"email.cjs","group":".cjs","size":94},{"id":"site-config.js","label":"site-config.js","group":".js","size":283},{"id":"test/db.test.cjs","label":"db.test.cjs","group":".cjs","size":75},{"id":"test/payment-workflow-v2.test.cjs","label":"payment-workflow-v2.test.cjs","group":".cjs","size":308},{"id":"test/payment-workflow.test.cjs","label":"payment-workflow.test.cjs","group":".cjs","size":352},{"id":"test/scan-utils.test.cjs","label":"scan-utils.test.cjs","group":".cjs","size":56},{"id":"test/token-chain.test.cjs","label":"token-chain.test.cjs","group":".cjs","size":123},{"id":"tests/dashboard.test.js","label":"dashboard.test.js","group":".js","size":256},{"id":"trello-roadmap-export.js","label":"trello-roadmap-export.js","group":".js","size":266},{"id":"update-cache.js","label":"update-cache.js","group":".js","size":20},{"id":"zip-for-upload.js","label":"zip-for-upload.js","group":".js","size":139}],"edges":[{"source":"lib/account-store.cjs","target":"lib/db.cjs"},{"source":"lib/account-store.cjs","target":"lib/plans.cjs"},{"source":"lib/time-tokens.cjs","target":"lib/plans.cjs"},{"source":"lib/time-tokens.cjs","target":"lib/account-store.cjs"},{"source":"lib/token-chain-store.cjs","target":"lib/db.cjs"},{"source":"lib/token-chain-utils.cjs","target":"lib/token-chain-store.cjs"},{"source":"routes/admin.cjs","target":"lib/admin-token.cjs"},{"source":"routes/admin.cjs","target":"lib/system-logger.cjs"},{"source":"routes/admin.cjs","target":"lib/token-chain-store.cjs"},{"source":"routes/admin.cjs","target":"lib/db.cjs"},{"source":"routes/admin.cjs","target":"routes/checkout.cjs"},{"source":"routes/admin.cjs","target":"lib/token-chain-store.cjs"},{"source":"routes/admin.cjs","target":"lib/db.cjs"},{"source":"routes/admin.cjs","target":"lib/db.cjs"},{"source":"routes/admin.cjs","target":"lib/token-chain-store.cjs"},{"source":"routes/certificates.cjs","target":"lib/certificate-utils.cjs"},{"source":"routes/certificates.cjs","target":"lib/plans.cjs"},{"source":"routes/checkout.cjs","target":"services/email.cjs"},{"source":"routes/checkout.cjs","target":"lib/license-utils.cjs"},{"source":"routes/checkout.cjs","target":"lib/token-chain-store.cjs"},{"source":"routes/free-token.cjs","target":"lib/system-logger.cjs"},{"source":"routes/subscriptions-billing.cjs","target":"lib/license-utils.cjs"},{"source":"routes/subscriptions-billing.cjs","target":"lib/db.cjs"},{"source":"routes/subscriptions-billing.cjs","target":"lib/db.cjs"},{"source":"routes/subscriptions-billing.cjs","target":"lib/db.cjs"},{"source":"routes/subscriptions-billing.cjs","target":"lib/db.cjs"},{"source":"routes/subscriptions-billing.cjs","target":"lib/token-chain-store.cjs"},{"source":"routes/subscriptions-billing.cjs","target":"services/email.cjs"},{"source":"routes/subscriptions.cjs","target":"lib/db.cjs"},{"source":"routes/token-chain.cjs","target":"lib/token-chain-store.cjs"},{"source":"routes/token-chain.cjs","target":"lib/token-chain-utils.cjs"},{"source":"routes/token-chain.cjs","target":"lib/db.cjs"},{"source":"routes/token-chain.cjs","target":"lib/db.cjs"},{"source":"server.cjs","target":"lib/db.cjs"},{"source":"server.cjs","target":"services/email.cjs"},{"source":"server.cjs","target":"lib/certificate-utils.cjs"},{"source":"server.cjs","target":"lib/system-logger.cjs"},{"source":"server.cjs","target":"routes/checkout.cjs"},{"source":"server.cjs","target":"routes/subscriptions-billing.cjs"},{"source":"server.cjs","target":"routes/subscriptions-billing.cjs"},{"source":"server.cjs","target":"routes/subscriptions.cjs"},{"source":"server.cjs","target":"routes/checkout.cjs"},{"source":"server.cjs","target":"routes/free-token.cjs"},{"source":"server.cjs","target":"routes/certificates.cjs"},{"source":"server.cjs","target":"routes/token-chain.cjs"},{"source":"server.cjs","target":"routes/admin.cjs"},{"source":"server.cjs","target":"lib/token-chain-utils.cjs"},{"source":"server.cjs","target":"lib/db.cjs"},{"source":"server.cjs","target":"lib/db.cjs"},{"source":"server.cjs","target":"lib/db.cjs"},{"source":"services/email.cjs","target":"lib/db.cjs"},{"source":"test/db.test.cjs","target":"lib/db.cjs"},{"source":"test/scan-utils.test.cjs","target":"js/scan-utils.js"},{"source":"test/token-chain.test.cjs","target":"lib/token-chain-store.cjs"},{"source":"test/token-chain.test.cjs","target":"lib/token-chain-utils.cjs"}]}</script>
+<script type="application/json" id="cyclesData">[]</script>
+<script type="application/json" id="entriesData">["analyze-directory.js","analyze-report.cjs","app-links.js","count-all-files.js","count-files.js","generate-account-token.js","generate-token.js","scan-worker.js","account-types.cjs","local-scanner-bridge.cjs"]</script>
+<script type="application/json" id="leavesData">["analyze-directory.js","analyze-report.cjs","app-links.js","count-all-files.js","count-files.js","generate-account-token.js","generate-token.js","scan-worker.js","account-types.cjs","local-scanner-bridge.cjs"]</script>
+<script type="application/json" id="connectedData">[{"name":"db.cjs","count":18},{"name":"server.cjs","count":17},{"name":"admin.cjs","count":10},{"name":"token-chain-store.cjs","count":9},{"name":"subscriptions-billing.cjs","count":9}]</script>
+<script>
+const GRAPH = JSON.parse(document.getElementById('graphData').textContent);
+const CYCLES = JSON.parse(document.getElementById('cyclesData').textContent);
+const ENTRIES = JSON.parse(document.getElementById('entriesData').textContent);
+const LEAVES = JSON.parse(document.getElementById('leavesData').textContent);
+const CONNECTED = JSON.parse(document.getElementById('connectedData').textContent);
+
+// Tree interactions
+document.getElementById('searchBox').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('.tree-node').forEach(node => {
+    const nameEl = node.querySelector('.node-name');
+    if (!nameEl) return;
+    const match = nameEl.textContent.toLowerCase().includes(q);
+    node.style.display = match ? 'flex' : 'none';
+    if (match && node.dataset.type === 'file') {
+      let parent = node.parentElement;
+      while (parent && parent.classList.contains('tree-children')) {
+        parent.classList.remove('collapsed');
+        parent.classList.add('expanded');
+        const prev = parent.previousElementSibling;
+        if (prev) { const t = prev.querySelector('.toggle'); if (t) t.textContent = '&#x25BC;'; }
+        parent = parent.parentElement;
+      }
+    }
+  });
+});
+document.addEventListener('click', function(e) {
+  const el = e.target && e.target.closest && e.target.closest('.toggle');
+  if (!el) return;
+  const node = el.closest('.tree-node');
+  const children = node && node.nextElementSibling;
+  if (!children || !children.classList.contains('tree-children')) return;
+  const isCollapsed = children.classList.contains('collapsed');
+  children.classList.toggle('collapsed', !isCollapsed);
+  children.classList.toggle('expanded', isCollapsed);
+  el.textContent = isCollapsed ? '&#x25BC;' : '&#x25B6;';
+});
+setTimeout(() => {
+  document.querySelectorAll('.tree-children').forEach((el) => {
+    const depth = el.parentElement.closest('.tree-children') ? 2 : 1;
+    if (depth <= 2) {
+      el.classList.remove('collapsed');
+      el.classList.add('expanded');
+      const prev = el.previousElementSibling;
+      if (prev) { const t = prev.querySelector('.toggle'); if (t) t.textContent = '&#x25BC;'; }
+    }
+  });
+}, 0);
+
+// Dependency stats
+const statsEl = document.getElementById('depStats');
+if (statsEl) {
+  statsEl.textContent = '';
+  const sections = [
+    { title: 'Circular Dependencies', count: CYCLES.length, items: CYCLES.slice(0, 5).map(c => c.slice(0, -1).map(x => x.split('/').pop()).join(' → ')) },
+    { title: 'Entry Points', count: ENTRIES.length, items: ENTRIES.slice(0, 8) },
+    { title: 'Leaf Modules', count: LEAVES.length, items: LEAVES.slice(0, 8) },
+    { title: 'Most Connected', count: CONNECTED.length, items: CONNECTED.slice(0, 8).map(c => c.name + ' (' + c.count + ' conn)') }
+  ];
+  sections.forEach((section) => {
+    if (section.count === 0) return;
+    const card = document.createElement('div');
+    card.className = 'dep-stat-card';
+    const h4 = document.createElement('h4');
+    h4.textContent = section.title;
+    if (section.title === 'Circular Dependencies') {
+      const badge = document.createElement('span');
+      badge.className = 'cycle-badge';
+      badge.textContent = String(section.count);
+      h4.appendChild(badge);
+    }
+    card.appendChild(h4);
+    const ul = document.createElement('ul');
+    section.items.forEach((item) => {
+      const li = document.createElement('li');
+      const span = document.createElement('span');
+      span.textContent = item;
+      li.appendChild(span);
+      ul.appendChild(li);
+    });
+    card.appendChild(ul);
+    statsEl.appendChild(card);
+  });
+  const graphCard = document.createElement('div');
+  graphCard.className = 'dep-stat-card';
+  const graphTitle = document.createElement('h4');
+  graphTitle.textContent = 'Graph Stats';
+  graphCard.appendChild(graphTitle);
+  const graphUl = document.createElement('ul');
+  const nodesLi = document.createElement('li');
+  const nodesLabel = document.createElement('span');
+  nodesLabel.textContent = 'Nodes';
+  const nodesVal = document.createElement('span');
+  nodesVal.textContent = String(GRAPH.nodes.length);
+  nodesLi.appendChild(nodesLabel);
+  nodesLi.appendChild(nodesVal);
+  const edgesLi = document.createElement('li');
+  const edgesLabel = document.createElement('span');
+  edgesLabel.textContent = 'Edges';
+  const edgesVal = document.createElement('span');
+  edgesVal.textContent = String(GRAPH.edges.length);
+  edgesLi.appendChild(edgesLabel);
+  edgesLi.appendChild(edgesVal);
+  graphUl.appendChild(nodesLi);
+  graphUl.appendChild(edgesLi);
+  graphCard.appendChild(graphUl);
+  statsEl.appendChild(graphCard);
+  if (statsEl.children.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = 'No dependency data available';
+    statsEl.appendChild(empty);
+  }
+}
+
+// Force-directed graph
+(function(){
+  const canvas = document.getElementById('graphCanvas');
+  if (!canvas || GRAPH.nodes.length === 0) return;
+  const ctx = canvas.getContext('2d');
+  const wrap = canvas.parentElement;
+
+  function resize() {
+    canvas.width = wrap.clientWidth;
+    canvas.height = wrap.clientHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const colors = {'.js':'#f7df1e','.ts':'#3178c6','.tsx':'#3178c6','.jsx':'#61dafb','.cjs':'#f0db4f','.mjs':'#f0db4f','.py':'#3776ab'};
+  const W = () => canvas.width, H = () => canvas.height;
+  const nodes = GRAPH.nodes.map((n,i) => ({id:n.id,label:n.label,group:n.group,x:W()/2+Math.cos(i*2.4)*150,y:H()/2+Math.sin(i*2.4)*150,vx:0,vy:0,radius:Math.max(4,Math.min(14,Math.sqrt(n.size||1)*0.6)),color:colors[n.group]||'#64748b'}));
+  const edges = GRAPH.edges.map(e => ({source:nodes.find(n=>n.id===e.source),target:nodes.find(n=>n.id===e.target)})).filter(e=>e.source&&e.target);
+  const nodeMap = Object.fromEntries(nodes.map(n=>[n.id,n]));
+
+  let dragging = null, hoverNode = null, offset = {x:0,y:0}, scale = 1, pan = {x:0,y:0};
+
+  canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left - pan.x) / scale;
+    const my = (e.clientY - rect.top - pan.y) / scale;
+    for (const n of nodes) {
+      const dx = mx - n.x, dy = my - n.y;
+      if (dx*dx + dy*dy < (n.radius+4)**2) { dragging = n; offset = {x:dx,y:dy}; return; }
+    }
+  });
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left - pan.x) / scale;
+    const my = (e.clientY - rect.top - pan.y) / scale;
+    hoverNode = null;
+    for (const n of nodes) { const dx = mx - n.x, dy = my - n.y; if (dx*dx + dy*dy < (n.radius+4)**2) hoverNode = n; }
+    canvas.style.cursor = dragging ? 'grabbing' : (hoverNode ? 'pointer' : 'grab');
+    if (dragging) { dragging.x = mx - offset.x; dragging.y = my - offset.y; }
+  });
+  canvas.addEventListener('mouseup', () => dragging = null);
+  canvas.addEventListener('mouseleave', () => dragging = null);
+  canvas.addEventListener('wheel', e => { e.preventDefault(); scale *= e.deltaY > 0 ? 0.9 : 1.1; scale = Math.max(0.2, Math.min(3, scale)); }, {passive:false});
+
+  // Control buttons
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const resetViewBtn = document.getElementById('resetViewBtn');
+  if (zoomInBtn) zoomInBtn.addEventListener('click', () => { scale = Math.min(3, scale * 1.25); });
+  if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => { scale = Math.max(0.2, scale / 1.25); });
+  if (resetViewBtn) resetViewBtn.addEventListener('click', () => { scale = 1; pan = {x:0, y:0}; });
+
+  function step() {
+    // Repulsion
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i+1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        const force = 8000 / (dist * dist);
+        dx /= dist; dy /= dist;
+        a.vx -= dx * force; a.vy -= dy * force;
+        b.vx += dx * force; b.vy += dy * force;
+      }
+    }
+    // Attraction
+    for (const e of edges) {
+      let dx = e.target.x - e.source.x, dy = e.target.y - e.source.y;
+      let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      const force = dist * 0.003;
+      dx /= dist; dy /= dist;
+      e.source.vx += dx * force; e.source.vy += dy * force;
+      e.target.vx -= dx * force; e.target.vy -= dy * force;
+    }
+    // Center gravity
+    for (const n of nodes) {
+      n.vx += (W()/2 - n.x) * 0.0003;
+      n.vy += (H()/2 - n.y) * 0.0003;
+      n.vx *= 0.92; n.vy *= 0.92;
+      n.x += n.vx; n.y += n.vy;
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W(), H());
+    ctx.save();
+    ctx.translate(pan.x, pan.y);
+    ctx.scale(scale, scale);
+
+    // Edges
+    for (const e of edges) {
+      ctx.beginPath();
+      ctx.moveTo(e.source.x, e.source.y);
+      ctx.lineTo(e.target.x, e.target.y);
+      ctx.strokeStyle = 'rgba(148,163,184,0.15)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Nodes
+    for (const n of nodes) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius, 0, Math.PI*2);
+      ctx.fillStyle = n.color;
+      ctx.fill();
+      if (n === hoverNode) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    // Labels for larger nodes
+    for (const n of nodes) {
+      if (n.radius > 7 || n === hoverNode) {
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(n.label, n.x, n.y + n.radius + 12);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  function loop() {
+    for (let i = 0; i < 3; i++) step();
+    draw();
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+</script>
+</body>
+</html>

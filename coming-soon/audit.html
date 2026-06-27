@@ -8,19 +8,19 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>SimpleBeacon — Upload Your Scan Report</title>
+    <title>SimpleBeacon — Audit</title>
     <script src="site-config.js?h=1781475000000" defer></script>
-    <script src="js/scan-utils.js?h=1781475000001" defer></script>
-    <script src="js/dashboard/utils.js?h=1781475000000" defer></script>
-    <script src="js/dashboard/token-manager.js?h=1781475000002" defer></script>
-    <script src="js/dashboard/token-file-system.js?h=1781475000003" defer></script>
-    <script src="js/dashboard/usb-token-manager.js?h=1781475000003" defer></script>
-    <script src="js/dashboard/scanner-patterns.js?h=1781475000004" defer></script>
-    <script src="js/dashboard/quick-actions.js?h=1781475000005" defer></script>
-    <script src="js/dashboard/pattern-documentation.js?h=1781475000005" defer></script>
-    <script src="js/dashboard/scanner-engine.js?h=1781475000010" defer></script>
-    <script src="js/dashboard/ui-renderer.js?h=1781475000000" defer></script>
-    <script src="js/dashboard/certificate-module.js?h=1781475000007" defer></script>
+    <script src="js-es2018/scan-utils.js?h=1781475000001" defer></script>
+    <script src="js-es2018/dashboard/utils.js?h=1781475000000" defer></script>
+    <script src="js-es2018/dashboard/token-manager.js?h=1781475000002" defer></script>
+    <script src="js-es2018/dashboard/token-file-system.js?h=1781475000003" defer></script>
+    <script src="js-es2018/dashboard/usb-token-manager.js?h=1781475000003" defer></script>
+    <script src="js-es2018/dashboard/scanner-patterns.js?h=1781475000004" defer></script>
+    <script src="js-es2018/dashboard/quick-actions.js?h=1781475000005" defer></script>
+    <script src="js-es2018/dashboard/pattern-documentation.js?h=1781475000005" defer></script>
+    <script src="js-es2018/dashboard/scanner-engine.js?h=1781475000010" defer></script>
+    <script src="js-es2018/dashboard/ui-renderer.js?h=1781475000000" defer></script>
+    <script src="js-es2018/dashboard/certificate-module.js?h=1781475000007" defer></script>
     <script src="js/vendor/jszip.min.js?h=1781475000000" defer></script>
     <script src="js/vendor/html2canvas.min.js?h=1781475000000" defer></script>
     <link rel="stylesheet" href="css/dashboard.css?h=1781475000000">
@@ -28,7 +28,9 @@
     </style>
 </head>
 <body>
-    <div id="loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-main);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s ease,visibility .6s ease;">
+    <div id="debug-errors" style="position:fixed;top:0;left:0;width:100%;max-height:200px;overflow:auto;background:#000;color:#0f0;z-index:10000;font-family:monospace;font-size:12px;padding:8px;display:none;pointer-events:none;"></div>
+    <script>(function(){var d=document.getElementById('debug-errors'),errs=[];function show(e){if(!d)return;errs.push(e);d.style.display='block';d.innerHTML=errs.map(function(x){return '<div style=\'border-bottom:1px solid #333;padding:2px 0;\'>'+x+'</div>';}).join('');}window.addEventListener('error',function(e){show('ERROR: '+e.message+' @ '+e.filename+':'+e.lineno);});window.addEventListener('unhandledrejection',function(e){show('REJECTION: '+(e.reason&&e.reason.message?e.reason.message:String(e.reason)));});})();</script>
+    <div id="loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-main);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s ease,visibility .6s ease;pointer-events:none;">
         <div style="width:48px;height:48px;border-radius:50%;border:3px solid rgba(99,102,241,.2);border-top-color:var(--accent);animation:spin 1s linear infinite;margin-bottom:20px;"></div>
         <div style="color:var(--text-secondary);font-size:14px;letter-spacing:.05em;">SimpleBeacon</div>
         <style>@keyframes spin{to{transform:rotate(360deg)}}body.loaded #loader{opacity:0;visibility:hidden;pointer-events:none}</style>
@@ -41,7 +43,7 @@
                 <a href="roadmap.html">Roadmap</a>
                 <a href="audit.html">Audit</a>
                 <a href="pricing.html">Pricing</a>
-                <a href="/simplebeacon-dashboard/" id="vaultLink">Teams Dashboard</a>
+                <a href="/dashboard/dashboard" id="vaultLink">Team Dashboard</a>
                 <script>
                 (function() {
                     var params = new URLSearchParams(window.location.search);
@@ -64,7 +66,7 @@
                 <span id="productLabel">Certificate Generation</span>
             </div>
             <h1 id="pageTitle">Audit Your Scan Reports</h1>
-            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a> or upload a CLI report JSON.</p>
+            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a>, <a href="http://127.0.0.1:54800/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">open analyzer (port 54800)</a>, or upload a CLI report JSON.</p>
         </header>
 
         <div id="serverDetectedBanner" style="display:none;background:linear-gradient(135deg,rgba(5,150,105,0.12),rgba(99,102,241,0.08));border:1px solid rgba(5,150,105,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
@@ -78,94 +80,6 @@
             <span>52 analyzer engines detect placeholder debris, markdown fences, hardcoded metrics, security risks, and performance issues. Real-time protection in VS Code.</span>
             <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" target="_blank" style="color:var(--warning);font-weight:600;text-decoration:none;white-space:nowrap;">Get VS Code Extension &rarr;</a>
         </div>
-
-        <!-- VS Code Extension Card (replaces banner when active) -->
-        <div class="card analyze-vscode-card" id="vscode-card" style="margin-bottom:20px;padding:20px 24px;background:linear-gradient(135deg,rgba(99,102,241,0.06) 0%,rgba(139,92,246,0.04) 100%);border-color:rgba(99,102,241,0.15);display:none;">
-            <div style="display:flex;align-items:flex-start;gap:var(--space-3,12px);">
-                <div style="flex-shrink:0;width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.25rem;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 4 16 16"/><path d="m20 4-16 16"/></svg>
-                </div>
-                <div style="flex:1;min-width:0;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2,8px);">
-                        <p class="card-title" style="margin:0;font-size:0.95rem;color:var(--text-main);">VS Code Extension</p>
-                        <div style="display:flex;align-items:center;" id="vscode-badge-wrap"></div>
-                    </div>
-                    <p class="text-muted" style="font-size:var(--font-size-xs,0.75rem);margin:4px 0 0;color:var(--text-muted);" id="vscode-subtitle"></p>
-                </div>
-            </div>
-        </div>
-        <script>
-        (function() {
-            var inVsCode = typeof window !== 'undefined' && (
-                typeof window.acquireVsCodeApi === 'function' ||
-                /vscode|electron/i.test(navigator.userAgent) ||
-                /vscode-webview/i.test(navigator.userAgent)
-            );
-            var card = document.getElementById('vscode-card');
-            var badgeWrap = document.getElementById('vscode-badge-wrap');
-            var subtitle = document.getElementById('vscode-subtitle');
-            var banner = document.getElementById('simplebeacon-banner');
-            if (!card) return;
-            var analyzeAiBtn = document.getElementById('analyze-send-ai-btn');
-            if (inVsCode) {
-                card.style.display = 'block';
-                if (banner) banner.style.display = 'none';
-                if (analyzeAiBtn) analyzeAiBtn.style.display = 'block';
-                if (badgeWrap) badgeWrap.innerHTML = '<span style="background:rgba(16,185,129,0.15);color:var(--success);font-size:0.75rem;padding:2px 8px;border-radius:6px;">&#9679; Active</span>' +
-                    ' <button type="button" id="vscode-sync-report-btn" style="margin-left:8px;padding:4px 10px;border:1px solid rgba(99,102,241,0.3);border-radius:6px;background:rgba(99,102,241,0.1);color:var(--accent);font-size:0.75rem;cursor:pointer;" title="Push scan report to sidebar">&#128259; Sync</button>';
-                if (subtitle) subtitle.textContent = 'Extension is running in this editor. Real-time monitoring, AI analysis, code map, and remediation guide are active.';
-                // Bind sync button
-                setTimeout(function() {
-                    var syncBtn = document.getElementById('vscode-sync-report-btn');
-                    if (syncBtn) {
-                        syncBtn.addEventListener('click', function() {
-                            var report = currentReport || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null);
-                            if (!report) { alert('No scan report to sync'); return; }
-                            try {
-                                var vscode;
-                                if (window.__vscodeApiCached) {
-                                    vscode = window.__vscodeApiCached;
-                                } else {
-                                    window.__vscodeApiCached = window.acquireVsCodeApi();
-                                    vscode = window.__vscodeApiCached;
-                                }
-                                var allIssues = report.findings || report.issues || (report.summary && report.summary.issues) || [];
-                                var sev = report.severityCounts || (report.summary && report.summary.severityCounts) || {};
-                                vscode.postMessage({
-                                    command: 'updateReport',
-                                    report: {
-                                        totalFiles: report.repositoryFilesTotal || report.totalFiles || 0,
-                                        ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed || report.filesAnalyzed || 0,
-                                        issueCount: allIssues.length,
-                                        qualityScore: report.qualityScore || (report.gate && report.gate.score) || 0,
-                                        gate: report.gate || { pass: false },
-                                        issues: allIssues.slice(0, 200),
-                                        projectPath: report.projectPath || report.path || '',
-                                        severityCounts: sev
-                                    }
-                                });
-                                syncBtn.textContent = 'Synced';
-                                syncBtn.style.background = 'rgba(16,185,129,0.15)';
-                                syncBtn.style.color = 'var(--success)';
-                                setTimeout(function() { syncBtn.textContent = '\uD83D\uDD04 Sync'; syncBtn.style.background = 'rgba(99,102,241,0.1)'; syncBtn.style.color = 'var(--accent)'; }, 2000);
-                            } catch (err) {
-                                console.warn('[Sync] Failed:', err);
-                            }
-                        });
-                    }
-                }, 0);
-            } else {
-                card.style.display = 'block';
-                card.style.background = 'linear-gradient(135deg,rgba(217,119,6,0.08),rgba(220,38,38,0.05))';
-                card.style.borderColor = 'rgba(217,119,6,0.25)';
-                if (analyzeAiBtn) analyzeAiBtn.style.display = 'none';
-                var uploadAiBtn = document.getElementById('upload-send-ai-btn');
-                if (uploadAiBtn) uploadAiBtn.style.display = 'none';
-                if (badgeWrap) badgeWrap.innerHTML = '<a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" target="_blank" rel="noopener" style="padding:6px 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:0.8rem;text-decoration:none;font-weight:600;">Install</a>';
-                if (subtitle) subtitle.textContent = 'Real-time file monitoring, enhanced AI analysis, code map, and remediation guide &#8212; directly in your editor.';
-            }
-        })();
-        </script>
 
         <div class="plan-cta-banner" style="background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(5,150,105,0.05));border:1px solid rgba(99,102,241,0.2);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
             <span style="display:flex;align-items:center;gap:6px;color:var(--accent-hover);font-weight:500;"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Need a scan?</span>
@@ -284,7 +198,7 @@
             </div>
 
             <!-- Auth Choice Modal -->
-            <div class="auth-modal-overlay" id="auth-modal-overlay">
+            <div class="auth-modal-overlay" id="auth-modal-overlay" style="display:none;">
               <div class="auth-modal">
                 <div class="auth-modal-header">
                   <h3>🔐 Authenticate</h3>
@@ -596,6 +510,16 @@
                             </div>
                         </div>
                         <div class="terminal-body">
+                            <!-- VS Code: Extension Data Server — sidebar scan results bridge -->
+                            <div id="data-server-panel" style="display:none;margin-bottom:8px;">
+                                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+                                    <div style="flex:1;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);font-size:0.8rem;">
+                                        <span style="font-size:1.1rem;">&#128225;</span>
+                                        <span id="dataServerStatus" style="color:#888;">Not connected — open VS Code: sidebar to enable</span>
+                                    </div>
+                                    <button type="button" id="fetchSidebarBtn" class="btn btn-primary" style="padding:8px 14px;font-size:0.8rem;background:linear-gradient(135deg,#6366f1,#4f46e5);white-space:nowrap;">Fetch from Sidebar</button>
+                                </div>
+                            </div>
                             <!-- Local bridge path input (hidden until bridge detected) -->
                             <div id="local-scanner-panel" style="display:none;margin-bottom:8px;">
                                 <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
@@ -690,6 +614,7 @@
                     &#128465; Clear
                 </button>
             </div>
+
             <div style="padding:20px 24px;background:var(--bg-input);">
                 <!-- Scan Preview -->
                 <div id="scanPreview" style="display:none;margin-bottom:16px;">
@@ -756,11 +681,174 @@
             <a href="contact.html#handoff" class="btn btn-secondary" style="display:inline-block;text-decoration:none;">Create AI Session Handoff &rarr;</a>
         </div>
 
+        <!-- VS Code Extension Card (replaces banner when active) -->
+        <div class="card analyze-vscode-card" id="vscode-card" style="margin-bottom:20px;padding:20px 24px;background:linear-gradient(135deg,rgba(99,102,241,0.06) 0%,rgba(139,92,246,0.04) 100%);border-color:rgba(99,102,241,0.15);display:none;">
+            <div style="display:flex;align-items:flex-start;gap:var(--space-3,12px);">
+                <div style="flex-shrink:0;width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.25rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 4 16 16"/><path d="m20 4-16 16"/></svg>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2,8px);">
+                        <p class="card-title" style="margin:0;font-size:0.95rem;color:var(--text-main);">VS Code: Extension</p>
+                        <div style="display:flex;align-items:center;" id="vscode-badge-wrap"></div>
+                    </div>
+                    <p class="text-muted" style="font-size:var(--font-size-xs,0.75rem);margin:4px 0 0;color:var(--text-muted);" id="vscode-subtitle"></p>
+                </div>
+            </div>
+        </div>
+        <script>
+        (function() {
+            var inVsCode = typeof window !== 'undefined' && (
+                typeof window.acquireVsCodeApi === 'function' ||
+                /vscode|electron/i.test(navigator.userAgent) ||
+                /vscode-webview/i.test(navigator.userAgent)
+            );
+            var card = document.getElementById('vscode-card');
+            var badgeWrap = document.getElementById('vscode-badge-wrap');
+            var subtitle = document.getElementById('vscode-subtitle');
+            var banner = document.getElementById('simplebeacon-banner');
+            if (!card) return;
+            var analyzeAiBtn = document.getElementById('analyze-send-ai-btn');
+            if (inVsCode) {
+                card.style.display = 'block';
+                if (banner) banner.style.display = 'none';
+                if (analyzeAiBtn) analyzeAiBtn.style.display = 'block';
+                if (badgeWrap) badgeWrap.innerHTML = '<span style="background:rgba(16,185,129,0.15);color:var(--success);font-size:0.75rem;padding:2px 8px;border-radius:6px;">&#9679; Active</span>' +
+                    ' <button type="button" id="vscode-sync-report-btn" style="margin-left:8px;padding:4px 10px;border:1px solid rgba(99,102,241,0.3);border-radius:6px;background:rgba(99,102,241,0.1);color:var(--accent);font-size:0.75rem;cursor:pointer;" title="Push scan report to sidebar">&#128259; Sync</button>' +
+                    ' <button type="button" id="vscode-send-ai-btn" style="margin-left:8px;padding:4px 10px;border:1px solid rgba(16,185,129,0.3);border-radius:6px;background:rgba(16,185,129,0.1);color:var(--success);font-size:0.75rem;cursor:pointer;" title="Send scan report to AI Slop Cop">&#129302; AI Cop</button>';
+                if (subtitle) subtitle.textContent = 'Extension is running in this editor. Real-time monitoring, AI analysis, code map, and remediation guide are active.';
+                // Bind sync button
+                setTimeout(function() {
+                    var syncBtn = document.getElementById('vscode-sync-report-btn');
+                    if (syncBtn) {
+                        syncBtn.addEventListener('click', function() {
+                            var report = (typeof window.currentReport !== 'undefined' ? window.currentReport : null) || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null);
+                            if (!report) { alert('No scan report to sync'); return; }
+                            try {
+                                var vscode;
+                                if (window.__vscodeApiCached) {
+                                    vscode = window.__vscodeApiCached;
+                                } else {
+                                    window.__vscodeApiCached = window.acquireVsCodeApi();
+                                    vscode = window.__vscodeApiCached;
+                                }
+                                var allIssues = report.findings || report.issues || (report.summary && report.summary.issues) || [];
+                                var sev = report.severityCounts || (report.summary && report.summary.severityCounts) || {};
+                                vscode.postMessage({
+                                    command: 'updateReport',
+                                    report: {
+                                        totalFiles: report.repositoryFilesTotal || report.totalFiles || 0,
+                                        ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed || report.filesAnalyzed || 0,
+                                        issueCount: allIssues.length,
+                                        qualityScore: report.qualityScore || (report.gate && report.gate.score) || 0,
+                                        gate: report.gate || { pass: false },
+                                        issues: allIssues.slice(0, 200),
+                                        projectPath: report.projectPath || report.path || '',
+                                        severityCounts: sev
+                                    }
+                                });
+                                syncBtn.textContent = 'Synced';
+                                syncBtn.style.background = 'rgba(16,185,129,0.15)';
+                                syncBtn.style.color = 'var(--success)';
+                                setTimeout(function() { syncBtn.textContent = '\uD83D\uDD04 Sync'; syncBtn.style.background = 'rgba(99,102,241,0.1)'; syncBtn.style.color = 'var(--accent)'; }, 2000);
+                            } catch (err) {
+                                console.warn('[Sync] Failed:', err);
+                            }
+                        });
+                    }
+                    var sendAiBtn = document.getElementById('vscode-send-ai-btn');
+                    if (sendAiBtn) {
+                        sendAiBtn.addEventListener('click', function() {
+                            var report = (typeof window.currentReport !== 'undefined' ? window.currentReport : null) || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null);
+                            if (!report) { alert('No scan report to send'); return; }
+                            try {
+                                var vscode;
+                                if (window.__vscodeApiCached) {
+                                    vscode = window.__vscodeApiCached;
+                                } else {
+                                    window.__vscodeApiCached = window.acquireVsCodeApi();
+                                    vscode = window.__vscodeApiCached;
+                                }
+                                var allIssues = [];
+                                if (Array.isArray(report.detectedIssues)) allIssues = report.detectedIssues;
+                                else if (Array.isArray(report.allIssues)) allIssues = report.allIssues;
+                                else if (Array.isArray(report.findings)) allIssues = report.findings;
+                                else if (Array.isArray(report.issues)) allIssues = report.issues;
+                                else if (report.summary && Array.isArray(report.summary.issues)) allIssues = report.summary.issues;
+                                var payload = {
+                                    reportPath: report.projectPath || report.path || '',
+                                    notes: '',
+                                    reportType: report.type || 'simplebeacon',
+                                    filesScanned: report.repositoryFilesTotal || report.totalFiles || 'N/A',
+                                    issues: allIssues
+                                };
+                                vscode.postMessage({
+                                    command: 'sendToAI',
+                                    data: payload
+                                });
+                                sendAiBtn.textContent = 'Sent';
+                                sendAiBtn.style.background = 'rgba(16,185,129,0.15)';
+                                sendAiBtn.style.color = 'var(--success)';
+                                setTimeout(function() { sendAiBtn.textContent = '\uD83E\uDD16 AI Cop'; sendAiBtn.style.background = 'rgba(16,185,129,0.1)'; sendAiBtn.style.color = 'var(--success)'; }, 2000);
+                            } catch (err) {
+                                console.warn('[AI-Send] Failed:', err);
+                            }
+                        });
+                    }
+                }, 0);
+            } else {
+                card.style.display = 'block';
+                card.style.background = 'linear-gradient(135deg,rgba(217,119,6,0.08),rgba(220,38,38,0.05))';
+                card.style.borderColor = 'rgba(217,119,6,0.25)';
+                if (analyzeAiBtn) analyzeAiBtn.style.display = 'none';
+                var uploadAiBtn = document.getElementById('upload-send-ai-btn');
+                if (uploadAiBtn) uploadAiBtn.style.display = 'none';
+                if (badgeWrap) badgeWrap.innerHTML = '<a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" target="_blank" rel="noopener" style="padding:6px 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:0.8rem;text-decoration:none;font-weight:600;">Install</a>';
+                if (subtitle) subtitle.textContent = 'Real-time file monitoring, enhanced AI analysis, code map, and remediation guide &#8212; directly in your editor.';
+            }
+        })();
+        // Global VS Code bridge: callable from any script (including main.js)
+        window.__postReportToVsCode = function(report) {
+            if (!report) return false;
+            var vscode = window.__vscodeApiCached;
+            if (!vscode) {
+                try { vscode = window.acquireVsCodeApi(); } catch(e) { return false; }
+                window.__vscodeApiCached = vscode;
+            }
+            // Normalize nested report structures (complete-scan, simplebeacon-report, etc.)
+            var raw = report;
+            if (report.results && report.results.simplebeacon) raw = report.results.simplebeacon;
+            else if (report.simplebeacon) raw = report.simplebeacon;
+            else if (report.completeScan) raw = report.completeScan;
+            else if (report.report) raw = report.report;
+            var allIssues = raw.findings || raw.issues || (raw.summary && raw.summary.issues) || raw.detectedIssues || raw.allIssues || [];
+            var sev = raw.severityCounts || (raw.summary && raw.summary.severityCounts) || {};
+            var gate = raw.gate || (raw.scan_summary && raw.scan_summary.status === 'FAILED' ? { pass: false, blockingCount: raw.scan_summary.total_risks_found || 0 } : { pass: false });
+            vscode.postMessage({
+                command: 'updateReport',
+                report: {
+                    totalFiles: raw.repositoryFilesTotal || raw.totalFiles || (raw.repositoryInventory && raw.repositoryInventory.totalFiles) || 0,
+                    ruleScopedFilesAnalyzed: raw.ruleScopedFilesAnalyzed || raw.filesAnalyzed || 0,
+                    issueCount: allIssues.length,
+                    qualityScore: raw.qualityScore || (gate && gate.score) || 0,
+                    gate: gate,
+                    issues: allIssues.slice(0, 200),
+                    projectPath: raw.projectPath || raw.projectRoot || raw.path || report.projectPath || '',
+                    severityCounts: sev
+                }
+            });
+            return true;
+        };
+        window.__tryAutoSyncToVsCode = function() {
+            var report = (typeof window.currentReport !== 'undefined' ? window.currentReport : null) || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null) || (typeof window.reportData !== 'undefined' ? window.reportData : null);
+            if (report) { window.__postReportToVsCode(report); }
+        };
+        </script>
+
         <footer>
             <div class="footer-inner">
                 <span>SimpleBeacon Engine v1.3.0 &mdash; Zero-Dependency Static Analysis</span>
                 <div class="footer-links">
-                    <a href="scan-status.html">Scan Status</a>
                     <a href="pricing.html">Pricing</a>
                     <a href="cloud-scan.html" class="cloud-link">Cloud Scan</a>
                     <a href="contact.html">Contact</a>
@@ -804,7 +892,7 @@
     </div>
 
     <!-- Sign-in Modal -->
-    <div class="signin-overlay" id="signinOverlay">
+    <div class="signin-overlay" id="signinOverlay" style="display:none;">
         <div class="signin-panel">
             <button class="signin-close" id="signinCloseBtn" type="button">&times;</button>
             <h3>Sign In</h3>
@@ -959,7 +1047,7 @@
                     signinError.style.display = 'block'; return;
                 }
                 const payload = decodeJwtPayload(token);
-                const tier = payload?.tier || payload?.product || '';
+                const tier = (payload && payload.tier) || (payload && payload.product) || '';
                 const freeTiers = ['community','starter','instant','free','developer','sandbox'];
                 if (freeTiers.includes(tier)) {
                     signinError.innerHTML = 'Free sandbox tokens are for local testing only. <a href="pricing.html" style="color:var(--accent);">Purchase a license</a> for full dashboard access.';
@@ -1012,12 +1100,12 @@
                 const token = licenseInput ? licenseInput.value.trim() : '';
                 const payload = token ? decodeJwtPayload(token) : null;
                 const defaultProject = report.projectName || 'Untitled Project';
-                const defaultTier = (payload?.tier || payload?.product || 'EXECUTIVE').toUpperCase();
+                const defaultTier = ((payload && payload.tier) || (payload && payload.product) || 'EXECUTIVE').toUpperCase();
                 if (certProjectName && !certProjectName.value) certProjectName.value = defaultProject;
                 if (certProfileLabel && !certProfileLabel.value) certProfileLabel.value = defaultTier;
                 if (certSignatoryName && !certSignatoryName.value) certSignatoryName.value = 'SimpleBeacon';
                 if (certSignatoryTitle && !certSignatoryTitle.value) certSignatoryTitle.value = 'Automated Compliance Engine';
-                if (certContactEmail && !certContactEmail.value) certContactEmail.value = 'trevor_punt@live.com';
+                if (certContactEmail && !certContactEmail.value) certContactEmail.value = 'contact@simplebeacon.ai';
                 certCredentialsOverlay.classList.add('active');
                 if (certProjectName) certProjectName.focus();
             };
@@ -1346,7 +1434,7 @@
                             const res = await fetch('/api/admin/token/create', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ email: 'trevor_punt@live.com' })
+                                body: JSON.stringify({ email: 'contact@simplebeacon.ai' })
                             });
                             const data = await res.json();
                             if (data.success) {
@@ -1436,7 +1524,7 @@
         var aiConfirm = document.getElementById('upload-ai-confirm');
         var aiCancel = document.getElementById('upload-ai-cancel');
         var tokenRow = document.getElementById('tokenActionRow');
-        var currentReport = null;
+        window.currentReport = null;
 
         // Observe tokenActionRow visibility to show/hide AI button
         if (tokenRow && sendBtn) {
@@ -1454,7 +1542,7 @@
 
         // Also expose a global so main.js or scan utils can trigger it
         window.__simplebeaconSetReportForAI = function(report) {
-            currentReport = report;
+            window.currentReport = report;
         };
 
         var analyzeSendBtn = document.getElementById('analyze-send-ai-btn');
@@ -1479,7 +1567,7 @@
         }
         if (aiConfirm) {
             aiConfirm.addEventListener('click', async function() {
-                var report = currentReport || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null);
+                var report = window.currentReport || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null);
                 if (!report) {
                     if (aiStatus) { aiStatus.textContent = 'No report loaded'; aiStatus.style.color = 'var(--error)'; }
                     return;
@@ -1540,6 +1628,44 @@
         }
     })();
     </script>
-    <script src="js/dashboard/main.js?h=1781470050008" defer></script>
+    <script src="js-es2018/dashboard/main.js?h=1781470050008" defer></script>
+    <script>
+    // Diagnostic panel disabled by default. Add ?debug=1 to URL to enable.
+    (function() {
+        if (!/debug=1/.test(window.location.search)) return;
+        var errs = [];
+        window.addEventListener('error', function(e) {
+            errs.push(e.message + ' @ ' + (e.filename || '') + ':' + (e.lineno || 0));
+            updateDiag();
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            errs.push('Unhandled: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
+            updateDiag();
+        });
+        function updateDiag() {
+            var diag = document.getElementById('sb-diag-panel');
+            if (!diag) {
+                diag = document.createElement('div');
+                diag.id = 'sb-diag-panel';
+                diag.style.cssText = 'position:fixed;bottom:10px;left:10px;right:10px;background:#111;border:2px solid #0f0;color:#0f0;padding:12px;font-family:monospace;font-size:12px;z-index:99999;max-height:200px;overflow:auto;';
+                document.body.appendChild(diag);
+            }
+            var html = '<b>Diagnostic</b><br>';
+            html += 'body.loaded: ' + (document.body.classList.contains('loaded') ? 'YES' : 'NO') + '<br>';
+            html += 'loader visible: ' + (getComputedStyle(document.getElementById('loader')).visibility !== 'hidden' ? 'YES' : 'NO') + '<br>';
+            var amo = document.getElementById('auth-modal-overlay');
+            html += 'auth-modal visible: ' + (amo && getComputedStyle(amo).display !== 'none' ? 'YES' : 'NO') + '<br>';
+            var so = document.getElementById('signinOverlay');
+            html += 'signinOverlay visible: ' + (so && getComputedStyle(so).display !== 'none' ? 'YES' : 'NO') + '<br>';
+            var de = document.getElementById('debug-errors');
+            html += 'debug-errors visible: ' + (de && de.style.display !== 'none' ? 'YES' : 'NO') + '<br>';
+            html += 'Errors: ' + errs.length + '<br>';
+            errs.forEach(function(e) { html += '- ' + e + '<br>'; });
+            diag.innerHTML = html;
+        }
+        setTimeout(updateDiag, 500);
+        setTimeout(updateDiag, 2000);
+    })();
+    </script>
 </body>
 </html>

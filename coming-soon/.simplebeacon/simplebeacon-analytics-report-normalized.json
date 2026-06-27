@@ -1,0 +1,56 @@
+{
+  "title": "Analytics Report",
+  "qualityScore": 94,
+  "totalFiles": 39936,
+  "filesAnalyzed": 39936,
+  "gate": {
+    "pass": true,
+    "blockingCount": 2
+  },
+  "severityCounts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 41,
+    "low": 316
+  },
+  "criticalCount": 0,
+  "highCount": 1,
+  "mediumCount": 41,
+  "lowCount": 316,
+  "rawIssues": [
+    {
+      "type": "Invalid JSON",
+      "severity": "high",
+      "description": "launch.json: Expected property name or '}' in JSON at position 5 (line 2 column 3)",
+      "file": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\.vscode-test\\vscode-win32-x64-archive-1.125.1\\fcf604774b\\resources\\app\\extensions\\debug-auto-launch\\.vscode\\launch.json",
+      "line": 0,
+      "count": 1,
+      "category": "Invalid JSON",
+      "recommendedAction": "Fix JSON syntax errors in mock data"
+    }
+  ],
+  "detectedIssues": [
+    {
+      "type": "Invalid JSON",
+      "severity": "high",
+      "description": "launch.json: Expected property name or '}' in JSON at position 5 (line 2 column 3)",
+      "file": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\.vscode-test\\vscode-win32-x64-archive-1.125.1\\fcf604774b\\resources\\app\\extensions\\debug-auto-launch\\.vscode\\launch.json",
+      "line": 0,
+      "count": 1,
+      "category": "Invalid JSON",
+      "recommendedAction": "Fix JSON syntax errors in mock data"
+    }
+  ],
+  "issues": [
+    {
+      "type": "Invalid JSON",
+      "severity": "high",
+      "description": "launch.json: Expected property name or '}' in JSON at position 5 (line 2 column 3)",
+      "file": "C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\.vscode-test\\vscode-win32-x64-archive-1.125.1\\fcf604774b\\resources\\app\\extensions\\debug-auto-launch\\.vscode\\launch.json",
+      "line": 0,
+      "count": 1,
+      "category": "Invalid JSON",
+      "recommendedAction": "Fix JSON syntax errors in mock data"
+    }
+  ]
+}

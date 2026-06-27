@@ -3,7 +3,7 @@
  * Offloads analyzer execution from the main UI thread.
  */
 
-const MAX_DISCOVERED_FILES = 100000;
+const MAX_DISCOVERED_FILES = 500000;
 
 const LANGUAGE_REGISTRY = {
     javascript: { extensions: ['js','cjs','mjs','ts','tsx','jsx'] },
@@ -28,10 +28,6 @@ const PATTERN_REGISTRY = {
     credentials: {
         appliesTo: ['javascript','python','java','go','rust','php','ruby','dotnet'],
         pattern: /(password|passwd|pwd|secret|token|api[_-]?key|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
-    },
-    mockData: {
-        appliesTo: ['javascript','python','java','go','rust','php','ruby','dotnet'],
-        pattern: /test[-_]?data|fixture|mock|stub|dummy|sample|example.*data/gi
     },
     euAiAct: {
         appliesTo: ['javascript'],
@@ -166,11 +162,11 @@ async function simpleHash(str) {
 /**
  * Check if a file path should be skipped (node_modules, cache, test files).
  */
-function shouldSkipFile(path) {
+function shouldSkipFile(path, deepScan) {
     const normalized = path.replace(/\\/g, '/');
     if (/(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups)([\/]|$)/i.test(normalized)) return true;
-    if (/(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/)/i.test(normalized)) return true;
-    if (/\.min\.js$|\.pack\.js$|\.bundle\.js$|\.map$/i.test(normalized)) return true;
+    if (!deepScan && /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/)/i.test(normalized)) return true;
+    if (!deepScan && /\.min\.js$|\.pack\.js$|\.bundle\.js$|\.map$/i.test(normalized)) return true;
     return false;
 }
 
@@ -197,14 +193,14 @@ function runAnalyzer(name, text, filePath) {
 /**
  * Process a batch of files through all analyzers.
  */
-async function scanFiles(files) {
+async function scanFiles(files, deepScan) {
     const allResults = [];
     const issues = [];
     let processed = 0;
 
     let textErrors = 0;
     for (const file of files) {
-        if (shouldSkipFile(file.path)) continue;
+        if (shouldSkipFile(file.path, deepScan)) continue;
 
         try {
             const fileObj = file.fileObj || file;
@@ -266,7 +262,7 @@ self.onmessage = async (e) => {
         self.postMessage({ type: 'started', scanId, totalFiles: files.length });
 
         try {
-            const results = await scanFiles(files);
+            const results = await scanFiles(files, e.data.deepScan);
             self.postMessage({ type: 'complete', scanId, ...results });
         } catch (err) {
             self.postMessage({ type: 'error', scanId, error: err.message });

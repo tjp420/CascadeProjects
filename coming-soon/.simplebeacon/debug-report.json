@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-06-26T04:57:32.441Z",
+  "extensionVersion": "3.0.309",
+  "vscodeVersion": "1.107.0-next",
+  "entryCount": 1,
+  "entries": [
+    {
+      "timestamp": "2026-06-26T04:57:32.432Z",
+      "type": "command",
+      "source": "extension",
+      "detail": {
+        "command": "simplebeacon.openSettings",
+        "args": []
+      }
+    }
+  ]
+}

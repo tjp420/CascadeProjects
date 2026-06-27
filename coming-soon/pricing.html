@@ -294,7 +294,7 @@
           <a href="roadmap.html">Roadmap</a>
           <a href="audit.html">Audit</a>
           <a href="pricing.html">Pricing</a>
-          <a href="/simplebeacon-dashboard/" id="vaultLink">Teams Dashboard</a>
+          <a href="/dashboard/dashboard" id="vaultLink">Team Dashboard</a>
           <script>
           (function() {
             var params = new URLSearchParams(window.location.search);
@@ -346,7 +346,7 @@
       <div class="free-audit-cta" data-animate="fade-up" data-delay="250" style="max-width:560px;margin:0 auto 32px;padding:28px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);border-radius:14px;text-align:center;">
         <p style="font-size:1rem;color:var(--text-primary);font-weight:600;margin-bottom:8px;">Claim your free audit</p>
         <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">Run a full security, compliance, and quality scan on your repository — no credit card required.</p>
-        <a href="upload.html" style="display:inline-block;padding:12px 28px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:0.9rem;font-weight:600;text-decoration:none;transition:all 0.2s;cursor:pointer;">Start Free Audit &rarr;</a>
+        <a href="certificate-upload.html" style="display:inline-block;padding:12px 28px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:0.9rem;font-weight:600;text-decoration:none;transition:all 0.2s;cursor:pointer;">Start Free Audit &rarr;</a>
       </div>
 
       <div style="background:linear-gradient(135deg,rgba(217,119,6,0.12),rgba(220,38,38,0.08));border:1px solid rgba(217,119,6,0.3);border-radius:16px;padding:20px 24px;margin-bottom:32px;text-align:center;" data-animate="fade-up" data-delay="280">
@@ -759,9 +759,7 @@
       btn.textContent = 'Redirecting to Stripe…';
       errorEl.style.display = 'none';
 
-      var isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-      var isFile = location.protocol === 'file:';
-      var apiBase = (isLocal || isFile) ? 'http://localhost:3001' : 'https://simplebeacon.onrender.com';
+      var apiBase = 'https://simplebeacon.onrender.com';
 
       // Subscription tiers: startup/growth/enterprise
       var subscriptionTiers = ['startup_shield', 'growth_shield', 'compliance_suite'];
@@ -1080,9 +1078,7 @@
       var originalText = btn.textContent;
       btn.textContent = 'Generating…';
 
-      var isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-      var isFile = location.protocol === 'file:';
-      var apiBase = (isLocal || isFile) ? 'http://localhost:3001' : 'https://simplebeacon.onrender.com';
+      var apiBase = 'https://simplebeacon.onrender.com';
 
       var checkoutEmail = document.getElementById('modalEmail')?.value?.trim() || '';
       var checkoutProject = document.getElementById('modalProjectName')?.value?.trim() || '';
